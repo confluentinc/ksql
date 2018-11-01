@@ -188,8 +188,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockMetaStore.getSource(anyObject())).andReturn(null);
     expect(mockEngine.buildMultipleQueries(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
-    expect(mockEngine.hasReachedMaxNumberOfPersistentQueries(anyObject()))
-        .andReturn(false);
     mockQueryMetadata.start();
     expectLastCall();
 
@@ -423,36 +421,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(dropStreamCommandStatus3.get().getStatus(),
                CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
 
-  }
-
-  @Test
-  public void shouldFailIfExceedActivePersistentQueriesLimit() {
-    // Create streams and start two persistent queries
-    createStreamsAndTables();
-
-    // Try adding a third
-    final Command csasCommand = new Command(
-        "CREATE STREAM user2pv AS "
-            + "select * from pageview"
-            + " WHERE userid = 'user2';",
-        Collections.emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-
-    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
-        "_CSASGen2",
-        CommandId.Action.CREATE);
-    statementExecutor.handleStatement(csasCommand, csasCommandId, Optional.empty());
-
-    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(csasCommandId);
-
-    // CSAS statement should fail since exceeds limit of 2 active persistent queries
-    Assert.assertTrue(commandStatus.isPresent());
-    assertThat(commandStatus.get().getStatus(), equalTo(CommandStatus.Status.ERROR));
-    assertThat(
-        commandStatus.get().getMessage(),
-        containsString(
-            "the statement causes the limit on number of active, "
-            + "persistent queries to be exceeded"));
   }
 
   private void createStreamsAndTables() {

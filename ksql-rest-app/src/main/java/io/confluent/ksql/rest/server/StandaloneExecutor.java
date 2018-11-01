@@ -235,6 +235,7 @@ public class StandaloneExecutor implements Executable {
 
   private void executeStatements(final String queries) {
     final List<PreparedStatement> preparedStatements = ksqlEngine.parseStatements(queries);
+    ksqlEngine.checkPersistentQueryCapacity(preparedStatements, ksqlConfig, queries);
 
     if (failOnNoQueries) {
       final boolean noQueries = preparedStatements.stream()
@@ -256,18 +257,6 @@ public class StandaloneExecutor implements Executable {
   private void handlePersistentQuery(
       final String statementString,
       final Map<String, Object> configProperties) {
-    if (ksqlEngine.hasReachedMaxNumberOfPersistentQueries(ksqlConfig)) {
-      throw new KsqlException(
-          String.format(
-              "Not executing query '%s' since the limit on number of active, persistent queries "
-                  + "has been reached (%d persistent queries currently running. Limit is %d). "
-                  + "This limit can be reconfigured via the 'ksql-server.properties' file.",
-              statementString,
-              ksqlEngine.numberOfPersistentQueries(),
-              ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
-          )
-      );
-    }
     final List<QueryMetadata> queryMetadataList =
         ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
     if (queryMetadataList.size() != 1

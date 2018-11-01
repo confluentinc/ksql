@@ -192,7 +192,7 @@ public class StreamedQueryResourceTest {
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
             rowQueue, DataSource.DataSourceType.KSTREAM, "",
-            mockKafkaTopicClient, null, Collections.emptyMap());
+            mockKafkaTopicClient, null, Collections.emptyMap(), md -> {});
     reset(mockOutputNode);
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));

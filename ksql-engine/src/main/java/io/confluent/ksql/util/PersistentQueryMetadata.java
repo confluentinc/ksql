@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -47,10 +48,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final KafkaTopicClient kafkaTopicClient,
                                  final KsqlTopic resultTopic,
                                  final Topology topology,
-                                 final Map<String, Object> overriddenProperties) {
+                                 final Map<String, Object> overriddenProperties,
+                                 final Consumer<QueryMetadata> onStartEvent) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
+          queryApplicationId, kafkaTopicClient, topology, overriddenProperties,
+          onStartEvent);
     this.id = id;
     this.resultTopic = resultTopic;
     this.sinkNames = new HashSet<>();

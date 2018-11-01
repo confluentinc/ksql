@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
@@ -32,6 +33,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
   private final AtomicBoolean isRunning = new AtomicBoolean(true);
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public QueuedQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
@@ -42,9 +44,12 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final String queryApplicationId,
       final KafkaTopicClient kafkaTopicClient,
       final Topology topology,
-      final Map<String, Object> overriddenProperties) {
+      final Map<String, Object> overriddenProperties,
+      final Consumer<QueryMetadata> onStartEvent) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
+          queryApplicationId, kafkaTopicClient, topology, overriddenProperties,
+          onStartEvent);
     this.rowQueue = rowQueue;
   }
 

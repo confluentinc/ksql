@@ -96,7 +96,7 @@ public class QueryDescriptionTest {
     final QueryMetadata queryMetadata = new QueuedQueryMetadata(
         "test statement", queryStreams, outputNode, "execution plan",
         new LinkedBlockingQueue<>(), DataSource.DataSourceType.KSTREAM, "app id",
-        null, topology, streamsProperties);
+        null, topology, streamsProperties, md -> {});
 
     final QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
 
@@ -131,7 +131,7 @@ public class QueryDescriptionTest {
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(
         "test statement", queryStreams, outputNode, fakeSink,"execution plan",
         new QueryId("query_id"), DataSource.DataSourceType.KSTREAM, "app id", null,
-        sinkTopic, topology, streamsProperties);
+        sinkTopic, topology, streamsProperties, md -> {});
     final QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
     assertThat(queryDescription.getId().getId(), equalTo("query_id"));
     assertThat(queryDescription.getSinks(), equalTo(Collections.singleton("fake_sink")));

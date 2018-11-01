@@ -262,16 +262,12 @@ public class KsqlEngine implements Closeable {
 
     for (final QueryMetadata queryMetadata : runningQueries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        livePersistentQueries.add(queryMetadata);
         final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-        persistentQueries.put(persistentQueryMd.getQueryId(), persistentQueryMd);
         metaStore.updateForPersistentQuery(persistentQueryMd.getQueryId().getId(),
-                                           persistentQueryMd.getSourceNames(),
-                                           persistentQueryMd.getSinkNames());
+            persistentQueryMd.getSourceNames(),
+            persistentQueryMd.getSinkNames());
       }
-      allLiveQueries.add(queryMetadata);
     }
-    engineMetrics.registerQueries(runningQueries);
     return runningQueries;
   }
 
@@ -515,13 +511,14 @@ public class KsqlEngine implements Closeable {
   }
 
   public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
+    metaStore.removePersistentQuery(queryId.getId());
+
     final PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
     if (persistentQueryMetadata == null) {
       return false;
     }
     livePersistentQueries.remove(persistentQueryMetadata);
     allLiveQueries.remove(persistentQueryMetadata);
-    metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
     if (closeStreams) {
       persistentQueryMetadata.close();
       persistentQueryMetadata.cleanUpInternalTopicAvroSchemas(schemaRegistryClient);
@@ -552,14 +549,65 @@ public class KsqlEngine implements Closeable {
     return this.livePersistentQueries.size();
   }
 
-  public boolean hasReachedMaxNumberOfPersistentQueries(final KsqlConfig ksqlConfig) {
-    return numberOfPersistentQueries()
-        >= ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
+  public boolean hasCapacityForPersistentQueries(
+      final long numQueries, final KsqlConfig ksqlConfig) {
+    return (numberOfPersistentQueries() + numQueries)
+        <= ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
   }
 
-  public boolean hasExceededMaxNumberOfPersistentQueries(final KsqlConfig ksqlConfig) {
-    return numberOfPersistentQueries()
-        > ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
+  public void checkPersistentQueryCapacity(final List<PreparedStatement> parsedStatements,
+                                           final KsqlConfig ksqlConfig,
+                                           final String queriesString) {
+    final long numPersistentQueries = parsedStatements.stream().filter(parsedStatement -> {
+      final Statement statement = parsedStatement.getStatement();
+      // Note: RunScript commands also have the potential to create persistent queries,
+      // but we don't count those queries here (to avoid parsing those commands)
+      return statement instanceof CreateAsSelect || statement instanceof InsertInto;
+    }).count();
+
+    if (!hasCapacityForPersistentQueries(numPersistentQueries, ksqlConfig)) {
+      throw new KsqlException(
+          String.format(
+              "Not executing statements '%s' since they would cause the limit on number "
+                  + "of active, persistent queries to be exceeded "
+                  + "(%d persistent queries currently running. "
+                  + "Statements attempt to add %d new persistent queries. "
+                  + "Limit is %d)."
+                  + "Use the TERMINATE command to terminate existing queries "
+                  + "(if running in interactive mode), "
+                  + "or reconfigure the limit via the 'ksql-server.properties' file.",
+              queriesString,
+              numberOfPersistentQueries(),
+              numPersistentQueries,
+              ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
+          )
+      );
+    }
+  }
+
+  public void addActiveQuery(final QueryMetadata queryMetadata, final KsqlConfig ksqlConfig) {
+    if (queryMetadata instanceof PersistentQueryMetadata) {
+      if (!hasCapacityForPersistentQueries(1, ksqlConfig)) {
+        throw new KsqlException(String.format(
+            "Not executing statement '%s' since it would cause the limit on number "
+                + "of active, persistent queries to be exceeded "
+                + "(%d persistent queries currently running. "
+                + "Limit is %d)."
+                + "Use the TERMINATE command to terminate existing queries "
+                + "(if running in interactive mode), "
+                + "or reconfigure the limit via the 'ksql-server.properties' file.",
+            queryMetadata.getStatementString(),
+            numberOfPersistentQueries(),
+            ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
+        ));
+      }
+
+      livePersistentQueries.add(queryMetadata);
+      final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+      persistentQueries.put(persistentQueryMd.getQueryId(), persistentQueryMd);
+    }
+    allLiveQueries.add(queryMetadata);
+    engineMetrics.registerQuery(queryMetadata);
   }
 
   @Override

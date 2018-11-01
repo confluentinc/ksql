@@ -215,7 +215,8 @@ class QueryEngine {
         metaStore,
         ksqlEngine.getSchemaRegistryClientFactory(),
         ksqlEngine.getQueryIdGenerator(),
-        new KafkaStreamsBuilderImpl(clientSupplier)
+        new KafkaStreamsBuilderImpl(clientSupplier),
+        queryMetadata -> ksqlEngine.addActiveQuery(queryMetadata, ksqlConfig)
     );
     physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode));
   }

@@ -74,6 +74,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -507,9 +508,6 @@ public class KsqlResourceTest {
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
           .andDelegateTo(realEngine);
-      EasyMock.expect(
-          mockEngine.hasReachedMaxNumberOfPersistentQueries(EasyMock.anyObject(KsqlConfig.class)))
-          .andReturn(false);
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
     });
@@ -531,9 +529,9 @@ public class KsqlResourceTest {
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
           .andDelegateTo(realEngine);
-      EasyMock.expect(
-          mockEngine.hasReachedMaxNumberOfPersistentQueries(EasyMock.anyObject(KsqlConfig.class)))
-          .andReturn(true);
+      mockEngine.checkPersistentQueryCapacity(
+          EasyMock.anyObject(), EasyMock.anyObject(KsqlConfig.class), EasyMock.anyString());
+      EasyMock.expectLastCall().andThrow(new KsqlException("oh no!"));
     });
 
     // When:
@@ -542,10 +540,10 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
-    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(
         result.getMessage(),
-        containsString("the limit on number of active, persistent queries has been reached")
+        containsString("oh no!")
     );
     EasyMock.verify(ksqlEngine);
   }
@@ -735,10 +733,15 @@ public class KsqlResourceTest {
   private List<PersistentQueryMetadata> createQueries(
       final String sql,
       final Map<String, Object> overriddenProperties) {
-    return ksqlEngine.buildMultipleQueries(sql, ksqlConfig, overriddenProperties)
-        .stream()
-        .map(PersistentQueryMetadata.class::cast)
-        .collect(Collectors.toList());
+    final List<PersistentQueryMetadata> queryMetadataList =
+        ksqlEngine.buildMultipleQueries(sql, ksqlConfig, overriddenProperties)
+            .stream()
+            .map(PersistentQueryMetadata.class::cast)
+            .collect(Collectors.toList());
+    for (final QueryMetadata queryMetadata : queryMetadataList) {
+      queryMetadata.start();
+    }
+    return queryMetadataList;
   }
 
   @SuppressWarnings("SameParameterValue")

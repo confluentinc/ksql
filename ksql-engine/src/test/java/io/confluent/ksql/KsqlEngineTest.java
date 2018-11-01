@@ -321,6 +321,9 @@ public class KsqlEngineTest {
         "create stream s1  with (value_format = 'avro') as select * from test1;"
         + "create table t1 as select col1, count(*) from s1 group by col1;",
         ksqlConfig, Collections.emptyMap());
+    for (final QueryMetadata queryMetadata : queries) {
+      ksqlEngine.addActiveQuery(queryMetadata, ksqlConfig);
+    }
     final Schema schema = SchemaBuilder
         .record("Test").fields()
         .name("clientHash").type().fixed("MD5").size(16).noDefault()

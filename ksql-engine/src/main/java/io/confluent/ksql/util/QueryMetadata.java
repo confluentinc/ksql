@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
@@ -46,6 +47,7 @@ public class QueryMetadata {
   private final Topology topoplogy;
   private final Map<String, Object> overriddenProperties;
   private final Set<String> sourceNames;
+  private final Consumer<QueryMetadata> onStartQueryEvent;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
 
@@ -57,7 +59,8 @@ public class QueryMetadata {
                        final String queryApplicationId,
                        final KafkaTopicClient kafkaTopicClient,
                        final Topology topoplogy,
-                       final Map<String, Object> overriddenProperties) {
+                       final Map<String, Object> overriddenProperties,
+                       final Consumer<QueryMetadata> onStartQueryEvent) {
     this.statementString = statementString;
     this.kafkaStreams = kafkaStreams;
     this.outputNode = outputNode;
@@ -70,6 +73,7 @@ public class QueryMetadata {
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
     visitor.process(outputNode, null);
     this.sourceNames = visitor.getSourceNames();
+    this.onStartQueryEvent = Objects.requireNonNull(onStartQueryEvent, "onStartEvent");
   }
 
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
@@ -180,6 +184,7 @@ public class QueryMetadata {
 
   public void start() {
     log.info("Starting query with application id: {}", queryApplicationId);
+    onStartQueryEvent.accept(this);
     queryStateListener.ifPresent(kafkaStreams::setStateListener);
     kafkaStreams.start();
   }

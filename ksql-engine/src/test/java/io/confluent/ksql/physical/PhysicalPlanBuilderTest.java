@@ -134,7 +134,8 @@ public class PhysicalPlanBuilderTest {
         metaStore,
         schemaRegistryClientFactory,
         new QueryIdGenerator(),
-        testKafkaStreamsBuilder
+        testKafkaStreamsBuilder,
+        md -> {}
     );
 
   }

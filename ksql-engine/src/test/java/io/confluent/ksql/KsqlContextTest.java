@@ -102,7 +102,8 @@ public class KsqlContextTest {
                                                                                   null,
                                                                                   null,
                                                                                   null,
-                                                                                  null);
+                                                                                  null,
+                                                                                  md -> {});
 
     return Collections.singletonList(persistentQueryMetadata);
   }

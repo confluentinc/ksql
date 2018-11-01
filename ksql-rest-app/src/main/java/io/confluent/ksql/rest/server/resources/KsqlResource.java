@@ -161,6 +161,7 @@ public class KsqlResource {
 
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
+      ksqlEngine.checkPersistentQueryCapacity(parsedStatements, ksqlConfig, request.getKsql());
     } catch (final ParseFailedException e) {
       return Errors.badStatement(e.getCause(), e.getSqlStatement(), result);
     } catch (final KsqlException e) {
@@ -168,7 +169,6 @@ public class KsqlResource {
     }
 
     final Map<String, Object> streamsProperties = request.getStreamsProperties();
-
     for (final PreparedStatement parsedStatement : parsedStatements) {
       final String statementText = parsedStatement.getStatementText();
       final Statement statement = parsedStatement.getStatement();
@@ -193,35 +193,15 @@ public class KsqlResource {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  // CHECKSTYLE_RULES_OFF: NPathComplexity
   private void validateStatement(
       final KsqlEntityList entities, final String statementText, final Statement statement,
       final Map<String, Object> streamsProperties) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    // CHECKSTYLE_RULES_ON: NPathComplexity
     if (statement == null) {
       throw new KsqlRestException(
           Errors.badStatement(
               String.format("Unable to execute statement '%s'", statementText),
               statementText, entities));
-    }
-
-    if (Stream.of(CreateAsSelect.class, InsertInto.class, RunScript.class)
-        .anyMatch(c -> c.isInstance(statement))
-        && ksqlEngine.hasReachedMaxNumberOfPersistentQueries(ksqlConfig)) {
-      throw new KsqlException(
-          String.format(
-              "Not executing statement '%s' since the limit on number "
-                  + "of active, persistent queries has been reached "
-                  + "(%d persistent queries currently running. Limit is %d). "
-                  + "Use the TERMINATE command to terminate existing queries "
-                  + "(if running in interactive mode), "
-                  + "or reconfigure the limit via the 'ksql-server.properties' file.",
-              statementText,
-              ksqlEngine.numberOfPersistentQueries(),
-              ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
-          )
-      );
     }
 
     if (Stream.of(

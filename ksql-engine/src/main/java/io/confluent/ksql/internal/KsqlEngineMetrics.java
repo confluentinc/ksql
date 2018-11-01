@@ -108,14 +108,14 @@ public class KsqlEngineMetrics implements Closeable {
     return sensors;
   }
 
-  public void registerQueries(final List<QueryMetadata> queryMetadataList) {
-    queryMetadataList.forEach(queryMetadata -> queryMetadata.registerQueryStateListener(
+  public void registerQuery(final QueryMetadata queryMetadata) {
+    queryMetadata.registerQueryStateListener(
         new QueryStateListener(
             metrics,
             queryMetadata.getKafkaStreams(),
             queryMetadata.getQueryApplicationId()
         )
-    ));
+    );
   }
 
   private void recordMessageConsumptionByQueryStats(

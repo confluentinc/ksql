@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -72,7 +73,9 @@ public class PhysicalPlanBuilder {
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
+  private final Consumer<QueryMetadata> onStartQueryEvent;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PhysicalPlanBuilder(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
@@ -83,8 +86,10 @@ public class PhysicalPlanBuilder {
       final MetaStore metaStore,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final QueryIdGenerator queryIdGenerator,
-      final KafkaStreamsBuilder kafkaStreamsBuilder
+      final KafkaStreamsBuilder kafkaStreamsBuilder,
+      final Consumer<QueryMetadata> onStartQueryEvent
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.builder = builder;
     this.ksqlConfig = ksqlConfig;
     this.kafkaTopicClient = kafkaTopicClient;
@@ -95,6 +100,7 @@ public class PhysicalPlanBuilder {
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
     this.queryIdGenerator = queryIdGenerator;
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
+    this.onStartQueryEvent = Objects.requireNonNull(onStartQueryEvent, "onStartQueryEvent");
   }
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
@@ -194,7 +200,8 @@ public class PhysicalPlanBuilder {
         applicationId,
         kafkaTopicClient,
         builder.build(),
-        overriddenStreamsProperties
+        overriddenStreamsProperties,
+        onStartQueryEvent
     );
   }
 
@@ -272,7 +279,8 @@ public class PhysicalPlanBuilder {
         kafkaTopicClient,
         sinkDataSource.getKsqlTopic(),
         topology,
-        overriddenStreamsProperties
+        overriddenStreamsProperties,
+        onStartQueryEvent
     );
   }
 

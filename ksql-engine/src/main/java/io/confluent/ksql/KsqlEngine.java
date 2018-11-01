@@ -579,8 +579,6 @@ public class KsqlEngine implements Closeable {
   }
 
 
-
-
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
     return schemaRegistryClientFactory;
   }
@@ -609,7 +607,7 @@ public class KsqlEngine implements Closeable {
     return allLiveQueries;
   }
 
-  public void stopAcceptingStatemens() {
+  public void stopAcceptingStatements() {
     acceptingStatements.set(false);
   }
 

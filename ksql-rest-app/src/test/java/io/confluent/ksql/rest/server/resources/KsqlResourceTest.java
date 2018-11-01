@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
@@ -74,7 +75,7 @@ import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.utils.TestUtils;
-import io.confluent.ksql.rest.util.CommandTopicUtil;
+import io.confluent.ksql.rest.util.CommandTopic;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
@@ -98,7 +99,6 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -696,25 +696,21 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForInvalidTerminateClusterParameters() {
+    // Given:
     final Map<String, Object> properties = new HashMap<>();
-    properties.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, Collections.singletonList("FOO"));
+    properties.put("DELETE_TOPIC_LIS", Collections.singletonList("FOO"));
     final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
     final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
+
+    // When:
     final Response response = testResource.terminateCluster(ksqlRequest);
-    assertThat(response.getStatus(), equalTo(200));
-  }
-  @Test
-  public void shouldFailForMisSpelledTerminateClusterParameters() {
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, Collections.singletonList("FOO"));
-    final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
-    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
-    final Response response = testResource.terminateCluster(ksqlRequest);
-    assertThat(response.getStatus(), equalTo(200));
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(500));
+    assertThat(response.getEntity().toString(), startsWith("Invalid request parameter"));
   }
 
   private static class TestKsqlResourceUtil {
-
     public static final long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = 1000;
 
     public static KsqlResource get(final KsqlConfig ksqlConfig, final KsqlEngine ksqlEngine) {
@@ -732,15 +728,14 @@ public class KsqlResourceTest {
           getJsonSerializer(false)
       );
 
-      final CommandStore commandStore = new CommandStore("__COMMANDS_TOPIC",
-          new CommandIdAssigner(ksqlEngine.getMetaStore()), new CommandTopicUtil(commandConsumer, commandProducer));
+      final CommandStore commandStore = EasyMock.niceMock(CommandStore.class);
       return get(ksqlConfig, ksqlEngine, commandStore);
     }
 
-    public static KsqlResource get(final KsqlConfig ksqlConfig,
+    public static KsqlResource get(
+        final KsqlConfig ksqlConfig,
         final KsqlEngine ksqlEngine,
         final CommandStore commandStore) {
-//      addTestTopicAndSources(ksqlEngine.getMetaStore(), ksqlEngine.getTopicClient());
       return new KsqlResource(ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
     }
 

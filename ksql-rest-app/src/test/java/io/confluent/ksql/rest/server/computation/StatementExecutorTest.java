@@ -38,6 +38,7 @@ import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -50,6 +51,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -68,6 +70,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
@@ -446,19 +449,8 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldTerminateClusterAndKeepList() throws IOException {
-    final List<String> keepSources = Collections.singletonList("FOO");
-    final Map<String, Object> props = new HashMap<>();
-    props.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, keepSources);
-    final Command command = new Command(
-        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
-        props,
-        Collections.emptyMap());
-    testTerminateClusterForCommand(command, 2);
-  }
-
-  @Test
   public void shouldTerminateClusterAndDeleteList() throws IOException {
+    // Given:
     final List<String> deleteSources = Collections.singletonList("FOO");
     final Map<String, Object> props = new HashMap<>();
     props.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, deleteSources);
@@ -466,7 +458,9 @@ public class StatementExecutorTest extends EasyMockSupport {
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
         props,
         Collections.emptyMap());
-    testTerminateClusterForCommand(command, 1);
+
+    // When:
+    testTerminateClusterForCommand(command, true);
   }
 
   @Test
@@ -475,11 +469,11 @@ public class StatementExecutorTest extends EasyMockSupport {
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
         Collections.emptyMap(),
         Collections.emptyMap());
-    testTerminateClusterForCommand(command, 3);
+    testTerminateClusterForCommand(command, false);
   }
 
   @SuppressWarnings("unchecked")
-  private void testTerminateClusterForCommand(final Command command, final int deleteCount) throws IOException {
+  private void testTerminateClusterForCommand(final Command command, final boolean needsMetastore) throws IOException {
     final CommandId commandId = mock(CommandId.class);
     final KsqlEngine ksqlEngine = niceMock(KsqlEngine.class);
     final KafkaTopicClient kafkaTopicClient = niceMock(KafkaTopicClient.class);
@@ -490,64 +484,62 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(ksqlEngine.getSchemaRegistryClient()).andReturn(schemaRegistryClient).anyTimes();
 
     final CommandStore commandStore = mock(CommandStore.class);
-    final PersistentQueryMetadata persistentQueryMetadata = niceMock(PersistentQueryMetadata.class);
-    final QueuedQueryMetadata queuedQueryMetadata = niceMock(QueuedQueryMetadata.class);
-    final Set<QueryMetadata> queryMetadata = new HashSet<>();
-    queryMetadata.add(persistentQueryMetadata);
-    queryMetadata.add(queuedQueryMetadata);
-    expect(ksqlEngine.getAllLiveQueries()).andReturn(queryMetadata);
+    expect(ksqlEngine.getAllLiveQueries()).andReturn(Collections.emptySet());
 
-    final QueryId queryId = new QueryId("q1");
-    expect(persistentQueryMetadata.getQueryId()).andReturn(queryId);
-    expect(ksqlEngine.terminateQuery(eq(queryId), eq(true))).andReturn(true);
-    queuedQueryMetadata.close();
-    expectLastCall();
     commandStore.close();
     expectLastCall();
 
-    final StructuredDataSource structuredDataSource1 = new KsqlStream(
-        "",
-        "FOO",
-        niceMock(Schema.class),
-        null,
-        null,
-        null
-    );
+    if (needsMetastore) {
+      final StructuredDataSource structuredDataSource1 = new KsqlStream(
+          "",
+          "FOO",
+          niceMock(Schema.class),
+          null,
+          null,
+          new KsqlTopic("FOO_Stream", "FOO", null, true),
+          Serdes.String()
+      );
 
-    final StructuredDataSource structuredDataSource2 = new KsqlTable(
-        "",
-        "BAR",
-        niceMock(Schema.class),
-        null,
-        null,
-        null,
-        "",
-        false
-    );
-    final StructuredDataSource structuredDataSource3 = new KsqlStream(
-        "",
-        "TAB",
-        niceMock(Schema.class),
-        null,
-        null,
-        null
-    );
+      final StructuredDataSource structuredDataSource2 = new KsqlTable(
+          "",
+          "BAR",
+          niceMock(Schema.class),
+          null,
+          null,
+          new KsqlTopic("BAR_Stream", "BAR", null, true),
+          "",
+          Serdes.String()
+      );
+      final StructuredDataSource structuredDataSource3 = new KsqlStream(
+          "",
+          "TAB",
+          niceMock(Schema.class),
+          null,
+          null,
+          new KsqlTopic("TAB_Stream", "TAB", null, true),
+          Serdes.String()
+      );
 
-    final MetaStore metaStore = new MetaStoreImpl(niceMock(FunctionRegistry.class));
-    metaStore.putSource(structuredDataSource1);
-    metaStore.putSource(structuredDataSource2);
-    metaStore.putSource(structuredDataSource3);
+      final MetaStore metaStore = new MetaStoreImpl(niceMock(FunctionRegistry.class));
+      metaStore.putSource(structuredDataSource1);
+      metaStore.putTopic(structuredDataSource1.getKsqlTopic());
+      metaStore.putSource(structuredDataSource2);
+      metaStore.putTopic(structuredDataSource2.getKsqlTopic());
+      metaStore.putSource(structuredDataSource3);
+      metaStore.putTopic(structuredDataSource3.getKsqlTopic());
 
-    expect(ksqlEngine.getMetaStore()).andReturn(metaStore);
+      expect(ksqlEngine.getMetaStore()).andReturn(metaStore);
+    }
+
     final StatementExecutor statementExecutor = new StatementExecutor(
         new KsqlConfig(Collections.emptyMap()),
         ksqlEngine,
         mock(StatementParser.class),
         commandStore
     );
-    replay(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore);
+    replay(ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore);
     statementExecutor.handleStatement(command, commandId, Optional.empty());
-    verify(persistentQueryMetadata, queuedQueryMetadata, ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore);
+    verify(ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore);
   }
 
   private void createStreamsAndTables() {

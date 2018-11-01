@@ -47,7 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,9 +55,7 @@ import org.slf4j.LoggerFactory;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
  * as tracking their statuses as things move along.
  */
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class StatementExecutor {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
@@ -431,19 +428,14 @@ public class StatementExecutor {
 
   @SuppressWarnings("unchecked")
   private void terminateCluster(final Command command) {
-    this.ksqlEngine.stopAcceptingStatemens();
-    final List<String> deleteTopicList = command
-        .getOverwriteProperties().containsKey(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME)
-        ? ((List<String>) command.getOverwriteProperties()
-        .get(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME))
-        .stream()
-        .map(String::toUpperCase).collect(Collectors.toList())
-        : Collections.emptyList();
+    ksqlEngine.stopAcceptingStatements();
+
     commandStore.close();
-    new ClusterTerminator(
-        ksqlConfig,
-        ksqlEngine,
-        deleteTopicList)
-        .terminateCluster();
+
+    final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
+        .getOrDefault(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, Collections.emptyList());
+
+    new ClusterTerminator(ksqlConfig, ksqlEngine)
+        .terminateCluster(deleteTopicList);
   }
 }

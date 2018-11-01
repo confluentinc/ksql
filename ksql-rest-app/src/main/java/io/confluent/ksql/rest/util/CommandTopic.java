@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -48,32 +47,33 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CommandTopicUtil {
+public class CommandTopic {
 
-  private static final Logger log = LoggerFactory.getLogger(CommandTopicUtil.class);
+  private static final Logger log = LoggerFactory.getLogger(CommandTopic.class);
 
   private final Consumer<CommandId, Command> commandConsumer;
   private final Producer<CommandId, Command> commandProducer;
 
-  public CommandTopicUtil(
+  public CommandTopic(
       final String commandTopic,
       final Map<String, Object> commandConsumerProperties
   ) {
-    this.commandConsumer = new KafkaConsumer<>(
+    this(
+        new KafkaConsumer<>(
         commandConsumerProperties,
-        CommandTopicUtil.getJsonDeserializer(CommandId.class, true),
-        CommandTopicUtil.getJsonDeserializer(Command.class, false)
-    );
+        CommandTopic.getJsonDeserializer(CommandId.class, true),
+        CommandTopic.getJsonDeserializer(Command.class, false)
+    ),
 
-    this.commandProducer = new KafkaProducer<>(
+    new KafkaProducer<>(
         commandConsumerProperties,
-        CommandTopicUtil.getJsonSerializer(true),
-        CommandTopicUtil.getJsonSerializer(false)
-    );
+        CommandTopic.getJsonSerializer(true),
+        CommandTopic.getJsonSerializer(false)
+    ));
     commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
   }
 
-  public CommandTopicUtil(
+  public CommandTopic(
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer
   ) {
@@ -85,7 +85,6 @@ public class CommandTopicUtil {
   @SuppressWarnings("unchecked")
   public void send(final ProducerRecord producerRecord)
       throws ExecutionException, InterruptedException {
-    Objects.requireNonNull(producerRecord);
     commandProducer.send(producerRecord).get();
   }
 
@@ -144,24 +143,17 @@ public class CommandTopicUtil {
 
   public void close() {
     commandConsumer.wakeup();
+    commandConsumer.close();
     commandProducer.close();
   }
 
-  public Consumer<CommandId, Command> getCommandConsumer() {
-    return commandConsumer;
-  }
-
-  public Producer<CommandId, Command> getCommandProducer() {
-    return commandProducer;
-  }
-
-  public static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
+  private static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
     final Serializer<T> result = new KafkaJsonSerializer<>();
     result.configure(Collections.emptyMap(), isKey);
     return result;
   }
 
-  public static <T> Deserializer<T> getJsonDeserializer(
+  private static <T> Deserializer<T> getJsonDeserializer(
       final Class<T> classs,
       final boolean isKey) {
     final Deserializer<T> result = new KafkaJsonDeserializer<>();

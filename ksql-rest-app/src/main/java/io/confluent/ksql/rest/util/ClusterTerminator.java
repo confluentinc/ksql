@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.ExecutorUtil;
@@ -24,10 +25,10 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -35,84 +36,66 @@ public class ClusterTerminator {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final List<String> deleteTopicList;
-  private final KafkaTopicClient kafkaTopicClient;
 
   public ClusterTerminator(
       final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine,
-      final List<String> deleteTopicList
+      final KsqlEngine ksqlEngine
   ) {
+    Objects.requireNonNull(ksqlConfig, "ksqlConfig is null.");
+    Objects.requireNonNull(ksqlEngine, "ksqlEngine is null.");
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
-    this.kafkaTopicClient = ksqlEngine.getTopicClient();
-    this.deleteTopicList = deleteTopicList;
   }
 
+  // Todo: Fail requesst if user requests non-sink topic to be deleted using non-regex
   @SuppressWarnings("unchecked")
-  public void terminateCluster() {
-    ksqlEngine.stopAcceptingStatemens();
-    terminateCluster(ksqlEngine, deleteTopicList);
-    // Delete the command topic
-    deleteCommandTopic(ksqlConfig, ksqlEngine);
+  public void terminateCluster(final List<String> deleteTopicPatterns) {
+    ksqlEngine.stopAcceptingStatements();
+    terminateAllQueries();
+    deleteSinkTopics(deleteTopicPatterns);
+    deleteCommandTopic();
   }
 
-  private void terminateCluster(
-      final KsqlEngine ksqlEngine,
-      final List<String> deleteTopicList
-  ) {
-    terminateAllQueries();
+  private void deleteSinkTopics(final List<String> deleteTopicPatterns) {
+    if (deleteTopicPatterns.isEmpty()) {
+      return;
+    }
+
+    final List<Pattern> patterns = deleteTopicPatterns.stream()
+        .map(Pattern::compile)
+        .collect(Collectors.toList());
 
     // if we have the explicit list of topics to delete.
     final MetaStore metaStore = ksqlEngine.getMetaStore();
-    final List<Pattern> patterns = getDeleteTopicPatterns(deleteTopicList);
-    if (!deleteTopicList.isEmpty()) {
-      metaStore.getAllKsqlTopics()
-          .forEach((s, structuredDataSource) -> {
-            if (structuredDataSource.isKsqlSink()) {
-              deleteKafkaTopicIfRequested(structuredDataSource.getKafkaTopicName(), patterns);
-            }
-          });
-    }
+    final List<String> toDelete = metaStore.getAllKsqlTopics().values().stream()
+        .filter(KsqlTopic::isKsqlSink)
+        .map(KsqlTopic::getKafkaTopicName)
+        .filter(topicName -> topicShouldBeDeleted(topicName, patterns))
+        .collect(Collectors.toList());
+
+    ksqlEngine.getTopicClient().deleteTopics(toDelete);
+  }
+
+  private boolean topicShouldBeDeleted(final String topicName, final List<Pattern> patterns) {
+    return patterns.stream()
+        .anyMatch(pattern -> pattern.matcher(topicName).matches());
   }
 
   private void terminateAllQueries() {
-    getListForSet(ksqlEngine).forEach(
-        queryMetadata -> {
-          if (queryMetadata instanceof PersistentQueryMetadata) {
-            final PersistentQueryMetadata persistentQueryMetadata
-                = (PersistentQueryMetadata) queryMetadata;
-            ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
-          }  else {
-            queryMetadata.close();
-          }
-        }
-    );
+    new ArrayList<>(ksqlEngine.getAllLiveQueries())
+        .forEach(
+            queryMetadata -> {
+              if (queryMetadata instanceof PersistentQueryMetadata) {
+                final PersistentQueryMetadata persistentQueryMetadata
+                    = (PersistentQueryMetadata) queryMetadata;
+                ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
+              }  else {
+                queryMetadata.close();
+              }
+            });
   }
 
-  // This is needed because the checkstyle complains if we create this in place.
-  private List<QueryMetadata> getListForSet(
-      final KsqlEngine ksqlEngine
-  ) {
-    final List<QueryMetadata> queryMetadataList = new ArrayList<>();
-    queryMetadataList.addAll(ksqlEngine.getAllLiveQueries());
-    return queryMetadataList;
-  }
-
-  private void deleteKafkaTopicIfRequested(
-      final String kafkaTopicName,
-      final List<Pattern> patterns) {
-    for (final Pattern pattern: patterns) {
-      if (pattern.matcher(kafkaTopicName).matches()) {
-        kafkaTopicClient.deleteTopics(Collections.singletonList(kafkaTopicName));
-        return;
-      }
-    }
-  }
-
-  private void deleteCommandTopic(
-      final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine) {
+  private void deleteCommandTopic() {
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
     final KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();
@@ -126,12 +109,4 @@ public class ClusterTerminator {
           + commandTopic, e);
     }
   }
-
-  private List<Pattern> getDeleteTopicPatterns(final List<String> deleteTopicList) {
-    return deleteTopicList
-        .stream()
-        .map(Pattern::compile)
-        .collect(Collectors.toList());
-  }
-
 }

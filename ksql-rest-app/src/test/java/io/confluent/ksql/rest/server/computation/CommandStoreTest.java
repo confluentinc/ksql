@@ -34,7 +34,7 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.util.CommandTopicUtil;
+import io.confluent.ksql.rest.util.CommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -288,7 +288,7 @@ public class CommandStoreTest {
     return new CommandStore(
         COMMAND_TOPIC,
         commandIdAssigner,
-        new CommandTopicUtil(commandConsumer, commandProducer)
+        new CommandTopic(commandConsumer, commandProducer)
         );
   }
 

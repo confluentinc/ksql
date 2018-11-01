@@ -128,7 +128,6 @@ public class KsqlRestClient implements Closeable {
     return postRequest("ksql", jsonRequest, true, r -> r.readEntity(KsqlEntityList.class));
   }
 
-
   public RestResponse<CommandStatuses> makeStatusRequest() {
     return getRequest("status", CommandStatuses.class);
   }
@@ -365,5 +364,4 @@ public class KsqlRestClient implements Closeable {
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     return ClientBuilder.newBuilder().register(jsonProvider).build();
   }
-
 }

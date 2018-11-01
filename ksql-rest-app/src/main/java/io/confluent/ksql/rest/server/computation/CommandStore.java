@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.util.CommandTopicUtil;
+import io.confluent.ksql.rest.util.CommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
@@ -40,32 +40,32 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
 
   private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
 
-  private final String commandTopic;
-  private final CommandTopicUtil commandTopicUtil;
+  private final String commandTopicName;
+  private final CommandTopic commandTopic;
   private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
 
   public CommandStore(
-      final String commandTopic,
+      final String commandTopicName,
       final Map<String, Object> commandConsumerProperties,
       final CommandIdAssigner commandIdAssigner
   ) {
-    this.commandTopic = commandTopic;
+    this.commandTopicName = commandTopicName;
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
-    this.commandTopicUtil = new CommandTopicUtil(commandTopic, commandConsumerProperties);
+    this.commandTopic = new CommandTopic(commandTopicName, commandConsumerProperties);
   }
 
   // For testing
   public CommandStore(
-      final String commandTopic,
+      final String commandTopicName,
       final CommandIdAssigner commandIdAssigner,
-      final CommandTopicUtil commandTopicUtil
+      final CommandTopic commandTopic
   ) {
-    this.commandTopic = commandTopic;
+    this.commandTopicName = commandTopicName;
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
-    this.commandTopicUtil = commandTopicUtil;
+    this.commandTopic = commandTopic;
   }
 
   /**
@@ -73,7 +73,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    */
   @Override
   public void close() {
-    commandTopicUtil.close();
+    commandTopic.close();
   }
 
   /**
@@ -114,7 +114,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
         }
     );
     try {
-      commandTopicUtil.send(new ProducerRecord<>(commandTopic, commandId, command));
+      commandTopic.send(new ProducerRecord<>(commandTopicName, commandId, command));
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);
       throw new KsqlException(
@@ -135,11 +135,11 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    * @return The commands that have been polled from the command topic
    */
   public List<QueuedCommand> getNewCommands() {
-    return commandTopicUtil.getNewCommands(commandStatusMap);
+    return commandTopic.getNewCommands(commandStatusMap);
   }
 
   public RestoreCommands getRestoreCommands() {
-    return commandTopicUtil.getRestoreCommands(commandTopic, POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
+    return commandTopic.getRestoreCommands(commandTopicName, POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
   }
 
 }

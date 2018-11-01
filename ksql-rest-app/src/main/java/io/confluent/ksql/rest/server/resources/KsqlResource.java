@@ -159,6 +159,12 @@ public class KsqlResource {
   @Path("/terminate")
   public Response terminateCluster(final KsqlRequest request) {
     final KsqlEntityList result = new KsqlEntityList();
+    if (!validateTerminateRequest(request)) {
+      return Errors.serverErrorForStatement(
+          new KsqlException("Invalid request parameter."),
+          TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+          result);
+    }
     try {
       result.add(distributeStatement(
           TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
@@ -175,13 +181,8 @@ public class KsqlResource {
     return Response.ok(result).build();
   }
 
-
-
-  // CHECKSTYLE_RULES.OFF: NPathComplexity
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
-    // CHECKSTYLE_RULES.ON: NPathComplexity
-
     if (!ksqlEngine.isAcceptingStatements()) {
       return Errors.serverErrorForStatement(
           new KsqlException("The cluster has been terminated. No new request will be accepted."),
@@ -192,37 +193,30 @@ public class KsqlResource {
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
 
-    try {
-      parsedStatements = ksqlEngine.parseStatements(request.getKsql());
-    } catch (final ParseFailedException e) {
-      return Errors.badStatement(e.getCause(), e.getSqlStatement(), result);
-    } catch (final KsqlException e) {
-      return Errors.badRequest(e);
-    }
-
-    final Map<String, Object> streamsProperties = request.getStreamsProperties();
-
-    for (final PreparedStatement parsedStatement : parsedStatements) {
-      final String statementText = parsedStatement.getStatementText();
-      final Statement statement = parsedStatement.getStatement();
-
-      try {
-        validateStatement(result, statementText, statement, streamsProperties);
-      } catch (final KsqlRestException e) {
-        throw e;
-      } catch (final KsqlException e) {
-        return Errors.badStatement(e, statementText, result);
-      } catch (final Exception e) {
-        return Errors.serverErrorForStatement(e, statementText, result);
-      }
-
-      try {
-        result.add(executeStatement(statementText, statement, streamsProperties));
-      } catch (final Exception e) {
-        return Errors.serverErrorForStatement(e, statementText, result);
-      }
-    }
+    preparedStatements(request.getKsql()).stream()
+        .map(statement -> {
+          validateStatement(
+              result,
+              statement.getStatementText(),
+              statement.getStatement(),
+              request.getStreamsProperties());
+          return executeStatement(
+              statement.getStatementText(),
+              statement.getStatement(),
+              request.getStreamsProperties());
+        }).forEach(result::add);
     return Response.ok(result).build();
+  }
+
+  private List<PreparedStatement> preparedStatements(final String ksqlStatements) {
+    try {
+      return ksqlEngine.parseStatements(ksqlStatements);
+    } catch (final ParseFailedException e) {
+      throw new KsqlRestException(
+          Errors.badStatement(e.getCause(), e.getSqlStatement(), new KsqlEntityList()));
+    } catch (final KsqlException e) {
+      throw new KsqlRestException(Errors.badRequest(e));
+    }
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -804,19 +798,16 @@ public class KsqlResource {
 
   @SuppressWarnings("unchecked")
   private TerminateCluster processTerminateRequest(final KsqlRequest request) {
-    final List<String> deleteTopicList = request
-        .getStreamsProperties().containsKey(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME)
-        && request.getStreamsProperties().get(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME)
-        instanceof List
-        ? ((List<String>) request.getStreamsProperties()
-        .get(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME))
-        .stream()
-        .map(String::toUpperCase).collect(Collectors.toList())
-        : Collections.emptyList();
+    final List<String> toDelete = (List<String>) request.getStreamsProperties()
+        .getOrDefault(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, Collections.emptyList());
+    return new TerminateCluster(toDelete);
+  }
 
-    return new TerminateCluster(
-        deleteTopicList
-    );
+  private boolean validateTerminateRequest(final KsqlRequest request) {
+    return request.getStreamsProperties().isEmpty()
+        || request.getStreamsProperties()
+        .containsKey(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME);
+
   }
 
 }

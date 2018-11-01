@@ -16,87 +16,188 @@
 
 package io.confluent.ksql.rest.util;
 
+import avro.shaded.com.google.common.collect.ImmutableList;
+import avro.shaded.com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
+import java.util.Set;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ClusterTerminatorTest {
 
-  private KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "foo"));
+  private KsqlConfig ksqlConfig = new KsqlConfig(
+      Collections.singletonMap(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "foo"));
   private KsqlEngine ksqlEngine;
   private KafkaTopicClient kafkaTopicClient;
+  private ClusterTerminator clusterTerminator;
+  private PersistentQueryMetadata persistentQuery;
+  private QueryId queryId;
+  private MetaStore metaStore;
 
   @Before
   public void init() {
-    ksqlEngine = EasyMock.mock(KsqlEngine.class);
-    kafkaTopicClient = EasyMock.mock(KafkaTopicClient.class);
-    EasyMock.expect(ksqlEngine.getTopicClient()).andReturn(kafkaTopicClient).anyTimes();
-    ksqlEngine.stopAcceptingStatemens();
-    EasyMock.expectLastCall();
-    final QueryMetadata queryMetadata = EasyMock.mock(QueryMetadata.class);
-    EasyMock.expect(ksqlEngine.getAllLiveQueries())
-        .andReturn(Collections.singleton(queryMetadata));
-    final KsqlTopic ksqlTopic = new KsqlTopic("bar", "bar", new KsqlJsonTopicSerDe(), true);
-    final StructuredDataSource structuredDataSource = new KsqlStream("", "", EasyMock.mock(Schema.class), EasyMock.mock(
-        Field.class), EasyMock.mock(TimestampExtractionPolicy.class), ksqlTopic);
-    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    metaStore.putSource(structuredDataSource);
-    metaStore.putTopic(ksqlTopic);
-    EasyMock.expect(ksqlEngine.getMetaStore()).andReturn(metaStore);
+    queryId = EasyMock.niceMock(QueryId.class);
+    persistentQuery = EasyMock.niceMock(PersistentQueryMetadata.class);
+    EasyMock.expect(persistentQuery.getQueryId()).andReturn(queryId);
+    ksqlEngine = EasyMock.niceMock(KsqlEngine.class);
+    EasyMock.expect(ksqlEngine.terminateQuery(EasyMock.anyObject(QueryId.class), EasyMock.anyBoolean())).andReturn(true);
+    kafkaTopicClient = EasyMock.niceMock(KafkaTopicClient.class);
+    metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
 
+    givenEngineWith(ImmutableSet.of(EasyMock.niceMock(QueryMetadata.class)));
 
+    clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine);
   }
 
   @Test
-  public void shouldTerminateClusterWithoutDeleteTopicList() {
-    final List<String> deleteTopicList = Collections.emptyList();
+  public void shouldTellEngineToStopAcceptingStaetements() throws Exception {
+    // Given:
+    ksqlEngine.stopAcceptingStatements();
+    EasyMock.expectLastCall();
+    EasyMock.replay(ksqlEngine);
+
+    // When:
+    clusterTerminator.terminateCluster(Collections.emptyList());
+
+    // Then:
+    EasyMock.verify(ksqlEngine);
+  }
+
+  @Test
+  public void shouldTerminatePersistetQueries() throws Exception {
+    // Given:
+    givenEngineWith(Collections.singleton(persistentQuery));
+    EasyMock.replay(ksqlEngine, persistentQuery);
+
+    // When:
+    clusterTerminator.terminateCluster(Collections.emptyList());
+
+    // Then:
+    EasyMock.verify(ksqlEngine, persistentQuery);
+  }
+
+  @Test
+  public void shouldCloseNonPersistentQueries() throws Exception {
+    // Given:
+    givenEngineWith(Collections.singleton(EasyMock.niceMock(QueryMetadata.class)));
+    EasyMock.replay(ksqlEngine);
+
+    // When:
+    clusterTerminator.terminateCluster(Collections.emptyList());
+
+    // Then:
+    EasyMock.verify(ksqlEngine);
+  }
+
+  @Test
+  public void shouldDeleteTopicListWithExplicitTopicName() {
+    // Given:
+    givenSinkTopicsExist("bar", "barr", "foo");
+
+    kafkaTopicClient.deleteTopics(ImmutableList.of("bar"));
+    EasyMock.expectLastCall();
+    EasyMock.replay(kafkaTopicClient, ksqlEngine);
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("bar"));
+
+    // Then:
+    EasyMock.verify(kafkaTopicClient);
+  }
+
+  @Test
+  public void shouldNotDeleteTopicNonSinkTopic() {
+    // Given:
+    givenNonSinkTopicsExist("bar", "barr", "foo");
+
     kafkaTopicClient.deleteTopics(EasyMock.anyObject());
+    EasyMock.expectLastCall().times(1); // <-- command topic _only_
+    EasyMock.replay(kafkaTopicClient, ksqlEngine);
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("bar"));
+
+    // Then:
+    EasyMock.verify(kafkaTopicClient);
+  }
+
+  @Test
+  public void shouldNotDeleteNonMatchingCaseSensitiveTopics() {
+    // Given:
+    givenSinkTopicsExist("bar", "barr", "foo");
+
+    kafkaTopicClient.deleteTopics(EasyMock.anyObject());
+    EasyMock.expectLastCall().times(1); // <-- command topic _only_
+    EasyMock.replay(kafkaTopicClient, ksqlEngine);
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("Bar"));
+
+    // Then:
+    EasyMock.verify(kafkaTopicClient);
+  }
+
+  @Test
+  public void shouldDeleteTopicListWithPattern() {
+    // Given:
+    givenSinkTopicsExist("bar", "barr", "foo");
+    givenNonSinkTopicsExist("barrr");
+
+    kafkaTopicClient.deleteTopics(ImmutableList.of("barr", "bar"));
+    EasyMock.expectLastCall();
+    EasyMock.replay(kafkaTopicClient, ksqlEngine);
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("bar*"));
+
+    // Then:
+    EasyMock.verify(kafkaTopicClient);
+  }
+
+  @Test
+  public void shouldDeleteCommandTopic() {
+    final List<String> deleteTopicList = Collections.emptyList();
+    kafkaTopicClient.deleteTopics(ImmutableList.of("_confluent-ksql-foo_command_topic"));
     EasyMock.expectLastCall().once();
     EasyMock.replay(ksqlEngine, kafkaTopicClient);
-    final ClusterTerminator clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine, deleteTopicList);
-    clusterTerminator.terminateCluster();
+    clusterTerminator.terminateCluster(deleteTopicList);
 
     EasyMock.verify(ksqlEngine, kafkaTopicClient);
   }
 
-  @Test
-  public void shouldTerminateClusterWithDeleteTopicListWithExplicitTopicName() {
-    terminateWithDeleteTopicList("bar");
+  private void givenNonSinkTopicsExist(final String... topics) {
+    Arrays.stream(topics)
+        .map(name -> new KsqlTopic(name + "-internal", name, new KsqlJsonTopicSerDe(), false))
+        .forEach(metaStore::putTopic);
   }
 
-  @Test
-  public void shouldTerminateClusterWithDeleteTopicListWithPattern() {
-    terminateWithDeleteTopicList("bar*");
+  private void givenSinkTopicsExist(final String... topics) {
+    Arrays.stream(topics)
+        .map(name -> new KsqlTopic(name + "-internal", name, new KsqlJsonTopicSerDe(), true))
+        .forEach(metaStore::putTopic);
   }
 
-  private void terminateWithDeleteTopicList(final String topicNamePattern) {
-    final List<String> deleteTopicList = Collections.singletonList(topicNamePattern);
-    kafkaTopicClient.deleteTopics(EasyMock.anyObject());
-    EasyMock.expectLastCall().times(2);
+  private void givenEngineWith(final Set<QueryMetadata> queries) {
+    EasyMock.reset(ksqlEngine);
+    EasyMock.expect(ksqlEngine.getAllLiveQueries())
+        .andReturn(queries)
+        .anyTimes();
 
-    EasyMock.replay(ksqlEngine, kafkaTopicClient);
-
-    final ClusterTerminator clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine, deleteTopicList);
-    clusterTerminator.terminateCluster();
-
-    EasyMock.verify(ksqlEngine, kafkaTopicClient);
+    EasyMock.expect(ksqlEngine.getTopicClient()).andReturn(kafkaTopicClient).anyTimes();
+    EasyMock.expect(ksqlEngine.getMetaStore()).andReturn(metaStore).anyTimes();
   }
-
 }

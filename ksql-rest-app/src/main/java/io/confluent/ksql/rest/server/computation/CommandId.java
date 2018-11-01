@@ -32,6 +32,7 @@ public class CommandId {
     TOPIC,
     STREAM,
     TABLE,
+    CLUSTER,
     TERMINATE
   }
 

@@ -331,13 +331,14 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
 Terminate A Cluster
 -------------------
 
-If you don't need your KSQL cluster anymore, you can terminate the cluster and clean up the resources using this endpoint. When a server receives a ``TERMINATE CLUSTER`` request at ``/ksql/terminate`` endpoint, it writes a ``TERMINATE CLUSTER`` command into the command topic.
+If you don't need your KSQL cluster anymore, you can terminate the cluster and clean up the resources using this endpoint. To terminate a KSQL cluster, first shutdown all the servers except one.
+Then, send the ``TERMINATE CLUSTER`` request to the ``/ksql/terminate`` endpoint in the last remaining server.
+When the server receives a ``TERMINATE CLUSTER`` request at ``/ksql/terminate`` endpoint, it writes a ``TERMINATE CLUSTER`` command into the command topic.
 Note that ``TERMINATE CLUSTER`` request can only be sent via the ``/ksql/terminate`` endpoint and you cannot send it via the CLI.
-When each server in the cluster reads a ``TERMINATE CLUSTER`` command, it takes the following steps:
+When the server reads the ``TERMINATE CLUSTER`` command, it takes the following steps:
 
 -Sets the KSQL engine mode to ``NOT ACCEPTING NEW STATEMENTS`` so no new statement will be passed to the engine for execution.
 -Terminates all of persistent and transient queries in the engine along with the required clean up for each query.
--Deletes all Kafka topics associated with the streams/tables in the KSQL metastore.
 -Deletes the command topic for the cluster.
 
 **Example request**
@@ -352,31 +353,12 @@ When each server in the cluster reads a ``TERMINATE CLUSTER`` command, it takes 
         "streamsProperties": {}
       }
 
-You can customize the clean up process if you don't want to delete all of the Kafka topics associated with the streams/tables in the metastore:
+You can customize the clean up process if you want to delete some or all of the Kafka topics too:
 
-**Provide a List of Sources to Keep**
-If you want to keep a set of topics associated with streams/tables in the metastore, provide the list of stream/table names in your request along with the type of this list.
-This will clean up all topics belonging to the Streams/Tables in the metastore except for the ones that belong to the streams/tables that are in the ``SOURCES_LIST`` list.
-Note that you need to indicate the type of the list as ``KEEP`` by setting the value of ``SOURCES_LIST_TYPE`` parameter to ``KEEP``.
-The following example will keep the Kafka topics for streams/tables named ``FOO`` and ``BAR``.
-
-   .. code:: http
-
-      POST /ksql/terminate HTTP/1.1
-      Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
-
-      {
-        "streamsProperties": {
-          "SOURCES_LIST": ["FOO", "BAR"],
-          "SOURCES_LIST_TYPE": "KEEP"
-        }
-      }
-
-**Provide a List of Sources to Delete**
-You can provide the list of streams/tables that you want to delete their corresponding Kafka topics. In this case, only the topics associated with the streams/tables in the ``SOURCES_LIST`` list will be deleted, and the rest of the topics will remain after cleanup.
-Note that you need to indicate the type of the list as ``DELETE`` by setting the value of ``SOURCES_LIST_TYPE`` parameter to ``DELETE``.
-The following example will only delete the topic associated with stream/table ``FOO``.
+**Provide a List of Kafka Topics to Delete**
+You can provide a list of kafka topic names or regular expressions for kafka topic names along with your ``TERMINATE CLUSTER`` request.
+The KSQL server will delete all the topics that their name is in the list or matches any of the regular expressions in the list.
+The following example will delete topic named ``FOO`` along with all the topics with prefix ``bar``.
 
    .. code:: http
 
@@ -386,7 +368,6 @@ The following example will only delete the topic associated with stream/table ``
 
       {
         "streamsProperties": {
-          "SOURCES_LIST": ["FOO"],
-          "SOURCES_LIST_TYPE": "DELETE"
+          "DELETE_TOPIC_LIST": ["FOO", "bar.*"]
         }
       }

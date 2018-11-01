@@ -133,6 +133,32 @@ public class StreamedQueryResourceTest {
         errorMessage.getMessage(), containsString("some msg only the engine would use"));
   }
 
+  @Test
+  public void shouldFailIfIsNotAcceptingStatements() throws Exception {
+    // Given:
+    final String queryString = "SELECT * FROM test_stream;";
+    final KsqlConfig ksqlConfig = mock(KsqlConfig.class);
+    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
+    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
+    final StatementParser mockStatementParser = mock(StatementParser.class);
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(false);
+    replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
+
+    final StreamedQueryResource testResource = new StreamedQueryResource(
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
+
+    // When:
+    final Response response =
+        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(
+        errorMessage.getMessage(), containsString("The cluster has been terminated. No new request will be accepted."));
+  }
+
   @SuppressWarnings("unchecked")
   @Test
   public void shouldStreamRowsCorrectly() throws Throwable {

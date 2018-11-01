@@ -288,4 +288,5 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
     EasyMock.verify(query, persistentQueryMetadata, engine);
   }
+
 }

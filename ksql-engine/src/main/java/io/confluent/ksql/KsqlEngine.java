@@ -89,6 +89,7 @@ public class KsqlEngine implements Closeable {
   private static final Set<String> IMMUTABLE_PROPERTIES = ImmutableSet.<String>builder()
       .add(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
       .add(KsqlConfig.KSQL_EXT_DIR)
+      .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 
@@ -565,10 +566,16 @@ public class KsqlEngine implements Closeable {
       return statement instanceof CreateAsSelect || statement instanceof InsertInto;
     }).count();
 
+    checkPersistentQueryCapacity(numPersistentQueries, ksqlConfig, queriesString);
+  }
+
+  private void checkPersistentQueryCapacity(final long numPersistentQueries,
+                                            final KsqlConfig ksqlConfig,
+                                            final String queriesString) {
     if (!hasCapacityForPersistentQueries(numPersistentQueries, ksqlConfig)) {
       throw new KsqlException(
           String.format(
-              "Not executing statements '%s' since they would cause the limit on number "
+              "Not executing statement(s) '%s' since they would cause the limit on number "
                   + "of active, persistent queries to be exceeded "
                   + "(%d persistent queries currently running. "
                   + "Statements attempt to add %d new persistent queries. "
@@ -587,20 +594,7 @@ public class KsqlEngine implements Closeable {
 
   public void addActiveQuery(final QueryMetadata queryMetadata, final KsqlConfig ksqlConfig) {
     if (queryMetadata instanceof PersistentQueryMetadata) {
-      if (!hasCapacityForPersistentQueries(1, ksqlConfig)) {
-        throw new KsqlException(String.format(
-            "Not executing statement '%s' since it would cause the limit on number "
-                + "of active, persistent queries to be exceeded "
-                + "(%d persistent queries currently running. "
-                + "Limit is %d)."
-                + "Use the TERMINATE command to terminate existing queries "
-                + "(if running in interactive mode), "
-                + "or reconfigure the limit via the 'ksql-server.properties' file.",
-            queryMetadata.getStatementString(),
-            numberOfPersistentQueries(),
-            ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
-        ));
-      }
+      checkPersistentQueryCapacity(1, ksqlConfig, queryMetadata.getStatementString());
 
       livePersistentQueries.add(queryMetadata);
       final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;

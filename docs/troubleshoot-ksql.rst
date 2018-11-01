@@ -123,18 +123,6 @@ log:
      org.apache.kafka.common.errors.SerializationException: KsqlJsonDeserializer failed to deserialize data for topic: _confluent-metrics
      Caused by: com.fasterxml.jackson.core.JsonParseException: Unexpected character ((CTRL-CHAR, code 127)): expected a valid value (number, String, array, object, 'true', 'false' or 'null')
 
-Can’t create a stream from the output of a windowed aggregate
-*************************************************************
-
-The output of a windowed aggregate is a record per grouping key and per window,
-and is not a single record. This is not currently supported in KSQL.
-
-KSQL doesn’t clean up its internal topics
-*****************************************
-
-Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``.
-For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
-
 KSQL CLI doesn’t connect to KSQL server
 ***************************************
 
@@ -221,6 +209,42 @@ If the ``KsqlServerMain`` process isn't shown, a different process has taken the
 port that ``KsqlServerMain`` would normally use. Check the assigned listeners in 
 the KSQL server configuration, and restart the KSQL CLI with the correct port.
 
+View the message count for a KSQL query
+***************************************
+
+You can check the health of a KSQL query by viewing the number of messages that
+it has processed and counting how many processing failures have occurred.
+
+Use the DESCRIBE EXTENDED statement to see metrics like ``total-messages`` and
+``failed-messages-per-sec``, for example:
+
+.. code:: text
+
+    ksql> DESCRIBE EXTENDED GOOD_RATINGS;
+    [...]
+    Local runtime statistics
+    ------------------------
+    messages-per-sec:      1.10 total-messages:     2898 last-message: 9/17/18 1:48:47 PM UTC
+     failed-messages:         0 failed-messages-per-sec:         0 last-failed: n/a
+    (Statistics of the local KSQL server interaction with the Kafka topic GOOD_RATINGS)
+
+The displayed metrics are local to the server where the DESCRIBE statement runs.
+
+An increasing number of ``failed-messages`` may indicate problems with your query.
+Typical sources of processing failures are :ref:`deserialization errors <ksql-deserialization-errors>`.
+
+Can’t create a stream from the output of a windowed aggregate
+*************************************************************
+
+The output of a windowed aggregate is a record per grouping key and per window,
+and is not a single record. This is not currently supported in KSQL.
+
+KSQL doesn’t clean up its internal topics
+*****************************************
+
+Make sure that your Kafka cluster is configured with ``delete.topic.enable=true``.
+For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
+
 Replicated topic with Avro schema causes errors 
 ***********************************************
 
@@ -251,31 +275,6 @@ name for the topic:
     # Original topic name = pageviews
     # Replicated topic name = pageviews.replica
     curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" --data "{\"schema\": $(curl -s http://localhost:8081/subjects/pageviews-value/versions/latest | jq '.schema')}" http://localhost:8081/subjects/pageviews.replica-value/versions
-
-
-View the message count for a KSQL query
-***************************************
-
-You can check the health of a KSQL query by viewing the number of messages that
-it has processed and counting how many processing failures have occurred.
-
-Use the DESCRIBE EXTENDED statement to see metrics like ``total-messages`` and
-``failed-messages-per-sec``, for example:
-
-.. code:: text
-
-    ksql> DESCRIBE EXTENDED GOOD_RATINGS;
-    [...]
-    Local runtime statistics
-    ------------------------
-    messages-per-sec:      1.10 total-messages:     2898 last-message: 9/17/18 1:48:47 PM UTC
-     failed-messages:         0 failed-messages-per-sec:         0 last-failed: n/a
-    (Statistics of the local KSQL server interaction with the Kafka topic GOOD_RATINGS)
-
-The displayed metrics are local to the server where the DESCRIBE statement runs.
-
-An increasing number of ``failed-messages`` may indicate problems with your query.
-Typical sources of processing failures are :ref:`deserialization errors <ksql-deserialization-errors>`.
 
 .. _ksql-check-server-logs:
 

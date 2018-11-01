@@ -74,7 +74,9 @@ public final class Ksql {
     }
   }
 
-  @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
+  @SuppressFBWarnings(
+      value = "OBL_UNSATISFIED_OBLIGATION",
+      justification = "'input' already in try with resource block - i.e. false positive")
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Properties loadProperties(final Optional<String> propertiesFile) {
     final Properties properties = new Properties();

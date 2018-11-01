@@ -164,7 +164,7 @@ ksql.active.persistent.query.limit
 
 The maximum number of persistent queries that may be running at any given time.
 Commands that would cause this limit to be exceeded are rejected.
-The default is ``Integer.MAX_VALUE``, which indicates that there is no limit.
+The default is no limit.
 
 Users may wish to configure this limit because throughput suffers as more queries are run simultaneously,
 and also because there is some small CPU overhead associated with starting each new query.

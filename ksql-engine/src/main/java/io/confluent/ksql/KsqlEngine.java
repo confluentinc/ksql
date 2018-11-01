@@ -264,8 +264,8 @@ public class KsqlEngine implements Closeable {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
         metaStore.updateForPersistentQuery(persistentQueryMd.getQueryId().getId(),
-            persistentQueryMd.getSourceNames(),
-            persistentQueryMd.getSinkNames());
+                                           persistentQueryMd.getSourceNames(),
+                                           persistentQueryMd.getSinkNames());
       }
     }
     return runningQueries;

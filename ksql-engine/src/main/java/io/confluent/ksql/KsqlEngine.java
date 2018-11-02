@@ -578,7 +578,6 @@ public class KsqlEngine implements Closeable {
     return queryEngine.handleDdlStatement(sqlExpression, statement, overriddenProperties);
   }
 
-
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
     return schemaRegistryClientFactory;
   }

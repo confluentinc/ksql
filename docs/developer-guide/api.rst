@@ -349,9 +349,7 @@ When the server reads the ``TERMINATE CLUSTER`` command, it takes the following 
       Accept: application/vnd.ksql.v1+json
       Content-Type: application/vnd.ksql.v1+json
 
-      {
-        "streamsProperties": {}
-      }
+      {}
 
 You can customize the clean up process if you want to delete some or all of the Kafka topics too:
 

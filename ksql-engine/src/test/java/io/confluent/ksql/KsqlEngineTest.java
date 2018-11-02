@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -57,6 +58,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -75,8 +77,10 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.easymock.EasyMock;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -454,5 +458,63 @@ public class KsqlEngineTest {
         ksqlConfig, overriddenProperties);
     assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
 
+  }
+
+  @Test
+  public void shouldAddActiveQueriesBeforeLimitIsReached() {
+    // Given:
+    final KsqlConfig ksqlConfig =
+        configWith(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 2);
+
+    final QueryMetadata persistentQuery1 = mockQueryMetadata(true);
+    ksqlEngine.addActiveQuery(persistentQuery1, ksqlConfig);
+    final QueryMetadata nonpersistentQuery = mockQueryMetadata(false);
+    ksqlEngine.addActiveQuery(nonpersistentQuery, ksqlConfig);
+    final QueryMetadata persistentQuery2 = mockQueryMetadata(true);
+
+    // When:
+    ksqlEngine.addActiveQuery(persistentQuery2, ksqlConfig);
+
+    // Then:
+    assertThat(ksqlEngine.numberOfLiveQueries(), equalTo(3L));
+    assertThat(ksqlEngine.numberOfPersistentQueries(), equalTo(2L));
+  }
+
+  @Test
+  public void shouldFailIfExceedActivePersistentQueryLimit() {
+    // Given:
+    final KsqlConfig ksqlConfig =
+        configWith(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1);
+
+    final QueryMetadata persistentQuery1 = mockQueryMetadata(true);
+    ksqlEngine.addActiveQuery(persistentQuery1, ksqlConfig);
+    final QueryMetadata persistentQuery2 = mockQueryMetadata(true);
+
+    try {
+      // When:
+      ksqlEngine.addActiveQuery(persistentQuery2, ksqlConfig);
+    } catch (final Exception e) {
+      // Then:
+      assertThat(e.getMessage(), containsString(
+          "limit on number of active, persistent queries"));
+    }
+  }
+
+  private KsqlConfig configWith(final String name, final Object value) {
+    return new KsqlConfig(
+        ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092", name, value));
+  }
+
+  private QueryMetadata mockQueryMetadata(final boolean isPersistent) {
+    final QueryMetadata query = isPersistent ? EasyMock.niceMock(PersistentQueryMetadata.class)
+                                             : EasyMock.niceMock(QueryMetadata.class);
+
+    final String queryId = Long.toString(ksqlEngine.getQueryIdGenerator().getNextId());
+    EasyMock.expect(query.getQueryApplicationId()).andReturn(queryId).anyTimes();
+    final KafkaStreams kafkaStreams = EasyMock.niceMock(KafkaStreams.class);
+    EasyMock.expect(query.getKafkaStreams()).andReturn(kafkaStreams);
+    EasyMock.expect(kafkaStreams.state()).andReturn(KafkaStreams.State.RUNNING);
+    EasyMock.replay(query, kafkaStreams);
+    return query;
   }
 }

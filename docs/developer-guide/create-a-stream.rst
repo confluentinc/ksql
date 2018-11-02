@@ -22,29 +22,13 @@ Use the CREATE STREAM statement to create a stream from an underlying Kafka
 topic. The Kafka topic must exist already in your Kafka cluster.
 
 The following examples show how to create streams from a Kafka topic, named
-``pageviews``, as shown in :ref:`ksql_quickstart-docker`.
-
-In the KSQL CLI, view the topic's schema by using the DESCRIBE statement:
-
-.. code:: text
-
-    ksql> DESCRIBE pageviews;
-
-    Name                 : PAGEVIEWS
-    Field    | Type
-    --------------------------------------
-    ROWTIME  | BIGINT           (system)
-    ROWKEY   | VARCHAR(STRING)  (system)
-    VIEWTIME | BIGINT
-    USERID   | VARCHAR(STRING)
-    PAGEID   | VARCHAR(STRING)
-    --------------------------------------
-    For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
+``pageviews``. To see these examples in action, create the ``pageviews`` topic
+by following the procedure in :ref:`ksql_quickstart-docker`.  
 
 Create a Stream with Selected Columns
 =====================================
 
-The following example creates a stream that has three columns from the 
+The following example creates a stream that has three columns from the
 ``pageviews`` topic: ``viewtime``, ``userid``, and ``pageid``.
 
 KSQL can't infer the topic's data format, so you must provide the format of the
@@ -71,7 +55,7 @@ Your output should resemble:
      Stream created
     ----------------
 
-Inspect the stream by using the SHOW STREAMS statement:
+Inspect the stream by using the SHOW STREAMS and DESCRIBE statements:
 
 .. code:: text
 
@@ -81,6 +65,19 @@ Inspect the stream by using the SHOW STREAMS statement:
     ---------------------------------------
     PAGEVIEWS   | pageviews   | DELIMITED
     ---------------------------------------
+
+    ksql> DESCRIBE PAGEVIEWS;
+
+    Name                 : PAGEVIEWS
+     Field    | Type
+    --------------------------------------
+     ROWTIME  | BIGINT           (system)
+     ROWKEY   | VARCHAR(STRING)  (system)
+     VIEWTIME | BIGINT
+     USERID   | VARCHAR(STRING)
+     PAGEID   | VARCHAR(STRING)
+    --------------------------------------
+    For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 
 Create a Stream with a Specified Key 
 ====================================
@@ -117,6 +114,7 @@ DESCRIBE EXTENDED statement:
     Timestamp field      : Not set - using <ROWTIME>
     Value format         : DELIMITED
     Kafka topic          : pageviews (partitions: 1, replication: 1)
+    [...]
 
 Create a Stream with Timestamps 
 ===============================
@@ -156,7 +154,7 @@ statement:
     Timestamp field      : VIEWTIME
     Value format         : DELIMITED
     Kafka topic          : pageviews (partitions: 1, replication: 1)
-
+    [...]
 
 Create a Continuous Streaming Query from a Stream
 *************************************************
@@ -211,7 +209,7 @@ stream, run the PRINT statement:
 
 .. code:: text
 
-    ksql> PRINT 'pageviews_intro';
+    ksql> PRINT pageviews_intro;
     Format:STRING
     10/30/18 10:15:51 PM UTC , 294851 , 1540937751186,User_8,Page_12
     10/30/18 10:15:55 PM UTC , 295051 , 1540937755255,User_1,Page_15
@@ -227,12 +225,11 @@ Press CTRL-C to stop printing the stream.
 
    The query continues to run after you stop printing the stream. 
 
-Terminate a Continuous Streaming Query
-**************************************
+Terminate a Persistent Query
+****************************
 
-Use the TERMINATE statement to stop a continuous streaming query. The TERMINATE
-statement requires the ID of the query, which you get by using the SHOW QUERIES
-statement.
+Use the TERMINATE statement to stop a persistent query. The TERMINATE statement
+requires the ID of the query, which you get by using the SHOW QUERIES statement.
 
 A persistent query that's created by the CREATE STREAM AS SELECT
 statement has the string ``CSAS`` in its ID, for example, ``CSAS_PAGEVIEWS_INTRO_0``.
@@ -249,7 +246,7 @@ Run the SHOW QUERIES statement to see the ID of the ``pageviews_intro`` query:
     --------------------------------------------------------------------------------------------------------------------------------------------
     For detailed information on a Query run: EXPLAIN <Query ID>;
 
-When you have the Query ID, you can terminte the query:
+When you have the Query ID, you can terminate the query:
 
 .. code:: text
 
@@ -264,12 +261,19 @@ Delete a Persistent Query
 *************************
 
 Use the DROP STREAM statement to delete a persistent query. You must TERMINATE
-the query before you can drop it. 
+the query before you can drop it.
 
+.. code:: text
+
+    ksql> DROP STREAM pageviews_intro;
+
+     Message
+    -------------------
+     Source PAGEVIEWS_INTRO was dropped.
+    -------------------
 
 Next Steps
 **********
 
 * :ref:`join-streams-and-tables`
 * :ref:`ksql_clickstream-docker`
-

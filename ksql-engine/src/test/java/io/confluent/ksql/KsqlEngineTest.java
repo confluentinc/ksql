@@ -36,12 +36,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -58,7 +58,6 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -84,6 +83,7 @@ import org.easymock.EasyMock;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class KsqlEngineTest {
@@ -95,16 +95,23 @@ public class KsqlEngineTest {
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
-  private final KsqlEngine ksqlEngine = new KsqlEngine(
-      topicClient,
-      schemaRegistryClientFactory,
-      new DefaultKafkaClientSupplier(),
-      metaStore,
-      ksqlConfig);
+  private KsqlEngine ksqlEngine;
+
+  @Before
+  public void setUp() {
+    MetricCollectors.initialize();
+    ksqlEngine = new KsqlEngine(
+        topicClient,
+        schemaRegistryClientFactory,
+        new DefaultKafkaClientSupplier(),
+        metaStore,
+        ksqlConfig);
+  }
 
   @After
   public void closeEngine() {
     ksqlEngine.close();
+    MetricCollectors.cleanUp();
   }
 
   @Test

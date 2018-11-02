@@ -331,7 +331,7 @@ public class KsqlRestClient implements Closeable {
   }
 
   public Object setProperty(final String property, final Object value) {
-    return localProperties.set(property, value);
+    return localProperties.set(property, value, false);
   }
 
   public Object unsetProperty(final String property) {

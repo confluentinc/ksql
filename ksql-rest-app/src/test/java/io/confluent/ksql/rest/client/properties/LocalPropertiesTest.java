@@ -94,6 +94,17 @@ public class LocalPropertiesTest {
   }
 
   @Test
+  public void shouldOverrideInitialValueWithNewUnparsedValue() {
+    // When:
+    final Object oldValue = propsWithMockParser.set("prop-1", "new-val", false);
+
+    // Then:
+    assertThat(oldValue, is("initial-val-1"));
+    assertThat(propsWithMockParser.toMap().get("prop-1"), is("new-val"));
+    assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
+  }
+
+  @Test
   public void shouldUnsetOverriddenValue() {
     // Given:
     propsWithMockParser.set("prop-1", "new-val");
@@ -120,6 +131,17 @@ public class LocalPropertiesTest {
     // Then:
     assertThat(oldValue, is(nullValue()));
     assertThat(propsWithMockParser.toMap().get("new-prop"), is("parsed-val"));
+    assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
+  }
+
+  @Test
+  public void shouldSetNewUnparsedValue() {
+    // When:
+    final Object oldValue = propsWithMockParser.set("new-prop", "new-val", false);
+
+    // Then:
+    assertThat(oldValue, is(nullValue()));
+    assertThat(propsWithMockParser.toMap().get("new-prop"), is("new-val"));
     assertThat(propsWithMockParser.toMap().get("prop-2"), is("initial-val-2"));
   }
 

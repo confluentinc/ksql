@@ -44,9 +44,20 @@ public class LocalProperties {
    * @return the previous value for the property, or {@code null}.
    */
   public Object set(final String property, final Object value) {
+    return set(property, value, true);
+  }
+
+  /**
+   * Set property.
+   *
+   * @param property the name of the property
+   * @param value the value for the property
+   * @return the previous value for the property, or {@code null}.
+   */
+  public Object set(final String property, final Object value, final boolean useParsed) {
     Objects.requireNonNull(value, "value");
     final Object parsed = parser.parse(property, value);
-    return props.put(property, parsed);
+    return props.put(property, useParsed ? parsed : value);
   }
 
   /**

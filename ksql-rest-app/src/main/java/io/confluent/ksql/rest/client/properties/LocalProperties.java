@@ -52,6 +52,7 @@ public class LocalProperties {
    *
    * @param property the name of the property
    * @param value the value for the property
+   * @param useParsed Indicates if the value should be set to the parsed value or the original value
    * @return the previous value for the property, or {@code null}.
    */
   public Object set(final String property, final Object value, final boolean useParsed) {

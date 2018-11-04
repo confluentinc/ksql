@@ -282,6 +282,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     return buildApplication(restConfig, null);
   }
 
+  // Use only for testing
   public static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
       final KsqlVersionCheckerAgent versionCheckerAgent

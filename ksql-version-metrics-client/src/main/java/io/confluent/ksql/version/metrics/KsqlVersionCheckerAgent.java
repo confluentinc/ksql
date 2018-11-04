@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
-  // 24 hours
   private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
   private KsqlVersionChecker ksqlVersionChecker;

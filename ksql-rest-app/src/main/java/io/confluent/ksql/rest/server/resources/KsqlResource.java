@@ -155,8 +155,8 @@ public class KsqlResource {
     this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
-    Objects.requireNonNull(activenessRegistrar);
-    this.activenessRegistrar = activenessRegistrar;
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar cannot be null.");
   }
 
   @POST

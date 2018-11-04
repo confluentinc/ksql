@@ -81,7 +81,8 @@ public class StandaloneExecutor implements Executable {
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
     this.failOnNoQueries = failOnNoQueries;
-    this.versionCheckerAgent = versionCheckerAgent;
+    this.versionCheckerAgent =
+        Objects.requireNonNull(versionCheckerAgent, "VersionCheckerAgenr cannot be null.");
   }
 
   private interface Handler<T extends Statement> {

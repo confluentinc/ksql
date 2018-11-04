@@ -489,10 +489,9 @@ public class KsqlResourceTest {
   public void shouldReturn5xxOnSystemError() {
     // Given:
     givenMockEngine(mockEngine ->
-        {
           EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
-              .andThrow(new RuntimeException("internal error"));
-        });
+              .andThrow(new RuntimeException("internal error"))
+        );
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -686,7 +685,6 @@ public class KsqlResourceTest {
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
   }
 
-  // Todo: Same style test for the other request handlers.
   @Test
   public void shouldUpdateTheLastRequestTime() {
     activenessRegistrar.updateLastRequestTime();

@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -140,7 +141,9 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     try {
-      restServer = KsqlRestApplication.buildApplication(buildConfig());
+      restServer = KsqlRestApplication.buildApplication(
+          buildConfig(),
+          new NoOpVersionCheckerAgent(() -> false));
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
     }
@@ -229,7 +232,12 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private static class NoOpVersionCheckerAgent implements VersionCheckerAgent {
+  private static class NoOpVersionCheckerAgent extends KsqlVersionCheckerAgent {
+
+    public NoOpVersionCheckerAgent(
+        final Supplier<Boolean> engineActiveQueryStatusSupplier) {
+      super(engineActiveQueryStatusSupplier);
+    }
 
     @Override
     public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {

@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -140,7 +142,13 @@ public class RestApiTest {
     testHarness.stop();
   }
 
-  private static class DummyVersionCheckerAgent implements VersionCheckerAgent {
+  private static class DummyVersionCheckerAgent extends KsqlVersionCheckerAgent {
+
+    public DummyVersionCheckerAgent(
+        final Supplier<Boolean> engineActiveQueryStatusSupplier) {
+      super(engineActiveQueryStatusSupplier);
+    }
+
     @Override
     public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
       // do nothing;
@@ -176,7 +184,10 @@ public class RestApiTest {
         final int port = randomFreeLocalPort();
         serverAddress = "http://localhost:" + port;
         configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
-        restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs));
+        restApplication = KsqlRestApplication.buildApplication(
+            new KsqlRestConfig(configs),
+            new DummyVersionCheckerAgent(()-> false)
+        );
         restApplication.start();
         return;
       } catch (BindException e) {

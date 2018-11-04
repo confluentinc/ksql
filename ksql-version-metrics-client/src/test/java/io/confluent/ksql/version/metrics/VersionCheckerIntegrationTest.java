@@ -41,13 +41,10 @@ public class VersionCheckerIntegrationTest {
 
   @Test
   public void testMetricsAgent() throws InterruptedException {
-    final Supplier<Boolean> fakeSupplier = new Supplier<Boolean>() {
-      @Override
-      public Boolean get() {
-        return false;
-      }
-    };
-    final KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(fakeSupplier);
+
+    final KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(
+        () -> false
+    );
     final Properties versionCheckProps = new Properties();
     versionCheckProps.setProperty(BaseSupportConfig
         .CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_ENABLE_CONFIG, "false");

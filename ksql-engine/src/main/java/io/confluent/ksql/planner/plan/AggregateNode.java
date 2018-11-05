@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@ import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Literal;
@@ -390,9 +391,7 @@ public class AggregateNode extends PlanNode {
 
     List<Expression> getInternalExpressionList(final List<Expression> expressionList) {
       return expressionList.stream()
-          .map(argExpression -> new QualifiedNameReference(
-              QualifiedName.of(getExpressionToInternalColumnNameMap()
-                  .get(argExpression.toString()))))
+          .map(this::resolveToInternal)
           .collect(Collectors.toList());
     }
 
@@ -408,14 +407,11 @@ public class AggregateNode extends PlanNode {
       if (argExpressionList.size() > 2) {
         throw new KsqlException("Currently, KSQL UDAFs can only have two arguments.");
       }
-      final List<Expression> internalExpressionList = new ArrayList<>();
       if (argExpressionList.isEmpty()) {
         return Collections.emptyList();
       }
-      internalExpressionList.add(new QualifiedNameReference(
-          QualifiedName.of(getExpressionToInternalColumnNameMap()
-              .get(argExpressionList.get(0).toString())
-          )));
+      final List<Expression> internalExpressionList = new ArrayList<>();
+      internalExpressionList.add(resolveToInternal(argExpressionList.get(0)));
       if (argExpressionList.size() == 2) {
         if (! (argExpressionList.get(1) instanceof Literal)) {
           throw new KsqlException("Currently, second argument in UDAF should be literal.");
@@ -431,17 +427,8 @@ public class AggregateNode extends PlanNode {
     ) {
       return finalSelectExpressions.stream()
           .map(finalSelectExpression -> {
-            final String internal = expressionToInternalColumnNameMap
-                .get(finalSelectExpression.getExpression().toString());
-
-            if (internal == null) {
-              return finalSelectExpression;
-            }
-
-            return SelectExpression.of(
-                finalSelectExpression.getName(),
-                new QualifiedNameReference(QualifiedName.of(internal)));
-
+            final Expression internal = resolveToInternal(finalSelectExpression.getExpression());
+            return SelectExpression.of(finalSelectExpression.getName(), internal);
           })
           .collect(Collectors.toList());
     }
@@ -458,8 +445,25 @@ public class AggregateNode extends PlanNode {
       return internalNameToIndexMap;
     }
 
-    private Map<String, String> getExpressionToInternalColumnNameMap() {
-      return expressionToInternalColumnNameMap;
+    private Expression resolveToInternal(final Expression exp) {
+      if (exp instanceof FunctionCall) {
+        final FunctionCall funcCall = (FunctionCall) exp;
+        final List<Expression> internalArgs = getInternalExpressionList(funcCall.getArguments());
+        return new FunctionCall(
+            funcCall.getLocation(), funcCall.getName(), funcCall.getWindow(), funcCall.isDistinct(),
+            internalArgs);
+      }
+
+      final String name = expressionToInternalColumnNameMap.get(exp.toString());
+      if (name != null) {
+        return new QualifiedNameReference(QualifiedName.of(name));
+      }
+
+      if (exp instanceof DereferenceExpression) {
+        throw new KsqlException("GROUP BY expression must be part of SELECT: " + exp.toString());
+      }
+
+      return exp;
     }
   }
 

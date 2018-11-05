@@ -143,17 +143,7 @@ public class SqlPredicate {
 
   private ExpressionMetadata createExpressionMetadata() {
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
-    try {
-      return codeGenRunner.buildCodeGenFromParseTree(filterExpression);
-    } catch (final Exception e) {
-      throw new KsqlException(
-          "Failed to generate code for filterExpression:"
-          + filterExpression
-          + " schema:"
-          + schema,
-          e
-      );
-    }
+    return codeGenRunner.buildCodeGenFromParseTree(filterExpression, "filter");
   }
 
   private Predicate getWindowedKeyPredicate() {

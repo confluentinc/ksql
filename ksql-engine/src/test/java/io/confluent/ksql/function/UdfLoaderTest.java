@@ -93,8 +93,7 @@ public class UdfLoaderTest {
     final KsqlAggregateFunction aggregate
         = metaStore.getAggregate("test_udaf", Schema.OPTIONAL_INT64_SCHEMA);
     final KsqlAggregateFunction<Long, Long> instance = aggregate.getInstance(
-        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
-            Collections.singletonList("udfIndex")));
+        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
     assertThat(instance.getMerger().apply("k", 2L, 3L), equalTo(5L));

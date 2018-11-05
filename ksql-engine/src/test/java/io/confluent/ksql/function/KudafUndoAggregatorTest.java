@@ -44,13 +44,12 @@ public class KudafUndoAggregatorTest {
     aggValToValColumnMap.put(0, 1);
     aggValToValColumnMap.put(1, 0);
     final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
-    final Map<String, Integer> expressionNames = Collections.singletonMap("baz", 2);
     final KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
         "SUM", Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(functionInfo, instanceOf(TableAggregationFunction.class));
     aggValToAggFunctionMap.put(
         2, (TableAggregationFunction)functionInfo.getInstance(
-            new AggregateFunctionArguments(expressionNames, Collections.singletonList("baz"))
+            new AggregateFunctionArguments(2, Collections.singletonList("baz"))
         ));
 
     final GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));

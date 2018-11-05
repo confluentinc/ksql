@@ -13,7 +13,6 @@ public class TopKDistinctTestUtils {
         .getProperAggregateFunction(
             Collections.singletonList(schema))
         .getInstance(
-            new AggregateFunctionArguments(Collections.singletonMap("foo", 0),
-                Arrays.asList("foo", Integer.toString(topk))));
+            new AggregateFunctionArguments(0, Arrays.asList("foo", Integer.toString(topk))));
   }
 }

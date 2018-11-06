@@ -86,3 +86,4 @@ KSQL Documentation
     syntax-reference
     api
     faq
+    troubleshoot-ksql

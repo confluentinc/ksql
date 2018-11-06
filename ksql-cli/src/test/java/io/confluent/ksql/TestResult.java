@@ -55,7 +55,7 @@ public class TestResult implements Iterable<List<String>>{
     public Builder() {
     }
 
-    TestResult.Builder addRow(final GenericRow row) {
+    public TestResult.Builder addRow(final GenericRow row) {
       data.add(
           ImmutableList.copyOf(
               row.getColumns().stream()
@@ -66,7 +66,7 @@ public class TestResult implements Iterable<List<String>>{
       return this;
     }
 
-    TestResult.Builder addRow(final Object... fields) {
+    public TestResult.Builder addRow(final Object... fields) {
       data.add(
           ImmutableList.copyOf(
               Arrays.stream(fields)
@@ -77,7 +77,7 @@ public class TestResult implements Iterable<List<String>>{
       return this;
     }
 
-    TestResult.Builder addRows(final List<List<String>> rows) {
+    public TestResult.Builder addRows(final List<List<String>> rows) {
       rows.forEach(
           r -> data.add(ImmutableList.copyOf(r))
       );

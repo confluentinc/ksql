@@ -161,6 +161,7 @@ public class KsqlResource {
 
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
+      checkPersistentQueryCapacity(parsedStatements, request.getKsql());
     } catch (final ParseFailedException e) {
       return Errors.badStatement(e.getCause(), e.getSqlStatement(), result);
     } catch (final KsqlException e) {
@@ -766,6 +767,36 @@ public class KsqlResource {
             .clone()).execute(ddlCommand, true);
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
+    }
+  }
+
+  private void checkPersistentQueryCapacity(
+      final List<PreparedStatement> parsedStatements, final String queriesString) {
+
+    final long numPersistentQueries = parsedStatements.stream().filter(parsedStatement -> {
+      final Statement statement = parsedStatement.getStatement();
+      // Note: RunScript commands also have the potential to create persistent queries,
+      // but we don't count those queries here (to avoid parsing those commands)
+      return statement instanceof CreateAsSelect || statement instanceof InsertInto;
+    }).count();
+
+    if (!ksqlEngine.hasCapacityForPersistentQueries(numPersistentQueries,
+        ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))) {
+      throw new KsqlException(
+          String.format(
+              "Not executing statement(s) '%s' since they would cause the limit on number "
+                  + "of active, persistent queries to be exceeded "
+                  + "(%d persistent queries currently running. "
+                  + "Statements attempt to add %d new persistent queries. "
+                  + "Limit is %d)."
+                  + "Use the TERMINATE command to terminate existing queries, "
+                  + "or reconfigure the limit via the 'ksql-server.properties' file.",
+              queriesString,
+              ksqlEngine.numberOfPersistentQueries(),
+              numPersistentQueries,
+              ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
+          )
+      );
     }
   }
 }

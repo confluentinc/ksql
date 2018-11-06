@@ -261,6 +261,18 @@ public class StatementExecutor {
           ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
           overriddenProperties
       );
+      if (!ksqlEngine.hasCapacityForPersistentQueries(
+          0, getPersistentQueryLimit(command))) {
+        for (final QueryMetadata queryMetadata : queryMetadataList) {
+          if (queryMetadata instanceof PersistentQueryMetadata) {
+            final PersistentQueryMetadata persistentQueryMd =
+                (PersistentQueryMetadata) queryMetadata;
+            final QueryId queryId = persistentQueryMd.getQueryId();
+            ksqlEngine.terminateQuery(queryId, false);
+          }
+        }
+        throwTooManyActivePersistentQueriesException(command.getStatement());
+      }
       for (final QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
@@ -282,6 +294,9 @@ public class StatementExecutor {
       final String statementStr,
       final boolean wasDropped
   ) throws Exception {
+    if (!ksqlEngine.hasCapacityForPersistentQueries(1, getPersistentQueryLimit(command))) {
+      throwTooManyActivePersistentQueriesException(statementStr);
+    }
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
@@ -315,6 +330,9 @@ public class StatementExecutor {
                                       final Map<QueryId, CommandId> terminatedQueries,
                                       final String statementStr,
                                       final boolean wasDropped) throws Exception {
+    if (!ksqlEngine.hasCapacityForPersistentQueries(1, getPersistentQueryLimit(command))) {
+      throwTooManyActivePersistentQueriesException(statementStr);
+    }
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
@@ -408,5 +426,28 @@ public class StatementExecutor {
     if (!ksqlEngine.terminateQuery(queryId, true)) {
       throw new Exception(String.format("No running query with id %s was found", queryId));
     }
+  }
+
+  private void throwTooManyActivePersistentQueriesException(final String statementStr) {
+    throw new KsqlException(
+        String.format(
+            "Not executing statement '%s' since the statement causes the limit on number "
+                + "of active, persistent queries to be exceeded "
+                + "(%d persistent queries currently running. Limit is %d). "
+                + "Use the TERMINATE command to terminate existing queries, "
+                + "or reconfigure the limit via the 'ksql-server.properties' file.",
+            statementStr,
+            ksqlEngine.numberOfPersistentQueries(),
+            ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
+        )
+    );
+  }
+
+  private int getPersistentQueryLimit(final Command command) {
+    return Integer.parseInt(
+        command.getOriginalProperties().getOrDefault(
+            KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
+            String.valueOf(
+                ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))));
   }
 }

@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -185,6 +186,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         .andReturn(csasStatement.getQuery());
     expect(mockEngine.getMetaStore()).andReturn(mockMetaStore);
     expect(mockMetaStore.getSource(anyObject())).andReturn(null);
+    expect(mockEngine.hasCapacityForPersistentQueries(anyLong(), anyLong())).andReturn(true);
     expect(mockEngine.buildMultipleQueries(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
     mockQueryMetadata.start();
@@ -422,6 +424,37 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   }
 
+  @Test
+  public void shouldFailIfExceedActivePersistentQueriesLimit() {
+    // Given:
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 2));
+    // Create streams and start two persistent queries
+    createStreamsAndTables();
+    // Prepare to try adding a third
+    final Command csasCommand = new Command(
+        "CREATE STREAM user2pv AS "
+            + "select * from pageview"
+            + " WHERE userid = 'user2';",
+        Collections.emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
+        "_CSASGen2",
+        CommandId.Action.CREATE);
+
+    // When:
+    statementExecutor.handleStatement(csasCommand, csasCommandId, Optional.empty());
+
+    // Then: CSAS statement should fail since exceeds limit of 2 active persistent queries
+    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(csasCommandId);
+    Assert.assertTrue(commandStatus.isPresent());
+    assertThat(commandStatus.get().getStatus(), equalTo(CommandStatus.Status.ERROR));
+    assertThat(
+        commandStatus.get().getMessage(),
+        containsString("limit on number of active, persistent queries"));
+  }
+
   private void createStreamsAndTables() {
     final Command csCommand = new Command(
         "CREATE STREAM pageview ("
@@ -462,6 +495,10 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
     statementExecutor.handleStatement(ctasCommand, ctasCommandId, Optional.empty());
+
+    Assert.assertEquals(getCommandStatus(csCommandId), CommandStatus.Status.SUCCESS);
+    Assert.assertEquals(getCommandStatus(csasCommandId), CommandStatus.Status.SUCCESS);
+    Assert.assertEquals(getCommandStatus(ctasCommandId), CommandStatus.Status.SUCCESS);
   }
 
   private void tryDropThatViolatesReferentialIntegrity() {
@@ -587,9 +624,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(
         terminateCommand1, terminateCommandId1, Optional.empty());
-    final Optional<CommandStatus> terminateCommandStatus1 =
-        statementExecutor.getStatus(terminateCommandId1);
-    assertThat(terminateCommandStatus1.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(getCommandStatus(terminateCommandId1), equalTo(CommandStatus.Status.SUCCESS));
 
     final Command terminateCommand2 = new Command(
         "TERMINATE CTAS_TABLE1_1;",
@@ -599,9 +634,10 @@ public class StatementExecutorTest extends EasyMockSupport {
         new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(
         terminateCommand2, terminateCommandId2, Optional.empty());
-    final Optional<CommandStatus> terminateCommandStatus2 =
-        statementExecutor.getStatus(terminateCommandId2);
-    assertThat(terminateCommandStatus2.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(getCommandStatus(terminateCommandId2), equalTo(CommandStatus.Status.SUCCESS));
   }
 
+  private CommandStatus.Status getCommandStatus(CommandId commandId) {
+    return statementExecutor.getStatus(commandId).get().getStatus();
+  }
 }

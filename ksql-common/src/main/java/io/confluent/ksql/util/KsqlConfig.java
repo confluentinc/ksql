@@ -113,6 +113,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "continue to store session keys without the end time. With the default value of false "
       + "new queries will now correctly store the session end time as part of the key";
 
+  public static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG =
+      "ksql.active.persistent.query.limit";
+  private static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
+  private static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC =
+      "An upper limit on the number of active, persistent queries that may be running at a time, "
+      + "in interactive mode. Once this limit is reached, any further persistent queries will not "
+      + "be accepted.";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -123,7 +131,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEBS
+  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
@@ -149,13 +157,20 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               false,
               ConfigDef.Importance.LOW,
               KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS),
-      new CompatibilityBreakingConfigDef(
-          KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG,
-          ConfigDef.Type.BOOLEAN,
-          true,
-          false,
-          ConfigDef.Importance.LOW,
-          KSQL_WINDOWED_SESSION_KEY_LEGACY_DOC)
+          new CompatibilityBreakingConfigDef(
+              KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              KSQL_WINDOWED_SESSION_KEY_LEGACY_DOC),
+          new CompatibilityBreakingConfigDef(
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
+              ConfigDef.Type.INT,
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
+              ConfigDef.Importance.LOW,
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC)
   );
 
   private static class CompatibilityBreakingConfigDef {
@@ -288,7 +303,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         .withClientSslSupport();
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
-        : COMPATIBLY_BREAKING_CONFIG_DEBS) {
+        : COMPATIBLY_BREAKING_CONFIG_DEFS) {
       if (current) {
         compatibilityBreakingConfigDef.defineCurrent(configDef);
       } else {
@@ -479,7 +494,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
     final KsqlConfig originalConfig = new KsqlConfig(false, props);
     final Map<String, Object> mergedProperties = new HashMap<>(originals());
-    COMPATIBLY_BREAKING_CONFIG_DEBS.stream()
+    COMPATIBLY_BREAKING_CONFIG_DEFS.stream()
         .map(CompatibilityBreakingConfigDef::getName)
         .forEach(
             k -> mergedProperties.put(k, originalConfig.get(k)));

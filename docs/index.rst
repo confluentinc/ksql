@@ -85,3 +85,4 @@ KSQL Documentation
     capacity-planning
     tutorials/index
     faq
+    troubleshoot-ksql

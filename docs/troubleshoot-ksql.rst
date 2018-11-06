@@ -10,7 +10,9 @@ SELECT query hangs and doesn’t stop
 
 Queries in KSQL, including non-persistent queries, like ``SELECT * FROM myTable``,
 are continuous streaming queries. Streaming queries don't stop unless you end them
-explicitly. In the KSQL CLI, press CTRL+C to stop a non-persistent query.
+explicitly. In the KSQL CLI, press CTRL+C to stop a non-persistent query. To stop a
+persistent query created by CREATE STREAM AS SELECT or CREATE TABLE AS SELECT,
+use the TERMINATE statement. 
 
 SELECT query returns no results
 *******************************
@@ -55,7 +57,7 @@ print a summary.
 
     docker run --network ksql-troubleshooting_default --tty --interactive --rm \
               confluentinc/cp-kafkacat \
-              kafkacat -b kafka:29092 \
+              kafkacat -b kafka:39092 \
               -C -t pageviews \
               -o beginning
 
@@ -64,7 +66,6 @@ If the topic is empty, your output should resemble:
 .. code:: text
 
     % Reached end of topic pageviews [0] at offset 0
-
 
 Read from the beginning of the topic
 ====================================
@@ -93,24 +94,41 @@ If you're confident that you're querying the right Kafka topic, that the topic
 is populated, and that you're reading data from before the latest offset, try
 checking your query.
 
+Your query may be filtering out all records because its predicate is too
+restrictive. Try removing WHERE and HAVING clauses and running your query
+again. 
+
 .. _ksql-deserialization-errors:
 
 Check for deserialization errors
 ================================
 
 If KSQL can't deserialize message data, it won't write any SELECT results.
-Use the DESCRIBE EXTENDED statement and check that the VALUE_FORMAT of the
+Use the DESCRIBE EXTENDED statement to check that the VALUE_FORMAT of the
 stream matches the format of the records that |kcat| prints for your topic.
 
 .. code:: text
      
     ksql> DESCRIBE EXTENDED pageviews;
     
-    Name                 : PAGEVIEWS_WITHKEY
+    Name                 : PAGEVIEWS
     [...]
     Value format         : DELIMITED
 
-[TBD: kcat output]
+Here is some example output from |kcat| for a DELIMITED topic:
+
+.. code:: text
+
+    1541463125587,User_2,Page_74
+    1541463125823,User_2,Page_92
+    1541463125931,User_3,Page_44
+    % Reached end of topic pageviews [0] at offset 1538
+    1541463126232,User_1,Page_28
+    % Reached end of topic pageviews [0] at offset 1539
+    1541463126637,User_7,Page_64
+    % Reached end of topic pageviews [0] at offset 1540
+    1541463126786,User_1,Page_83
+    ^C
 
 :ref:`ksql-check-server-logs` for serialization errors. For example, if your
 query specifies JSON for the VALUE_FORMAT, and the underlying topic isn't

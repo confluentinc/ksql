@@ -36,6 +36,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("SameParameterValue")
 public class KsqlRequestTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();

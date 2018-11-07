@@ -17,10 +17,8 @@
 package io.confluent.ksql.config;
 
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.ConfigKey;
-import org.apache.kafka.common.config.ConfigDef.Type;
 
 public interface ConfigItem {
 
@@ -33,11 +31,6 @@ public interface ConfigItem {
    * @return the name of the property.
    */
   String getPropertyName();
-
-  /**
-   * @return the type of the property, if known.
-   */
-  Optional<Type> getPropertyType();
 
   /**
    * Parse and validate the value for this config item.
@@ -95,11 +88,6 @@ public interface ConfigItem {
     }
 
     @Override
-    public Optional<Type> getPropertyType() {
-      return Optional.empty();
-    }
-
-    @Override
     public Object parseValue(final Object value) {
       return value;
     }
@@ -131,11 +119,6 @@ public interface ConfigItem {
     @Override
     public String getPropertyName() {
       return key.name;
-    }
-
-    @Override
-    public Optional<Type> getPropertyType() {
-      return Optional.of(key.type);
     }
 
     @Override

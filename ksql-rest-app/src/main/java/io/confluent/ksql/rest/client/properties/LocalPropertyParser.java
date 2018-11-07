@@ -24,7 +24,6 @@ import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
-import org.apache.kafka.common.config.ConfigDef.Type;
 
 public class LocalPropertyParser implements PropertyParser {
 
@@ -53,21 +52,9 @@ public class LocalPropertyParser implements PropertyParser {
         .orElseThrow(() -> new IllegalArgumentException(String.format(
             "Not recognizable as ksql, streams, consumer, or producer property: '%s'", property)));
 
-    final Object parsedValue = parse(value, configItem);
+    final Object parsedValue = configItem.parseValue(value);
 
     validator.validate(configItem.getPropertyName(), parsedValue);
     return parsedValue;
-  }
-
-  private Object parse(final Object value, final ConfigItem configItem) {
-    final boolean isShortProperty = configItem.getPropertyType()
-        .map(type -> type == Type.SHORT)
-        .orElse(false);
-
-    if (isShortProperty) {
-      // Special-case for SHORT properties to handle int values, which ConfigDef can't coerce
-      return configItem.parseValue(String.valueOf(value));
-    }
-    return configItem.parseValue(value);
   }
 }

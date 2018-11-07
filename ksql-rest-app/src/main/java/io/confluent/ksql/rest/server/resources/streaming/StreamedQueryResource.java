@@ -71,8 +71,8 @@ public class StreamedQueryResource {
   public Response streamQuery(final KsqlRequest request) throws Exception {
     final String ksql = request.getKsql();
     final Statement statement;
-    if (ksql == null) {
-      return Errors.badRequest("\"ksql\" field must be given");
+    if (ksql.isEmpty()) {
+      return Errors.badRequest("\"ksql\" field must be populated");
     }
 
     try {

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.Optional;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.ConfigKey;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -74,13 +73,6 @@ public class ConfigItemTest {
         is(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
     assertThat(RESOLVED_WITH_VALIDATOR.getPropertyName(), is(StreamsConfig.SEND_BUFFER_CONFIG));
     assertThat(UNRESOLVED.getPropertyName(), is("some.unresolved.prop"));
-  }
-
-  @Test
-  public void shouldReturnPropertyType() {
-    assertThat(RESOLVED_PASSWORD.getPropertyType(), is(Optional.of(Type.PASSWORD)));
-    assertThat(RESOLVED_NO_VALIDATOR.getPropertyType(), is(Optional.of(Type.INT)));
-    assertThat(UNRESOLVED.getPropertyType(), is(Optional.empty()));
   }
 
   @Test

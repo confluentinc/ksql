@@ -32,7 +32,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.ConfigDef.Type;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -148,17 +147,5 @@ public class LocalPropertyParserTest {
 
     // When:
     parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
-  }
-
-  @Test
-  public void shouldConvertShortPropertyValuesToStringsBeforeParsing() {
-    // Given:
-    when(configItem.getPropertyType()).thenReturn(Optional.of(Type.SHORT));
-
-    // When:
-    parser.parse(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)2);
-
-    // Then:
-    verify(configItem).parseValue("2");
   }
 }

@@ -97,7 +97,10 @@ public class WSQueryEndpoint {
           "missing request parameter"
       );
       request = mapper.readValue(requestParam, KsqlRequest.class);
-      queryString = Objects.requireNonNull(request.getKsql(), "\"ksql\" field must be given");
+      queryString = request.getKsql();
+      if (queryString.isEmpty()) {
+        throw new IllegalArgumentException("\"ksql\" field must be populated");
+      }
       statement = statementParser.parseSingleStatement(queryString);
     } catch (final Exception e) {
       log.debug("Unable to parse query", e);

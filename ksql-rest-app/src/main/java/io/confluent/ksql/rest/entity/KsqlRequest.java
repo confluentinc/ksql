@@ -24,10 +24,9 @@ import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.rest.client.properties.LocalPropertyParser;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
@@ -42,8 +41,10 @@ public class KsqlRequest {
       @JsonProperty("ksql") final String ksql,
       @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties
   ) {
-    this.ksql = ksql;
-    this.streamsProperties = Collections.unmodifiableMap(coerceTypes(streamsProperties));
+    this.ksql = ksql == null ? "" : ksql;
+    this.streamsProperties = streamsProperties == null
+        ? Collections.emptyMap()
+        : Collections.unmodifiableMap(new HashMap<>(streamsProperties));
   }
 
   public String getKsql() {
@@ -51,7 +52,7 @@ public class KsqlRequest {
   }
 
   public Map<String, Object> getStreamsProperties() {
-    return streamsProperties;
+    return coerceTypes(streamsProperties);
   }
 
   @Override
@@ -79,13 +80,15 @@ public class KsqlRequest {
       return Collections.emptyMap();
     }
 
-    return streamsProperties.entrySet().stream()
-        .collect(Collectors.toMap(Entry::getKey, e -> coerceType(e.getKey(), e.getValue())));
+    final Map<String, Object> validated = new HashMap<>(streamsProperties.size());
+    streamsProperties.forEach((k, v) -> validated.put(k, coerceType(k, v)));
+    return validated;
   }
 
   private static Object coerceType(final String key, final Object value) {
     try {
-      return PROPERTY_PARSER.parse(key, value);
+      final String stringValue = value == null ? null : String.valueOf(value);
+      return PROPERTY_PARSER.parse(key, stringValue);
     } catch (final Exception e) {
       throw new KsqlException("Failed to set '" + key + "' to '" + value + "'", e);
     }

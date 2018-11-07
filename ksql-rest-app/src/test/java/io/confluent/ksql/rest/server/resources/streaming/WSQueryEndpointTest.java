@@ -12,7 +12,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
@@ -24,7 +23,6 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.IOException;
 import java.util.Arrays;
@@ -135,8 +133,7 @@ public class WSQueryEndpointTest {
 
   private void shouldReturnAllRows(final Map<String, List<String>> testParameters) throws IOException {
     final String statement = "ksql-query-statement";
-    final Map<String, Object> properties =
-        ImmutableMap.of(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 2);
+    final Map<String, Object> properties = Collections.singletonMap("foo", "bar");
     final KsqlRequest request = new KsqlRequest(statement, properties);
     final Map<String, List<String>> parameters = new HashMap<>(testParameters);
     parameters.put(

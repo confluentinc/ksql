@@ -81,7 +81,8 @@ public class KsqlServerMain {
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     return KsqlRestApplication.buildApplication(
         restConfig,
-        new KsqlVersionCheckerAgent()
+        new KsqlVersionCheckerAgent(),
+        Integer.MAX_VALUE
     );
   }
 }

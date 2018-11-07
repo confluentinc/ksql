@@ -119,18 +119,36 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertNotNull(statusStore);
     Assert.assertEquals(statusStore.size(), 1);
     Assert.assertEquals(statusStore.get(commandId).getStatus(), CommandStatus.Status.ERROR);
-
   }
 
   @Test
-  public void shouldNotRunNullStatementList() {
-    try{
-      statementExecutor.handleRestoration(null);
-    } catch (final Exception nex) {
-      assertThat("Statement list should not be null.", nex instanceof NullPointerException);
+  public void shouldThrowOnUnexpectedException() {
+    // Given:
+    final String statementText = "mama said knock you out";
+    final StatementParser statementParser = mock(StatementParser.class);
+    final KsqlEngine mockEngine = mock(KsqlEngine.class);
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    final StatementExecutor statementExecutor = new StatementExecutor(
+        ksqlConfig, mockEngine, statementParser);
+    final RuntimeException exception = new RuntimeException("i'm gonna knock you out");
+    expect(statementParser.parseSingleStatement(statementText)).andThrow(
+        exception);
+    final Command command = new Command(
+        statementText,
+        Collections.emptyMap(),
+        Collections.emptyMap());
+    final CommandId commandId =  new CommandId(
+        CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
+    replay(statementParser);
+
+    // When:
+    try {
+      statementExecutor.handleStatement(command, commandId, Optional.empty());
+      Assert.fail("handleStatement should throw");
+    } catch (final RuntimeException caughtException) {
+      // Then:
+      assertThat(caughtException, is(exception));
     }
-
-
   }
 
   @Test
@@ -344,7 +362,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldHandlePriorStatement() {
+  public void shouldHandlePriorStatements() {
     final TestUtils testUtils = new TestUtils();
     final List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
     final RestoreCommands restoreCommands = new RestoreCommands();
@@ -363,7 +381,16 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
 
-    statementExecutor.handleRestoration(restoreCommands);
+    restoreCommands.forEach(
+        (command, commandId, terminatedQueries, wasDropped) ->
+            statementExecutor.handleStatementWithTerminatedQueries(
+                commandId,
+                command,
+                Optional.empty(),
+                terminatedQueries,
+                wasDropped
+        )
+    );
 
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);

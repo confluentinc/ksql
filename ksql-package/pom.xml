@@ -58,19 +58,16 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-examples</artifactId>
         </dependency>
-        <!-- kafka -> zookeeper -> jline ends up including junit 3.8.1 here. Explicitly list the
-             dependency and scope it to test to avoid pulling it in -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.hamcrest</groupId>
-                    <artifactId>hamcrest-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+
+      <!-- Required for running tests -->
+
+      <dependency>
+        <groupId>io.confluent.ksql</groupId>
+        <artifactId>ksql-test-util</artifactId>
+        <version>${project.version}</version>
+        <scope>test</scope>
+      </dependency>
+
     </dependencies>
 
     <build>

@@ -16,9 +16,8 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.errors.WakeupException;
@@ -35,7 +34,8 @@ public class CommandRunner implements Runnable, Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
 
-  private static final int STATEMENT_RETRY_MS = 1000;
+  private static final int STATEMENT_RETRY_MS = 100;
+  private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
 
   private final StatementExecutor statementExecutor;
   private final CommandStore commandStore;
@@ -88,8 +88,6 @@ public class CommandRunner implements Runnable, Closeable {
         .forEach(c -> executeStatement(c.getCommand().get(), c.getCommandId(), c.getStatus()));
   }
 
-
-
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    * @throws Exception TODO: Refine this.
@@ -98,14 +96,18 @@ public class CommandRunner implements Runnable, Closeable {
     final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
     restoreCommands.forEach(
         (commandId, command, terminatedQueries, wasDropped) -> {
-          executeStatementWithRetries(
+          RetryUtil.retryWithBackoff(
+              maxRetries,
+              STATEMENT_RETRY_MS,
+              MAX_STATEMENT_RETRY_MS,
               () -> statementExecutor.handleStatementWithTerminatedQueries(
                   command,
                   commandId,
                   Optional.empty(),
                   terminatedQueries,
                   wasDropped
-              )
+              ),
+              WakeupException.class
           );
         }
     );
@@ -115,36 +117,12 @@ public class CommandRunner implements Runnable, Closeable {
                                 final CommandId commandId,
                                 final Optional<QueuedCommandStatus> status) {
     log.info("Executing statement: " + command.getStatement());
-    executeStatementWithRetries(
-        () -> statementExecutor.handleStatement(command, commandId, status)
+    RetryUtil.retryWithBackoff(
+        maxRetries,
+        STATEMENT_RETRY_MS,
+        MAX_STATEMENT_RETRY_MS,
+        () -> statementExecutor.handleStatement(command, commandId, status),
+        WakeupException.class
     );
-  }
-
-  private void executeStatementWithRetries(final Runnable runnable) {
-    RuntimeException finalException = null;
-    for (int i = 0; i < maxRetries && !closed; i++) {
-      try {
-        runnable.run();
-        return;
-      } catch (final WakeupException wue) {
-        throw wue;
-      } catch (final RuntimeException exception) {
-        final StringWriter stringWriter = new StringWriter();
-        final PrintWriter printWriter = new PrintWriter(stringWriter);
-        finalException = exception;
-        exception.printStackTrace(printWriter);
-        log.error(
-            "Exception encountered running command: {}. Retrying in {} ms",
-            exception.getMessage(),
-            STATEMENT_RETRY_MS);
-        log.error("Stack trace: " + stringWriter.toString());
-        try {
-          Thread.sleep(STATEMENT_RETRY_MS);
-        } catch (final InterruptedException e) {
-          log.debug("Interrupted while sleeping on command retry.");
-        }
-      }
-    }
-    throw finalException;
   }
 }

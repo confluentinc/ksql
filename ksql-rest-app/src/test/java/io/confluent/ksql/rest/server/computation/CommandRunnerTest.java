@@ -117,7 +117,7 @@ public class CommandRunnerTest {
         same(command.getCommandId()),
         same(command.getStatus()));
     final RuntimeException exception = new RuntimeException("something bad happened");
-    expectLastCall().andThrow(exception).times(3);
+    expectLastCall().andThrow(exception).times(4);
     expect(commandStore.getNewCommands()).andReturn(commands);
     replay(statementExecutor, commandStore);
     final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 3);

@@ -141,7 +141,8 @@ public class TestKsqlRestApp extends ExternalResource {
     try {
       restServer = KsqlRestApplication.buildApplication(
           buildConfig(),
-          new NoOpVersionCheckerAgent()
+          new NoOpVersionCheckerAgent(),
+          3
       );
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
@@ -188,7 +189,6 @@ public class TestKsqlRestApp extends ExternalResource {
 
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.get());
     config.putIfAbsent(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0,https://localhost:0");
-    config.put(KsqlRestConfig.COMMAND_RETRY_LIMIT_CONFIG, COMMAND_RETRY_LIMIT);
     return new KsqlRestConfig(config);
   }
 

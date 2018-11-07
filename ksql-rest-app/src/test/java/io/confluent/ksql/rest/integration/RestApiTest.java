@@ -176,9 +176,10 @@ public class RestApiTest {
         final int port = randomFreeLocalPort();
         serverAddress = "http://localhost:" + port;
         configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
-        configs.put(KsqlRestConfig.COMMAND_RETRY_LIMIT_CONFIG, COMMAND_RETRY_LIMIT);
-        restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs),
-                                                               new DummyVersionCheckerAgent());
+        restApplication = KsqlRestApplication.buildApplication(
+            new KsqlRestConfig(configs),
+            new DummyVersionCheckerAgent(),
+            3);
         restApplication.start();
         return;
       } catch (BindException e) {

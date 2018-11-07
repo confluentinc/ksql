@@ -161,9 +161,13 @@ public class WSQueryEndpoint {
       final List<String> jsonRequests = session.getRequestParameterMap()
           .getOrDefault("request", Collections.emptyList());
 
-      final String jsonRequest = Iterables.getLast(jsonRequests, "");
-      if (jsonRequest.isEmpty()) {
+      if (jsonRequests == null || jsonRequests.isEmpty()) {
         throw new IllegalArgumentException("missing request parameter");
+      }
+
+      final String jsonRequest = Iterables.getLast(jsonRequests, "");
+      if (jsonRequest == null || jsonRequest.isEmpty()) {
+        throw new IllegalArgumentException("request parameter empty");
       }
 
       final KsqlRequest request = mapper.readValue(jsonRequest, KsqlRequest.class);

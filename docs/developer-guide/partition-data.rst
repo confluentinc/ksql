@@ -85,8 +85,9 @@ implements the following partitioning strategy:
 Custom partitioner classes implement the `Partitioner interface <https://kafka.apache.org/20/javadoc/org/apache/kafka/clients/producer/Partitioner.html>`__ 
 and are assigned in the producer configuration property, ``partitioner.class``.
 
-For an example implementation of a custom partitioner, see
-`Built for realtime: Big data messaging with Apache Kafka, Part 2 <https://www.javaworld.com/article/3066873/big-data/big-data-messaging-with-kafka-part-2.html>`__.
+For example implementations of a custom partitioner, see
+`Built for realtime: Big data messaging with Apache Kafka, Part 2 <https://www.javaworld.com/article/3066873/big-data/big-data-messaging-with-kafka-part-2.html>`__
+and `Apache Kafka Foundation Course - Custom Partitioner <https://www.learningjournal.guru/courses/kafka/kafka-foundation-training/custom-partitioner/>`__.
 
 .. _ensure-co-partitioning:
 

@@ -94,3 +94,4 @@ KSQL Documentation
     tutorials/index
     faq
     changelog
+    troubleshoot-ksql

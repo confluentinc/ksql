@@ -17,7 +17,7 @@
 package io.confluent.ksql.cli;
 
 import io.confluent.ksql.cli.console.Console;
-import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
+import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
@@ -45,8 +45,6 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -76,7 +74,17 @@ public class Cli implements Closeable {
   private final KsqlRestClient restClient;
   private final Console terminal;
 
-  public Cli(
+  public static Cli build(
+      final Long streamedQueryRowLimit,
+      final Long streamedQueryTimeoutMs,
+      final OutputFormat outputFormat,
+      final KsqlRestClient restClient
+  ) {
+    final Console console = Console.build(outputFormat, restClient);
+    return new Cli(streamedQueryRowLimit, streamedQueryTimeoutMs, restClient, console);
+  }
+
+  Cli(
       final Long streamedQueryRowLimit,
       final Long streamedQueryTimeoutMs,
       final KsqlRestClient restClient,
@@ -150,60 +158,19 @@ public class Cli implements Closeable {
     terminal.flush();
   }
 
-  public void runNonInteractively(final String input) throws Exception {
-    // Allow exceptions to halt execution of the Ksql script as soon as the first one is encountered
-    for (final String logicalLine : getLogicalLines(input)) {
-      try {
-        handleLine(logicalLine);
-      } catch (final EndOfFileException exception) {
-        // Swallow these silently; they're thrown by the exit command to terminate the REPL
-        return;
-      }
-    }
-  }
-
-  @SuppressWarnings("RedundantStringOperation") // Incorrect warning. Operation is not redundant
-  private List<String> getLogicalLines(final String input) {
-    final List<String> result = new ArrayList<>();
-    final StringBuilder logicalLine = new StringBuilder();
-
-    Arrays.stream(input.split("\n"))
-        .map(String::trim)
-        .filter(line -> !line.isEmpty())
-        .forEach(physicalLine -> {
-          if (physicalLine.endsWith("\\")) {
-            logicalLine.append(physicalLine.substring(0, physicalLine.length() - 1));
-          } else {
-            result.add(logicalLine.append(physicalLine).toString().trim());
-            logicalLine.setLength(0);
-          }
-        });
-
-    return result;
-  }
-
   @Override
-  public void close() throws IOException {
+  public void close() {
     queryStreamExecutorService.shutdownNow();
-    restClient.close();
     terminal.close();
   }
 
-  public void handleLine(final String line) throws Exception {
+  void handleLine(final String line) throws Exception {
     final String trimmedLine = Optional.ofNullable(line).orElse("").trim();
-
     if (trimmedLine.isEmpty()) {
       return;
     }
 
-    final String[] commandArgs = trimmedLine.split("\\s+", 2);
-    final CliSpecificCommand cliSpecificCommand =
-        terminal.getCliSpecificCommands().get(commandArgs[0].toLowerCase());
-    if (cliSpecificCommand != null) {
-      cliSpecificCommand.execute(commandArgs.length > 1 ? commandArgs[1] : "");
-    } else {
-      handleStatements(line);
-    }
+    handleStatements(line);
   }
 
   /**
@@ -217,7 +184,7 @@ public class Cli implements Closeable {
   private String readLine() throws IOException {
     while (true) {
       try {
-        final String result = terminal.getLineReader().readLine();
+        final String result = terminal.readLine();
         // A 'dumb' terminal (the kind used at runtime if a 'system' terminal isn't available) will
         // return null on EOF and user interrupt, instead of throwing the more fine-grained
         // exceptions. This null-check helps ensure that, upon encountering EOF, even a 'dumb'
@@ -369,19 +336,16 @@ public class Cli implements Closeable {
 
     if (queryResponse.isSuccessful()) {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
-        final Future<?> queryStreamFuture = queryStreamExecutorService.submit(new Runnable() {
-          @Override
-          public void run() {
-            for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
-              try {
-                final StreamedRow row = queryStream.next();
-                terminal.printStreamedRow(row);
-                if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
-                  break;
-                }
-              } catch (final IOException exception) {
-                throw new RuntimeException(exception);
+        final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
+          for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
+            try {
+              final StreamedRow row = queryStream.next();
+              terminal.printStreamedRow(row);
+              if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
+                break;
               }
+            } catch (final IOException exception) {
+              throw new RuntimeException(exception);
             }
           }
         });

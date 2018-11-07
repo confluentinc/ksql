@@ -18,7 +18,6 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
-import io.confluent.ksql.cli.console.JLineTerminal;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -48,23 +47,24 @@ public final class Ksql {
     }
 
     try {
-
       final Properties properties = loadProperties(options.getConfigFile());
-      final KsqlRestClient restClient = new KsqlRestClient(options.getServer(), properties);
+      try (KsqlRestClient restClient = new KsqlRestClient(options.getServer(), properties)) {
 
-      options.getUserNameAndPassword().ifPresent(
-          creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right)
-      );
+        options.getUserNameAndPassword().ifPresent(
+            creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right)
+        );
 
-      final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
-      versionChecker.start(KsqlModuleType.CLI, properties);
+        final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent();
+        versionChecker.start(KsqlModuleType.CLI, properties);
 
-      try (Cli cli = new Cli(options.getStreamedQueryRowLimit(),
-                                   options.getStreamedQueryTimeoutMs(),
-                                   restClient,
-                                   new JLineTerminal(options.getOutputFormat(), restClient))
-      ) {
-        cli.runInteractively();
+        try (Cli cli = Cli.build(
+            options.getStreamedQueryRowLimit(),
+            options.getStreamedQueryTimeoutMs(),
+            options.getOutputFormat(),
+            restClient)
+        ) {
+          cli.runInteractively();
+        }
       }
     } catch (final Exception e) {
       final String msg = ErrorMessageUtil.buildErrorMessage(e);

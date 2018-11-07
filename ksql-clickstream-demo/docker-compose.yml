@@ -2,13 +2,21 @@
 version: '2'
 services:
   zookeeper:
+<<<<<<< HEAD
     image: confluentinc/cp-zookeeper:5.0.2-SNAPSHOT
+=======
+    image: confluentinc/cp-zookeeper:5.0.1
+>>>>>>> 5.0.1-post
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
+<<<<<<< HEAD
     image: confluentinc/cp-enterprise-kafka:5.0.2-SNAPSHOT
+=======
+    image: confluentinc/cp-enterprise-kafka:5.0.1
+>>>>>>> 5.0.1-post
     depends_on:
       - zookeeper
     #ports:
@@ -33,7 +41,11 @@ services:
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
 
   schema-registry:
+<<<<<<< HEAD
     image: confluentinc/cp-schema-registry:5.0.2-SNAPSHOT
+=======
+    image: confluentinc/cp-schema-registry:5.0.1
+>>>>>>> 5.0.1-post
     depends_on:
       - zookeeper
       - kafka
@@ -42,7 +54,11 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:2181
 
   kafka-connect:
+<<<<<<< HEAD
     image: confluentinc/cp-kafka-connect:5.0.2-SNAPSHOT
+=======
+    image: confluentinc/cp-kafka-connect:5.0.1
+>>>>>>> 5.0.1-post
     ports:
       - 8083:8083
     depends_on:
@@ -74,7 +90,11 @@ services:
      - $PWD/demo/connect-config:/usr/share/java/null-smt
 
   ksql-server:
+<<<<<<< HEAD
     image: confluentinc/cp-ksql-server:5.0.2-SNAPSHOT
+=======
+    image: confluentinc/cp-ksql-server:5.0.1
+>>>>>>> 5.0.1-post
     depends_on:
       - kafka
       - schema-registry

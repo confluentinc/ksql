@@ -15,7 +15,6 @@
     <packaging>pom</packaging>
     <name>ksql-parent</name>
     <version>5.0.2-SNAPSHOT</version>
-
     <licenses>
         <license>
             <name>Apache License 2.0</name>

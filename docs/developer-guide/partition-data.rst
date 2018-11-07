@@ -1,11 +1,14 @@
 .. _partition-data-to-enable-joins:
 
 Partition Data to Enable Joins
-==============================
+##############################
 
 When you use KSQL to join streaming data, you must ensure that your streams
 and tables are *co-partitioned*, which means that input records on both sides
 of the join have the same configuration settings for partitions.
+
+Co-partitioning Requirements
+****************************
 
 * The input records for the join must have the :ref:`same keying scheme <keys-have-same-keying-scheme>`
   and the :ref:`same number of partitions <keys-have-same-number-of-partitions>` on both sides.
@@ -20,7 +23,7 @@ them <ensure-co-partitioning>` by using the PARTITION BY clause.
 .. _keys-have-same-keying-scheme:
 
 Same Keying Scheme
-##################
+==================
 
 The input records for the join must have the same keying scheme, which means
 that the join must use the same key field on both sides.
@@ -32,7 +35,7 @@ The join won't match if the key fields don't have the same name and type.
 .. _keys-have-same-number-of-partitions:
 
 Number of Partitions is Equal
-#############################
+=============================
 
 The input records for the join must have the same number of partitions on both
 sides.
@@ -47,7 +50,7 @@ Kafka topics that correspond with your streams and tables.
 .. _records-are-in-the-same-partition:
 
 Records Are In The Same Partition
-#################################
+=================================
 
 The input records for the join must be in the same partition on both sides.
 
@@ -58,7 +61,7 @@ the join won't match, even though both sides are keyed by ``userId``.
 .. _records-have-same-partitioning-strategy:
 
 Records Have the Same Partitioning Strategy
-###########################################
+===========================================
 
 Records on both sides of the join must have the same partitioning strategy.
 If you use the default partitioner settings across all applications, you don't

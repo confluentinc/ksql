@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.ConfigDef.Type;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

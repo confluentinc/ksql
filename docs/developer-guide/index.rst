@@ -11,6 +11,7 @@ These topics show how to develop KSQL applications for |cp|.
 
     ../installation/cli-config
     create-a-stream
+    create-a-table
     join-streams-and-tables
     partition-data
     syntax-reference

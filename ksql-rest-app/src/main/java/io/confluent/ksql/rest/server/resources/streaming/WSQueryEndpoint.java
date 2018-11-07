@@ -31,11 +31,9 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.EndpointConfig;
@@ -99,7 +97,10 @@ public class WSQueryEndpoint {
           "missing request parameter"
       );
       request = mapper.readValue(requestParam, KsqlRequest.class);
-      queryString = Objects.requireNonNull(request.getKsql(), "\"ksql\" field must be given");
+      queryString = request.getKsql();
+      if (queryString.isEmpty()) {
+        throw new IllegalArgumentException("\"ksql\" field must be populated");
+      }
       statement = statementParser.parseSingleStatement(queryString);
     } catch (final Exception e) {
       log.debug("Unable to parse query", e);
@@ -113,8 +114,7 @@ public class WSQueryEndpoint {
 
     try {
       if (statement instanceof Query) {
-        final Map<String, Object> clientLocalProperties =
-            Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
+        final Map<String, Object> clientLocalProperties = request.getStreamsProperties();
 
         final WebSocketSubscriber<StreamedRow> streamSubscriber =
             new WebSocketSubscriber<>(session, mapper);

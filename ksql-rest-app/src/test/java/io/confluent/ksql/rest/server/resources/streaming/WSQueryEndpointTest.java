@@ -134,7 +134,7 @@ public class WSQueryEndpointTest {
 
   private void shouldReturnAllRows(final Map<String, List<String>> testParameters) throws IOException {
     final String statement = "ksql-query-statement";
-    final Map<String, Object> properties = Collections.singletonMap("foo", "bar");
+    final Map<String, Object> properties = Collections.emptyMap();
     final KsqlRequest request = new KsqlRequest(statement, properties);
     final Map<String, List<String>> parameters = new HashMap<>(testParameters);
     parameters.put(

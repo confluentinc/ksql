@@ -147,6 +147,14 @@ ksql.sink.replicas
 
 The default number of replicas for the topics created by KSQL. The default is one.
 
+------------------------------------
+ksql.functions.substring.legacy.args
+------------------------------------
+
+Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details.
+
+It is important to set this config to `true` when upgrading headless mode KSQL applications from versions 5.0.0 or earlier.
+
 KSQL Server Settings
 --------------------
 

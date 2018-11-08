@@ -7,10 +7,10 @@ During the life cycle of a record, it experiences a number of events
 which occur at particular times. Three important times in a record's 
 life cycle are *Event-time*, *Ingestion-time*, and *Processing-time*. 
 
-Representing time consistently enables aggregation operations o streams,
+Representing time consistently enables aggregation operations on streams,
 like SUM, that have time boundaries.
 
-KSQL and Kafka Streams support the following notions of time:
+KSQL supports the following notions of time:
 
 Event-time
     The time when a record is created by the data source. Achieving event-time
@@ -49,20 +49,10 @@ Processing-time
     real-time pipelines based on Apache Kafka and Kafka Streams) or it might be
     hours, like for batch pipelines based on Apache Hadoop or Apache Spark.
 
-Kafka Streams assigns a timestamp to every data record by using
-*timestamp extractors*, which are per-record timestamps that describe the
-progress of a stream over time. Timestamps are used by time-dependent
-operations, like joins.
-
-We call it the *application event-time* to differentiate
-with the wall-clock-time when the application is running.
-Application event-time is also used to synchronize multiple
-input streams within the same application.
-
-
-Records may be out-of-order within
-the stream.
-
+KSQL assigns a timestamp to every data record by using *timestamp extractors*,
+which are per-record timestamps that describe the progress of a stream over time.
+Timestamps are used by time-dependent operations, like joins. Records may be
+out-of-order within the stream.
 
 Concrete implementations of timestamp extractors may retrieve or compute timestamps
 based on the actual contents of data records such as an embedded timestamp field to provide
@@ -72,7 +62,7 @@ to stream processing applications.
 
 Developers can thus enforce different notions/semantics of time depending on their business needs.
 
-Finally, whenever a Kafka Streams application writes records to Kafka,
+Finally, whenever a KSQL application writes records to Kafka,
 then it will also assign timestamps to these new records.
 The way the timestamps are assigned depends on the context:
 
@@ -86,12 +76,10 @@ The way the timestamps are assigned depends on the context:
 .. tip::
 
 Know your time: When working with time you should also make sure that additional
-aspects of time such as time zones and calendars are correctly
-synchronized – or at least understood and traced – throughout your stream data pipelines.
-It often helps, for example, to agree on specifying time information in UTC or in Unix time
+aspects of time such as time zones and calendars are correctly synchronized – or
+at least understood and traced – throughout your stream data pipelines. It often
+helps, for example, to agree on specifying time information in UTC or in Unix time
 (such as seconds since the epoch). You should also not mix topics with different time semantics.
-
-
 
 
 Windowing
@@ -101,18 +89,22 @@ Windowing lets you control how to group records that have the same key for state
 operations such as aggregations or joins into so-called windows. Windows are tracked
 per record key.
 
-Windowing operations are available in the Kafka Streams DSL. When working with windows,
-you can specify a retention period for the window. This retention period controls how
-long Kafka Streams will wait for out-of-order or late-arriving data records for a given window.
-If a record arrives after the retention period of a window has passed, the record is discarded
-and will not be processed in that window.
+When working with windows, you can specify a retention period for the window.
+This retention period controls how long KSQL waits for out-of-order or late-arriving records
+for a given window. If a record arrives after the retention period of a window has passed,
+the record is discarded and will not be processed in that window.
+
+We added a new configuration that we call "grace period" that determines how long
+we wait before we close a window. Retention time is still a valid parameter that defines
+how long we store the (potentially) closed window -- we do this to allow to access the
+window via Interactive Queries even if it's already closed.
 
 Late-arriving records are always possible in the real world and should be properly accounted
 for in your applications. It depends on the effective time semantics how late records are handled.
 In the case of processing-time, the semantics are “when the record is being processed”, which means
 that the notion of late records is not applicable as, by definition, no record can be late.
 Hence, late-arriving records can only be considered as such (i.e. as arriving “late”) for
-event-time or ingestion-time semantics. In both cases, Kafka Streams is able to properly
+event-time or ingestion-time semantics. In both cases, KSQL is able to properly
 handle late-arriving records.
 
 .. image:: ../img/ksql-window.png
@@ -120,3 +112,7 @@ handle late-arriving records.
 
 .. image:: ../img/ksql-window-aggregation.png
 
+
+Session Window start and end time are both inclusive (in contrast to time-windows),
+and there is always a record in the session window with the start and end timestamps
+(because the timestamp of the first and last record in the window define window start and end time).

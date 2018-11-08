@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -237,16 +238,12 @@ public class StatementExecutor {
           ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
           overriddenProperties
       );
-      if (!ksqlEngine.hasCapacityForPersistentQueries(
-          0, getPersistentQueryLimit(command))) {
-        for (final QueryMetadata queryMetadata : queryMetadataList) {
-          if (queryMetadata instanceof PersistentQueryMetadata) {
-            final PersistentQueryMetadata persistentQueryMd =
-                (PersistentQueryMetadata) queryMetadata;
-            final QueryId queryId = persistentQueryMd.getQueryId();
-            ksqlEngine.terminateQuery(queryId, false);
-          }
-        }
+      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+          ksqlEngine,0, getPersistentQueryLimit(command))) {
+        queryMetadataList.stream()
+            .filter(q -> q instanceof PersistentQueryMetadata)
+            .forEach(
+                q -> ksqlEngine.terminateQuery(((PersistentQueryMetadata) q).getQueryId(), false));
         throwTooManyActivePersistentQueriesException(command.getStatement());
       }
       for (final QueryMetadata queryMetadata : queryMetadataList) {
@@ -270,7 +267,8 @@ public class StatementExecutor {
       final String statementStr,
       final boolean wasDropped
   ) {
-    if (!ksqlEngine.hasCapacityForPersistentQueries(1, getPersistentQueryLimit(command))) {
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+        ksqlEngine,1, getPersistentQueryLimit(command))) {
       throwTooManyActivePersistentQueriesException(statementStr);
     }
     final QuerySpecification querySpecification =
@@ -306,7 +304,8 @@ public class StatementExecutor {
                                       final Map<QueryId, CommandId> terminatedQueries,
                                       final String statementStr,
                                       final boolean wasDropped) {
-    if (!ksqlEngine.hasCapacityForPersistentQueries(1, getPersistentQueryLimit(command))) {
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+        ksqlEngine,1, getPersistentQueryLimit(command))) {
       throwTooManyActivePersistentQueriesException(statementStr);
     }
     final QuerySpecification querySpecification =
@@ -421,10 +420,8 @@ public class StatementExecutor {
   }
 
   private int getPersistentQueryLimit(final Command command) {
-    return Integer.parseInt(
-        command.getOriginalProperties().getOrDefault(
-            KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
-            String.valueOf(
-                ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))));
+    final KsqlConfig mergedConfig =
+        ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+    return mergedConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
   }
 }

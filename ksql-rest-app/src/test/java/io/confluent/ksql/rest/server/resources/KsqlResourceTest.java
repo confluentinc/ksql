@@ -508,8 +508,8 @@ public class KsqlResourceTest {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
           .andDelegateTo(realEngine);
       EasyMock.expect(
-          mockEngine.hasCapacityForPersistentQueries(EasyMock.anyLong(), EasyMock.anyLong()))
-          .andReturn(true);
+          mockEngine.numberOfPersistentQueries())
+          .andReturn(0L);
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
     });
@@ -525,15 +525,47 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailIfExceedActivePersistentQueriesLimit() {
+  public void shouldFailIfReachedActivePersistentQueriesLimit() {
     // Given:
+    givenKsqlConfigWith(ImmutableMap.<String, Object>builder()
+        .put(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3)
+        .build());
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
           .andDelegateTo(realEngine);
       EasyMock.expect(
-          mockEngine.hasCapacityForPersistentQueries(EasyMock.anyLong(), EasyMock.anyLong()))
-          .andReturn(false);
+          mockEngine.numberOfPersistentQueries())
+          .andReturn(3L);
+    });
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        ksqlString, Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(
+        result.getMessage(),
+        containsString("limit on number of active, persistent queries")
+    );
+    EasyMock.verify(ksqlEngine);
+  }
+
+  @Test
+  public void shouldFailIfExceededActivePersistentQueriesLimit() {
+    // Given:
+    givenKsqlConfigWith(ImmutableMap.<String, Object>builder()
+        .put(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3)
+        .build());
+    final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
+    givenMockEngine(mockEngine -> {
+      EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+          .andDelegateTo(realEngine);
+      EasyMock.expect(
+          mockEngine.numberOfPersistentQueries())
+          .andReturn(5L);
     });
 
     // When:

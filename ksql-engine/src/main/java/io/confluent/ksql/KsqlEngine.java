@@ -553,10 +553,6 @@ public class KsqlEngine implements Closeable {
     return this.livePersistentQueries.size();
   }
 
-  public boolean hasCapacityForPersistentQueries(final long numQueries, final long queryLimit) {
-    return numberOfPersistentQueries() + numQueries <= queryLimit;
-  }
-
   @Override
   public void close() {
     for (final QueryMetadata queryMetadata : allLiveQueries) {

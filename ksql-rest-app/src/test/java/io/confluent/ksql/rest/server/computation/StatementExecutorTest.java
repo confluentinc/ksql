@@ -193,6 +193,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         CommandId.Action.CREATE);
 
     expect(statementParser.parseSingleStatement(statementText)).andReturn(csasStatement);
+    expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
     expect(
         mockEngine.addInto(
             (QuerySpecification)csasStatement.getQuery().getQueryBody(),
@@ -204,7 +205,6 @@ public class StatementExecutorTest extends EasyMockSupport {
         .andReturn(csasStatement.getQuery());
     expect(mockEngine.getMetaStore()).andReturn(mockMetaStore);
     expect(mockMetaStore.getSource(anyObject())).andReturn(null);
-    expect(mockEngine.hasCapacityForPersistentQueries(anyLong(), anyLong())).andReturn(true);
     expect(mockEngine.buildMultipleQueries(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
     mockQueryMetadata.start();
@@ -452,7 +452,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldFailIfExceedActivePersistentQueriesLimit() {
+  public void shouldFailCreateAsSelectIfExceedActivePersistentQueriesLimit() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(
@@ -475,6 +475,37 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     // Then: CSAS statement should fail since exceeds limit of 2 active persistent queries
     final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(csasCommandId);
+    Assert.assertTrue(commandStatus.isPresent());
+    assertThat(commandStatus.get().getStatus(), equalTo(CommandStatus.Status.ERROR));
+    assertThat(
+        commandStatus.get().getMessage(),
+        containsString("limit on number of active, persistent queries"));
+  }
+
+  @Test
+  public void shouldFailInsertIntoIfExceedActivePersistentQueriesLimit() {
+    // Given:
+    // Create streams and start two persistent queries
+    createStreamsAndTables();
+    // Set limit and prepare to try adding a query that exceeds the limit
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1));
+    final Command insertIntoCommand = new Command(
+        "INSERT INTO user1pv "
+            + "select * from pageview"
+            + " WHERE userid = 'user2';",
+        Collections.emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final CommandId insertIntoCommandId =  new CommandId(CommandId.Type.STREAM,
+        "_InsertInto",
+        CommandId.Action.CREATE);
+
+    // When:
+    statementExecutor.handleStatement(insertIntoCommand, insertIntoCommandId, Optional.empty());
+
+    // Then: statement should fail since exceeds limit of 1 active persistent query
+    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(insertIntoCommandId);
     Assert.assertTrue(commandStatus.isPresent());
     assertThat(commandStatus.get().getStatus(), equalTo(CommandStatus.Status.ERROR));
     assertThat(

@@ -97,6 +97,7 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
@@ -780,7 +781,9 @@ public class KsqlResource {
       return statement instanceof CreateAsSelect || statement instanceof InsertInto;
     }).count();
 
-    if (!ksqlEngine.hasCapacityForPersistentQueries(numPersistentQueries,
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+        ksqlEngine,
+        numPersistentQueries,
         ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))) {
       throw new KsqlException(
           String.format(

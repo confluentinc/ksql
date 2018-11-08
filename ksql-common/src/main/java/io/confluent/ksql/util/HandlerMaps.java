@@ -28,8 +28,8 @@ import java.util.function.Supplier;
  * <pre>
  * {@code
  * class SomeClass {
- *   private static final HandlerMap1<SomeBaseType, SomeClass> HANDLERS =
- *       HandlerMaps.<SomeBaseType, SomeClass>builder1()
+ *   private static final ClassHandlerMap1<SomeBaseType, SomeClass> HANDLERS =
+ *       HandlerMaps.forType(SomeBaseType.class).withArgType(SomeClass.class)
  *           .put(SomeDerivedType.class, SomeClass::someMethod)
  *           .put(SomeOtherDerivedType.class, SomeClass::someOtherMethod)
  *           .put0(AnotherDerivedType.class, SomeHandler::new)
@@ -60,31 +60,9 @@ public final class HandlerMaps {
    * @param <K> The key of the map
    * @return the builder.
    */
-  public static <K> Builder0<K> builder0() {
+  @SuppressWarnings("unused") // Required for automatic type inference
+  public static <K> Builder0<K> forClass(final Class<K> type) {
     return new Builder0<>();
-  }
-
-  /**
-   * Get a builder for handler map with one argument.
-   *
-   * @param <K> The key of the map
-   * @param <A0> The type of the first argument.
-   * @return the builder.
-   */
-  public static <K, A0> Builder1<K, A0> builder1() {
-    return new Builder1<>();
-  }
-
-  /**
-   * Get a builder for handler map with two argument.
-   *
-   * @param <K> The key of the map
-   * @param <A0> The type of the first argument.
-   * @param <A1> The type of the second argument.
-   * @return the builder.
-   */
-  public static <K, A0, A1> Builder2<K, A0, A1> builder2() {
-    return new Builder2<>();
   }
 
   @FunctionalInterface
@@ -108,6 +86,40 @@ public final class HandlerMaps {
   public static class Builder0<K> {
 
     private final Map<Class<? extends K>, Handler0<K>> handlers = Maps.newHashMap();
+
+    /**
+     * Get a builder for this type with a single argument.
+     *
+     * <p>If {@code arg0} is a class, then member and static functions of the class can be used
+     * as handler.
+     *
+     * @param <A0> The type of the first argument.
+     * @return the builder.
+     */
+    @SuppressWarnings("unused") // Required for automatic type inference
+    public <A0> Builder1<K, A0> withArgType(final Class<A0> arg0) {
+      throwIfHandlers();
+      return new Builder1<>();
+    }
+
+    /**
+     * Get a builder for this type with a two argument.
+     *
+     * <p>If {@code arg0} is a class, then member and static functions of the class can be used
+     * as handler.
+     *
+     * @param <A0> The type of the first argument.
+     * @param <A1> The type of the second argument.
+     * @return the builder.
+     */
+    @SuppressWarnings("unused")  // Required for automatic type inference
+    public <A0, A1> Builder2<K, A0, A1> withArgTypes(
+        final Class<A0> arg0,
+        final Class<A1> arg1
+    ) {
+      throwIfHandlers();
+      return new Builder2<>();
+    }
 
     /**
      * Add a new no-arg handler to the map.
@@ -167,8 +179,8 @@ public final class HandlerMaps {
     /**
      * @return the built handler map.
      */
-    public HandlerMap0<K> build() {
-      return new HandlerMap0<>(handlers);
+    public ClassHandlerMap0<K> build() {
+      return new ClassHandlerMap0<>(handlers);
     }
 
     private <KT extends K> Handler0<K> castHandler0(
@@ -177,13 +189,19 @@ public final class HandlerMaps {
 
       return k -> handler.handle(keyType.cast(k));
     }
+
+    private void throwIfHandlers() {
+      if (!handlers.isEmpty()) {
+        throw new IllegalStateException("handlers defined");
+      }
+    }
   }
 
-  public static final class HandlerMap0<K> {
+  public static final class ClassHandlerMap0<K> {
 
     private final Map<Class<? extends K>, Handler0<K>> handlers;
 
-    private HandlerMap0(final Map<Class<? extends K>, Handler0<K>> handlers) {
+    private ClassHandlerMap0(final Map<Class<? extends K>, Handler0<K>> handlers) {
       this.handlers = ImmutableMap.copyOf(handlers);
     }
 
@@ -319,8 +337,8 @@ public final class HandlerMaps {
     /**
      * @return the built handler map.
      */
-    public HandlerMap1<K, A0> build() {
-      return new HandlerMap1<>(handlers);
+    public ClassHandlerMap1<K, A0> build() {
+      return new ClassHandlerMap1<>(handlers);
     }
 
     private <KT extends K> Handler1<K, A0> castHandler0(
@@ -338,11 +356,11 @@ public final class HandlerMaps {
     }
   }
 
-  public static final class HandlerMap1<K, A0> {
+  public static final class ClassHandlerMap1<K, A0> {
 
     private final Map<Class<? extends K>, Handler1<K, A0>> handlers;
 
-    private HandlerMap1(final Map<Class<? extends K>, Handler1<K, A0>> handlers) {
+    private ClassHandlerMap1(final Map<Class<? extends K>, Handler1<K, A0>> handlers) {
       this.handlers = ImmutableMap.copyOf(handlers);
     }
 
@@ -531,8 +549,8 @@ public final class HandlerMaps {
     /**
      * @return the built handler map.
      */
-    public HandlerMap2<K, A0, A1> build() {
-      return new HandlerMap2<>(handlers);
+    public ClassHandlerMap2<K, A0, A1> build() {
+      return new ClassHandlerMap2<>(handlers);
     }
 
     private <KT extends K> Handler2<K, A0, A1> castHandler0(
@@ -557,11 +575,11 @@ public final class HandlerMaps {
     }
   }
 
-  public static final class HandlerMap2<K, A0, A1> {
+  public static final class ClassHandlerMap2<K, A0, A1> {
 
     private final Map<Class<? extends K>, Handler2<K, A0, A1>> handlers;
 
-    private HandlerMap2(final Map<Class<? extends K>, Handler2<K, A0, A1>> handlers) {
+    private ClassHandlerMap2(final Map<Class<? extends K>, Handler2<K, A0, A1>> handlers) {
       this.handlers = ImmutableMap.copyOf(handlers);
     }
 

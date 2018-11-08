@@ -63,8 +63,8 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.util.HandlerMaps;
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
-import io.confluent.ksql.util.HandlerMaps.HandlerMap1;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -90,8 +90,8 @@ public final class Console implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
 
-  private static final HandlerMap1<KsqlEntity, Console> PRINT_HANDLERS =
-      HandlerMaps.<KsqlEntity, Console>builder1()
+  private static final ClassHandlerMap1<KsqlEntity, Console> PRINT_HANDLERS =
+      HandlerMaps.forClass(KsqlEntity.class).withArgType(Console.class)
           .put(CommandStatusEntity.class,
               tablePrinter(CommandStatusEntity.class, CommandStatusTableBuilder::new))
           .put(PropertiesList.class,

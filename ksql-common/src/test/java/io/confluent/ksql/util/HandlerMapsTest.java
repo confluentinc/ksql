@@ -22,25 +22,24 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.verify;
 
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap0;
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler0;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
-import io.confluent.ksql.util.HandlerMaps.HandlerMap0;
-import io.confluent.ksql.util.HandlerMaps.HandlerMap1;
-import io.confluent.ksql.util.HandlerMaps.HandlerMap2;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import scala.Int;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HandlerMapsTest {
 
   @SuppressWarnings("unused") // This field is a compile time test.
-  private static final HandlerMap0<BaseType> STATIC_TEST_0 =
-      HandlerMaps.<BaseType>builder0()
+  private static final ClassHandlerMap0<BaseType> STATIC_TEST_0 =
+      HandlerMaps.forClass(BaseType.class)
           .put(BaseType.class, HandlerMapsTest::staticHandlerBase)  // <-- member function
           .put(LeafTypeB.class, HandlerMapsTest::staticHandlerBase) // <-- super type handler
           .put(LeafTypeC.class, HandlerMapsTest::staticHandlerC)    // <-- static function
@@ -49,8 +48,8 @@ public class HandlerMapsTest {
           .build();
 
   @SuppressWarnings("unused") // This field is a compile time test.
-  private static final HandlerMap1<BaseType, HandlerMapsTest> STATIC_TEST_1 =
-      HandlerMaps.<BaseType, HandlerMapsTest>builder1()
+  private static final ClassHandlerMap1<BaseType, HandlerMapsTest> STATIC_TEST_1 =
+      HandlerMaps.forClass(BaseType.class).withArgType(HandlerMapsTest.class)
           .put(BaseType.class, HandlerMapsTest::baseHandler1)       // <-- member function
           .put(LeafTypeA.class, HandlerMapsTest::leafAHandler1)     // <-- member function
           .put(LeafTypeB.class, HandlerMapsTest::baseHandler1)      // <-- super type handler
@@ -61,8 +60,8 @@ public class HandlerMapsTest {
           .build();
 
   @SuppressWarnings("unused") // This field is a compile time test.
-  private static final HandlerMap2<BaseType, HandlerMapsTest, String> STATIC_TEST_2 =
-      HandlerMaps.<BaseType, HandlerMapsTest, String>builder2()
+  private static final ClassHandlerMap2<BaseType, HandlerMapsTest, String> STATIC_TEST_2 =
+      HandlerMaps.forClass(BaseType.class).withArgTypes(HandlerMapsTest.class, String.class)
           .put(BaseType.class, HandlerMapsTest::baseHandler2)       // <-- member function
           .put(LeafTypeA.class, HandlerMapsTest::leafAHandler1)     // <-- one-arg function
           .put(LeafTypeB.class, HandlerMapsTest::baseHandler2)      // <-- super type handler
@@ -97,23 +96,23 @@ public class HandlerMapsTest {
   @Mock(name = "2_3")
   private Handler2<BaseType, String, Object> handler2_3;
 
-  private HandlerMap0<BaseType> handlerMap0;
-  private HandlerMap1<BaseType, String> handlerMap1;
-  private HandlerMap2<BaseType, String, Integer> handlerMap2;
+  private ClassHandlerMap0<BaseType> handlerMap0;
+  private ClassHandlerMap1<BaseType, String> handlerMap1;
+  private ClassHandlerMap2<BaseType, String, Integer> handlerMap2;
 
   @Before
   public void setUp() {
-    handlerMap0 = HandlerMaps.<BaseType>builder0()
+    handlerMap0 = HandlerMaps.forClass(BaseType.class)
         .put(LeafTypeA.class, handler0_1)
         .put(BaseType.class, handler0_2)
         .build();
 
-    handlerMap1 = HandlerMaps.<BaseType, String>builder1()
+    handlerMap1 = HandlerMaps.forClass(BaseType.class).withArgType(String.class)
         .put(LeafTypeA.class, handler1_1)
         .put(BaseType.class, handler1_2)
         .build();
 
-    handlerMap2 = HandlerMaps.<BaseType, String, Integer>builder2()
+    handlerMap2 = HandlerMaps.forClass(BaseType.class).withArgTypes(String.class, Integer.class)
         .put(LeafTypeA.class, handler2_1)
         .put(BaseType.class, handler2_2)
         .build();
@@ -187,42 +186,42 @@ public class HandlerMapsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnDuplicateKey0() {
-    HandlerMaps.<BaseType>builder0()
+    HandlerMaps.forClass(BaseType.class)
         .put(LeafTypeA.class, handler0_1)
         .put(LeafTypeA.class, handler0_2);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnDuplicateKey1() {
-    HandlerMaps.<BaseType, String>builder1()
+    HandlerMaps.forClass(BaseType.class).withArgType(String.class)
         .put(LeafTypeA.class, handler1_1)
         .put(LeafTypeA.class, handler1_2);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnDuplicateKey2() {
-    HandlerMaps.<BaseType, String, Integer>builder2()
+    HandlerMaps.forClass(BaseType.class).withArgTypes(String.class, Integer.class)
         .put(LeafTypeA.class, handler2_1)
         .put(LeafTypeA.class, handler2_2);
   }
 
   @Test
   public void shouldNotThrowOnDuplicateHandler0() {
-    HandlerMaps.<BaseType>builder0()
+    HandlerMaps.forClass(BaseType.class)
         .put(LeafTypeA.class, handler0_1)
         .put(LeafTypeB.class, handler0_1);
   }
 
   @Test
   public void shouldNotThrowOnDuplicateHandler1() {
-    HandlerMaps.<BaseType, String>builder1()
+    HandlerMaps.forClass(BaseType.class).withArgType(String.class)
         .put(LeafTypeA.class, handler1_1)
         .put(LeafTypeB.class, handler1_1);
   }
 
   @Test
   public void shouldNotThrowOnDuplicateHandler2() {
-    HandlerMaps.<BaseType, String, Integer>builder2()
+    HandlerMaps.forClass(BaseType.class).withArgTypes(String.class, Integer.class)
         .put(LeafTypeA.class, handler2_1)
         .put(LeafTypeB.class, handler2_1);
   }
@@ -257,7 +256,7 @@ public class HandlerMapsTest {
   @Test
   public void shouldWorkWithSuppliers0() {
     // Given:
-    handlerMap0 = HandlerMaps.<BaseType>builder0()
+    handlerMap0 = HandlerMaps.forClass(BaseType.class)
         .put(LeafTypeA.class, () -> handler0_1)
         .build();
 
@@ -271,7 +270,7 @@ public class HandlerMapsTest {
   @Test
   public void shouldWorkWithSuppliers1() {
     // Given:
-    handlerMap1 = HandlerMaps.<BaseType, String>builder1()
+    handlerMap1 = HandlerMaps.forClass(BaseType.class).withArgType(String.class)
         .put(LeafTypeA.class, () -> handler1_1)
         .build();
 
@@ -285,7 +284,7 @@ public class HandlerMapsTest {
   @Test
   public void shouldWorkWithSuppliers2() {
     // Given:
-    handlerMap2 = HandlerMaps.<BaseType, String, Integer>builder2()
+    handlerMap2 = HandlerMaps.forClass(BaseType.class).withArgTypes(String.class, Integer.class)
         .put(LeafTypeA.class, () -> handler2_1)
         .build();
 
@@ -298,7 +297,7 @@ public class HandlerMapsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfHandlerSupplierThrows0() {
-    HandlerMaps.<BaseType>builder0()
+    HandlerMaps.forClass(BaseType.class)
         .put(LeafTypeA.class, () -> {
           throw new RuntimeException("Boom");
         })
@@ -307,7 +306,7 @@ public class HandlerMapsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfHandlerSupplierThrows1() {
-    HandlerMaps.<BaseType, String>builder1()
+    HandlerMaps.forClass(BaseType.class).withArgType(String.class)
         .put(LeafTypeA.class, () -> {
           throw new RuntimeException("Boom");
         })
@@ -316,7 +315,7 @@ public class HandlerMapsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfHandlerSupplierThrows2() {
-    HandlerMaps.<BaseType, String, Integer>builder2()
+    HandlerMaps.forClass(BaseType.class).withArgTypes(String.class, Integer.class)
         .put(LeafTypeA.class, () -> {
           throw new RuntimeException("Boom");
         })
@@ -325,21 +324,21 @@ public class HandlerMapsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfHandlerSupplierReturnsNullHandler0() {
-    HandlerMaps.<BaseType>builder0()
+    HandlerMaps.forClass(BaseType.class)
         .put(LeafTypeA.class, () -> null)
         .build();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfHandlerSupplierReturnsNullHandler1() {
-    HandlerMaps.<BaseType, String>builder1()
+    HandlerMaps.forClass(BaseType.class).withArgType(String.class)
         .put(LeafTypeA.class, () -> null)
         .build();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfHandlerSupplierReturnsNullHandler2() {
-    HandlerMaps.<BaseType, String, Integer>builder2()
+    HandlerMaps.forClass(BaseType.class).withArgTypes(String.class, Integer.class)
         .put(LeafTypeA.class, () -> null)
         .build();
   }

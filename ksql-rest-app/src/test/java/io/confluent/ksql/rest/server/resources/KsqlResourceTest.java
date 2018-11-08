@@ -159,6 +159,7 @@ public class KsqlResourceTest {
     // Given:
     final QueuedCommandStatus cmdStatus
         = new QueuedCommandStatus(new CommandId("TABLE", "orders", "CREATE"));
+    cmdStatus.setCommandOffset(0);
 
     givenCommandStore(mockCommandStore ->
         EasyMock.expect(mockCommandStore.enqueueCommand(
@@ -174,7 +175,7 @@ public class KsqlResourceTest {
     // Then:
     final CommandStatusEntity expectedCommandStatusEntity = new CommandStatusEntity(
         "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
-        cmdStatus.getCommandId(), cmdStatus.getStatus());
+        cmdStatus.getCommandId(), cmdStatus.getStatus(), 0);
 
     assertThat(result, is(expectedCommandStatusEntity));
   }

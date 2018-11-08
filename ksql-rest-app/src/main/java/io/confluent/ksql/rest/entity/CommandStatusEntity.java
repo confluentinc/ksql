@@ -27,27 +27,32 @@ import java.util.Objects;
 public class CommandStatusEntity extends KsqlEntity {
   private final CommandId commandId;
   private final CommandStatus commandStatus;
+  private final long commandOffset;
 
   public CommandStatusEntity(
       final String statementText,
       final CommandId commandId,
-      final CommandStatus commandStatus
+      final CommandStatus commandStatus,
+      final long commandOffset
   ) {
     super(statementText);
     this.commandId = commandId;
     this.commandStatus = commandStatus;
+    this.commandOffset = commandOffset;
   }
 
   public CommandStatusEntity(
       final String statementText,
       final String commandId,
       final String status,
-      final String message
+      final String message,
+      final String commandOffset
   ) {
     this(
         statementText,
         CommandId.fromString(commandId),
-        new CommandStatus(CommandStatus.Status.valueOf(status), message)
+        new CommandStatus(CommandStatus.Status.valueOf(status), message),
+        Long.parseLong(commandOffset)
     );
   }
 
@@ -58,7 +63,8 @@ public class CommandStatusEntity extends KsqlEntity {
         (String) properties.get("statementText"),
         (String) properties.get("commandId"),
         (String) ((Map<String, Object>) properties.get("commandStatus")).get("status"),
-        (String) ((Map<String, Object>) properties.get("commandStatus")).get("message")
+        (String) ((Map<String, Object>) properties.get("commandStatus")).get("message"),
+        String.valueOf(properties.get("commandOffset"))
     );
   }
 
@@ -71,6 +77,10 @@ public class CommandStatusEntity extends KsqlEntity {
     return commandStatus;
   }
 
+  public long getCommandOffset() {
+    return commandOffset;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -81,12 +91,13 @@ public class CommandStatusEntity extends KsqlEntity {
     }
     final CommandStatusEntity that = (CommandStatusEntity) o;
     return Objects.equals(getCommandId(), that.getCommandId())
-        && Objects.equals(getCommandStatus(), that.getCommandStatus());
+        && Objects.equals(getCommandStatus(), that.getCommandStatus())
+        && (getCommandOffset() == that.getCommandOffset());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getCommandId(), getCommandStatus());
+    return Objects.hash(getCommandId(), getCommandStatus(), getCommandOffset());
   }
 
   @Override
@@ -94,6 +105,7 @@ public class CommandStatusEntity extends KsqlEntity {
     return "CommandStatusEntity{"
         + "commandId=" + commandId
         + ", commandStatus=" + commandStatus
+        + ", commandOffset=" + String.valueOf(commandOffset)
         + '}';
   }
 }

@@ -339,7 +339,8 @@ public class KsqlResource {
           statementText,
           queuedCommandStatus.getCommandId(),
           queuedCommandStatus.tryWaitForFinalStatus(
-              Duration.ofMillis(distributedCommandResponseTimeout))
+              Duration.ofMillis(distributedCommandResponseTimeout)),
+          queuedCommandStatus.getCommandOffset()
       );
     } catch (final Exception e) {
       throw new RuntimeException(e);

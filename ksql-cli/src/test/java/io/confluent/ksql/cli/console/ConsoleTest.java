@@ -127,7 +127,7 @@ public class ConsoleTest {
 
     for (int i = 0; i < 5; i++) {
       final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-          new CommandStatusEntity("e", "topic/1/create", "SUCCESS", "Success Message"),
+          new CommandStatusEntity("e", "topic/1/create", "SUCCESS", "Success Message", "0"),
           new PropertiesList("e", properties, Collections.emptyList(), Collections.emptyList()),
           new Queries("e", queries),
           new SourceDescriptionEntity(

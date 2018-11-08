@@ -62,6 +62,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.record.RecordBatch;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
@@ -87,6 +88,8 @@ public class CommandStoreTest {
   private final Command command =
       new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
   private final Node node = mock(Node.class);
+  private final RecordMetadata recordMetadata = new RecordMetadata(
+      new TopicPartition("topic", 0), 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
 
   @Test
   public void shouldHaveAllCreateCommandsInOrder() {
@@ -120,12 +123,13 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
+  public void shouldFailEnqueueIfCommandWithSameIdRegistered() throws InterruptedException, ExecutionException {
     final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     expect(commandProducer.send(anyObject())).andReturn(future);
-    replay(commandProducer);
+    expect(future.get()).andReturn(recordMetadata);
+    replay(commandProducer, future);
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     try {
@@ -139,13 +143,14 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldCleanupCommandStatusOnProduceError() {
+  public void shouldCleanupCommandStatusOnProduceError() throws InterruptedException, ExecutionException {
     final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     expect(commandProducer.send(anyObject())).andThrow(new RuntimeException("oops")).times(1);
     expect(commandProducer.send(anyObject())).andReturn(future).times(1);
-    replay(commandProducer);
+    expect(future.get()).andReturn(recordMetadata);
+    replay(commandProducer, future);
     try {
       commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
       fail("enqueueCommand should have raised an exception");
@@ -173,8 +178,7 @@ public class CommandStoreTest {
         }
     ).times(1);
     expect(commandProducer.send(anyObject(ProducerRecord.class))).andReturn(future);
-    future.get();
-    expectLastCall().andStubReturn(null);
+    expect(future.get()).andReturn(recordMetadata).times(2);
     replay(future, commandProducer);
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
@@ -203,8 +207,7 @@ public class CommandStoreTest {
           return future;
         }
     );
-    future.get();
-    expectLastCall().andReturn(null);
+    expect(future.get()).andReturn(recordMetadata);
     replay(future, commandProducer);
 
     // When:
@@ -273,11 +276,9 @@ public class CommandStoreTest {
 
     final Statement statement = mock(Statement.class);
     final Capture<ProducerRecord<CommandId, Command>> recordCapture = Capture.newInstance();
-    final Future<RecordMetadata> future = mock(Future.class);
 
     expect(commandProducer.send(capture(recordCapture))).andReturn(future);
-    future.get();
-    expectLastCall().andReturn(null);
+    expect(future.get()).andReturn(recordMetadata);
     replay(commandProducer, future);
 
     final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
@@ -290,6 +291,26 @@ public class CommandStoreTest {
     assertThat(record.value().getStatement(), equalTo(statementText));
     assertThat(record.value().getOverwriteProperties(), equalTo(overrideProperties));
     assertThat(record.value().getOriginalProperties(), equalTo(ksqlConfig.getAllConfigPropsWithSecretsObfuscated()));
+  }
+
+  @Test
+  public void shouldIncludeTopicOffsetInSuccessfulQueuedCommandStatus()
+      throws InterruptedException, ExecutionException {
+    // Given:
+    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
+
+    expect(commandProducer.send(anyObject(ProducerRecord.class))).andReturn(future);
+    expect(future.get()).andReturn(recordMetadata);
+    replay(commandProducer, future);
+
+    // When:
+    final QueuedCommandStatus commandStatus =
+        commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
+    // Then:
+    assertThat(commandStatus.getCommandOffset(), equalTo(recordMetadata.offset()));
+
+    verify(commandProducer, future);
   }
 
   private void setupConsumerToReturnCommand(final CommandId commandId, final Command command) {

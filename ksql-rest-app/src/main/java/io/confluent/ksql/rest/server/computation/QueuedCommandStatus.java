@@ -28,15 +28,18 @@ import java.util.concurrent.TimeoutException;
 public class QueuedCommandStatus {
   private static final CommandStatus INITIAL_STATUS = new CommandStatus(
       CommandStatus.Status.QUEUED, "Statement written to command topic");
+  private static final long INITIAL_OFFSET = -1L;
 
   private final CommandId commandId;
   private volatile CommandStatus commandStatus;
   private final CompletableFuture<CommandStatus> future;
+  private long commandOffset;
 
   public QueuedCommandStatus(final CommandId commandId) {
     this.commandId = Objects.requireNonNull(commandId);
     this.commandStatus = INITIAL_STATUS;
     this.future = new CompletableFuture<>();
+    this.commandOffset = INITIAL_OFFSET;
   }
 
   public CommandId getCommandId() {
@@ -45,6 +48,10 @@ public class QueuedCommandStatus {
 
   public CommandStatus getStatus() {
     return commandStatus;
+  }
+
+  public long getCommandOffset() {
+    return commandOffset;
   }
 
   public CommandStatus tryWaitForFinalStatus(final Duration timeout)
@@ -65,5 +72,9 @@ public class QueuedCommandStatus {
   public void setFinalStatus(final CommandStatus status) {
     setStatus(status);
     future.complete(status);
+  }
+
+  public void setCommandOffset(final long offset) {
+    commandOffset = offset;
   }
 }

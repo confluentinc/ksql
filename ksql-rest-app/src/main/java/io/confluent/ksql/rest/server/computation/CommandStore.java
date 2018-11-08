@@ -34,6 +34,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -118,7 +119,9 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
         }
     );
     try {
-      commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
+      final RecordMetadata recordMetadata =
+          commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
+      status.setCommandOffset(recordMetadata.offset());
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);
       throw new KsqlException(

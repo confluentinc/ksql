@@ -1190,20 +1190,27 @@ Scalar functions
 |                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                                | ``SUBSTRING(str, pos, [len]``.                    |
-|                        |                                                                           | Return a substring of ``str`` that starts at      |
-|                        |                                                                           | ``pos`` and had length ``len``, or continues to   |
-|                        |                                                                           | the end of the string.                            |
+|                        |                                                                           | Returns a substring of ``str`` that starts at     |
+|                        |                                                                           | ``pos`` (first character is at position 1) and    |
+|                        |                                                                           | has length ``len``, or continues to the end of    |
+|                        |                                                                           | the string.                                       |
+|                        |                                                                           | For example, ``SUBSTRING("stream", 1, 4)``        |
+|                        |                                                                           | returns "stre".                                   |
 |                        |                                                                           |                                                   |
-|                        |                                                                           | NOTE: prior to v5.1 of KSQL the syntax was:       |
-|                        |                                                                           | ``SUBSTRING(str, start, [end]``                   |
-|                        |                                                                           | Where ``start`` and ``end`` where base-zero       |
-|                        |                                                                           | indexes to start (inclusive) and end (exclusive)  |
-|                        |                                                                           | the substring.                                    |
-|                        |                                                                           |                                                   |
+|                        |                                                                           | NOTE: Prior to v5.1 of KSQL the syntax was:       |
+|                        |                                                                           | ``SUBSTRING(str, start, [end])``, where ``start`` |
+|                        |                                                                           | and ``end`` positions where base-zero indexes     |
+|                        |                                                                           | (first character at position 0) to start          |
+|                        |                                                                           | (inclusive) and end (exclusive) the substring,    |
+|                        |                                                                           | respectively.                                     |
+|                        |                                                                           | For example, ``SUBSTRING("stream", 1, 4)`` would  |
+|                        |                                                                           | return "tre".                                     |
 |                        |                                                                           | It is possible to switch back to this legacy mode |
 |                        |                                                                           | by setting                                        |
 |                        |                                                                           | ``ksql.functions.substring.legacy.args`` to       |
-|                        |                                                                           | ``true``. Though this is not recommended.         |
+|                        |                                                                           | ``true``. We recommend against enabling this      |
+|                        |                                                                           | setting. Instead, update your queries             |
+|                        |                                                                           | accordingly.                                      |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``   | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                                           | the string representation of the timestamp in     |

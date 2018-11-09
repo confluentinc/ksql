@@ -51,7 +51,8 @@
             <artifactId>jline</artifactId>
         </dependency>
 
-        <!-- Reuse Key Test Classes in ksql-engine -->
+        <!-- Required for running tests -->
+
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-engine</artifactId>
@@ -60,7 +61,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Required for running tests -->
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-rest-app</artifactId>
@@ -76,11 +76,6 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.easymock</groupId>
-            <artifactId>easymock</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>

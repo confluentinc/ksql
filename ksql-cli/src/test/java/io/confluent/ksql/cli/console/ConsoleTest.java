@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.cli.console;
 
+import static org.easymock.EasyMock.niceMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -24,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
-import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.EntityQueryId;
@@ -58,7 +59,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.easymock.EasyMock;
+import org.jline.reader.EndOfFileException;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,42 +72,44 @@ import org.junit.runners.Parameterized;
 public class ConsoleTest {
 
   private final TestTerminal terminal;
-  private final KsqlRestClient client;
+  private final Console console;
+  private final Supplier<String> lineSupplier;
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<OutputFormat> data() {
     return ImmutableList.of(OutputFormat.JSON, OutputFormat.TABULAR);
   }
 
+  @SuppressWarnings("unchecked")
   public ConsoleTest(final OutputFormat outputFormat) {
-    this.client = new KsqlRestClient("http://localhost:59098");
-    this.terminal = new TestTerminal(outputFormat, client);
+    this.lineSupplier = niceMock(Supplier.class);
+    this.terminal = new TestTerminal(lineSupplier);
+    this.console = new Console(outputFormat, () -> "v1.1.2", terminal, new NoOpRowCaptor());
   }
 
   @After
   public void after() {
-    client.close();
-    terminal.close();
+    console.close();
   }
 
   @Test
   public void testPrintGenericStreamedRow() throws IOException {
     final StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
-    terminal.printStreamedRow(row);
+    console.printStreamedRow(row);
   }
 
   @Test
   public void testPrintErrorStreamedRow() throws IOException {
     final FakeException exception = new FakeException();
 
-    terminal.printStreamedRow(StreamedRow.error(exception));
+    console.printStreamedRow(StreamedRow.error(exception));
 
     assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
   }
 
   @Test
   public void testPrintFinalMessageStreamedRow() throws IOException {
-    terminal.printStreamedRow(StreamedRow.finalMessage("Some message"));
+    console.printStreamedRow(StreamedRow.finalMessage("Some message"));
     assertThat(terminal.getOutputString(), is("Some message\n"));
   }
 
@@ -137,7 +143,7 @@ public class ConsoleTest {
           new KafkaTopicsList("e", ImmutableList.of(new KafkaTopicInfo("TestKafkaTopic", true, ImmutableList.of(1),  1, 1))),
           new ExecutionPlan("Test Execution Plan")
       ));
-      terminal.printKsqlEntityList(entityList);
+      console.printKsqlEntityList(entityList);
     }
   }
 
@@ -152,10 +158,10 @@ public class ConsoleTest {
                 "key", "2000-01-01", "stats", "errors", true, "avro", "kadka-topic",
                 2, 1))));
 
-    terminal.printKsqlEntityList(entityList);
+    console.printKsqlEntityList(entityList);
 
     final String output = terminal.getOutputString();
-    if (terminal.getOutputFormat() == OutputFormat.JSON) {
+    if (console.getOutputFormat() == OutputFormat.JSON) {
       assertThat(output, containsString("\"topic\" : \"kadka-topic\""));
     } else {
       assertThat(output, containsString("Kafka topic          : kadka-topic (partitions: 2, replication: 1)"));
@@ -196,10 +202,10 @@ public class ConsoleTest {
                     + "and contains\n\ttabs and stuff"
             )), FunctionType.scalar)));
 
-    terminal.printKsqlEntityList(entityList);
+    console.printKsqlEntityList(entityList);
 
     final String output = terminal.getOutputString();
-    if (terminal.getOutputFormat() == OutputFormat.JSON) {
+    if (console.getOutputFormat() == OutputFormat.JSON) {
       assertThat(output, containsString("\"name\" : \"FOO\""));
     } else {
       final String expected = ""
@@ -231,6 +237,32 @@ public class ConsoleTest {
 
       assertThat(output, containsString(expected));
     }
+  }
+
+  @Test(expected = EndOfFileException.class)
+  public void shouldHandleExitCommand() {
+    // Given:
+    EasyMock.expect(lineSupplier.get()).andReturn("eXiT");
+    EasyMock.replay(lineSupplier);
+
+    // When:
+    console.readLine();
+  }
+
+  @Test
+  public void shouldSwallowCliCommandLines() {
+    // Given:
+    EasyMock.expect(lineSupplier.get())
+        .andReturn("history")
+        .andReturn("not a CLI command;");
+
+    EasyMock.replay(lineSupplier);
+
+    // When:
+    final String result = console.readLine();
+
+    // Then:
+    assertThat(result, is("not a CLI command;"));
   }
 
   private List<FieldInfo> buildTestSchema(final int size) {

@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.client.properties;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.KsqlConfigResolver;
@@ -26,14 +25,12 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
 
-@SuppressWarnings("OptionalAssignedToNull")
-@SuppressFBWarnings(value = "NP_OPTIONAL_RETURN_NULL", justification = "Tri-state use")
-class LocalPropertyParser implements PropertyParser {
+public class LocalPropertyParser implements PropertyParser {
 
   private final ConfigResolver resolver;
   private final PropertyValidator validator;
 
-  LocalPropertyParser() {
+  public LocalPropertyParser() {
     this(new KsqlConfigResolver(), new LocalPropertyValidator());
   }
 

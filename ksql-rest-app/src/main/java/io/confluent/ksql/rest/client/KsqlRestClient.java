@@ -19,6 +19,8 @@ package io.confluent.ksql.rest.client;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.client.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -151,6 +153,8 @@ public class KsqlRestClient implements Closeable {
     client.close();
   }
 
+  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+      justification = "https://github.com/spotbugs/spotbugs/issues/600")
   private <T> RestResponse<T> getRequest(final String path, final Class<T> type) {
 
     try (Response response = client.target(serverAddress)

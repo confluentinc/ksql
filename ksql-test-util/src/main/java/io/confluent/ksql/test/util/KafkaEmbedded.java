@@ -18,6 +18,7 @@ package io.confluent.ksql.test.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -154,6 +155,8 @@ class KafkaEmbedded {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
+  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+      justification = "https://github.com/spotbugs/spotbugs/issues/600")
   void createTopic(final String topic,
       final int partitions,
       final int replication,

@@ -17,6 +17,7 @@
 package io.confluent.ksql.function;
 
 import avro.shaded.com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
@@ -129,6 +130,8 @@ public class UdfCompiler {
   private final Optional<Metrics> metrics;
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+      justification = "https://github.com/spotbugs/spotbugs/issues/600")
   public UdfCompiler(final Optional<Metrics> metrics) {
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     try (InputStream inputStream = getClass().getClassLoader()

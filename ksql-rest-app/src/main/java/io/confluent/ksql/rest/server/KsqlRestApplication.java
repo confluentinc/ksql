@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
@@ -390,6 +392,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     );
   }
 
+  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+      justification = "https://github.com/spotbugs/spotbugs/issues/600")
   private static String getKafkaClusterId(final KsqlConfig ksqlConfig) {
 
     try (AdminClient client = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())) {

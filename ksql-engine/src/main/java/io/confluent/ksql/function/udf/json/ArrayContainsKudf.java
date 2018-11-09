@@ -29,6 +29,8 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_TRUE;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.ArrayUtil;
@@ -80,6 +82,8 @@ public class ArrayContainsKudf implements Kudf {
     throw new KsqlFunctionException("Invalid type parameters for " + Arrays.toString(args));
   }
 
+  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+      justification = "https://github.com/spotbugs/spotbugs/issues/600")
   private boolean jsonStringArrayContains(final Object searchValue, final String jsonArray) {
     final JsonToken valueType = getType(searchValue);
     try (JsonParser parser = JSON_FACTORY.createParser(jsonArray)) {

@@ -5,7 +5,7 @@ services:
 <<<<<<< HEAD
     image: confluentinc/cp-zookeeper:5.0.2-SNAPSHOT
 =======
-    image: confluentinc/cp-zookeeper:5.0.1
+    image: confluentinc/cp-zookeeper:5.0.2-SNAPSHOT
 >>>>>>> 5.0.1-post
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -15,7 +15,7 @@ services:
 <<<<<<< HEAD
     image: confluentinc/cp-enterprise-kafka:5.0.2-SNAPSHOT
 =======
-    image: confluentinc/cp-enterprise-kafka:5.0.1
+    image: confluentinc/cp-enterprise-kafka:5.0.2-SNAPSHOT
 >>>>>>> 5.0.1-post
     depends_on:
       - zookeeper
@@ -44,7 +44,7 @@ services:
 <<<<<<< HEAD
     image: confluentinc/cp-schema-registry:5.0.2-SNAPSHOT
 =======
-    image: confluentinc/cp-schema-registry:5.0.1
+    image: confluentinc/cp-schema-registry:5.0.2-SNAPSHOT
 >>>>>>> 5.0.1-post
     depends_on:
       - zookeeper
@@ -57,7 +57,7 @@ services:
 <<<<<<< HEAD
     image: confluentinc/cp-kafka-connect:5.0.2-SNAPSHOT
 =======
-    image: confluentinc/cp-kafka-connect:5.0.1
+    image: confluentinc/cp-kafka-connect:5.0.2-SNAPSHOT
 >>>>>>> 5.0.1-post
     ports:
       - 8083:8083
@@ -93,7 +93,7 @@ services:
 <<<<<<< HEAD
     image: confluentinc/cp-ksql-server:5.0.2-SNAPSHOT
 =======
-    image: confluentinc/cp-ksql-server:5.0.1
+    image: confluentinc/cp-ksql-server:5.0.2-SNAPSHOT
 >>>>>>> 5.0.1-post
     depends_on:
       - kafka

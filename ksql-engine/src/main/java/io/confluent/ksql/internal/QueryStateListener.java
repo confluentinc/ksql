@@ -19,35 +19,34 @@ package io.confluent.ksql.internal;
 import java.util.Collections;
 import java.util.Objects;
 import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 
 public class QueryStateListener implements StateListener {
   private final Metrics metrics;
   private final MetricName metricName;
-  private final QueryStateGauge queryStateGauge;
+  private volatile String state = "-";
 
-  public QueryStateListener(
+  QueryStateListener(
       final Metrics metrics,
-      final KafkaStreams kafkaStreams,
-      final String queryApplicationId) {
+      final String queryApplicationId
+  ) {
+    Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null."); ;
-    final String metricGroupName = "ksql-queries";
-    this.queryStateGauge = new QueryStateGauge(kafkaStreams);
     this.metricName = metrics.metricName(
         "query-status",
-        metricGroupName,
+        "ksql-queries",
         "The current status of the given query.",
         Collections.singletonMap("status", queryApplicationId));
 
-    this.metrics.addMetric(metricName, queryStateGauge);
+    this.metrics.addMetric(metricName, (Gauge<String>)(config, now) -> state);
   }
 
   @Override
   public void onChange(final State newState, final State oldState) {
-    queryStateGauge.setQueryState(newState);
+    state = newState.toString();
   }
 
   public void close() {

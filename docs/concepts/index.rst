@@ -8,5 +8,5 @@ These topics describe KSQL concepts in |cp|.
 .. toctree::
     :maxdepth: 1
 
-    time-and-windows-in-ksql-queries
+    ksql-and-kafka-streams
     

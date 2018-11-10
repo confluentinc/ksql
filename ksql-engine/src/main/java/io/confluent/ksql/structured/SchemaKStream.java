@@ -46,7 +46,6 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
@@ -54,7 +53,6 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
-// CHECKSTYLE_RULES.OFF: ParameterNumber
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class SchemaKStream<K> {
@@ -75,6 +73,7 @@ public class SchemaKStream<K> {
   final GroupedFactory groupedFactory;
   final JoinedFactory joinedFactory;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumber
   SchemaKStream(
       final Schema schema,
       final KStream<K, GenericRow> kstream,
@@ -100,6 +99,7 @@ public class SchemaKStream<K> {
     this.groupedFactory = Objects.requireNonNull(groupedFactory);
     this.joinedFactory = Objects.requireNonNull(joinedFactory);
   }
+  // CHECKSTYLE_RULES.ON: ParameterNumber
 
   public SchemaKStream(
       final Schema schema,
@@ -628,4 +628,3 @@ public class SchemaKStream<K> {
     }
   }
 }
-// CHECKSTYLE_RULES.ON: ParameterNumber

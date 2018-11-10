@@ -36,18 +36,17 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Produced;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-// CHECKSTYLE_RULES.OFF: ParameterNumber
 public class SchemaKTable<K> extends SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final KTable<K, GenericRow> ktable;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumber
   SchemaKTable(
       final Schema schema,
       final KTable<K, GenericRow> ktable,
@@ -76,6 +75,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
     this.ktable = ktable;
   }
+  // CHECKSTYLE_RULES.ON: ParameterNumber
 
   public SchemaKTable(
       final Schema schema,
@@ -282,4 +282,3 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 }
-// CHECKSTYLE_RULES.ON: ParameterNumber

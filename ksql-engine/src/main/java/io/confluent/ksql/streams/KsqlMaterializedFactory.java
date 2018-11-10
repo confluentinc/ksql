@@ -28,14 +28,14 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
 
 public class KsqlMaterializedFactory implements MaterializedFactory {
-  final KsqlConfig ksqlConfig;
-  final StreamsStatics streamsStatics;
+  private final KsqlConfig ksqlConfig;
+  private final StreamsStatics streamsStatics;
 
   public KsqlMaterializedFactory(
       final KsqlConfig ksqlConfig,
       final StreamsStatics streamsStatics) {
-    this.ksqlConfig = ksqlConfig;
-    this.streamsStatics = streamsStatics;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
+    this.streamsStatics = Objects.requireNonNull(streamsStatics);
   }
 
   public KsqlMaterializedFactory(final KsqlConfig ksqlConfig) {

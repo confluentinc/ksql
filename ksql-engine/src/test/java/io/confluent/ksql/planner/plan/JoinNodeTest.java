@@ -32,6 +32,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -75,6 +76,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
@@ -138,13 +140,20 @@ public class JoinNodeTest {
   }
 
   public void buildJoin() {
-    buildJoin("SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 "
-        + "ON t1.col1 = t2.col0;");
+    buildJoin(ksqlConfig);
   }
 
-  public void buildJoin(final String queryString) {
+  public void buildJoin(final KsqlConfig ksqlConfig) {
+    buildJoin(
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
+            + "FROM test1 t1 LEFT JOIN test2 t2 "
+            + "ON t1.col1 = t2.col0;",
+        ksqlConfig);
+  }
+
+  public void buildJoin(final String queryString, final KsqlConfig ksqlConfig) {
     buildJoinNode(queryString);
-    stream = buildStream();
+    stream = buildStream(ksqlConfig);
   }
 
   private void buildJoinNode(final String queryString) {
@@ -155,7 +164,7 @@ public class JoinNodeTest {
     joinNode = (JoinNode) ((ProjectNode) planNode.getSource()).getSource();
   }
 
-  private SchemaKStream buildStream() {
+  private SchemaKStream buildStream(final KsqlConfig ksqlConfig) {
     builder = new StreamsBuilder();
     return joinNode.buildStream(builder,
         ksqlConfig,
@@ -204,6 +213,22 @@ public class JoinNodeTest {
   }
 
   @Test
+  public void shouldUseLegacyNameForReduceTopicIfOptimizationsOff() {
+    setupTopicClientExpectations(1, 1);
+    buildJoin(
+        ksqlConfig.overrideBreakingConfigsWithOriginalValues(
+            ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
+        )
+    );
+    final Topology topology = builder.build();
+    final TopologyDescription.Processor leftJoin
+        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000015");
+    assertThat(
+        leftJoin.stores(),
+        equalTo(Utils.mkSet("KSTREAM-AGGREGATE-STATE-STORE-0000000004")));
+  }
+
+  @Test
   public void shouldHaveLeftJoin() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
@@ -220,7 +245,10 @@ public class JoinNodeTest {
     setupTopicClientExpectations(1, 2);
 
     try {
-      buildJoin("SELECT t1.col0, t2.col0, t2.col1 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;");
+      buildJoin(
+          "SELECT t1.col0, t2.col0, t2.col1 "
+              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;",
+          ksqlConfig);
     } catch (final KsqlException e) {
       Assert.assertThat(e.getMessage(), equalTo(
           "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "

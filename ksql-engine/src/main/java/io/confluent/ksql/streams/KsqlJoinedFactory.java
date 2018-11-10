@@ -26,14 +26,14 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Joined;
 
 public class KsqlJoinedFactory implements JoinedFactory {
-  final KsqlConfig ksqlConfig;
-  final StreamsStatics streamsStatics;
+  private final KsqlConfig ksqlConfig;
+  private final StreamsStatics streamsStatics;
 
   KsqlJoinedFactory(
       final KsqlConfig ksqlConfig,
       final StreamsStatics streamsStatics) {
-    this.ksqlConfig = ksqlConfig;
-    this.streamsStatics = streamsStatics;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
+    this.streamsStatics = Objects.requireNonNull(streamsStatics);
   }
 
   public KsqlJoinedFactory(final KsqlConfig ksqlConfig) {

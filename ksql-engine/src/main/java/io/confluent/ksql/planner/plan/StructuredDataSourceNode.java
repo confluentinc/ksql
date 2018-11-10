@@ -293,7 +293,7 @@ public class StructuredDataSourceNode
         .transformValues(new AddTimestampColumn());
   }
 
-  private String getSourceOpName() {
+  private String getReduceName() {
     return getId().toString() + "-REDUCE";
   }
 
@@ -324,13 +324,13 @@ public class StructuredDataSourceNode
       return table(
           builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(), windowedMapper,
           (Serde<Windowed<String>>)ksqlTable.getKeySerde(),
-          genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, getSourceOpName());
+          genericRowSerde, genericRowSerdeAfterRead, ksqlConfig);
     }
 
     return table(
         builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(),
         nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerde(),
-        genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, getSourceOpName());
+        genericRowSerde, genericRowSerdeAfterRead, ksqlConfig);
   }
 
   private <K> KTable<?, GenericRow> table(
@@ -342,8 +342,7 @@ public class StructuredDataSourceNode
       final Serde<K> keySerde,
       final Serde<GenericRow> genericRowSerde,
       final Serde<GenericRow> genericRowSerdeAfterRead,
-      final KsqlConfig ksqlConfig,
-      final String opName
+      final KsqlConfig ksqlConfig
   ) {
     final Consumed<K, GenericRow> consumed = Consumed
         .with(keySerde, genericRowSerde)
@@ -354,7 +353,7 @@ public class StructuredDataSourceNode
         new KsqlMaterializedFactory(ksqlConfig).create(
             keySerde,
             genericRowSerdeAfterRead,
-            opName);
+            getReduceName());
     return builder
         .stream(ksqlTopic.getKafkaTopicName(), consumed)
         .mapValues(valueMapper)

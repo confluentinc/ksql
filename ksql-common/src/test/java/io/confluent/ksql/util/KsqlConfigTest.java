@@ -449,7 +449,8 @@ public class KsqlConfigTest {
   @Test
   public void shouldDefaultOptimizationsToOffForOldConfigs() {
     // When:
-    final KsqlConfig config = new KsqlConfig(false, Collections.emptyMap());
+    final KsqlConfig config = new KsqlConfig(Collections.emptyMap())
+        .overrideBreakingConfigsWithOriginalValues(Collections.emptyMap());
 
     // Then:
     assertThat(

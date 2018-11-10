@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -104,6 +105,24 @@ public class AggregateNodeTest {
   }
 
   @Test
+  public void shouldHaveSourceNodeForSecondSubtopolgyWithLegacyNameForRepartition() {
+    // When:
+    buildRequireRekey(
+        ksqlConfig.overrideBreakingConfigsWithOriginalValues(
+            ImmutableMap.of(
+                StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)));
+
+    // Then:
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
+    final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
+    assertThat(node.predecessors(), equalTo(Collections.emptySet()));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000007")));
+    assertThat(
+        node.topicSet(),
+        hasItem(equalTo("KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition")));
+  }
+
+  @Test
   public void shouldHaveSourceNodeForSecondSubtopolgyWithKsqlNameForRepartition() {
     // When:
     buildRequireRekey();
@@ -113,7 +132,7 @@ public class AggregateNodeTest {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
-    assertThat(node.topicSet(), hasItem(containsString("Aggregate-GROUP-BY-repartition")));
+    assertThat(node.topicSet(), hasItem(equalTo("Aggregate-GROUP-BY-repartition")));
   }
 
   @Test

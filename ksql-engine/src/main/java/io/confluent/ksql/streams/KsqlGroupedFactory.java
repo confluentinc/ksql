@@ -26,8 +26,8 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Grouped;
 
 public class KsqlGroupedFactory implements GroupedFactory {
-  final KsqlConfig ksqlConfig;
-  final StreamsStatics streamsStatics;
+  private final KsqlConfig ksqlConfig;
+  private final StreamsStatics streamsStatics;
 
   public KsqlGroupedFactory(final KsqlConfig ksqlConfig) {
     this(ksqlConfig, new RealStreamsStatics());
@@ -36,8 +36,8 @@ public class KsqlGroupedFactory implements GroupedFactory {
   public KsqlGroupedFactory(
       final KsqlConfig ksqlConfig,
       final StreamsStatics streamsStatics) {
-    this.ksqlConfig = ksqlConfig;
-    this.streamsStatics = streamsStatics;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
+    this.streamsStatics = Objects.requireNonNull(streamsStatics);
   }
 
   @Override

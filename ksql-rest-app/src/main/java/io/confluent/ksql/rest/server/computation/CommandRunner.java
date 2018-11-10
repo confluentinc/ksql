@@ -22,6 +22,7 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,9 +81,7 @@ public class CommandRunner implements Runnable, Closeable {
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
     log.trace("Found {} new writes to command topic", commands.size());
-    commands.stream()
-        .filter(c -> c.getCommand().isPresent())
-        .forEach(c -> executeStatement(c.getCommand().get(), c.getCommandId(), c.getStatus()));
+    commands.forEach(c -> executeStatement(c.getCommand(), c.getCommandId(), c.getStatus()));
   }
 
   /**
@@ -90,8 +89,7 @@ public class CommandRunner implements Runnable, Closeable {
    * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() {
-    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
-    statementExecutor.handleRestoration(restoreCommands);
+    statementExecutor.handleRestoration(commandStore.getRestoreCommands());
   }
 
   private void executeStatement(final Command command,

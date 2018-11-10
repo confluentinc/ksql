@@ -41,4 +41,19 @@ public class LongColumnTimestampExtractionPolicy implements TimestampExtractionP
   public String timestampField() {
     return timestampField;
   }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(timestampField);
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (!(other instanceof LongColumnTimestampExtractionPolicy)) {
+      return false;
+    }
+    final LongColumnTimestampExtractionPolicy otherPolicy
+        = (LongColumnTimestampExtractionPolicy) other;
+    return Objects.equals(otherPolicy.timestampField, timestampField);
+  }
 }

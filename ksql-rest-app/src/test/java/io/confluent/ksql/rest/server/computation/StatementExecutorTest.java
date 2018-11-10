@@ -16,12 +16,15 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reportMatcher;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,14 +32,25 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.CommandId.Action;
+import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -46,6 +60,7 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,14 +72,25 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
+  @Rule
+  public ExpectedException exceptionRule = ExpectedException.none();
 
   private KsqlEngine ksqlEngine;
   private StatementExecutor statementExecutor;
   private KsqlConfig ksqlConfig;
+
+  private final StatementParser mockParser = niceMock(StatementParser.class);
+  private final KsqlEngine mockEngine = strictMock(KsqlEngine.class);
+  private final MetaStore mockMetaStore = niceMock(MetaStore.class);
+  private final PersistentQueryMetadata mockQueryMetadata
+      = niceMock(PersistentQueryMetadata.class);
+  private StatementExecutor statementExecutorWithMocks;
 
   @Before
   public void setUp() {
@@ -80,6 +106,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
     statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser);
+    statementExecutorWithMocks
+        = new StatementExecutor(ksqlConfig, mockEngine, mockParser);
   }
 
   @After
@@ -129,8 +157,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     } catch (final Exception nex) {
       assertThat("Statement list should not be null.", nex instanceof NullPointerException);
     }
-
-
   }
 
   @Test
@@ -151,18 +177,14 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CreateStreamAsSelect csasStatement =
         (CreateStreamAsSelect) realParser.parseSingleStatement(statementText);
 
-    final StatementParser statementParser = mock(StatementParser.class);
-    final KsqlEngine mockEngine = mock(KsqlEngine.class);
-    final MetaStore mockMetaStore = mock(MetaStore.class);
-    final PersistentQueryMetadata mockQueryMetadata = mock(PersistentQueryMetadata.class);
-    expect(mockQueryMetadata.getQueryId()).andReturn(mock(QueryId.class));
+    expect(mockQueryMetadata.getQueryId()).andStubReturn(mock(QueryId.class));
 
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
         originalConfig.getAllConfigPropsWithSecretsObfuscated());
 
     final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig, mockEngine, statementParser);
+        ksqlConfig, mockEngine, mockParser);
 
     final Command csasCommand = new Command(
         statementText,
@@ -173,7 +195,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         "_CSASGen",
         CommandId.Action.CREATE);
 
-    expect(statementParser.parseSingleStatement(statementText)).andReturn(csasStatement);
+    expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
     expect(
         mockEngine.addInto(
             (QuerySpecification)csasStatement.getQuery().getQueryBody(),
@@ -190,11 +212,11 @@ public class StatementExecutorTest extends EasyMockSupport {
     mockQueryMetadata.start();
     expectLastCall();
 
-    replay(statementParser, mockEngine, mockMetaStore, mockQueryMetadata);
+    replay(mockParser, mockEngine, mockMetaStore, mockQueryMetadata);
 
     statementExecutor.handleStatement(csasCommand, csasCommandId, Optional.empty());
 
-    verify(statementParser, mockEngine, mockMetaStore, mockQueryMetadata);
+    verify(mockParser, mockEngine, mockMetaStore, mockQueryMetadata);
   }
 
   @Test
@@ -347,8 +369,11 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldHandlePriorStatement() {
     final TestUtils testUtils = new TestUtils();
     final List<Pair<CommandId, Command>> priorCommands = testUtils.getAllPriorCommandRecords();
-    final RestoreCommands restoreCommands = new RestoreCommands();
-    priorCommands.forEach(pair -> restoreCommands.addCommand(pair.left, pair.right));
+    final List<QueuedCommand> restoreCommands = new LinkedList<>();
+    priorCommands.forEach(
+        pair -> restoreCommands.add(
+            new QueuedCommand(
+                pair.left, pair.right)));
 
     final CommandId topicCommandId =  new CommandId(CommandId.Type.TOPIC,
                                               "_CSASTopicGen",
@@ -373,7 +398,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
   }
-
 
   @Test
   public void shouldEnforceReferentialIntegrity() {
@@ -419,7 +443,170 @@ public class StatementExecutorTest extends EasyMockSupport {
         statementExecutor.getStatus(dropStreamCommandId3);
     assertThat(dropStreamCommandStatus3.get().getStatus(),
                CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
+  }
 
+  final CreateStreamAsSelect mockCSAS(final String name) {
+    final CreateStreamAsSelect mockStatement = mock(CreateStreamAsSelect.class);
+    final Query mockQuery = mock(Query.class);
+    final QuerySpecification mockQuerySpec = mock(QuerySpecification.class);
+    final Table mockRelation = mock(Table.class);
+    expect(mockQuery.getQueryBody()).andStubReturn(mockQuerySpec);
+    expect(mockQuery.getLimit()).andStubReturn(Optional.empty());
+    expect(mockQuerySpec.getInto()).andStubReturn(mockRelation);
+    expect(mockRelation.getName()).andStubReturn(QualifiedName.of(name));
+    expect(mockStatement.getName()).andStubReturn(QualifiedName.of(name));
+    expect(mockStatement.getQuery()).andStubReturn(mockQuery);
+    expect(mockStatement.getProperties()).andStubReturn(Collections.emptyMap());
+    expect(mockStatement.getPartitionByColumn()).andStubReturn(Optional.empty());
+    replay(mockStatement, mockQuery, mockQuerySpec, mockRelation);
+    return mockStatement;
+  }
+
+  final DropStream mockDropStream(final String name) {
+    final DropStream mockDropStream = mock(DropStream.class);
+    expect(mockDropStream.getName()).andStubReturn(QualifiedName.of(name));
+    expect(mockDropStream.getStreamName()).andStubReturn(QualifiedName.of(name));
+    replay(mockDropStream);
+    return mockDropStream;
+  }
+
+  final Statement mockTerminate(final QueryId queryId) {
+    final TerminateQuery mockStatement = mock(TerminateQuery.class);
+    expect(mockStatement.getQueryId()).andStubReturn(queryId);
+    replay(mockStatement);
+    return mockStatement;
+  }
+
+  @Test
+  public void shouldSkipStartForTerminatedQueriesWhenReplayingLog() {
+    // Given:
+    final String csas = "CSAS";
+    final String terminate = "TERMINATE";
+    final CreateStreamAsSelect mockCSAS = mockCSAS("foo");
+    final QueryId queryId = new QueryId("csas-query-id");
+    final Statement mockTerminate = mockTerminate(queryId);
+    final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
+    expect(mockQuery.getQueryId()).andStubReturn(queryId);
+    expect(mockParser.parseSingleStatement(csas)).andReturn(mockCSAS);
+    expect(mockParser.parseSingleStatement(terminate)).andReturn(mockTerminate);
+    expect(
+        mockEngine.addInto(
+            anyObject(), anyObject(), anyObject(), anyObject(), anyObject(), anyBoolean()))
+        .andStubReturn(mockCSAS.getQuery());
+    expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
+    expect(mockMetaStore.getSource(anyObject())).andStubReturn(null);
+    expect(mockEngine.buildMultipleQueries(eq(csas), anyObject(), anyObject()))
+        .andReturn(Collections.singletonList(mockQuery));
+    expect(mockEngine.terminateQuery(queryId, false)).andReturn(true);
+    expect(mockEngine.getPersistentQuery(queryId)).andReturn(null);
+    replay(mockParser, mockEngine, mockQuery);
+
+    // When:
+    statementExecutorWithMocks.handleRestoration(
+        ImmutableList.of(
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "foo", Action.CREATE),
+                new Command(csas, Collections.emptyMap(), Collections.emptyMap())
+            ),
+            new QueuedCommand(
+                new CommandId(Type.TERMINATE, "csas-query-id", Action.EXECUTE),
+                new Command(terminate, Collections.emptyMap(), Collections.emptyMap())
+            )
+        )
+    );
+
+    // Then:
+    verify(mockParser, mockEngine, mockQuery);
+  }
+
+  @Test
+  public void shouldStartUnterminatedQueriesWhenReplayingLog() {
+    // Given:
+    final String csas = "CSAS";
+    final CreateStreamAsSelect mockCSAS = mockCSAS("foo");
+    final QueryId queryId = new QueryId("csas-query-id");
+    final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
+    expect(mockQuery.getQueryId()).andStubReturn(queryId);
+    expect(mockParser.parseSingleStatement(csas)).andReturn(mockCSAS);
+    expect(
+        mockEngine.addInto(
+            anyObject(), anyObject(), anyObject(), anyObject(), anyObject(), anyBoolean()))
+        .andStubReturn(mockCSAS.getQuery());
+    expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
+    expect(mockMetaStore.getSource(anyObject())).andStubReturn(null);
+    expect(mockEngine.buildMultipleQueries(eq(csas), anyObject(), anyObject()))
+        .andReturn(Collections.singletonList(mockQuery));
+    expect(mockEngine.getPersistentQuery(queryId)).andStubReturn(mockQuery);
+    mockQuery.start();
+    expectLastCall().times(1);
+    replay(mockParser, mockEngine, mockQuery);
+
+    statementExecutorWithMocks.handleRestoration(
+        ImmutableList.of(
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "foo", Action.CREATE),
+                new Command(csas, Collections.emptyMap(), Collections.emptyMap()),
+                Optional.empty()
+            )
+        )
+    );
+
+    // Then:
+    verify(mockParser, mockEngine, mockQuery);
+  }
+
+  @Test
+  public void shouldCascade4Dot1DropStreamCommand() {
+    // Given:
+    final String drop = "DROP";
+    final DropStream mockDropStream = mockDropStream("foo");
+    expect(mockParser.parseSingleStatement(drop)).andReturn(mockDropStream);
+    expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
+    expect(mockMetaStore.getQueriesWithSink("foo"))
+        .andStubReturn(ImmutableSet.of("query-id"));
+    expect(
+        mockEngine.terminateQuery(eq(new QueryId("query-id")), eq(false))
+    ).andReturn(true);
+    expect(mockEngine.executeDdlStatement(drop, mockDropStream, Collections.emptyMap()))
+        .andReturn(new DdlCommandResult(true, "SUCCESS"));
+    replay(mockParser, mockEngine, mockMetaStore);
+
+    // When:
+    statementExecutorWithMocks.handleRestoration(
+        ImmutableList.of(
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "foo", Action.DROP),
+                new Command(drop, Collections.emptyMap(), null)
+            )
+        )
+    );
+
+    // Then:
+    verify(mockParser, mockEngine, mockMetaStore);
+  }
+
+  @Test
+  public void shouldNotCascadeDropStreamCommand() {
+    // Given:
+    final String drop = "DROP";
+    final DropStream mockDropStream = mockDropStream("foo");
+    expect(mockParser.parseSingleStatement(drop)).andReturn(mockDropStream);
+    expect(mockEngine.executeDdlStatement(drop, mockDropStream, Collections.emptyMap()))
+        .andReturn(new DdlCommandResult(true, "SUCCESS"));
+    replay(mockParser, mockEngine, mockMetaStore);
+
+    // When:
+    statementExecutorWithMocks.handleRestoration(
+        ImmutableList.of(
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "foo", Action.DROP),
+                new Command(drop, Collections.emptyMap(), Collections.emptyMap())
+            )
+        )
+    );
+
+    // Then:
+    verify(mockParser, mockEngine, mockMetaStore);
   }
 
   private void createStreamsAndTables() {

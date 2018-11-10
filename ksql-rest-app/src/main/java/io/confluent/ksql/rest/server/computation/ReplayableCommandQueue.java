@@ -32,5 +32,5 @@ public interface ReplayableCommandQueue {
 
   List<QueuedCommand> getNewCommands();
 
-  RestoreCommands getRestoreCommands();
+  List<QueuedCommand> getRestoreCommands();
 }

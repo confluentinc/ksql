@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
@@ -26,6 +25,7 @@ import static org.easymock.EasyMock.verify;
 
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.util.Pair;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,43 +38,52 @@ public class CommandRunnerTest {
     final List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
     return commandList.stream()
         .map(
-            c -> new QueuedCommand(c.getLeft(), Optional.ofNullable(c.getRight()), Optional.empty()))
+            c -> new QueuedCommand(
+                c.getLeft(), c.getRight(), Optional.empty()))
         .collect(Collectors.toList());
   }
 
   @Test
   public void shouldFetchAndRunNewCommandsFromCommandTopic() {
+    // Given:
     final StatementExecutor statementExecutor = mock(StatementExecutor.class);
     final List<QueuedCommand> commands = getQueuedCommands();
     commands.forEach(
         c -> {
           statementExecutor.handleStatement(
-              same(c.getCommand().get()), same(c.getCommandId()), same(c.getStatus()));
+              same(c.getCommand()), same(c.getCommandId()), same(c.getStatus()));
           expectLastCall();
         }
     );
     replay(statementExecutor);
-
     final CommandStore commandStore = mock(CommandStore.class);
     expect(commandStore.getNewCommands()).andReturn(commands);
     replay(commandStore);
     final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
+
+    // When:
     commandRunner.fetchAndRunCommands();
+
+    // Then:
     verify(statementExecutor);
   }
 
   @Test
   public void shouldFetchAndRunPriorCommandsFromCommandTopic() {
-    final StatementExecutor statementExecutor = mock(StatementExecutor.class);
-    statementExecutor.handleRestoration(anyObject());
-    expectLastCall();
-    replay(statementExecutor);
+    // Given:
+    final List<QueuedCommand> commands = new LinkedList<>();
     final CommandStore commandStore = mock(CommandStore.class);
-    expect(commandStore.getRestoreCommands()).andReturn(new RestoreCommands());
-    replay(commandStore);
+    expect(commandStore.getRestoreCommands()).andReturn(commands);
+    final StatementExecutor statementExecutor = mock(StatementExecutor.class);
+    statementExecutor.handleRestoration(commands);
+    expectLastCall();
+    replay(statementExecutor, commandStore);
     final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
+
+    // When:
     commandRunner.processPriorCommands();
 
+    // Then:
     verify(statementExecutor);
   }
 

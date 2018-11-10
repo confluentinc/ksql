@@ -45,4 +45,20 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
   public String timestampField() {
     return timestampField;
   }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(timestampField, format);
+  }
+
+  @Override
+  public boolean equals(final Object other) {
+    if (!(other instanceof StringTimestampExtractionPolicy)) {
+      return false;
+    }
+    final StringTimestampExtractionPolicy otherPolicy
+        = (StringTimestampExtractionPolicy) other;
+    return Objects.equals(otherPolicy.timestampField, timestampField)
+        && Objects.equals(otherPolicy.format, format);
+  }
 }

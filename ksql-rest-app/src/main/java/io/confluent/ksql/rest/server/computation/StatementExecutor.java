@@ -16,12 +16,15 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.collect.Lists;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -38,6 +41,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +64,11 @@ public class StatementExecutor {
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
 
+  private enum Mode {
+    RESTORE,
+    EXECUTE
+  }
+
   public StatementExecutor(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
@@ -72,17 +81,18 @@ public class StatementExecutor {
     this.statusStore = new ConcurrentHashMap<>();
   }
 
-  void handleRestoration(final RestoreCommands restoreCommands) {
+  void handleRestoration(final List<QueuedCommand> restoreCommands) {
+    final List<QueryId> restoredQueries = Lists.newArrayList();
     restoreCommands.forEach(
-        (commandId, command, terminatedQueries, wasDropped) -> {
+        command -> {
           log.info("Executing prior statement: '{}'", command);
           try {
             handleStatementWithTerminatedQueries(
-                command,
-                commandId,
+                command.getCommand(),
+                command.getCommandId(),
                 Optional.empty(),
-                terminatedQueries,
-                wasDropped
+                Mode.RESTORE,
+                restoredQueries
             );
           } catch (final Exception exception) {
             log.warn(
@@ -92,6 +102,16 @@ public class StatementExecutor {
           }
         }
     );
+    for (int i = 0; i < restoredQueries.size(); i++) {
+      final QueryId queryId = restoredQueries.get(i);
+      if (restoredQueries.lastIndexOf(queryId) > i) {
+        continue;
+      }
+      if (ksqlEngine.getPersistentQuery(queryId) == null) {
+        continue;
+      }
+      ksqlEngine.getPersistentQuery(queryId).start();
+    }
   }
 
   /**
@@ -108,8 +128,8 @@ public class StatementExecutor {
     handleStatementWithTerminatedQueries(command,
         commandId,
         status,
-        null,
-        false);
+        Mode.EXECUTE,
+        null);
   }
 
   /**
@@ -149,16 +169,14 @@ public class StatementExecutor {
    *
    * @param command The string containing the statement to be executed
    * @param commandId The ID to be used to track the status of the command
-   * @param terminatedQueries An optional map from terminated query IDs to the commands that
-   *     requested their termination
-   * @param wasDropped was this table/stream subsequently dropped
+   * @param mode was this table/stream subsequently dropped
    */
   private void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
       final Optional<QueuedCommandStatus> queuedCommandStatus,
-      final Map<QueryId, CommandId> terminatedQueries,
-      final boolean wasDropped
+      final Mode mode,
+      final List<QueryId> restoredQueries
   ) {
     try {
       final String statementString = command.getStatement();
@@ -173,7 +191,7 @@ public class StatementExecutor {
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
       executeStatement(
-          statement, command, commandId, queuedCommandStatus, terminatedQueries, wasDropped);
+          statement, command, commandId, queuedCommandStatus, mode, restoredQueries);
     } catch (final WakeupException exception) {
       throw exception;
     } catch (final Exception exception) {
@@ -191,14 +209,15 @@ public class StatementExecutor {
       final Command command,
       final CommandId commandId,
       final Optional<QueuedCommandStatus> queuedCommandStatus,
-      final Map<QueryId, CommandId> terminatedQueries,
-      final boolean wasDropped
+      final Mode mode,
+      final List<QueryId> restoredQueries
   ) throws Exception {
     final String statementStr = command.getStatement();
 
     DdlCommandResult result = null;
     String successMessage = "";
     if (statement instanceof DdlStatement) {
+      maybeHandleLegacyDropCommand(command, statement);
       result = ksqlEngine.executeDdlStatement(
           statementStr,
           (DdlStatement) statement,
@@ -208,28 +227,24 @@ public class StatementExecutor {
           (CreateAsSelect)
               statement,
           command,
-          commandId,
-          queuedCommandStatus,
-          terminatedQueries,
           statementStr,
-          wasDropped);
+          mode,
+          restoredQueries);
       if (successMessage == null) {
         return;
       }
     } else if (statement instanceof InsertInto) {
-      successMessage = handleInsertInto((InsertInto) statement,
-                       command,
-                       commandId,
-                       queuedCommandStatus,
-                       terminatedQueries,
-                       statementStr,
-                       false
-                       );
+      successMessage = handleInsertInto(
+          (InsertInto) statement,
+          command,
+          statementStr,
+          mode,
+          restoredQueries);
       if (successMessage == null) {
         return;
       }
     } else if (statement instanceof TerminateQuery) {
-      terminateQuery((TerminateQuery) statement);
+      terminateQuery((TerminateQuery) statement, mode);
       successMessage = "Query terminated.";
     } else if (statement instanceof RunScript) {
       handleRunScript(command);
@@ -276,11 +291,9 @@ public class StatementExecutor {
   private String handleCreateAsSelect(
       final CreateAsSelect statement,
       final Command command,
-      final CommandId commandId,
-      final Optional<QueuedCommandStatus> queuedCommandStatus,
-      final Map<QueryId, CommandId> terminatedQueries,
       final String statementStr,
-      final boolean wasDropped
+      final Mode mode,
+      final List<QueryId> restoredQueries
   ) throws Exception {
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
@@ -295,11 +308,9 @@ public class StatementExecutor {
     if (startQuery(
         statementStr,
         query,
-        commandId,
-        queuedCommandStatus,
-        terminatedQueries,
         command,
-        wasDropped)) {
+        mode,
+        restoredQueries)) {
       return statement instanceof CreateTableAsSelect
              ? "Table created and running"
              : "Stream created and running";
@@ -308,13 +319,12 @@ public class StatementExecutor {
     return null;
   }
 
-  private String handleInsertInto(final InsertInto statement,
-                                      final Command command,
-                                      final CommandId commandId,
-                                      final Optional<QueuedCommandStatus> queuedCommandStatus,
-                                      final Map<QueryId, CommandId> terminatedQueries,
-                                      final String statementStr,
-                                      final boolean wasDropped) throws Exception {
+  private String handleInsertInto(
+      final InsertInto statement,
+      final Command command,
+      final String statementStr,
+      final Mode mode,
+      final List<QueryId> restoredQueries) throws Exception {
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
@@ -328,11 +338,9 @@ public class StatementExecutor {
     if (startQuery(
         statementStr,
         query,
-        commandId,
-        queuedCommandStatus,
-        terminatedQueries,
         command,
-        wasDropped)) {
+        mode,
+        restoredQueries)) {
       return "Insert Into query is running.";
     }
 
@@ -342,11 +350,9 @@ public class StatementExecutor {
   private boolean startQuery(
       final String queryString,
       final Query query,
-      final CommandId commandId,
-      final Optional<QueuedCommandStatus> queuedCommandStatus,
-      final Map<QueryId, CommandId> terminatedQueries,
       final Command command,
-      final boolean wasDropped
+      final Mode mode,
+      final List<QueryId> restoredQueries
   ) throws Exception {
     if (query.getQueryBody() instanceof QuerySpecification) {
       final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
@@ -371,29 +377,12 @@ public class StatementExecutor {
 
     if (queryMetadata instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-      final QueryId queryId = persistentQueryMd.getQueryId();
-
-      if (terminatedQueries != null && terminatedQueries.containsKey(queryId)) {
-        final CommandId terminateId = terminatedQueries.get(queryId);
-        statusStore.put(
-            terminateId,
-            new CommandStatus(CommandStatus.Status.SUCCESS, "Termination request granted")
-        );
-        putStatus(
-            commandId,
-            queuedCommandStatus,
-            new CommandStatus(CommandStatus.Status.TERMINATED, "Query terminated")
-        );
-        ksqlEngine.terminateQuery(queryId, false);
-        return false;
-      } else if (wasDropped) {
-        ksqlEngine.terminateQuery(queryId, false);
-        return false;
-      } else {
+      if (mode == Mode.EXECUTE) {
         persistentQueryMd.start();
-        return true;
+      } else {
+        restoredQueries.add(persistentQueryMd.getQueryId());
       }
-
+      return true;
     } else {
       throw new Exception(String.format(
           "Unexpected query metadata type: %s; was expecting %s",
@@ -403,10 +392,34 @@ public class StatementExecutor {
     }
   }
 
-  private void terminateQuery(final TerminateQuery terminateQuery) throws Exception {
+  private void terminateQuery(
+      final TerminateQuery terminateQuery,
+      final Mode mode) throws Exception {
     final QueryId queryId = terminateQuery.getQueryId();
-    if (!ksqlEngine.terminateQuery(queryId, true)) {
+    if (!ksqlEngine.terminateQuery(queryId, mode == Mode.EXECUTE)) {
       throw new Exception(String.format("No running query with id %s was found", queryId));
     }
+  }
+
+  private boolean is4Dot1Command(final Command command) {
+    return !command.hasOriginalProperties();
+  }
+
+  private void maybeHandleLegacyDropCommand(final Command command, final Statement statement) {
+    if (!is4Dot1Command(command)) {
+      return;
+    }
+    if (statement instanceof DropStream) {
+      terminateQueriesForSource(((DropStream) statement).getStreamName().toString());
+    } else if (statement instanceof DropTable) {
+      terminateQueriesForSource(((DropTable) statement).getTableName().toString());
+    }
+  }
+
+  private void terminateQueriesForSource(final String sourceName) {
+    final Collection<String> queriesWithSink =
+        ksqlEngine.getMetaStore().getQueriesWithSink(sourceName);
+    final QueryId queryId = new QueryId(queriesWithSink.iterator().next());
+    ksqlEngine.terminateQuery(queryId, false);
   }
 }

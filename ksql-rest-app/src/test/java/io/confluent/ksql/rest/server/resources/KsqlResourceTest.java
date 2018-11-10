@@ -527,9 +527,8 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailIfReachedActivePersistentQueriesLimit() {
     // Given:
-    givenKsqlConfigWith(ImmutableMap.<String, Object>builder()
-        .put(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3)
-        .build());
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
@@ -548,17 +547,16 @@ public class KsqlResourceTest {
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(
         result.getMessage(),
-        containsString("limit on number of active, persistent queries")
-    );
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
     EasyMock.verify(ksqlEngine);
   }
 
   @Test
   public void shouldFailIfExceededActivePersistentQueriesLimit() {
     // Given:
-    givenKsqlConfigWith(ImmutableMap.<String, Object>builder()
-        .put(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3)
-        .build());
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
@@ -577,8 +575,8 @@ public class KsqlResourceTest {
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(
         result.getMessage(),
-        containsString("limit on number of active, persistent queries")
-    );
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
     EasyMock.verify(ksqlEngine);
   }
 

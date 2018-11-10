@@ -783,23 +783,10 @@ public class KsqlResource {
 
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
         ksqlEngine,
-        numPersistentQueries,
-        ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))) {
-      throw new KsqlException(
-          String.format(
-              "Not executing statement(s) '%s' since they would cause the limit on number "
-                  + "of active, persistent queries to be exceeded "
-                  + "(%d persistent queries currently running. "
-                  + "Statements attempt to add %d new persistent queries. "
-                  + "Limit is %d)."
-                  + "Use the TERMINATE command to terminate existing queries, "
-                  + "or reconfigure the limit via the 'ksql-server.properties' file.",
-              queriesString,
-              ksqlEngine.numberOfPersistentQueries(),
-              numPersistentQueries,
-              ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
-          )
-      );
+        ksqlConfig,
+        numPersistentQueries)) {
+      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+          ksqlEngine, ksqlConfig, queriesString);
     }
   }
 }

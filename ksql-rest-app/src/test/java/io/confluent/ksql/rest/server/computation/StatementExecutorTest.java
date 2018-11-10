@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -29,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
@@ -454,32 +454,31 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test
   public void shouldFailCreateAsSelectIfExceedActivePersistentQueriesLimit() {
     // Given:
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(
-            KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 2));
     // Create streams and start two persistent queries
     createStreamsAndTables();
     // Prepare to try adding a third
-    final Command csasCommand = new Command(
-        "CREATE STREAM user2pv AS "
-            + "select * from pageview"
-            + " WHERE userid = 'user2';",
-        Collections.emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
-        "_CSASGen2",
-        CommandId.Action.CREATE);
+    final KsqlConfig otherConfig =
+        configWith(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 2);
+    final Command csasCommand =
+        givenCommand("CREATE STREAM user2pv AS select * from pageview;", otherConfig);
+    final CommandId csasCommandId =
+        new CommandId(CommandId.Type.STREAM, "_CSASGen2", CommandId.Action.CREATE);
 
     // When:
     statementExecutor.handleStatement(csasCommand, csasCommandId, Optional.empty());
 
     // Then: CSAS statement should fail since exceeds limit of 2 active persistent queries
-    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(csasCommandId);
-    Assert.assertTrue(commandStatus.isPresent());
-    assertThat(commandStatus.get().getStatus(), equalTo(CommandStatus.Status.ERROR));
+    final CommandStatus commandStatus = getCommandStatus(csasCommandId);
+    assertThat(commandStatus.getStatus(), equalTo(CommandStatus.Status.ERROR));
     assertThat(
-        commandStatus.get().getMessage(),
-        containsString("limit on number of active, persistent queries"));
+        commandStatus.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+  }
+
+  private Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
+    return new Command(
+        statementStr, Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
   }
 
   @Test
@@ -488,29 +487,27 @@ public class StatementExecutorTest extends EasyMockSupport {
     // Create streams and start two persistent queries
     createStreamsAndTables();
     // Set limit and prepare to try adding a query that exceeds the limit
-    final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(
-            KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1));
-    final Command insertIntoCommand = new Command(
-        "INSERT INTO user1pv "
-            + "select * from pageview"
-            + " WHERE userid = 'user2';",
-        Collections.emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandId insertIntoCommandId =  new CommandId(CommandId.Type.STREAM,
-        "_InsertInto",
-        CommandId.Action.CREATE);
+    final KsqlConfig otherConfig =
+        configWith(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1);
+    final Command insertIntoCommand =
+        givenCommand("INSERT INTO user1pv select * from pageview;", otherConfig);
+    final CommandId insertIntoCommandId =
+        new CommandId(CommandId.Type.STREAM, "_InsertQuery1", CommandId.Action.CREATE);
 
     // When:
     statementExecutor.handleStatement(insertIntoCommand, insertIntoCommandId, Optional.empty());
 
     // Then: statement should fail since exceeds limit of 1 active persistent query
-    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(insertIntoCommandId);
-    Assert.assertTrue(commandStatus.isPresent());
-    assertThat(commandStatus.get().getStatus(), equalTo(CommandStatus.Status.ERROR));
+    final CommandStatus commandStatus = getCommandStatus(insertIntoCommandId);
+    assertThat(commandStatus.getStatus(), equalTo(CommandStatus.Status.ERROR));
     assertThat(
-        commandStatus.get().getMessage(),
-        containsString("limit on number of active, persistent queries"));
+        commandStatus.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+  }
+
+  private KsqlConfig configWith(final String name, final Object value) {
+    return new KsqlConfig(Collections.singletonMap(name, value));
   }
 
   private void createStreamsAndTables() {
@@ -554,9 +551,9 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              CommandId.Action.CREATE);
     statementExecutor.handleStatement(ctasCommand, ctasCommandId, Optional.empty());
 
-    Assert.assertEquals(getCommandStatus(csCommandId), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(getCommandStatus(csasCommandId), CommandStatus.Status.SUCCESS);
-    Assert.assertEquals(getCommandStatus(ctasCommandId), CommandStatus.Status.SUCCESS);
+    assertThat(getCommandStatus(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(getCommandStatus(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(getCommandStatus(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
   private void tryDropThatViolatesReferentialIntegrity() {
@@ -682,7 +679,8 @@ public class StatementExecutorTest extends EasyMockSupport {
         new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(
         terminateCommand1, terminateCommandId1, Optional.empty());
-    assertThat(getCommandStatus(terminateCommandId1), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(
+        getCommandStatus(terminateCommandId1).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
 
     final Command terminateCommand2 = new Command(
         "TERMINATE CTAS_TABLE1_1;",
@@ -692,10 +690,15 @@ public class StatementExecutorTest extends EasyMockSupport {
         new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     statementExecutor.handleStatement(
         terminateCommand2, terminateCommandId2, Optional.empty());
-    assertThat(getCommandStatus(terminateCommandId2), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(
+        getCommandStatus(terminateCommandId2).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
-  private CommandStatus.Status getCommandStatus(CommandId commandId) {
-    return statementExecutor.getStatus(commandId).get().getStatus();
+  private CommandStatus getCommandStatus(CommandId commandId) {
+    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
+    assertThat("command not registered: " + commandId,
+        commandStatus,
+        is(not(equalTo(Optional.empty()))));
+    return commandStatus.get();
   }
 }

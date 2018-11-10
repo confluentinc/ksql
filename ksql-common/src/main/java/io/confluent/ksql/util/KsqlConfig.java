@@ -114,7 +114,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "new queries will now correctly store the session end time as part of the key";
 
   public static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG =
-      "ksql.active.persistent.query.limit";
+      "ksql.query.persistent.active.limit";
   private static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
   private static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC =
       "An upper limit on the number of active, persistent queries that may be running at a time, "

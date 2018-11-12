@@ -71,11 +71,10 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.utils.TestUtils;
-import io.confluent.ksql.rest.util.CommandTopic;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
@@ -503,9 +502,11 @@ public class KsqlResourceTest {
   @Test
   public void shouldReturn5xxOnSystemError() {
     // Given:
-    givenMockEngine(mockEngine ->
-        EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
-            .andThrow(new RuntimeException("internal error")));
+    givenMockEngine(mockEngine -> {
+      EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+          .andThrow(new RuntimeException("internal error"));
+        }
+    );
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -514,7 +515,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
-    assertThat(result.getMessage(), containsString("The cluster has been terminated. No new request will be accepted."));
+    assertThat(result.getMessage(), containsString("internal error"));
   }
 
   @Test
@@ -524,6 +525,8 @@ public class KsqlResourceTest {
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
           .andReturn(realEngine.parseStatements(ksqlString));
+      EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
+          .andThrow(new RuntimeException("internal error"));
     });
 
     // Then:
@@ -532,7 +535,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
-    assertThat(result.getMessage(), containsString("The cluster has been terminated. No new request will be accepted."));
+    assertThat(result.getMessage(), containsString("internal error"));
   }
 
   @Test
@@ -697,115 +700,17 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailForInvalidTerminateClusterParameters() {
     // Given:
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put("DELETE_TOPIC_LIS", Collections.singletonList("FOO"));
+    final Map<String, Object> properties = ImmutableMap.of("ksql.delete.topic.li", Collections.singletonList("FOO"));
     final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
-    final KsqlResource testResource = TestKsqlResourceUtil.get(ksqlConfig, ksqlEngine);
+    final ReplayableCommandQueue replayableCommandQueue = EasyMock.niceMock(ReplayableCommandQueue.class);
+    final KsqlResource testResource = new KsqlResource(ksqlConfig, ksqlEngine, replayableCommandQueue, 1000);
 
     // When:
     final Response response = testResource.terminateCluster(ksqlRequest);
 
     // Then:
     assertThat(response.getStatus(), equalTo(500));
-    assertThat(response.getEntity().toString(), startsWith("Invalid request parameter"));
-  }
-
-  private static class TestKsqlResourceUtil {
-    public static final long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = 1000;
-
-    public static KsqlResource get(final KsqlConfig ksqlConfig, final KsqlEngine ksqlEngine) {
-      final Properties defaultKsqlConfig = getDefaultKsqlConfig();
-
-      final KafkaConsumer<CommandId, Command> commandConsumer = new TestCommandConsumer<>(
-          defaultKsqlConfig,
-          getJsonDeserializer(CommandId.class, true),
-          getJsonDeserializer(Command.class, false)
-      );
-
-      final KafkaProducer<CommandId, Command> commandProducer = new TestCommandProducer<>(
-          defaultKsqlConfig,
-          getJsonSerializer(true),
-          getJsonSerializer(false)
-      );
-
-      final CommandStore commandStore = EasyMock.niceMock(CommandStore.class);
-      return get(ksqlConfig, ksqlEngine, commandStore);
-    }
-
-    public static KsqlResource get(
-        final KsqlConfig ksqlConfig,
-        final KsqlEngine ksqlEngine,
-        final CommandStore commandStore) {
-      return new KsqlResource(ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
-    }
-
-    private static Properties getDefaultKsqlConfig() {
-      final Map<String, Object> configMap = new HashMap<>();
-      configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-      configMap.put("commit.interval.ms", 0);
-      configMap.put("cache.max.bytes.buffering", 0);
-      configMap.put("auto.offset.reset", "earliest");
-      configMap.put("ksql.command.topic.suffix", "commands");
-      configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
-
-      final Properties properties = new Properties();
-      properties.putAll(configMap);
-
-      return properties;
-    }
-
-    private static void addTestTopicAndSources(final MetaStore metaStore, final KafkaTopicClient kafkaTopicClient) {
-      final Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA);
-      addSource(
-          metaStore, kafkaTopicClient, DataSource.DataSourceType.KTABLE,
-          "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
-      final Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA);
-      addSource(
-          metaStore, kafkaTopicClient, DataSource.DataSourceType.KSTREAM,
-          "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
-      kafkaTopicClient.createTopic("orders-topic", 1, (short)1);
-    }
-
-    private static void addSource(
-        final MetaStore metaStore, final KafkaTopicClient kafkaTopicClient, final DataSource.DataSourceType type, final String sourceName,
-        final String topicName, final String ksqlTopicName, final Schema schema) {
-      final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe(), false);
-      kafkaTopicClient.createTopic(topicName, 1, (short)1);
-      metaStore.putTopic(ksqlTopic);
-      if (type == DataSource.DataSourceType.KSTREAM) {
-        metaStore.putSource(
-            new KsqlStream(
-                "statementText", sourceName, schema, schema.fields().get(0),
-                new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes.String()));
-      }
-      if (type == DataSource.DataSourceType.KTABLE) {
-        metaStore.putSource(
-            new KsqlTable(
-                "statementText", sourceName, schema, schema.fields().get(0),
-                new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", Serdes.String()));
-      }
-    }
-
-    private static <T> Deserializer<T> getJsonDeserializer(final Class<T> classs, final boolean isKey) {
-      final Deserializer<T> result = new KafkaJsonDeserializer<>();
-      final String typeConfigProperty = isKey
-          ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-          : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
-
-      final Map<String, ?> props = Collections.singletonMap(
-          typeConfigProperty,
-          classs
-      );
-      result.configure(props, isKey);
-      return result;
-    }
-
-    private static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
-      final Serializer<T> result = new KafkaJsonSerializer<>();
-      result.configure(Collections.emptyMap(), isKey);
-      return result;
-    }
-
+    assertThat(response.getEntity().toString(), startsWith("Failed to set 'ksql.delete.topic.li' to '[FOO]'"));
   }
 
   private static class TestCommandProducer<K, V> extends KafkaProducer<K, V> {
@@ -845,6 +750,7 @@ public class KsqlResourceTest {
     ksqlEngine = EasyMock.niceMock(KsqlEngine.class);
     EasyMock.expect(ksqlEngine.getMetaStore()).andReturn(realEngine.getMetaStore()).anyTimes();
     EasyMock.expect(ksqlEngine.getTopicClient()).andReturn(realEngine.getTopicClient()).anyTimes();
+    EasyMock.expect(ksqlEngine.isAcceptingStatements()).andStubReturn(true);
     mockInitializer.accept(ksqlEngine);
     EasyMock.replay(ksqlEngine);
     setUpKsqlResource();

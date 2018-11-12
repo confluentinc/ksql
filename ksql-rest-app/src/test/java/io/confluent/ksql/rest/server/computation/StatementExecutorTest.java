@@ -50,6 +50,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -80,6 +81,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 @SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
@@ -152,17 +154,18 @@ public class StatementExecutorTest extends EasyMockSupport {
     final KsqlEngine mockEngine = mock(KsqlEngine.class);
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig, mockEngine, statementParser);
+        ksqlConfig, mockEngine, statementParser, niceMock(CommandStore.class));
     final RuntimeException exception = new RuntimeException("i'm gonna knock you out");
     expect(statementParser.parseSingleStatement(statementText)).andThrow(
         exception);
+    expect(mockEngine.isAcceptingStatements()).andStubReturn(true);
     final Command command = new Command(
         statementText,
         Collections.emptyMap(),
         Collections.emptyMap());
     final CommandId commandId =  new CommandId(
         CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
-    replay(statementParser);
+    replay(statementParser, mockEngine);
 
     // When:
     try {
@@ -476,97 +479,27 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldTerminateClusterAndDeleteList() throws IOException {
+  public void shouldTerminateClusterCorrectly() throws IOException {
     // Given:
-    final List<String> deleteSources = Collections.singletonList("FOO");
-    final Map<String, Object> props = new HashMap<>();
-    props.put(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, deleteSources);
-    final Command command = new Command(
-        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
-        props,
-        Collections.emptyMap());
-
-    // When:
-    testTerminateClusterForCommand(command, true);
-  }
-
-  @Test
-  public void shouldTerminateCluster() throws IOException {
+    final KsqlConfig mockitoKsqlConfig = Mockito.mock(KsqlConfig.class);
+    final KsqlEngine mockitoKsqlEngine = Mockito.mock(KsqlEngine.class);
+    final StatementParser mockitoStatementParser = Mockito.mock(StatementParser.class);
+    final CommandStore mockitoCommandStore = Mockito.mock(CommandStore.class);
+    final ClusterTerminator clusterTerminator = Mockito.mock(ClusterTerminator.class);
+    final StatementExecutor terminateStatementExecutor = new StatementExecutor(
+        mockitoKsqlConfig, mockitoKsqlEngine, mockitoStatementParser, mockitoCommandStore, clusterTerminator
+    );
+    final CommandId commandId = Mockito.mock(CommandId.class);
     final Command command = new Command(
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
         Collections.emptyMap(),
         Collections.emptyMap());
-    testTerminateClusterForCommand(command, false);
-  }
 
-  @SuppressWarnings("unchecked")
-  private void testTerminateClusterForCommand(final Command command, final boolean needsMetastore) throws IOException {
-    final CommandId commandId = mock(CommandId.class);
-    final KsqlEngine ksqlEngine = niceMock(KsqlEngine.class);
-    final KafkaTopicClient kafkaTopicClient = niceMock(KafkaTopicClient.class);
-    kafkaTopicClient.deleteTopics(anyObject());
-    expectLastCall().anyTimes();
-    final SchemaRegistryClient schemaRegistryClient = niceMock(SchemaRegistryClient.class);
-    expect(ksqlEngine.getTopicClient()).andReturn(kafkaTopicClient).anyTimes();
-    expect(ksqlEngine.getSchemaRegistryClient()).andReturn(schemaRegistryClient).anyTimes();
+    // When:
+    terminateStatementExecutor.handleStatement(command, commandId, Optional.empty());
 
-    final CommandStore commandStore = mock(CommandStore.class);
-    expect(ksqlEngine.getAllLiveQueries()).andReturn(Collections.emptySet());
-
-    commandStore.close();
-    expectLastCall();
-
-    if (needsMetastore) {
-      final StructuredDataSource structuredDataSource1 = new KsqlStream(
-          "",
-          "FOO",
-          niceMock(Schema.class),
-          null,
-          null,
-          new KsqlTopic("FOO_Stream", "FOO", null, true),
-          Serdes.String()
-      );
-
-      final StructuredDataSource structuredDataSource2 = new KsqlTable(
-          "",
-          "BAR",
-          niceMock(Schema.class),
-          null,
-          null,
-          new KsqlTopic("BAR_Stream", "BAR", null, true),
-          "",
-          Serdes.String()
-      );
-      final StructuredDataSource structuredDataSource3 = new KsqlStream(
-          "",
-          "TAB",
-          niceMock(Schema.class),
-          null,
-          null,
-          new KsqlTopic("TAB_Stream", "TAB", null, true),
-          Serdes.String()
-      );
-
-      final MetaStore metaStore = new MetaStoreImpl(niceMock(FunctionRegistry.class));
-      metaStore.putSource(structuredDataSource1);
-      metaStore.putTopic(structuredDataSource1.getKsqlTopic());
-      metaStore.putSource(structuredDataSource2);
-      metaStore.putTopic(structuredDataSource2.getKsqlTopic());
-      metaStore.putSource(structuredDataSource3);
-      metaStore.putTopic(structuredDataSource3.getKsqlTopic());
-
-      expect(ksqlEngine.getMetaStore()).andReturn(metaStore);
-    }
-
-    final StatementExecutor statementExecutor = new StatementExecutor(
-        new KsqlConfig(Collections.emptyMap()),
-        ksqlEngine,
-        mock(StatementParser.class),
-        commandStore
-    );
-    replay(ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore);
-    statementExecutor.handleStatement(command, commandId, Optional.empty());
-    verify(ksqlEngine, kafkaTopicClient, schemaRegistryClient, commandStore);
+    // Then:
+    Mockito.verify(clusterTerminator).terminateCluster(Mockito.anyList());
   }
 
   private void createStreamsAndTables() {

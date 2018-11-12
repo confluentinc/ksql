@@ -39,7 +39,8 @@ public class CommandId {
   public enum Action {
     CREATE,
     DROP,
-    EXECUTE
+    EXECUTE,
+    CLUSTER_TERMONATE
   }
 
   public CommandId(

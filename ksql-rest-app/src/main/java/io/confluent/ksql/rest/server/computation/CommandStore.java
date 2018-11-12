@@ -18,14 +18,14 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.util.CommandTopic;
+import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,6 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
 
   private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
 
-  private final String commandTopicName;
   private final CommandTopic commandTopic;
   private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
@@ -50,19 +49,15 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
       final Map<String, Object> commandConsumerProperties,
       final CommandIdAssigner commandIdAssigner
   ) {
-    this.commandTopicName = commandTopicName;
-    this.commandIdAssigner = commandIdAssigner;
-    this.commandStatusMap = Maps.newConcurrentMap();
-    this.commandTopic = new CommandTopic(commandTopicName, commandConsumerProperties);
+    this(commandIdAssigner, new CommandTopic(commandTopicName, commandConsumerProperties));
   }
 
-  // For testing
-  public CommandStore(
-      final String commandTopicName,
+  CommandStore(
       final CommandIdAssigner commandIdAssigner,
       final CommandTopic commandTopic
   ) {
-    this.commandTopicName = commandTopicName;
+    Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
+    Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
     this.commandTopic = commandTopic;
@@ -114,7 +109,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
         }
     );
     try {
-      commandTopic.send(new ProducerRecord<>(commandTopicName, commandId, command));
+      commandTopic.send(commandId, command);
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);
       throw new KsqlException(
@@ -139,7 +134,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   }
 
   public RestoreCommands getRestoreCommands() {
-    return commandTopic.getRestoreCommands(commandTopicName, POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
+    return commandTopic.getRestoreCommands(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
   }
 
 }

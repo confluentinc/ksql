@@ -50,7 +50,6 @@ public class ClusterTerminator {
   // Todo: Fail requesst if user requests non-sink topic to be deleted using non-regex
   @SuppressWarnings("unchecked")
   public void terminateCluster(final List<String> deleteTopicPatterns) {
-    ksqlEngine.stopAcceptingStatements();
     terminateAllQueries();
     deleteSinkTopics(deleteTopicPatterns);
     deleteCommandTopic();

@@ -86,4 +86,9 @@ public class RestoreCommands {
   Map<QueryId, CommandId> terminatedQueries() {
     return Collections.unmodifiableMap(allTerminatedQueries);
   }
+
+
+  public Map<Pair<Integer, CommandId>, Command> getToRestore() {
+    return toRestore;
+  }
 }

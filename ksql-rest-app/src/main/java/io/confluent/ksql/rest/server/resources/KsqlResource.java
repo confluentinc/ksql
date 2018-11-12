@@ -118,6 +118,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.Consumes;
@@ -159,26 +161,24 @@ public class KsqlResource {
   @Path("/terminate")
   public Response terminateCluster(final KsqlRequest request) {
     final KsqlEntityList result = new KsqlEntityList();
-    if (!validateTerminateRequest(request)) {
-      return Errors.serverErrorForStatement(
-          new KsqlException("Invalid request parameter."),
-          TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
-          result);
-    }
+
     try {
+      validateTerminateRequest(request);
+
       result.add(distributeStatement(
           TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
-          processTerminateRequest(request),
+          createTerminateRequest(request),
           request.getStreamsProperties(),
           ksqlConfig
       ));
+
+      return Response.ok(result).build();
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
           e,
           TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
           result);
     }
-    return Response.ok(result).build();
   }
 
   @POST
@@ -193,18 +193,31 @@ public class KsqlResource {
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
 
-    preparedStatements(request.getKsql()).stream()
-        .map(statement -> {
-          validateStatement(
-              result,
-              statement.getStatementText(),
-              statement.getStatement(),
-              request.getStreamsProperties());
-          return executeStatement(
-              statement.getStatementText(),
-              statement.getStatement(),
-              request.getStreamsProperties());
-        }).forEach(result::add);
+    try {
+      parsedStatements = ksqlEngine.parseStatements(request.getKsql());
+    } catch (final ParseFailedException e) {
+      return Errors.badStatement(e.getCause(), e.getSqlStatement(), result);
+    } catch (final KsqlException e) {
+      return Errors.badRequest(e);
+    }
+
+    final Map<String, Object> streamsProperties = request.getStreamsProperties();
+
+    for (final PreparedStatement parsedStatement : parsedStatements) {
+      final String statementText = parsedStatement.getStatementText();
+      final Statement statement = parsedStatement.getStatement();
+
+      try {
+        validateStatement(result, statementText, statement, streamsProperties);
+        result.add(executeStatement(statementText, statement, streamsProperties));
+      } catch (final KsqlRestException e) {
+        throw e;
+      } catch (final KsqlException e) {
+        return Errors.badStatement(e, statementText, result);
+      } catch (final Exception e) {
+        return Errors.serverErrorForStatement(e, statementText, result);
+      }
+    }
     return Response.ok(result).build();
   }
 
@@ -797,17 +810,40 @@ public class KsqlResource {
   }
 
   @SuppressWarnings("unchecked")
-  private TerminateCluster processTerminateRequest(final KsqlRequest request) {
+  private static TerminateCluster createTerminateRequest(final KsqlRequest request) {
     final List<String> toDelete = (List<String>) request.getStreamsProperties()
-        .getOrDefault(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, Collections.emptyList());
+        .getOrDefault(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME, Collections.emptyList());
     return new TerminateCluster(toDelete);
   }
 
-  private boolean validateTerminateRequest(final KsqlRequest request) {
-    return request.getStreamsProperties().isEmpty()
-        || request.getStreamsProperties()
-        .containsKey(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME);
+  @SuppressWarnings("unchecked")
+  private static void validateTerminateRequest(final KsqlRequest request) {
+    if (request.getStreamsProperties().isEmpty()) {
+      return;
+    }
+    if (!request.getStreamsProperties()
+        .containsKey(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME)) {
+      throw new KsqlException("Invalid request parameter.");
+    }
+    if (request.getStreamsProperties()
+        .get(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME) instanceof List) {
+      throw new KsqlException("Invalid request parameter type. "
+          + KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME + "should be a List.");
+    }
+    validateDeleteTopicListForTerminate(
+        (List<String>) request.getStreamsProperties()
+            .get(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME)
+    );
+  }
 
+  private static void validateDeleteTopicListForTerminate(final List<String> deleteTopicPatterns) {
+    for (final String pattern:deleteTopicPatterns) {
+      try {
+        Pattern.compile(pattern);
+      } catch (final PatternSyntaxException patternSyntaxException) {
+        throw new KsqlException("Invalid pattern: " + pattern);
+      }
+    }
   }
 
 }

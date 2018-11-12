@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.util;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
 import java.util.Objects;
@@ -25,24 +24,14 @@ import java.util.Optional;
 public class TerminateCluster extends Statement {
 
   public static final String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
-  public static final String DELETE_TOPIC_LIST_PARAM_NAME = "DELETE_TOPIC_LIST";
-
-
-  private final List<String> deleteTopicList;
 
   public TerminateCluster(final List<String> deleteTopicList) {
     super(Optional.empty());
-    Objects.requireNonNull(deleteTopicList, "DELETE_TOPIC_LIST cannot be null.");
-    this.deleteTopicList = ImmutableList.copyOf(deleteTopicList);
-  }
-
-  public List<String> getDeleteTopicList() {
-    return deleteTopicList;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT, deleteTopicList);
+    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT);
   }
 
   @Override
@@ -53,8 +42,7 @@ public class TerminateCluster extends Statement {
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    final TerminateCluster terminateCluster = (TerminateCluster) obj;
-    return deleteTopicList.equals(terminateCluster.getDeleteTopicList());
+    return true;
   }
 
   @Override

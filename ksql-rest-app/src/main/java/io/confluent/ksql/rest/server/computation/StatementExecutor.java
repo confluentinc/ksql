@@ -63,6 +63,7 @@ public class StatementExecutor {
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
   private final CommandStore commandStore;
+  private final ClusterTerminator clusterTerminator;
 
   public StatementExecutor(
       final KsqlConfig ksqlConfig,
@@ -70,15 +71,34 @@ public class StatementExecutor {
       final StatementParser statementParser,
       final CommandStore commandStore
   ) {
+    this(
+        ksqlConfig,
+        ksqlEngine,
+        statementParser,
+        commandStore,
+        new ClusterTerminator(ksqlConfig, ksqlEngine)
+        );
+  }
+
+  StatementExecutor(
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
+      final StatementParser statementParser,
+      final CommandStore commandStore,
+      final ClusterTerminator clusterTerminator
+  ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
     Objects.requireNonNull(commandStore, "commandStore cannot be null.");
+    Objects.requireNonNull(clusterTerminator, "clusterTerminator cannot be null.");
+
 
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.commandStore = commandStore;
     this.statusStore = new ConcurrentHashMap<>();
+    this.clusterTerminator = clusterTerminator;
   }
 
   /**
@@ -409,9 +429,8 @@ public class StatementExecutor {
     commandStore.close();
 
     final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
-        .getOrDefault(TerminateCluster.DELETE_TOPIC_LIST_PARAM_NAME, Collections.emptyList());
+        .getOrDefault(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME, Collections.emptyList());
 
-    new ClusterTerminator(ksqlConfig, ksqlEngine)
-        .terminateCluster(deleteTopicList);
+    clusterTerminator.terminateCluster(deleteTopicList);
   }
 }

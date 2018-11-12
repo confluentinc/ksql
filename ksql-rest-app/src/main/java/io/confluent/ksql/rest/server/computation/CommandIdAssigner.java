@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import java.util.HashMap;
@@ -68,7 +69,7 @@ public class CommandIdAssigner {
         command -> new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE));
     suppliers.put(TerminateCluster.class,
         command ->
-            new CommandId(Type.CLUSTER, "TerminateCluster", CommandId.Action.EXECUTE));
+            new CommandId(Type.CLUSTER, "TerminateCluster", Action.CLUSTER_TERMONATE));
   }
 
   public CommandId getCommandId(final Statement command) {

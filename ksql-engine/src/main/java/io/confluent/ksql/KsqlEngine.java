@@ -93,7 +93,6 @@ public class KsqlEngine implements Closeable {
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 
-  private final AtomicBoolean clusterTerminated = new AtomicBoolean(false);
   private final AtomicBoolean acceptingStatements = new AtomicBoolean(true);
   
   private final MetaStore metaStore;
@@ -603,7 +602,7 @@ public class KsqlEngine implements Closeable {
   }
 
   public Set<QueryMetadata> getAllLiveQueries() {
-    return allLiveQueries;
+    return Collections.unmodifiableSet(allLiveQueries);
   }
 
   public void stopAcceptingStatements() {

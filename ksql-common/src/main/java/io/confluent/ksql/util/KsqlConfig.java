@@ -32,6 +32,7 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -122,6 +123,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQL_UDF_SECURITY_MANAGER_ENABLED = "ksql.udf.enable.security.manager";
 
   public static final String DEFAULT_EXT_DIR = "ext";
+
+  public static final String DELETE_TOPIC_LIST_PARAM_NAME = "ksql.delete.topic.list";
 
   private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEBS
       = ImmutableList.of(
@@ -284,6 +287,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Importance.LOW,
             "Enable the security manager for UDFs. Default is true and will stop UDFs from"
                + " calling System.exit or executing processes"
+        ).define(
+            DELETE_TOPIC_LIST_PARAM_NAME,
+            Type.LIST,
+            "",
+            ConfigDef.Importance.MEDIUM,
+            "The pattern list for deleting topics when terminating cluster "
         )
         .withClientSslSupport();
 

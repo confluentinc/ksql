@@ -64,20 +64,6 @@ public class ClusterTerminatorTest {
   }
 
   @Test
-  public void shouldTellEngineToStopAcceptingStaetements() throws Exception {
-    // Given:
-    ksqlEngine.stopAcceptingStatements();
-    EasyMock.expectLastCall();
-    EasyMock.replay(ksqlEngine);
-
-    // When:
-    clusterTerminator.terminateCluster(Collections.emptyList());
-
-    // Then:
-    EasyMock.verify(ksqlEngine);
-  }
-
-  @Test
   public void shouldTerminatePersistetQueries() throws Exception {
     // Given:
     givenEngineWith(Collections.singleton(persistentQuery));

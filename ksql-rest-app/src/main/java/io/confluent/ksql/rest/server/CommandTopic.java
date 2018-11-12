@@ -14,7 +14,7 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -28,11 +28,12 @@ import io.confluent.ksql.rest.server.computation.RestoreCommands;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -40,25 +41,28 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandTopic {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(CommandTopic.class);
 
   private final Consumer<CommandId, Command> commandConsumer;
   private final Producer<CommandId, Command> commandProducer;
+  private final String commandTopicName;
 
   public CommandTopic(
-      final String commandTopic,
+      final String commandTopicName,
       final Map<String, Object> commandConsumerProperties
   ) {
     this(
+        commandTopicName,
         new KafkaConsumer<>(
         commandConsumerProperties,
         CommandTopic.getJsonDeserializer(CommandId.class, true),
@@ -70,27 +74,47 @@ public class CommandTopic {
         CommandTopic.getJsonSerializer(true),
         CommandTopic.getJsonSerializer(false)
     ));
-    commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
+    Objects.requireNonNull(commandConsumerProperties, "commandConsumerProperties");
+    commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopicName, 0)));
   }
 
-  public CommandTopic(
+  CommandTopic(
+      final String commandTopicName,
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer
   ) {
+    Objects.requireNonNull(commandTopicName, "commandTopicName");
+    Objects.requireNonNull(commandConsumer, "commandConsumer");
+    Objects.requireNonNull(commandProducer, "commandProducer");
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
+    this.commandTopicName = commandTopicName;
   }
 
 
   @SuppressWarnings("unchecked")
-  public void send(final ProducerRecord producerRecord)
-      throws ExecutionException, InterruptedException {
-    commandProducer.send(producerRecord).get();
+  public void send(final CommandId commandId, final Command command)
+      throws Exception {
+    Objects.requireNonNull(commandId, "commandId");
+    Objects.requireNonNull(command, "command");
+    final ProducerRecord producerRecord = new ProducerRecord<>(
+        commandTopicName,
+        commandId,
+        command);
+    try {
+      commandProducer.send(producerRecord).get();
+    } catch (final ExecutionException e) {
+      if (e.getCause() instanceof Exception) {
+        throw (Exception)e.getCause();
+      }
+      throw new RuntimeException(e.getCause());
+    }
   }
 
   public List<QueuedCommand> getNewCommands(
       final Map<CommandId, QueuedCommandStatus> commandStatusMap
   ) {
+    Objects.requireNonNull(commandStatusMap, "commandStatusMap");
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
     commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
         c -> queuedCommands.add(
@@ -105,12 +129,13 @@ public class CommandTopic {
   }
 
   public RestoreCommands getRestoreCommands(
-      final String commandTopic,
       final Duration duration
   ) {
+    Objects.requireNonNull(duration, "duration");
     final RestoreCommands restoreCommands = new RestoreCommands();
 
-    final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);
+    final Collection<TopicPartition> cmdTopicPartitions =
+        getTopicPartitionsForTopic(commandTopicName);
 
     commandConsumer.seekToBeginning(cmdTopicPartitions);
 
@@ -132,13 +157,9 @@ public class CommandTopic {
   }
 
   private Collection<TopicPartition> getTopicPartitionsForTopic(final String topic) {
-    final List<PartitionInfo> partitionInfoList = commandConsumer.partitionsFor(topic);
-
-    final Collection<TopicPartition> result = new HashSet<>();
-    for (final PartitionInfo partitionInfo : partitionInfoList) {
-      result.add(new TopicPartition(partitionInfo.topic(), partitionInfo.partition()));
-    }
-    return result;
+    return commandConsumer.partitionsFor(topic).stream()
+        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
+        .collect(Collectors.toList());
   }
 
   public void close() {

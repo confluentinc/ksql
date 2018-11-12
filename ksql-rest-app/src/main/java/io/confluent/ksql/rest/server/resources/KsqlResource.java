@@ -221,17 +221,6 @@ public class KsqlResource {
     return Response.ok(result).build();
   }
 
-  private List<PreparedStatement> preparedStatements(final String ksqlStatements) {
-    try {
-      return ksqlEngine.parseStatements(ksqlStatements);
-    } catch (final ParseFailedException e) {
-      throw new KsqlRestException(
-          Errors.badStatement(e.getCause(), e.getSqlStatement(), new KsqlEntityList()));
-    } catch (final KsqlException e) {
-      throw new KsqlRestException(Errors.badRequest(e));
-    }
-  }
-
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private void validateStatement(
       final KsqlEntityList entities, final String statementText, final Statement statement,

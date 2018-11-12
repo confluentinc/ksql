@@ -366,6 +366,6 @@ The following example will delete topic named ``FOO`` along with all the topics 
 
       {
         "streamsProperties": {
-          "DELETE_TOPIC_LIST": ["FOO", "bar.*"]
+          "ksql.delete.topic.list": ["FOO", "bar.*"]
         }
       }

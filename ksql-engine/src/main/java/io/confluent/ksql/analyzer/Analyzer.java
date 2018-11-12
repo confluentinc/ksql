@@ -168,15 +168,16 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
 
       newIntoKsqlTopic = new KsqlTopic(
-          intoKafkaTopicName,
+          intoStructuredDataSource.getName(),
           intoKafkaTopicName,
           intoTopicSerde
       );
     } else {
-      newIntoKsqlTopic = metaStore.getTopic(intoKafkaTopicName);
+      newIntoKsqlTopic = metaStore.getTopic(intoStructuredDataSource.getName());
       if (newIntoKsqlTopic == null) {
         throw new KsqlException(
-            "Sink topic " + intoKafkaTopicName + " does not exist in th e metastore.");
+            "Sink topic " + intoStructuredDataSource.getName()
+                + " does not exist in the metastore.");
       }
     }
 

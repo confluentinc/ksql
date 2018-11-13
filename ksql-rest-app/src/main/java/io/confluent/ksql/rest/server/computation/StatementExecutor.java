@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -36,6 +37,8 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.CommandId.Action;
+import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -180,6 +183,7 @@ public class StatementExecutor {
   ) {
     try {
       final String statementString = command.getStatement();
+      maybeHandleLegacyDropCommand(commandId, command);
       putStatus(
           commandId,
           queuedCommandStatus,
@@ -217,7 +221,6 @@ public class StatementExecutor {
     DdlCommandResult result = null;
     String successMessage = "";
     if (statement instanceof DdlStatement) {
-      maybeHandleLegacyDropCommand(command, statement);
       result = ksqlEngine.executeDdlStatement(
           statementStr,
           (DdlStatement) statement,
@@ -405,20 +408,27 @@ public class StatementExecutor {
     return !command.hasOriginalProperties();
   }
 
-  private void maybeHandleLegacyDropCommand(final Command command, final Statement statement) {
+  private void maybeHandleLegacyDropCommand(final CommandId commandId, final Command command) {
     if (!is4Dot1Command(command)) {
       return;
     }
-    if (statement instanceof DropStream) {
-      terminateQueriesForSource(((DropStream) statement).getStreamName().toString());
-    } else if (statement instanceof DropTable) {
-      terminateQueriesForSource(((DropTable) statement).getTableName().toString());
+    if (!commandId.getAction().equals(Action.DROP)) {
+      return;
+    }
+    if (commandId.getType().equals(Type.STREAM) || commandId.getType().equals(Type.TABLE)) {
+      terminateQueriesForSource(commandId.getEntity());
     }
   }
 
   private void terminateQueriesForSource(final String sourceName) {
-    final Collection<String> queriesWithSink =
-        ksqlEngine.getMetaStore().getQueriesWithSink(sourceName);
+    final MetaStore metaStore = ksqlEngine.getMetaStore();
+    if (metaStore.getSource(sourceName) == null) {
+      return;
+    }
+    final Collection<String> queriesWithSink = metaStore.getQueriesWithSink(sourceName);
+    if (queriesWithSink.size() == 0) {
+      return;
+    }
     final QueryId queryId = new QueryId(queriesWithSink.iterator().next());
     ksqlEngine.terminateQuery(queryId, false);
   }

@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -271,6 +272,17 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverDrop() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;",
+        "DROP STREAM B;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
   public void shouldRecoverLogWithRepeatedTerminates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
@@ -310,5 +322,46 @@ public class RecoveryTest {
     server2.submitCommands("DROP STREAM B;");
     server1.submitCommands("TERMINATE InsertQuery_0;");
     shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldCascade4Dot1Drop() {
+    commands.addAll(
+        ImmutableList.of(
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM A (COLUMN STRING) "
+                        + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+                    Collections.emptyMap(),
+                    null
+                )
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM B AS SELECT * FROM A;",
+                    Collections.emptyMap(),
+                    null
+                )
+            )
+        )
+    );
+    final KsqlServer server = new KsqlServer(commands);
+    server.recover();
+    assertThat(
+        server.ksqlEngine.getMetaStore().getAllStructuredDataSourceNames(),
+        contains("A", "B"));
+    commands.add(
+        new QueuedCommand(
+            new CommandId(Type.STREAM, "B", Action.DROP),
+            new Command("DROP STREAM B;", Collections.emptyMap(), null)
+        )
+    );
+    final KsqlServer recovered = new KsqlServer(commands);
+    recovered.recover();
+    assertThat(
+        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSourceNames(),
+        contains("A"));
   }
 }

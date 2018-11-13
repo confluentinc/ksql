@@ -16,13 +16,15 @@
 
 package io.confluent.ksql.cli.console;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.CliUtils;
+import io.confluent.ksql.util.ErrorMessageUtil;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import org.jline.reader.Expander;
+import java.util.Objects;
+import java.util.function.Predicate;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
@@ -44,74 +46,16 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   private final LineReader lineReader;
   private final String prompt;
+  private final Terminal terminal;
 
-  /**
-   * Override the default JLine 'expander' behavior so that history-referencing expressions such
-   * as '!42' or '!!' will only be processed and replaced if they occur at the beginning of an
-   * input line, even if the input line spans multiple terminal lines using the '\' separator.
-   */
-  private static class KsqlExpander extends DefaultExpander {
+  JLineReader(
+      final Terminal terminal,
+      final Path historyFilePath,
+      final Predicate<String> cliLinePredicate
+  ) {
+    this.terminal = Objects.requireNonNull(terminal, "terminal");
+    this.lineReader = build(terminal, historyFilePath, cliLinePredicate);
 
-    private static final Map<String, String> shortcuts = Maps.newHashMap();
-    
-    {
-      shortcuts.put("cs", "CREATE STREAM s ( field1 type1 ) WITH (KAFKA_TOPIC='topic',"
-          + " VALUE_FORMAT='avro');");
-      shortcuts.put("ct", "CREATE TABLE t ( field1 type1 ) WITH (KAFKA_TOPIC='topic',"
-          + " VALUE_FORMAT='avro', KEY='field1');");
-      shortcuts.put("csas", "CREATE STREAM s AS SELECT ");
-      shortcuts.put("ctas", "CREATE TABLE t AS SELECT ");
-      shortcuts.put("ii", "INSERT INTO x SELECT ");
-    }
-
-    @Override
-    public String expandHistory(final History history, final String line) {
-      if (line.startsWith("!") || line.startsWith("^")) {
-        return super.expandHistory(history, line);
-      } else {
-        return line;
-      }
-    }
-
-    @Override
-    public String expandVar(final String word) {
-      final String snippet = shortcuts.getOrDefault(word.toLowerCase(), word);
-      return snippet;
-    }
-
-  }
-
-  JLineReader(final Terminal terminal, final Path historyFilePath) {
-    // The combination of parser/expander here allow for multiple-line commands connected by '\\'
-    final DefaultParser parser = new DefaultParser();
-    parser.setEofOnEscapedNewLine(true);
-    parser.setQuoteChars(new char[0]);
-    parser.setEscapeChars(new char[]{'\\'});
-
-    final Expander expander = new KsqlExpander();
-    // TODO: specify a completer to use here via a call to LineReaderBuilder.completer()
-    this.lineReader = LineReaderBuilder.builder()
-        .appName("KSQL")
-        .variable(LineReader.SECONDARY_PROMPT_PATTERN, ">")
-        .option(LineReader.Option.HISTORY_IGNORE_DUPS, true)
-        .option(LineReader.Option.HISTORY_IGNORE_SPACE, false)
-        .option(LineReader.Option.DISABLE_EVENT_EXPANSION, false)
-        .expander(expander)
-        .parser(new TrimmingParser(parser))
-        .terminal(terminal)
-        .build();
-
-    if (Files.exists(historyFilePath) || CliUtils.createFile(historyFilePath)) {
-      this.lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
-      LOGGER.info("Command history saved at: " + historyFilePath);
-    } else {
-      terminal.writer().println(String.format(
-          "WARNING: Unable to create command history file '%s', command history will not be saved.",
-          historyFilePath
-      ));
-    }
-
-    this.lineReader.unsetOpt(Option.HISTORY_INCREMENTAL);
     this.history = new DefaultHistory(this.lineReader);
 
     this.prompt = DEFAULT_PROMPT;
@@ -123,10 +67,97 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   }
 
   @Override
-  public String readLine() throws IOException {
-    final String line = lineReader.readLine(prompt);
-    history.add(line);
-    history.save();
+  public String readLine() {
+    final String line = lineReader
+        .readLine(prompt)
+        .replace("\n", "");
+
+    addToHistory(line);
     return line;
+  }
+
+  private void addToHistory(final String line) {
+    try {
+      history.add(line);
+      history.save();
+    } catch (final IOException e) {
+      LOGGER.error("Error saving history file", e);
+      terminal.writer()
+          .println("Error saving history file:" + ErrorMessageUtil.buildErrorMessage(e));
+    }
+  }
+
+  private static LineReader build(
+      final Terminal terminal,
+      final Path historyFilePath,
+      final Predicate<String> cliLinePredicate
+  ) {
+    final DefaultParser parser = new DefaultParser();
+    parser.setEofOnEscapedNewLine(true);
+    parser.setEofOnUnclosedQuote(true);
+    parser.setQuoteChars(new char[]{'\''});
+    parser.setEscapeChars(new char[]{'\\'});
+
+    final LineReader lineReader = LineReaderBuilder.builder()
+        .appName("KSQL")
+        .variable(LineReader.SECONDARY_PROMPT_PATTERN, ">")
+        .option(Option.HISTORY_IGNORE_DUPS, true)
+        .option(Option.HISTORY_IGNORE_SPACE, false)
+        .option(Option.HISTORY_INCREMENTAL, false)
+        .option(Option.DISABLE_EVENT_EXPANSION, false)
+        .expander(new KsqlExpander())
+        .parser(new TrimmingParser(new KsqlLineParser(parser, cliLinePredicate)))
+        .terminal(terminal)
+        .build();
+
+    if (Files.exists(historyFilePath) || CliUtils.createFile(historyFilePath)) {
+      lineReader.setVariable(LineReader.HISTORY_FILE, historyFilePath);
+      LOGGER.info("Command history saved at: " + historyFilePath);
+    } else {
+      terminal.writer().println(String.format(
+          "WARNING: Unable to create command history file '%s', command history will not be saved.",
+          historyFilePath
+      ));
+    }
+
+    return lineReader;
+  }
+
+  private static class KsqlExpander extends DefaultExpander {
+
+    private static final String EXPANDED_CS =
+        "CREATE STREAM s (field1 type1, field2 type2) "
+            + "WITH (KAFKA_TOPIC='topic-name', VALUE_FORMAT='json');";
+
+    private static final String EXPANDED_CT =
+        "CREATE TABLE t (field1 type1, field2 type2) "
+            + "WITH (KAFKA_TOPIC='topic-name', VALUE_FORMAT='json', KEY='field1');";
+
+    private static final Map<String, String> shortcuts = ImmutableMap.of(
+        "cs", EXPANDED_CS,
+        "ct", EXPANDED_CT,
+        "csas", "CREATE STREAM s AS SELECT ",
+        "ctas", "CREATE TABLE t AS SELECT ",
+        "ii", "INSERT INTO x SELECT "
+    );
+
+    /**
+     * Override the default JLine 'expandHistory' behavior so that history-referencing expressions
+     * such as '!42' or '!!' will only be processed and replaced if they occur at the beginning of
+     * an input line, even if the input line spans multiple terminal lines.
+     */
+    @Override
+    public String expandHistory(final History history, final String line) {
+      if (line.startsWith("!") || line.startsWith("^")) {
+        return super.expandHistory(history, line);
+      }
+
+      return line;
+    }
+
+    @Override
+    public String expandVar(final String word) {
+      return shortcuts.getOrDefault(word.toLowerCase(), word);
+    }
   }
 }

@@ -272,8 +272,8 @@ counting/aggregation step per region.
       WINDOW SESSION (60 SECONDS) \
       GROUP BY regionid;
 
-Sometimes you may want to include the bounds of the current window in the result so that it is
-more easily accessible to consumers of the data. The statement below extracts the start and
+Sometimes, you may want to include the bounds of the current window in the result so that it is
+more easily accessible to consumers of the data. The following statement extracts the start and
 end time of the current session window into fields within output rows.
 
 .. code:: sql

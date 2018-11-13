@@ -16,12 +16,10 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
-import java.io.IOException;
-
 public interface CliSpecificCommand {
   String getName();
 
   void printHelp();
 
-  void execute(String command) throws IOException;
+  void execute(String command);
 }

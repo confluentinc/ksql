@@ -116,7 +116,7 @@ public final class Table {
     header.forEach(m -> console.writer().println(m));
 
     if (columnHeaders.size() > 0) {
-      console.addResult(columnHeaders, rowValues);
+      console.addResult(rowValues);
 
       final Integer[] columnLengths = new Integer[columnHeaders.size()];
       int separatorLength = -1;

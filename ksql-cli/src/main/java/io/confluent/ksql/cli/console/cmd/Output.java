@@ -38,13 +38,13 @@ class Output implements CliSpecificCommand {
     console.writer().println("output:");
     console.writer().println("\tView the current output format.");
     console.writer().println("");
-    console.writer().println("output <format>");
+    console.writer().println("output <format>;");
     console.writer().println("");
     console.writer().printf(
         "\tSet the output format to <format> (valid formats: %s)%n",
         OutputFormat.VALID_FORMATS
     );
-    console.writer().println("\tFor example: \"output JSON\"");
+    console.writer().println("\tFor example: \"output JSON;\"");
   }
 
   @Override

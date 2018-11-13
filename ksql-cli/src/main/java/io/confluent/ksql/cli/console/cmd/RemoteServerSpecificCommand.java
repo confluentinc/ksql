@@ -51,7 +51,7 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
     writer.println("\tShow the current server");
     writer.println("\nserver <server>:");
     writer.println("\tChange the current server to <server>");
-    writer.println("\t example: \"server http://my.awesome.server.com:9098\"");
+    writer.println("\t example: \"server http://my.awesome.server.com:9098;\"");
   }
 
   @Override

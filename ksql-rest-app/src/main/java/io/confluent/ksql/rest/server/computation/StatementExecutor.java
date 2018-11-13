@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,28 +71,6 @@ public class StatementExecutor {
     this.statusStore = new ConcurrentHashMap<>();
   }
 
-  void handleRestoration(final RestoreCommands restoreCommands) {
-    restoreCommands.forEach(
-        (commandId, command, terminatedQueries, wasDropped) -> {
-          log.info("Executing prior statement: '{}'", command);
-          try {
-            handleStatementWithTerminatedQueries(
-                command,
-                commandId,
-                Optional.empty(),
-                terminatedQueries,
-                wasDropped
-            );
-          } catch (final Exception exception) {
-            log.warn(
-                "Failed to execute statement due to exception",
-                exception
-            );
-          }
-        }
-    );
-  }
-
   /**
    * Attempt to execute a single statement.
    *
@@ -105,7 +82,8 @@ public class StatementExecutor {
       final CommandId commandId,
       final Optional<QueuedCommandStatus> status
   ) {
-    handleStatementWithTerminatedQueries(command,
+    handleStatementWithTerminatedQueries(
+        command,
         commandId,
         status,
         null,
@@ -153,7 +131,7 @@ public class StatementExecutor {
    *     requested their termination
    * @param wasDropped was this table/stream subsequently dropped
    */
-  private void handleStatementWithTerminatedQueries(
+  void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
       final Optional<QueuedCommandStatus> queuedCommandStatus,
@@ -174,9 +152,7 @@ public class StatementExecutor {
       );
       executeStatement(
           statement, command, commandId, queuedCommandStatus, terminatedQueries, wasDropped);
-    } catch (final WakeupException exception) {
-      throw exception;
-    } catch (final Exception exception) {
+    } catch (final KsqlException exception) {
       log.error("Failed to handle: " + command, exception);
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,
@@ -193,7 +169,7 @@ public class StatementExecutor {
       final Optional<QueuedCommandStatus> queuedCommandStatus,
       final Map<QueryId, CommandId> terminatedQueries,
       final boolean wasDropped
-  ) throws Exception {
+  ) {
     final String statementStr = command.getStatement();
 
     DdlCommandResult result = null;
@@ -234,7 +210,7 @@ public class StatementExecutor {
     } else if (statement instanceof RunScript) {
       handleRunScript(command);
     } else {
-      throw new Exception(String.format(
+      throw new KsqlException(String.format(
           "Unexpected statement type: %s",
           statement.getClass().getName()
       ));
@@ -281,7 +257,7 @@ public class StatementExecutor {
       final Map<QueryId, CommandId> terminatedQueries,
       final String statementStr,
       final boolean wasDropped
-  ) throws Exception {
+  ) {
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
@@ -314,7 +290,7 @@ public class StatementExecutor {
                                       final Optional<QueuedCommandStatus> queuedCommandStatus,
                                       final Map<QueryId, CommandId> terminatedQueries,
                                       final String statementStr,
-                                      final boolean wasDropped) throws Exception {
+                                      final boolean wasDropped) {
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
@@ -347,7 +323,7 @@ public class StatementExecutor {
       final Map<QueryId, CommandId> terminatedQueries,
       final Command command,
       final boolean wasDropped
-  ) throws Exception {
+  ) {
     if (query.getQueryBody() instanceof QuerySpecification) {
       final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
       final Relation into = querySpecification.getInto();
@@ -355,7 +331,7 @@ public class StatementExecutor {
         final Table table = (Table) into;
         if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null
             && querySpecification.isShouldCreateInto()) {
-          throw new Exception(String.format(
+          throw new KsqlException(String.format(
               "Sink specified in INTO clause already exists: %s",
               table.getName().getSuffix().toUpperCase()
           ));
@@ -395,7 +371,7 @@ public class StatementExecutor {
       }
 
     } else {
-      throw new Exception(String.format(
+      throw new KsqlException(String.format(
           "Unexpected query metadata type: %s; was expecting %s",
           queryMetadata.getClass().getCanonicalName(),
           PersistentQueryMetadata.class.getCanonicalName()
@@ -403,10 +379,11 @@ public class StatementExecutor {
     }
   }
 
-  private void terminateQuery(final TerminateQuery terminateQuery) throws Exception {
+  private void terminateQuery(final TerminateQuery terminateQuery) {
     final QueryId queryId = terminateQuery.getQueryId();
     if (!ksqlEngine.terminateQuery(queryId, true)) {
-      throw new Exception(String.format("No running query with id %s was found", queryId));
+      throw new KsqlException(
+          String.format("No running query with id %s was found", queryId));
     }
   }
 }

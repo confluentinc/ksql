@@ -1,6 +1,6 @@
 package io.confluent.ksql;
 
-import io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.w3c.dom.Document;
@@ -56,13 +56,13 @@ public class TopologyFileGenerator {
             System.out.println(String.format("Directory %s already exists, this will re-generate topology files", dirPath));
         }
 
-        EndToEndEngineTestUtil.writeExpectedTopologyFiles(generatedTopologyPath, getQueryList());
+        EndToEndEngineTestUtil.writeExpectedTopologyFiles(generatedTopologyPath, getTestCases());
         System.out.println(String.format("Done writing topology files to %s", dirPath));
         System.exit(0);
     }
 
-    private static List<Query>  getQueryList() {
-        return QueryTranslationTest.buildQueryList()
+    private static List<TestCase> getTestCases() {
+        return QueryTranslationTest.buildTestCases()
             .filter(q -> !q.isAnyExceptionExpected())
             .collect(Collectors.toList());
     }

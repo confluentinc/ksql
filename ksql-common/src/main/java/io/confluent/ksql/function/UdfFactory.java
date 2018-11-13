@@ -154,7 +154,7 @@ public class UdfFactory {
   private List<FunctionParameter> mapToFunctionParameter(final List<Schema> params) {
     return params
         .stream()
-        .map(schema -> new FunctionParameter(schema))
+        .map(FunctionParameter::new)
         .collect(Collectors.toList());
   }
 

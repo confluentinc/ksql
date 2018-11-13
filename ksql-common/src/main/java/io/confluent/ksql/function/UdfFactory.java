@@ -165,7 +165,7 @@ public class UdfFactory {
       this.schema = schema;
     }
 
-    public boolean sameSchema(final Schema thatSchema) {
+    boolean sameSchema(final Schema thatSchema) {
       if (schema.type() != thatSchema.type()) {
         return false;
       }

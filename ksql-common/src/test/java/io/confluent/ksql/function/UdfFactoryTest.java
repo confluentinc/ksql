@@ -137,7 +137,7 @@ public class UdfFactoryTest {
 
     KsqlFunction function1 = new KsqlFunction(
             Schema.STRING_SCHEMA,
-            Arrays.asList(SchemaBuilder.array(Schema.STRING_SCHEMA)),
+            Collections.singletonList(SchemaBuilder.array(Schema.STRING_SCHEMA)),
             functionName,
             TestFunc.class);
     KsqlFunction function2 = new KsqlFunction(

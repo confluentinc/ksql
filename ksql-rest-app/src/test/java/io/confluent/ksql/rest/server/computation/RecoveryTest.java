@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.ws.rs.core.Response;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -146,7 +147,9 @@ public class RecoveryTest {
 
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
-        ksqlResource.handleKsqlStatements(new KsqlRequest(statement, Collections.emptyMap()));
+        final Response response = ksqlResource.handleKsqlStatements(
+            new KsqlRequest(statement, Collections.emptyMap()));
+        assertThat(response.getStatus(), equalTo(200));
         executeCommands();
       }
     }
@@ -183,7 +186,7 @@ public class RecoveryTest {
     }
   }
 
-  private void shouldRecoverCorrectly(final List<QueuedCommand> commands) {
+  private void shouldRecover(final List<QueuedCommand> commands) {
     // Given:
     final KsqlServer executeServer = new KsqlServer(commands);
     executeServer.executeCommands();
@@ -215,29 +218,44 @@ public class RecoveryTest {
       final PersistentQueryMetadata recoveredQuery = recoveredQueriesById.get(query.getQueryId());
       assertThat(query.getSourceNames(), equalTo(recoveredQuery.getSourceNames()));
       assertThat(query.getSinkNames(), equalTo(recoveredQuery.getSinkNames()));
+      assertThat(query.getResultSchema(), equalTo(recoveredQuery.getResultSchema()));
+      assertThat(query.getStatementString(), equalTo(recoveredQuery.getStatementString()));
     }
   }
 
   @Test
   public void shouldRecoverCreates() {
     server1.submitCommands(
-        "CREATE STREAM A COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;"
     );
-    shouldRecoverCorrectly(commands);
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverRecreates() {
+    server1.submitCommands(
+        "CREATE STREAM A (C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT C1 FROM A;",
+        "TERMINATE CSAS_B_0;",
+        "DROP STREAM B;",
+        "CREATE STREAM B AS SELECT C2 FROM A;"
+    );
+    shouldRecover(commands);
   }
 
   @Test
   public void shouldRecoverTerminates() {
     server1.submitCommands(
-        "CREATE STREAM A COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
         "TERMINATE CSAS_B_0;"
     );
+    shouldRecover(commands);
   }
 
   @Test
-  public void shouldRecoverLogWithRepeatedTerminatesCorrectly() {
+  public void shouldRecoverLogWithRepeatedTerminates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;"
@@ -249,11 +267,11 @@ public class RecoveryTest {
         "TERMINATE InsertQuery_1;"
     );
     server2.submitCommands("TERMINATE CSAS_B_0;");
-    shouldRecoverCorrectly(commands);
+    shouldRecover(commands);
   }
 
   @Test
-  public void shouldRecoverDropCorrectly() {
+  public void shouldRecoverLogWithDropWithRacingInsert() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
@@ -262,11 +280,11 @@ public class RecoveryTest {
     server2.executeCommands();
     server1.submitCommands("INSERT INTO B SELECT * FROM A;");
     server2.submitCommands("DROP STREAM B;");
-    shouldRecoverCorrectly(commands);
+    shouldRecover(commands);
   }
 
   @Test
-  public void shouldRecoverLogWithTerminatesCorrectly() {
+  public void shouldRecoverLogWithTerminateAfterDrop() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');"
@@ -275,6 +293,6 @@ public class RecoveryTest {
     server1.submitCommands("INSERT INTO B SELECT * FROM A;");
     server2.submitCommands("DROP STREAM B;");
     server1.submitCommands("TERMINATE InsertQuery_0;");
-    shouldRecoverCorrectly(commands);
+    shouldRecover(commands);
   }
 }

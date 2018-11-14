@@ -13,7 +13,7 @@ query results from other streams.
 .. note::
 
    Creating tables is similar to creating streams. For more information, see
-   :ref:`ksql_examples`.
+   :ref:`create-a-table-with-ksql`.
 
 Create a Stream from a Kafka topic
 **********************************
@@ -156,16 +156,23 @@ statement:
     Kafka topic          : pageviews (partitions: 1, replication: 1)
     [...]
 
-Create a Continuous Streaming Query from a Stream
+Create a Persistent Streaming Query from a Stream
 *************************************************
 
-Use the CREATE STREAM AS SELECT statement to create a query stream from an 
-existing stream. 
+Use the CREATE STREAM AS SELECT statement to create a persistent query stream
+from an existing stream. 
 
 CREATE STREAM AS SELECT creates a stream that contains the results from a
 SELECT query. KSQL persists the SELECT query results into a corresponding new
-topic. A stream created this way represents a persistent, continuous query,
-which means that it runs until you stop it explicitly.
+topic. A stream created this way represents a persistent, continuous, streaming
+query, which means that it runs until you stop it explicitly.
+
+.. note::
+
+   A SELECT statement by itself is a *non-persistent* continuous query. The result
+   of a SELECT statement isn't persisted in a Kafka topic and is only printed in the
+   KSQL console. Don't confuse persistent queries created by CREATE STREAM AS SELECT
+   with the streaming query result from a SELECT statement.
 
 Use the SHOW QUERIES statement to list the persistent queries that are running
 currently.
@@ -178,12 +185,14 @@ Use the TERMINATE statement to stop a persistent query. Exiting the KSQL CLI
 *does not stop* persistent queries. Your KSQL servers continue to process the
 queries, and queries run continuously until you terminate them explicitly.
 
+To stream the result of a SELECT query into an *existing* stream and its
+underlying topic, use the INSERT INTO statement.
+
 .. note::
 
-   A SELECT statement by itself is a *non-persistent* continuous query. The result
-   of a SELECT statement isn't persisted in a Kafka topic and is only printed in the
-   KSQL console. Don't confuse persistent queries created by CREATE STREAM AS SELECT
-   with the query result from a SELECT statement.
+    The CREATE STREAM AS SELECT statement doesn't support the KEY property.
+    To specify a KEY field, use the PARTITION BY clause. For more information,
+    see :ref:`partition-data-to-enable-joins`.
 
 The following KSQL statement creates a ``pageviews_intro`` stream that contains
 results from a persistent query that matches "introductory" pages that have a
@@ -219,22 +228,14 @@ stream, run the PRINT statement:
     10/30/18 10:15:59 PM UTC , 295241 , 1540937759990,User_6,Page_15
     ^CTopic printing ceased
 
-Press CTRL-C to stop printing the stream.
+Press CTRL+C to stop printing the stream.
 
 .. note:: 
 
    The query continues to run after you stop printing the stream. 
 
-Terminate a Persistent Query
-****************************
-
-Use the TERMINATE statement to stop a persistent query. The TERMINATE statement
-requires the ID of the query, which you get by using the SHOW QUERIES statement.
-
-A persistent query that's created by the CREATE STREAM AS SELECT
-statement has the string ``CSAS`` in its ID, for example, ``CSAS_PAGEVIEWS_INTRO_0``.
-
-Run the SHOW QUERIES statement to see the ID of the ``pageviews_intro`` query:
+Use the SHOW QUERIES statement to view the query that KSQL created for the 
+``pageviews_intro`` stream:
 
 .. code:: text
 
@@ -246,7 +247,17 @@ Run the SHOW QUERIES statement to see the ID of the ``pageviews_intro`` query:
     --------------------------------------------------------------------------------------------------------------------------------------------
     For detailed information on a Query run: EXPLAIN <Query ID>;
 
-When you have the Query ID, you can terminate the query:
+A persistent query that's created by the CREATE STREAM AS SELECT
+statement has the string ``CSAS`` in its ID, for example, ``CSAS_PAGEVIEWS_INTRO_0``.
+
+Delete a KSQL Stream
+********************
+
+Use the DROP STREAM statement to delete a stream. If you created the stream
+by using CREATE STREAM AS SELECT, you must first terminate the corresponding 
+persistent query.
+
+Use the TERMINATE statement to stop the ``CSAS_PAGEVIEWS_INTRO_0`` query:
 
 .. code:: text
 
@@ -257,11 +268,8 @@ When you have the Query ID, you can terminate the query:
      Query terminated.
     -------------------
 
-Delete a Persistent Query
-*************************
-
-Use the DROP STREAM statement to delete a persistent query. You must TERMINATE
-the query before you can drop it.
+Use the DROP STREAM statement to delete a persistent query stream. You must
+TERMINATE the query before you can drop the corresponding stream.
 
 .. code:: text
 

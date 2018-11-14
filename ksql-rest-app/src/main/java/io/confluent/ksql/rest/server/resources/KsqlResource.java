@@ -68,6 +68,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -159,11 +160,11 @@ public class KsqlResource {
 
   @POST
   @Path("/terminate")
-  public Response terminateCluster(final KsqlRequest request) {
+  public Response terminateCluster(final ClusterTerminateRequest request) {
     final KsqlEntityList result = new KsqlEntityList();
 
     try {
-      validateTerminateRequest(request);
+      validateDeleteTopicListForTerminate(request.getDeleteTopicList());
 
       result.add(distributeStatement(
           TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
@@ -799,31 +800,10 @@ public class KsqlResource {
   }
 
   @SuppressWarnings("unchecked")
-  private static TerminateCluster createTerminateRequest(final KsqlRequest request) {
-    final List<String> toDelete = (List<String>) request.getStreamsProperties()
-        .getOrDefault(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME, Collections.emptyList());
-    return new TerminateCluster(toDelete);
+  private static TerminateCluster createTerminateRequest(final ClusterTerminateRequest request) {
+    return new TerminateCluster(request.getDeleteTopicList());
   }
 
-  @SuppressWarnings("unchecked")
-  private static void validateTerminateRequest(final KsqlRequest request) {
-    if (request.getStreamsProperties().isEmpty()) {
-      return;
-    }
-    if (!request.getStreamsProperties()
-        .containsKey(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME)) {
-      throw new KsqlException("Invalid request parameter.");
-    }
-    if (request.getStreamsProperties()
-        .get(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME) instanceof List) {
-      throw new KsqlException("Invalid request parameter type. "
-          + KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME + "should be a List.");
-    }
-    validateDeleteTopicListForTerminate(
-        (List<String>) request.getStreamsProperties()
-            .get(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME)
-    );
-  }
 
   private static void validateDeleteTopicListForTerminate(final List<String> deleteTopicPatterns) {
     for (final String pattern:deleteTopicPatterns) {

@@ -33,14 +33,11 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.util.ClusterTerminator;
-import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,8 +59,6 @@ public class StatementExecutor {
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
-  private final CommandStore commandStore;
-  private final ClusterTerminator clusterTerminator;
 
   public StatementExecutor(
       final KsqlConfig ksqlConfig,
@@ -71,34 +66,15 @@ public class StatementExecutor {
       final StatementParser statementParser,
       final CommandStore commandStore
   ) {
-    this(
-        ksqlConfig,
-        ksqlEngine,
-        statementParser,
-        commandStore,
-        new ClusterTerminator(ksqlConfig, ksqlEngine)
-        );
-  }
-
-  StatementExecutor(
-      final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine,
-      final StatementParser statementParser,
-      final CommandStore commandStore,
-      final ClusterTerminator clusterTerminator
-  ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
     Objects.requireNonNull(commandStore, "commandStore cannot be null.");
-    Objects.requireNonNull(clusterTerminator, "clusterTerminator cannot be null.");
 
 
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
-    this.commandStore = commandStore;
     this.statusStore = new ConcurrentHashMap<>();
-    this.clusterTerminator = clusterTerminator;
   }
 
   /**
@@ -114,15 +90,11 @@ public class StatementExecutor {
       final Optional<QueuedCommandStatus> status
   ) {
     final String statementText = command.getStatement();
-    if (statementText.equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-      terminateCluster(command);
-    } else if (ksqlEngine.isAcceptingStatements()) {
-      handleStatementWithTerminatedQueries(command,
-          commandId,
-          status,
-          null,
-          false);
-    }
+    handleStatementWithTerminatedQueries(command,
+        commandId,
+        status,
+        null,
+        false);
   }
 
   /**
@@ -420,17 +392,5 @@ public class StatementExecutor {
       throw new KsqlException(
           String.format("No running query with id %s was found", queryId));
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private void terminateCluster(final Command command) {
-    ksqlEngine.stopAcceptingStatements();
-
-    commandStore.close();
-
-    final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
-        .getOrDefault(KsqlConfig.DELETE_TOPIC_LIST_PARAM_NAME, Collections.emptyList());
-
-    clusterTerminator.terminateCluster(deleteTopicList);
   }
 }

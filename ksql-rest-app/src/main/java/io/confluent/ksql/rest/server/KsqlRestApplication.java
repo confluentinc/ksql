@@ -336,6 +336,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,
+        ksqlConfig,
+        ksqlEngine,
         maxStatementRetries
     );
 

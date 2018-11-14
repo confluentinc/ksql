@@ -43,6 +43,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.EntityQueryId;
@@ -700,13 +701,12 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailForInvalidTerminateClusterParameters() {
     // Given:
-    final Map<String, Object> properties = ImmutableMap.of("ksql.delete.topic.li", Collections.singletonList("FOO"));
-    final KsqlRequest ksqlRequest = new KsqlRequest(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, properties);
+    final ClusterTerminateRequest request = new ClusterTerminateRequest(Collections.singletonList("FOO"));
     final ReplayableCommandQueue replayableCommandQueue = EasyMock.niceMock(ReplayableCommandQueue.class);
     final KsqlResource testResource = new KsqlResource(ksqlConfig, ksqlEngine, replayableCommandQueue, 1000);
 
     // When:
-    final Response response = testResource.terminateCluster(ksqlRequest);
+    final Response response = testResource.terminateCluster(request);
 
     // Then:
     assertThat(response.getStatus(), equalTo(500));

@@ -17,14 +17,12 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
-import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.RestoreCommands;
+import io.confluent.ksql.rest.util.CommandTopicJsonSerdeUtil;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,14 +40,10 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandTopic {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(CommandTopic.class);
 
@@ -59,22 +53,21 @@ public class CommandTopic {
 
   public CommandTopic(
       final String commandTopicName,
-      final Map<String, Object> commandConsumerProperties
+      final Map<String, Object> kafkaClientProperties
   ) {
     this(
         commandTopicName,
         new KafkaConsumer<>(
-        commandConsumerProperties,
-        CommandTopic.getJsonDeserializer(CommandId.class, true),
-        CommandTopic.getJsonDeserializer(Command.class, false)
+            Objects.requireNonNull(kafkaClientProperties, "kafkaClientProperties"),
+            CommandTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
+            CommandTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
     ),
 
     new KafkaProducer<>(
-        commandConsumerProperties,
-        CommandTopic.getJsonSerializer(true),
-        CommandTopic.getJsonSerializer(false)
+        Objects.requireNonNull(kafkaClientProperties, "kafkaClientProperties"),
+        CommandTopicJsonSerdeUtil.getJsonSerializer(true),
+        CommandTopicJsonSerdeUtil.getJsonSerializer(false)
     ));
-    Objects.requireNonNull(commandConsumerProperties, "commandConsumerProperties");
     commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopicName, 0)));
   }
 
@@ -111,21 +104,8 @@ public class CommandTopic {
     }
   }
 
-  public List<QueuedCommand> getNewCommands(
-      final Map<CommandId, QueuedCommandStatus> commandStatusMap
-  ) {
-    Objects.requireNonNull(commandStatusMap, "commandStatusMap");
-    final List<QueuedCommand> queuedCommands = Lists.newArrayList();
-    commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
-        c -> queuedCommands.add(
-            new QueuedCommand(
-                c.key(),
-                Optional.ofNullable(c.value()),
-                Optional.ofNullable(commandStatusMap.remove(c.key()))
-            )
-        )
-    );
-    return queuedCommands;
+  public Iterable<ConsumerRecord<CommandId, Command>> getNewCommands(final Duration timeout) {
+    return commandConsumer.poll(timeout);
   }
 
   public RestoreCommands getRestoreCommands(
@@ -167,28 +147,4 @@ public class CommandTopic {
     commandConsumer.close();
     commandProducer.close();
   }
-
-  private static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
-    final Serializer<T> result = new KafkaJsonSerializer<>();
-    result.configure(Collections.emptyMap(), isKey);
-    return result;
-  }
-
-  private static <T> Deserializer<T> getJsonDeserializer(
-      final Class<T> classs,
-      final boolean isKey) {
-    final Deserializer<T> result = new KafkaJsonDeserializer<>();
-    final String typeConfigProperty = isKey
-        ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-        : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
-
-    final Map<String, ?> props = Collections.singletonMap(
-        typeConfigProperty,
-        classs
-    );
-    result.configure(props, isKey);
-    return result;
-  }
-
-
 }

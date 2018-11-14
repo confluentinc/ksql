@@ -16,8 +16,13 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.errors.WakeupException;
@@ -39,18 +44,25 @@ public class CommandRunner implements Runnable, Closeable {
 
   private final StatementExecutor statementExecutor;
   private final CommandStore commandStore;
+  private final KsqlEngine ksqlEngine;
   private volatile boolean closed;
   private final int maxRetries;
+
+  private final ClusterTerminator clusterTerminator;
 
   public CommandRunner(
       final StatementExecutor statementExecutor,
       final CommandStore commandStore,
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
       final int maxRetries
   ) {
     this.statementExecutor = statementExecutor;
     this.commandStore = commandStore;
+    this.ksqlEngine = ksqlEngine;
     this.maxRetries = maxRetries;
     closed = false;
+    clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine);
   }
 
   /**
@@ -94,8 +106,14 @@ public class CommandRunner implements Runnable, Closeable {
    */
   public void processPriorCommands() {
     final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
+    for ()
     restoreCommands.forEach(
         (commandId, command, terminatedQueries, wasDropped) -> {
+          if (command.getStatement()
+              .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+            terminateCluster(command);
+            return;
+          }
           RetryUtil.retryWithBackoff(
               maxRetries,
               STATEMENT_RETRY_MS,
@@ -124,5 +142,15 @@ public class CommandRunner implements Runnable, Closeable {
         () -> statementExecutor.handleStatement(command, commandId, status),
         WakeupException.class
     );
+  }
+
+  @SuppressWarnings("unchecked")
+  private void terminateCluster(final Command command) {
+    ksqlEngine.stopAcceptingStatements();
+    this.close();
+    final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
+        .getOrDefault("deleteTopicList", Collections.emptyList());
+
+    clusterTerminator.terminateCluster(deleteTopicList);
   }
 }

@@ -81,6 +81,7 @@ public class CommandTopicTest {
     // Given:
     final CommandId commandId1 = Mockito.mock(CommandId.class);
     final Command command1 = Mockito.mock(Command.class);
+    final Duration duration = Mockito.mock(Duration.class);
     final QueuedCommandStatus queuedCommandStatus1 = Mockito.mock(QueuedCommandStatus.class);
     final Map<CommandId, QueuedCommandStatus> commandStatusMap = new HashMap();
     commandStatusMap.put(commandId1, queuedCommandStatus1);
@@ -91,9 +92,10 @@ public class CommandTopicTest {
     Mockito.when(commandConsumer.poll(Mockito.any(Duration.class))).thenReturn(new ConsumerRecords(Collections.singletonMap(topicPartition, Collections.singletonList(consumerRecord))));
 
     // When:
-    final List<QueuedCommand> newCommands = commandTopic.getNewCommands(commandStatusMap);
+    final Iterable<ConsumerRecord<CommandId, Command>> newCommands = commandTopic.getNewCommands(duration);
 
     // Then:
+
     MatcherAssert.assertThat(newCommands.size(), CoreMatchers.equalTo(1));
     MatcherAssert.assertThat(newCommands.get(0).getCommandId(), CoreMatchers.is(commandId1));
     MatcherAssert.assertThat(newCommands.get(0).getStatus().get(), CoreMatchers.is(queuedCommandStatus1));

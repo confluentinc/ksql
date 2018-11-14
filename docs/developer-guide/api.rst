@@ -365,7 +365,5 @@ The following example will delete topic named ``FOO`` along with all the topics 
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "streamsProperties": {
-          "ksql.delete.topic.list": ["FOO", "bar.*"]
-        }
+        "deleteTopicList": ["FOO", "bar.*"]
       }

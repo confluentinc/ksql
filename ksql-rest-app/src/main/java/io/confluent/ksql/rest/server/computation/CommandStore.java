@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.server.CommandTopic;
@@ -26,6 +27,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +60,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   ) {
     Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
     Objects.requireNonNull(commandTopic, "commandTopic");
-    this.commandIdAssigner = commandIdAssigner;
+    this.commandIdAssigner = Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
     this.commandStatusMap = Maps.newConcurrentMap();
     this.commandTopic = commandTopic;
   }
@@ -130,7 +132,17 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    * @return The commands that have been polled from the command topic
    */
   public List<QueuedCommand> getNewCommands() {
-    return commandTopic.getNewCommands(commandStatusMap);
+    Objects.requireNonNull(commandStatusMap, "commandStatusMap");
+    final List<QueuedCommand> queuedCommands = Lists.newArrayList();
+    commandTopic
+        .getNewCommands(Duration.ofMillis(Long.MAX_VALUE))
+        .forEach(c -> queuedCommands.add(
+            new QueuedCommand(
+                c.key(),
+                Optional.ofNullable(c.value()),
+                Optional.ofNullable(commandStatusMap.remove(c.key())))));
+
+    return queuedCommands;
   }
 
   public RestoreCommands getRestoreCommands() {

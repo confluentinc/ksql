@@ -487,7 +487,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandStore mockitoCommandStore = Mockito.mock(CommandStore.class);
     final ClusterTerminator clusterTerminator = Mockito.mock(ClusterTerminator.class);
     final StatementExecutor terminateStatementExecutor = new StatementExecutor(
-        mockitoKsqlConfig, mockitoKsqlEngine, mockitoStatementParser, mockitoCommandStore, clusterTerminator
+        mockitoKsqlConfig, mockitoKsqlEngine, mockitoStatementParser, mockitoCommandStore
     );
     final CommandId commandId = Mockito.mock(CommandId.class);
     final Command command = new Command(

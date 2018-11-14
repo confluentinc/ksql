@@ -124,8 +124,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  public static final String DELETE_TOPIC_LIST_PARAM_NAME = "ksql.delete.topic.list";
-
   private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEBS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
@@ -287,12 +285,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Importance.LOW,
             "Enable the security manager for UDFs. Default is true and will stop UDFs from"
                + " calling System.exit or executing processes"
-        ).define(
-            DELETE_TOPIC_LIST_PARAM_NAME,
-            Type.LIST,
-            "",
-            ConfigDef.Importance.MEDIUM,
-            "The pattern list for deleting topics when terminating cluster "
         )
         .withClientSslSupport();
 

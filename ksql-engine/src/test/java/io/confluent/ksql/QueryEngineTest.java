@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.junit.After;
@@ -45,11 +46,14 @@ public class QueryEngineTest {
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
-  private final KsqlEngine ksqlEngine = new KsqlEngine(
+  private final KafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
+  private final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
       topicClient,
       () -> schemaRegistryClient,
+      kafkaClientSupplier,
       metaStore,
-      ksqlConfig);
+      ksqlConfig,
+      kafkaClientSupplier.getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps()));
 
   @After
   public void closeEngine() {

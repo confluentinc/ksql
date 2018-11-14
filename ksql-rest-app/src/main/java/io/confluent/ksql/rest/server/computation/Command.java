@@ -22,13 +22,13 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 @JsonSubTypes({})
 public class Command {
   private final String statement;
   private final Map<String, Object> overwriteProperties;
-  private final Optional<Map<String, String>> originalProperties;
+  private final Map<String, String> originalProperties;
+  private final boolean preVersion5;
 
   @JsonCreator
   public Command(@JsonProperty("statement") final String statement,
@@ -36,7 +36,9 @@ public class Command {
                  @JsonProperty("originalProperties") final Map<String, String> originalProperties) {
     this.statement = statement;
     this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
-    this.originalProperties = Optional.ofNullable(originalProperties);
+    this.preVersion5 = originalProperties == null;
+    this.originalProperties =
+        originalProperties == null ? Collections.emptyMap() : originalProperties;
   }
 
   @JsonProperty("statement")
@@ -51,11 +53,11 @@ public class Command {
 
   @JsonProperty("originalProperties")
   public Map<String, String> getOriginalProperties() {
-    return originalProperties.orElse(Collections.emptyMap());
+    return originalProperties;
   }
 
-  boolean hasOriginalProperties() {
-    return originalProperties.isPresent();
+  boolean isPreVersion5() {
+    return this.preVersion5;
   }
 
   @Override

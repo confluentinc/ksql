@@ -21,6 +21,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -60,6 +61,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -119,6 +121,17 @@ public class PhysicalPlanBuilderTest {
     testKafkaStreamsBuilder = new TestKafkaStreamsBuilder();
     physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
     planBuilder = new LogicalPlanBuilder(metaStore);
+  }
+
+  private final KsqlEngine createKsqlEngine(final KafkaTopicClient kafkaTopicClient) {
+    return KsqlEngineTestUtil.createKsqlEngine(
+        kafkaTopicClient,
+        schemaRegistryClientFactory,
+        new DefaultKafkaClientSupplier(),
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig,
+        new DefaultKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps())
+    );
   }
 
   private PhysicalPlanBuilder buildPhysicalPlanBuilder(final Map<String, Object> overrideProperties) {
@@ -189,11 +202,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig);
+    final KsqlEngine ksqlEngine = createKsqlEngine(kafkaTopicClient);
 
     final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
@@ -224,11 +233,7 @@ public class PhysicalPlanBuilderTest {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        new FakeKafkaTopicClient(),
-        schemaRegistryClientFactory,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig);
+    final KsqlEngine ksqlEngine = createKsqlEngine(new FakeKafkaTopicClient());
     try {
       final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           createStream + "\n " + insertIntoQuery,
@@ -256,11 +261,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2, col3  FROM test1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig);
+    final KsqlEngine ksqlEngine = createKsqlEngine(kafkaTopicClient);
 
     try {
       final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -288,11 +289,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig);
+    final KsqlEngine ksqlEngine = createKsqlEngine(kafkaTopicClient);
 
     final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
@@ -329,11 +326,7 @@ public class PhysicalPlanBuilderTest {
     // No need for setting the correct clean up policy in test.
     kafkaTopicClient.createTopic("t1", 1, (short) 1, Collections.emptyMap());
     kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig);
+    final KsqlEngine ksqlEngine = createKsqlEngine(kafkaTopicClient);
 
     try {
       final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -358,11 +351,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig);
+    final KsqlEngine ksqlEngine = createKsqlEngine(kafkaTopicClient);
 
     final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
@@ -390,11 +379,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig);
+    final KsqlEngine ksqlEngine = createKsqlEngine(kafkaTopicClient);
 
     try {
       final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
@@ -619,12 +604,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig);
-
+    final KsqlEngine ksqlEngine = createKsqlEngine(kafkaTopicClient);
     final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
         csasQuery + "\n " +
         insertIntoQuery,

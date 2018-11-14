@@ -16,24 +16,14 @@
 
 package io.confluent.ksql.rest.server.utils;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.util.FakeKafkaClientSupplier;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
-import org.easymock.EasyMock;
 
 public class TestUtils {
 
@@ -73,31 +63,6 @@ public class TestUtils {
     priorCommands.add(new Pair<>(ctasCommandId, ctasCommand));
 
     return priorCommands;
-  }
-
-  private static KsqlEngineMetrics buildEngineMetricsMock() {
-    final KsqlEngineMetrics engineMetrics = EasyMock.niceMock(KsqlEngineMetrics.class);
-    EasyMock.replay(engineMetrics);
-    return engineMetrics;
-  }
-
-  public static KsqlEngine createKsqlEngine(final KsqlConfig ksqlConfig,
-                                            final KafkaTopicClient topicClient,
-                                            final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
-    class TestKsqlEngine extends KsqlEngine {
-      private TestKsqlEngine() {
-        super(
-            topicClient,
-            schemaRegistryClientFactory,
-            new FakeKafkaClientSupplier(),
-            new MetaStoreImpl(new InternalFunctionRegistry()),
-            ksqlConfig,
-            buildEngineMetricsMock()
-        );
-      }
-    };
-
-    return new TestKsqlEngine();
   }
 
   public static int randomFreeLocalPort() throws IOException {

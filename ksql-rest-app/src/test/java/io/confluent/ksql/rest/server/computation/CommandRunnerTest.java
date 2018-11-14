@@ -50,8 +50,7 @@ public class CommandRunnerTest {
     final List<QueuedCommand> commands = getQueuedCommands();
     commands.forEach(
         c -> {
-          statementExecutor.handleStatement(
-              same(c.getCommand()), same(c.getCommandId()), same(c.getStatus()));
+          statementExecutor.handleStatement(same(c));
           expectLastCall();
         }
     );
@@ -86,5 +85,4 @@ public class CommandRunnerTest {
     // Then:
     verify(statementExecutor);
   }
-
 }

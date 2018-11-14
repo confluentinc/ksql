@@ -119,74 +119,10 @@ public class KsqlEngine implements Closeable {
         clientSupplier,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ksqlConfig,
-        adminClient);
-  }
-
-  // called externally by tests only
-  public KsqlEngine(final KafkaTopicClient topicClient,
-                    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                    final MetaStore metaStore,
-                    final KsqlConfig initializationKsqlConfig) {
-    this(
-        topicClient,
-        schemaRegistryClientFactory,
-        new DefaultKafkaClientSupplier(),
-        metaStore,
-        initializationKsqlConfig
-    );
-  }
-
-  KsqlEngine(final KafkaTopicClient kafkaTopicClient,
-             final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-             final KafkaClientSupplier kafkaClientSupplier,
-             final MetaStore metaStore,
-             final KsqlConfig initializationKsqlConfig) {
-    this(kafkaTopicClient,
-        schemaRegistryClientFactory,
-        kafkaClientSupplier,
-        metaStore,
-        initializationKsqlConfig,
-        kafkaClientSupplier.getAdminClient(
-            initializationKsqlConfig.getKsqlAdminClientConfigProps()));
-
-  }
-
-  protected KsqlEngine(final KafkaTopicClient kafkaTopicClient,
-                       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                       final KafkaClientSupplier kafkaClientSupplier,
-                       final MetaStore metaStore,
-                       final KsqlConfig initializationKsqlConfig,
-                       final KsqlEngineMetrics engineMetrics) {
-    this(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        kafkaClientSupplier,
-        metaStore,
-        initializationKsqlConfig,
-        kafkaClientSupplier.getAdminClient(
-            initializationKsqlConfig.getKsqlStreamConfigProps()),
-        Optional.of(engineMetrics)
-    );
-  }
-
-  KsqlEngine(final KafkaTopicClient topicClient,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final KafkaClientSupplier clientSupplier,
-      final MetaStore metaStore,
-      final KsqlConfig initializationKsqlConfig,
-      final AdminClient adminClient) {
-    this(
-        topicClient,
-        schemaRegistryClientFactory,
-        clientSupplier,
-        metaStore,
-        initializationKsqlConfig,
         adminClient,
-        Optional.empty()
-    );
+        Optional.empty());
   }
 
-  // called externally by tests only
   KsqlEngine(final KafkaTopicClient topicClient,
              final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
              final KafkaClientSupplier clientSupplier,

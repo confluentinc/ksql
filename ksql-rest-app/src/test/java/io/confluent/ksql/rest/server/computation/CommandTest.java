@@ -58,7 +58,7 @@ public class CommandTest {
     final Map<String, Object> expecteOverwriteProperties = Collections.singletonMap("foo", "bar");
     assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
     assertThat(command.getOriginalProperties(), equalTo(Collections.emptyMap()));
-    assertThat(command.hasOriginalProperties(), equalTo(false));
+    assertThat(command.isPreVersion5(), equalTo(true));
   }
 
   void grep(final String string, final String regex) {

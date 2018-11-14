@@ -49,6 +49,9 @@ public class LongColumnTimestampExtractionPolicy implements TimestampExtractionP
 
   @Override
   public boolean equals(final Object other) {
+    if (this == other) {
+      return true;
+    }
     if (!(other instanceof LongColumnTimestampExtractionPolicy)) {
       return false;
     }

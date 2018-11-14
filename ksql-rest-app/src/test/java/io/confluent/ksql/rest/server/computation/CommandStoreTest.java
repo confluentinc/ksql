@@ -30,6 +30,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.fail;
 
@@ -85,6 +86,7 @@ public class CommandStoreTest {
   private final Future<RecordMetadata> future = niceMock(Future.class);
   private final Command command =
       new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
+  private final Node node = mock(Node.class);
 
   @Test
   public void shouldHaveAllCreateCommandsInOrder() {
@@ -229,7 +231,7 @@ public class CommandStoreTest {
     final List<QueuedCommand> commands = createCommandStore().getNewCommands();
 
     // Then:
-    assertThat(commands.size(), equalTo(1));
+    assertThat(commands, hasSize(1));
     assertThat(commands.get(0).getCommandId(), equalTo(id));
     assertThat(commands.get(0).getCommand(), equalTo(command));
   }
@@ -243,7 +245,6 @@ public class CommandStoreTest {
     final ConsumerRecords<CommandId, Command> records = buildRecords(
         id, null,
         id, command);
-    final Node node = mock(Node.class);
     expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andStubReturn(
         ImmutableList.of(
             new PartitionInfo(COMMAND_TOPIC, 0, node, new Node[]{node}, new Node[]{node})
@@ -257,7 +258,7 @@ public class CommandStoreTest {
     final List<QueuedCommand> commands = createCommandStore().getRestoreCommands();
 
     // Then:
-    assertThat(commands.size(), equalTo(1));
+    assertThat(commands, hasSize(1));
     assertThat(commands.get(0).getCommandId(), equalTo(id));
     assertThat(commands.get(0).getCommand(), equalTo(command));
   }

@@ -37,6 +37,9 @@ public class MetadataTimestampExtractionPolicy implements TimestampExtractionPol
 
   @Override
   public boolean equals(final Object other) {
+    if (this == other) {
+      return true;
+    }
     return other instanceof MetadataTimestampExtractionPolicy;
   }
 }

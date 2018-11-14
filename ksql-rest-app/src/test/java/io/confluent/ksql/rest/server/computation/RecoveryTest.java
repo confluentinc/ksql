@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -27,7 +27,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -47,6 +49,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -61,6 +64,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
+import org.easymock.EasyMock;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -75,10 +79,16 @@ public class RecoveryTest {
   private final KsqlServer server2 = new KsqlServer(commands);
 
   private KsqlEngine createKsqlEngine() {
-    return TestUtils.createKsqlEngine(
-        ksqlConfig,
+    final KsqlEngineMetrics engineMetrics = EasyMock.niceMock(KsqlEngineMetrics.class);
+    EasyMock.replay(engineMetrics);
+    return KsqlEngineTestUtil.createKsqlEngine(
         new MockKafkaTopicClient(),
-        new MockSchemaRegistryClientFactory()::get);
+        new MockSchemaRegistryClientFactory()::get,
+        new FakeKafkaClientSupplier(),
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig,
+        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps()),
+        engineMetrics);
   }
 
   private class FakeCommandQueue implements ReplayableCommandQueue {
@@ -158,7 +168,7 @@ public class RecoveryTest {
     void executeCommands() {
       fakeCommandQueue.getNewCommands().forEach(
           c -> statementExecutor.handleStatement(
-              c.getCommand(), c.getCommandId(), Optional.empty())
+              new QueuedCommand(c.getCommandId(), c.getCommand()))
       );
     }
 
@@ -203,6 +213,13 @@ public class RecoveryTest {
     }
   }
 
+  final Map<QueryId, PersistentQueryMetadata> queriesById(
+      final Collection<PersistentQueryMetadata> queries) {
+    return queries.stream().collect(
+        Collectors.toMap(PersistentQueryMetadata::getQueryId, q -> q)
+    );
+  }
+
   private void shouldRecover(final List<QueuedCommand> commands) {
     // Given:
     final KsqlServer executeServer = new KsqlServer(commands);
@@ -224,20 +241,23 @@ public class RecoveryTest {
           recovered.getMetaStore().getSource(sourceName)
       );
     }
-    final Collection<PersistentQueryMetadata> queries = engine.getPersistentQueries();
-    final Collection<PersistentQueryMetadata> recoveredQueries = recovered.getPersistentQueries();
-    assertThat(queries.size(), equalTo(recoveredQueries.size()));
-    final Map<QueryId, PersistentQueryMetadata> recoveredQueriesById
-        = recoveredQueries.stream().collect(
-            Collectors.toMap(PersistentQueryMetadata::getQueryId, pqm -> pqm));
-    for (final PersistentQueryMetadata query : queries) {
-      assertThat(recoveredQueriesById.keySet(), contains(query.getQueryId()));
-      final PersistentQueryMetadata recoveredQuery = recoveredQueriesById.get(query.getQueryId());
-      assertThat(query.getSourceNames(), equalTo(recoveredQuery.getSourceNames()));
-      assertThat(query.getSinkNames(), equalTo(recoveredQuery.getSinkNames()));
-      assertThat(query.getResultSchema(), equalTo(recoveredQuery.getResultSchema()));
-      assertThat(query.getStatementString(), equalTo(recoveredQuery.getStatementString()));
-    }
+    final Map<QueryId, PersistentQueryMetadata> queries
+        = queriesById(engine.getPersistentQueries());
+    final Map<QueryId, PersistentQueryMetadata> recoveredQueries
+        = queriesById(recovered.getPersistentQueries());
+    assertThat(queries.keySet(), equalTo(recoveredQueries.keySet()));
+    queries.forEach(
+        (queryId, query) -> {
+          final PersistentQueryMetadata recoveredQuery = recoveredQueries.get(query.getQueryId());
+          assertThat(query.getSourceNames(), equalTo(recoveredQuery.getSourceNames()));
+          assertThat(query.getSinkNames(), equalTo(recoveredQuery.getSinkNames()));
+          assertThat(query.getResultSchema(), equalTo(recoveredQuery.getResultSchema()));
+          assertThat(query.getStatementString(), equalTo(recoveredQuery.getStatementString()));
+          assertThat(
+              query.getKafkaStreams().state(),
+              equalTo(recoveredQuery.getKafkaStreams().state()));
+        }
+    );
   }
 
   @Test

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -39,6 +40,7 @@ import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -53,10 +55,10 @@ public class WSQueryEndpointTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private static final KsqlRequest VALID_REQUEST = new KsqlRequest("test-sql",
-      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"));
+      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), null);
 
   private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest("other-sql",
-      ImmutableMap.of());
+      ImmutableMap.of(), null);
 
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;
@@ -87,6 +89,11 @@ public class WSQueryEndpointTest {
 
   private Query query;
   private WSQueryEndpoint wsQueryEndpoint;
+
+  @BeforeClass
+  public static void setUpClass() {
+    OBJECT_MAPPER.registerModule(new Jdk8Module());
+  }
 
   @Before
   public void setUp() {

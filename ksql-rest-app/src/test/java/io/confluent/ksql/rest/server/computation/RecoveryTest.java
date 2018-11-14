@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
@@ -146,6 +147,11 @@ public class RecoveryTest {
     }
 
     @Override
+    public CompletableFuture<Void> getConsumerPositionFuture(final long offset) {
+      return null;
+    }
+
+    @Override
     public void close() {
     }
   }
@@ -192,7 +198,7 @@ public class RecoveryTest {
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
         final Response response = ksqlResource.handleKsqlStatements(
-            new KsqlRequest(statement, Collections.emptyMap()));
+            new KsqlRequest(statement, Collections.emptyMap(), null));
         assertThat(response.getStatus(), equalTo(200));
         executeCommands();
       }

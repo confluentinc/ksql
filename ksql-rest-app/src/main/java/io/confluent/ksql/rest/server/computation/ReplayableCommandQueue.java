@@ -22,6 +22,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public interface ReplayableCommandQueue extends Closeable {
   QueuedCommandStatus enqueueCommand(
@@ -34,4 +35,6 @@ public interface ReplayableCommandQueue extends Closeable {
   List<QueuedCommand> getNewCommands();
 
   List<QueuedCommand> getRestoreCommands();
+
+  CompletableFuture<Void> getConsumerPositionFuture(long offset);
 }

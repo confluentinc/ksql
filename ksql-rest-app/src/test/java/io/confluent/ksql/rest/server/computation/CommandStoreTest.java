@@ -19,7 +19,6 @@ package io.confluent.ksql.rest.server.computation;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
@@ -49,6 +48,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -227,6 +227,7 @@ public class CommandStoreTest {
     final ConsumerRecords<CommandId, Command> records = buildRecords(
         id, null,
         id, command);
+    expectConsumerToReturnPartitionInfo();
     expect(commandConsumer.poll(anyObject())).andReturn(records);
     replay(commandConsumer);
 
@@ -248,11 +249,7 @@ public class CommandStoreTest {
     final ConsumerRecords<CommandId, Command> records = buildRecords(
         id, null,
         id, command);
-    expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andStubReturn(
-        ImmutableList.of(
-            new PartitionInfo(COMMAND_TOPIC, 0, node, new Node[]{node}, new Node[]{node})
-        )
-    );
+    expectConsumerToReturnPartitionInfo();
     expect(commandConsumer.poll(anyObject())).andReturn(records);
     expect(commandConsumer.poll(anyObject())).andReturn(ConsumerRecords.empty());
     replay(commandConsumer);
@@ -313,12 +310,99 @@ public class CommandStoreTest {
     verify(commandProducer, future);
   }
 
+  @Test
+  public void shouldReturnCompletedFutureIfOffsetReached() {
+    // Given:
+    givenCmdConsumerAtPosition(1);
+
+    final CommandStore commandStore = createCommandStore();
+
+    // When:
+    final CompletableFuture<Void> future = commandStore.getConsumerPositionFuture(0);
+
+    // Then:
+    assertFutureIsCompleted(future);
+    verify(commandConsumer);
+  }
+
+  @Test
+  public void shouldReturnUncompletedFutureIfOffsetNotReached() {
+    // Given:
+    givenCmdConsumerAtPosition(2);
+
+    final CommandStore commandStore = createCommandStore();
+
+    // When:
+    final CompletableFuture<Void> future = commandStore.getConsumerPositionFuture(2);
+
+    // Then:
+    assertFutureIsNotCompleted(future);
+    verify(commandConsumer);
+  }
+
+  @Test
+  public void shouldCompleteFutureWhenOffsetIsReached() {
+    // Given:
+    final CommandStore commandStore = createCommandStore();
+
+    givenCmdConsumerAtPosition(0);
+    final CompletableFuture future = commandStore.getConsumerPositionFuture(2);
+    givenCmdConsumerAtPosition(3, true);
+
+    // When:
+    commandStore.getNewCommands();
+
+    // Then:
+    assertFutureIsCompleted(future);
+    verify(commandConsumer);
+  }
+
+  @Test
+  public void shouldNotCompleteFutureWhenOffsetIsNotReached() {
+    // Given:
+    final CommandStore commandStore = createCommandStore();
+
+    givenCmdConsumerAtPosition(0);
+    final CompletableFuture future = commandStore.getConsumerPositionFuture(2);
+    givenCmdConsumerAtPosition(2, true);
+
+    // When:
+    commandStore.getNewCommands();
+
+    // Then:
+    assertFutureIsNotCompleted(future);
+    verify(commandConsumer);
+  }
+
   private void setupConsumerToReturnCommand(final CommandId commandId, final Command command) {
     reset(commandConsumer);
     expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(
         buildRecords(commandId, command)
     ).times(1);
+    expectConsumerToReturnPartitionInfo();
     replay(commandConsumer);
+  }
+
+  private void givenCmdConsumerAtPosition(long position) {
+    givenCmdConsumerAtPosition(position, false);
+  }
+
+  private void givenCmdConsumerAtPosition(long position, boolean poll) {
+    reset(commandConsumer);
+    expectConsumerToReturnPartitionInfo();
+    expect(commandConsumer.position(anyObject(TopicPartition.class))).andReturn(position);
+    if (poll) {
+      expect(commandConsumer.poll(anyObject()))
+          .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
+    }
+    replay(commandConsumer);
+  }
+
+  private void expectConsumerToReturnPartitionInfo() {
+    expect(commandConsumer.partitionsFor(COMMAND_TOPIC))
+        .andReturn(ImmutableList.of(
+            new PartitionInfo(COMMAND_TOPIC, 0, node, new Node[]{node}, new Node[]{node})
+        ));
   }
 
   private CommandStore createCommandStoreThatAssignsSameId(final CommandId commandId) {
@@ -365,5 +449,15 @@ public class CommandStoreTest {
             records
         )
     );
+  }
+
+  private void assertFutureIsCompleted(CompletableFuture<Void> future) {
+    assertThat(future.isDone(), is(true));
+    assertThat(future.isCancelled(), is(false));
+    assertThat(future.isCompletedExceptionally(), is(false));
+  }
+
+  private void assertFutureIsNotCompleted(CompletableFuture<Void> future) {
+    assertThat(future.isDone(), is(false));
   }
 }

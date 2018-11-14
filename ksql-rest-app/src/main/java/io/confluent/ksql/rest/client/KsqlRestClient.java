@@ -124,7 +124,7 @@ public class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
     return postRequest("ksql", jsonRequest, true, r -> r.readEntity(KsqlEntityList.class));
   }
 
@@ -137,12 +137,12 @@ public class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<QueryStream> makeQueryRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
     return postRequest("query", jsonRequest, false, QueryStream::new);
   }
 
   public RestResponse<InputStream> makePrintTopicRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
     return postRequest("query", jsonRequest, false, r -> (InputStream)r.getEntity());
   }
 

@@ -21,14 +21,18 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -45,7 +49,9 @@ import org.slf4j.LoggerFactory;
  * the beginning until now, or any new messages since then), and writing to it.
  */
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandStore implements ReplayableCommandQueue, Closeable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 
@@ -56,6 +62,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
+  private List<Pair<CompletableFuture<Void>, Long>> commandOffsetFutures;
 
   public CommandStore(
       final String commandTopic,
@@ -68,6 +75,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
+    this.commandOffsetFutures = new ArrayList<>();
 
     commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
   }
@@ -142,6 +150,8 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    * @return The commands that have been polled from the command topic
    */
   public List<QueuedCommand> getNewCommands() {
+    completeSatisfiedOffsetFutures();
+
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
     commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
         c -> {
@@ -189,6 +199,25 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     return restoreCommands;
   }
 
+  public CompletableFuture<Void> getConsumerPositionFuture(final long offset) {
+    final CompletableFuture<Void> future = new CompletableFuture<>();
+
+    final long consumerPosition = getConsumerPosition();
+    if (consumerPosition > offset) {
+      future.complete(null);
+    } else {
+      commandOffsetFutures.add(Pair.of(future, offset));
+    }
+    return future;
+  }
+
+  // returns the next offset to be consumed
+  private long getConsumerPosition() {
+    final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);
+    // NOTE: assumes there's only one partition
+    return commandConsumer.position(cmdTopicPartitions.iterator().next());
+  }
+
   private Collection<TopicPartition> getTopicPartitionsForTopic(final String topic) {
     final List<PartitionInfo> partitionInfoList = commandConsumer.partitionsFor(topic);
 
@@ -197,5 +226,16 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
       result.add(new TopicPartition(partitionInfo.topic(), partitionInfo.partition()));
     }
     return result;
+  }
+
+  private void completeSatisfiedOffsetFutures() {
+    final long offset = getConsumerPosition();
+    commandOffsetFutures.stream()
+        .filter(futureOffsetPair -> futureOffsetPair.getRight() < offset)
+        .map(futureOffsetPair -> futureOffsetPair.getLeft())
+        .forEach(future -> future.complete(null));
+    commandOffsetFutures = commandOffsetFutures.stream()
+        .filter(futureOffsetPair -> !futureOffsetPair.getLeft().isDone())
+        .collect(Collectors.toList());
   }
 }

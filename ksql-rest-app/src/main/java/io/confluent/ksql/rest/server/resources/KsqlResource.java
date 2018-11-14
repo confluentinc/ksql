@@ -116,6 +116,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -154,10 +159,18 @@ public class KsqlResource {
     this.registerKsqlStatementTasks();
   }
 
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
+
+    try {
+      waitForCommandOffset(request.getCommandOffset());
+    } catch (final RuntimeException e) {
+      return Errors.serverErrorForStatement(e, request.getKsql(), result);
+    }
 
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
@@ -190,6 +203,31 @@ public class KsqlResource {
       }
     }
     return Response.ok(result).build();
+  }
+
+  private void waitForCommandOffset(final Optional<Long> commandOffset) {
+    if (commandOffset.isPresent()) {
+      final long offset = Objects.requireNonNull(commandOffset.get(), "commandOffset is null");
+      final CompletableFuture<Void> future =
+          replayableCommandQueue.getConsumerPositionFuture(offset);
+
+      try {
+        future.get(distributedCommandResponseTimeout, TimeUnit.MILLISECONDS);
+      } catch (final ExecutionException e) {
+        throw new RuntimeException(
+            "Error waiting for command offset of " + String.valueOf(offset), e.getCause());
+      } catch (final InterruptedException e) {
+        throw new RuntimeException(
+            "Interrupted while waiting for command offset of " + String.valueOf(offset), e);
+      } catch (final TimeoutException e) {
+        throw new RuntimeException(
+            String.format(
+                "Timeout reached while waiting for command offset of %d. (Timeout: %d ms)",
+                offset,
+                distributedCommandResponseTimeout),
+            e);
+      }
+    }
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

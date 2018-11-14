@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
@@ -35,16 +36,19 @@ public class KsqlRequest {
 
   private final String ksql;
   private final Map<String, Object> streamsProperties;
+  private final Optional<Long> commandOffset;
 
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
-      @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties
+      @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties,
+      @JsonProperty("commandOffset") final Long commandOffset
   ) {
     this.ksql = ksql == null ? "" : ksql;
     this.streamsProperties = streamsProperties == null
         ? Collections.emptyMap()
         : Collections.unmodifiableMap(new HashMap<>(streamsProperties));
+    this.commandOffset = commandOffset == null ? Optional.empty() : Optional.of(commandOffset);
   }
 
   public String getKsql() {
@@ -53,6 +57,10 @@ public class KsqlRequest {
 
   public Map<String, Object> getStreamsProperties() {
     return coerceTypes(streamsProperties);
+  }
+
+  public Optional<Long> getCommandOffset() {
+    return commandOffset;
   }
 
   @Override
@@ -67,12 +75,13 @@ public class KsqlRequest {
 
     final KsqlRequest that = (KsqlRequest) o;
     return Objects.equals(getKsql(), that.getKsql())
-        && Objects.equals(getStreamsProperties(), that.getStreamsProperties());
+        && Objects.equals(getStreamsProperties(), that.getStreamsProperties())
+        && Objects.equals(getCommandOffset(), that.getCommandOffset());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getKsql(), getStreamsProperties());
+    return Objects.hash(getKsql(), getStreamsProperties(), getCommandOffset());
   }
 
   private static Map<String, Object> coerceTypes(final Map<String, Object> streamsProperties) {

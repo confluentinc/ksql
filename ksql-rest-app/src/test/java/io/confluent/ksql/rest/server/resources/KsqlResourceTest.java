@@ -89,9 +89,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
+import junit.framework.AssertionFailedError;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -107,6 +111,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.model.TestTimedOutException;
 
 @SuppressWarnings("unchecked")
 @RunWith(EasyMockRunner.class)
@@ -538,7 +543,7 @@ public class KsqlResourceTest {
 
     // When:
     final PropertiesList props = makeSingleRequest(
-        new KsqlRequest("list properties;", overrides), PropertiesList.class);
+        new KsqlRequest("list properties;", overrides, null), PropertiesList.class);
 
     // Then:
     assertThat(props.getProperties().get("ksql.streams.auto.offset.reset"), is("latest"));
@@ -690,6 +695,67 @@ public class KsqlResourceTest {
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
   }
 
+  @Test
+  public void shouldNotWaitIfNoCommandTopicOffsetSpecified() {
+    // Given:
+    final String sql = "LIST REGISTERED TOPICS;";
+    final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), null);
+
+    EasyMock.expect(commandStore.getConsumerPositionFuture(EasyMock.anyLong()))
+        .andThrow(new AssertionFailedError()).anyTimes();
+    EasyMock.replay(commandStore);
+
+    // When:
+    makeSingleRequest(request, KsqlTopicsList.class);
+
+    // Then:
+    EasyMock.verify(commandStore);
+  }
+
+  @Test
+  public void shouldNotWaitIfCommandTopicOffsetReached()
+      throws InterruptedException, ExecutionException, TimeoutException {
+    // Given:
+    final String sql = "LIST REGISTERED TOPICS;";
+    final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), 2L);
+
+    final CompletableFuture<Void> future = EasyMock.mock(CompletableFuture.class);
+    EasyMock.expect(future.get(EasyMock.anyLong(), EasyMock.anyObject())).andReturn(null);
+    EasyMock.expect(commandStore.getConsumerPositionFuture(EasyMock.anyLong()))
+        .andReturn(future);
+    EasyMock.replay(future, commandStore);
+
+    // When:
+    makeSingleRequest(request, KsqlTopicsList.class);
+
+    // Then:
+    EasyMock.verify(future, commandStore);
+  }
+
+  @Test
+  public void shouldReturn5xxIfTimeoutWhileWaitingForCommandTopicOffset()
+      throws InterruptedException, ExecutionException, TimeoutException {
+    // Given:
+    final String sql = "LIST REGISTERED TOPICS;";
+    final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), 2L);
+
+    final CompletableFuture<Void> future = EasyMock.mock(CompletableFuture.class);
+    EasyMock.expect(future.get(EasyMock.anyLong(), EasyMock.anyObject()))
+        .andThrow(new TimeoutException());
+    EasyMock.expect(commandStore.getConsumerPositionFuture(EasyMock.anyLong()))
+        .andReturn(future);
+    EasyMock.replay(future, commandStore);
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(request, Code.INTERNAL_SERVER_ERROR);
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
+    assertThat(result.getMessage(),
+        containsString("Timeout reached while waiting for command offset"));
+    EasyMock.verify(future, commandStore);
+  }
+
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Table sourceTable(final String name) {
     final KsqlTable table = (KsqlTable) ksqlResource
@@ -744,9 +810,12 @@ public class KsqlResourceTest {
   }
 
   private KsqlErrorMessage makeFailingRequest(final String ksql, final Code errorCode) {
+    return makeFailingRequest(new KsqlRequest(ksql, Collections.emptyMap(), null), errorCode);
+  }
+
+  private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
     try {
-      final Response response = ksqlResource.handleKsqlStatements(
-          new KsqlRequest(ksql, Collections.emptyMap()));
+      final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
       assertThat(response.getStatus(), is(errorCode.getCode()));
       assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
       return (KsqlErrorMessage) response.getEntity();
@@ -758,7 +827,7 @@ public class KsqlResourceTest {
   private <T extends KsqlEntity> T makeSingleRequest(
       final String sql,
       final Class<T> expectedEntityType) {
-    return makeSingleRequest(new KsqlRequest(sql, Collections.emptyMap()), expectedEntityType);
+    return makeSingleRequest(new KsqlRequest(sql, Collections.emptyMap(), null), expectedEntityType);
   }
 
   private <T extends KsqlEntity> T makeSingleRequest(

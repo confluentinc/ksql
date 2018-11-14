@@ -91,7 +91,7 @@ public class StreamedQueryResourceTest {
         ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
 
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
+        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
@@ -122,7 +122,7 @@ public class StreamedQueryResourceTest {
         ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
 
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
+        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
@@ -210,7 +210,7 @@ public class StreamedQueryResourceTest {
         mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL);
 
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));
+        testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties, null));
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     final StreamingOutput responseStream = (StreamingOutput) response.getEntity();

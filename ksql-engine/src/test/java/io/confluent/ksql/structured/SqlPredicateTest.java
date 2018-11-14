@@ -16,12 +16,7 @@
 
 package io.confluent.ksql.structured;
 
-import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
-
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.analyzer.AggregateAnalysis;
-import io.confluent.ksql.analyzer.AggregateAnalyzer;
-import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
@@ -30,10 +25,10 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.ArrayList;
@@ -73,21 +68,8 @@ public class SqlPredicateTest {
                                                    )));
   }
 
-
-  private PlanNode buildLogicalPlan(final String queryStr) {
-    final Analysis analysis = analyzeQuery(queryStr, metaStore);
-    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
-        analysis.getDefaultArgument(), functionRegistry);
-    for (final Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, false);
-    }
-    // Build a logical plan
-    return new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
-  }
-
   @Test
-  public void testFilter() throws Exception {
+  public void testFilter() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
@@ -107,7 +89,7 @@ public class SqlPredicateTest {
   }
 
   @Test
-  public void testFilterBiggerExpression() throws Exception {
+  public void testFilterBiggerExpression() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 AND LEN(col2) = 5;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
@@ -148,4 +130,7 @@ public class SqlPredicateTest {
     Assert.assertFalse(result);
   }
 
+  private PlanNode buildLogicalPlan(final String queryStr) {
+    return AnalysisTestUtil.buildLogicalPlan(queryStr, metaStore);
+  }
 }

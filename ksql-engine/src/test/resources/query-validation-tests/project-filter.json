@@ -279,20 +279,6 @@
         {"topic": "S1", "key": 0, "value": {"S__END": "foo"}, "timestamp": 0},
         {"topic": "S1", "key": 0, "value": {"S__END": "bar"}, "timestamp": 0}
       ]
-    },
-    {
-      "name": "CSAS with custom Kafka topic name",
-      "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM S1 WITH (KAFKA_TOPIC='topic_s') AS SELECT * FROM TEST WHERE C1 = 4294967296;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
-      ],
-      "outputs": [
-        {"topic": "topic_s", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
-      ]
     }
   ]
 }

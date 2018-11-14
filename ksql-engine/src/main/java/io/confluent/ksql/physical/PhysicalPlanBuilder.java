@@ -207,7 +207,7 @@ public class PhysicalPlanBuilder {
       final String statement
   ) {
 
-    if (metaStore.getTopic(outputNode.getKsqlTopic().getName()) == null) {
+    if (metaStore.getTopic(outputNode.getKafkaTopicName()) == null) {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
     final StructuredDataSource sinkDataSource;

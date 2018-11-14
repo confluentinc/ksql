@@ -60,12 +60,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("timestamp") final TimestampExtractionPolicy timestampExtractionPolicy,
       @JsonProperty("key") final Field keyField,
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
-      @JsonProperty("topicName") final String kafkaTopicName,
+      @JsonProperty("topicName") final String topicName,
       @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
       @JsonProperty("limit") final Optional<Integer> limit,
       @JsonProperty("doCreateInto") final boolean doCreateInto) {
     super(id, source, schema, limit, timestampExtractionPolicy);
-    this.kafkaTopicName = kafkaTopicName;
+    this.kafkaTopicName = topicName;
     this.keyField = keyField;
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;
@@ -263,7 +263,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     private TimestampExtractionPolicy timestampExtractionPolicy;
     private Field keyField;
     private KsqlTopic ksqlTopic;
-    private String kafkaTopicName;
+    private String topicName;
     private Map<String, Object> outputProperties;
     private Optional<Integer> limit;
     private boolean doCreateInto;
@@ -276,7 +276,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           timestampExtractionPolicy,
           keyField,
           ksqlTopic,
-          kafkaTopicName,
+          topicName,
           outputProperties,
           limit,
           doCreateInto);
@@ -290,7 +290,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withTimestampExtractionPolicy(original.getTimestampExtractionPolicy())
           .withKeyField(original.getKeyField())
           .withKsqlTopic(original.getKsqlTopic())
-          .withKafkaTopicName(original.getKafkaTopicName())
+          .withTopicName(original.getKafkaTopicName())
           .withOutputProperties(original.getOutputProperties())
           .withLimit(original.getLimit())
           .withDoCreateInto(original.isDoCreateInto());
@@ -307,8 +307,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return this;
     }
 
-    Builder withKafkaTopicName(final String kafkaTopicName) {
-      this.kafkaTopicName = kafkaTopicName;
+    Builder withTopicName(final String topicName) {
+      this.topicName = topicName;
       return this;
     }
 

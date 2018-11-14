@@ -32,7 +32,7 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -70,7 +70,6 @@ public class PhysicalPlanBuilderTest {
   private final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private LogicalPlanBuilder planBuilder;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
       = new MockSchemaRegistryClientFactory()::get;
   private final KsqlConfig ksqlConfig = new KsqlConfig(
@@ -118,7 +117,6 @@ public class PhysicalPlanBuilderTest {
   public void before() {
     testKafkaStreamsBuilder = new TestKafkaStreamsBuilder();
     physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
-    planBuilder = new LogicalPlanBuilder(metaStore);
   }
 
   private PhysicalPlanBuilder buildPhysicalPlanBuilder(final Map<String, Object> overrideProperties) {
@@ -139,8 +137,8 @@ public class PhysicalPlanBuilderTest {
 
   }
 
-  private QueryMetadata buildPhysicalPlan(final String query) throws Exception {
-    final PlanNode logical = planBuilder.buildLogicalPlan(query);
+  private QueryMetadata buildPhysicalPlan(final String query) {
+    final PlanNode logical = AnalysisTestUtil.buildLogicalPlan(query, metaStore);;
     return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
   }
 
@@ -180,7 +178,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCreateExecutionPlanForInsert() throws Exception {
+  public void shouldCreateExecutionPlanForInsert() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
@@ -220,7 +218,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailIfInsertSinkDoesNotExist() throws Exception {
+  public void shouldFailIfInsertSinkDoesNotExist() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
@@ -247,7 +245,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailInsertIfTheResultSchemaDoesNotMatch() throws Exception {
+  public void shouldFailInsertIfTheResultSchemaDoesNotMatch() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
@@ -279,7 +277,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCreatePlanForInsertIntoTableFromTable() throws Exception {
+  public void shouldCreatePlanForInsertIntoTableFromTable() {
     final String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
@@ -314,7 +312,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailInsertIfTheResultTypesDontMatch() throws Exception {
+  public void shouldFailInsertIfTheResultTypesDontMatch() {
     final String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
@@ -351,7 +349,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCheckSinkAndResultKeysDoNotMatch() throws Exception {
+  public void shouldCheckSinkAndResultKeysDoNotMatch() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
@@ -383,7 +381,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailIfSinkAndResultKeysDoNotMatch() throws Exception {
+  public void shouldFailIfSinkAndResultKeysDoNotMatch() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
@@ -639,7 +637,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldSetIsKSQLSinkInMetastoreCorrectly() throws Exception {
+  public void shouldSetIsKSQLSinkInMetastoreCorrectly() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "

@@ -62,8 +62,7 @@ public class QueryAnalyzerTest {
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlParser ksqlParser = new KsqlParser();
-  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new InternalFunctionRegistry(),
-      new KsqlConfig(Collections.emptyMap()));
+  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, metaStore, "prefix-~");
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {

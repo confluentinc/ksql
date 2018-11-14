@@ -44,6 +44,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.ArrayList;
@@ -76,7 +77,6 @@ public class SchemaKTableTest {
   private final MockSchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private SchemaKTable initialSchemaKTable;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KTable kTable;
   private KsqlTable ksqlTable;
   private KTable secondKTable;
@@ -129,9 +129,9 @@ public class SchemaKTableTest {
 
 
   @Test
-  public void testSelectSchemaKStream() throws Exception {
+  public void testSelectSchemaKStream() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable<>(logicalPlan.getTheSourceNode().getSchema(),
@@ -161,11 +161,10 @@ public class SchemaKTableTest {
                       initialSchemaKTable);
   }
 
-
   @Test
-  public void testSelectWithExpression() throws Exception {
+  public void testSelectWithExpression() {
     final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable<>(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
@@ -197,9 +196,9 @@ public class SchemaKTableTest {
   }
 
   @Test
-  public void testFilter() throws Exception {
+  public void testFilter() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable<>(logicalPlan.getTheSourceNode().getSchema(),
@@ -236,7 +235,7 @@ public class SchemaKTableTest {
   @Test
   public void testGroupBy() {
     final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(), kTable,
         ksqlTable.getKeyField(), new ArrayList<>(), Serdes.String(),
@@ -273,7 +272,7 @@ public class SchemaKTableTest {
 
     // Build our test object from the mocks
     final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(), mockKTable,
         ksqlTable.getKeyField(), new ArrayList<>(), Serdes.String(),
@@ -386,4 +385,7 @@ public class SchemaKTableTest {
     return schemaBuilder.build();
   }
 
+  private PlanNode buildLogicalPlan(final String query) {
+    return AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+  }
 }

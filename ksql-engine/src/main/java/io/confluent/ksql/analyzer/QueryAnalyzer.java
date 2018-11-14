@@ -24,7 +24,6 @@ import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.Objects;
@@ -33,19 +32,19 @@ import java.util.Set;
 public class QueryAnalyzer {
   private final MetaStore metaStore;
   private final FunctionRegistry functionRegistry;
-  private final KsqlConfig config;
+  private final String outputTopicPrefix;
 
   public QueryAnalyzer(final MetaStore metaStore,
                        final FunctionRegistry functionRegistry,
-                       final KsqlConfig config) {
+                       final String outputTopicPrefix) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.config = Objects.requireNonNull(config, "config");
+    this.outputTopicPrefix = Objects.requireNonNull(outputTopicPrefix, "outputTopicPrefix");
   }
 
   public Analysis analyze(final String sqlExpression, final Query query) {
     final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore, topicPrefix());
+    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore, outputTopicPrefix);
     analyzer.process(query, new AnalysisContext());
     return analysis;
   }
@@ -143,9 +142,5 @@ public class QueryAnalyzer {
       throw new KsqlException(
           "Non-aggregate SELECT expression must be part of GROUP BY: " + selectOnly);
     }
-  }
-
-  private String topicPrefix() {
-    return config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
   }
 }

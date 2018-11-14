@@ -22,7 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Set;
 import org.apache.kafka.common.utils.Utils;
@@ -31,18 +31,17 @@ import org.junit.Test;
 
 public class PlanSourceExtractorVisitorTest {
 
-  private LogicalPlanBuilder logicalPlanBuilder;
+  private MetaStore metaStore;
 
   @Before
   public void init() {
-    final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    logicalPlanBuilder = new LogicalPlanBuilder(metaStore);
+    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldExtractCorrectSourceForSimpleQuery() {
-    final PlanNode planNode = logicalPlanBuilder.buildLogicalPlan("select col0 from TEST2 limit 5;");
+    final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 limit 5;");
     final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(planNode, null);
     final Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
@@ -53,7 +52,7 @@ public class PlanSourceExtractorVisitorTest {
   @Test
   @SuppressWarnings("unchecked")
   public void shouldExtractCorrectSourceForJoinQuery() {
-    final PlanNode planNode = logicalPlanBuilder.buildLogicalPlan(
+    final PlanNode planNode = buildLogicalPlan(
         "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN "
                           + "test2 t2 ON t1.col1 = t2.col1;");
     final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
@@ -62,4 +61,7 @@ public class PlanSourceExtractorVisitorTest {
     assertThat(sourceNames, equalTo(Utils.mkSet("TEST1", "TEST2")));
   }
 
+  private PlanNode buildLogicalPlan(final String query) {
+    return AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+  }
 }

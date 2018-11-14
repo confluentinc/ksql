@@ -26,6 +26,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -42,7 +43,6 @@ public class SelectValueMapperTest {
 
   private final MetaStore metaStore =
       MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Test
@@ -87,7 +87,7 @@ public class SelectValueMapperTest {
   }
 
   private SelectValueMapper givenSelectMapperFor(final String query) {
-    final PlanNode planNode = planBuilder.buildLogicalPlan(query);
+    final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final Schema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();

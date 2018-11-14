@@ -16,17 +16,12 @@
 
 package io.confluent.ksql.planner;
 
-import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import io.confluent.ksql.analyzer.AggregateAnalysis;
-import io.confluent.ksql.analyzer.AggregateAnalyzer;
-import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -35,6 +30,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Assert;
@@ -44,24 +40,10 @@ import org.junit.Test;
 public class LogicalPlannerTest {
 
   private MetaStore metaStore;
-  private InternalFunctionRegistry functionRegistry;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    functionRegistry = new InternalFunctionRegistry();
-  }
-
-  private PlanNode buildLogicalPlan(final String queryStr) {
-    final Analysis analysis = analyzeQuery(queryStr, metaStore);
-    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
-        analysis.getDefaultArgument(), functionRegistry);
-    for (final Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, false);
-    }
-    // Build a logical plan
-    return new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
   }
 
   @Test
@@ -244,4 +226,7 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }
 
+  private PlanNode buildLogicalPlan(final String query) {
+    return AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+  }
 }

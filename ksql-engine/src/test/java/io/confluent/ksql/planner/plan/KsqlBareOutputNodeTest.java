@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -53,12 +53,10 @@ public class KsqlBareOutputNodeTest {
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private LogicalPlanBuilder planBuilder;
 
   @Before
   public void before() {
     builder = new StreamsBuilder();
-    planBuilder = new LogicalPlanBuilder(metaStore);
     stream = build();
   }
 
@@ -117,7 +115,9 @@ public class KsqlBareOutputNodeTest {
 
   private SchemaKStream build() {
     final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) planBuilder.buildLogicalPlan(simpleSelectFilter);
+    final KsqlBareOutputNode planNode =
+        (KsqlBareOutputNode) AnalysisTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore);
+
     return planNode.buildStream(builder, new KsqlConfig(Collections.emptyMap()),
         new FakeKafkaTopicClient(),
         new InternalFunctionRegistry(),

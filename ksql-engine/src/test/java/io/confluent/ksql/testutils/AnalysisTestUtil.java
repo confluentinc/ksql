@@ -16,12 +16,15 @@
 
 package io.confluent.ksql.testutils;
 
+import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
-import io.confluent.ksql.analyzer.Analyzer;
+import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.planner.LogicalPlanner;
+import io.confluent.ksql.planner.plan.PlanNode;
 import java.util.List;
 
 public final class AnalysisTestUtil {
@@ -31,11 +34,32 @@ public final class AnalysisTestUtil {
   private AnalysisTestUtil() {
   }
 
-  public static Analysis analyzeQuery(final String queryStr, final MetaStore metaStore) {
+  public static Query parseQuery(final String queryStr, final MetaStore metaStore) {
     final List<PreparedStatement> statements = KSQL_PARSER.buildAst(queryStr, metaStore);
-    final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
-    analyzer.process(statements.get(0).getStatement(), new AnalysisContext(null));
-    return analysis;
+    return (Query) statements.get(0).getStatement();
+  }
+
+  public static Analysis analyzeQuery(final String queryStr, final MetaStore metaStore) {
+    final Query query = parseQuery(queryStr, metaStore);
+    return analyzeQuery(queryStr, query, metaStore);
+  }
+
+  public static PlanNode buildLogicalPlan(final String queryStr, final MetaStore metaStore) {
+    final Query query = parseQuery(queryStr, metaStore);
+    final Analysis analysis = analyzeQuery(queryStr, query, metaStore);
+
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, metaStore, "");
+    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+
+    return new LogicalPlanner(analysis, aggregateAnalysis, metaStore).buildPlan();
+  }
+
+  private static Analysis analyzeQuery(
+      final String queryStr,
+      final Query query,
+      final MetaStore metaStore
+  ) {
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, metaStore, "");
+    return queryAnalyzer.analyze(queryStr, query);
   }
 }

@@ -19,28 +19,28 @@ Download the Tutorial and Start KSQL
 
    .. code:: bash
 
-       $ git clone https://github.com/confluentinc/ksql.git
-       $ cd ksql
+       git clone https://github.com/confluentinc/ksql.git
+       cd ksql
 
 #. Switch to the correct Confluent Platform release branch:
 
    .. code:: bash
 
-       $ git checkout 4.1.0-post
+       git checkout 4.1.0-post
 
 #. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.
 
    .. code:: bash
 
-       $ cd docs/tutorials/
-       $ docker-compose up -d
+       cd docs/tutorials/
+       docker-compose up -d
 
 #. From the host machine, start KSQL CLI on the container.
 
    .. code:: bash
 
-       $ docker-compose exec ksql-cli ksql http://ksql-server:8088
+       docker-compose exec ksql-cli ksql http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst
       :start-line: 19
@@ -79,7 +79,7 @@ following methods.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-console-producer --topic t1 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+       docker-compose exec kafka kafka-console-producer --topic t1 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
 
    Your data input should resemble this.
 
@@ -96,7 +96,7 @@ following methods.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-console-producer --topic t2 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
+       docker-compose exec kafka kafka-console-producer --topic t2 --broker-list kafka:29092  --property parse.key=true --property key.separator=:
 
    Your data input should resemble this.
 
@@ -117,7 +117,7 @@ environment is properly setup.
 
    .. code:: bash
 
-       $ docker-compose ps
+       docker-compose ps
 
    Your output should resemble this. Take note of the ``Up`` state.
 
@@ -139,7 +139,7 @@ environment is properly setup.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
+       docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
 
    Your output should resemble this.
 
@@ -157,7 +157,7 @@ environment is properly setup.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+       docker-compose exec kafka kafka-console-consumer --topic pageviews --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
 
    Your output should resemble this.
 
@@ -169,7 +169,7 @@ environment is properly setup.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
+       docker-compose exec kafka kafka-console-consumer --topic users --bootstrap-server kafka:29092 --from-beginning --max-messages 3 --property print.key=true
 
    Your output should resemble this.
 

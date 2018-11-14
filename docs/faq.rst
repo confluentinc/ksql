@@ -93,9 +93,19 @@ How do I shutdown a KSQL environment?
 
    .. code:: bash
 
-       $ jps | grep DataGen
+       jps | grep DataGen
+
+   Your output should resemble:
+
+   .. code:: text
+
        25379 DataGen
-       $ kill 25379
+       
+   Stop the DataGen JVM by using the specified process ID:   
+       
+   .. code:: bash
+
+       kill 25379
 
 -  Exit KSQL.
 
@@ -108,13 +118,13 @@ How do I shutdown a KSQL environment?
 
    .. code:: bash
 
-       $ confluent stop
+       confluent stop
 
 -  To remove all data, topics, and streams:
 
    .. code:: bash
 
-       $ confluent destroy
+       confluent destroy
 
 ============================================
 How do I configure the target Kafka cluster?
@@ -283,7 +293,7 @@ In the KSQL CLI, use the SET statement to assign a value to ``ksql.streams.reten
 
 .. code:: bash
 
-    ksql> SET 'ksql.streams.retention.ms' = '86400000';
+    SET 'ksql.streams.retention.ms' = '86400000';
 
 Make the setting global by assigning ``ksql.streams.retention.ms`` in the KSQL
 server configuration file.

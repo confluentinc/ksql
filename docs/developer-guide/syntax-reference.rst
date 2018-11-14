@@ -796,8 +796,8 @@ Note that the WINDOW  clause can only be used if the ``from_item`` is a stream.
 
 In the above statements from_item is one of the following:
 
--  ``stream_name [ [ AS ] alias]``
--  ``table_name [ [ AS ] alias]``
+-  ``stream_name [ alias ]``
+-  ``table_name [ alias ]``
 -  ``from_item LEFT JOIN from_item ON join_condition``
 
 The WHERE clause can refer to any column defined for a stream or table,

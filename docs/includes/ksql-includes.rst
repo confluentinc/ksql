@@ -98,7 +98,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: sql
 
-        ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH \
+        CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH \
         (kafka_topic='pageviews', value_format='DELIMITED');
 
    Your output should resemble:
@@ -116,7 +116,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: sql
 
-    ksql> CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH \
+    CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH \
     (kafka_topic='users', value_format='JSON', key = 'userid');
 
    Your output should resemble:
@@ -160,7 +160,7 @@ the latest offset.
 
    .. code:: sql
 
-       ksql> SELECT pageid FROM pageviews_original LIMIT 3;
+       SELECT pageid FROM pageviews_original LIMIT 3;
 
    Your output should resemble:
 
@@ -178,7 +178,7 @@ the latest offset.
 
    .. code:: sql
 
-    ksql> CREATE STREAM pageviews_enriched AS SELECT users_original.userid AS userid, pageid, regionid, gender \
+    CREATE STREAM pageviews_enriched AS SELECT users_original.userid AS userid, pageid, regionid, gender \
     FROM pageviews_original LEFT JOIN users_original ON pageviews_original.userid = users_original.userid;
 
    Your output should resemble:
@@ -197,7 +197,7 @@ the latest offset.
 
    .. code:: sql
 
-       ksql> SELECT * FROM pageviews_enriched;
+       SELECT * FROM pageviews_enriched;
 
    Your output should resemble:
 
@@ -213,7 +213,7 @@ the latest offset.
 
    .. code:: sql
 
-    ksql> CREATE STREAM pageviews_female AS SELECT * FROM pageviews_enriched WHERE gender = 'FEMALE';
+       CREATE STREAM pageviews_female AS SELECT * FROM pageviews_enriched WHERE gender = 'FEMALE';
 
    Your output should resemble:
 
@@ -231,7 +231,7 @@ the latest offset.
 
    .. code:: sql
 
-       ksql> CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', \
+       CREATE STREAM pageviews_female_like_89 WITH (kafka_topic='pageviews_enriched_r8_r9', \
        value_format='DELIMITED') AS SELECT * FROM pageviews_female WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
    Your output should resemble:
@@ -250,7 +250,7 @@ the latest offset.
 
    .. code:: sql
 
-    ksql> CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers \
+    CREATE TABLE pageviews_regions WITH (value_format='avro') AS SELECT gender, regionid , COUNT(*) AS numusers \
     FROM pageviews_enriched WINDOW TUMBLING (size 30 second) GROUP BY gender, regionid HAVING COUNT(*) > 1;
 
    Your output should resemble:
@@ -268,7 +268,7 @@ the latest offset.
 
    .. code:: sql
 
-       ksql> SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
+       SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
 
    Your output should resemble:
 
@@ -287,7 +287,7 @@ the latest offset.
 
     ::
 
-        ksql> SHOW QUERIES;
+        SHOW QUERIES;
 
     Your output should resemble:
 
@@ -317,13 +317,14 @@ queries.
 
    .. code:: sql
 
-       ksql> TERMINATE CTAS_PAGEVIEWS_REGIONS;
+       TERMINATE CTAS_PAGEVIEWS_REGIONS;
 
-#. Run this command to exit the KSQL CLI.
+#. Run the ``exit`` command to leave the KSQL CLI.
 
    ::
 
        ksql> exit
+       Exiting KSQL.
 
 .. enable JMX metrics
 

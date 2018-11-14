@@ -19,7 +19,7 @@ your local host.
 
 .. code:: bash
 
-    $ docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:4.1.0 bash
+    docker run -p 33000:3000 -it confluentinc/ksql-clickstream-demo:4.1.0 bash
 
 Your output should resemble:
 
@@ -59,7 +59,7 @@ Configure and Start Elastic, Grafana, and |cp|
 
     .. code:: bash
 
-       $ /etc/init.d/elasticsearch start
+       /etc/init.d/elasticsearch start
 
     Your output should resemble:
 
@@ -72,7 +72,7 @@ Configure and Start Elastic, Grafana, and |cp|
 
     .. code:: bash
 
-        $ /etc/init.d/grafana-server start
+        /etc/init.d/grafana-server start
 
     Your output should resemble:
 
@@ -84,7 +84,7 @@ Configure and Start Elastic, Grafana, and |cp|
 
     .. code:: bash
 
-        $ confluent start
+        confluent start
 
     Your output should resemble:
 
@@ -116,7 +116,7 @@ Create the Clickstream Data
 
     .. code:: bash
 
-        $ ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
+        ksql-datagen -daemon quickstart=clickstream format=json topic=clickstream maxInterval=100 iterations=500000
 
     Your output should resemble:
 
@@ -128,7 +128,7 @@ Create the Clickstream Data
 
     .. code:: bash
 
-        $ ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
+        ksql-datagen quickstart=clickstream_codes format=json topic=clickstream_codes maxInterval=20 iterations=100
 
     Your output should resemble:
 
@@ -144,7 +144,7 @@ Create the Clickstream Data
 
     .. code:: bash
 
-        $ ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
+        ksql-datagen quickstart=clickstream_users format=json topic=clickstream_users maxInterval=10 iterations=1000
 
     Your output should resemble:
 
@@ -177,9 +177,9 @@ Load the Streaming Data to KSQL
     ksql-datagen utility to create the clickstream data, status codes,
     and set of users.
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> RUN SCRIPT '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
+        RUN SCRIPT '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
 
     The output should resemble:
 
@@ -200,7 +200,7 @@ Verify the data
 
     .. code:: bash
 
-        ksql> list TABLES;
+        list TABLES;
 
     Your output should resemble:
 
@@ -223,7 +223,7 @@ Verify the data
 
     .. code:: bash
 
-        ksql> list STREAMS;
+        list STREAMS;
 
     Your output should resemble:
 
@@ -241,9 +241,9 @@ Verify the data
 
     **View clickstream data**
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> SELECT * FROM CLICKSTREAM LIMIT 5;
+        SELECT * FROM CLICKSTREAM LIMIT 5;
 
     Your output should resemble:
 
@@ -259,9 +259,9 @@ Verify the data
 
     **View the events per minute**
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> SELECT * FROM EVENTS_PER_MIN LIMIT 5;
+        SELECT * FROM EVENTS_PER_MIN LIMIT 5;
 
     Your output should resemble:
 
@@ -278,9 +278,9 @@ Verify the data
 
     **View pages per minute**
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> SELECT * FROM PAGES_PER_MIN LIMIT 5;
+        SELECT * FROM PAGES_PER_MIN LIMIT 5;
 
     Your output should resemble:
 
@@ -303,7 +303,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
 1. Exit the KSQL CLI with ``CTRL+D``.
 
-   .. code:: bash
+   .. code:: text
 
         ksql>
         Exiting KSQL.
@@ -312,14 +312,14 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    .. code:: bash
 
-       $ cd /usr/share/doc/ksql-clickstream-demo/
+       cd /usr/share/doc/ksql-clickstream-demo/
 
 3. Run this command to send the KSQL tables to Elasticsearch and
    Grafana:
 
    .. code:: bash
 
-       $ ./ksql-tables-to-grafana.sh
+       ./ksql-tables-to-grafana.sh
 
    Your output should resemble:
 
@@ -342,7 +342,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    .. code:: bash
 
-       $ ./clickstream-analysis-dashboard.sh
+       ./clickstream-analysis-dashboard.sh
 
    Your output should resemble:
 

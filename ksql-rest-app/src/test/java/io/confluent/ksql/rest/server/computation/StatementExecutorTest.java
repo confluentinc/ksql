@@ -407,8 +407,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test
   public void shouldEnforceReferentialIntegrity() {
 
-    // First create streams/tables and start queries
-    createStreamsAndTables();
+    createStreamsAndStartTwoPersistentQueries();
 
     // Now try to drop streams/tables to test referential integrity
     tryDropThatViolatesReferentialIntegrity();
@@ -454,43 +453,37 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test
   public void shouldFailCreateAsSelectIfExceedActivePersistentQueriesLimit() {
     // Given:
-    // Create streams and start two persistent queries
-    createStreamsAndTables();
+    createStreamsAndStartTwoPersistentQueries();
     // Prepare to try adding a third
-    final KsqlConfig otherConfig =
-        configWith(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 2);
+    final KsqlConfig cmdConfig =
+        givenCommandConfig(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 2);
     final Command csasCommand =
-        givenCommand("CREATE STREAM user2pv AS select * from pageview;", otherConfig);
+        givenCommand("CREATE STREAM user2pv AS select * from pageview;", cmdConfig);
     final CommandId csasCommandId =
         new CommandId(CommandId.Type.STREAM, "_CSASGen2", CommandId.Action.CREATE);
 
     // When:
     statementExecutor.handleStatement(csasCommand, csasCommandId, Optional.empty());
 
-    // Then: CSAS statement should fail since exceeds limit of 2 active persistent queries
+    // Then:
     final CommandStatus commandStatus = getCommandStatus(csasCommandId);
-    assertThat(commandStatus.getStatus(), equalTo(CommandStatus.Status.ERROR));
+    assertThat("CSAS statement should fail since exceeds limit of 2 active persistent queries",
+        commandStatus.getStatus(), is(CommandStatus.Status.ERROR));
     assertThat(
         commandStatus.getMessage(),
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
   }
 
-  private Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
-    return new Command(
-        statementStr, Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-  }
-
   @Test
   public void shouldFailInsertIntoIfExceedActivePersistentQueriesLimit() {
     // Given:
-    // Create streams and start two persistent queries
-    createStreamsAndTables();
+    createStreamsAndStartTwoPersistentQueries();
     // Set limit and prepare to try adding a query that exceeds the limit
-    final KsqlConfig otherConfig =
-        configWith(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1);
+    final KsqlConfig cmdConfig =
+        givenCommandConfig(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1);
     final Command insertIntoCommand =
-        givenCommand("INSERT INTO user1pv select * from pageview;", otherConfig);
+        givenCommand("INSERT INTO user1pv select * from pageview;", cmdConfig);
     final CommandId insertIntoCommandId =
         new CommandId(CommandId.Type.STREAM, "_InsertQuery1", CommandId.Action.CREATE);
 
@@ -499,18 +492,14 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     // Then: statement should fail since exceeds limit of 1 active persistent query
     final CommandStatus commandStatus = getCommandStatus(insertIntoCommandId);
-    assertThat(commandStatus.getStatus(), equalTo(CommandStatus.Status.ERROR));
+    assertThat(commandStatus.getStatus(), is(CommandStatus.Status.ERROR));
     assertThat(
         commandStatus.getMessage(),
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
   }
 
-  private KsqlConfig configWith(final String name, final Object value) {
-    return new KsqlConfig(Collections.singletonMap(name, value));
-  }
-
-  private void createStreamsAndTables() {
+  private void createStreamsAndStartTwoPersistentQueries() {
     final Command csCommand = new Command(
         "CREATE STREAM pageview ("
             + "viewtime bigint,"
@@ -700,5 +689,14 @@ public class StatementExecutorTest extends EasyMockSupport {
         commandStatus,
         is(not(equalTo(Optional.empty()))));
     return commandStatus.get();
+  }
+
+  private KsqlConfig givenCommandConfig(final String name, final Object value) {
+    return new KsqlConfig(Collections.singletonMap(name, value));
+  }
+
+  private Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
+    return new Command(
+        statementStr, Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
   }
 }

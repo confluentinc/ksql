@@ -131,7 +131,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
+  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEBS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
@@ -303,7 +303,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         .withClientSslSupport();
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
-        : COMPATIBLY_BREAKING_CONFIG_DEFS) {
+        : COMPATIBLY_BREAKING_CONFIG_DEBS) {
       if (current) {
         compatibilityBreakingConfigDef.defineCurrent(configDef);
       } else {
@@ -494,7 +494,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
     final KsqlConfig originalConfig = new KsqlConfig(false, props);
     final Map<String, Object> mergedProperties = new HashMap<>(originals());
-    COMPATIBLY_BREAKING_CONFIG_DEFS.stream()
+    COMPATIBLY_BREAKING_CONFIG_DEBS.stream()
         .map(CompatibilityBreakingConfigDef::getName)
         .forEach(
             k -> mergedProperties.put(k, originalConfig.get(k)));

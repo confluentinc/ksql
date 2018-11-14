@@ -95,10 +95,10 @@ public class QueryCapacityUtilTest {
             + "Use the TERMINATE command to terminate existing queries, "
             + "or increase the 'ksql.query.persistent.active.limit' setting "
             + "via the 'ksql-server.properties' file. "
-            + "Current persistent query count: 2. Configured limit: 2.");
+            + "Current persistent query count: 3. Configured limit: 2.");
 
     final String statementStr = "my statement";
-    givenActivePersistentQueries(2);
+    givenActivePersistentQueries(3);
     givenQueryLimit(2);
 
     // When:

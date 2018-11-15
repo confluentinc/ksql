@@ -98,9 +98,9 @@ You can run a list of predefined queries and commands from in a file by using th
 
 Example:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> RUN SCRIPT '/local/path/to/queries.sql';
+    RUN SCRIPT '/local/path/to/queries.sql';
 
 The RUN SCRIPT command supports a subset of KSQL statements:
 
@@ -423,9 +423,13 @@ DESCRIBE
 
 Example of describing a table:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> DESCRIBE ip_sum;
+    DESCRIBE ip_sum;
+
+Your output should resemble:
+
+::
 
      Field   | Type
     -------------------------------------
@@ -440,7 +444,12 @@ Example of describing a table with extended information:
 
 .. code:: bash
 
-    ksql> DESCRIBE EXTENDED ip_sum;
+    DESCRIBE EXTENDED ip_sum;
+
+Your output should resemble:
+
+::
+
     Type                 : TABLE
     Key field            : CLICKSTREAM.IP
     Timestamp field      : Not set - using <ROWTIME>
@@ -486,9 +495,13 @@ queries related to a stream or table.
 
 Example of explaining a running query:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> EXPLAIN ctas_ip_sum;
+    EXPLAIN ctas_ip_sum;
+
+Your output should resemble:
+
+::
 
     Type                 : QUERY
     SQL                  : CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
@@ -576,7 +589,12 @@ For example:
 
 .. code:: sql
 
-    ksql> PRINT 'ksql__commands' FROM BEGINNING;
+    PRINT 'ksql__commands' FROM BEGINNING;
+
+Your output should resemble:
+
+::
+
     Format:JSON
     {"ROWTIME":1516010696273,"ROWKEY":"\"stream/CLICKSTREAM/create\"","statement":"CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');","streamsProperties":{}}
     {"ROWTIME":1516010709492,"ROWKEY":"\"table/EVENTS_PER_MIN/create\"","statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid;","streamsProperties":{}}

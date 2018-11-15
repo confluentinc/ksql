@@ -799,12 +799,13 @@ final class EndToEndEngineTestUtil {
     final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-    return new KsqlEngine(
+    return KsqlEngineTestUtil.createKsqlEngine(
         new FakeKafkaTopicClient(),
         () -> schemaRegistryClient,
         new FakeKafkaClientSupplier(),
         metaStore,
-        ksqlConfig);
+        ksqlConfig,
+        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps()));
   }
 
   private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {

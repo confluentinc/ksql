@@ -23,14 +23,16 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Node;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 
-public class AggregateAnalyzer {
+class AggregateAnalyzer {
 
   private final AggregateAnalysis aggregateAnalysis;
   private final DereferenceExpression defaultArgument;
   private final FunctionRegistry functionRegistry;
 
-  public AggregateAnalyzer(
+  AggregateAnalyzer(
       final AggregateAnalysis aggregateAnalysis,
       final DereferenceExpression defaultArgument,
       final FunctionRegistry functionRegistry
@@ -40,35 +42,65 @@ public class AggregateAnalyzer {
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
-  public void process(final Expression expression, final boolean isGroupByExpression) {
-    final AggregateVisitor visitor = new AggregateVisitor(isGroupByExpression);
+  void processSelect(final Expression expression) {
+    final AggregateVisitor visitor = new AggregateVisitor((inAggregateFunction, node) -> {
+      if (!inAggregateFunction) {
+        aggregateAnalysis.addNonAggregateSelectColumn(node);
+      }
+    });
 
+    visitor.process(expression, new AnalysisContext());
+  }
+
+  void processGroupBy(final Expression expression) {
+    final AggregateVisitor visitor = new AggregateVisitor((ignored, node) ->
+        aggregateAnalysis.addGroupByColumn(node));
+
+    visitor.process(expression, new AnalysisContext());
+  }
+
+  void processHaving(final Expression expression) {
+    final AggregateVisitor visitor = new AggregateVisitor((inAggregateFunction, node) -> {
+      if (!inAggregateFunction) {
+        aggregateAnalysis.addNonAggregateHavingColumn(node);
+      }
+    });
     visitor.process(expression, new AnalysisContext());
   }
 
   private final class AggregateVisitor extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
-    private final boolean isGroupByExpression;
-    private boolean hasAggregateFunction = false;
+    private final BiConsumer<Boolean, DereferenceExpression> dereferenceCollector;
+    private final AtomicInteger aggregateFunctionDepth = new AtomicInteger(0);
 
-    private AggregateVisitor(final boolean isGroupByExpression) {
-      this.isGroupByExpression = isGroupByExpression;
+    private AggregateVisitor(
+        final BiConsumer<Boolean, DereferenceExpression> dereferenceCollector
+    ) {
+      this.dereferenceCollector =
+          Objects.requireNonNull(dereferenceCollector, "dereferenceCollector");
     }
 
     @Override
     protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
       final String functionName = node.getName().getSuffix();
-      if (functionRegistry.isAggregate(functionName)) {
+      final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
+      if (aggregateFunc) {
         if (node.getArguments().isEmpty()) {
           node.getArguments().add(defaultArgument);
         }
 
         node.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
         aggregateAnalysis.addFunction(node);
-        hasAggregateFunction = true;
+        aggregateFunctionDepth.incrementAndGet();
       }
 
-      return super.visitFunctionCall(node, context);
+      final Node result = super.visitFunctionCall(node, context);
+
+      if (aggregateFunc) {
+        aggregateFunctionDepth.decrementAndGet();
+      }
+
+      return result;
     }
 
     @Override
@@ -76,14 +108,9 @@ public class AggregateAnalyzer {
         final DereferenceExpression node,
         final AnalysisContext context
     ) {
-      final String name = node.toString();
-      if (isGroupByExpression) {
-        aggregateAnalysis.addGroupByColumn(name, node);
-      } else if (!hasAggregateFunction) {
-        aggregateAnalysis.addNonAggregateSelectColumn(name, node);
-      }
+      dereferenceCollector.accept(aggregateFunctionDepth.get() != 0, node);
 
-      aggregateAnalysis.addRequiredColumn(name, node);
+      aggregateAnalysis.addRequiredColumn(node);
       return null;
     }
   }

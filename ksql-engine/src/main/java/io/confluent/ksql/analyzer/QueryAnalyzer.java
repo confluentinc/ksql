@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.Sets;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -25,7 +26,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -95,7 +95,7 @@ public class QueryAnalyzer {
   ) {
     final Expression exp = analysis.getHavingExpression();
 
-    aggregateAnalyzer.process(exp, false);
+    aggregateAnalyzer.processHaving(exp);
 
     aggregateAnalysis.setHavingExpression(
         ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,exp));
@@ -106,7 +106,7 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer
   ) {
     for (final Expression exp : analysis.getGroupByExpressions()) {
-      aggregateAnalyzer.process(exp, true);
+      aggregateAnalyzer.processGroupBy(exp);
     }
   }
 
@@ -117,7 +117,7 @@ public class QueryAnalyzer {
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
     for (final Expression exp : analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(exp, false);
+      aggregateAnalyzer.processSelect(exp);
 
       aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, exp));
@@ -135,12 +135,19 @@ public class QueryAnalyzer {
     final Set<DereferenceExpression> selectColumns = aggregateAnalysis
         .getNonAggregateSelectColumns();
 
-    final Set<DereferenceExpression> selectOnly = new HashSet<>(selectColumns);
-    selectOnly.removeAll(groupByColumns);
-
+    final Set<DereferenceExpression> selectOnly = Sets.difference(selectColumns, groupByColumns);
     if (!selectOnly.isEmpty()) {
       throw new KsqlException(
-          "Non-aggregate SELECT expression must be part of GROUP BY: " + selectOnly);
+          "Non-aggregate SELECT expression not part of GROUP BY: " + selectOnly);
+    }
+
+    final Set<DereferenceExpression> havingColumns = aggregateAnalysis
+        .getNonAggregateHavingColumns();
+
+    final Set<DereferenceExpression> havingOnly = Sets.difference(havingColumns, groupByColumns);
+    if (!havingOnly.isEmpty()) {
+      throw new KsqlException(
+          "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);
     }
   }
 }

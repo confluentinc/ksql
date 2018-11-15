@@ -24,12 +24,10 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
-import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import org.junit.Before;
@@ -56,95 +54,219 @@ public class AggregateAnalyzerTest {
   private static final FunctionCall AGG_FUNCTION_CALL = new FunctionCall(QualifiedName.of("MAX"),
       ImmutableList.of(COL0, COL1));
 
-  private MetaStore metaStore;
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private AggregateAnalysis analysis;
   private AggregateAnalyzer analyzer;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     analysis = new AggregateAnalysis();
     analyzer = new AggregateAnalyzer(analysis, DEFAULT_ARGUMENT, functionRegistry);
   }
 
   @Test
-  public void shouldCaptureNonAggregateFunctionArguments() {
+  public void shouldCaptureSelectNonAggregateFunctionArguments() {
     // When:
-    analyzer.process(FUNCTION_CALL, false);
+    analyzer.processSelect(FUNCTION_CALL);
 
     // Then:
     assertThat(analysis.getNonAggregateSelectColumns(), contains(COL0));
-    assertThat(analysis.getGroupByColumns(), is(empty()));
-    assertThat(analysis.getRequiredColumns(), contains(COL0));
+  }
+
+  @Test
+  public void shouldNotCaptureOtherNonAggregateFunctionArgumentsAsNonAggSelectColunms() {
+    // When:
+    analyzer.processGroupBy(FUNCTION_CALL);
+    analyzer.processHaving(FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getNonAggregateSelectColumns(), is(empty()));
+  }
+
+  @Test
+  public void shouldNotCaptureAggregateFunctionArgumentsAsNonAggSelectColumns() {
+    // When:
+    analyzer.processSelect(AGG_FUNCTION_CALL);
+    analyzer.processGroupBy(AGG_FUNCTION_CALL);
+    analyzer.processHaving(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getNonAggregateSelectColumns(), is(empty()));
   }
 
   @Test
   public void shouldCaptureGroupByNonAggregateFunctionArguments() {
     // When:
-    analyzer.process(FUNCTION_CALL, true);
+    analyzer.processGroupBy(FUNCTION_CALL);
 
     // Then:
-    assertThat(analysis.getNonAggregateSelectColumns(), is(empty()));
     assertThat(analysis.getGroupByColumns(), contains(COL0));
+  }
+
+  @Test
+  public void shouldNotCaptureOtherNonAggregateFunctionArgumentsAsGroupByColumns() {
+    // When:
+    analyzer.processSelect(FUNCTION_CALL);
+    analyzer.processHaving(FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getGroupByColumns(), is(empty()));
+  }
+
+  @Test
+  public void shouldCaptureGroupByAggregateFunctionArguments() {
+    // When:
+    analyzer.processGroupBy(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getGroupByColumns(), contains(COL0, COL1));
+  }
+
+  @Test
+  public void shouldNotCaptureOtherAggregateFunctionArgumentsAsGroupByColumns() {
+    // When:
+    analyzer.processSelect(AGG_FUNCTION_CALL);
+    analyzer.processHaving(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getGroupByColumns(), is(empty()));
+  }
+
+  @Test
+  public void shouldCaptureSelectNonAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processSelect(FUNCTION_CALL);
+
+    // Then:
     assertThat(analysis.getRequiredColumns(), contains(COL0));
+  }
+
+  @Test
+  public void shouldCaptureHavingNonAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processHaving(FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0));
+  }
+
+  @Test
+  public void shouldCaptureGroupByNonAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processGroupBy(FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0));
+  }
+
+  @Test
+  public void shouldCaptureSelectAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processSelect(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0, COL1));
+  }
+
+  @Test
+  public void shouldCaptureHavingAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processHaving(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0, COL1));
+  }
+
+  @Test
+  public void shouldCaptureGroupByAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processGroupBy(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0, COL1));
   }
 
   @Test
   public void shouldNotCaptureNonAggregateFunction() {
     // When:
-    analyzer.process(FUNCTION_CALL, false);
+    analyzer.processSelect(FUNCTION_CALL);
+    analyzer.processHaving(FUNCTION_CALL);
+    analyzer.processGroupBy(FUNCTION_CALL);
 
     // Then:
     assertThat(analysis.getFunctionList(), is(empty()));
   }
 
   @Test
-  public void shouldCaptureAggregateFunctionArguments() {
+  public void shouldCaptureSelectAggregateFunction() {
     // When:
-    analyzer.process(AGG_FUNCTION_CALL, false);
-
-    // Then:
-    assertThat(analysis.getNonAggregateSelectColumns(), is(empty()));
-    assertThat(analysis.getGroupByColumns(), empty());
-    assertThat(analysis.getRequiredColumns(), contains(COL0, COL1));
-  }
-
-  @Test
-  public void shouldCaptureGroupByAggregateFunctionArguments() {
-    // When:
-    analyzer.process(AGG_FUNCTION_CALL, true);
-
-    // Then:
-    assertThat(analysis.getNonAggregateSelectColumns(), is(empty()));
-    assertThat(analysis.getGroupByColumns(), contains(COL0, COL1));
-    assertThat(analysis.getRequiredColumns(), contains(COL0, COL1));
-  }
-
-  @Test
-  public void shouldCaptureAggregateFunction() {
-    // When:
-    analyzer.process(AGG_FUNCTION_CALL, false);
+    analyzer.processSelect(AGG_FUNCTION_CALL);
 
     // Then:
     assertThat(analysis.getFunctionList(), contains(AGG_FUNCTION_CALL));
   }
 
   @Test
-  public void shouldCaptureNestedFunctions() {
+  public void shouldCaptureGroupByAggregateFunction() {
+    // When:
+    analyzer.processGroupBy(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getFunctionList(), contains(AGG_FUNCTION_CALL));
+  }
+
+  @Test
+  public void shouldCaptureHavingAggregateFunction() {
+    // When:
+    analyzer.processHaving(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getFunctionList(), contains(AGG_FUNCTION_CALL));
+  }
+
+  @Test
+  public void shouldCaptureNestedAggFunctions() {
     // Given:
-    final FunctionCall nestedFunctionCall = new FunctionCall(QualifiedName.of("MIN"),
+    final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
         ImmutableList.of(AGG_FUNCTION_CALL, COL2));
 
     // When:
-    analyzer.process(nestedFunctionCall, true);
+    analyzer.processGroupBy(nestedCall);
 
     // Then:
-    assertThat(analysis.getFunctionList(),
-        containsInAnyOrder(AGG_FUNCTION_CALL, nestedFunctionCall));
+    assertThat(analysis.getFunctionList(), containsInAnyOrder(AGG_FUNCTION_CALL, nestedCall));
     assertThat(analysis.getNonAggregateSelectColumns(), is(empty()));
     assertThat(analysis.getGroupByColumns(), contains(COL0, COL1, COL2));
     assertThat(analysis.getRequiredColumns(), contains(COL0, COL1, COL2));
+  }
+
+  @Test
+  public void shouldCaptureNonAggregateFunctionArgumentsWithNestedAggFunction() {
+    // Given:
+    final FunctionCall nonAggWithNestedAggFunc = new FunctionCall(QualifiedName.of("SUBSTRING"),
+        ImmutableList.of(COL2, AGG_FUNCTION_CALL, AGG_FUNCTION_CALL));
+
+    // When:
+    analyzer.processSelect(nonAggWithNestedAggFunc);
+
+    // Then:
+    assertThat(analysis.getNonAggregateSelectColumns(), contains(COL2));
+  }
+
+  @Test
+  public void shouldNotCaptureNonAggregateFunctionArgumentsWhenNestedInsideAggFunction() {
+    // Given:
+    final FunctionCall nonAggFunc = new FunctionCall(QualifiedName.of("ROUND"),
+        ImmutableList.of(COL0));
+
+    final FunctionCall aggFuncWithNestedNonAgg = new FunctionCall(QualifiedName.of("MAX"),
+        ImmutableList.of(COL1, nonAggFunc));
+
+    // When:
+    analyzer.processSelect(aggFuncWithNestedNonAgg);
+
+    // Then:
+    assertThat(analysis.getNonAggregateSelectColumns(), is(empty()));
   }
 
   @Test
@@ -153,7 +275,7 @@ public class AggregateAnalyzerTest {
     final FunctionCall emptyFunc = new FunctionCall(QualifiedName.of("COUNT"), new ArrayList<>());
 
     // When:
-    analyzer.process(emptyFunc, false);
+    analyzer.processSelect(emptyFunc);
 
     // Then:
     assertThat(analysis.getFunctionList(), containsInAnyOrder(emptyFunc));
@@ -166,7 +288,7 @@ public class AggregateAnalyzerTest {
     final FunctionCall emptyFunc = new FunctionCall(QualifiedName.of("COUNT"), new ArrayList<>());
 
     // When:
-    analyzer.process(emptyFunc, false);
+    analyzer.processSelect(emptyFunc);
 
     // Then:
     assertThat(emptyFunc.getArguments(), contains(DEFAULT_ARGUMENT));

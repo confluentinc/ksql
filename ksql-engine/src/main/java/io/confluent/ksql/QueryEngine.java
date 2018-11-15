@@ -109,7 +109,7 @@ class QueryEngine {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         tempMetaStore,
         ksqlEngine.getFunctionRegistry(),
-        config
+        config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG)
     );
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
     final AggregateAnalysis aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);

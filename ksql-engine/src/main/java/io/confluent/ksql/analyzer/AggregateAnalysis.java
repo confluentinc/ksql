@@ -30,6 +30,7 @@ public class AggregateAnalysis {
   private final Set<DereferenceExpression> requiredColumns = new HashSet<>();
   private final Set<DereferenceExpression> groupByColumns = new HashSet<>();
   private final Set<DereferenceExpression> nonAggSelectColumns = new HashSet<>();
+  private final Set<DereferenceExpression> nonAggHavingColumns = new HashSet<>();
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
   private final List<FunctionCall> functionList = new ArrayList<>();
@@ -69,6 +70,16 @@ public class AggregateAnalysis {
     return Collections.unmodifiableSet(nonAggSelectColumns);
   }
 
+  /**
+   * Get the set of columns from the source schema that are using in the HAVING clause outside
+   * of aggregate functions.
+   *
+   * @return the set of non-aggregate columns in the HAVING clause.
+   */
+  Set<DereferenceExpression> getNonAggregateHavingColumns() {
+    return Collections.unmodifiableSet(nonAggHavingColumns);
+  }
+
   public List<FunctionCall> getFunctionList() {
     return Collections.unmodifiableList(functionList);
   }
@@ -93,19 +104,23 @@ public class AggregateAnalysis {
     functionList.add(functionCall);
   }
 
-  void addGroupByColumn(final String name, final DereferenceExpression node) {
+  void addGroupByColumn(final DereferenceExpression node) {
     groupByColumns.add(node);
   }
 
-  void addNonAggregateSelectColumn(final String name, final DereferenceExpression node) {
+  void addNonAggregateSelectColumn(final DereferenceExpression node) {
     nonAggSelectColumns.add(node);
   }
 
-  void addRequiredColumn(final String name, final DereferenceExpression node) {
+  void addNonAggregateHavingColumn(final DereferenceExpression node) {
+    nonAggHavingColumns.add(node);
+  }
+
+  void addRequiredColumn(final DereferenceExpression node) {
     requiredColumns.add(node);
   }
 
-  public void addFinalSelectExpression(final Expression expression) {
+  void addFinalSelectExpression(final Expression expression) {
     finalSelectExpressions.add(expression);
   }
 }

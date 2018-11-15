@@ -107,18 +107,18 @@
       ]
     },
     {
-      "name": "group by function with different params in select",
+      "name": "group by function with select field that is a subset of group by",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 0, 1) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "some string", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "another string", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "some string again", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "another string again", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "some other string", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "the final string", "timestamp": 0}
+        {"topic": "test_topic", "key": "-", "value": "some string", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "another string", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "some string again", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "another string again", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "some other string", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "the final string", "timestamp": 0}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "so", "value": "s,1", "timestamp": 0},
@@ -127,6 +127,29 @@
         {"topic": "OUTPUT", "key": "an", "value": "a,2", "timestamp": 0},
         {"topic": "OUTPUT", "key": "so", "value": "s,3", "timestamp": 0},
         {"topic": "OUTPUT", "key": "th", "value": "t,1", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "group by function with select field that is a superset of group by",
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 0, 3) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "some string", "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": "another string", "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": "soup is different", "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": "another string again", "timestamp": 0},
+        {"topic": "test_topic", "key": 5, "value": "some other string", "timestamp": 0},
+        {"topic": "test_topic", "key": 4, "value": "the final string", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "so", "value": "som,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "an", "value": "ano,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "so", "value": "sou,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "an", "value": "ano,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "so", "value": "som,3", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "th", "value": "the,1", "timestamp": 0}
       ]
     },
     {
@@ -193,6 +216,27 @@
       ]
     },
     {
+      "name": "with multiple group by clauses",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT, f2 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f1, f2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "1,2", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,2", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "1,2", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,1", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,1", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1|+|2", "value": "1,2,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "2|+|2", "value": "2,2,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1|+|2", "value": "1,2,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "2|+|1", "value": "2,1,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "2|+|1", "value": "2,1,2", "timestamp": 0}
+      ]
+    },
+    {
       "name": "with complex select expression",
       "statements": [
         "CREATE STREAM TEST (f1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -217,14 +261,35 @@
       "name": "group by concat using + op",
       "statements": [
         "CREATE STREAM TEST (f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT f1 + f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2 + f1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "2,b", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "2,b", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "3,a", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a1", "value": "1a,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "b2", "value": "2b,1", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "a1", "value": "1a,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "b2", "value": "2b,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "a3", "value": "3a,1", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "with select that has group by + parameters as fields",
+      "statements": [
+        "CREATE STREAM TEST (f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE STREAM OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2 + f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "3,a", "timestamp": 0}
+        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "2,b", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "2,b", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "3,a", "timestamp": 0}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "a1", "value": "1,a,1", "timestamp": 0},
@@ -277,6 +342,52 @@
       ]
     },
     {
+      "name": "with multiple having clause",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT f1, COUNT(f1) FROM TEST GROUP BY f1 HAVING COUNT(f1) > 1 AND f1=1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "1,a", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,b", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "1,test", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,test", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "2,test", "timestamp": 0},
+        {"topic": "test_topic", "key": 0, "value": "1,test", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": null, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "2", "value": null, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "1,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "2", "value": null, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "2", "value": null, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": "1,3", "timestamp": 0}
+      ]
+    },
+    {
+      "name": "with aggregate having not in group by",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT f2, COUNT(*) FROM TEST GROUP BY f2 HAVING SUM(f1) > 10;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "-", "value": "5,a", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "10,b", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "6,a", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "1,b", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "-1,a", "timestamp": 0},
+        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": null, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "b", "value": null, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "a", "value": "a,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "b", "value": "b,2", "timestamp": 0},
+        {"topic": "OUTPUT", "key": "a", "value": null, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "a", "value": "a,4", "timestamp": 0}
+      ]
+    },
+    {
       "name": "with constant having",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -298,35 +409,14 @@
       ]
     },
     {
-      "name": "with having not in group by",
+      "name": "with constant having not in group by",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT f2, COUNT(*) FROM TEST GROUP BY f2 HAVING SUM(f1) > 1;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,a", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "1,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "-2,a", "timestamp": 0}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b", "value": "b,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a", "value": "a,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b", "value": "b,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a", "value": null, "timestamp": 0}
-      ]
-    },
-    {
-      "name": "with non-aggregate having",
-      "statements": [
-        "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT f2, SUM(f1) FROM TEST GROUP BY f2 HAVING f1='test';"
+        "CREATE STREAM OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY f1 HAVING f2='test';"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Non-aggregate SELECT expression must be part of GROUP BY: [TEST.F1]"
+        "message": "Non-aggregate HAVING expression not part of GROUP BY: [TEST.F2]"
       },
       "inputs": [],
       "outputs": []
@@ -377,7 +467,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Non-aggregate SELECT expression must be part of GROUP BY: [TEST.D1]"
+        "message": "Non-aggregate SELECT expression not part of GROUP BY: [TEST.D1]"
       },
       "inputs": [],
       "outputs": []

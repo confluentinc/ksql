@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -81,7 +80,7 @@ public class KsqlContext {
         metaStore,
         ksqlConfig,
         adminClient,
-        Optional.empty()
+        KsqlEngine::createKsqlEngineMetrics
     );
 
     return new KsqlContext(ksqlConfig, engine);

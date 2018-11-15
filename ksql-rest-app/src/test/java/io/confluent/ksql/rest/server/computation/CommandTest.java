@@ -44,6 +44,7 @@ public class CommandTest {
     final Map<String, Object> expectedOriginalProperties
         = Collections.singletonMap("biz", "baz");
     assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
+    assertThat(command.isPreVersion5(), is(false));
   }
 
   @Test

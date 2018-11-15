@@ -33,6 +33,7 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -48,11 +49,13 @@ import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -61,10 +64,17 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.KafkaStreams;
 import org.easymock.EasyMock;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -182,38 +192,271 @@ public class RecoveryTest {
     }
   }
 
-  private void assertTopicsEqual(final KsqlTopic topic, final KsqlTopic otherTopic) {
-    assertThat(topic.getTopicName(), equalTo(otherTopic.getTopicName()));
-    assertThat(topic.getKafkaTopicName(), equalTo(otherTopic.getKafkaTopicName()));
-    assertThat(
-        topic.getKsqlTopicSerDe().getClass(),
-        equalTo(otherTopic.getKsqlTopicSerDe().getClass()));
+  private static <T> boolean test(
+      final Matcher<T> matcher,
+      final T object,
+      final Description description,
+      final String errorPrefix) {
+    if (!matcher.matches(object)) {
+      description.appendText(errorPrefix);
+      matcher.describeMismatch(object, description);
+      return false;
+    }
+    return true;
   }
 
-  private void assertTablesEqual(final KsqlTable table, final StructuredDataSource other) {
-    assertThat(other, instanceOf(KsqlTable.class));
-    final KsqlTable otherTable = (KsqlTable) other;
-    assertThat(table.isWindowed(), equalTo(otherTable.isWindowed()));
-  }
+  private static class TopicMatcher extends TypeSafeDiagnosingMatcher<KsqlTopic> {
+    final Matcher<String> nameMatcher;
+    final Matcher<String> kafkaNameMatcher;
+    final Matcher<KsqlTopicSerDe> serDeMatcher;
 
-  private void assertSourcesEqual(
-      final StructuredDataSource source,
-      final StructuredDataSource other) {
-    assertThat(source.getClass(), equalTo(other.getClass()));
-    assertThat(source.getName(), equalTo(other.getName()));
-    assertThat(source.getDataSourceType(), equalTo(other.getDataSourceType()));
-    assertThat(source.getSchema(), equalTo(other.getSchema()));
-    assertThat(source.getSqlExpression(), equalTo(other.getSqlExpression()));
-    assertThat(
-        source.getTimestampExtractionPolicy(), equalTo(other.getTimestampExtractionPolicy()));
-    assertThat(source, anyOf(instanceOf(KsqlStream.class), instanceOf(KsqlTable.class)));
-    assertTopicsEqual(source.getKsqlTopic(), other.getKsqlTopic());
-    if (source instanceof KsqlTable) {
-      assertTablesEqual((KsqlTable) source, other);
+    TopicMatcher(final KsqlTopic topic) {
+      this.nameMatcher = equalTo(topic.getName());
+      this.kafkaNameMatcher = equalTo(topic.getKafkaTopicName());
+      this.serDeMatcher = instanceOf(topic.getKsqlTopicSerDe().getClass());
+    }
+
+    @Override
+    public void describeTo(final Description description) {
+      description.appendList(
+          "Topic(", ", ", ")",
+          Arrays.asList(nameMatcher, kafkaNameMatcher, serDeMatcher));
+    }
+
+    @Override
+    public boolean matchesSafely(final KsqlTopic other, final Description description) {
+      if (!test(nameMatcher, other.getName(), description, "name mismatch: ")) {
+        return false;
+      }
+      if (!test(
+          kafkaNameMatcher,
+          other.getKafkaTopicName(),
+          description,
+          "kafka name mismatch: ")) {
+        return false;
+      }
+      return test(
+          serDeMatcher,
+          other.getKsqlTopicSerDe(),
+          description,
+          "serde mismatch: ");
     }
   }
 
-  final Map<QueryId, PersistentQueryMetadata> queriesById(
+  private static Matcher<KsqlTopic> sameTopic(final KsqlTopic topic) {
+    return new TopicMatcher(topic);
+  }
+
+  private static class StructuredDataSourceMatcher
+      extends TypeSafeDiagnosingMatcher<StructuredDataSource> {
+    final StructuredDataSource source;
+    final Matcher<StructuredDataSource.DataSourceType> typeMatcher;
+    final Matcher<String> nameMatcher;
+    final Matcher<Schema> schemaMatcher;
+    final Matcher<String> sqlMatcher;
+    final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
+    final Matcher<KsqlTopic> topicMatcher;
+
+    StructuredDataSourceMatcher(final StructuredDataSource source) {
+      this.source = source;
+      this.typeMatcher = equalTo(source.getDataSourceType());
+      this.nameMatcher = equalTo(source.getName());
+      this.schemaMatcher = equalTo(source.getSchema());
+      this.sqlMatcher = equalTo(source.getSqlExpression());
+      this.extractionPolicyMatcher = equalTo(source.getTimestampExtractionPolicy());
+      this.topicMatcher = sameTopic(source.getKsqlTopic());
+    }
+
+    @Override
+    public void describeTo(final Description description) {
+      description.appendList(
+          "Source(", ", ", ")",
+          Arrays.asList(
+              nameMatcher,
+              typeMatcher,
+              schemaMatcher,
+              sqlMatcher,
+              extractionPolicyMatcher,
+              topicMatcher)
+      );
+    }
+
+    @Override
+    protected boolean matchesSafely(
+        final StructuredDataSource other,
+        final Description description) {
+      if (!test(
+          typeMatcher,
+          other.getDataSourceType(),
+          description,
+          "type mismatch: ")) {
+        return false;
+      }
+      if (!test(
+          nameMatcher,
+          other.getName(),
+          description,
+          "name mismatch: ")) {
+        return false;
+      }
+      if (!test(
+          schemaMatcher,
+          other.getSchema(),
+          description,
+          "schema mismatch: ")) {
+        return false;
+      }
+      if (!test(
+          sqlMatcher,
+          other.getSqlExpression(),
+          description,
+          "sql mismatch: ")) {
+        return false;
+      }
+      if (!test(
+          extractionPolicyMatcher,
+          other.getTimestampExtractionPolicy(),
+          description,
+          "timestamp extraction policy mismatch")) {
+        return false;
+      }
+      return test(
+          topicMatcher,
+          other.getKsqlTopic(),
+          description,
+          "topic mismatch: ");
+    }
+  }
+
+  private static Matcher<StructuredDataSource> sameSource(final StructuredDataSource source) {
+    return new StructuredDataSourceMatcher(source);
+  }
+
+  private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
+    final Map<String, Matcher<StructuredDataSource>> sourceMatchers;
+
+    MetaStoreMatcher(final MetaStore metaStore) {
+      this.sourceMatchers = metaStore.getAllStructuredDataSources().entrySet().stream()
+          .collect(
+              Collectors.toMap(Entry::getKey, e -> sameSource(e.getValue())));
+    }
+
+    @Override
+    public void describeTo(final Description description) {
+      description.appendText("Metastore with data sources: ");
+      description.appendList(
+          "Metastore with sources: ",
+          ", ",
+          "",
+          sourceMatchers.values());
+    }
+
+    @Override
+    protected boolean matchesSafely(final MetaStore other, final Description description) {
+      if (!test(
+          equalTo(sourceMatchers.keySet()),
+          other.getAllStructuredDataSourceNames(),
+          description,
+          "source set mismatch: ")) {
+        return false;
+      }
+      for (final String name : sourceMatchers.keySet()) {
+        if (!test(
+            sourceMatchers.get(name),
+            other.getSource(name),
+            description,
+            "source " + name + " mismatch: ")) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  private static Matcher<MetaStore> sameStore(final MetaStore store) {
+    return new MetaStoreMatcher(store);
+  }
+
+  private static class PersistentQueryMetadataMatcher
+      extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
+    private final Matcher<Set<String>> sourcesNamesMatcher;
+    private final Matcher<Set<String>> sinkNamesMatcher;
+    private final Matcher<Schema> resultSchemaMatcher;
+    private final Matcher<String> sqlMatcher;
+    private final Matcher<KafkaStreams.State> stateMatcher;
+
+    PersistentQueryMetadataMatcher(final PersistentQueryMetadata metadata) {
+      this.sourcesNamesMatcher = equalTo(metadata.getSourceNames());
+      this.sinkNamesMatcher = equalTo(metadata.getSinkNames());
+      this.resultSchemaMatcher = equalTo(metadata.getResultSchema());
+      this.sqlMatcher = equalTo(metadata.getStatementString());
+      this.stateMatcher = equalTo(metadata.getKafkaStreams().state());
+    }
+
+    @Override
+    public void describeTo(final Description description) {
+      description.appendList(
+          "Query(", ", ", ")",
+          Arrays.asList(
+              sourcesNamesMatcher,
+              sinkNamesMatcher,
+              resultSchemaMatcher,
+              sqlMatcher,
+              stateMatcher
+          )
+      );
+    }
+
+    @Override
+    protected boolean matchesSafely(
+        final PersistentQueryMetadata metadata,
+        final Description description) {
+      if (!test(
+          sourcesNamesMatcher,
+          metadata.getSourceNames(),
+          description,
+          "source names mismatch: "
+      )) {
+        return false;
+      }
+      if (!test(
+          sinkNamesMatcher,
+          metadata.getSinkNames(),
+          description,
+          "sink names mismatch: "
+      )) {
+        return false;
+      }
+      if (!test(
+          resultSchemaMatcher,
+          metadata.getResultSchema(),
+          description,
+          "schema mismatch: "
+      )) {
+        return false;
+      }
+      if (!test(
+          sqlMatcher,
+          metadata.getStatementString(),
+          description,
+          "sql mismatch: "
+      )) {
+        return false;
+      }
+      return test(
+          stateMatcher,
+          metadata.getKafkaStreams().state(),
+          description,
+          "state mismatch: ");
+    }
+  }
+
+  private static Matcher<PersistentQueryMetadata> sameQuery(
+      final PersistentQueryMetadata metadata) {
+    return new PersistentQueryMetadataMatcher(metadata);
+  }
+
+  private Map<QueryId, PersistentQueryMetadata> queriesById(
       final Collection<PersistentQueryMetadata> queries) {
     return queries.stream().collect(
         Collectors.toMap(PersistentQueryMetadata::getQueryId, q -> q)
@@ -232,32 +475,14 @@ public class RecoveryTest {
     final KsqlEngine recovered = recoverServer.ksqlEngine;
 
     // Then:
-    assertThat(
-        engine.getMetaStore().getAllStructuredDataSourceNames(),
-        equalTo(recovered.getMetaStore().getAllStructuredDataSourceNames()));
-    for (final String sourceName : engine.getMetaStore().getAllStructuredDataSourceNames()) {
-      assertSourcesEqual(
-          engine.getMetaStore().getSource(sourceName),
-          recovered.getMetaStore().getSource(sourceName)
-      );
-    }
+    assertThat(recovered.getMetaStore(), sameStore(engine.getMetaStore()));
     final Map<QueryId, PersistentQueryMetadata> queries
         = queriesById(engine.getPersistentQueries());
     final Map<QueryId, PersistentQueryMetadata> recoveredQueries
         = queriesById(recovered.getPersistentQueries());
     assertThat(queries.keySet(), equalTo(recoveredQueries.keySet()));
     queries.forEach(
-        (queryId, query) -> {
-          final PersistentQueryMetadata recoveredQuery = recoveredQueries.get(query.getQueryId());
-          assertThat(query.getSourceNames(), equalTo(recoveredQuery.getSourceNames()));
-          assertThat(query.getSinkNames(), equalTo(recoveredQuery.getSinkNames()));
-          assertThat(query.getResultSchema(), equalTo(recoveredQuery.getResultSchema()));
-          assertThat(query.getStatementString(), equalTo(recoveredQuery.getStatementString()));
-          assertThat(
-              query.getKafkaStreams().state(),
-              equalTo(recoveredQuery.getKafkaStreams().state()));
-        }
-    );
+        (queryId, query) -> assertThat(query, sameQuery(recoveredQueries.get(queryId))));
   }
 
   @Test

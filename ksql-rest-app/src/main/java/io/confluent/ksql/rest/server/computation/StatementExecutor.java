@@ -356,24 +356,17 @@ public class StatementExecutor {
   private void maybeTerminateQueryForLegacyDropCommand(
       final CommandId commandId,
       final Command command) {
-    if (!command.isPreVersion5()) {
+    if (!command.isPreVersion5()
+        || !commandId.getAction().equals(Action.DROP)
+        || !(commandId.getType().equals(Type.STREAM) || commandId.getType().equals(Type.TABLE))) {
       return;
     }
-    if (!commandId.getAction().equals(Action.DROP)) {
-      return;
-    }
-    if (commandId.getType().equals(Type.STREAM) || commandId.getType().equals(Type.TABLE)) {
-      terminateQueriesForSource(commandId.getEntity());
-    }
-  }
-
-  private void terminateQueriesForSource(final String sourceName) {
     final MetaStore metaStore = ksqlEngine.getMetaStore();
-    if (metaStore.getSource(sourceName) == null) {
+    if (metaStore.getSource(commandId.getEntity()) == null) {
       return;
     }
     final Collection<String> queriesWithSink
-        = Lists.newArrayList(metaStore.getQueriesWithSink(sourceName));
+        = Lists.newArrayList(metaStore.getQueriesWithSink(commandId.getEntity()));
     queriesWithSink.stream()
         .map(QueryId::new)
         .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));

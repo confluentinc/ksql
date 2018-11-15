@@ -70,6 +70,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -120,7 +121,8 @@ public class KsqlEngine implements Closeable {
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ksqlConfig,
         adminClient,
-        Optional.empty());
+        KsqlEngine::createKsqlEngineMetrics
+    );
   }
 
   KsqlEngine(final KafkaTopicClient topicClient,
@@ -129,7 +131,7 @@ public class KsqlEngine implements Closeable {
              final MetaStore metaStore,
              final KsqlConfig initializationKsqlConfig,
              final AdminClient adminClient,
-             final Optional<KsqlEngineMetrics> engineMetrics
+             final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient can't be null");
@@ -148,8 +150,7 @@ public class KsqlEngine implements Closeable {
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
-    this.engineMetrics = engineMetrics.orElseGet(
-        () -> new KsqlEngineMetrics("ksql-engine", this));
+    this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     this.queryIdGenerator = new QueryIdGenerator();
     this.adminClient = Objects.requireNonNull(adminClient, "adminCluent can't be null");
@@ -159,6 +160,10 @@ public class KsqlEngine implements Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
+  }
+
+  static KsqlEngineMetrics createKsqlEngineMetrics(final KsqlEngine ksqlEngine) {
+    return new KsqlEngineMetrics("ksql-engine", ksqlEngine);
   }
 
   /**

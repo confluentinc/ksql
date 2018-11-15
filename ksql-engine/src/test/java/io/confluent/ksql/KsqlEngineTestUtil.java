@@ -29,7 +29,7 @@ public final class KsqlEngineTestUtil {
         metaStore,
         initializationKsqlConfig,
         adminClient,
-        Optional.empty()
+        KsqlEngine::createKsqlEngineMetrics
     );
   }
 
@@ -49,7 +49,7 @@ public final class KsqlEngineTestUtil {
         metaStore,
         initializationKsqlConfig,
         adminClient,
-        Optional.of(engineMetrics)
+        ignored -> engineMetrics
     );
   }
 }

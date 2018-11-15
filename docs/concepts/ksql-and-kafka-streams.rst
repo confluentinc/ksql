@@ -4,9 +4,9 @@ KSQL and Kafka Streams
 ######################
 
 KSQL is the streaming SQL engine for Apache Kafka®. With KSQL, you can write
-real-time applications by using a SQL-like query language.
+real-time streaming applications by using a SQL-like query language.
 
-Kafka Streams is the Apache Kafka® library for writing real-time applications
+Kafka Streams is the Apache Kafka® library for writing streaming applications
 and microservices in Java and Scala.
 
 KSQL is built on Kafka Streams and occupies the top of the stack in |cp|.
@@ -14,18 +14,19 @@ KSQL is built on Kafka Streams and occupies the top of the stack in |cp|.
 .. image:: ../img/ksql-kafka-streams-core-kafka-stack.png
 
 KSQL gives you the highest level of abstraction for implementing real-time
-business logic on Kafka topics. KSQL automates much of the complex programming
-that's required for real-time operations on streams of data, so that one line
-of KSQL can do the work of a dozen lines of Java and Kafka Streams.
+streaming business logic on Kafka topics. KSQL automates much of the complex
+programming that's required for real-time operations on streams of data, so
+that one line of KSQL can do the work of a dozen lines of Java and Kafka
+Streams.
 
-For example, to implement fraud-detection logic on a Kafka topic named
+For example, to implement simple fraud-detection logic on a Kafka topic named
 ``payments``, you could write one line of KSQL:
 
 .. code:: sql
 
     CREATE STREAM fraudulent_payments AS
-     SELECT * FROM payments
-     WHERE fraudProbability > 0.8;
+     SELECT fraudProbability(data) FROM payments
+     WHERE fraudProbability(data) > 0.8;
 
 The equivalent Java code on Kafka Streams might resemble: 
 
@@ -49,7 +50,7 @@ The equivalent Java code on Kafka Streams might resemble:
     }
 
 KSQL is easier to use, and Kafka Streams is more flexible. Which technology
-you choose for your real-time applications depends on a number of
+you choose for your real-time streaming applications depends on a number of
 considerations. Keep in mind that you can use both KSQL and Kafka Streams
 together in your implementations.
 
@@ -100,8 +101,8 @@ starting point for your real-time application development.
 |   from Python, Go, C#, JavaScript, shell           |                                                      |
 +----------------------------------------------------+------------------------------------------------------+
 
-KSQL is usually not a good fit for BI reports and ad-hoc querying, or queries with random access patterns.
-
+KSQL is usually not a good fit for BI reports and ad-hoc querying, or queries with random access patterns,
+because it's a continuous query system on data streams.
 
 Next Steps
 **********

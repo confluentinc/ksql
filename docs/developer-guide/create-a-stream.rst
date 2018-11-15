@@ -48,7 +48,7 @@ In the KSQL CLI, paste the following CREATE STREAM statement:
 
 Your output should resemble:
 
-.. code:: text
+::
 
      Message
     ----------------
@@ -57,16 +57,28 @@ Your output should resemble:
 
 Inspect the stream by using the SHOW STREAMS and DESCRIBE statements:
 
-.. code:: text
+.. code:: sql
 
-    ksql> SHOW STREAMS;
+    SHOW STREAMS;
+
+Your output should resemble:
+
+::
 
     Stream Name | Kafka Topic | Format
     ---------------------------------------
     PAGEVIEWS   | pageviews   | DELIMITED
     ---------------------------------------
 
-    ksql> DESCRIBE PAGEVIEWS;
+Get the schema for the stream:
+
+.. code:: sql
+
+    DESCRIBE PAGEVIEWS;
+
+Your output should resemble:
+
+::
 
     Name                 : PAGEVIEWS
      Field    | Type
@@ -103,9 +115,13 @@ column, you can write the CREATE STREAM statement like this:
 Confirm that the KEY field in the new stream is ``pageid`` by using the
 DESCRIBE EXTENDED statement:
 
-.. code:: text
+.. code:: sql
 
-    ksql> DESCRIBE EXTENDED pageviews_withkey;
+    DESCRIBE EXTENDED pageviews_withkey;
+
+Your output should resemble:
+
+::
 
     Name                 : PAGEVIEWS_WITHKEY
     Type                 : STREAM
@@ -143,9 +159,13 @@ like this:
 Confirm that the TIMESTAMP field is ``viewtime`` by using the DESCRIBE EXTENDED
 statement:
 
-.. code:: text
+.. code:: sql
 
-    ksql> DESCRIBE EXTENDED pageviews_timestamped;
+    DESCRIBE EXTENDED pageviews_timestamped;
+
+Your output should resemble:
+
+::
 
     Name                 : PAGEVIEWS_TIMESTAMPED
     Type                 : STREAM
@@ -206,7 +226,7 @@ results from a persistent query that matches "introductory" pages that have a
 
 Your output should resemble:
 
-.. code:: text
+::
 
      Message
     ----------------------------
@@ -216,9 +236,14 @@ Your output should resemble:
 To confirm that the ``pageviews_intro`` query is running continuously as a
 stream, run the PRINT statement:
 
-.. code:: text
+.. code:: sql
 
-    ksql> PRINT pageviews_intro;
+    PRINT pageviews_intro;
+
+Your output should resemble:
+
+::
+
     Format:STRING
     10/30/18 10:15:51 PM UTC , 294851 , 1540937751186,User_8,Page_12
     10/30/18 10:15:55 PM UTC , 295051 , 1540937755255,User_1,Page_15
@@ -237,9 +262,13 @@ Press CTRL+C to stop printing the stream.
 Use the SHOW QUERIES statement to view the query that KSQL created for the 
 ``pageviews_intro`` stream:
 
-.. code:: text
+.. code:: sql
 
-    ksql> SHOW QUERIES;
+    SHOW QUERIES;
+
+Your output should resemble:
+
+::
 
      Query ID               | Kafka Topic     | Query String
     --------------------------------------------------------------------------------------------------------------------------------------------
@@ -261,7 +290,11 @@ Use the TERMINATE statement to stop the ``CSAS_PAGEVIEWS_INTRO_0`` query:
 
 .. code:: text
 
-    ksql> TERMINATE CSAS_PAGEVIEWS_INTRO_0;
+    TERMINATE CSAS_PAGEVIEWS_INTRO_0;
+
+Your output should resemble:
+
+::
 
      Message
     -------------------
@@ -271,9 +304,13 @@ Use the TERMINATE statement to stop the ``CSAS_PAGEVIEWS_INTRO_0`` query:
 Use the DROP STREAM statement to delete a persistent query stream. You must
 TERMINATE the query before you can drop the corresponding stream.
 
-.. code:: text
+.. code:: sql
 
-    ksql> DROP STREAM pageviews_intro;
+    DROP STREAM pageviews_intro;
+
+Your output should resemble:
+
+::
 
      Message
     -------------------

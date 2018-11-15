@@ -38,9 +38,13 @@ Use the DESCRIBE EXTENDED statement to verify the source topic for the stream.
 For example, if you have a ``pageviews`` stream on a Kafka topic named
 ``pageviews``, your output should resemble:
 
-.. code:: text
+.. code:: sql
 
-    ksql> DESCRIBE EXTENDED PAGEVIEWS;
+    DESCRIBE EXTENDED PAGEVIEWS;
+    
+Your output should resemble:
+
+::
     
     Name                 : PAGEVIEWS
     [...]
@@ -77,9 +81,14 @@ messages are being written to the topic, your queries won't return any results.
 To check your query, you can set the KSQL CLI to read from the beginning of
 your topics by assigning the ``auto.offset.reset`` property to ``earliest``:
 
-.. code:: text
+.. code:: sql
 
-    ksql> SET 'auto.offset.reset'='earliest';
+    SET 'auto.offset.reset'='earliest';
+    
+Your output should resemble:
+
+::
+    
     Successfully changed local property 'auto.offset.reset' from 'null' to 'earliest'
 
 Run your query again and verify that you're getting results from the beginning
@@ -107,10 +116,14 @@ If KSQL can't deserialize message data, it won't write any SELECT results.
 Use the DESCRIBE EXTENDED statement to check that the VALUE_FORMAT of the
 stream matches the format of the records that |kcat| prints for your topic.
 
-.. code:: text
+.. code:: sql
      
-    ksql> DESCRIBE EXTENDED pageviews;
+    DESCRIBE EXTENDED pageviews;
     
+Your output should resemble:
+
+::
+
     Name                 : PAGEVIEWS
     [...]
     Value format         : DELIMITED
@@ -236,9 +249,14 @@ it has processed and counting how many processing failures have occurred.
 Use the DESCRIBE EXTENDED statement to see metrics like ``total-messages`` and
 ``failed-messages-per-sec``, for example:
 
-.. code:: text
+.. code:: sql
 
-    ksql> DESCRIBE EXTENDED GOOD_RATINGS;
+    DESCRIBE EXTENDED GOOD_RATINGS;
+    
+Your output should resemble:
+
+::
+    
     [...]
     Local runtime statistics
     ------------------------
@@ -278,6 +296,10 @@ error:
 .. code:: sql
 
     CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH (kafka_topic='pageviews.replica', value_format='AVRO');
+
+If you have serialization errors, your output should resemble:
+
+::
 
     [2018-06-21 19:12:08,135] WARN task [1_6] Skipping record due to deserialization error. topic=[pageviews.replica] partition=[6] offset=[1663] (org.apache.kafka.streams.processor.internals.RecordDeserializer:86)
     org.apache.kafka.connect.errors.DataException: pageviews.replica

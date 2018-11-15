@@ -53,7 +53,8 @@ are quite large and depending on your network connection may take
 
    Your output should resemble:
 
-   ::     
+   ::
+   
                         Name                                Command               State                Ports
         -------------------------------------------------------------------------------------------------------------------
         ksql-clickstream-demo_control-center_1    /etc/confluent/docker/run        Up      0.0.0.0:9021->9021/tcp

@@ -202,7 +202,7 @@ Verify the data
 
 #.  Verify that the tables are created.
 
-    .. code:: text
+    .. code:: sql
 
         LIST TABLES;
 

@@ -107,16 +107,28 @@ Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/e
 	  --topic warehouse_location \
 	  --property "parse.key=true" \
 	  --property "key.separator=:"<<EOF
+
+Your output should resemble:
+
+::
+
     1:{"warehouse_id":1,"city":"Leeds","country":"UK"}
     2:{"warehouse_id":2,"city":"Sheffield","country":"UK"}
     3:{"warehouse_id":3,"city":"Berlin","country":"Germany"}
     EOF
+
+.. code:: bash
 
     $ <path-to-confluent>/bin/kafka-console-producer \
 	  --broker-list localhost:9092 \
 	  --topic warehouse_size \
 	  --property "parse.key=true" \
 	  --property "key.separator=:"<<EOF
+
+Your output should resemble:
+
+::
+
     1:{"warehouse_id":1,"square_footage":16000}
     2:{"warehouse_id":2,"square_footage":42000}
     3:{"warehouse_id":3,"square_footage":94000}

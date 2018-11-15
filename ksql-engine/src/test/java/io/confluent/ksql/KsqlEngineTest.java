@@ -75,6 +75,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.hamcrest.Matchers;
@@ -91,12 +92,16 @@ public class KsqlEngineTest {
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
-  private final KsqlEngine ksqlEngine = new KsqlEngine(
+  private final KafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
+  private final AdminClient adminClient
+      = kafkaClientSupplier.getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
+  private final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
       topicClient,
       schemaRegistryClientFactory,
-      new DefaultKafkaClientSupplier(),
+      kafkaClientSupplier,
       metaStore,
-      ksqlConfig);
+      ksqlConfig,
+      adminClient);
 
   @After
   public void closeEngine() {
@@ -355,14 +360,13 @@ public class KsqlEngineTest {
     expectLastCall();
     replay(adminClient);
     ksqlEngine.close();
-    final KsqlEngine localKsqlEngine
-        = new KsqlEngine(
-            new FakeKafkaTopicClient(),
-            schemaRegistryClientFactory,
-            new DefaultKafkaClientSupplier(),
-            metaStore,
-            ksqlConfig,
-          adminClient);
+    final KsqlEngine localKsqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+        new FakeKafkaTopicClient(),
+        schemaRegistryClientFactory,
+        new DefaultKafkaClientSupplier(),
+        metaStore,
+        ksqlConfig,
+        adminClient);
 
     // When:
     localKsqlEngine.close();
@@ -377,12 +381,13 @@ public class KsqlEngineTest {
     this.ksqlEngine.close();
     final MetaStore metaStore =
         MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), () -> mockKsqlSerde);
-    final KsqlEngine ksqlEngine = new KsqlEngine(
+    final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         topicClient,
         schemaRegistryClientFactory,
-        new DefaultKafkaClientSupplier(),
+        kafkaClientSupplier,
         metaStore,
-        ksqlConfig
+        ksqlConfig,
+        adminClient
     );
 
     expect(

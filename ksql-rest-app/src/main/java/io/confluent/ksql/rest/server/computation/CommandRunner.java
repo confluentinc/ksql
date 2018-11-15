@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
@@ -80,26 +79,20 @@ public class CommandRunner implements Runnable, Closeable {
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
     log.trace("Found {} new writes to command topic", commands.size());
-    commands.stream()
-        .filter(c -> c.getCommand().isPresent())
-        .forEach(c -> executeStatement(c.getCommand().get(), c.getCommandId(), c.getStatus()));
+    commands.forEach(this::executeStatement);
   }
 
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
-   * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() {
-    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
-    statementExecutor.handleRestoration(restoreCommands);
+    statementExecutor.handleRestoration(commandStore.getRestoreCommands());
   }
 
-  private void executeStatement(final Command command,
-                                final CommandId commandId,
-                                final Optional<QueuedCommandStatus> status) {
-    log.info("Executing statement: " + command.getStatement());
+  private void executeStatement(final QueuedCommand queuedCommand) {
+    log.info("Executing statement: " + queuedCommand.getCommand().getStatement());
     try {
-      statementExecutor.handleStatement(command, commandId, status);
+      statementExecutor.handleStatement(queuedCommand);
     } catch (final WakeupException wue) {
       throw wue;
     } catch (final Exception exception) {

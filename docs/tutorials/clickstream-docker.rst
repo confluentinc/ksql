@@ -198,7 +198,7 @@ Verify the data
 
 #.  Verify that the tables are created.
 
-    .. code:: bash
+    .. code:: sql
 
         list TABLES;
 

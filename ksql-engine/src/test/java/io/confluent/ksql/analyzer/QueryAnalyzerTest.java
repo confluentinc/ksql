@@ -18,6 +18,7 @@
 package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.util.ExpressionMatchers.dereferenceExpression;
+import static io.confluent.ksql.util.ExpressionMatchers.dereferenceExpressions;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -43,7 +44,6 @@ import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
@@ -147,7 +147,24 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Non-aggregate SELECT expression must be part of GROUP BY: [ORDERS.ORDERID]");
+    expectedException
+        .expectMessage("Non-aggregate SELECT expression not part of GROUP BY: [ORDERS.ORDERID]");
+
+    // When:
+    queryAnalyzer.analyzeAggregate(query, analysis);
+  }
+
+  @Test
+  public void shouldThrowOnAdditionalNonAggregateHavings() {
+    // Given:
+    final Query query = givenQuery(
+        "select sum(orderunits) from orders group by itemid having orderid = 1;");
+
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
+
+    expectedException.expect(KsqlException.class);
+    expectedException
+        .expectMessage("Non-aggregate HAVING expression not part of GROUP BY: [ORDERS.ORDERID]");
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -302,6 +319,42 @@ public class QueryAnalyzerTest {
     assertTrue(analysis.getJoin().isLeftJoin());
     assertThat(analysis.getJoin().getLeftKeyFieldName(), equalTo("COL1"));
     assertThat(analysis.getJoin().getRightKeyFieldName(), equalTo("COL2"));
+  }
+
+  @Test
+  public void shouldFailOnSelectStarWithGroupBy() {
+    // Given:
+    final Query query = givenQuery("select * from orders group by itemid;");
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
+
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(containsString(
+        "Non-aggregate SELECT expression not part of GROUP BY: "
+            + "[ORDERS.ORDERTIME, ORDERS.ORDERUNITS, ORDERS.MAPCOL, ORDERS.ORDERID, "
+            + "ORDERS.ITEMINFO, ORDERS.ARRAYCOL, ORDERS.ADDRESS]"
+    ));
+
+    // When:
+    queryAnalyzer.analyzeAggregate(query, analysis);
+  }
+
+  @Test
+  public void shouldHandleSelectStarWithCorrectGroupBy() {
+    // Given:
+    final Query query = givenQuery("select * from orders group by "
+        + "ITEMID, ORDERTIME, ORDERUNITS, MAPCOL, ORDERID, ITEMINFO, ARRAYCOL, ADDRESS;");
+
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
+
+    // When:
+    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+
+    // Then:
+    assertThat(aggregateAnalysis.getNonAggregateSelectColumns(), containsInAnyOrder(
+        dereferenceExpressions(
+            "ORDERS.ITEMID", "ORDERS.ORDERTIME", "ORDERS.ORDERUNITS", "ORDERS.MAPCOL",
+            "ORDERS.ORDERID", "ORDERS.ITEMINFO", "ORDERS.ARRAYCOL", "ORDERS.ADDRESS")
+    ));
   }
 
   private Query givenQuery(final String sql) {

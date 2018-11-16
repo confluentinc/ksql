@@ -47,7 +47,7 @@ public final class MetaStoreFixture {
         = new MetadataTimestampExtractionPolicy();
     final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    final SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
+    final SchemaBuilder test1Schema = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -63,8 +63,8 @@ public final class MetaStoreFixture {
 
     final KsqlStream ksqlStream = new KsqlStream<>("sqlexpression",
         "TEST1",
-        schemaBuilder1,
-        schemaBuilder1.field("COL0"),
+        test1Schema,
+        test1Schema.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic1,
         Serdes.String());
@@ -72,7 +72,7 @@ public final class MetaStoreFixture {
     metaStore.putTopic(ksqlTopic1);
     metaStore.putSource(ksqlStream);
 
-    final SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
+    final SchemaBuilder test2Schema = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -87,8 +87,8 @@ public final class MetaStoreFixture {
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
-        schemaBuilder2,
-        schemaBuilder2.field("COL0"),
+        test2Schema,
+        test2Schema.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic2,
         "TEST2",

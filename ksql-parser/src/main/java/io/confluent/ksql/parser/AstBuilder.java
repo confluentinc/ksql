@@ -122,7 +122,6 @@ import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -431,7 +430,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           throw new InvalidColumnReferenceException("Source for alias '"
             + allColumns.getPrefix().get() + "' doesn't exist");
         }
-        addFieldsFromDataSource(selectItems, source, location, alias);
+        addFieldsFromDataSource(selectItems, source, location, alias, alias + "_");
       } else {
         final AliasedRelation left = (AliasedRelation) join.getLeft();
         final StructuredDataSource
@@ -448,8 +447,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           throw new InvalidColumnReferenceException(right.getRelation().toString()
               + " does not exist.");
         }
-        addFieldsFromDataSource(selectItems, leftDataSource, location, left.getAlias());
-        addFieldsFromDataSource(selectItems, rightDataSource, location, right.getAlias());
+
+        addFieldsFromDataSource(selectItems, leftDataSource, location,
+            left.getAlias(), left.getAlias() + "_");
+        addFieldsFromDataSource(selectItems, rightDataSource, location,
+            right.getAlias(), right.getAlias() + "_");
       }
     } else {
       final AliasedRelation fromRel = (AliasedRelation) from;
@@ -461,32 +463,31 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
             ((Table) fromRel.getRelation()).getName().getSuffix() + " does not exist."
         );
       }
-      for (final Field field : fromDataSource.getSchema().fields()) {
-        final QualifiedNameReference qualifiedNameReference =
-            new QualifiedNameReference(location, QualifiedName
-                .of(fromDataSource.getName() + "." + field.name()));
-        final SingleColumn newSelectItem =
-            new SingleColumn(qualifiedNameReference, field.name());
-        selectItems.add(newSelectItem);
-      }
+
+      addFieldsFromDataSource(selectItems, fromDataSource, location,
+          fromDataSource.getName(), "");
     }
     return selectItems;
   }
 
-  private void addFieldsFromDataSource(final List<SelectItem> selectItems,
-                                       final StructuredDataSource dataSource,
-                                       final NodeLocation location,
-                                       final String alias) {
+  private static void addFieldsFromDataSource(
+      final List<SelectItem> selectItems,
+      final StructuredDataSource dataSource,
+      final NodeLocation location,
+      final String alias,
+      final String columnNamePrefix
+  ) {
+    final QualifiedNameReference sourceName =
+        new QualifiedNameReference(location, QualifiedName.of(alias));
+
     for (final Field field : dataSource.getSchema().fields()) {
-      final QualifiedNameReference qualifiedNameReference =
-          new QualifiedNameReference(
-              location,
-              QualifiedName.of(alias + "." + field.name())
-          );
-      selectItems.add(new SingleColumn(
-          qualifiedNameReference,
-          alias + "_" + field.name()
-      ));
+
+      final DereferenceExpression exp
+          = new DereferenceExpression(location, sourceName, field.name());
+
+      final SingleColumn newColumn = new SingleColumn(exp, columnNamePrefix + field.name());
+
+      selectItems.add(newColumn);
     }
   }
 

@@ -90,6 +90,7 @@ public class KsqlEngine implements Closeable {
   private static final Set<String> IMMUTABLE_PROPERTIES = ImmutableSet.<String>builder()
       .add(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
       .add(KsqlConfig.KSQL_EXT_DIR)
+      .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 
@@ -529,7 +530,6 @@ public class KsqlEngine implements Closeable {
   public long numberOfPersistentQueries() {
     return this.livePersistentQueries.size();
   }
-
 
   @Override
   public void close() {

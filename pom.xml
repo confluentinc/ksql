@@ -7,14 +7,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>rest-utils-parent</artifactId>
-        <version>5.0.2-SNAPSHOT</version>
+        <version>5.0.2-beta181116204811</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksql-parent</name>
-    <version>5.0.2-SNAPSHOT</version>
+    <version>5.0.2-beta181116204811</version>
     <licenses>
         <license>
             <name>Apache License 2.0</name>

@@ -330,13 +330,13 @@ The following examples show common usage:
 
     .. code:: bash
 
-        $ echo -e "SHOW TOPICS;\nexit" | ksql
+        echo -e "SHOW TOPICS;\nexit" | ksql
 
 -   This example uses the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) to run KSQL CLI commands.
 
     .. code:: bash
 
-        $ ksql <<EOF
+        ksql <<EOF
         > SHOW TOPICS;
         > SHOW STREAMS;
         > exit
@@ -347,7 +347,7 @@ The following examples show common usage:
 
     .. code:: bash
 
-        $ ksql http://localhost:8088 <<< "SHOW TOPICS;
+        ksql http://localhost:8088 <<< "SHOW TOPICS;
         SHOW STREAMS;
         exit"
 
@@ -356,12 +356,12 @@ The following examples show common usage:
 
     .. code:: bash
 
-        $ cat /path/to/local/application.sql
+        cat /path/to/local/application.sql
         CREATE STREAM pageviews_copy AS SELECT * FROM pageviews;
 
     .. code:: bash
 
-        $ ksql http://localhost:8088 <<EOF
+        ksql http://localhost:8088 <<EOF
         > RUN SCRIPT '/path/to/local/application.sql';
         > exit
         > EOF

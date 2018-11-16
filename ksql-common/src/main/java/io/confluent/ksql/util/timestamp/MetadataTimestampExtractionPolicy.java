@@ -29,4 +29,17 @@ public class MetadataTimestampExtractionPolicy implements TimestampExtractionPol
   public TimestampExtractor create(final int columnIndex) {
     return new FailOnInvalidTimestamp();
   }
+
+  @Override
+  public int hashCode() {
+    return this.getClass().hashCode();
+  }
+
+  @Override
+  public boolean equals(final Object other) {
+    if (this == other) {
+      return true;
+    }
+    return other instanceof MetadataTimestampExtractionPolicy;
+  }
 }

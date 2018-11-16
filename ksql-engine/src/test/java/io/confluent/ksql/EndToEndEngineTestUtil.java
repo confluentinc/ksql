@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -451,11 +452,11 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static class TestCase {
+  static class JsonTestCase {
     private final Path testPath;
     private final JsonNode node;
 
-    TestCase(final Path testPath, final JsonNode node) {
+    JsonTestCase(final Path testPath, final JsonNode node) {
       this.testPath = testPath;
       this.node = node;
     }
@@ -469,7 +470,7 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static class Query {
+  static class TestCase {
     private final Path testPath;
     private final String name;
     private final Map<String, Object> properties;
@@ -486,7 +487,7 @@ final class EndToEndEngineTestUtil {
       return name;
     }
 
-    Query(
+    TestCase(
         final Path testPath,
         final String name,
         final Map<String, Object> properties,
@@ -571,7 +572,7 @@ final class EndToEndEngineTestUtil {
         }
       } catch (final AssertionError assertionError) {
         final String rowMsg = idx == -1 ? "" : " while processing output row " + idx;
-        throw new AssertionError("Query name: "
+        throw new AssertionError("TestCase name: "
             + name
             + " in file: " + testPath
             + " failed" + rowMsg + " due to: "
@@ -613,51 +614,53 @@ final class EndToEndEngineTestUtil {
   }
 
 
-  static void writeExpectedTopologyFiles(final String topologyDir, List<Query> queryList) {
+  static void writeExpectedTopologyFiles(final String topologyDir, List<TestCase> testCases) {
 
     final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
-    queryList.forEach(query -> {
+    testCases.forEach(testCase -> {
       final Map<String, Object> originalConfigs = getConfigs(null);
       final Map<String, Object> updatedConfigs = new HashMap<>(originalConfigs);
 
       final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
       try(final KsqlEngine ksqlEngine = getKsqlEngine(ksqlConfig)) {
-          final Topology topology = getStreamsTopology(query, ksqlEngine, ksqlConfig);
+          final Topology topology = getStreamsTopology(testCase, ksqlEngine, ksqlConfig);
           final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
-          writeExpectedTopologyFile(query.name, topology, configsToPersist, objectWriter, topologyDir);
+          writeExpectedTopologyFile(testCase.name, topology, configsToPersist, objectWriter, topologyDir);
       }
     });
   }
 
 
 
-  private static Topology getStreamsTopology(final Query query,
+  private static Topology getStreamsTopology(final TestCase testCase,
                                              final KsqlEngine ksqlEngine,
                                              final KsqlConfig ksqlConfig) {
 
       final List<QueryMetadata> queries = new ArrayList<>();
-      query.initializeTopics(ksqlEngine);
-      query.statements().forEach(
+      testCase.initializeTopics(ksqlEngine);
+      testCase.statements().forEach(
           q -> queries.addAll(
-              ksqlEngine.buildMultipleQueries(q, ksqlConfig, query.properties()))
+              ksqlEngine.buildMultipleQueries(q, ksqlConfig, testCase.properties()))
       );
+
+      assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
 
      return queries.get(queries.size() - 1).getTopology();
   }
 
-  private static TopologyTestDriver buildStreamsTopologyTestDriver(final Query query,
+  private static TopologyTestDriver buildStreamsTopologyTestDriver(final TestCase testCase,
                                                                    final KsqlEngine ksqlEngine,
                                                                    final KsqlConfig ksqlConfig,
                                                                    final Properties streamsProperties) {
 
-    final Map<String, String> persistedConfigs = query.persistedProperties().orElse(new HashMap<>());
+    final Map<String, String> persistedConfigs = testCase.persistedProperties().orElse(new HashMap<>());
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-    final Topology topology = getStreamsTopology(query, ksqlEngine, maybeUpdatedConfigs);
-    if (query.expectedTopology != null) {
-      query.setGeneratedTopology(topology.describe().toString());
+    final Topology topology = getStreamsTopology(testCase, ksqlEngine, maybeUpdatedConfigs);
+    if (testCase.expectedTopology != null) {
+      testCase.setGeneratedTopology(topology.describe().toString());
     }
     return new TopologyTestDriver(topology,
         streamsProperties,
@@ -768,7 +771,7 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static Stream<TestCase> findTestCases(final Path dir) {
+  static Stream<JsonTestCase> findTestCases(final Path dir) {
     final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
 
     return findTests(dir).stream()
@@ -779,7 +782,7 @@ final class EndToEndEngineTestUtil {
               rootNode.findValue("tests").elements(), Spliterator.ORDERED);
 
           return StreamSupport.stream(tests, false)
-              .map(jsonNode -> new TestCase(testPath, jsonNode));
+              .map(jsonNode -> new JsonTestCase(testPath, jsonNode));
         });
   }
 
@@ -796,12 +799,13 @@ final class EndToEndEngineTestUtil {
     final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-    return new KsqlEngine(
+    return KsqlEngineTestUtil.createKsqlEngine(
         new FakeKafkaTopicClient(),
         () -> schemaRegistryClient,
         new FakeKafkaClientSupplier(),
         metaStore,
-        ksqlConfig);
+        ksqlConfig,
+        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps()));
   }
 
   private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
@@ -823,27 +827,27 @@ final class EndToEndEngineTestUtil {
 
   }
 
-  static void shouldBuildAndExecuteQuery(final Query query) {
+  static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
     final Map<String, Object> config = getConfigs(new HashMap<>());
     final Properties streamsProperties = new Properties();
     streamsProperties.putAll(config);
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 
-    final Map<String, String> persistedConfigs = query.persistedProperties().orElse(new HashMap<>());
+    final Map<String, String> persistedConfigs = testCase.persistedProperties().orElse(new HashMap<>());
 
     final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
         currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
 
     try (final KsqlEngine ksqlEngine = getKsqlEngine(ksqlConfig)) {
-      query.initializeTopics(ksqlEngine);
-      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(query, ksqlEngine, ksqlConfig, streamsProperties);
-      assertEquals(query.expectedTopology, query.generatedTopology);
-      query.processInput(testDriver, ksqlEngine.getSchemaRegistryClient());
-      query.verifyOutput(testDriver, ksqlEngine.getSchemaRegistryClient());
+      testCase.initializeTopics(ksqlEngine);
+      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(testCase, ksqlEngine, ksqlConfig, streamsProperties);
+      assertEquals(testCase.expectedTopology, testCase.generatedTopology);
+      testCase.processInput(testDriver, ksqlEngine.getSchemaRegistryClient());
+      testCase.verifyOutput(testDriver, ksqlEngine.getSchemaRegistryClient());
     } catch (final RuntimeException e) {
-      query.handleException(e);
+      testCase.handleException(e);
     }
   }
 

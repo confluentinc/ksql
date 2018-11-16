@@ -12,6 +12,7 @@ and microservices in Java and Scala.
 KSQL is built on Kafka Streams and occupies the top of the stack in |cp|.
 
 .. image:: ../img/ksql-kafka-streams-core-kafka-stack.png
+   :alt: The Confluent Platform stack, with KSQL at the highest level of abstraction 
 
 KSQL gives you the highest level of abstraction for implementing real-time
 streaming business logic on Kafka topics. KSQL automates much of the complex
@@ -54,6 +55,9 @@ you choose for your real-time streaming applications depends on a number of
 considerations. Keep in mind that you can use both KSQL and Kafka Streams
 together in your implementations.
 
+Differences Between KSQL and Kafka Streams
+******************************************
+
 The following table summarizes some of the differences between KSQL and Kafka
 Streams. 
 
@@ -76,33 +80,53 @@ Streams.
 | Queryable state   | No                   | Yes                                        |
 +-------------------+----------------------+--------------------------------------------+
 
+Developer Workflows
+*******************
+
+There are different workflows for KSQL and Kafka Streams when you develop
+streaming applications.
+
+KSQL
+  You write KSQL queries interactively and view the results in real-time,
+  either in the KSQL CLI or in |c3|. You can save a .sql file and deploy it to
+  production as a "headless" application, which runs without a GUI, CLI, or REST
+  interface on KSQL servers.
+
+Kafka Streams
+  You write code in Java or Scala, recompile, and run and test
+  the application in an IDE, like IntelliJ. You deploy the application to
+  production as a jar file that runs in a Kafka cluster.
+
+KSQL and Kafka Streams: Where to Start?
+***************************************
+
 Use the following table to help you decide between KSQL and Kafka Streams as a
-starting point for your real-time application development. 
+starting point for your real-time streaming application development.
 
 +----------------------------------------------------+------------------------------------------------------+
 | Start with KSQL when…                              | Start with Kafka Streams when…                       |
 +====================================================+======================================================+
 | * New to streaming and Kafka                       | * Prefer writing and deploying JVM applications      |
-|                                                    |   like Java and Scala; for example, due to           |
-|                                                    |   people skills, tech environment                    |
-| * To quicken and broaden the adoption              | * Use case is not naturally expressible through SQL, |
-|                                                    |   for example, finite state machines                 |
-|   and value of Kafka in your organization          | * Building microservices                             |
-| * Prefer an interactive experience with UI and CLI | * Must integrate with external services, or          |
-|                                                    |   use 3rd-party libraries (but KSQL UDFs may help)   |
-| * Prefer SQL to writing code in Java or Scala      | * To customize or fine-tune a use case, for example, |
-| * Use cases include enriching data; joining        |   with the Kafka Streams Processor API:              |
-|   data sources; filtering, transforming,           |   custom join variants, or probabilistic counting at |
-|   and masking data; identifying anomalous events   |   very large scale with Count-Min Sketch             |
-| * Use case is naturally expressible by using SQL,  | * Need queryable state, which KSQL doesn't support   |
-|   with optional help from User Defined Functions   |                                                      |
-| * Want the power of Kafka Streams but you          |                                                      |
-|   aren't on the JVM: use the KSQL REST API         |                                                      |
-|   from Python, Go, C#, JavaScript, shell           |                                                      |
+| * To quicken and broaden the adoption              |   like Java and Scala; for example, due to           |
+|   and value of Kafka in your organization          |   people skills, tech environment                    |
+| * Prefer an interactive experience with UI and CLI | * Use case is not naturally expressible through SQL, |
+| * Prefer SQL to writing code in Java or Scala      |   for example, finite state machines                 |
+| * Use cases include enriching data; joining        | * Building microservices                             |
+|   data sources; filtering, transforming,           | * Must integrate with external services, or          |
+|   and masking data; identifying anomalous events   |   use 3rd-party libraries (but KSQL UDFs may help)   |
+| * Use case is naturally expressible by using SQL,  | * To customize or fine-tune a use case, for example, |
+|   with optional help from User Defined Functions   |   with the Kafka Streams Processor API:              |
+| * Want the power of Kafka Streams but you          |   custom join variants, or probabilistic counting at |
+|   aren't on the JVM: use the KSQL REST API         |   very large scale with Count-Min Sketch             |
+|   from Python, Go, C#, JavaScript, shell           | * Need queryable state, which KSQL doesn't support   |
 +----------------------------------------------------+------------------------------------------------------+
 
-KSQL is usually not a good fit for BI reports and ad-hoc querying, or queries with random access patterns,
+Usually, KSQL isn't a good fit for BI reports, ad-hoc querying, or queries with random access patterns,
 because it's a continuous query system on data streams.
+
+To get started with KSQL, try the :ref:`ksql_tutorials`.
+
+To get started with Kafka Streams, try the :ref:`streams_quickstart`.  
 
 Next Steps
 **********

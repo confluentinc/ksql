@@ -65,16 +65,28 @@ Your output should resemble:
 
 Inspect the table by using the SHOW TABLES and DESCRIBE statements:
 
-.. code:: text
+.. code:: sql
 
-    ksql> SHOW TABLES;
+    SHOW TABLES;
+
+Your output should resemble:
+
+::
 
      Table Name | Kafka Topic | Format | Windowed
     ----------------------------------------------
      USERS      | users       | JSON   | false
     ----------------------------------------------
 
-    ksql> DESCRIBE users;
+Get the schema for the table:
+
+.. code:: sql
+
+    DESCRIBE users;
+
+Your output should resemble:
+
+::
 
     Name                 : USERS
      Field        | Type
@@ -91,9 +103,14 @@ Inspect the table by using the SHOW TABLES and DESCRIBE statements:
 Create a continuous streaming query on the ``users`` table by using the SELECT
 statement:
 
-.. code:: text
+.. code:: sql
 
-    ksql> SELECT * FROM users;
+    SELECT * FROM users;
+
+Your output should resemble:
+
+::
+    
     1541439611069 | User_2 | 1498028899054 | User_2 | MALE | Region_1
     1541439611320 | User_6 | 1505677113995 | User_6 | FEMALE | Region_7
     1541439611396 | User_5 | 1491338621627 | User_5 | OTHER | Region_2
@@ -137,18 +154,32 @@ Your output should resemble:
      Table created and running
     ---------------------------
 
-Inspect the table by using the SHOW TABLES and DESCRIBE statements:
+Inspect the table by using the SHOW TABLES and PRINT statements:
 
-.. code:: text
+.. code:: sql
 
-    ksql> SHOW TABLES;
+    SHOW TABLES;
+
+Your output should resemble:
+
+::
 
      Table Name   | Kafka Topic  | Format | Windowed
     -------------------------------------------------
      USERS        | users        | JSON   | false
      USERS_FEMALE | USERS_FEMALE | JSON   | false
     -------------------------------------------------
-    ksql> PRINT users_female;
+
+Print some rows in the table:
+
+.. code:: sql
+
+    PRINT users_female;
+    
+Your output should resemble:
+
+::
+    
     Format:JSON
     {"ROWTIME":1541458112639,"ROWKEY":"User_5","USERID":"User_5","GENDER":"FEMALE","REGIONID":"Region_4"}
     {"ROWTIME":1541458112857,"ROWKEY":"User_2","USERID":"User_2","GENDER":"FEMALE","REGIONID":"Region_7"}
@@ -164,9 +195,13 @@ Press CTRL+C to stop printing the table.
 Use the SHOW QUERIES statement to view the query that KSQL created for the 
 ``users_female`` table:
 
-.. code:: text
+.. code:: sql
 
-    ksql> SHOW QUERIES;
+    SHOW QUERIES;
+
+Your output should resemble:
+
+::
 
      Query ID            | Kafka Topic  | Query String
     -----------------------------------------------------------------------------------------------------------------------------------------
@@ -188,7 +223,11 @@ Use the TERMINATE statement to stop the ``CTAS_USERS_FEMALE_0`` query:
 
 .. code:: text
 
-    ksql> TERMINATE CTAS_USERS_FEMALE_0;
+    TERMINATE CTAS_USERS_FEMALE_0;
+
+Your output should resemble:
+
+::
 
      Message
     -------------------
@@ -197,9 +236,13 @@ Use the TERMINATE statement to stop the ``CTAS_USERS_FEMALE_0`` query:
 
 Use the DROP TABLE statement to delete the ``users_female`` table:
 
-.. code:: text
+.. code:: sql
 
-    ksql> DROP TABLE users_female;
+    DROP TABLE users_female;
+
+Your output should resemble:
+
+::
 
      Message
     -----------------------------------

@@ -1,7 +1,6 @@
 package io.confluent.ksql;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
 import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
@@ -16,6 +15,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.Files;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.EndToEndEngineTestUtil.JsonTestCase;
 import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
@@ -97,20 +97,20 @@ public class QueryTranslationTest {
   private static final String CURRENT_TOPOLOGY_VERSION = "5_0";
   private static final String TOPOLOGY_VERSION_PROP = "topology.version";
 
-  private final Query query;
+  private final TestCase testCase;
 
   /**
    * @param name  - unused. Is just so the tests get named.
-   * @param query - query to run.
+   * @param testCase - testCase to run.
    */
   @SuppressWarnings("unused")
-  public QueryTranslationTest(final String name, final Query query) {
-    this.query = Objects.requireNonNull(query, "query");
+  public QueryTranslationTest(final String name, final TestCase testCase) {
+    this.testCase = Objects.requireNonNull(testCase, "testCase");
   }
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query);
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(testCase);
   }
 
   @Parameterized.Parameters(name = "{0}")
@@ -118,20 +118,20 @@ public class QueryTranslationTest {
     final String topologyVersion = System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSION);
     final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
     final Map<String, TopologyAndConfigs> expectedTopologies = loadExpectedTopologies(topologyDirectory);
-    return buildQueryList()
+    return buildTestCases()
           .peek(q -> {
             final TopologyAndConfigs topologyAndConfigs = expectedTopologies.get(formatQueryName(q.getName()));
-            // could be null if the query has expected errors, no topology or configs saved
+            // could be null if the testCase has expected errors, no topology or configs saved
             if (topologyAndConfigs !=null) {
               q.setExpectedTopology(topologyAndConfigs.topology);
               q.setPersistedProperties(topologyAndConfigs.configs);
             }
           })
-          .map(query -> new Object[]{query.getName(), query})
+          .map(testCase -> new Object[]{testCase.getName(), testCase})
           .collect(Collectors.toCollection(ArrayList::new));
   }
 
-  static Stream<Query> buildQueryList() {
+  static Stream<TestCase> buildTestCases() {
     return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR)
         .flatMap(test -> {
           final JsonNode formatsNode = test.getNode().get("format");
@@ -147,7 +147,7 @@ public class QueryTranslationTest {
         });
   }
 
-  private static Query createTest(final TestCase test, final String format) {
+  private static TestCase createTest(final JsonTestCase test, final String format) {
     try {
       final JsonNode query = test.getNode();
       final StringBuilder nameBuilder = new StringBuilder();
@@ -213,10 +213,10 @@ public class QueryTranslationTest {
         }
       }
 
-      return new Query(test.getTestPath(), name, properties, topics, inputs, outputs, statements,
+      return new TestCase(test.getTestPath(), name, properties, topics, inputs, outputs, statements,
           expectedException);
     } catch (final Exception e) {
-      throw new RuntimeException("Failed to build a query in " + test.getTestPath(), e);
+      throw new RuntimeException("Failed to build a testCase in " + test.getTestPath(), e);
     }
   }
 

@@ -16,10 +16,12 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,13 +40,13 @@ public class CommandRunner implements Runnable, Closeable {
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
 
   private final StatementExecutor statementExecutor;
-  private final CommandStore commandStore;
+  private final ReplayableCommandQueue commandStore;
   private volatile boolean closed;
   private final int maxRetries;
 
   public CommandRunner(
       final StatementExecutor statementExecutor,
-      final CommandStore commandStore,
+      final ReplayableCommandQueue commandStore,
       final int maxRetries
   ) {
     this.statementExecutor = statementExecutor;
@@ -77,51 +79,46 @@ public class CommandRunner implements Runnable, Closeable {
   @Override
   public void close() {
     closed = true;
-    commandStore.close();
+    try {
+      commandStore.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
     log.trace("Found {} new writes to command topic", commands.size());
-    commands.stream()
-        .filter(c -> c.getCommand().isPresent())
-        .forEach(c -> executeStatement(c.getCommand().get(), c.getCommandId(), c.getStatus()));
+    commands.forEach(this::executeStatement);
   }
 
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
-   * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() {
-    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
+    final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
     restoreCommands.forEach(
-        (commandId, command, terminatedQueries, wasDropped) -> {
+        command -> {
           RetryUtil.retryWithBackoff(
               maxRetries,
               STATEMENT_RETRY_MS,
               MAX_STATEMENT_RETRY_MS,
-              () -> statementExecutor.handleStatementWithTerminatedQueries(
-                  command,
-                  commandId,
-                  Optional.empty(),
-                  terminatedQueries,
-                  wasDropped
-              ),
+              () -> statementExecutor.handleRestore(command),
               WakeupException.class
           );
         }
     );
+    final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
+    ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
 
-  private void executeStatement(final Command command,
-                                final CommandId commandId,
-                                final Optional<QueuedCommandStatus> status) {
-    log.info("Executing statement: " + command.getStatement());
+  private void executeStatement(final QueuedCommand queuedCommand) {
+    log.info("Executing statement: " + queuedCommand.getCommand().getStatement());
     RetryUtil.retryWithBackoff(
         maxRetries,
         STATEMENT_RETRY_MS,
         MAX_STATEMENT_RETRY_MS,
-        () -> statementExecutor.handleStatement(command, commandId, status),
+        () -> statementExecutor.handleStatement(queuedCommand),
         WakeupException.class
     );
   }

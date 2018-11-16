@@ -79,7 +79,8 @@ public class KsqlContext {
         clientSupplier,
         metaStore,
         ksqlConfig,
-        adminClient
+        adminClient,
+        KsqlEngine::createKsqlEngineMetrics
     );
 
     return new KsqlContext(ksqlConfig, engine);

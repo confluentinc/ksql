@@ -62,8 +62,9 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
-import io.confluent.ksql.util.HandlerMap;
-import io.confluent.ksql.util.HandlerMap.Handler;
+import io.confluent.ksql.util.HandlerMaps;
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
+import io.confluent.ksql.util.HandlerMaps.Handler1;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -89,8 +90,8 @@ public final class Console implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
 
-  private static final HandlerMap<KsqlEntity, Console> PRINT_HANDLERS =
-      HandlerMap.<KsqlEntity, Console>builder()
+  private static final ClassHandlerMap1<KsqlEntity, Console> PRINT_HANDLERS =
+      HandlerMaps.forClass(KsqlEntity.class).withArgType(Console.class)
           .put(CommandStatusEntity.class,
               tablePrinter(CommandStatusEntity.class, CommandStatusTableBuilder::new))
           .put(PropertiesList.class,
@@ -123,7 +124,7 @@ public final class Console implements Closeable {
               Console::printFunctionDescription)
           .build();
 
-  private static <T extends KsqlEntity> Handler<KsqlEntity, Console> tablePrinter(
+  private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(
       final Class<T> entityType,
       final Supplier<? extends TableBuilder<T>> tableBuilderType) {
 
@@ -340,7 +341,7 @@ public final class Console implements Closeable {
   }
 
   private void printAsTable(final KsqlEntity entity) {
-    final Handler<KsqlEntity, Console> handler = PRINT_HANDLERS.get(entity.getClass());
+    final Handler1<KsqlEntity, Console> handler = PRINT_HANDLERS.get(entity.getClass());
 
     if (handler == null) {
       throw new RuntimeException(String.format(

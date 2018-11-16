@@ -18,7 +18,11 @@ package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.server.CommandTopic;
@@ -26,23 +30,59 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import org.apache.kafka.clients.producer.RecordMetadata;
+import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.TopicPartition;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+
+import org.mockito.junit.MockitoJUnitRunner;
 
 
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class CommandStoreTest {
 
-  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
-  private final CommandIdAssigner commandIdAssigner = Mockito.mock(CommandIdAssigner.class);
-  private final CommandTopic commandTopic = Mockito.mock(CommandTopic.class);
-  private final CommandStore commandStore = new CommandStore(commandIdAssigner, commandTopic);
+  @Mock
+  private KsqlConfig ksqlConfig;
+  @Mock
+  private CommandIdAssigner commandIdAssigner;
+  @Mock
+  private CommandTopic commandTopic;
+  @Mock
+  private Statement statement;
+
+  @Mock
+  private CommandId commandId1;
+  @Mock
+  private Command command1;
+  @Mock
+  private CommandId commandId2;
+  @Mock
+  private Command command2;
+  @Mock
+  private CommandId commandId3;
+  @Mock
+  private Command command3;
+  @Mock
+  private RestoreCommands restoreCommands;
+  @Captor
+  private ArgumentCaptor<Duration> durationCaptor;
+
+  private CommandStore commandStore;
+
+  @Before
+  public void setup() {
+    commandStore = new CommandStore(commandIdAssigner, commandTopic);
+  }
 
   @Test
   public void shouldCallCloseCorrectly() {
@@ -52,74 +92,86 @@ public class CommandStoreTest {
     commandStore.close();
 
     // Then:
-    Mockito.verify(commandTopic).close();
+    verify(commandTopic).close();
   }
 
   @Test
   public void shouldEnqueueCommandCorrectly() throws Exception {
     // Given:
-    final Statement statement = Mockito.mock(Statement.class);
-    final CommandId commandId = Mockito.mock(CommandId.class);
-    Mockito.when(commandIdAssigner.getCommandId(statement)).thenReturn(commandId);
+    when(commandIdAssigner.getCommandId(statement)).thenReturn(commandId1);
+    when(ksqlConfig.getAllConfigPropsWithSecretsObfuscated()).thenReturn(Collections.emptyMap());
 
     // When:
     commandStore.enqueueCommand(
         "",
         statement,
-        KSQL_CONFIG,
+        ksqlConfig,
         Collections.emptyMap()
     );
 
     // Then:
-    Mockito.verify(commandTopic).send(Mockito.eq(commandId), Mockito.any(Command.class));
+    verify(commandTopic).send(eq(commandId1), any(Command.class));
   }
 
-  @Test
+  @Test (expected = KsqlException.class)
   public void shouldNotEnqueueCommandIfThereIsAnException() throws Exception {
     // Given:
-    final Statement statement = Mockito.mock(Statement.class);
-    final CommandId commandId = Mockito.mock(CommandId.class);
-    Mockito.when(commandIdAssigner.getCommandId(statement)).thenReturn(commandId);
-    Mockito.doThrow(new InterruptedException()).when(commandTopic).send(Mockito.eq(commandId), Mockito.any(Command.class));
+    when(commandIdAssigner.getCommandId(statement)).thenReturn(commandId1);
+    doThrow(new KsqlException("")).when(commandTopic).send(eq(commandId1), any(Command.class));
 
     // When:
-    try {
-      commandStore.enqueueCommand(
-          "",
-          statement,
-          KSQL_CONFIG,
-          Collections.emptyMap()
-      );
-    } catch (KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Could not write the statement '' into the command topic."));
-      return;
-    }
-    fail();
+    commandStore.enqueueCommand(
+        "",
+        statement,
+        ksqlConfig,
+        Collections.emptyMap()
+    );
   }
 
   @Test
   public void shouldGetNewCommandsCorrectly() {
     // Given:
-    final QueuedCommand queuedCommand = Mockito.mock(QueuedCommand.class);
-    Mockito.when(commandTopic.getNewCommands(Mockito.anyMap())).thenReturn(Collections.singletonList(queuedCommand));
+    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(
+        Collections.singletonMap(new TopicPartition("topic", 0), Arrays.asList(
+            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+            new ConsumerRecord<>("topic", 0, 0, commandId2, command2),
+            new ConsumerRecord<>("topic", 0, 0, commandId3, command3))
+        ));
+    when(commandTopic.getNewCommands(any(Duration.class))).thenReturn(records);
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandStore.getNewCommands();
 
     // Then:
-    assertThat(queuedCommandList, equalTo(Collections.singletonList(queuedCommand)));
+    assertThat(queuedCommandList.get(0).getCommand(), equalTo(Optional.of(command1)));
+    assertThat(queuedCommandList.get(0).getCommandId(), equalTo(commandId1));
+    assertThat(queuedCommandList.get(1).getCommand(), equalTo(Optional.of(command2)));
+    assertThat(queuedCommandList.get(1).getCommandId(), equalTo(commandId2));
+    assertThat(queuedCommandList.get(2).getCommand(), equalTo(Optional.of(command3)));
+    assertThat(queuedCommandList.get(2).getCommandId(), equalTo(commandId3));
+
   }
 
   @Test
   public void shouldGetRestoreCommands() {
     // Given:
-    final RestoreCommands restoreCommands = Mockito.mock(RestoreCommands.class);
-    Mockito.when(commandTopic.getRestoreCommands(Mockito.any(Duration.class))).thenReturn(restoreCommands);
+    when(commandTopic.getRestoreCommands(any(Duration.class))).thenReturn(restoreCommands);
 
     // When:
     final RestoreCommands restoreCommands1 = commandStore.getRestoreCommands();
 
     // Then:
     assertThat(restoreCommands1, equalTo(restoreCommands));
+  }
+
+  @Test
+  public void shouldPassTheCorrectDuration() {
+
+    // When:
+    final RestoreCommands restoreCommands1 = commandStore.getRestoreCommands();
+
+    // Then:
+    verify(commandTopic).getRestoreCommands(durationCaptor.capture());
+    assertThat(durationCaptor.getValue(), equalTo(Duration.ofMillis(5000)));
   }
 }

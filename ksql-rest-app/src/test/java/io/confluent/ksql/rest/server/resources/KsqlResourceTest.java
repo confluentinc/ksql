@@ -29,7 +29,11 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -70,14 +74,12 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -89,6 +91,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -121,6 +124,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 
 @SuppressWarnings("unchecked")
 @RunWith(EasyMockRunner.class)
@@ -140,6 +144,9 @@ public class KsqlResourceTest {
   private CommandStore commandStore;
   private KsqlResource ksqlResource;
 
+  private ReplayableCommandQueue replayableCommandQueue;
+  private QueuedCommandStatus queuedCommandStatus;
+
   @Before
   public void setUp() throws IOException, RestClientException {
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
@@ -157,6 +164,9 @@ public class KsqlResourceTest {
     addTestTopicAndSources();
 
     setUpKsqlResource();
+
+    replayableCommandQueue = Mockito.mock(ReplayableCommandQueue.class);
+    queuedCommandStatus = mock(QueuedCommandStatus.class);
   }
 
   @After
@@ -699,37 +709,45 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailForInvalidTerminateClusterParameters() {
+  public void shoudlHandleTerminateRequestCorrectly() throws InterruptedException {
     // Given:
-    final ClusterTerminateRequest request = new ClusterTerminateRequest(Collections.singletonList("FOO"));
-    final ReplayableCommandQueue replayableCommandQueue = EasyMock.niceMock(ReplayableCommandQueue.class);
-    final KsqlResource testResource = new KsqlResource(ksqlConfig, ksqlEngine, replayableCommandQueue, 1000);
+    final KsqlResource testResource = getMockKsqlResource();
+    final ClusterTerminateRequest request = getCLClusterTerminateRequest(ImmutableList.of("Foo"));
+
+    // When:
+    final Response response = testResource.terminateCluster(request);
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(200));
+  }
+
+  @Test
+  public void shoudlFailIfCannotWriteTerminateCommand() throws InterruptedException {
+    // Given:
+    final KsqlResource testResource = getMockKsqlResource();
+    final ClusterTerminateRequest request = getCLClusterTerminateRequest(ImmutableList.of("Foo"));
+    when(replayableCommandQueue.enqueueCommand(any(), any(), any(), any())).thenThrow(new RuntimeException());
 
     // When:
     final Response response = testResource.terminateCluster(request);
 
     // Then:
     assertThat(response.getStatus(), equalTo(500));
-    assertThat(response.getEntity().toString(), startsWith("Failed to set 'ksql.delete.topic.li' to '[FOO]'"));
+    assertThat(response.getEntity().toString(), startsWith("Could not write the statement 'TERMINATE CLUSTER;' into the command "));
   }
 
-  private static class TestCommandProducer<K, V> extends KafkaProducer<K, V> {
-    public TestCommandProducer(final Map configs, final Serializer keySerializer, final Serializer valueSerializer) {
-      super(configs, keySerializer, valueSerializer);
-    }
+  @Test
+  public void shouldFailForInvalidTerminateClusterParameters() throws InterruptedException {
+    // Given:
+    final KsqlResource testResource = getMockKsqlResource();
+    final ClusterTerminateRequest request = getCLClusterTerminateRequest(ImmutableList.of("["));
 
-    @Override
-    public Future<RecordMetadata> send(final ProducerRecord record) {
-      // Fake result: only for testing purpose
-      return ConcurrentUtils.constantFuture(new RecordMetadata(null, 0L, 0L, 0L, 0L, 0, 0));
-    }
-  }
+    // When:
+    final Response response = testResource.terminateCluster(request);
 
-  private static class TestCommandConsumer<K, V> extends KafkaConsumer<K, V> {
-    public TestCommandConsumer(
-        final Map configs, final Deserializer keyDeserializer, final Deserializer valueDeserializer) {
-      super(configs, keyDeserializer, valueDeserializer);
-    }
+    // Then:
+    assertThat(response.getStatus(), equalTo(500));
+    assertThat(response.getEntity().toString(), startsWith("Invalid pattern: ["));
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -936,5 +954,21 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
     schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
         avroSchema);
+  }
+
+  private KsqlResource getMockKsqlResource() throws InterruptedException {
+    when(queuedCommandStatus.getCommandId()).thenReturn(mock(CommandId.class));
+    when(queuedCommandStatus.tryWaitForFinalStatus(any(Duration.class))).thenReturn(mock(CommandStatus.class));
+    when(replayableCommandQueue.enqueueCommand(any(), any(), any(), any())).thenReturn(queuedCommandStatus);
+    return new KsqlResource(ksqlConfig, ksqlEngine, replayableCommandQueue, 1000);
+
+  }
+
+  private ClusterTerminateRequest getCLClusterTerminateRequest(final List<String> deleteTopicList) {
+    final ClusterTerminateRequest request = Mockito.mock(ClusterTerminateRequest.class);
+    when(request.getDeleteTopicList()).thenReturn(deleteTopicList);
+    when(request.getStreamsProperties()).thenReturn(ImmutableMap.of("deleteTopicList", deleteTopicList));
+    return request;
+
   }
 }

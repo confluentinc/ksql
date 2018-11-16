@@ -87,6 +87,9 @@ public class RestoreCommands {
     return Collections.unmodifiableMap(allTerminatedQueries);
   }
 
+  public Map<String, CommandId> getDropped() {
+    return dropped;
+  }
 
   public Map<Pair<Integer, CommandId>, Command> getToRestore() {
     return toRestore;

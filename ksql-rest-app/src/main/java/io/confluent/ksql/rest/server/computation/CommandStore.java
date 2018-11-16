@@ -58,11 +58,9 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
       final CommandIdAssigner commandIdAssigner,
       final CommandTopic commandTopic
   ) {
-    Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
-    Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandIdAssigner = Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
     this.commandStatusMap = Maps.newConcurrentMap();
-    this.commandTopic = commandTopic;
+    this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
   }
 
   /**
@@ -132,7 +130,6 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    * @return The commands that have been polled from the command topic
    */
   public List<QueuedCommand> getNewCommands() {
-    Objects.requireNonNull(commandStatusMap, "commandStatusMap");
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
     commandTopic
         .getNewCommands(Duration.ofMillis(Long.MAX_VALUE))

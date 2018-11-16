@@ -17,22 +17,25 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.RestoreCommands;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -42,99 +45,141 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class CommandTopicTest {
 
+  private static final String COMMAND_TOPIC_NAME = "foo";
+  @Mock
   private Consumer<CommandId, Command> commandConsumer;
+  @Mock
   private Producer<CommandId, Command> commandProducer;
 
   private CommandTopic commandTopic;
 
+  @Mock
+  private Future<RecordMetadata> future ;
+  @Captor
+  private ArgumentCaptor<ProducerRecord> recordCaptor;
+
+  @Mock
+  private static CommandId commandId1;
+  @Mock
+  private static Command command1;
+  @Mock
+  private static CommandId commandId2;
+  @Mock
+  private static Command command2;
+  @Mock
+  private static CommandId commandId3;
+  @Mock
+  private static Command command3;
+
+  @Mock
+  private QueuedCommandStatus queuedCommandStatus1;
+  @Mock
+  private ConsumerRecord consumerRecord;
+  @Mock
+  private ConsumerRecords consumerRecords;
+  @Captor
+  private ArgumentCaptor<Collection<TopicPartition>> collectionArgumentCaptor;
+
+  private final static TopicPartition topicPartition = new TopicPartition("topic", 0);
+
+
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    commandConsumer = Mockito.mock(Consumer.class);
-    commandProducer = Mockito.mock(Producer.class);
-    commandTopic = new CommandTopic("foo", commandConsumer, commandProducer);
+    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, commandProducer);
+    when(commandProducer.send(any(ProducerRecord.class))).thenReturn(future);
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldSendCommandCorrectly() throws Exception {
+
     // When
-    final Future<RecordMetadata> future = Mockito.mock(Future.class);
-    Mockito.when(commandProducer.send(Mockito.any(ProducerRecord.class))).thenReturn(future);
-    commandTopic.send(Mockito.mock(CommandId.class), Mockito.mock(Command.class));
+    commandTopic.send(commandId1, command1);
 
     // Then
-    Mockito.verify(commandProducer).send(Mockito.any(ProducerRecord.class));
+    verify(commandProducer).send(new ProducerRecord<>(COMMAND_TOPIC_NAME, commandId1, command1));
+    verify(future).get();
+  }
+
+  @Test (expected = RuntimeException.class)
+  @SuppressWarnings("unchecked")
+  public void shouldThrowExceptionIfSendIsNotSuccessfull() throws Exception {
+    // Given:
+    when(future.get()).thenThrow(mock(ExecutionException.class));
+
+    // When
+    commandTopic.send(commandId1, command1);
   }
 
   @Test
   @SuppressWarnings("unchecked")
-  public void shouldGetNewCommandsCorrectly() {
+  public void shouldGetNewCommandsIteratorCorrectly() {
     // Given:
-    final CommandId commandId1 = Mockito.mock(CommandId.class);
-    final Command command1 = Mockito.mock(Command.class);
-    final Duration duration = Mockito.mock(Duration.class);
-    final QueuedCommandStatus queuedCommandStatus1 = Mockito.mock(QueuedCommandStatus.class);
-    final Map<CommandId, QueuedCommandStatus> commandStatusMap = new HashMap();
-    commandStatusMap.put(commandId1, queuedCommandStatus1);
-    final TopicPartition topicPartition = new TopicPartition("foo", 1);
-    final ConsumerRecord consumerRecord = Mockito.mock(ConsumerRecord.class);
-    Mockito.when(consumerRecord.key()).thenReturn(commandId1);
-    Mockito.when(consumerRecord.value()).thenReturn(command1);
-    Mockito.when(commandConsumer.poll(Mockito.any(Duration.class))).thenReturn(new ConsumerRecords(Collections.singletonMap(topicPartition, Collections.singletonList(consumerRecord))));
+    when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
     // When:
-    final Iterable<ConsumerRecord<CommandId, Command>> newCommands = commandTopic.getNewCommands(duration);
+    final Iterable<ConsumerRecord<CommandId, Command>> newCommands = commandTopic.getNewCommands(Duration.ofHours(1));
 
     // Then:
-
-    MatcherAssert.assertThat(newCommands.size(), CoreMatchers.equalTo(1));
-    MatcherAssert.assertThat(newCommands.get(0).getCommandId(), CoreMatchers.is(commandId1));
-    MatcherAssert.assertThat(newCommands.get(0).getStatus().get(), CoreMatchers.is(queuedCommandStatus1));
+    assertThat(newCommands, sameInstance(consumerRecords));
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldGetRestoreCommandsCorrectly() {
     // Given:
-    final CommandId createId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
-    final CommandId dropId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.DROP);
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    final Command originalCommand = new Command(
-        "some statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final Command dropCommand = new Command(
-        "drop", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final Command latestCommand = new Command(
-        "a new statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-
-    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(
-        Collections.singletonMap(new TopicPartition("topic", 0), Arrays.asList(
-            new ConsumerRecord<>("topic", 0, 0, createId, originalCommand),
-            new ConsumerRecord<>("topic", 0, 0, dropId, dropCommand),
-            new ConsumerRecord<>("topic", 0, 0, createId, latestCommand))
-    ));
-    Mockito.when(commandConsumer.poll(Mockito.any(Duration.class)))
-        .thenReturn(records)
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords())
         .thenReturn(new ConsumerRecords(Collections.emptyMap()));
+//    when()
+
 
     // When:
     final RestoreCommands restoreCommands = commandTopic.getRestoreCommands(Duration.ofMillis(1));
 
 
     // Then:
-    assertThat(restoreCommands.getToRestore().size(), equalTo(3));
+    verify(commandConsumer).seekToBeginning(collectionArgumentCaptor.capture());
     assertThat(restoreCommands.getToRestore().keySet(), equalTo(ImmutableSet.of(
-        new Pair<>(0, createId),
-        new Pair<>(1, dropId),
-        new Pair<>(2, createId))));
+        new Pair<>(0, commandId1),
+        new Pair<>(1, commandId2),
+        new Pair<>(2, commandId3))));
+  }
+
+  @Test
+  public void shouldCloseAllResources() {
+    // When:
+    commandTopic.close();
+
+    //Then:
+
+    final InOrder ordered = inOrder(commandConsumer);
+    ordered.verify(commandConsumer).wakeup();
+    ordered.verify(commandConsumer).close();
+    verify(commandProducer).close();
+
+  }
+
+  private static ConsumerRecords<CommandId, Command> someConsumerRecords() {
+    return new ConsumerRecords<>(
+        ImmutableMap.of(topicPartition, ImmutableList.of(
+            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+            new ConsumerRecord<>("topic", 0, 0, commandId2, command2),
+            new ConsumerRecord<>("topic", 0, 0, commandId3, command3))
+        ));
   }
 
 }

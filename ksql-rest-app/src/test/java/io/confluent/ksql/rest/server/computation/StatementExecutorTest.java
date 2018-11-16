@@ -478,30 +478,6 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   }
 
-  @Test
-  public void shouldTerminateClusterCorrectly() throws IOException {
-    // Given:
-    final KsqlConfig mockitoKsqlConfig = Mockito.mock(KsqlConfig.class);
-    final KsqlEngine mockitoKsqlEngine = Mockito.mock(KsqlEngine.class);
-    final StatementParser mockitoStatementParser = Mockito.mock(StatementParser.class);
-    final CommandStore mockitoCommandStore = Mockito.mock(CommandStore.class);
-    final ClusterTerminator clusterTerminator = Mockito.mock(ClusterTerminator.class);
-    final StatementExecutor terminateStatementExecutor = new StatementExecutor(
-        mockitoKsqlConfig, mockitoKsqlEngine, mockitoStatementParser, mockitoCommandStore
-    );
-    final CommandId commandId = Mockito.mock(CommandId.class);
-    final Command command = new Command(
-        TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
-        Collections.emptyMap(),
-        Collections.emptyMap());
-
-    // When:
-    terminateStatementExecutor.handleStatement(command, commandId, Optional.empty());
-
-    // Then:
-    Mockito.verify(clusterTerminator).terminateCluster(Mockito.anyList());
-  }
-
   private void createStreamsAndTables() {
     final Command csCommand = new Command(
         "CREATE STREAM pageview ("

@@ -16,20 +16,15 @@
 
 package io.confluent.ksql.rest.server;
 
-import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.rest.server.computation.QueuedCommand;
-import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.RestoreCommands;
 import io.confluent.ksql.rest.util.CommandTopicJsonSerdeUtil;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -76,31 +71,27 @@ public class CommandTopic {
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer
   ) {
-    Objects.requireNonNull(commandTopicName, "commandTopicName");
-    Objects.requireNonNull(commandConsumer, "commandConsumer");
-    Objects.requireNonNull(commandProducer, "commandProducer");
-    this.commandConsumer = commandConsumer;
-    this.commandProducer = commandProducer;
-    this.commandTopicName = commandTopicName;
+    this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
+    this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");;
+    this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
   }
 
 
   @SuppressWarnings("unchecked")
-  public void send(final CommandId commandId, final Command command)
-      throws Exception {
-    Objects.requireNonNull(commandId, "commandId");
-    Objects.requireNonNull(command, "command");
+  public void send(final CommandId commandId, final Command command) {
     final ProducerRecord producerRecord = new ProducerRecord<>(
         commandTopicName,
-        commandId,
-        command);
+        Objects.requireNonNull(commandId, "commandId"),
+        Objects.requireNonNull(command, "command"));
     try {
       commandProducer.send(producerRecord).get();
     } catch (final ExecutionException e) {
-      if (e.getCause() instanceof Exception) {
-        throw (Exception)e.getCause();
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException)e.getCause();
       }
       throw new RuntimeException(e.getCause());
+    } catch (final InterruptedException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -108,9 +99,7 @@ public class CommandTopic {
     return commandConsumer.poll(timeout);
   }
 
-  public RestoreCommands getRestoreCommands(
-      final Duration duration
-  ) {
+  public RestoreCommands getRestoreCommands(final Duration duration) {
     Objects.requireNonNull(duration, "duration");
     final RestoreCommands restoreCommands = new RestoreCommands();
 

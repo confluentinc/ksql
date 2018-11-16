@@ -40,7 +40,7 @@ public class CommandId {
     CREATE,
     DROP,
     EXECUTE,
-    CLUSTER_TERMONATE
+    TERMINATE
   }
 
   public CommandId(

@@ -50,9 +50,16 @@ public class ClusterTerminator {
   // Todo: Fail requesst if user requests non-sink topic to be deleted using non-regex
   @SuppressWarnings("unchecked")
   public void terminateCluster(final List<String> deleteTopicPatterns) {
-    terminateAllQueries();
+    terminatePersistentQueries();
     deleteSinkTopics(deleteTopicPatterns);
     deleteCommandTopic();
+    ksqlEngine.close();
+  }
+
+  private void terminatePersistentQueries() {
+    new ArrayList<>(ksqlEngine.getPersistentQueries()).stream()
+        .map(PersistentQueryMetadata::getQueryId)
+        .forEach(queryId -> ksqlEngine.terminateQuery(queryId, true));
   }
 
   private void deleteSinkTopics(final List<String> deleteTopicPatterns) {
@@ -78,20 +85,6 @@ public class ClusterTerminator {
   private boolean topicShouldBeDeleted(final String topicName, final List<Pattern> patterns) {
     return patterns.stream()
         .anyMatch(pattern -> pattern.matcher(topicName).matches());
-  }
-
-  private void terminateAllQueries() {
-    new ArrayList<>(ksqlEngine.getAllLiveQueries())
-        .forEach(
-            queryMetadata -> {
-              if (queryMetadata instanceof PersistentQueryMetadata) {
-                final PersistentQueryMetadata persistentQueryMetadata
-                    = (PersistentQueryMetadata) queryMetadata;
-                ksqlEngine.terminateQuery(persistentQueryMetadata.getQueryId(), true);
-              }  else {
-                queryMetadata.close();
-              }
-            });
   }
 
   private void deleteCommandTopic() {

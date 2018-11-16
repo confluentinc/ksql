@@ -24,7 +24,9 @@ import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,12 +59,28 @@ public class CommandRunner implements Runnable, Closeable {
       final KsqlEngine ksqlEngine,
       final int maxRetries
   ) {
-    this.statementExecutor = statementExecutor;
-    this.commandStore = commandStore;
-    this.ksqlEngine = ksqlEngine;
+    this(
+        statementExecutor,
+        commandStore,
+        ksqlEngine,
+        maxRetries,
+        new ClusterTerminator(ksqlConfig, ksqlEngine)
+    );
+  }
+
+  CommandRunner(
+      final StatementExecutor statementExecutor,
+      final CommandStore commandStore,
+      final KsqlEngine ksqlEngine,
+      final int maxRetries,
+      final ClusterTerminator clusterTerminator
+  ) {
+    this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
+    this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.maxRetries = maxRetries;
     closed = false;
-    clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine);
+    this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
   }
 
   /**
@@ -95,23 +113,42 @@ public class CommandRunner implements Runnable, Closeable {
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
     log.trace("Found {} new writes to command topic", commands.size());
+    final AtomicBoolean shouldProcess = new AtomicBoolean(true);
     commands.stream()
         .filter(c -> c.getCommand().isPresent())
-        .forEach(c -> executeStatement(c.getCommand().get(), c.getCommandId(), c.getStatus()));
+        .forEach(c -> {
+          if (!shouldProcess.get()) {
+            return;
+          }
+          if (c.getCommand().get().getStatement()
+              .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+            terminateCluster(c.getCommand().get());
+            shouldProcess.set(false);
+            return;
+          }
+          executeStatement(
+              c.getCommand().get(),
+              c.getCommandId(),
+              c.getStatus());
+        });
   }
 
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
-   * @throws Exception TODO: Refine this.
    */
+  // TODO: creat github issue to handle terminate better.
   public void processPriorCommands() {
     final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
-    for ()
+    final AtomicBoolean shouldProcess = new AtomicBoolean(true);
     restoreCommands.forEach(
         (commandId, command, terminatedQueries, wasDropped) -> {
+          if (!shouldProcess.get()) {
+            return;
+          }
           if (command.getStatement()
               .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
             terminateCluster(command);
+            shouldProcess.set(false);
             return;
           }
           RetryUtil.retryWithBackoff(

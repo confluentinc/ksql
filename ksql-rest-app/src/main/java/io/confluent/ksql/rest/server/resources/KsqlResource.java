@@ -164,11 +164,18 @@ public class KsqlResource {
     final KsqlEntityList result = new KsqlEntityList();
 
     try {
-      validateDeleteTopicListForTerminate(request.getDeleteTopicList());
+      request.getDeleteTopicList()
+          .forEach(pattern -> {
+            try {
+              Pattern.compile(pattern);
+            } catch (final PatternSyntaxException patternSyntaxException) {
+              throw new KsqlException("Invalid pattern: " + pattern);
+            }
+          });
 
       result.add(distributeStatement(
           TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
-          createTerminateRequest(request),
+          new TerminateCluster(),
           request.getStreamsProperties(),
           ksqlConfig
       ));
@@ -798,21 +805,4 @@ public class KsqlResource {
       throw new KsqlException(ddlCommandResult.getMessage());
     }
   }
-
-  @SuppressWarnings("unchecked")
-  private static TerminateCluster createTerminateRequest(final ClusterTerminateRequest request) {
-    return new TerminateCluster(request.getDeleteTopicList());
-  }
-
-
-  private static void validateDeleteTopicListForTerminate(final List<String> deleteTopicPatterns) {
-    for (final String pattern:deleteTopicPatterns) {
-      try {
-        Pattern.compile(pattern);
-      } catch (final PatternSyntaxException patternSyntaxException) {
-        throw new KsqlException("Invalid pattern: " + pattern);
-      }
-    }
-  }
-
 }

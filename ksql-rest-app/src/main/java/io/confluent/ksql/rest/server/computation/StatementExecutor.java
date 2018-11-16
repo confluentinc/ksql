@@ -89,7 +89,6 @@ public class StatementExecutor {
       final CommandId commandId,
       final Optional<QueuedCommandStatus> status
   ) {
-    final String statementText = command.getStatement();
     handleStatementWithTerminatedQueries(command,
         commandId,
         status,

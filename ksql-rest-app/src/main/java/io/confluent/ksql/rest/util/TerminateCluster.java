@@ -17,32 +17,24 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.parser.tree.Statement;
-import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 public class TerminateCluster extends Statement {
 
   public static final String TERMINATE_CLUSTER_STATEMENT_TEXT = "TERMINATE CLUSTER;";
 
-  public TerminateCluster(final List<String> deleteTopicList) {
+  public TerminateCluster() {
     super(Optional.empty());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(TERMINATE_CLUSTER_STATEMENT_TEXT);
+    return TerminateCluster.class.hashCode();
   }
 
   @Override
   public boolean equals(final Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if ((obj == null) || (getClass() != obj.getClass())) {
-      return false;
-    }
-    return true;
+    return obj instanceof TerminateCluster;
   }
 
   @Override

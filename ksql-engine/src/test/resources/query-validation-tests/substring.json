@@ -107,7 +107,7 @@
       "name": "in group by",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS SUBSTRING FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS SUBSTRING FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "some string", "timestamp": 0},

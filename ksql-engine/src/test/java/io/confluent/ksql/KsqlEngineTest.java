@@ -31,26 +31,24 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -58,6 +56,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -66,6 +65,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -79,10 +79,12 @@ import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class KsqlEngineTest {
 
@@ -96,13 +98,21 @@ public class KsqlEngineTest {
   private final KafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
   private final AdminClient adminClient
       = kafkaClientSupplier.getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
-  private final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-      topicClient,
-      schemaRegistryClientFactory,
-      kafkaClientSupplier,
-      metaStore,
-      ksqlConfig,
-      adminClient);
+  private KsqlEngine ksqlEngine;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+  @Before
+  public void setUp() {
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+        topicClient,
+        schemaRegistryClientFactory,
+        kafkaClientSupplier,
+        metaStore,
+        ksqlConfig,
+        adminClient);
+  }
 
   @After
   public void closeEngine() {
@@ -128,14 +138,7 @@ public class KsqlEngineTest {
   }
 
   @Test(expected = ParseFailedException.class)
-  public void shouldFailWhenSyntaxIsInvalid() throws Exception {
-    final ObjectMapper mapper = new ObjectMapper();
-    final byte[] m = new byte[32];
-    for (int i = 0; i < 32; i++) {
-      m[i] = (byte)i;
-    }
-    final ByteBuffer bb = ByteBuffer.wrap(m);
-    final String s = mapper.writeValueAsString(bb);
+  public void shouldFailWhenSyntaxIsInvalid() {
     ksqlEngine.buildMultipleQueries("blah;", ksqlConfig, Collections.emptyMap());
   }
 
@@ -174,8 +177,7 @@ public class KsqlEngineTest {
     final String ddlStatement = "CREATE STREAM S1_NOTEXIST (COL1 BIGINT, COL2 VARCHAR) "
                           + "WITH  (KAFKA_TOPIC = 'S1_NOTEXIST', VALUE_FORMAT = 'JSON');";
     try {
-      final List<QueryMetadata> queries =
-          ksqlEngine.buildMultipleQueries(ddlStatement.toString(), ksqlConfig, Collections.emptyMap());
+      ksqlEngine.buildMultipleQueries(ddlStatement, ksqlConfig, Collections.emptyMap());
       Assert.fail();
     } catch (final Exception e) {
       assertThat(e.getMessage(), equalTo("Kafka topic does not exist: S1_NOTEXIST"));
@@ -427,47 +429,112 @@ public class KsqlEngineTest {
     final String statementsString = new String(Files.readAllBytes(
         Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
 
-    final MetaStore emptyMetaStore = new MetaStoreImpl(new TestFunctionRegistry());
-
     final List<Statement> statements =
-        ksqlEngine.parseStatements(statementsString, emptyMetaStore, true)
+        ksqlEngine.parseStatements(statementsString)
             .stream()
             .map(PreparedStatement::getStatement)
             .collect(Collectors.toList());
 
-    assertThat(statements, Matchers.contains(
+    assertThat(statements, contains(
         instanceOf(CreateStream.class),
         instanceOf(SetProperty.class),
         instanceOf(CreateTable.class),
-        instanceOf(Query.class),
-        instanceOf(Query.class),
+        instanceOf(CreateStreamAsSelect.class),
+        instanceOf(CreateStreamAsSelect.class),
         instanceOf(UnsetProperty.class),
-        instanceOf(Query.class)
+        instanceOf(CreateStreamAsSelect.class)
     ));
-    final Query csas1 = (Query) statements.get(3);
-    final QuerySpecification specification1 = (QuerySpecification) csas1.getQueryBody();
-    final Table table1 = (Table) specification1.getInto();
-    assertThat(table1.getName().getSuffix(), equalTo("PAGEVIEWS_ENRICHED"));
-
-    final Query csas2 = (Query) statements.get(4);
-    final QuerySpecification specification2 = (QuerySpecification) csas2.getQueryBody();
-    final Table table2 = (Table) specification2.getInto();
-    assertThat(table2.getName().getSuffix(), equalTo("PAGEVIEWS_FEMALE"));
-
-    final Query csas3 = (Query) statements.get(6);
-    final QuerySpecification specification3 = (QuerySpecification) csas3.getQueryBody();
-    final Table table3 = (Table) specification3.getInto();
-    assertThat(table3.getName().getSuffix(), equalTo("PAGEVIEWS_FEMALE_LIKE_89"));
   }
 
   @Test
   public void shouldSetPropertyInRunScript() {
     final Map<String, Object> overriddenProperties = new HashMap<>();
-    final List<QueryMetadata> queries
-        = ksqlEngine.buildMultipleQueries(
+
+    ksqlEngine.buildMultipleQueries(
         "SET 'auto.offset.reset' = 'earliest'; ",
         ksqlConfig, overriddenProperties);
-    assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
 
+    assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));
+  }
+
+  @Test
+  public void shouldThrowExpectedExceptionForDuplicateTable() {
+    // Given:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is(
+        "Exception while processing statement: Cannot add the new data source. "
+            + "Another data source with the same name already exists: KsqlStream name:FOO"
+    ));
+
+    // When:
+    ksqlEngine.parseStatements(
+        "CREATE TABLE FOO AS SELECT * FROM TEST2; "
+            + "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
+  }
+
+  @Test
+  public void shouldThrowExpectedExceptionForDuplicateStream() {
+    // Given:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is(
+        "Exception while processing statement: Cannot add the new data source. "
+            + "Another data source with the same name already exists: KsqlStream name:FOO"
+    ));
+
+    // When:
+    ksqlEngine.parseStatements(
+        "CREATE STREAM FOO AS SELECT * FROM ORDERS; "
+            + "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
+  }
+
+  @Test
+  public void shouldBuildMultipleStatements() throws Exception {
+    // Given:
+    final String statementsString = new String(Files.readAllBytes(
+        Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
+
+    givenTopicsExist("pageviews", "users", "pageviews_enriched_r8_r9");
+
+    // When:
+    final List<QueryMetadata> queries =
+        ksqlEngine.buildMultipleQueries(statementsString, ksqlConfig, new HashMap<>());
+
+    // Then:
+    assertThat(queries, hasSize(3));
+  }
+
+  @Test
+  public void shouldThrowWhenBuildingQueriesIfCsasCreatesTable() {
+    // Given:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Invalid result type. Your SELECT query produces a TABLE. "
+            + "Please use CREATE TABLE AS SELECT statement instead. "
+            + "Statement: CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;");
+
+    // When:
+    ksqlEngine.buildMultipleQueries(
+        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;",
+        ksqlConfig, Collections.emptyMap());
+  }
+
+  @Test
+  public void shouldThrowWhenBuildingQueriesIfCtasCreatesStream() {
+    // Given:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Invalid result type. Your SELECT query produces a STREAM. "
+            + "Please use CREATE STREAM AS SELECT statement instead. "
+            + "Statement: CREATE TABLE FOO AS SELECT * FROM ORDERS;");
+
+    // When:
+    ksqlEngine.buildMultipleQueries(
+        "CREATE TABLE FOO AS SELECT * FROM ORDERS;",
+        ksqlConfig, Collections.emptyMap());
+  }
+
+  private void givenTopicsExist(final String... topics) {
+    Arrays.stream(topics)
+        .forEach(topic -> topicClient.createTopic(topic, 1, (short) 1));
   }
 }

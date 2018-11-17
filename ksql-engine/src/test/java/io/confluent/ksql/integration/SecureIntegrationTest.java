@@ -272,7 +272,7 @@ public class SecureIntegrationTest {
   }
 
   private void assertCanRunRepartitioningKsqlQuery() throws Exception {
-    assertCanRunKsqlQuery("CREATE STREAM %s AS SELECT itemid, count(*) "
+    assertCanRunKsqlQuery("CREATE TABLE %s AS SELECT itemid, count(*) "
                           + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
                           outputTopic, INPUT_STREAM);
   }

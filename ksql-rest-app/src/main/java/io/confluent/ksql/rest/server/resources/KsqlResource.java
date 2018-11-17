@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -398,7 +398,7 @@ public class KsqlResource {
       ));
     }
     final String schemaString = null;
-    final TopicDescription topicDescription = new TopicDescription(
+    return new TopicDescription(
         statementText,
         name,
         ksqlTopic.getKafkaTopicName(),
@@ -408,7 +408,6 @@ public class KsqlResource {
             .toString(),
         schemaString
     );
-    return topicDescription;
   }
 
   private SourceDescription describe(
@@ -636,10 +635,12 @@ public class KsqlResource {
           ksqlEngine.getQueryExecutionPlan(
               ((CreateStreamAsSelect) statement).getQuery(),
               ksqlConfig);
+      // Todo(ac): Check there is no need for this now...
       if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
                                 + "use CREATE TABLE AS SELECT statement instead.");
       }
+      // Todo(ac): This is never true, right? And needs to be in KsqlEngine.
       if (queryMetadata instanceof PersistentQueryMetadata) {
         AvroUtil.validatePersistentQueryResults(
             (PersistentQueryMetadata) queryMetadata,
@@ -655,10 +656,12 @@ public class KsqlResource {
           ksqlEngine.getQueryExecutionPlan(
               ((CreateTableAsSelect) statement).getQuery(),
               ksqlConfig);
+      // Todo(ac): Check there is no need for this now...
       if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
         throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
                                 + "use CREATE STREAM AS SELECT statement instead.");
       }
+      // Todo(ac): This is never true, right? And needs to be in KsqlEngine.
       if (queryMetadata instanceof PersistentQueryMetadata) {
         AvroUtil.validatePersistentQueryResults(
             (PersistentQueryMetadata) queryMetadata,
@@ -669,9 +672,11 @@ public class KsqlResource {
       return queryMetadata;
     });
 
+    // Todo(ac): Convert to HandlerMap.
     ksqlStatementTasks.put(InsertInto.class, (statement, statementText, properties) -> {
       final QueryMetadata queryMetadata =
           ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery(), ksqlConfig);
+      // Todo(ac): This is never true, right? And needs to be in KsqlEngine.
       if (queryMetadata instanceof PersistentQueryMetadata) {
         AvroUtil.validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
                                                       ksqlEngine.getSchemaRegistryClient());

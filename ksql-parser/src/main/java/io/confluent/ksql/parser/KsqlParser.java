@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -84,6 +85,17 @@ public class KsqlParser {
       final MetaStore metaStore) {
 
     return buildAst(sql, metaStore, Function.identity());
+  }
+
+  public List<PreparedStatement> buildAst(
+      final String sql,
+      final MetaStore metaStore,
+      final Consumer<PreparedStatement> mapper) {
+
+    return buildAst(sql, metaStore, stmt -> true, stmt -> {
+      mapper.accept(stmt);
+      return stmt;
+    });
   }
 
   public <T> List<T> buildAst(

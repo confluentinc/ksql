@@ -127,6 +127,7 @@ public class StandaloneExecutor implements Executable {
       final String queryString,
       final CreateStreamAsSelect statement) {
     final Query query = statement.getQuery();
+    // Todo(ac): Think this can be removed.
     final QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
     if (queryMetadata.getDataSourceType() != DataSourceType.KSTREAM) {
       throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
@@ -141,6 +142,7 @@ public class StandaloneExecutor implements Executable {
       final String queryString,
       final CreateTableAsSelect statement) {
     final Query query = statement.getQuery();
+    // Todo(ac): Think this can be removed.
     final QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
     if (queryMetadata.getDataSourceType() != DataSourceType.KTABLE) {
       throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
@@ -152,8 +154,8 @@ public class StandaloneExecutor implements Executable {
 
   @SuppressWarnings("unused")
   private void handleInsertInto(final String queryString, final InsertInto statement) {
-    final Query query = statement.getQuery();
-    ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
+    // Todo(ac): Think this can be removed.
+    ksqlEngine.getQueryExecutionPlan(statement.getQuery(), ksqlConfig);
 
     handlePersistentQuery(queryString, configProperties);
   }
@@ -250,6 +252,7 @@ public class StandaloneExecutor implements Executable {
       HANDLERS
           .getOrDefault(statement.getClass(), StandaloneExecutor::defaultHandler)
           .handle(this, preparedStatement.getStatementText(), statement);
+      // Todo(ac): Convert to taking PreparedStatement<>, pass through to engine
     }
   }
 
@@ -279,7 +282,7 @@ public class StandaloneExecutor implements Executable {
     }
   }
 
-  public Map<String, ?> getConfigProperties() {
+  Map<String, ?> getConfigProperties() {
     return configProperties;
   }
 }

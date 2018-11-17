@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,6 +41,8 @@ import org.apache.kafka.streams.KafkaStreams.State;
 
 public class KsqlEngineMetrics implements Closeable {
 
+  private static final String METRIC_GROUP_PREFIX = "ksql-engine";
+
   private final List<Sensor> sensors;
   private final List<CountMetric> countMetrics;
   private final String metricGroupName;
@@ -58,8 +60,8 @@ public class KsqlEngineMetrics implements Closeable {
   private final KsqlEngine ksqlEngine;
   private final Metrics metrics;
 
-  public KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine) {
-    this(metricGroupPrefix, ksqlEngine, MetricCollectors.getMetrics());
+  public KsqlEngineMetrics(final KsqlEngine ksqlEngine) {
+    this(METRIC_GROUP_PREFIX, ksqlEngine, MetricCollectors.getMetrics());
   }
 
   KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine,

@@ -16,29 +16,20 @@
 
 package io.confluent.ksql;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
-import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.ddl.commands.DdlCommand;
-import io.confluent.ksql.ddl.commands.DdlCommandFactory;
-import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.DdlStatement;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -46,15 +37,16 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.StatementWithSchema;
-import io.confluent.ksql.util.StringUtil;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -68,13 +60,17 @@ class QueryEngine {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
-  private final KsqlEngine ksqlEngine;
-  private final DdlCommandFactory ddlCommandFactory;
+  private final KafkaTopicClient topicClient;
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
+  private final QueryIdGenerator queryIdGenerator;
 
-
-  QueryEngine(final KsqlEngine ksqlEngine, final DdlCommandFactory ddlCommandFactory) {
-    this.ddlCommandFactory = ddlCommandFactory;
-    this.ksqlEngine = ksqlEngine;
+  QueryEngine(final KsqlEngine ksqlEngine,
+      final KafkaTopicClient topicClient,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+    this.queryIdGenerator = new QueryIdGenerator();
+    this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
+    this.schemaRegistryClientFactory =
+        Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
   }
 
   List<LogicalPlanNode> buildLogicalPlans(
@@ -108,13 +104,13 @@ class QueryEngine {
       final KsqlConfig config) {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         tempMetaStore,
-        ksqlEngine.getFunctionRegistry(),
+        tempMetaStore,
         config
     );
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
     final AggregateAnalysis aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
     final PlanNode logicalPlan
-        = new LogicalPlanner(analysis, aggAnalysis, ksqlEngine.getFunctionRegistry()).buildPlan();
+        = new LogicalPlanner(analysis, aggAnalysis, tempMetaStore).buildPlan();
     if (logicalPlan instanceof KsqlStructuredDataOutputNode) {
       final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) logicalPlan;
@@ -159,41 +155,7 @@ class QueryEngine {
     return logicalPlan;
   }
 
-  List<QueryMetadata> buildPhysicalPlans(
-      final List<LogicalPlanNode> logicalPlans,
-      final List<PreparedStatement> statementList,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final KafkaClientSupplier clientSupplier,
-      final MetaStore metaStore,
-      final boolean updateMetastore
-  ) {
-
-    final List<QueryMetadata> physicalPlans = new ArrayList<>();
-
-    for (int i = 0; i < logicalPlans.size(); i++) {
-
-      final LogicalPlanNode node = logicalPlans.get(i);
-      if (node.getNode() == null) {
-        final Statement statement = statementList.get(i).getStatement();
-        if (!(statement instanceof DdlStatement)) {
-          throw new KsqlException("expecting a statement implementing DDLStatement but got: "
-                                  + statement.getClass());
-        }
-        handleDdlStatement(node.getStatementText(), (DdlStatement) statement, overriddenProperties);
-      } else {
-        buildQueryPhysicalPlan(
-            physicalPlans, node, ksqlConfig,
-            overriddenProperties, clientSupplier, metaStore, updateMetastore
-        );
-      }
-
-    }
-    return physicalPlans;
-  }
-
-  private void buildQueryPhysicalPlan(
-      final List<QueryMetadata> physicalPlans,
+  QueryMetadata buildPhysicalPlans(
       final LogicalPlanNode logicalPlanNode,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
@@ -208,57 +170,17 @@ class QueryEngine {
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
         builder,
         ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
-        ksqlEngine.getTopicClient(),
-        ksqlEngine.getFunctionRegistry(),
+        topicClient,
+        metaStore,
         overriddenProperties,
         updateMetastore,
         metaStore,
-        ksqlEngine.getSchemaRegistryClientFactory(),
-        ksqlEngine.getQueryIdGenerator(),
+        schemaRegistryClientFactory,
+        queryIdGenerator,
         new KafkaStreamsBuilderImpl(clientSupplier)
     );
-    physicalPlans.add(physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode));
-  }
 
-
-  DdlCommandResult handleDdlStatement(
-      final String sqlExpression,
-      final DdlStatement statement,
-      final Map<String, Object> overriddenProperties) {
-    final DdlCommand command =
-        createDdlCommand(sqlExpression, statement, overriddenProperties, true);
-
-    return ksqlEngine.getDdlCommandExec().execute(command, false);
-  }
-
-  DdlCommand createDdlCommand(
-      final String sqlExpression,
-      final DdlStatement statement,
-      final Map<String, Object> overriddenProperties,
-      final boolean enforceTopicExistence) {
-    final String resultingSqlExpression;
-    final DdlStatement resultingStatement;
-
-    if (statement instanceof AbstractStreamCreateStatement) {
-      final AbstractStreamCreateStatement streamCreateStatement =
-          (AbstractStreamCreateStatement) statement;
-
-      final StatementWithSchema statementWithSchema
-          = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
-
-      resultingStatement = (DdlStatement) statementWithSchema.getStatement();
-      resultingSqlExpression = statementWithSchema.getStatementText();
-
-      if (((AbstractStreamCreateStatement)resultingStatement).getElements().isEmpty()) {
-        throw new KsqlException("The statement or topic schema does not define any columns.");
-      }
-    } else {
-      resultingSqlExpression = sqlExpression;
-      resultingStatement = statement;
-    }
-
-    return ddlCommandFactory.create(
-        resultingSqlExpression, resultingStatement, overriddenProperties, enforceTopicExistence);
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
   }
 
   StructuredDataSource getResultDatasource(final Select select, final String name) {
@@ -282,49 +204,5 @@ class QueryEngine {
         ksqlTopic,
         Serdes.String()
     );
-  }
-
-  private StatementWithSchema maybeAddFieldsFromSchemaRegistry(
-      final AbstractStreamCreateStatement streamCreateStatement,
-      final String statementText
-  ) {
-    if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
-      final String ksqlRegisteredTopicName = StringUtil.cleanQuotes(
-          streamCreateStatement
-              .getProperties()
-              .get(DdlConfig.TOPIC_NAME_PROPERTY)
-              .toString()
-              .toUpperCase()
-      );
-      final KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(ksqlRegisteredTopicName);
-      if (ksqlTopic == null) {
-        throw new KsqlException(String.format(
-            "Could not find %s topic in the metastore.",
-            ksqlRegisteredTopicName
-        ));
-      }
-      final Map<String, Expression> newProperties = new HashMap<>();
-      newProperties.put(
-          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(ksqlTopic.getKafkaTopicName())
-      );
-      newProperties.put(
-          DdlConfig.VALUE_FORMAT_PROPERTY,
-          new StringLiteral(
-              ksqlTopic.getKsqlTopicSerDe().getSerDe().toString()
-          )
-      );
-      final AbstractStreamCreateStatement statementWithProperties = streamCreateStatement.copyWith(
-          streamCreateStatement.getElements(),
-          newProperties);
-      return StatementWithSchema.forStatement(
-          statementWithProperties,
-          SqlFormatter.formatSql(statementWithProperties),
-          ksqlEngine.getSchemaRegistryClient()
-      );
-    }
-    return StatementWithSchema.forStatement(
-        streamCreateStatement,
-        statementText,
-        ksqlEngine.getSchemaRegistryClient());
   }
 }

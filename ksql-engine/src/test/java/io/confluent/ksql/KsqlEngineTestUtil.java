@@ -5,7 +5,6 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -29,7 +28,7 @@ public final class KsqlEngineTestUtil {
         metaStore,
         initializationKsqlConfig,
         adminClient,
-        KsqlEngine::createKsqlEngineMetrics
+        KsqlEngineMetrics::new
     );
   }
 

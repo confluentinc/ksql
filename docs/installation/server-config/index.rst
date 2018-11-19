@@ -86,9 +86,9 @@ Non-interactive (Headless) KSQL Usage
 -------------------------------------
 
 KSQL supports locked-down, "headless" deployment scenarios where interactive use of the KSQL cluster is disabled.
-For example, to allow a team of users to develop and verify their queries interactively on a shared testing
-KSQL cluster. But when deploying those queries in your production environment, you want to lock-down access to KSQL
-servers, version-control the exact queries, and store them in a .sql file. This will prevent users from interacting
+For example, the CLI enables a team of users to develop and verify their queries interactively on a shared testing
+KSQL cluster. But when you deploy these queries in your production environment, you want to lock down access to KSQL
+servers, version-control the exact queries, and store them in a .sql file. This prevents users from interacting
 directly with the production KSQL cluster.
 
 You can configure servers to exclusively run a predefined script (``.sql`` file) via the ``--queries-file`` command

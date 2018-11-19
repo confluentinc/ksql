@@ -14,8 +14,11 @@ Creating streams
 Prerequisite:
     The corresponding Kafka topics must already exist in your Kafka cluster.
 
-Create a stream with three columns on the Kafka topic that is named ``pageviews``. It is important to instruct KSQL the format
-of the values that are stored in the topic. In this example, the values format is ``DELIMITED``.
+Create a stream with three columns on the Kafka topic that is named ``pageviews``.
+
+KSQL can’t infer the topic’s data format, so you must provide the format of
+the values that are stored in the topic. In this example, the values format
+is ``DELIMITED``.
 
 .. code:: sql
 

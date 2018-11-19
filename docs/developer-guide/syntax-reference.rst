@@ -1409,7 +1409,7 @@ Example:
 
     -- Create a stream on the original topic.
     -- The topic is keyed by userid, which is available as the implicit column ROWKEY
-    -- in the `users_with_missing_key` stream. Note how the explicit column definitions
+    -- in the users_with_missing_key stream. Note how the explicit column definitions
     -- only define username and email but not userid.
     CREATE STREAM users_with_missing_key (username VARCHAR, email VARCHAR)
       WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON');

@@ -255,7 +255,7 @@ Example:
 
 If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
 The same applies to the field names in a STRUCT type.
-For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
+For instance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
 use the following statement to declare your stream:
 
 .. code:: sql
@@ -445,7 +445,7 @@ CREATE TABLE AS SELECT
     CREATE TABLE table_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_table
+      FROM from_item
       [ LEFT | FULL | INNER ] JOIN join_table ON join_criteria 
       [ WINDOW window_expression ]
       [ WHERE condition ]
@@ -713,11 +713,14 @@ DROP STREAM [IF EXISTS] [DELETE TOPIC];
 **Description**
 
 Drops an existing stream.
-If DELETE TOPIC clause is present, the corresponding topic in
-kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
-schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
-some time to complete.
-If IF EXISTS is present, does not fail if the table does not exist.
+
+If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
+for deletion, and if the topic format is AVRO, the corresponding Avro schema is
+deleted, too. Topic deletion is asynchronous, and actual removal from brokers
+may take some time to complete.
+
+If the IF EXISTS clause is present, the statement doesn't fail if the table
+doesn't exist.
 
 .. _drop-table:
 
@@ -733,11 +736,14 @@ DROP TABLE [IF EXISTS] [DELETE TOPIC];
 **Description**
 
 Drops an existing table.
-If DELETE TOPIC clause is present, the corresponding topic in
-kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
-schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
-some time to complete.
-If IF EXISTS is present, does not fail if the table does not exist.
+
+If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
+for deletion and if the topic format is AVRO, delete the corresponding Avro schema is
+deleted, too. Topic deletion is asynchronous, and actual removal from brokers
+may take some time to complete.
+
+If the IF EXISTS clause is present, the statement doesn't fail if the table
+doesn't exist.
 
 PRINT
 -----
@@ -1086,13 +1092,13 @@ The explanation for each operator includes a supporting example based on the fol
      orderId BIGINT,
      address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
 
-   SELECT address->city, address->zip FROM orders;
+   SELECT address->street, address->zip FROM orders;
 
 - Combine `->` with `.` when using aliases:
 
 .. code:: sql
 
-   SELECT orders.address->city, o.address->zip FROM orders o;
+   SELECT orders.address->street, o.address->zip FROM orders o;
 
 
 .. _functions:
@@ -1130,7 +1136,7 @@ Scalar functions
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | FLOOR                  |  ``FLOOR(col1)``                                           | The floor of a value.                             |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
-| GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, uint)``            | The great-circle distance between two lat-long    |
+| GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)``            | The great-circle distance between two lat-long    |
 |                        |                                                            | points, both specified in decimal degrees. An     |
 |                        |                                                            | optional final parameter specifies ``KM``         |
 |                        |                                                            | (the default) or ``miles``.                       |
@@ -1161,7 +1167,7 @@ Scalar functions
 |                        |                                                            | will return ``My Txxx--nnn``.                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | MASK_KEEP_RIGHT        |  ``MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``   | Similar to the ``MASK`` function above, except    |
-|                        |                                                            | that the last or rightt-most ``numChars``         |
+|                        |                                                            | that the last or right-most ``numChars``          |
 |                        |                                                            | characters will not be masked in any way.         |
 |                        |                                                            | For example:``MASK_KEEP_RIGHT("My Test $123", 4)``|
 |                        |                                                            | will return ``Xx-Xxxx-$123``.                     |
@@ -1173,7 +1179,7 @@ Scalar functions
 |                        |                                                            | will return ``Xx-Xest $123``.                     |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | MASK_RIGHT             |  ``MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``        | Similar to the ``MASK`` function above, except    |
-|                        |                                                            | that only the last or rightt-most ``numChars``    |
+|                        |                                                            | that only the last or right-most ``numChars``     |
 |                        |                                                            | characters will have any masking applied to them. |
 |                        |                                                            | For example: ``MASK_RIGHT("My Test $123", 4)``    |
 |                        |                                                            | will return ``My Test -nnn``.                     |

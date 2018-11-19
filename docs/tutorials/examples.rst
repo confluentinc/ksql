@@ -173,7 +173,7 @@ When joining objects the number of partitions in each must be the same. You can 
         WITH (PARTITIONS=5) AS \
         SELECT * FROM USERS;
 
-Now you can use the following query creates a new stream by joining the
+Now you can use the following query to create a new stream by joining the
 ``pageviews_transformed`` stream with the ``users_5part`` table. 
 
 .. code:: sql
@@ -212,7 +212,7 @@ Here is the query that would perform this count:
 
 The above query counts the pageviews from the time you start the query
 until you terminate the query. Note that we used CREATE TABLE AS SELECT
-statement here since the result of the query is a KSQL _table_. The
+statement here since the result of the query is a KSQL *table*. The
 results of aggregate queries in KSQL are always a table because it
 computes the aggregate for each key (and possibly for each window per
 key) and *updates* these results as it processes new input data.

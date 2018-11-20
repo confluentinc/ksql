@@ -78,6 +78,8 @@ public class RestApiTest {
 
   private static String serverAddress;
 
+  private static VersionCheckerAgent versionCheckerAgent;
+
 
   private Client restClient;
 
@@ -86,6 +88,7 @@ public class RestApiTest {
     final Map<String, Object> config = new HashMap<>();
     config.put(KsqlRestConfig.INSTALL_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     config.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "rest_api_test_service");
+    versionCheckerAgent = EasyMock.niceMock(VersionCheckerAgent.class);
 
     testHarness.start(config);
 
@@ -174,7 +177,7 @@ public class RestApiTest {
         configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
         restApplication = KsqlRestApplication.buildApplication(
             new KsqlRestConfig(configs),
-            EasyMock.niceMock(VersionCheckerAgent.class),
+            (booleanSupplier) -> versionCheckerAgent,
             3);
         restApplication.start();
         return;

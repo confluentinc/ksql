@@ -1,10 +1,5 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,25 +29,16 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTo
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.KeyValue;
-import org.easymock.Capture;
-import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,10 +85,12 @@ public class WSQueryEndpointTest {
   private PrintTopicPublisher topicPublisher;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
+  @Mock
+  private ActivenessRegistrar activenessRegistrar;
+
 
   private Query query;
   private WSQueryEndpoint wsQueryEndpoint;
-  private List mocks;
 
   @Before
   public void setUp() {
@@ -116,7 +104,7 @@ public class WSQueryEndpointTest {
 
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, exec,
-        queryPublisher, topicPublisher, () -> {});
+        queryPublisher, topicPublisher, activenessRegistrar);
   }
 
   @Test
@@ -383,35 +371,13 @@ public class WSQueryEndpointTest {
 
   @Test
   public void shouldUpdateTheLastRequestTime() throws Exception {
-    final ActivenessRegistrar activenessRegistrar = mock(ActivenessRegistrar.class);
-    activenessRegistrar.updateLastRequestTime();
-    expectLastCall();
-
-    wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, exec, activenessRegistrar);
-    setupSessionMock();
-    replay(activenessRegistrar);
-    EasyMock.replay(activenessRegistrar);
+    // Given:
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    EasyMock.verify(activenessRegistrar);
-  }
-
-  private void setupSessionMock() throws IOException {
-    final Map<String, List<String>> parameters =
-        Collections.singletonMap(
-            Versions.KSQL_V1_WS_PARAM, Collections.singletonList("bad-version"));
-    final CloseReason expectedCloseReason = new CloseReason(
-        CloseReason.CloseCodes.CANNOT_ACCEPT,"Invalid version in request");
-    final Capture<CloseReason> captured = Capture.newInstance();
-
-    expect(session.getRequestParameterMap()).andReturn(parameters).anyTimes();
-    expect(session.getId()).andReturn("session-id").anyTimes();
-    session.close(capture(captured));
-    expectLastCall().once();
+    verify(activenessRegistrar).updateLastRequestTime();
   }
 
 }

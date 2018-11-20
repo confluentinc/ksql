@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.resources;
 
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
@@ -93,6 +94,8 @@ public class StreamedQueryResourceTest {
   private ActivenessRegistrar activenessRegistrar;
   private StreamedQueryResource testResource;
 
+  final String queryString = "SELECT * FROM test_stream;";
+
   @Before
   public void setup() {
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
@@ -107,30 +110,42 @@ public class StreamedQueryResourceTest {
 
   @Test
   public void shouldReturn400OnBadStatement() throws Exception {
-    final String queryString = "SELECT * FROM test_stream;";
+    // Given:
+    expect(mockStatementParser.parseSingleStatement(anyString()))
+        .andThrow(new IllegalArgumentException("some error message"));
 
-    final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
+    replay( mockStatementParser);
+
+    // When:
+    final Response response = testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap()));
+
+    // Then:
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
-    assertThat(
-        errorMessage.getMessage(), containsString("some msg only the parser would use"));
+    assertThat(errorMessage.getMessage(), containsString("some error message"));
   }
 
   @Test
   public void shouldReturn400OnBuildMultipleQueriesError() throws Exception {
-    final String queryString = "SELECT * FROM test_stream;";
+    // Given:
+    expect(mockStatementParser.parseSingleStatement(anyString()))
+        .andThrow(new IllegalArgumentException("some error message"));
 
+    replay( mockStatementParser);
+
+    // When:
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
+
+    // Then:
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(
-        errorMessage.getMessage(), containsString("some msg only the engine would use"));
+        errorMessage.getMessage(), containsString("some error message"));
   }
 
   @SuppressWarnings("unchecked")
@@ -330,47 +345,22 @@ public class StreamedQueryResourceTest {
 
   @Test
   public void shouldUpdateTheLastRequestTime() throws Exception {
+    // Given:
     final ActivenessRegistrar activenessRegistrar = mock(ActivenessRegistrar.class);
     activenessRegistrar.updateLastRequestTime();
     EasyMock.expectLastCall();
+    expect(mockStatementParser.parseSingleStatement(queryString))
+          .andReturn(mock(Statement.class));
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
 
-    EasyMock.replay(activenessRegistrar);
+    EasyMock.replay(activenessRegistrar, mockStatementParser);
 
     // When:
-    streamedQueryResource.streamQuery(new KsqlRequest("SELECT * FROM test_stream;", Collections.emptyMap()));
+    streamedQueryResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
 
     // Then:
     EasyMock.verify(activenessRegistrar);
   }
 
-//  private StreamedQueryResource getTestStreamedQueryResource(
-//      final ActivenessRegistrar activenessRegistrar,
-//      final boolean isParseSuccesfull,
-//      final String errorMessage
-//  ) {
-//    final String queryString = "SELECT * FROM test_stream;";
-//
-//    final KsqlConfig ksqlConfig = mock(KsqlConfig.class);
-//    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-//    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
-//    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
-//    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
-//
-//    final StatementParser mockStatementParser = mock(StatementParser.class);
-//    if (isParseSuccesfull) {
-//      expect(mockStatementParser.parseSingleStatement(queryString))
-//          .andReturn(mock(Statement.class));
-//    } else {
-//      expect(mockStatementParser.parseSingleStatement(queryString))
-//          .andThrow(new IllegalArgumentException(errorMessage));
-//    }
-//
-//    replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
-//
-//    return new StreamedQueryResource(
-//        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
-//
-//  }
 }

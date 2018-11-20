@@ -58,7 +58,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
@@ -75,7 +74,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -396,7 +394,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        versionCheckerAgentToUse
+        versionChecker
     );
   }
 

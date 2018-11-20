@@ -19,7 +19,9 @@ package io.confluent.ksql.version.metrics;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.PhoneHomeConfig;
+import java.time.Clock;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -30,31 +32,38 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
-  private KsqlVersionChecker ksqlVersionChecker;
 
   private boolean enableSettlingTime;
 
+  private Clock clock;
+
   private volatile long requestTime;
-  private final Supplier<Boolean> engineActiveQueryStatusSupplier;
+  private final Supplier<Boolean> activeQuerySupplier;
 
   private static final Logger log = LoggerFactory.getLogger(KsqlVersionCheckerAgent.class);
 
-  public KsqlVersionCheckerAgent(final Supplier<Boolean> engineActiveQueryStatusSupplier) {
-    this(engineActiveQueryStatusSupplier, true);
+  public KsqlVersionCheckerAgent(final Supplier<Boolean> activeQuerySupplier) {
+    this(activeQuerySupplier, true, Clock.systemDefaultZone());
   }
 
-  private KsqlVersionCheckerAgent(
-      final Supplier<Boolean> engineActiveQueryStatusSupplier,
-      final boolean enableSettlingTime) {
-    Objects.requireNonNull(
-        engineActiveQueryStatusSupplier,
-        " engineActiveQueryStatusSupplier cannot be null.");
+  KsqlVersionCheckerAgent(
+      final Supplier<Boolean> activeQuerySupplier,
+      final boolean enableSettlingTime,
+      final Clock clock) {
     this.enableSettlingTime = enableSettlingTime;
-    this.engineActiveQueryStatusSupplier = engineActiveQueryStatusSupplier;
+    this.activeQuerySupplier = Objects.requireNonNull(activeQuerySupplier, "activeQuerySupplier");
+    this.clock = clock;
   }
 
   @Override
   public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
+    start(null, moduleType, ksqlProperties);
+  }
+
+  void start(
+      final KsqlVersionChecker ksqlVersionCheckerArg,
+      final KsqlModuleType moduleType,
+      final Properties ksqlProperties) {
     final BaseSupportConfig ksqlVersionCheckerConfig =
         new PhoneHomeConfig(ksqlProperties, "ksql");
 
@@ -62,20 +71,18 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
       log.warn(legalDisclaimerProactiveSupportDisabled());
       return;
     }
-
+    final Runtime serverRuntime = Runtime.getRuntime();
+    final KsqlVersionChecker ksqlVersionChecker = Optional.ofNullable(ksqlVersionCheckerArg).orElse(
+        new KsqlVersionChecker(
+            "KsqlVersionCheckerAgent",
+            true,
+            ksqlVersionCheckerConfig,
+            serverRuntime,
+            moduleType,
+            enableSettlingTime,
+            this::isActive
+        ));
     try {
-      final Runtime serverRuntime = Runtime.getRuntime();
-
-      ksqlVersionChecker =
-          new KsqlVersionChecker(
-                  "KsqlVersionCheckerAgent",
-                  true,
-                  ksqlVersionCheckerConfig,
-                  serverRuntime,
-                  moduleType,
-                  enableSettlingTime,
-                  this::isActive
-                  );
       ksqlVersionChecker.init();
       ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
           -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
@@ -90,7 +97,6 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
       // threads that are running in the same JVM.
       log.error("Failed to start KsqlVersionCheckerAgent: {}", e.getMessage());
     }
-
   }
 
   private static String legalDisclaimerProactiveSupportEnabled(final long reportIntervalHours) {
@@ -118,7 +124,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   @Override
   public void updateLastRequestTime() {
-    this.requestTime = System.currentTimeMillis();
+    this.requestTime = clock.millis();
   }
 
   private boolean hasRecentRequests() {
@@ -126,6 +132,6 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   }
 
   private boolean isActive() {
-    return hasRecentRequests() || engineActiveQueryStatusSupplier.get();
+    return hasRecentRequests() || activeQuerySupplier.get();
   }
 }

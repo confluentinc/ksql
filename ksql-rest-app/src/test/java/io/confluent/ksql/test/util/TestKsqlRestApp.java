@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.test.util;
 
+import static org.easymock.EasyMock.niceMock;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -144,7 +146,7 @@ public class TestKsqlRestApp extends ExternalResource {
     try {
       restServer = KsqlRestApplication.buildApplication(
           buildConfig(),
-          new NoOpVersionCheckerAgent(() -> false),
+          (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3
       );
     } catch (final Exception e) {
@@ -232,18 +234,6 @@ public class TestKsqlRestApp extends ExternalResource {
 
     public TestKsqlRestApp build() {
       return new TestKsqlRestApp(bootstrapServers, additionalProps);
-    }
-  }
-
-  private static class NoOpVersionCheckerAgent extends KsqlVersionCheckerAgent {
-
-    public NoOpVersionCheckerAgent(
-        final Supplier<Boolean> engineActiveQueryStatusSupplier) {
-      super(engineActiveQueryStatusSupplier);
-    }
-
-    @Override
-    public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
     }
   }
 }

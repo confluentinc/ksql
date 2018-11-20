@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 public class BasicCollector extends Collector {
 
   private final KsqlModuleType moduleType;
-  private final Supplier<Boolean> activenessStatusSupplier;
+  private final Supplier<Boolean> activenessSupplier;
   private final Clock clock;
 
   public BasicCollector(
@@ -39,12 +39,11 @@ public class BasicCollector extends Collector {
 
   BasicCollector(
       final KsqlModuleType moduleType,
-      final Supplier<Boolean> activenessStatusSupplier,
+      final Supplier<Boolean> activenessSupplier,
       final Clock clock
   ) {
     this.moduleType = moduleType;
-    Objects.requireNonNull(activenessStatusSupplier);
-    this.activenessStatusSupplier = activenessStatusSupplier;
+    this.activenessSupplier = Objects.requireNonNull(activenessSupplier, "activenessSupplier");
     this.clock = Objects.requireNonNull(clock, "clock");
   }
 
@@ -54,7 +53,7 @@ public class BasicCollector extends Collector {
     metricsRecord.setTimestamp(TimeUnit.MILLISECONDS.toSeconds(clock.millis()));
     metricsRecord.setConfluentPlatformVersion(Version.getVersion());
     metricsRecord.setKsqlComponentType(moduleType.name());
-    metricsRecord.setIsActive(activenessStatusSupplier.get());
+    metricsRecord.setIsActive(activenessSupplier.get());
     return metricsRecord;
   }
 }

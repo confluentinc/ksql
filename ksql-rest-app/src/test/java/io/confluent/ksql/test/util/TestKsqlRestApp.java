@@ -64,6 +64,7 @@ import org.junit.rules.ExternalResource;
  * }</pre>
  */
 public class TestKsqlRestApp extends ExternalResource {
+  private final int COMMAND_RETRY_LIMIT = 3;
 
   private final Map<String, ?> baseConfig;
   private final Supplier<String> bootstrapServers;
@@ -143,7 +144,9 @@ public class TestKsqlRestApp extends ExternalResource {
     try {
       restServer = KsqlRestApplication.buildApplication(
           buildConfig(),
-          new NoOpVersionCheckerAgent(() -> false));
+          new NoOpVersionCheckerAgent(() -> false),
+          3
+      );
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
     }

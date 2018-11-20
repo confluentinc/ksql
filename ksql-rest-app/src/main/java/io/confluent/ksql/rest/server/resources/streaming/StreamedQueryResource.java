@@ -31,10 +31,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -79,12 +76,10 @@ public class StreamedQueryResource {
   public Response streamQuery(final KsqlRequest request) throws Exception {
     final String ksql = request.getKsql();
     final Statement statement;
-    if (ksql == null) {
-      return Errors.badRequest("\"ksql\" field must be given");
+    if (ksql.isEmpty()) {
+      return Errors.badRequest("\"ksql\" field must be populated");
     }
     activenessRegistrar.updateLastRequestTime();
-    final Map<String, Object> clientLocalProperties =
-        Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
     try {
       statement = statementParser.parseSingleStatement(ksql);
     } catch (IllegalArgumentException | KsqlException e) {
@@ -99,7 +94,7 @@ public class StreamedQueryResource {
             ksqlEngine,
             disconnectCheckInterval.toMillis(),
             ksql,
-            clientLocalProperties,
+            request.getStreamsProperties(),
             objectMapper);
       } catch (final KsqlException e) {
         return Errors.badRequest(e);

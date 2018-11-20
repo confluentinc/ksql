@@ -26,7 +26,7 @@ to change it to earliest by using the KSQL command line:
 
 .. code:: sql
 
-    ksql> SET 'auto.offset.reset'='earliest';
+    SET 'auto.offset.reset'='earliest';
 
 For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
 
@@ -42,7 +42,7 @@ by using the KSQL command line:
 
 .. code:: sql
 
-    ksql> SET 'bootstrap.servers'='localhost:9095';
+    SET 'bootstrap.servers'='localhost:9095';
 
 For more information, see :ref:`Streams parameter reference <streams_developer-guide_required-configs>` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`.
 
@@ -57,7 +57,7 @@ the value to ``5000`` by using the KSQL command line:
 
 .. code:: sql
 
-    ksql> SET 'commit.interval.ms'='5000';
+    SET 'commit.interval.ms'='5000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG`,
 
@@ -72,7 +72,7 @@ Here is an example to change the value to ``20000000`` by using the KSQL command
 
 .. code:: sql
 
-    ksql> SET 'cache.max.bytes.buffering'='20000000';
+    SET 'cache.max.bytes.buffering'='20000000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
 
@@ -155,6 +155,22 @@ These configurations control the general behavior of the KSQL server. These conf
 
 .. important:: KSQL server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
                for ``ksql.streams.replication.factor`` is set in both the KSQL server and KSQL CLI, the KSQL server value is used.
+
+.. _ksql.query.persistent.active.limit:
+
+----------------------------------
+ksql.query.persistent.active.limit
+----------------------------------
+
+The maximum number of persistent queries that may be running at any given time. Applies to interactive mode only.
+Once the limit is reached, commands that try to start additional persistent queries will be rejected.
+Users may terminate existing queries before attempting to start new ones to avoid hitting the limit.
+The default is no limit.
+
+When setting up KSQL servers, it may be desirable to configure this limit to prevent users from overloading the server
+with too many queries, since throughput suffers as more queries are run simultaneously,
+and also because there is some small CPU overhead associated with starting each new query.
+See :ref:`KSQL Sizing Recommendations <important-sizing-factors>` for more details.
 
 .. _ksql-queries-file:
 

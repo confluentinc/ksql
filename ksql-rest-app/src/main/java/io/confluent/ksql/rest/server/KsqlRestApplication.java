@@ -276,17 +276,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     }
   }
 
-  public static KsqlRestApplication buildApplication(
-      final KsqlRestConfig restConfig
-  ) throws Exception {
-    return buildApplication(restConfig, null);
-  }
-
   // Use only for testing
   public static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
-      final KsqlVersionCheckerAgent versionCheckerAgent
-  ) throws Exception {
+      final KsqlVersionCheckerAgent versionCheckerAgent,
+      final int maxStatementRetries
+  ) {
 
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
@@ -363,7 +358,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
-        commandStore
+        commandStore,
+        maxStatementRetries
     );
 
     final RootDocument rootDocument = new RootDocument();

@@ -14,8 +14,11 @@ Creating streams
 Prerequisite:
     The corresponding Kafka topics must already exist in your Kafka cluster.
 
-Create a stream with three columns on the Kafka topic that is named ``pageviews``. It is important to instruct KSQL the format
-of the values that are stored in the topic. In this example, the values format is ``DELIMITED``.
+Create a stream with three columns on the Kafka topic that is named ``pageviews``.
+
+KSQL can’t infer the topic’s data format, so you must provide the format of
+the values that are stored in the topic. In this example, the values format
+is ``DELIMITED``.
 
 .. code:: sql
 
@@ -272,8 +275,8 @@ counting/aggregation step per region.
       WINDOW SESSION (60 SECONDS) \
       GROUP BY regionid;
 
-Sometimes you may want to include the bounds of the current window in the result so that it is
-more easily accessible to consumers of the data. The statement below extracts the start and
+Sometimes, you may want to include the bounds of the current window in the result so that it is
+more easily accessible to consumers of the data. The following statement extracts the start and
 end time of the current session window into fields within output rows.
 
 .. code:: sql
@@ -330,13 +333,13 @@ The following examples show common usage:
 
     .. code:: bash
 
-        $ echo -e "SHOW TOPICS;\nexit" | ksql
+        echo -e "SHOW TOPICS;\nexit" | ksql
 
 -   This example uses the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) to run KSQL CLI commands.
 
     .. code:: bash
 
-        $ ksql <<EOF
+        ksql <<EOF
         > SHOW TOPICS;
         > SHOW STREAMS;
         > exit
@@ -347,7 +350,7 @@ The following examples show common usage:
 
     .. code:: bash
 
-        $ ksql http://localhost:8088 <<< "SHOW TOPICS;
+        ksql http://localhost:8088 <<< "SHOW TOPICS;
         SHOW STREAMS;
         exit"
 
@@ -356,12 +359,12 @@ The following examples show common usage:
 
     .. code:: bash
 
-        $ cat /path/to/local/application.sql
+        cat /path/to/local/application.sql
         CREATE STREAM pageviews_copy AS SELECT * FROM pageviews;
 
     .. code:: bash
 
-        $ ksql http://localhost:8088 <<EOF
+        ksql http://localhost:8088 <<EOF
         > RUN SCRIPT '/path/to/local/application.sql';
         > exit
         > EOF

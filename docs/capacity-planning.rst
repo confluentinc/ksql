@@ -77,7 +77,8 @@ Some queries require that the input stream be repartitioned so that all messages
         
     Your output should resemble:
 
-    ::    
+    ::
+
         ...
         Queries that write into this TABLE
         -----------------------------------

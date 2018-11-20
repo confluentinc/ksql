@@ -641,10 +641,6 @@ public class KsqlResource {
 
   @SuppressWarnings("unchecked")
   private PreparedStatement<?> addInferredSchema(final PreparedStatement<?> stmt) {
-    // Todo(ac): Standalone executor doesn't do this itself as the engine will do it automatically
-    // However, here we do it explicitly. It would be better to have the engine do it,
-    // and for the class to use the output from the engine,
-    // maybe rebuilding the SQL using SqlFormatter...?
     return StatementWithSchema
         .forStatement((PreparedStatement) stmt, ksqlEngine.getSchemaRegistryClient());
   }

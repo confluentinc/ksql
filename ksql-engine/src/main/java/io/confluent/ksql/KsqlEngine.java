@@ -461,7 +461,6 @@ public class KsqlEngine implements Closeable {
       final PreparedStatement<?> statement,
       final MetaStore parserMetaStore
   ) {
-    // Todo(ac): This should update config... but won't here.
     if (statement.getStatement() instanceof SetProperty
         || statement.getStatement() instanceof UnsetProperty) {
       return;

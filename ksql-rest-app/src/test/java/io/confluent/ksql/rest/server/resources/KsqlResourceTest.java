@@ -493,7 +493,6 @@ public class KsqlResourceTest {
         is("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON');"));
   }
 
-  // Todo(ac): Controversial...?
   @Test
   public void shouldDistributeCreateStatementEvenIfTopicDoesNotExist() {
     // When:
@@ -505,7 +504,6 @@ public class KsqlResourceTest {
     verify(commandStore).enqueueCommand(any(), any(), any(), any());
   }
 
-  // Todo(ac): Add to standalone
   @Test
   public void shouldDistributeAvoCreateStatementWithColumns() {
     // When:
@@ -520,7 +518,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldDistributAvroCreateStatementWithInferredColumns() {
+  public void shouldDistributeAvroCreateStatementWithInferredColumns() {
     // When:
     makeSingleRequest(
         "CREATE TABLE orders WITH (KAFKA_TOPIC='orders-topic', VALUE_FORMAT='avro', KEY='orderid');",
@@ -537,9 +535,8 @@ public class KsqlResourceTest {
     verify(commandStore).enqueueCommand(eq(ksqlWithSchema), any(), any(), any());
   }
 
-  // Todo(ac): Add to standalone
   @Test
-  public void shouldFailWhenAvroSchemaCanBeDetermined() {
+  public void shouldFailWhenAvroSchemaCanNotBeDetermined() {
     // Given:
     givenTopicExists("topicWithUnknownSchema");
 
@@ -555,7 +552,6 @@ public class KsqlResourceTest {
             + "Caused by: No schema registered under subject!"));
   }
 
-  // Todo(ac): Add to standalone
   @Test
   public void shouldFailWhenAvroSchemaCanNotBeEvolved() {
     // Given:
@@ -978,9 +974,11 @@ public class KsqlResourceTest {
     return entities.get(0);
   }
 
+  @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
   private <T extends KsqlEntity> List<T> makeMultipleRequest(
       final String sql,
-      final Class<T> expectedEntityType) {
+      final Class<T> expectedEntityType
+  ) {
     return makeMultipleRequest(new KsqlRequest(sql, Collections.emptyMap()), expectedEntityType);
   }
 

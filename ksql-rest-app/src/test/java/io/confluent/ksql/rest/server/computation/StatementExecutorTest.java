@@ -31,6 +31,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
@@ -116,7 +117,6 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser);
 
-    expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
     statementExecutorWithMocks
         = new StatementExecutor(ksqlConfig, mockEngine, mockParser);
   }
@@ -242,6 +242,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         CommandId.Action.CREATE);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
+    expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
     expect(mockEngine.execute(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
     mockQueryMetadata.start();
@@ -435,8 +436,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test
   public void shouldEnforceReferentialIntegrity() {
 
-    // First create streams/tables and start queries
-    createStreamsAndTables();
+    createStreamsAndStartTwoPersistentQueries();
 
     // Now try to drop streams/tables to test referential integrity
     tryDropThatViolatesReferentialIntegrity();
@@ -521,6 +521,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockQuery.getQueryId()).andStubReturn(queryId);
     expect(mockParser.parseSingleStatement(statement)).andReturn(mockCSAS);
     expect(mockMetaStore.getSource(name)).andStubReturn(null);
+    expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
     expect(mockEngine.execute(eq(statement), anyObject(), anyObject()))
         .andReturn(Collections.singletonList(mockQuery));
     return mockQuery;
@@ -554,6 +555,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         .andStubReturn(mock(StructuredDataSource.class));
     expect(mockMetaStore.getQueriesWithSink("foo"))
         .andStubReturn(ImmutableSet.of("query-id"));
+    expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
     expect(mockEngine.terminateQuery(eq(new QueryId("query-id")), eq(false)))
         .andReturn(true);
     expect(mockEngine.executeDdlStatement("DROP", mockDropStream, Collections.emptyMap()))
@@ -593,7 +595,56 @@ public class StatementExecutorTest extends EasyMockSupport {
     verify(mockParser, mockEngine, mockMetaStore);
   }
 
-  private void createStreamsAndTables() {
+  @Test
+  public void shouldFailCreateAsSelectIfExceedActivePersistentQueriesLimit() {
+    // Given:
+    createStreamsAndStartTwoPersistentQueries();
+    // Prepare to try adding a third
+    final KsqlConfig cmdConfig =
+        givenCommandConfig(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 2);
+    final Command csasCommand =
+        givenCommand("CREATE STREAM user2pv AS select * from pageview;", cmdConfig);
+    final CommandId csasCommandId =
+        new CommandId(CommandId.Type.STREAM, "_CSASGen2", CommandId.Action.CREATE);
+
+    // When:
+    handleStatement(csasCommand, csasCommandId, Optional.empty());
+
+    // Then:
+    final CommandStatus commandStatus = getCommandStatus(csasCommandId);
+    assertThat("CSAS statement should fail since exceeds limit of 2 active persistent queries",
+        commandStatus.getStatus(), is(CommandStatus.Status.ERROR));
+    assertThat(
+        commandStatus.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+  }
+
+  @Test
+  public void shouldFailInsertIntoIfExceedActivePersistentQueriesLimit() {
+    // Given:
+    createStreamsAndStartTwoPersistentQueries();
+    // Set limit and prepare to try adding a query that exceeds the limit
+    final KsqlConfig cmdConfig =
+        givenCommandConfig(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 1);
+    final Command insertIntoCommand =
+        givenCommand("INSERT INTO user1pv select * from pageview;", cmdConfig);
+    final CommandId insertIntoCommandId =
+        new CommandId(CommandId.Type.STREAM, "_InsertQuery1", CommandId.Action.CREATE);
+
+    // When:
+    handleStatement(insertIntoCommand, insertIntoCommandId, Optional.empty());
+
+    // Then: statement should fail since exceeds limit of 1 active persistent query
+    final CommandStatus commandStatus = getCommandStatus(insertIntoCommandId);
+    assertThat(commandStatus.getStatus(), is(CommandStatus.Status.ERROR));
+    assertThat(
+        commandStatus.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+  }
+
+  private void createStreamsAndStartTwoPersistentQueries() {
     final Command csCommand = new Command(
         "CREATE STREAM pageview ("
             + "viewtime bigint,"
@@ -633,6 +684,10 @@ public class StatementExecutorTest extends EasyMockSupport {
                                              "_CTASGen",
                                              CommandId.Action.CREATE);
     handleStatement(ctasCommand, ctasCommandId, Optional.empty());
+
+    assertThat(getCommandStatus(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(getCommandStatus(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(getCommandStatus(ctasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
   private void tryDropThatViolatesReferentialIntegrity() {
@@ -758,9 +813,8 @@ public class StatementExecutorTest extends EasyMockSupport {
         new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
     handleStatement(
         statementExecutor, terminateCommand1, terminateCommandId1, Optional.empty());
-    final Optional<CommandStatus> terminateCommandStatus1 =
-        statementExecutor.getStatus(terminateCommandId1);
-    assertThat(terminateCommandStatus1.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(
+        getCommandStatus(terminateCommandId1).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
 
     final Command terminateCommand2 = new Command(
         "TERMINATE CTAS_TABLE1_1;",
@@ -770,9 +824,24 @@ public class StatementExecutorTest extends EasyMockSupport {
         new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     handleStatement(
         statementExecutor, terminateCommand2, terminateCommandId2, Optional.empty());
-    final Optional<CommandStatus> terminateCommandStatus2 =
-        statementExecutor.getStatus(terminateCommandId2);
-    assertThat(terminateCommandStatus2.get().getStatus(), equalTo(CommandStatus.Status.SUCCESS));
+    assertThat(
+        getCommandStatus(terminateCommandId2).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }
 
+  private CommandStatus getCommandStatus(CommandId commandId) {
+    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
+    assertThat("command not registered: " + commandId,
+        commandStatus,
+        is(not(equalTo(Optional.empty()))));
+    return commandStatus.get();
+  }
+
+  private KsqlConfig givenCommandConfig(final String name, final Object value) {
+    return new KsqlConfig(Collections.singletonMap(name, value));
+  }
+
+  private Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
+    return new Command(
+        statementStr, Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+  }
 }

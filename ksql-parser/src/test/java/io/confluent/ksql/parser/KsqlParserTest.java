@@ -68,6 +68,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -1186,5 +1187,24 @@ public class KsqlParserTest {
 
     final String simpleQuery = "SELECT * FROM address, itemid;";
     KSQL_PARSER.buildAst(simpleQuery, metaStore);
+  }
+
+  @Test
+  public void shouldParseSimpleComment() {
+    final String statementString = "--this is a comment.\nSHOW STREAMS;";
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+        .getStatement();
+    assertThat(statement, instanceOf(ListStreams.class));
+  }
+
+  @Test
+  public void shouldParseBracketedComment() {
+    final String statementString = "/* this is a bracketed comment. */\n"
+        + "SHOW STREAMS;"
+        + "/*another comment!*/";
+    final List<PreparedStatement> statementList = KSQL_PARSER.buildAst(statementString, metaStore);
+    assertThat(statementList.size(), equalTo(1));
+    final Statement statement = statementList.get(0).getStatement();
+    assertThat(statement, instanceOf(ListStreams.class));
   }
 }

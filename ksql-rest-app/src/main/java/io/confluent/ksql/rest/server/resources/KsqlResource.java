@@ -78,6 +78,7 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -201,7 +202,9 @@ public class KsqlResource {
 
   private List<PreparedStatement<?>> parseStatements(final String sql) {
     try {
-      return ksqlEngine.parseStatements(sql);
+      final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(sql);
+      checkPersistentQueryCapacity(statements, request.getKsql());
+      return statements;
     } catch (final ParseFailedException e) {
       throw new KsqlRestException(Errors.badStatement(e.getCause(), e.getSqlStatement()));
     }
@@ -657,6 +660,26 @@ public class KsqlResource {
     final String returnType = SchemaUtil.getSqlTypeName(returnTypeSchema);
 
     return new FunctionInfo(args, returnType, description);
+  }
+
+  private void checkPersistentQueryCapacity(
+      final List<? extends PreparedStatement> parsedStatements,
+      final String queriesString
+  ) {
+    final long numPersistentQueries = parsedStatements.stream().filter(parsedStatement -> {
+      final Statement statement = parsedStatement.getStatement();
+      // Note: RunScript commands also have the potential to create persistent queries,
+      // but we don't count those queries here (to avoid parsing those commands)
+      return statement instanceof CreateAsSelect || statement instanceof InsertInto;
+    }).count();
+
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+        ksqlEngine,
+        ksqlConfig,
+        numPersistentQueries)) {
+      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+          ksqlEngine, ksqlConfig, queriesString);
+    }
   }
 
   @SuppressWarnings("unchecked")

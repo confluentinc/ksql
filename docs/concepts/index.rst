@@ -9,4 +9,5 @@ These topics describe KSQL concepts in |cp|.
     :maxdepth: 1
 
     ksql-and-kafka-streams
+    time-and-windows-in-ksql-queries
     

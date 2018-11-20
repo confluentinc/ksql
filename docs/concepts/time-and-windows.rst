@@ -114,3 +114,9 @@ that the notion of late records is not applicable as, by definition, no record c
 Hence, late-arriving records can only be considered as such (i.e. as arriving “late”) for
 event-time or ingestion-time semantics. In both cases, Kafka Streams is able to properly
 handle late-arriving records.
+
+.. image:: ../img/ksql-window.png
+
+
+.. image:: ../img/ksql-window-aggregation.png
+

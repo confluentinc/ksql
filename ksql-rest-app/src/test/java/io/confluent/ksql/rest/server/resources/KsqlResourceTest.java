@@ -33,10 +33,13 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -71,6 +74,7 @@ import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -88,6 +92,7 @@ import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
+import junit.framework.AssertionFailedError;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -129,10 +134,14 @@ public class KsqlResourceTest {
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     kafkaTopicClient = new FakeKafkaTopicClient();
-    realEngine = TestUtils.createKsqlEngine(
-        ksqlConfig,
+    realEngine = KsqlEngineTestUtil.createKsqlEngine(
         kafkaTopicClient,
-        () -> schemaRegistryClient);
+        () -> schemaRegistryClient,
+        new FakeKafkaClientSupplier(),
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        ksqlConfig,
+        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps())
+    );
 
     ksqlEngine = realEngine;
 
@@ -506,13 +515,15 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
-          .andReturn(realEngine.parseStatements(ksqlString));
-
+          .andDelegateTo(realEngine);
+      EasyMock.expect(
+          mockEngine.numberOfPersistentQueries())
+          .andReturn(0L);
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
     });
 
-    // Then:
+    // When:
     final KsqlErrorMessage result = makeFailingRequest(
         ksqlString, Code.INTERNAL_SERVER_ERROR);
 
@@ -520,6 +531,67 @@ public class KsqlResourceTest {
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
     EasyMock.verify(ksqlEngine);
+  }
+
+  @Test
+  public void shouldFailIfReachedActivePersistentQueriesLimit() {
+    // Given:
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+    final String ksqlString = "CREATE STREAM new_stream AS SELECT * FROM test_stream;";
+    givenMockEngine(mockEngine -> {
+      EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+          .andDelegateTo(realEngine);
+      EasyMock.expect(
+          mockEngine.numberOfPersistentQueries())
+          .andReturn(3L);
+    });
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        ksqlString, Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(
+        result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+    EasyMock.verify(ksqlEngine);
+  }
+
+  @Test
+  public void shouldFailAllCommandsIfWouldReachActivePersistentQueriesLimit() {
+    // Given:
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+    final String ksqlString = "CREATE STREAM new_stream AS SELECT * FROM test_stream;"
+        + "CREATE STREAM another_stream AS SELECT * FROM test_stream;";
+    givenMockEngine(mockEngine -> {
+      EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+          .andDelegateTo(realEngine);
+      EasyMock.expect(mockEngine.numberOfPersistentQueries())
+          .andReturn(2L);
+    });
+
+    EasyMock.expect(
+        commandStore.enqueueCommand(
+            EasyMock.anyString(), EasyMock.anyObject(), EasyMock.anyObject(), EasyMock.anyObject()))
+        .andThrow(new AssertionFailedError())
+        .anyTimes();
+    EasyMock.replay(commandStore);
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        ksqlString, Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(
+        result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+    EasyMock.verify(ksqlEngine, commandStore);
   }
 
   @Test

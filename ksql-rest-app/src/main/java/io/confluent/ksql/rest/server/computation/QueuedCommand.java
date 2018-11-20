@@ -21,15 +21,19 @@ import java.util.Optional;
 
 public class QueuedCommand {
   private final CommandId commandId;
-  private final Optional<Command> command;
+  private final Command command;
   private final Optional<QueuedCommandStatus> status;
 
   public QueuedCommand(final CommandId commandId,
-                       final Optional<Command> command,
+                       final Command command,
                        final Optional<QueuedCommandStatus> status) {
     this.commandId = Objects.requireNonNull(commandId);
     this.command = Objects.requireNonNull(command);
     this.status = Objects.requireNonNull(status);
+  }
+
+  QueuedCommand(final CommandId commandId, final Command command) {
+    this(commandId, command, Optional.empty());
   }
 
   public CommandId getCommandId() {
@@ -40,7 +44,7 @@ public class QueuedCommand {
     return status;
   }
 
-  public Optional<Command> getCommand() {
+  public Command getCommand() {
     return command;
   }
 }

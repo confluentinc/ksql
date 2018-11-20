@@ -11,7 +11,7 @@ These steps will guide you through how to setup your environment and run the cli
 
 .. codewithvars:: bash
 
-      $ sudo sysctl -w vm.max_map_count=262144
+      sudo sysctl -w vm.max_map_count=262144
       
 
 -----------------------------
@@ -27,29 +27,34 @@ are quite large and depending on your network connection may take
 
    .. code:: bash
 
-       $ git clone https://github.com/confluentinc/ksql.git
-       $ cd ksql
+       git clone https://github.com/confluentinc/ksql.git
+       cd ksql
 
 #. Switch to the correct |cp| release branch:
 
    .. codewithvars:: bash
    
-       $ git checkout |release_post_branch|
+       git checkout |release_post_branch|
 
 #. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.
 
    .. code:: bash
 
-       $ cd ksql-clickstream-demo
-       $ docker-compose up -d
+       cd ksql-clickstream-demo
+       docker-compose up -d
 
 
 #. After a minute or so, run the ``docker-compose ps`` status command to ensure that everything has started correctly: 
 
    .. code:: bash
 
-        $ docker-compose ps
+        docker-compose ps
+
+   Your output should resemble:
+
+   ::
+   
                         Name                                Command               State                Ports
         -------------------------------------------------------------------------------------------------------------------
         ksql-clickstream-demo_control-center_1    /etc/confluent/docker/run        Up      0.0.0.0:9021->9021/tcp
@@ -77,7 +82,7 @@ using a console consumer such as ``kafkacat``:
             -f '\nKey  : %k\t\nValue: %s\n' \
             -t clickstream
 
-This will stop after ten messages, and your output should look like this: 
+This will stop after ten messages, and your output should resemble: 
 
 ::
 
@@ -99,15 +104,15 @@ used to enrich the click data.
 
     .. code:: bash
 
-        $ docker run --network ksql-clickstream-demo_default --rm --name datagen-clickstream_codes \
-            confluentinc/ksql-examples:5.0.0 \
-            ksql-datagen \
-                bootstrap-server=kafka:29092 \
-                quickstart=clickstream_codes \
-                format=json \
-                topic=clickstream_codes \
-                maxInterval=20 \
-                iterations=100
+        docker run --network ksql-clickstream-demo_default --rm --name datagen-clickstream_codes \
+          confluentinc/ksql-examples:5.0.0 \
+          ksql-datagen \
+              bootstrap-server=kafka:29092 \
+              quickstart=clickstream_codes \
+              format=json \
+              topic=clickstream_codes \
+              maxInterval=20 \
+              iterations=100
 
     Your output should resemble:
 
@@ -123,16 +128,16 @@ used to enrich the click data.
 
     .. code:: bash
 
-        $ docker run --network ksql-clickstream-demo_default \
-                     --rm --name datagen-clickstream_codes \
-            confluentinc/ksql-examples:5.0.0 \
-            ksql-datagen \
-                bootstrap-server=kafka:29092 \
-                quickstart=clickstream_users \
-                format=json \
-                topic=clickstream_users \
-                maxInterval=10 \
-                iterations=1000
+        docker run --network ksql-clickstream-demo_default \
+                   --rm --name datagen-clickstream_codes \
+          confluentinc/ksql-examples:5.0.0 \
+          ksql-datagen \
+              bootstrap-server=kafka:29092 \
+              quickstart=clickstream_users \
+              format=json \
+              topic=clickstream_users \
+              maxInterval=10 \
+              iterations=1000
 
     Your output should resemble:
 
@@ -151,11 +156,11 @@ Load the Streaming Data to KSQL
 
     .. code:: bash
 
-        $ docker run --network ksql-clickstream-demo_default \
-                    --interactive --tty --rm \
-                    --volume $PWD/demo:/usr/share/doc/ksql-clickstream-demo \
-            confluentinc/cp-ksql-cli:latest \
-            http://ksql-server:8088
+        docker run --network ksql-clickstream-demo_default \
+                  --interactive --tty --rm \
+                  --volume $PWD/demo:/usr/share/doc/ksql-clickstream-demo \
+          confluentinc/cp-ksql-cli:latest \
+          http://ksql-server:8088
 
     You should now be in the KSQL CLI.
 
@@ -177,9 +182,9 @@ Load the Streaming Data to KSQL
     ksql-datagen utility to create the clickstream data, status codes,
     and set of users.
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> RUN SCRIPT '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
+        RUN SCRIPT '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
 
     The output will show either a blank message, or ``Executing statement``, similar to this: 
 
@@ -198,9 +203,9 @@ Verify the data
 
 #.  Verify that the tables are created.
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> LIST TABLES;
+        LIST TABLES;
 
     Your output should resemble:
 
@@ -221,9 +226,9 @@ Verify the data
 
 #.  Verify that the streams are created.
 
-    .. code:: bash
+    .. code:: text
 
-        ksql> LIST STREAMS;
+        LIST STREAMS;
 
     Your output should resemble:
 
@@ -241,9 +246,9 @@ Verify the data
 
     **View clickstream data**
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> SELECT * FROM CLICKSTREAM LIMIT 5;
+        SELECT * FROM CLICKSTREAM LIMIT 5;
 
     Your output should resemble:
 
@@ -260,9 +265,9 @@ Verify the data
 
     **View the events per minute**
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> SELECT * FROM EVENTS_PER_MIN LIMIT 5;
+        SELECT * FROM EVENTS_PER_MIN LIMIT 5;
 
     Your output should resemble:
 
@@ -278,9 +283,9 @@ Verify the data
 
     **View pages per minute**
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> SELECT * FROM PAGES_PER_MIN LIMIT 5;
+        SELECT * FROM PAGES_PER_MIN LIMIT 5;
 
     Your output should resemble:
 
@@ -303,7 +308,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
 1. Exit the KSQL CLI with ``CTRL+D``.
 
-   .. code:: bash
+   .. code:: text
 
         ksql>
         Exiting KSQL.
@@ -312,14 +317,14 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    .. code:: bash
 
-       $ docker-compose exec elasticsearch bash -c '/scripts/elastic-dynamic-template.sh'
+       docker-compose exec elasticsearch bash -c '/scripts/elastic-dynamic-template.sh'
 
 3. Run this command to send the KSQL tables to Elasticsearch and
    Grafana:
 
    .. code:: bash
 
-       $ docker-compose exec kafka-connect bash -c '/scripts/ksql-tables-to-grafana.sh'
+       docker-compose exec kafka-connect bash -c '/scripts/ksql-tables-to-grafana.sh'
 
    Your output should resemble:
 
@@ -344,7 +349,7 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    .. code:: bash
 
-       $ docker-compose exec grafana bash -c '/scripts/clickstream-analysis-dashboard.sh'
+       docker-compose exec grafana bash -c '/scripts/clickstream-analysis-dashboard.sh'
 
    Your output should resemble:
 

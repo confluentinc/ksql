@@ -57,9 +57,9 @@ public class SchemaUtilTest {
                 .optional().build())
         .field("RAW_STRUCT", structSchema)
         .field("ARRAY_OF_STRUCTS", SchemaBuilder.array(structSchema).optional().build())
-        .field("MAP_OF_STRUCTS",
+        .field("MAP-OF-STRUCTS",
             SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, structSchema).optional().build())
-        .field("NESTED_STRUCTS", SchemaBuilder.struct()
+        .field("NESTED.STRUCTS", SchemaBuilder.struct()
             .field("s0", structSchema)
             .field("s1", SchemaBuilder.struct().field("ss0", structSchema))
             .build())
@@ -522,8 +522,8 @@ public class SchemaUtilTest {
         + "MAPCOL : MAP<VARCHAR,DOUBLE>, "
         + "RAW_STRUCT : STRUCT<f0 BIGINT, f1 BOOLEAN>, "
         + "ARRAY_OF_STRUCTS : ARRAY<STRUCT<f0 BIGINT, f1 BOOLEAN>>, "
-        + "MAP_OF_STRUCTS : MAP<VARCHAR,STRUCT<f0 BIGINT, f1 BOOLEAN>>, "
-        + "NESTED_STRUCTS : STRUCT<s0 STRUCT<f0 BIGINT, f1 BOOLEAN>, s1 STRUCT<ss0 STRUCT<f0 BIGINT, f1 BOOLEAN>>>]"));
+        + "MAP-OF-STRUCTS : MAP<VARCHAR,STRUCT<f0 BIGINT, f1 BOOLEAN>>, "
+        + "NESTED.STRUCTS : STRUCT<s0 STRUCT<f0 BIGINT, f1 BOOLEAN>, s1 STRUCT<ss0 STRUCT<f0 BIGINT, f1 BOOLEAN>>>]"));
   }
 
   @Test

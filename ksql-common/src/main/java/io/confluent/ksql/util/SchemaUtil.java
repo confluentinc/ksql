@@ -338,13 +338,14 @@ public final class SchemaUtil {
       final String name,
       final Schema schema
   ) {
+    final String avroName = avroify(name);
     final FieldAssembler<org.apache.avro.Schema> fieldAssembler = org.apache.avro.SchemaBuilder
-        .record(name).namespace(namespace)
+        .record(avroName).namespace(namespace)
         .fields();
 
     for (final Field field : schema.fields()) {
-      final String fieldName = field.name().replace(".", "_");
-      final String fieldNamespace = namespace + "." + name;
+      final String fieldName = avroify(field.name());
+      final String fieldNamespace = namespace + "." + avroName;
 
       fieldAssembler
           .name(fieldName)
@@ -353,6 +354,12 @@ public final class SchemaUtil {
     }
 
     return fieldAssembler.endRecord();
+  }
+
+  private static String avroify(final String name) {
+    return name
+        .replace(".", "_")
+        .replace("-", "_");
   }
 
   private static org.apache.avro.Schema getAvroSchemaForField(

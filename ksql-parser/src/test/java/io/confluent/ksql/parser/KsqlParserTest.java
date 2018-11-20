@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
@@ -1191,10 +1192,13 @@ public class KsqlParserTest {
 
   @Test
   public void shouldParseSimpleComment() {
-    final String statementString = "--this is a comment.\nSHOW STREAMS;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
-        .getStatement();
-    assertThat(statement, instanceOf(ListStreams.class));
+    final String statementString = "--this is a comment.\n"
+        + "SHOW STREAMS;";
+
+    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+
+    assertThat(statements, hasSize(1));
+    assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
   }
 
   @Test
@@ -1202,9 +1206,10 @@ public class KsqlParserTest {
     final String statementString = "/* this is a bracketed comment. */\n"
         + "SHOW STREAMS;"
         + "/*another comment!*/";
-    final List<PreparedStatement> statementList = KSQL_PARSER.buildAst(statementString, metaStore);
-    assertThat(statementList.size(), equalTo(1));
-    final Statement statement = statementList.get(0).getStatement();
-    assertThat(statement, instanceOf(ListStreams.class));
+
+    final List<PreparedStatement<?>> statements = KSQL_PARSER.buildAst(statementString, metaStore);
+
+    assertThat(statements, hasSize(1));
+    assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
   }
 }

@@ -237,12 +237,13 @@ public class StatementExecutor {
           mergedConfig,
           overriddenProperties
       );
-      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
-          ksqlEngine, mergedConfig, 0)) {
+
+      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
         terminateQueries(queryMetadataList);
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
             ksqlEngine, mergedConfig, command.getStatement());
       }
+
       for (final QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;

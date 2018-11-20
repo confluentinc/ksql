@@ -23,14 +23,10 @@ import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -48,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -188,10 +183,10 @@ public class StatementExecutor {
 
     DdlCommandResult result = null;
     String successMessage = "";
-    if (statement instanceof DdlStatement) {
+    if (statement instanceof ExecutableDdlStatement) {
       result = ksqlEngine.executeDdlStatement(
           statementStr,
-          (DdlStatement) statement,
+          (ExecutableDdlStatement) statement,
           command.getOverwriteProperties());
     } else if (statement instanceof CreateAsSelect) {
       successMessage = handleCreateAsSelect(
@@ -202,7 +197,6 @@ public class StatementExecutor {
           mode);
     } else if (statement instanceof InsertInto) {
       successMessage = handleInsertInto(
-          (InsertInto) statement,
           command,
           statementStr,
           mode);
@@ -234,7 +228,7 @@ public class StatementExecutor {
       final Map<String, Object> overriddenProperties = new HashMap<>();
       overriddenProperties.putAll(command.getOverwriteProperties());
 
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
           queries,
           ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
           overriddenProperties
@@ -257,62 +251,25 @@ public class StatementExecutor {
       final String statementStr,
       final Mode mode
   ) {
-    final QuerySpecification querySpecification =
-        (QuerySpecification) statement.getQuery().getQueryBody();
-    final Query query = ksqlEngine.addInto(
-        querySpecification,
-        statement.getName().getSuffix(),
-        statement.getQuery().getLimit(),
-        statement.getProperties(),
-        statement.getPartitionByColumn(),
-        true
-    );
-    startQuery(statementStr, query, command, mode);
+    startQuery(statementStr, command, mode);
     return statement instanceof CreateTableAsSelect
         ? "Table created and running" : "Stream created and running";
   }
 
   private String handleInsertInto(
-      final InsertInto statement,
       final Command command,
       final String statementStr,
       final Mode mode) {
-    final QuerySpecification querySpecification =
-        (QuerySpecification) statement.getQuery().getQueryBody();
-    final Query query = ksqlEngine.addInto(
-        querySpecification,
-        statement.getTarget().getSuffix(),
-        statement.getQuery().getLimit(),
-        new HashMap<>(),
-        Optional.empty(),
-        false
-    );
-    startQuery(statementStr, query, command, mode);
+    startQuery(statementStr, command, mode);
     return "Insert Into query is running.";
   }
 
   private void startQuery(
       final String queryString,
-      final Query query,
       final Command command,
       final Mode mode
-  ) { 
-    if (query.getQueryBody() instanceof QuerySpecification) {
-      final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-      final Relation into = querySpecification.getInto();
-      if (into instanceof Table) {
-        final Table table = (Table) into;
-        if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null
-            && querySpecification.isShouldCreateInto()) {
-          throw new KsqlException(String.format(
-              "Sink specified in INTO clause already exists: %s",
-              table.getName().getSuffix().toUpperCase()
-          ));
-        }
-      }
-    }
-
-    final QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
+  ) {
+    final QueryMetadata queryMetadata = ksqlEngine.execute(
         queryString,
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
         command.getOverwriteProperties()

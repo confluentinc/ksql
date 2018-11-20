@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
@@ -55,7 +56,6 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetSession;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.ShowCreate;
-import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.parser.tree.ShowPartitions;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
@@ -64,7 +64,6 @@ import io.confluent.ksql.parser.tree.TableSubquery;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -458,7 +457,7 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitShowFunctions(final ShowFunctions node, final Integer context) {
+    protected Void visitShowFunctions(final ListFunctions node, final Integer context) {
       builder.append("SHOW FUNCTIONS");
 
       return null;

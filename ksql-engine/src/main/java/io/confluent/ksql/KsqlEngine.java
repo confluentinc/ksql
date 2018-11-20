@@ -16,7 +16,6 @@
 
 package io.confluent.ksql;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -41,13 +40,15 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -56,10 +57,12 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StatementWithSchema;
@@ -79,6 +82,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -150,7 +154,7 @@ public class KsqlEngine implements Closeable {
     this.serviceId = initializationKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.ddlCommandFactory = new CommandFactories(topicClient, schemaRegistryClient);
-    this.queryEngine = new QueryEngine(this, topicClient, schemaRegistryClientFactory);
+    this.queryEngine = new QueryEngine(topicClient, schemaRegistryClientFactory);
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
@@ -166,129 +170,161 @@ public class KsqlEngine implements Closeable {
   }
 
   /**
-   * Builds the set of queries in the given query string, updating the metastore.
+   * Parse the statements, but do NOT update the metastore.
    *
-   * <p>The queries are not started.
+   * @param sql the statements to parse
+   * @return the list of prepared statements.
+   */
+  public List<PreparedStatement<Statement>> parseStatements(final String sql) {
+    try {
+      final MetaStore parserMetaStore = metaStore.clone();
+
+      final KsqlParser ksqlParser = new KsqlParser();
+
+      return ksqlParser.buildAst(
+          sql,
+          parserMetaStore,
+          stmt -> {
+            validateSingleQueryAstAndUpdateParser(stmt, parserMetaStore);
+          });
+    } catch (final KsqlException e) {
+      throw e;
+    } catch (final Exception e) {
+      throw new ParseFailedException(
+          "Exception while processing statements: " + e.getMessage(), sql, e);
+    }
+  }
+
+  /**
+   * Try to execute the supplied SQL. No internal state will be changed.
    *
-   * @param queriesString The ksql query string.
+   * <p>No changes will be made to the meta store and no queries will be registered.
+   *
+   * <p>Statements must be executable. See {@link #isExecutableStatement(PreparedStatement)}.
+   *
+   * <p>If the SQL contains queries, they will not be added to the active set of queries and
+   * they will have been closed before returning.
+   *
+   * @param sql the sql to execute
+   * @param ksqlConfig the base ksqlConfig
+   * @param overriddenProperties the property overrides
+   * @return List of query metadata.
+   */
+  public List<QueryMetadata> tryExecute(
+      final String sql,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties
+  ) {
+    final List<PreparedStatement<Statement>> statements = parseStatements(sql);
+
+    return tryExecute(statements, ksqlConfig, overriddenProperties);
+  }
+
+  /**
+   * Try to execute the supplied statements. No internal state will be changed.
+   *
+   * <p>Statements must be executable. See {@link #isExecutableStatement(PreparedStatement)}.
+   *
+   * <p>No changes will be made to the meta store and no queries will be registered.
+   *
+   * <p>If the statements contains queries, they will not be added to the active set of queries and
+   * they will have been closed before returning.
+   *
+   * @param statements the list of statements to execute
+   * @param ksqlConfig the base ksqlConfig
+   * @param overriddenProperties the property overrides
+   * @return List of query metadata.
+   */
+  public List<QueryMetadata> tryExecute(
+      final List<PreparedStatement<Statement>> statements,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties
+  ) {
+    final List<QueryMetadata> queries = doExecute(
+        statements, ksqlConfig, overriddenProperties, false);
+
+    queries.forEach(QueryMetadata::close);
+
+    return queries;
+  }
+
+  /**
+   * Execute the supplied SQL, updating the meta store and registering the queries.
+   *
+   * <p>Statements must be executable. See {@link #isExecutableStatement(PreparedStatement)}.
+   *
+   * <p>If the SQL contains queries, they are added to the list of the engines active queries,
+   * but not started.
+   *
+   * @param sql The SQL to execute
    * @param overriddenProperties The user-requested property overrides
    * @return List of query metadata.
    */
-  // Todo(ac): Rename to `execute`?
-  public List<QueryMetadata> buildMultipleQueries(
-      final String queriesString,
+  public List<QueryMetadata> execute(
+      final String sql,
       final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties) {
-    // Todo(ac): move to method and call on other overriddenProps
-    for (final String property : overriddenProperties.keySet()) {
-      if (IMMUTABLE_PROPERTIES.contains(property)) {
-        throw new IllegalArgumentException(
-            String.format("Cannot override property '%s'", property)
-        );
-      }
-    }
+      final Map<String, Object> overriddenProperties
+  ) {
+    final List<PreparedStatement<Statement>> statements = parseStatements(sql);
 
-    // Build query AST from the query string
-    final List<PreparedStatement> statements = parseStatements(queriesString);
+    final List<QueryMetadata> queries = doExecute(
+        statements, ksqlConfig, overriddenProperties, true);
+
+    registerQueries(queries);
+
+    return queries;
+  }
+
+  /**
+   * Determines if a statement is executable by the engine.
+   *
+   * @param statement the statement to test.
+   * @return {@code true} if the engine can execute the statement, {@code false} otherwise
+   */
+  public static boolean isExecutableStatement(final PreparedStatement<?> statement) {
+    return statement.getStatement() instanceof ExecutableDdlStatement
+        || statement.getStatement() instanceof QueryContainer
+        || statement.getStatement() instanceof Query;
+  }
+
+  private List<QueryMetadata> doExecute(
+      final List<PreparedStatement<Statement>> statements,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties,
+      final boolean updateMetastore
+  ) {
+    throwOnImmutableOverride(overriddenProperties);
 
     // Multiple queries submitted as the same time should success or fail as a whole,
     // Thus we use tempMetaStore to store newly created tables, streams or topics.
     // MetaStore tempMetaStore = new MetaStoreImpl(metaStore);
     final MetaStore tempMetaStore = metaStore.clone();
 
-    return planQueries(statements, ksqlConfig, overriddenProperties, tempMetaStore);
-  }
-
-  private List<QueryMetadata> planQueries(
-      final List<PreparedStatement> statements,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final MetaStore tempMetaStore
-  ) {
-    final List<PreparedStatement> postProcessed = statements.stream()
+    final List<PreparedStatement<Statement>> postProcessed = statements.stream()
         .map(stmt -> postProcessStatement(stmt, tempMetaStore))
-        .filter(statement -> statement.getStatement() instanceof Query
-            || statement.getStatement() instanceof DdlStatement)
         .collect(Collectors.toList());
 
-    final List<QueryMetadata> queriesWithNulls = buildQueries(
-        postProcessed, ksqlConfig, overriddenProperties, tempMetaStore, true);
-
-    validateQueries(statements, queriesWithNulls);
-
-    final List<QueryMetadata> queries = queriesWithNulls.stream()
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
-
-    for (final QueryMetadata queryMetadata : queries) {
-      if (queryMetadata instanceof PersistentQueryMetadata) {
-        livePersistentQueries.add(queryMetadata);
-        final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-        persistentQueries.put(persistentQueryMd.getQueryId(), persistentQueryMd);
-        metaStore.updateForPersistentQuery(persistentQueryMd.getQueryId().getId(),
-                                           persistentQueryMd.getSourceNames(),
-                                           persistentQueryMd.getSinkNames());
-      }
-      allLiveQueries.add(queryMetadata);
-    }
-    engineMetrics.registerQueries(queries);
-
-    return queries;
-  }
-
-  private void validateQueries(
-      final List<PreparedStatement> statements,
-      final List<QueryMetadata> queries
-  ) {
-    IntStream.range(0, queries.size()).forEach(idx -> {
-      final QueryMetadata queryMd = queries.get(idx);
-      if (queryMd == null) {
-        return;
-      }
-
-      final PreparedStatement statement = statements.get(idx);
-
-      if (statement.getStatement() instanceof CreateStreamAsSelect
-          && queryMd.getDataSourceType() == DataSourceType.KTABLE) {
-        throw new KsqlException("Invalid result type. "
-            + "Your SELECT query produces a TABLE. "
-            + "Please use CREATE TABLE AS SELECT statement instead. "
-            + "Statement: " + statement.getStatementText());
-      }
-
-      if (statement.getStatement() instanceof CreateTableAsSelect
-          && queryMd.getDataSourceType() == DataSourceType.KSTREAM) {
-        throw new KsqlException("Invalid result type. "
-            + "Your SELECT query produces a STREAM. "
-            + "Please use CREATE STREAM AS SELECT statement instead. "
-            + "Statement: " + statement.getStatementText());
-      }
-    });
-  }
-
-  private List<QueryMetadata> buildQueries(
-      final List<PreparedStatement> statements,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final MetaStore tempMetaStore,
-      final boolean updateMetastore) {
+    throwOnNonExecutableStatement(postProcessed);
 
     final List<LogicalPlanNode> logicalPlans = queryEngine.buildLogicalPlans(
         tempMetaStore,
-        statements,
+        postProcessed,
         ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
     );
 
-    final List<QueryMetadata> queries = new ArrayList<>(logicalPlans.size());
+    final List<QueryMetadata> queriesWithNulls = new ArrayList<>(logicalPlans.size());
     for (int i = 0; i != logicalPlans.size(); ++i) {
-      final PreparedStatement statement = statements.get(i);
+      final PreparedStatement<Statement> statement = postProcessed.get(i);
       final LogicalPlanNode logicalPlan = logicalPlans.get(i);
       if (logicalPlan.getNode() == null) {
-        executeDdlStatement(
-            statement.getStatementText(),
-            (DdlStatement) statement.getStatement(),
-            overriddenProperties);
-        queries.add(null);
+        if (updateMetastore) {
+          doExecuteDdlStatement(
+              statement.getStatementText(),
+              (ExecutableDdlStatement) statement.getStatement(),
+              overriddenProperties
+          );
+        }
+        queriesWithNulls.add(null);
       } else {
         final QueryMetadata query = queryEngine.buildPhysicalPlans(
             logicalPlan,
@@ -299,53 +335,75 @@ public class KsqlEngine implements Closeable {
             updateMetastore
         );
 
-        queries.add(query);
+        queriesWithNulls.add(query);
       }
     }
 
-    return queries;
+    validateQueries(statements, queriesWithNulls);
+
+    return queriesWithNulls.stream()
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
   }
 
-  public QueryMetadata getQueryExecutionPlan(final Query query, final KsqlConfig ksqlConfig) {
-    // Todo(ac): Should also throw on table / stream mismatch?
+  private void validateQueries(
+      final List<PreparedStatement<Statement>> statements,
+      final List<QueryMetadata> queries
+  ) {
+    IntStream.range(0, queries.size()).forEach(idx -> {
+      final QueryMetadata query = queries.get(idx);
+      if (query == null) {
+        return;
+      }
 
-    final List<PreparedStatement> statements =
-        ImmutableList.of(new PreparedStatement("", query));
+      final PreparedStatement<Statement> statement = statements.get(idx);
 
-    final List<QueryMetadata> queries = buildQueries(statements, ksqlConfig,
-        Collections.emptyMap(), metaStore.clone(), false);
+      if (statement.getStatement() instanceof CreateStreamAsSelect
+          && query.getDataSourceType() == DataSourceType.KTABLE) {
+        throw new KsqlStatementException("Invalid result type. "
+            + "Your SELECT query produces a TABLE. "
+            + "Please use CREATE TABLE AS SELECT statement instead.",
+            statement.getStatementText());
+      }
 
-    return queries.get(0);
+      if (statement.getStatement() instanceof CreateTableAsSelect
+          && query.getDataSourceType() == DataSourceType.KSTREAM) {
+        throw new KsqlStatementException("Invalid result type. "
+            + "Your SELECT query produces a STREAM. "
+            + "Please use CREATE STREAM AS SELECT statement instead.",
+            statement.getStatementText());
+      }
+
+      if (query instanceof PersistentQueryMetadata) {
+        final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
+        if (!AvroUtil.isValidSchemaEvolution(persistentQuery, schemaRegistryClient)) {
+          throw new KsqlStatementException(String.format(
+              "Cannot register avro schema for %s as the schema registry rejected it, "
+                  + "(maybe schema evolution issues?)",
+              persistentQuery.getResultTopic().getKafkaTopicName()),
+              statement.getStatementText());
+        }
+      }
+    });
   }
 
-  /**
-   * Parse the statements, but do NOT update the metastore.
-   *
-   * @param queriesString the statements to parsse
-   * @return the list of prepared statements.
-   */
-  public List<PreparedStatement> parseStatements(final String queriesString) {
-    try {
-      final MetaStore parserMetaStore = metaStore.clone();
-
-      final KsqlParser ksqlParser = new KsqlParser();
-
-      return ksqlParser.buildAst(
-          queriesString,
-          parserMetaStore,
-          stmt -> {
-            validateSingleQueryAstAndUpdateParser(stmt, parserMetaStore);
-          });
-    } catch (final KsqlException e) {
-      throw e;
-    } catch (final Exception e) {
-      throw new ParseFailedException(
-          "Exception while processing statements: " + e.getMessage(), queriesString, e);
+  private void registerQueries(final List<QueryMetadata> queries) {
+    for (final QueryMetadata queryMetadata : queries) {
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        livePersistentQueries.add(queryMetadata);
+        final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+        persistentQueries.put(persistentQueryMd.getQueryId(), persistentQueryMd);
+        metaStore.updateForPersistentQuery(persistentQueryMd.getQueryId().getId(),
+            persistentQueryMd.getSourceNames(),
+            persistentQueryMd.getSinkNames());
+      }
+      allLiveQueries.add(queryMetadata);
     }
+    engineMetrics.registerQueries(queries);
   }
 
   private void validateSingleQueryAstAndUpdateParser(
-      final PreparedStatement statement,
+      final PreparedStatement<Statement> statement,
       final MetaStore parserMetaStore
   ) {
     log.info("Building AST for {}.", statement.getStatementText());
@@ -355,7 +413,7 @@ public class KsqlEngine implements Closeable {
         applyCreateAsSelectToMetaStore(statement, parserMetaStore);
       } else if (statement.getStatement() instanceof InsertInto) {
         validateInsertIntoStatement(statement, parserMetaStore);
-      } else if (statement.getStatement() instanceof DdlStatement) {
+      } else if (statement.getStatement() instanceof ExecutableDdlStatement) {
         applyDdlStatementToMetaStore(statement, parserMetaStore);
       }
     } catch (final Exception e) {
@@ -365,7 +423,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private void applyCreateAsSelectToMetaStore(
-      final PreparedStatement statement,
+      final PreparedStatement<Statement> statement,
       final MetaStore parserMetaStore
   ) {
     final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
@@ -382,7 +440,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private void validateInsertIntoStatement(
-      final PreparedStatement statement,
+      final PreparedStatement<Statement> statement,
       final MetaStore parserMetaStore
   ) {
     final InsertInto insertInto = (InsertInto) statement.getStatement();
@@ -401,9 +459,10 @@ public class KsqlEngine implements Closeable {
   }
 
   private void applyDdlStatementToMetaStore(
-      final PreparedStatement statement,
+      final PreparedStatement<Statement> statement,
       final MetaStore parserMetaStore
   ) {
+    // Todo(ac): This should update config... but won't here.
     if (statement.getStatement() instanceof SetProperty
         || statement.getStatement() instanceof UnsetProperty) {
       return;
@@ -411,15 +470,15 @@ public class KsqlEngine implements Closeable {
 
     final DdlCommand ddlCmd = createDdlCommand(
         statement.getStatementText(),
-        (DdlStatement) statement.getStatement(),
+        (ExecutableDdlStatement) statement.getStatement(),
         Collections.emptyMap(),
         false);
 
     ddlCommandExec.tryExecute(ddlCmd, parserMetaStore);
   }
 
-  private PreparedStatement postProcessStatement(
-      final PreparedStatement statement,
+  private PreparedStatement<Statement> postProcessStatement(
+      final PreparedStatement<Statement> statement,
       final MetaStore tempMetaStore
   ) {
     try {
@@ -432,7 +491,7 @@ public class KsqlEngine implements Closeable {
         return postProcessInsertIntoStatement(statement);
       }
 
-      if (statement.getStatement() instanceof DdlStatement) {
+      if (statement.getStatement() instanceof ExecutableDdlStatement) {
         return postProcessSingleDdlStatement(statement, tempMetaStore);
       }
 
@@ -443,7 +502,9 @@ public class KsqlEngine implements Closeable {
     }
   }
 
-  private PreparedStatement postProcessCreateAsSelectStatement(final PreparedStatement statement) {
+  private PreparedStatement<Statement> postProcessCreateAsSelectStatement(
+      final PreparedStatement<Statement> statement
+  ) {
     final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
 
     final QuerySpecification querySpecification =
@@ -458,10 +519,12 @@ public class KsqlEngine implements Closeable {
         true
     );
 
-    return new PreparedStatement(statement.getStatementText(), query);
+    return new PreparedStatement<>(statement.getStatementText(), query);
   }
 
-  private PreparedStatement postProcessInsertIntoStatement(final PreparedStatement statement) {
+  private PreparedStatement<Statement> postProcessInsertIntoStatement(
+      final PreparedStatement<Statement> statement
+  ) {
     final InsertInto insertInto = (InsertInto) statement.getStatement();
 
     final QuerySpecification querySpecification =
@@ -476,11 +539,11 @@ public class KsqlEngine implements Closeable {
         false
     );
 
-    return new PreparedStatement(statement.getStatementText(), query);
+    return new PreparedStatement<>(statement.getStatementText(), query);
   }
 
-  private PreparedStatement postProcessSingleDdlStatement(
-      final PreparedStatement statement,
+  private PreparedStatement<Statement> postProcessSingleDdlStatement(
+      final PreparedStatement<Statement> statement,
       final MetaStore tempMetaStore) {
     if (statement.getStatement() instanceof SetProperty
         || statement.getStatement() instanceof UnsetProperty) {
@@ -489,7 +552,7 @@ public class KsqlEngine implements Closeable {
 
     final DdlCommand ddlCmd = createDdlCommand(
         statement.getStatementText(),
-        (DdlStatement) statement.getStatement(),
+        (ExecutableDdlStatement) statement.getStatement(),
         Collections.emptyMap(),
         false);
 
@@ -497,7 +560,7 @@ public class KsqlEngine implements Closeable {
     return statement;
   }
 
-  public Query addInto(
+  private Query addInto(
       final QuerySpecification querySpecification,
       final String intoName,
       final Optional<String> limit,
@@ -591,7 +654,6 @@ public class KsqlEngine implements Closeable {
     return this.livePersistentQueries.size();
   }
 
-
   @Override
   public void close() {
     for (final QueryMetadata queryMetadata : allLiveQueries) {
@@ -608,8 +670,10 @@ public class KsqlEngine implements Closeable {
 
   public DdlCommandResult executeDdlStatement(
       final String sqlExpression,
-      final DdlStatement statement,
-      final Map<String, Object> overriddenProperties) {
+      final ExecutableDdlStatement statement,
+      final Map<String, Object> overriddenProperties
+  ) {
+    throwOnImmutableOverride(overriddenProperties);
 
     final DdlCommand command = createDdlCommand(
         sqlExpression,
@@ -636,22 +700,35 @@ public class KsqlEngine implements Closeable {
     return adminClient;
   }
 
+  public void doExecuteDdlStatement(
+      final String sqlExpression,
+      final ExecutableDdlStatement statement,
+      final Map<String, Object> overriddenProperties
+  ) {
+    final DdlCommandResult result =
+        executeDdlStatement(sqlExpression, statement, overriddenProperties);
+
+    if (!result.isSuccess()) {
+      throw new KsqlException(result.getMessage());
+    }
+  }
+
   private DdlCommand createDdlCommand(
       final String sqlExpression,
-      final DdlStatement statement,
+      final ExecutableDdlStatement statement,
       final Map<String, Object> overriddenProperties,
       final boolean enforceTopicExistence) {
     final String resultingSqlExpression;
-    final DdlStatement resultingStatement;
+    final ExecutableDdlStatement resultingStatement;
 
     if (statement instanceof AbstractStreamCreateStatement) {
       final AbstractStreamCreateStatement streamCreateStatement =
           (AbstractStreamCreateStatement) statement;
 
-      final StatementWithSchema statementWithSchema
+      final PreparedStatement<AbstractStreamCreateStatement> statementWithSchema
           = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
 
-      resultingStatement = (DdlStatement) statementWithSchema.getStatement();
+      resultingStatement = (ExecutableDdlStatement) statementWithSchema.getStatement();
       resultingSqlExpression = statementWithSchema.getStatementText();
 
       if (((AbstractStreamCreateStatement) resultingStatement).getElements().isEmpty()) {
@@ -666,7 +743,7 @@ public class KsqlEngine implements Closeable {
         resultingSqlExpression, resultingStatement, overriddenProperties, enforceTopicExistence);
   }
 
-  private StatementWithSchema maybeAddFieldsFromSchemaRegistry(
+  private PreparedStatement<AbstractStreamCreateStatement> maybeAddFieldsFromSchemaRegistry(
       final AbstractStreamCreateStatement streamCreateStatement,
       final String statementText
   ) {
@@ -709,5 +786,31 @@ public class KsqlEngine implements Closeable {
         streamCreateStatement,
         statementText,
         schemaRegistryClient);
+  }
+
+  private static void throwOnImmutableOverride(final Map<String, Object> overriddenProperties) {
+    for (final String property : overriddenProperties.keySet()) {
+      if (IMMUTABLE_PROPERTIES.contains(property)) {
+        throw new IllegalArgumentException(
+            String.format("Cannot override property '%s'", property)
+        );
+      }
+    }
+  }
+
+  private static void throwOnNonExecutableStatement(
+      final List<PreparedStatement<Statement>> statements
+  ) {
+    final Predicate<PreparedStatement<?>> notExecutable = statement ->
+        !isExecutableStatement(statement)
+            || statement.getStatement() instanceof QueryContainer;
+
+    statements.stream()
+        .filter(notExecutable)
+        .findFirst()
+        .map(PreparedStatement::getStatementText)
+        .ifPresent(sql -> {
+          throw new KsqlException("Statement not executable: " + sql);
+        });
   }
 }

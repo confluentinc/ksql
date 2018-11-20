@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
@@ -42,7 +41,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
@@ -65,13 +64,10 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import java.util.stream.Collectors;
-import org.easymock.EasyMock;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.hamcrest.CoreMatchers;
@@ -222,7 +218,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final String statementText
         = "CREATE STREAM user1pv AS select * from pageviews WHERE userid = 'user1';";
     final StatementParser realParser = new StatementParser(ksqlEngine);
-    final DdlStatement ddlStatement = (DdlStatement) realParser.parseSingleStatement(ddlText);
+    final ExecutableDdlStatement ddlStatement = (ExecutableDdlStatement) realParser.parseSingleStatement(ddlText);
     ksqlEngine.executeDdlStatement(ddlText, ddlStatement, Collections.emptyMap());
     final CreateStreamAsSelect csasStatement =
         (CreateStreamAsSelect) realParser.parseSingleStatement(statementText);
@@ -246,18 +242,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         CommandId.Action.CREATE);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
-    expect(
-        mockEngine.addInto(
-            (QuerySpecification)csasStatement.getQuery().getQueryBody(),
-            csasStatement.getName().getSuffix(),
-            csasStatement.getQuery().getLimit(),
-            csasStatement.getProperties(),
-            csasStatement.getPartitionByColumn(),
-            true))
-        .andReturn(csasStatement.getQuery());
-    expect(mockEngine.getMetaStore()).andReturn(mockMetaStore);
-    expect(mockMetaStore.getSource(anyObject())).andReturn(null);
-    expect(mockEngine.buildMultipleQueries(statementText, expectedConfig, Collections.emptyMap()))
+    expect(mockEngine.execute(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
     mockQueryMetadata.start();
     expectLastCall();
@@ -535,12 +520,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
     expect(mockQuery.getQueryId()).andStubReturn(queryId);
     expect(mockParser.parseSingleStatement(statement)).andReturn(mockCSAS);
-    expect(
-        mockEngine.addInto(
-            anyObject(), anyObject(), anyObject(), anyObject(), anyObject(), anyBoolean()))
-        .andStubReturn(mockCSASQuery(name));
     expect(mockMetaStore.getSource(name)).andStubReturn(null);
-    expect(mockEngine.buildMultipleQueries(eq(statement), anyObject(), anyObject()))
+    expect(mockEngine.execute(eq(statement), anyObject(), anyObject()))
         .andReturn(Collections.singletonList(mockQuery));
     return mockQuery;
   }

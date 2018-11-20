@@ -152,7 +152,7 @@ public class PhysicalPlanBuilderTest {
         false,
         metaStore,
         schemaRegistryClientFactory,
-        new QueryIdGenerator(),
+        new QueryIdGenerator(""),
         testKafkaStreamsBuilder
     );
 
@@ -208,7 +208,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -238,7 +238,7 @@ public class PhysicalPlanBuilderTest {
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     try {
-      ksqlEngine.buildMultipleQueries(
+      ksqlEngine.execute(
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -264,7 +264,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      ksqlEngine.buildMultipleQueries(
+      ksqlEngine.execute(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -289,7 +289,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
         createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -325,7 +325,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -347,7 +347,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -374,7 +374,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -595,7 +595,7 @@ public class PhysicalPlanBuilderTest {
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(createStream + "\n " +
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(createStream + "\n " +
         csasQuery + "\n " +
         insertIntoQuery,
         ksqlConfig,
@@ -617,7 +617,7 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
         createStream + "\n " + csasQuery + "\n " + ctasQuery,
         ksqlConfig,
         Collections.emptyMap());

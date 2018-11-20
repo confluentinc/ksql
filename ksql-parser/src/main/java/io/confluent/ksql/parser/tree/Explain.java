@@ -58,13 +58,17 @@ public class Explain
       final List<ExplainOption> options
   ) {
     super(location);
-    this.statement = statement;// requireNonNull(statement, "statement is null");
+    this.statement = statement;
     this.analyze = analyze;
     this.queryId = queryId;
     if (options == null) {
       this.options = ImmutableList.of();
     } else {
       this.options = ImmutableList.copyOf(options);
+    }
+
+    if (statement == null && queryId == null) {
+      throw new NullPointerException("Must supply either queryId or statement");
     }
   }
 

@@ -58,7 +58,7 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
 
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) ksqlEngine.buildMultipleQueries(
+    final QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) ksqlEngine.execute(
         queryString,
         ksqlConfig,
         clientLocalProperties).get(0);

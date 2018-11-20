@@ -525,7 +525,7 @@ public class KsqlParserTest {
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
         + "double, arraycol array<double>, mapcol map<varchar, double>, "
-        + "order_address STRUCT < number VARCHAR, street VARCHAR, zip INTEGER, city "
+        + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
         + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime');";
     final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);

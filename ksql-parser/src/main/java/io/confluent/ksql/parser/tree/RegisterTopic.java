@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class RegisterTopic
-    extends Statement implements DdlStatement {
+    extends Statement implements ExecutableDdlStatement {
 
   private final QualifiedName name;
   private final boolean notExists;

@@ -20,10 +20,10 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 
 import java.util.Optional;
 
-public class ShowFunctions
+public class ListFunctions
     extends Statement {
 
-  public ShowFunctions(final Optional<NodeLocation> location) {
+  public ListFunctions(final Optional<NodeLocation> location) {
     super(location);
   }
 

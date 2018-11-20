@@ -95,7 +95,7 @@ public class KsqlContext {
   }
 
   public void sql(final String sql, final Map<String, Object> overriddenProperties) {
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
         sql, ksqlConfig, overriddenProperties);
 
     for (final QueryMetadata queryMetadata : queryMetadataList) {

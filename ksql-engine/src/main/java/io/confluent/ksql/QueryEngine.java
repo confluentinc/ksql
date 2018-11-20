@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -63,11 +64,14 @@ class QueryEngine {
   private final KafkaTopicClient topicClient;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private final QueryIdGenerator queryIdGenerator;
+  private final QueryIdGenerator tryQueryIdGenerator;
 
-  QueryEngine(final KsqlEngine ksqlEngine,
+  QueryEngine(
       final KafkaTopicClient topicClient,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
-    this.queryIdGenerator = new QueryIdGenerator();
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+  ) {
+    this.queryIdGenerator = new QueryIdGenerator("");
+    this.tryQueryIdGenerator = new QueryIdGenerator("_TRY");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.schemaRegistryClientFactory =
         Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
@@ -75,12 +79,12 @@ class QueryEngine {
 
   List<LogicalPlanNode> buildLogicalPlans(
       final MetaStore metaStore,
-      final List<PreparedStatement> statementList,
+      final List<PreparedStatement<Statement>> statements,
       final KsqlConfig config) {
 
     final List<LogicalPlanNode> logicalPlansList = new ArrayList<>();
 
-    for (final PreparedStatement statement : statementList) {
+    for (final PreparedStatement<Statement> statement : statements) {
       if (statement.getStatement() instanceof Query) {
         final PlanNode logicalPlan = buildQueryLogicalPlan(
             statement.getStatementText(),
@@ -176,7 +180,7 @@ class QueryEngine {
         updateMetastore,
         metaStore,
         schemaRegistryClientFactory,
-        queryIdGenerator,
+        updateMetastore ? queryIdGenerator : tryQueryIdGenerator,
         new KafkaStreamsBuilderImpl(clientSupplier)
     );
 

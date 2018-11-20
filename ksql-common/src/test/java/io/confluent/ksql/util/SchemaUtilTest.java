@@ -21,6 +21,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -38,13 +41,28 @@ public class SchemaUtilTest {
 
   @Before
   public void init() {
+    final Schema structSchema = SchemaBuilder.struct()
+        .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("f1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .build();
+
     schema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
-        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
-        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("arraycol".toUpperCase(), SchemaBuilder.array(org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("mapcol".toUpperCase(), SchemaBuilder.map(org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA, org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("ARRAYCOL", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("MAPCOL",
+            SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
+                .optional().build())
+        .field("RAW_STRUCT", structSchema)
+        .field("ARRAY_OF_STRUCTS", SchemaBuilder.array(structSchema).optional().build())
+        .field("MAP_OF_STRUCTS",
+            SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, structSchema).optional().build())
+        .field("NESTED_STRUCTS", SchemaBuilder.struct()
+            .field("s0", structSchema)
+            .field("s1", SchemaBuilder.struct().field("ss0", structSchema))
+            .build())
         .build();
   }
 
@@ -90,7 +108,6 @@ public class SchemaUtilTest {
     assertThat(mapClazz, equalTo(Map.class));
   }
 
-
   @Test
   public void shouldGetCorrectSqlTypeNameForBoolean() {
     assertThat(SchemaUtil.getSqlTypeName(Schema.OPTIONAL_BOOLEAN_SCHEMA), equalTo("BOOLEAN"));
@@ -133,7 +150,8 @@ public class SchemaUtilTest {
         .field("COL5", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .build();
     assertThat(SchemaUtil.getSqlTypeName(structSchema),
-        equalTo("STRUCT <COL1 VARCHAR, COL2 INT, COL3 DOUBLE, COL4 ARRAY<DOUBLE>, COL5 MAP<VARCHAR,DOUBLE>>"));
+        equalTo(
+            "STRUCT<COL1 VARCHAR, COL2 INT, COL3 DOUBLE, COL4 ARRAY<DOUBLE>, COL5 MAP<VARCHAR,DOUBLE>>"));
   }
 
 
@@ -157,6 +175,127 @@ public class SchemaUtilTest {
             + "{\"type\":\"array\",\"items\":[\"null\",\"double\"]}],\"default\":null},{\"name\":"
             + "\"mapcol\",\"type\":[\"null\",{\"type\":\"map\",\"values\":[\"null\",\"double\"]}]"
             + ",\"default\":null}]}"));
+  }
+
+  @Test
+  public void shouldSupportAvroStructs() {
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "bob");
+
+    // Then:
+    final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("RAW_STRUCT");
+    assertThat(rawStruct, is(notNullValue()));
+    assertThat(rawStruct.schema().getType(), is(org.apache.avro.Schema.Type.UNION));
+    assertThat(rawStruct.schema().getTypes().get(0).getType(), is(org.apache.avro.Schema.Type.NULL));
+    assertThat(rawStruct.schema().getTypes().get(1).toString(), is(
+        "{"
+            + "\"type\":\"record\","
+            + "\"name\":\"RAW_STRUCT\","
+            + "\"namespace\":\"ksql.bob\","
+            + "\"fields\":["
+            + "{\"name\":\"f0\",\"type\":[\"null\",\"long\"],\"default\":null},"
+            + "{\"name\":\"f1\",\"type\":[\"null\",\"boolean\"],\"default\":null}"
+            + "]}"
+    ));
+  }
+
+  @Test
+  public void shouldSupportAvroArrayOfStructs() {
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "bob");
+
+    // Then:
+    final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("ARRAY_OF_STRUCTS");
+    assertThat(rawStruct, is(notNullValue()));
+    assertThat(rawStruct.schema().getType(), is(org.apache.avro.Schema.Type.UNION));
+    assertThat(rawStruct.schema().getTypes().get(0).getType(), is(org.apache.avro.Schema.Type.NULL));
+    assertThat(rawStruct.schema().getTypes().get(1).toString(), is(
+        "{"
+            + "\"type\":\"array\","
+            + "\"items\":["
+            + "\"null\","
+            + "{\"type\":\"record\","
+            + "\"name\":\"ARRAY_OF_STRUCTS\","
+            + "\"namespace\":\"ksql.bob\","
+            + "\"fields\":["
+            + "{\"name\":\"f0\",\"type\":[\"null\",\"long\"],\"default\":null},"
+            + "{\"name\":\"f1\",\"type\":[\"null\",\"boolean\"],\"default\":null}"
+            + "]}]}"
+    ));
+  }
+
+  @Test
+  public void shouldSupportAvroMapOfStructs() {
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "bob");
+
+    // Then:
+    final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("MAP_OF_STRUCTS");
+    assertThat(rawStruct, is(notNullValue()));
+    assertThat(rawStruct.schema().getType(), is(org.apache.avro.Schema.Type.UNION));
+    assertThat(rawStruct.schema().getTypes().get(0).getType(), is(org.apache.avro.Schema.Type.NULL));
+    assertThat(rawStruct.schema().getTypes().get(1).toString(), is(
+        "{"
+            + "\"type\":\"map\","
+            + "\"values\":["
+            + "\"null\","
+            + "{\"type\":\"record\","
+            + "\"name\":\"MAP_OF_STRUCTS\","
+            + "\"namespace\":\"ksql.bob\","
+            + "\"fields\":["
+            + "{\"name\":\"f0\",\"type\":[\"null\",\"long\"],\"default\":null},"
+            + "{\"name\":\"f1\",\"type\":[\"null\",\"boolean\"],\"default\":null}"
+            + "]}]}"
+    ));
+  }
+
+  @Test
+  public void shouldSupportAvroNestedStructs() {
+    // When:
+    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "bob");
+
+    // Then:
+    final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("NESTED_STRUCTS");
+    assertThat(rawStruct, is(notNullValue()));
+    assertThat(rawStruct.schema().getType(), is(org.apache.avro.Schema.Type.UNION));
+    assertThat(rawStruct.schema().getTypes().get(0).getType(), is(org.apache.avro.Schema.Type.NULL));
+
+    final String s0Schema = "{"
+        + "\"type\":\"record\","
+        + "\"name\":\"s0\","
+        + "\"namespace\":\"ksql.bob.NESTED_STRUCTS\","
+        + "\"fields\":["
+        + "{\"name\":\"f0\",\"type\":[\"null\",\"long\"],\"default\":null},"
+        + "{\"name\":\"f1\",\"type\":[\"null\",\"boolean\"],\"default\":null}"
+        + "]}";
+
+    final String ss0Schema = "{"
+        + "\"type\":\"record\","
+        + "\"name\":\"ss0\","
+        + "\"namespace\":\"ksql.bob.NESTED_STRUCTS.s1\","
+        + "\"fields\":["
+        + "{\"name\":\"f0\",\"type\":[\"null\",\"long\"],\"default\":null},"
+        + "{\"name\":\"f1\",\"type\":[\"null\",\"boolean\"],\"default\":null}"
+        + "]}";
+
+    final String s1Schema = "{"
+        + "\"type\":\"record\","
+        + "\"name\":\"s1\","
+        + "\"namespace\":\"ksql.bob.NESTED_STRUCTS\","
+        + "\"fields\":["
+        + "{\"name\":\"ss0\",\"type\":[\"null\"," + ss0Schema + "],\"default\":null}"
+        + "]}";
+
+    assertThat(rawStruct.schema().getTypes().get(1).toString(), is(
+        "{"
+            + "\"type\":\"record\","
+            + "\"name\":\"NESTED_STRUCTS\","
+            + "\"namespace\":\"ksql.bob\","
+            + "\"fields\":["
+            + "{\"name\":\"s0\",\"type\":[\"null\"," + s0Schema + "],\"default\":null},"
+            + "{\"name\":\"s1\",\"type\":[\"null\"," + s1Schema + "],\"default\":null}"
+            + "]}"
+    ));
   }
 
   @Test
@@ -352,14 +491,22 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldAddAndRemoveImplicitColumns() {
+    // Given:
+    final int initialFieldCount = schema.fields().size();
+
+    // When:
     final Schema withImplicit = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
 
-    assertThat("Invalid field count.", withImplicit.fields().size() == 8);
+    // Then:
+    assertThat("Invalid field count.", withImplicit.fields(), hasSize(initialFieldCount + 2));
     assertThat("Field name should be ROWTIME.", withImplicit.fields().get(0).name(), equalTo(SchemaUtil.ROWTIME_NAME));
     assertThat("Field name should ne ROWKEY.", withImplicit.fields().get(1).name(), equalTo(SchemaUtil.ROWKEY_NAME));
 
+    // When:
     final Schema withoutImplicit = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(withImplicit);
-    assertThat("Invalid field count.", withoutImplicit.fields().size() == 6);
+
+    // Then:
+    assertThat("Invalid field count.", withoutImplicit.fields(), hasSize(initialFieldCount));
     assertThat("Invalid field name.", withoutImplicit.fields().get(0).name(), equalTo("ORDERTIME"));
     assertThat("Invalid field name.", withoutImplicit.fields().get(1).name(), equalTo("ORDERID"));
   }
@@ -372,7 +519,11 @@ public class SchemaUtilTest {
         + "ITEMID : VARCHAR, "
         + "ORDERUNITS : DOUBLE, "
         + "ARRAYCOL : ARRAY<DOUBLE>, "
-        + "MAPCOL : MAP<VARCHAR,DOUBLE>]"));
+        + "MAPCOL : MAP<VARCHAR,DOUBLE>, "
+        + "RAW_STRUCT : STRUCT<f0 BIGINT, f1 BOOLEAN>, "
+        + "ARRAY_OF_STRUCTS : ARRAY<STRUCT<f0 BIGINT, f1 BOOLEAN>>, "
+        + "MAP_OF_STRUCTS : MAP<VARCHAR,STRUCT<f0 BIGINT, f1 BOOLEAN>>, "
+        + "NESTED_STRUCTS : STRUCT<s0 STRUCT<f0 BIGINT, f1 BOOLEAN>, s1 STRUCT<ss0 STRUCT<f0 BIGINT, f1 BOOLEAN>>>]"));
   }
 
   @Test

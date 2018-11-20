@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -134,7 +135,7 @@ public class SqlPredicateTest {
   @SuppressWarnings("unchecked")
   public void shouldIgnoreNullRows() {
     final String selectQuery = "SELECT col0 FROM test1 WHERE col0 > 100;";
-    final List<PreparedStatement> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
+    final List<PreparedStatement<Statement>> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
     final QuerySpecification querySpecification = (QuerySpecification)((Query) statements.get(0)
         .getStatement()).getQueryBody();
     final Expression filterExpr = querySpecification.getWhere().get();

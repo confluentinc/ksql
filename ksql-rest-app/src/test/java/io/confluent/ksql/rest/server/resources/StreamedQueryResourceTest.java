@@ -113,7 +113,7 @@ public class StreamedQueryResourceTest {
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(mock(Query.class));
 
-    expect(mockKsqlEngine.buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()))
+    expect(mockKsqlEngine.execute(queryString, ksqlConfig, Collections.emptyMap()))
         .andThrow(new KsqlException("some msg only the engine would use"));
 
     replay(mockKsqlEngine, mockKafkaTopicClient, mockStatementParser);
@@ -196,7 +196,7 @@ public class StreamedQueryResourceTest {
     reset(mockOutputNode);
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
-    expect(mockKsqlEngine.buildMultipleQueries(queryString, mockKsqlConfig, requestStreamsProperties))
+    expect(mockKsqlEngine.execute(queryString, mockKsqlConfig, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
     expectLastCall();

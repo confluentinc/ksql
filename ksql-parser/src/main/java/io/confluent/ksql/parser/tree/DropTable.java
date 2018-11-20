@@ -21,7 +21,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import java.util.Objects;
 import java.util.Optional;
 
-public class DropTable extends AbstractStreamDropStatement implements DdlStatement {
+public class DropTable extends AbstractStreamDropStatement implements ExecutableDdlStatement {
 
   private final QualifiedName tableName;
   private final boolean ifExists;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,23 +12,28 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
 package io.confluent.ksql.util;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
+public class KsqlStatementException extends KsqlException {
 
-public class QueryIdGenerator {
+  private final String sqlStatement;
 
-  private final AtomicLong queryIdCounter = new AtomicLong(0);
-  private final String postfix;
-
-  public QueryIdGenerator(final String postfix) {
-    this.postfix = Objects.requireNonNull(postfix, "postfix");
+  public KsqlStatementException(final String message, final String sqlStatement) {
+    super(message);
+    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
   }
 
-  public String getNextId() {
-    return queryIdCounter.getAndIncrement() + postfix;
+  public KsqlStatementException(
+      final String message,
+      final String sqlStatement,
+      final Throwable cause) {
+    super(message, cause);
+    this.sqlStatement = sqlStatement == null ? "" : sqlStatement;
+  }
+
+  public String getSqlStatement() {
+    return sqlStatement;
   }
 }

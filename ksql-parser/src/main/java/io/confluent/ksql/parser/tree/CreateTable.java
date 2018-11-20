@@ -27,7 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class CreateTable
-    extends AbstractStreamCreateStatement implements DdlStatement {
+    extends AbstractStreamCreateStatement implements ExecutableDdlStatement {
 
   private final QualifiedName name;
   private final List<TableElement> elements;

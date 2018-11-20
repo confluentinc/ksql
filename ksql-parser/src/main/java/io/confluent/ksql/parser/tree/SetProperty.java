@@ -22,7 +22,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
-public class SetProperty extends Statement implements DdlStatement {
+public class SetProperty extends Statement implements ExecutableDdlStatement {
 
   private final String propertyName;
   private final String propertyValue;

@@ -62,11 +62,11 @@ public class KsqlParser {
     }
   }
 
-  public static final class PreparedStatement {
+  public static final class PreparedStatement<T extends Statement> {
     private final String statementText;
-    private final Statement statement;
+    private final T statement;
 
-    public PreparedStatement(final String statementText, final Statement statement) {
+    public PreparedStatement(final String statementText, final T statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
       this.statement = Objects.requireNonNull(statement, "statement");
     }
@@ -75,22 +75,27 @@ public class KsqlParser {
       return statementText;
     }
 
-    public Statement getStatement() {
+    public T getStatement() {
       return statement;
+    }
+
+    @Override
+    public String toString() {
+      return statementText;
     }
   }
 
-  public List<PreparedStatement> buildAst(
+  public List<PreparedStatement<Statement>> buildAst(
       final String sql,
       final MetaStore metaStore) {
 
     return buildAst(sql, metaStore, Function.identity());
   }
 
-  public List<PreparedStatement> buildAst(
+  public List<PreparedStatement<Statement>> buildAst(
       final String sql,
       final MetaStore metaStore,
-      final Consumer<PreparedStatement> mapper) {
+      final Consumer<PreparedStatement<Statement>> mapper) {
 
     return buildAst(sql, metaStore, stmt -> true, stmt -> {
       mapper.accept(stmt);
@@ -101,7 +106,7 @@ public class KsqlParser {
   public <T> List<T> buildAst(
       final String sql,
       final MetaStore metaStore,
-      final Function<PreparedStatement, T> mapper) {
+      final Function<PreparedStatement<Statement>, T> mapper) {
 
     return buildAst(sql, metaStore, stmt -> true, mapper);
   }
@@ -110,7 +115,7 @@ public class KsqlParser {
       final String sql,
       final MetaStore metaStore,
       final Predicate<ParsedStatement> filter,
-      final Function<PreparedStatement, T> mapper) {
+      final Function<PreparedStatement<Statement>, T> mapper) {
 
     return getStatements(sql)
         .stream()
@@ -133,7 +138,7 @@ public class KsqlParser {
     }
   }
 
-  private PreparedStatement prepareStatement(
+  private PreparedStatement<Statement> prepareStatement(
       final ParsedStatement parsedStatement,
       final MetaStore metaStore) {
 
@@ -148,7 +153,7 @@ public class KsqlParser {
         statement = new StatementRewriteForStruct(statement, dataSourceExtractor)
             .rewriteForStruct();
       }
-      return new PreparedStatement(parsedStatement.getStatementText(), statement);
+      return new PreparedStatement<>(parsedStatement.getStatementText(), statement);
     } catch (final ParseFailedException e) {
       throw e;
     } catch (final Exception e) {

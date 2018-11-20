@@ -152,7 +152,7 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void executeStatements(final String queries) {
-    final List<PreparedStatement<Statement>> preparedStatements =
+    final List<PreparedStatement<?>> preparedStatements =
         ksqlEngine.parseStatements(queries);
 
     if (failOnNoQueries) {
@@ -164,13 +164,17 @@ public class StandaloneExecutor implements Executable {
       }
     }
 
-    for (final PreparedStatement<Statement> preparedStatement : preparedStatements) {
-      final Class<? extends Statement> type = preparedStatement.getStatement().getClass();
+    preparedStatements.forEach(this::executeStatement);
+  }
 
-      HANDLERS
-          .getOrDefault(type, StandaloneExecutor::defaultHandler)
-          .handle(this, preparedStatement);
-    }
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> void executeStatement(
+      final PreparedStatement<T> statement
+  ) {
+    final Class<? extends Statement> type = statement.getStatement().getClass();
+    HANDLERS
+        .getOrDefault(type, StandaloneExecutor::defaultHandler)
+        .handle(this, (PreparedStatement)statement);
   }
 
   private void handleSetProperty(final PreparedStatement<SetProperty> statement) {
@@ -198,7 +202,7 @@ public class StandaloneExecutor implements Executable {
     queries.get(0).start();
   }
 
-  private void defaultHandler(final PreparedStatement<Statement> statement) {
+  private void defaultHandler(final PreparedStatement<?> statement) {
     throw new KsqlException(String.format(
         "Ignoring statements: %s"
             + "%nOnly DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "

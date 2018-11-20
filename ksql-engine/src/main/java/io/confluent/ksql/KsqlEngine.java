@@ -48,7 +48,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -175,7 +174,7 @@ public class KsqlEngine implements Closeable {
    * @param sql the statements to parse
    * @return the list of prepared statements.
    */
-  public List<PreparedStatement<Statement>> parseStatements(final String sql) {
+  public List<PreparedStatement<?>> parseStatements(final String sql) {
     try {
       final MetaStore parserMetaStore = metaStore.clone();
 
@@ -215,7 +214,7 @@ public class KsqlEngine implements Closeable {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    final List<PreparedStatement<Statement>> statements = parseStatements(sql);
+    final List<PreparedStatement<?>> statements = parseStatements(sql);
 
     return tryExecute(statements, ksqlConfig, overriddenProperties);
   }
@@ -236,7 +235,7 @@ public class KsqlEngine implements Closeable {
    * @return List of query metadata.
    */
   public List<QueryMetadata> tryExecute(
-      final List<PreparedStatement<Statement>> statements,
+      final List<? extends PreparedStatement<?>> statements,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
@@ -265,7 +264,7 @@ public class KsqlEngine implements Closeable {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    final List<PreparedStatement<Statement>> statements = parseStatements(sql);
+    final List<PreparedStatement<?>> statements = parseStatements(sql);
 
     final List<QueryMetadata> queries = doExecute(
         statements, ksqlConfig, overriddenProperties, true);
@@ -288,7 +287,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private List<QueryMetadata> doExecute(
-      final List<PreparedStatement<Statement>> statements,
+      final List<? extends PreparedStatement<?>> statements,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final boolean updateMetastore
@@ -300,7 +299,7 @@ public class KsqlEngine implements Closeable {
     // MetaStore tempMetaStore = new MetaStoreImpl(metaStore);
     final MetaStore tempMetaStore = metaStore.clone();
 
-    final List<PreparedStatement<Statement>> postProcessed = statements.stream()
+    final List<PreparedStatement<?>> postProcessed = statements.stream()
         .map(stmt -> postProcessStatement(stmt, tempMetaStore))
         .collect(Collectors.toList());
 
@@ -314,7 +313,7 @@ public class KsqlEngine implements Closeable {
 
     final List<QueryMetadata> queriesWithNulls = new ArrayList<>(logicalPlans.size());
     for (int i = 0; i != logicalPlans.size(); ++i) {
-      final PreparedStatement<Statement> statement = postProcessed.get(i);
+      final PreparedStatement<?> statement = postProcessed.get(i);
       final LogicalPlanNode logicalPlan = logicalPlans.get(i);
       if (logicalPlan.getNode() == null) {
         if (updateMetastore) {
@@ -347,7 +346,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private void validateQueries(
-      final List<PreparedStatement<Statement>> statements,
+      final List<? extends PreparedStatement<?>> statements,
       final List<QueryMetadata> queries
   ) {
     IntStream.range(0, queries.size()).forEach(idx -> {
@@ -356,7 +355,7 @@ public class KsqlEngine implements Closeable {
         return;
       }
 
-      final PreparedStatement<Statement> statement = statements.get(idx);
+      final PreparedStatement<?> statement = statements.get(idx);
 
       if (statement.getStatement() instanceof CreateStreamAsSelect
           && query.getDataSourceType() == DataSourceType.KTABLE) {
@@ -403,7 +402,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private void validateSingleQueryAstAndUpdateParser(
-      final PreparedStatement<Statement> statement,
+      final PreparedStatement<?> statement,
       final MetaStore parserMetaStore
   ) {
     log.info("Building AST for {}.", statement.getStatementText());
@@ -423,7 +422,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private void applyCreateAsSelectToMetaStore(
-      final PreparedStatement<Statement> statement,
+      final PreparedStatement<?> statement,
       final MetaStore parserMetaStore
   ) {
     final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
@@ -440,7 +439,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private void validateInsertIntoStatement(
-      final PreparedStatement<Statement> statement,
+      final PreparedStatement<?> statement,
       final MetaStore parserMetaStore
   ) {
     final InsertInto insertInto = (InsertInto) statement.getStatement();
@@ -459,7 +458,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private void applyDdlStatementToMetaStore(
-      final PreparedStatement<Statement> statement,
+      final PreparedStatement<?> statement,
       final MetaStore parserMetaStore
   ) {
     // Todo(ac): This should update config... but won't here.
@@ -477,8 +476,8 @@ public class KsqlEngine implements Closeable {
     ddlCommandExec.tryExecute(ddlCmd, parserMetaStore);
   }
 
-  private PreparedStatement<Statement> postProcessStatement(
-      final PreparedStatement<Statement> statement,
+  private PreparedStatement<?> postProcessStatement(
+      final PreparedStatement<?> statement,
       final MetaStore tempMetaStore
   ) {
     try {
@@ -502,8 +501,8 @@ public class KsqlEngine implements Closeable {
     }
   }
 
-  private PreparedStatement<Statement> postProcessCreateAsSelectStatement(
-      final PreparedStatement<Statement> statement
+  private PreparedStatement<?> postProcessCreateAsSelectStatement(
+      final PreparedStatement<?> statement
   ) {
     final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
 
@@ -522,8 +521,8 @@ public class KsqlEngine implements Closeable {
     return new PreparedStatement<>(statement.getStatementText(), query);
   }
 
-  private PreparedStatement<Statement> postProcessInsertIntoStatement(
-      final PreparedStatement<Statement> statement
+  private PreparedStatement<?> postProcessInsertIntoStatement(
+      final PreparedStatement<?> statement
   ) {
     final InsertInto insertInto = (InsertInto) statement.getStatement();
 
@@ -542,8 +541,8 @@ public class KsqlEngine implements Closeable {
     return new PreparedStatement<>(statement.getStatementText(), query);
   }
 
-  private PreparedStatement<Statement> postProcessSingleDdlStatement(
-      final PreparedStatement<Statement> statement,
+  private PreparedStatement<?> postProcessSingleDdlStatement(
+      final PreparedStatement<?> statement,
       final MetaStore tempMetaStore) {
     if (statement.getStatement() instanceof SetProperty
         || statement.getStatement() instanceof UnsetProperty) {
@@ -799,7 +798,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private static void throwOnNonExecutableStatement(
-      final List<PreparedStatement<Statement>> statements
+      final List<? extends PreparedStatement<?>> statements
   ) {
     final Predicate<PreparedStatement<?>> notExecutable = statement ->
         !isExecutableStatement(statement)

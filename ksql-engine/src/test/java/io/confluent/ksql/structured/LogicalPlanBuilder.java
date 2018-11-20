@@ -42,7 +42,7 @@ public class LogicalPlanBuilder {
   }
 
   public PlanNode buildLogicalPlan(final String queryStr) {
-    final List<PreparedStatement<Statement>> statements = parser.buildAst(queryStr, metaStore);
+    final List<PreparedStatement<?>> statements = parser.buildAst(queryStr, metaStore);
     final Analysis analysis = new Analysis();
     final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
     analyzer.process(statements.get(0).getStatement(), new AnalysisContext(null));

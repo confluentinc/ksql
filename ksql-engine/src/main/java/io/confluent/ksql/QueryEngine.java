@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -79,12 +78,12 @@ class QueryEngine {
 
   List<LogicalPlanNode> buildLogicalPlans(
       final MetaStore metaStore,
-      final List<PreparedStatement<Statement>> statements,
-      final KsqlConfig config) {
-
+      final List<? extends PreparedStatement<?>> statements,
+      final KsqlConfig config
+  ) {
     final List<LogicalPlanNode> logicalPlansList = new ArrayList<>();
 
-    for (final PreparedStatement<Statement> statement : statements) {
+    for (final PreparedStatement<?> statement : statements) {
       if (statement.getStatement() instanceof Query) {
         final PlanNode logicalPlan = buildQueryLogicalPlan(
             statement.getStatementText(),

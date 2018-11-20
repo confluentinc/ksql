@@ -269,7 +269,7 @@ public class QueryTranslationTest {
         stmt.getStatement().statement() instanceof SqlBaseParser.CreateStreamContext
             || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
 
-    final Function<PreparedStatement<Statement>, Topic> mapper = stmt -> {
+    final Function<PreparedStatement<?>, Topic> mapper = stmt -> {
       final AbstractStreamCreateStatement statement = (AbstractStreamCreateStatement) stmt
           .getStatement();
 

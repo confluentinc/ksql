@@ -193,7 +193,7 @@ public class AvroUtilTest {
   }
 
   private AbstractStreamCreateStatement getAbstractStreamCreateStatement(final String statementString) {
-    final List<PreparedStatement<Statement>> statementList = new KsqlParser().buildAst
+    final List<PreparedStatement<?>> statementList = new KsqlParser().buildAst
         (statementString, new MetaStoreImpl(new InternalFunctionRegistry()));
     if (statementList.get(0).getStatement() instanceof AbstractStreamCreateStatement) {
       return (AbstractStreamCreateStatement) statementList.get(0).getStatement();

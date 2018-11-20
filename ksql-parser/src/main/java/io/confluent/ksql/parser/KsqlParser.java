@@ -85,17 +85,17 @@ public class KsqlParser {
     }
   }
 
-  public List<PreparedStatement<Statement>> buildAst(
+  public List<PreparedStatement<?>> buildAst(
       final String sql,
       final MetaStore metaStore) {
 
     return buildAst(sql, metaStore, Function.identity());
   }
 
-  public List<PreparedStatement<Statement>> buildAst(
+  public List<PreparedStatement<?>> buildAst(
       final String sql,
       final MetaStore metaStore,
-      final Consumer<PreparedStatement<Statement>> mapper) {
+      final Consumer<? super PreparedStatement<?>> mapper) {
 
     return buildAst(sql, metaStore, stmt -> true, stmt -> {
       mapper.accept(stmt);
@@ -106,7 +106,7 @@ public class KsqlParser {
   public <T> List<T> buildAst(
       final String sql,
       final MetaStore metaStore,
-      final Function<PreparedStatement<Statement>, T> mapper) {
+      final Function<? super PreparedStatement<?>, T> mapper) {
 
     return buildAst(sql, metaStore, stmt -> true, mapper);
   }
@@ -115,7 +115,7 @@ public class KsqlParser {
       final String sql,
       final MetaStore metaStore,
       final Predicate<ParsedStatement> filter,
-      final Function<PreparedStatement<Statement>, T> mapper) {
+      final Function<? super PreparedStatement<?>, T> mapper) {
 
     return getStatements(sql)
         .stream()
@@ -138,7 +138,7 @@ public class KsqlParser {
     }
   }
 
-  private PreparedStatement<Statement> prepareStatement(
+  private PreparedStatement<?> prepareStatement(
       final ParsedStatement parsedStatement,
       final MetaStore metaStore) {
 

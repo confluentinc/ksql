@@ -181,7 +181,7 @@ public class KsqlResource {
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
     try {
-      final List<PreparedStatement<Statement>> statements = parseStatements(request.getKsql());
+      final List<PreparedStatement<?>> statements = parseStatements(request.getKsql());
 
       final Map<String, Object> propertyOverrides = request.getStreamsProperties();
 
@@ -199,7 +199,7 @@ public class KsqlResource {
     }
   }
 
-  private List<PreparedStatement<Statement>> parseStatements(final String sql) {
+  private List<PreparedStatement<?>> parseStatements(final String sql) {
     try {
       return ksqlEngine.parseStatements(sql);
     } catch (final ParseFailedException e) {
@@ -208,17 +208,17 @@ public class KsqlResource {
   }
 
   private void validateStatements(
-      final List<PreparedStatement<Statement>> statements,
+      final List<? extends PreparedStatement<?>> statements,
       final Map<String, Object> propertyOverrides
   ) {
-    final Map<Boolean, List<PreparedStatement<Statement>>> partitioned = statements.stream()
+    final Map<Boolean, List<PreparedStatement<?>>> partitioned = statements.stream()
         .collect(Collectors.groupingBy(stmt -> getCustomValidator(stmt) != null));
 
     partitioned
         .getOrDefault(true, Collections.emptyList())
         .forEach(stmt -> customValidateStatement(stmt, propertyOverrides));
 
-    final List<PreparedStatement<Statement>> standardValidated = partitioned
+    final List<PreparedStatement<?>> standardValidated = partitioned
         .getOrDefault(false, Collections.emptyList()).stream()
         .filter(KsqlEngine::isExecutableStatement)
         .collect(Collectors.toList());
@@ -226,12 +226,12 @@ public class KsqlResource {
     validateExecutableStatements(standardValidated, propertyOverrides);
   }
 
-  private void customValidateStatement(
-      final PreparedStatement<Statement> statement,
+  private <T extends Statement> void customValidateStatement(
+      final PreparedStatement<T> statement,
       final Map<String, Object> propertyOverrides
   ) {
     try {
-      final Validator<Statement> validator = getCustomValidator(statement);
+      final Validator<T> validator = getCustomValidator(statement);
       if (validator != null) {
         validator.validate(this, statement, propertyOverrides);
       }
@@ -247,7 +247,7 @@ public class KsqlResource {
   }
 
   private Response executeStatements(
-      final List<PreparedStatement<Statement>> statements,
+      final List<? extends PreparedStatement<?>> statements,
       final Map<String, Object> propertyOverrides
   ) {
     final KsqlEntityList entities = new KsqlEntityList();
@@ -255,14 +255,16 @@ public class KsqlResource {
     return Response.ok(entities).build();
   }
 
+  @SuppressWarnings("unchecked")
   private void executeStatement(
-      final PreparedStatement<Statement> statement,
+      final PreparedStatement<?> statement,
       final Map<String, Object> propertyOverrides,
       final KsqlEntityList entities) {
     try {
       final Handler<Statement> handler = CUSTOM_EXECUTORS.get(statement.getStatement().getClass());
       if (handler != null) {
-        entities.add(handler.handle(this, statement, propertyOverrides));
+        entities.add(
+            handler.handle(this, (PreparedStatement)statement, propertyOverrides));
         return;
       }
 
@@ -534,10 +536,10 @@ public class KsqlResource {
   }
 
   private void validateExecutableStatements(
-      final List<PreparedStatement<Statement>> statements,
+      final List<? extends PreparedStatement<?>> statements,
       final Map<String, Object> propertyOverrides
   ) {
-    final List<PreparedStatement<Statement>> withSchemas = statements.stream()
+    final List<PreparedStatement<?>> withSchemas = statements.stream()
         .map(this::addInferredSchema)
         .collect(Collectors.toList());
 
@@ -637,10 +639,8 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
-  // Todo(ac): Sort out generics on PreparedStatement<?> vs PreparedStatement<Statement>
-
   @SuppressWarnings("unchecked")
-  private PreparedStatement<Statement> addInferredSchema(final PreparedStatement<?> stmt) {
+  private PreparedStatement<?> addInferredSchema(final PreparedStatement<?> stmt) {
     // Todo(ac): Standalone executor doesn't do this itself as the engine will do it automatically
     // However, here we do it explicitly. It would be better to have the engine do it,
     // and for the class to use the output from the engine,
@@ -663,11 +663,12 @@ public class KsqlResource {
     return new FunctionInfo(args, returnType, description);
   }
 
-  private static Validator<Statement> getCustomValidator(
-      final PreparedStatement<Statement> statement
+  @SuppressWarnings("unchecked")
+  private static <T extends Statement> Validator<T> getCustomValidator(
+      final PreparedStatement<T> statement
   ) {
     final Class<? extends Statement> type = statement.getStatement().getClass();
-    return CUSTOM_VALIDATORS.get(type);
+    return (Validator)CUSTOM_VALIDATORS.get(type);
   }
 
   @SuppressWarnings({"unchecked", "unused", "SameParameterValue"})

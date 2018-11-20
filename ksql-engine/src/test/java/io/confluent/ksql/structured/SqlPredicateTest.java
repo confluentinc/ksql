@@ -135,7 +135,7 @@ public class SqlPredicateTest {
   @SuppressWarnings("unchecked")
   public void shouldIgnoreNullRows() {
     final String selectQuery = "SELECT col0 FROM test1 WHERE col0 > 100;";
-    final List<PreparedStatement<Statement>> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
+    final List<PreparedStatement<?>> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
     final QuerySpecification querySpecification = (QuerySpecification)((Query) statements.get(0)
         .getStatement()).getQueryBody();
     final Expression filterExpr = querySpecification.getWhere().get();

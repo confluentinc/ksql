@@ -20,7 +20,6 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.niceMock;
 
 import com.google.common.collect.ImmutableList;
@@ -43,18 +42,13 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -62,7 +56,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -96,7 +89,7 @@ public class StandaloneExecutorTest {
             queriesFile,
             udfLoader,
             false,
-            new KsqlVersionCheckerAgent(() -> false));
+            niceMock(VersionCheckerAgent.class));
     final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
     EasyMock.expect(engine.getMetaStore()).andReturn(metaStore).anyTimes();
   }
@@ -134,7 +127,7 @@ public class StandaloneExecutorTest {
             queriesFile,
             udfLoader,
             true,
-            new KsqlVersionCheckerAgent(() -> false));
+            niceMock(VersionCheckerAgent.class));
 
     EasyMock.expect(engine.parseStatements(anyString()))
         .andReturn(ImmutableList.of(

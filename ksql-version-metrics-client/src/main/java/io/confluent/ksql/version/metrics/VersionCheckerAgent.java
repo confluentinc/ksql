@@ -23,4 +23,6 @@ public interface VersionCheckerAgent {
 
   void start(KsqlModuleType moduleType, Properties ksqlProperties);
 
+  public void updateLastRequestTime();
+
 }

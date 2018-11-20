@@ -68,8 +68,8 @@ public class StreamedQueryResource {
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
-    Objects.requireNonNull(activenessRegistrar);
-    this.activenessRegistrar = activenessRegistrar;
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
   }
 
   @POST

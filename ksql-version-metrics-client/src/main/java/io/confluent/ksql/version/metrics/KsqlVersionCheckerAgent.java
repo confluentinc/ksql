@@ -116,6 +116,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
     return "The version check feature of KSQL  is disabled.";
   }
 
+  @Override
   public void updateLastRequestTime() {
     this.requestTime = System.currentTimeMillis();
   }

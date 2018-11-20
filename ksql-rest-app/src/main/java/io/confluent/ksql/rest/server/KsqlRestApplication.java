@@ -59,6 +59,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -77,6 +78,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerEndpoint;
@@ -115,7 +118,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final ServerInfo serverInfo;
 
   private final Thread commandRunnerThread;
-  private final KsqlVersionCheckerAgent versionCheckerAgent;
+  private final VersionCheckerAgent versionCheckerAgent;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -130,7 +133,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final StatusResource statusResource,
       final StreamedQueryResource streamedQueryResource,
       final KsqlResource ksqlResource,
-      final KsqlVersionCheckerAgent versionCheckerAgent
+      final VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
     this.ksqlConfig = ksqlConfig;
@@ -276,10 +279,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     }
   }
 
-  // Use only for testing
   public static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
-      final KsqlVersionCheckerAgent versionCheckerAgent,
+      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries
   ) {
 
@@ -365,24 +367,22 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final RootDocument rootDocument = new RootDocument();
 
     final StatusResource statusResource = new StatusResource(statementExecutor);
-    final KsqlVersionCheckerAgent versionCheckerAgentToUse
-        = Optional.ofNullable(versionCheckerAgent)
-        .orElse(
-            new KsqlVersionCheckerAgent(() -> !ksqlEngine.getLivePersistentQueries().isEmpty()));
+    final VersionCheckerAgent versionChecker = versionCheckerFactory
+        .apply(() -> !ksqlEngine.getLivePersistentQueries().isEmpty());
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,
         statementParser,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
-        versionCheckerAgentToUse::updateLastRequestTime
+        versionChecker::updateLastRequestTime
     );
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
         commandStore,
         restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG),
-        versionCheckerAgentToUse::updateLastRequestTime
+        versionChecker::updateLastRequestTime
     );
 
     commandRunner.processPriorCommands();

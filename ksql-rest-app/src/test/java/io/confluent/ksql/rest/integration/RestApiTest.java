@@ -22,6 +22,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import java.util.function.Supplier;
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -143,20 +144,6 @@ public class RestApiTest {
     testHarness.stop();
   }
 
-  private static class DummyVersionCheckerAgent extends KsqlVersionCheckerAgent {
-
-    public DummyVersionCheckerAgent(
-        final Supplier<Boolean> engineActiveQueryStatusSupplier) {
-      super(engineActiveQueryStatusSupplier);
-    }
-
-    @Override
-    public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
-      // do nothing;
-    }
-
-  }
-
   private static Client buildClient() {
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -187,7 +174,7 @@ public class RestApiTest {
         configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
         restApplication = KsqlRestApplication.buildApplication(
             new KsqlRestConfig(configs),
-            new DummyVersionCheckerAgent(()-> false),
+            EasyMock.niceMock(VersionCheckerAgent.class),
             3);
         restApplication.start();
         return;

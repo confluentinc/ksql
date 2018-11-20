@@ -72,11 +72,7 @@ public class KsqlServerMain {
       final String installDir
   ) throws Exception {
     if (queriesFile.isPresent()) {
-      return StandaloneExecutor.create(
-          properties,
-          queriesFile.get(),
-          installDir
-          );
+      return StandaloneExecutor.create(properties, queriesFile.get(), installDir);
     }
 
     if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
@@ -85,7 +81,7 @@ public class KsqlServerMain {
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     return KsqlRestApplication.buildApplication(
         restConfig,
-        new KsqlVersionCheckerAgent(() -> true),
+        KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE
     );
   }

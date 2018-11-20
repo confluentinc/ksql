@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.internal;
 
+import static com.google.common.testing.NullPointerTester.Visibility.PACKAGE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,7 +61,7 @@ public class QueryStateListenerTest {
 
   @Test
   public void shouldThrowOnNullParams() {
-    new NullPointerTester().testAllPublicConstructors(QueryStateListener.class);
+    new NullPointerTester().testConstructors(QueryStateListener.class, PACKAGE);
   }
 
   @Test

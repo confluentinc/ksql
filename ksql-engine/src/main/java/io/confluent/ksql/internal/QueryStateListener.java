@@ -34,7 +34,7 @@ public class QueryStateListener implements StateListener {
       final String queryApplicationId
   ) {
     Objects.requireNonNull(queryApplicationId, "queryApplicationId");
-    this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null."); ;
+    this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null.");
     this.metricName = metrics.metricName(
         "query-status",
         "ksql-queries",

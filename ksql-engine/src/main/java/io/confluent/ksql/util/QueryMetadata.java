@@ -22,6 +22,7 @@ import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -74,6 +75,7 @@ public class QueryMetadata {
 
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
     this.queryStateListener = Optional.of(queryStateListener);
+    queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -84,8 +86,12 @@ public class QueryMetadata {
     return statementString;
   }
 
-  public KafkaStreams getKafkaStreams() {
-    return kafkaStreams;
+  public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
+    kafkaStreams.setUncaughtExceptionHandler(handler);
+  }
+
+  public String getState() {
+    return kafkaStreams.state().toString();
   }
 
   public OutputNode getOutputNode() {

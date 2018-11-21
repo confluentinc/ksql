@@ -86,8 +86,6 @@ public class CommandStoreTest {
 
   @Test
   public void shouldCallCloseCorrectly() {
-    // Given:
-
     // When:
     commandStore.close();
 

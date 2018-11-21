@@ -136,7 +136,6 @@ public class CommandRunner implements Runnable, Closeable {
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    */
-  // TODO: creat github issue to handle terminate better.
   public void processPriorCommands() {
     final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
     final AtomicBoolean shouldProcess = new AtomicBoolean(true);

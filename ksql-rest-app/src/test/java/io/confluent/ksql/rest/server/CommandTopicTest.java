@@ -105,7 +105,6 @@ public class CommandTopicTest {
   @Test
   @SuppressWarnings("unchecked")
   public void shouldSendCommandCorrectly() throws Exception {
-
     // When
     commandTopic.send(commandId1, command1);
 

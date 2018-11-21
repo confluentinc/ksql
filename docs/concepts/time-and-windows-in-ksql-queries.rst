@@ -300,5 +300,7 @@ Next Steps
 
 * :ref:`create-a-stream-with-ksql`
 * :ref:`ksql_quickstart-docker`
+* `Stream Processing Cookbook: Event Time Processing <https://www.confluent.io/stream-processing-cookbook/ksql-recipes/event-time-processing>`__
+* `Stream Processing Cookbook: Detecting and Analyzing Suspicious Network Activity <https://www.confluent.io/stream-processing-cookbook/ksql-recipes/detecting-analyzing-suspicious-network-activity>`__
 * For a realistic example that manipulates timestamps and uses windows in KSQL
   queries, see `KSQL in Action: Real-Time Streaming ETL from Oracle Transactional Data <https://www.confluent.io/blog/ksql-in-action-real-time-streaming-etl-from-oracle-transactional-data>`__.

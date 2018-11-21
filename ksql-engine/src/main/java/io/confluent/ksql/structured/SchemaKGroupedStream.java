@@ -25,7 +25,6 @@ import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.streams.KsqlMaterializedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -92,7 +91,7 @@ public class SchemaKGroupedStream {
         ksqlConfig,
         functionRegistry,
         schemaRegistryClient,
-        new KsqlMaterializedFactory(ksqlConfig)
+        MaterializedFactory.create(ksqlConfig)
     );
   }
 

@@ -56,7 +56,7 @@ public class KsqlConfigResolver implements ConfigResolver {
     return resolveStreamsConfig(propertyName, strict);
   }
 
-  Optional<ConfigItem> resolveStreamsConfig(
+  private Optional<ConfigItem> resolveStreamsConfig(
       final String propertyName,
       final boolean strict) {
 
@@ -86,7 +86,7 @@ public class KsqlConfigResolver implements ConfigResolver {
     return strict ? Optional.empty() : Optional.of(ConfigItem.unresolved(key));
   }
 
-  Optional<ConfigItem> resolveKsqlConfig(final String propertyName) {
+  private Optional<ConfigItem> resolveKsqlConfig(final String propertyName) {
     final Optional<ConfigItem> possibleItem = resolveConfig("", KSQL_CONFIG_DEF, propertyName);
     if (possibleItem.isPresent()) {
       return possibleItem;

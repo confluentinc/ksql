@@ -37,7 +37,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.streams.KsqlMaterializedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -56,7 +55,6 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
-import org.apache.kafka.streams.kstream.Windows;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -120,10 +118,11 @@ public class SchemaKGroupedStreamTest {
     EasyMock.expect(windowExp.getKsqlWindowExpression()).andReturn(ksqlWindowExp).anyTimes();
     EasyMock.expect(ksqlWindowExp.getKeySerde(String.class)).andReturn(windowedKeySerde).anyTimes();
     EasyMock.expect(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).andReturn(false);
-    EasyMock.expect(config.getKsqlStreamConfigProps()).andReturn(Collections.emptyMap());
+    EasyMock.expect(config.getKsqlStreamConfigProps()).andStubReturn(Collections.emptyMap());
+    EasyMock.replay(config);
     EasyMock.expect(materializedFactory.create(anyObject(), anyObject(), anyObject()))
-        .andStubDelegateTo(new KsqlMaterializedFactory(config));
-    EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc, windowExp, config);
+        .andStubDelegateTo(MaterializedFactory.create(config));
+    EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc, windowExp);
   }
 
   @Test
@@ -195,7 +194,7 @@ public class SchemaKGroupedStreamTest {
     EasyMock.reset(config);
     EasyMock.expect(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG))
         .andReturn(true);
-    EasyMock.expect(config.getKsqlStreamConfigProps()).andReturn(Collections.emptyMap());
+    EasyMock.expect(config.getKsqlStreamConfigProps()).andStubReturn(Collections.emptyMap());
 
     EasyMock.replay(config);
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.streams;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Joined;
 
@@ -25,4 +26,24 @@ public interface JoinedFactory {
       Serde<V> leftSerde,
       Serde<V0> rightSerde,
       String name);
+
+  static JoinedFactory create(final KsqlConfig ksqlConfig) {
+    return create(ksqlConfig, new RealStreamsStatics());
+  }
+
+  static JoinedFactory create(final KsqlConfig ksqlConfig, final StreamsStatics streamsStatics) {
+    if (StreamsUtil.useProvidedName(ksqlConfig)) {
+      return streamsStatics::joinedWith;
+    }
+    return new JoinedFactory() {
+      @Override
+      public <K, V, V0> Joined<K, V, V0> create(
+          final Serde<K> keySerde,
+          final Serde<V> leftSerde,
+          final Serde<V0> rightSerde,
+          final String name) {
+        return streamsStatics.joinedWith(keySerde, leftSerde, rightSerde, null);
+      }
+    };
+  }
 }

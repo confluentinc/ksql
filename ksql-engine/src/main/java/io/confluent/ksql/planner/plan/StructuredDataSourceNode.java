@@ -27,7 +27,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.streams.KsqlMaterializedFactory;
+import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -350,7 +350,7 @@ public class StructuredDataSourceNode
         .withTimestampExtractor(timestampExtractor);
 
     final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        new KsqlMaterializedFactory(ksqlConfig).create(
+        MaterializedFactory.create(ksqlConfig).create(
             keySerde,
             genericRowSerdeAfterRead,
             getReduceName());

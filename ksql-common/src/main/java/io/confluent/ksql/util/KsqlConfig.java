@@ -410,7 +410,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     this(ConfigGeneration.CURRENT, props);
   }
 
-  public KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
+  private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
     super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();

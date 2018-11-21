@@ -27,8 +27,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
-import io.confluent.ksql.streams.KsqlGroupedFactory;
-import io.confluent.ksql.streams.KsqlJoinedFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
@@ -122,8 +120,8 @@ public class SchemaKStream<K> {
         ksqlConfig,
         functionRegistry,
         schemaRegistryClient,
-        new KsqlGroupedFactory(ksqlConfig),
-        new KsqlJoinedFactory(ksqlConfig));
+        GroupedFactory.create(ksqlConfig),
+        JoinedFactory.create(ksqlConfig));
   }
 
   public QueuedSchemaKStream toQueue() {

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,29 @@
 
 package io.confluent.ksql.streams;
 
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Grouped;
 
 public interface GroupedFactory {
   <K, V> Grouped<K, V> create(String name, Serde<K> keySerde, Serde<V> valSerde);
+
+  static GroupedFactory create(final KsqlConfig ksqlConfig) {
+    return create(ksqlConfig, new RealStreamsStatics());
+  }
+
+  static GroupedFactory create(final KsqlConfig ksqlConfig, final StreamsStatics streamsStatics) {
+    if (StreamsUtil.useProvidedName(ksqlConfig)) {
+      return streamsStatics::groupedWith;
+    }
+    return new GroupedFactory() {
+      @Override
+      public <K, V> Grouped<K, V> create(
+          final String name,
+          final Serde<K> keySerde,
+          final Serde<V> valSerde) {
+        return streamsStatics.groupedWith(null, keySerde, valSerde);
+      }
+    };
+  }
 }

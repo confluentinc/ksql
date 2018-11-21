@@ -80,8 +80,6 @@ import org.junit.Before;
 import org.junit.Test;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
-import io.confluent.ksql.streams.KsqlGroupedFactory;
-import io.confluent.ksql.streams.KsqlJoinedFactory;
 
 @SuppressWarnings("unchecked")
 public class SchemaKStreamTest {
@@ -197,8 +195,8 @@ public class SchemaKStreamTest {
         SchemaUtil.buildSchemaWithAlias(ksqlStream.getSchema(),
             ksqlStream.getName()),
         kStream,
-        new KsqlGroupedFactory(ksqlConfig),
-        new KsqlJoinedFactory(ksqlConfig));
+        GroupedFactory.create(ksqlConfig),
+        JoinedFactory.create(ksqlConfig));
   }
 
   private SchemaKStream buildSchemaKStreamForJoin(
@@ -207,8 +205,8 @@ public class SchemaKStreamTest {
     return buildSchemaKStreamForJoin(
         ksqlStream,
         kStream,
-        new KsqlGroupedFactory(ksqlConfig),
-        new KsqlJoinedFactory(ksqlConfig));
+        GroupedFactory.create(ksqlConfig),
+        JoinedFactory.create(ksqlConfig));
   }
 
   private SchemaKStream buildSchemaKStreamForJoin(

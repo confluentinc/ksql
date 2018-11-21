@@ -24,7 +24,6 @@ import io.confluent.ksql.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.streams.KsqlMaterializedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -76,7 +75,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         ksqlConfig,
         functionRegistry,
         schemaRegistryClient,
-        new KsqlMaterializedFactory(ksqlConfig));
+        MaterializedFactory.create(ksqlConfig));
   }
 
   @SuppressWarnings("unchecked")

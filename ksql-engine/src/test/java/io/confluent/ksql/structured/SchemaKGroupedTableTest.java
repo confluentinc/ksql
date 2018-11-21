@@ -67,7 +67,6 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import io.confluent.ksql.streams.KsqlMaterializedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 
 @SuppressWarnings("unchecked")
@@ -191,7 +190,7 @@ public class SchemaKGroupedTableTest {
   public void shouldUseMaterializedFactoryForStateStore() {
     // Given:
     final Serde<GenericRow> valueSerde = mock(Serde.class);
-    final Materialized materialized = new KsqlMaterializedFactory(ksqlConfig).create(
+    final Materialized materialized = MaterializedFactory.create(ksqlConfig).create(
         Serdes.String(),
         valueSerde,
         AGGREGATE_OP_NAME);

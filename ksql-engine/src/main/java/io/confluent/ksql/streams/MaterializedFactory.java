@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 package io.confluent.ksql.streams;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
@@ -24,4 +25,35 @@ import org.apache.kafka.streams.processor.StateStore;
 public interface MaterializedFactory {
   <K, S extends StateStore> Materialized<K, GenericRow, S> create(
       Serde<K> keySerde, Serde<GenericRow> valSerde, String name);
+
+  static MaterializedFactory create(final KsqlConfig ksqlConfig) {
+    return create(ksqlConfig, new RealStreamsStatics());
+  }
+
+  static MaterializedFactory create(
+      final KsqlConfig ksqlConfig,
+      final StreamsStatics streamsStatics) {
+    if (StreamsUtil.useProvidedName(ksqlConfig)) {
+      return new MaterializedFactory() {
+        @Override
+        public <K, S extends StateStore> Materialized<K, GenericRow, S> create(
+            final Serde<K> keySerde,
+            final Serde<GenericRow> valSerde,
+            final String name) {
+          return streamsStatics.<K, GenericRow, S>materializedAs(name)
+              .withKeySerde(keySerde)
+              .withValueSerde(valSerde);
+        }
+      };
+    }
+    return new MaterializedFactory() {
+      @Override
+      public <K, S extends StateStore> Materialized<K, GenericRow, S> create(
+          final Serde<K> keySerde,
+          final Serde<GenericRow> valSerde,
+          final String name) {
+        return streamsStatics.materializedWith(keySerde, valSerde);
+      }
+    };
+  }
 }

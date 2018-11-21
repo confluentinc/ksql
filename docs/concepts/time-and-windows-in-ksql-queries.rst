@@ -59,9 +59,9 @@ Processing-time
     For example, imagine an analytics application that reads and processes the
     geo-location data reported from car sensors, and presents it to a
     fleet-management dashboard. In this case, processing-time in the analytics
-    application might be milliseconds or seconds after event-time, like for
-    real-time streaming pipelines based on Apache Kafka and KSQL, or it might
-    be hours, like for batch pipelines based on Apache Hadoop or Apache Spark.
+    application might be many minutes or hours after the event-time, as cars
+    can move out of mobile reception for periods of time and have to buffer
+    records locally.
 
 Timestamp Assignment
 ====================
@@ -279,12 +279,26 @@ time windows. There is always a record in the session window with both the start
 and end timestamps, because the timestamp of the first and last record in the
 window define the session window's start and end time.
 
-For a realistic example that manipulates timestamps and uses windows in KSQL
-queries, see
-`KSQL in Action: Real-Time Streaming ETL from Oracle Transactional Data <https://www.confluent.io/blog/ksql-in-action-real-time-streaming-etl-from-oracle-transactional-data>`__.
+Windowed Joins
+--------------
+
+KSQL supports using windows in JOIN queries. 
+
+For example, to find orders that have shipped within the last hour, you might
+run a query like:
+
+.. code:: sql
+
+    SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
+      FROM new_orders o
+      INNER JOIN shipments s
+        WITHIN 1 HOURS
+        ON o.order_id = s.order_id;
 
 Next Steps
 **********
 
 * :ref:`create-a-stream-with-ksql`
 * :ref:`ksql_quickstart-docker`
+* For a realistic example that manipulates timestamps and uses windows in KSQL
+  queries, see `KSQL in Action: Real-Time Streaming ETL from Oracle Transactional Data <https://www.confluent.io/blog/ksql-in-action-real-time-streaming-etl-from-oracle-transactional-data>`__.

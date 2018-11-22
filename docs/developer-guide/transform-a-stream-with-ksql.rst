@@ -5,7 +5,7 @@ Transform a Stream With KSQL
 
 KSQL enables *streaming transformations*, which you can use to convert
 streaming data from one format to another in real time. With a streaming
-transformation, not only is all existing data on a topic converted, but so
+transformation, not only is all existing data in a stream converted, but so
 is every record that subsequently arrives on the source stream.
 
 Transform a Stream's Properties

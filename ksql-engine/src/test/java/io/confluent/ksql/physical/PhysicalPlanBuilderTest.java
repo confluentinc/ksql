@@ -389,15 +389,6 @@ public class PhysicalPlanBuilderTest {
     Assert.fail();
   }
 
-
-  @Test
-  public void shouldReturnCreatedKafkaStream() {
-    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
-    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
-    assertThat(1, equalTo(calls.size()));
-    Assert.assertSame(calls.get(0).kafkaStreams, queryMetadata.getKafkaStreams());
-  }
-
   @Test
   public void shouldAddMetricsInterceptors() throws Exception {
     buildPhysicalPlan(simpleSelectFilter);

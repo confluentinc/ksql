@@ -84,7 +84,7 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
       this.queryMetadata = queryMetadata;
 
       queryMetadata.setLimitHandler(this::setDone);
-      queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(
+      queryMetadata.setUncaughtExceptionHandler(
           (thread, e) -> setError(e)
       );
     }

@@ -158,7 +158,7 @@ public class EndToEndIntegrationTest {
 
     assertEquals(expectedPages, actualPages);
     assertThat(testHarness.getConsumedCount(), greaterThan(0));
-    queryMetadata.getKafkaStreams().close();
+    queryMetadata.close();
   }
 
   @Test

@@ -754,6 +754,26 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldThrowIfStatementMissingTopicConfig() {
+    final String[] statements = {
+        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO');",
+        "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO');",
+        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');",
+        "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');",
+    };
+
+    for (String statement : statements) {
+      try {
+        ksqlEngine.parseStatements(statement);
+        Assert.fail();
+      } catch (final KsqlException e) {
+        assertThat(e.getMessage(), containsString(
+                "Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause."));
+      }
+    }
+  }
+
+  @Test
   public void shouldThrowOnNoneExecutableDdlStatement() {
     // Given:
     expectedException.expect(KsqlException.class);

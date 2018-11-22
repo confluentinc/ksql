@@ -51,13 +51,10 @@ public class QueryMetadataTest {
   private KafkaStreams kafkaStreams;
   @Mock
   private QueryStateListener listener;
-  private Metrics metrics;
   private QueryMetadata query;
 
   @Before
   public void setup() {
-    metrics = MetricsTestUtil.getMetrics();
-
     query = new QueryMetadata(
         "foo",
         kafkaStreams,

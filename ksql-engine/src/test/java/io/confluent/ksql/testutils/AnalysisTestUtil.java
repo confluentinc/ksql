@@ -34,12 +34,15 @@ public final class AnalysisTestUtil {
   private AnalysisTestUtil() {
   }
 
-  public static List<PreparedStatement> getPreparedStatements(final String queryStr, final MetaStore metaStore) {
+  public static List<PreparedStatement> parseStatements(
+      final String queryStr,
+      final MetaStore metaStore
+  ) {
     return KSQL_PARSER.buildAst(queryStr, metaStore);
   }
 
   public static Query parseQuery(final String queryStr, final MetaStore metaStore) {
-    final List<PreparedStatement> statements = getPreparedStatements(queryStr, metaStore);
+    final List<PreparedStatement> statements = parseStatements(queryStr, metaStore);
     return (Query) statements.get(0).getStatement();
   }
 

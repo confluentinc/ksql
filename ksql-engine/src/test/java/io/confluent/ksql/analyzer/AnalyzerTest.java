@@ -17,7 +17,7 @@
 package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
-import static io.confluent.ksql.testutils.AnalysisTestUtil.getPreparedStatements;
+import static io.confluent.ksql.testutils.AnalysisTestUtil.parseStatements;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -210,7 +210,7 @@ public class AnalyzerTest {
     final MetaStore testMetastore = metaStore.clone();
     final KsqlTopic ksqlTopic = new KsqlTopic("FOO", "TEST_TOPIC1", new KsqlJsonTopicSerDe(), true);
     testMetastore.putTopic(ksqlTopic);
-    final List<Statement> statements = getPreparedStatements(simpleQuery, testMetastore)
+    final List<Statement> statements = parseStatements(simpleQuery, testMetastore)
         .stream()
         .map(PreparedStatement::getStatement)
         .collect(Collectors.toList());

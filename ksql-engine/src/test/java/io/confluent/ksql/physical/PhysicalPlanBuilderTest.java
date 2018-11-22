@@ -227,7 +227,6 @@ public class PhysicalPlanBuilderTest {
     assertThat(ksqlStructuredDataOutputNode.getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
         equalTo(DataSource.DataSourceSerDe.DELIMITED));
     closeQueries(queryMetadataList);
-    ksqlEngine.close();
   }
 
   @Test
@@ -236,20 +235,16 @@ public class PhysicalPlanBuilderTest {
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      ksqlEngine.buildMultipleQueries(
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
+      Assert.fail();
     } catch (final KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(), equalTo("Exception while processing statement: "
           + "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;. "
           + "Error: Sink, S1, does not exist for the INSERT INTO statement."));
-      return;
-    } finally {
-      ksqlEngine.close();
     }
-    Assert.fail();
-
   }
 
   @Test
@@ -263,19 +258,16 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      ksqlEngine.buildMultipleQueries(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
+      Assert.fail();
     } catch (final KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(),
           equalTo("Incompatible schema between results and sink. Result schema is [COL0 :"
               + " BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE], but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
-      return;
-    } finally {
-      ksqlEngine.close();
     }
-    Assert.fail();
   }
 
   @Test
@@ -304,7 +296,6 @@ public class PhysicalPlanBuilderTest {
             + "T1.COL0 : BIGINT, T1.COL1 : VARCHAR, T1.COL2 : DOUBLE, T1.COL3 : "
             + "DOUBLE]."));
     closeQueries(queryMetadataList);
-    ksqlEngine.close();
   }
 
   @Test
@@ -324,18 +315,15 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      ksqlEngine.buildMultipleQueries(
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
+      Assert.fail();
     } catch (final KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(), equalTo("Incompatible data sink and query result. "
           + "Data sink (S2) type is KTABLE but select query result is KSTREAM."));
-      return;
-    } finally {
-      ksqlEngine.close();
     }
-    Assert.fail();
   }
 
   @Test
@@ -361,7 +349,6 @@ public class PhysicalPlanBuilderTest {
     assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] Schema: [COL0 : BIGINT, COL1 : VARCHAR"
         + ", COL2 : DOUBLE]."));
     closeQueries(queryMetadataList);
-    ksqlEngine.close();
   }
 
   @Test
@@ -373,19 +360,16 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      ksqlEngine.buildMultipleQueries(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
+      Assert.fail();
     } catch (final Exception ksqlException) {
       assertThat(ksqlException.getMessage(), equalTo("Incompatible key fields for sink and "
           + "results. Sink key field is COL0 (type: "
           + "Schema{INT64}) while result key field is null (type: null)"));
-      return;
-    } finally {
-      ksqlEngine.close();
     }
-    Assert.fail();
   }
 
   @Test
@@ -595,7 +579,6 @@ public class PhysicalPlanBuilderTest {
         field -> Assert.assertTrue(field.schema().isOptional())
     );
     closeQueries(queryMetadataList);
-    ksqlEngine.close();
   }
 
   @Test
@@ -607,14 +590,13 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    ksqlEngine.buildMultipleQueries(
         createStream + "\n " + csasQuery + "\n " + ctasQuery,
         ksqlConfig,
         Collections.emptyMap());
     assertThat(ksqlEngine.getMetaStore().getSource("TEST1").getKsqlTopic().isKsqlSink(), equalTo(false));
     assertThat(ksqlEngine.getMetaStore().getSource("S1").getKsqlTopic().isKsqlSink(), equalTo(true));
     assertThat(ksqlEngine.getMetaStore().getSource("T1").getKsqlTopic().isKsqlSink(), equalTo(true));
-    ksqlEngine.close();
   }
 
 

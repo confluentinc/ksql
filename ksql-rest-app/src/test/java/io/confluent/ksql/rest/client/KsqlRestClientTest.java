@@ -17,9 +17,12 @@
 package io.confluent.ksql.rest.client;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -46,6 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
@@ -155,11 +159,15 @@ public class KsqlRestClientTest {
       // Try and receive a row. This will block since there is no data to return
       final KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
       final CountDownLatch threw = new CountDownLatch(1);
+      final AtomicReference<String> errorString = new AtomicReference<>();
       final Thread t = new Thread(() -> {
         try {
           queryStream.hasNext();
+          errorString.set("client query thread received unexpected data: " + queryStream.next());
         } catch (final IllegalStateException e) {
           threw.countDown();
+        } catch (final Exception e) {
+          errorString.set("received unexpected exception: " + e);
         }
       });
       t.setDaemon(true);
@@ -168,7 +176,9 @@ public class KsqlRestClientTest {
       // Let the thread run and then close the stream. Verify that it was interrupted
       Thread.sleep(100);
       queryStream.close();
-      Assert.assertTrue(threw.await(10, TimeUnit.SECONDS));
+      threw.await(10, TimeUnit.SECONDS);
+      assertThat(errorString.get(), is(nullValue()));
+      assertThat(threw.getCount(), equalTo(0L));
       t.join(10000);
       Assert.assertFalse(t.isAlive());
     } finally {

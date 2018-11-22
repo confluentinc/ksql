@@ -102,4 +102,15 @@ public class StreamedRow {
       throw new IllegalArgumentException("Exactly one parameter should be non-null. got: " + fs);
     }
   }
+
+  @Override
+  public String toString() {
+    if (row != null) {
+      return row.toString();
+    }
+    if (finalMessage != null) {
+      return finalMessage;
+    }
+    return errorMessage.toString();
+  }
 }

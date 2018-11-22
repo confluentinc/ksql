@@ -217,7 +217,7 @@ public class BasicAuthFunctionalTest {
 
   @SuppressWarnings("unused")
   @WebSocket
-  public class WebSocketListener {
+  public static class WebSocketListener {
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Throwable> error = new AtomicReference<>();

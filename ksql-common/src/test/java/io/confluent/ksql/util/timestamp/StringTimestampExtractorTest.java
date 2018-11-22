@@ -30,7 +30,7 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class StringTimestampExtractorTest {
 
-  private final String format = "yyyy-MMM-dd";
+  private static final String format = "yyyy-MMM-dd";
 
   @SuppressWarnings("unchecked")
   @Test

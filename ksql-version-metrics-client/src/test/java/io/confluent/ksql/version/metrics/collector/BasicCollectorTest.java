@@ -34,7 +34,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class BasicCollectorTest {
 
-  public class MockClock implements Clock {
+  public static class MockClock implements Clock {
     private long currentTime = 0;
 
     public MockClock() {
@@ -81,17 +81,17 @@ public class BasicCollectorTest {
 
   @Test
   public void testCollectMetricsAssignsCurrentTime() {
-    Long currentTimeSec = 1000l;
+    Long currentTimeSec = 1000L;
 
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
     final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
 
-    currentTimeSec += 12300l;
+    currentTimeSec += 12300L;
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
     KsqlVersionMetrics metrics = (KsqlVersionMetrics) basicCollector.collectMetrics();
     assertEquals(currentTimeSec, metrics.getTimestamp());
 
-    currentTimeSec += 734l;
+    currentTimeSec += 734L;
     mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
     metrics = (KsqlVersionMetrics) basicCollector.collectMetrics();
     assertEquals(currentTimeSec, metrics.getTimestamp());

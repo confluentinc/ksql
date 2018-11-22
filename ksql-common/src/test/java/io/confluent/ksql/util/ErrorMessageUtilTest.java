@@ -126,7 +126,7 @@ public class ErrorMessageUtilTest {
     }
   }
 
-  private static class RecursiveException extends Throwable {
+  private static class RecursiveException extends Exception {
 
     private RecursiveException(final String message) {
       super(message);

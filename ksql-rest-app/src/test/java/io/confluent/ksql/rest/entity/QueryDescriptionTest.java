@@ -42,12 +42,12 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Test;
 
 public class QueryDescriptionTest {
-  private static Schema SCHEMA =
+  private static final Schema SCHEMA =
       SchemaBuilder.struct()
           .field("field1", SchemaBuilder.int32().build())
           .field("field2", SchemaBuilder.string().build())
           .build();
-  private static String STATEMENT = "statement";
+  private static final String STATEMENT = "statement";
 
   private static class FakeSourceNode extends StructuredDataSourceNode {
     FakeSourceNode(final String name) {
@@ -64,7 +64,7 @@ public class QueryDescriptionTest {
   private static class FakeOutputNode extends OutputNode {
     FakeOutputNode(final FakeSourceNode sourceNode) {
       super(
-          new PlanNodeId("fake"), sourceNode, SCHEMA, Optional.of(new Integer(1)),
+          new PlanNodeId("fake"), sourceNode, SCHEMA, Optional.of(1),
           new MetadataTimestampExtractionPolicy());
     }
 

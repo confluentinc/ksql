@@ -51,18 +51,17 @@ import org.junit.Test;
 
 public class KsqlContextTest {
 
-  private final String statement1 = "CREATE STREAM orders (ordertime bigint, orderid bigint, "
+  private static final String statement1 = "CREATE STREAM orders (ordertime bigint, orderid bigint, "
                                    + "itemid varchar, "
                       + "orderunits double, arraycol array<double>, mapcol map<varchar, double>) "
                       + "WITH (kafka_topic='ordertopic', value_format='JSON' , "
                       + "key='orderid');\n";
-  private final String statement2 = "CREATE STREAM BIGORDERS AS SELECT * FROM orders WHERE ORDERUNITS > 5;";
+  private static final String statement2 = "CREATE STREAM BIGORDERS AS SELECT * FROM orders WHERE ORDERUNITS > 5;";
 
   @Test
-  public void shouldRunSimpleStatements() throws Exception {
+  public void shouldRunSimpleStatements() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
-    final Metrics metrics = MetricsTestUtil.getMetrics();
     expect(ksqlEngine.buildMultipleQueries(statement1, ksqlConfig, Collections.emptyMap()))
         .andReturn
         (Collections.emptyList());

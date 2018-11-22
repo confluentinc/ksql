@@ -42,13 +42,13 @@ public class OrderDataProvider extends TestDataProvider {
       .field("PRICEARRAY", SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build())
       .field("KEYVALUEMAP", SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)).optional().build();
 
-  private static final Map<String, GenericRow> data = new OrderDataProvider().buildData();
+  private static final Map<String, GenericRow> data = buildData();
 
   public OrderDataProvider() {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
-  private Map<String, GenericRow> buildData() {
+  private static Map<String, GenericRow> buildData() {
 
     final Map<String, Double> mapField = new HashMap<>();
     mapField.put("key1", 1.0);

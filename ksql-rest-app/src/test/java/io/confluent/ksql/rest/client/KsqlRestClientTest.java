@@ -133,7 +133,7 @@ public class KsqlRestClientTest {
       t1.join(10000);
       Assert.assertFalse(t1.isAlive());
       Assert.assertTrue(queryStream.hasNext());
-      final StreamedRow error_message = queryStream.next();
+      queryStream.next();
       System.out.println();
 
     } finally {

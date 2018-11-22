@@ -35,13 +35,13 @@ public class UserDataProvider extends TestDataProvider {
       .field("REGIONID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("USERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
-  private static final Map<String, GenericRow> data = new UserDataProvider().buildData();
+  private static final Map<String, GenericRow> data = buildData();
 
   public UserDataProvider() {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
-  private Map<String, GenericRow> buildData() {
+  private static Map<String, GenericRow> buildData() {
     final Map<String, GenericRow> dataMap = new HashMap<>();
     // create a records with:
     // key == user_id

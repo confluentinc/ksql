@@ -1,5 +1,6 @@
 package io.confluent.ksql.integration;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -79,6 +80,7 @@ public class IntegrationTestHarness {
 
   private final Map<String, Object> unifiedConfigs = new HashMap<>();
 
+  @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
     THIS = this;

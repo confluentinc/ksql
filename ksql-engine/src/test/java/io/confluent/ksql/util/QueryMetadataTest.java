@@ -52,15 +52,11 @@ public class QueryMetadataTest {
   @Mock
   private QueryStateListener listener;
   private Metrics metrics;
-  private MetricName metricName;
   private QueryMetadata query;
 
   @Before
   public void setup() {
     metrics = MetricsTestUtil.getMetrics();
-    metricName = metrics.metricName("query-status", "ksql-queries",
-        "The current status of the given query.",
-        Collections.singletonMap("status", QUERY_APPLICATION_ID));
 
     query = new QueryMetadata(
         "foo",

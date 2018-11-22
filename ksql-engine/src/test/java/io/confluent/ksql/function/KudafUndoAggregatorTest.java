@@ -33,12 +33,6 @@ import org.junit.Test;
 public class KudafUndoAggregatorTest {
   @Test
   public void shouldApplyUndoableAggregateFunctions() {
-    final Schema schema = SchemaBuilder
-        .struct()
-        .field("foo", SchemaBuilder.string().build())
-        .field("bar", SchemaBuilder.string().build())
-        .field("baz", SchemaBuilder.int32().build())
-        .build();
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     aggValToValColumnMap.put(0, 1);

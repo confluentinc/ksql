@@ -41,20 +41,19 @@ Ingestion-time
     record, but the ingestion timestamp is generated when the Kafka broker appends
     the record to the target topic.
     
-    Ingestion-time may approximate event-time reasonably well if the time
-    difference between creation of the record and its ingestion into Kafka
-    is sufficiently small. This means that ingestion-time may be an alternative
-    for use cases where event-time semantics aren't possible.
+    Ingestion-time can approximate event-time if the time difference between
+    the creation of the record and its ingestion into Kafka is small.
     
-    You may face this situation when data producers don't embed timestamps in
-    records, as in older versions of Kafka’s Java producer client, or when the
-    producer can't assign timestamps directly, like when it doesn't have access
-    to a local clock.
+    For use cases where event-time semantics aren't possible, ingestion-time
+    may be an alternative. Consider using ingestion-time when data producers
+    don't embed timestamps in records, as in older versions of Kafka’s Java
+    producer client, or when the producer can't assign timestamps directly,
+    like when it doesn't have access to a local clock.
 
 Processing-time
     The time when the record is consumed by a stream processing application.
-    The processing-time may happen immediately after ingestion-time, or it may
-    happen much later, in milliseconds, hours, or days.
+    The processing-time can occur immediately after ingestion-time, or it may
+    be delayed by milliseconds, hours, or days.
 
     For example, imagine an analytics application that reads and processes the
     geo-location data reported from car sensors, and presents it to a
@@ -210,7 +209,7 @@ There are three ways to define time windows in KSQL.
 Tumbling Window
 ---------------
 
-All time windows are of the same size and adjacent to each other, which
+All time windows are the same size and adjacent to each other, which
 means that whenever a window ends, the next window starts.
 
 For example, if you want to compute the the five highest-value orders
@@ -239,8 +238,8 @@ contained in exactly one window.
 Hopping Window
 --------------
 
-All time windows are of the same size, but they might overlap, depending
-on the length of time specified in the ADVANCE BY property.
+All time windows are the same size, but they might overlap, depending on the
+length of time specified in the ADVANCE BY property.
 
 For example, if you want to count the pageviews for only ``Region_6`` by female
 users for a hopping window of 30 seconds that advances by 10 seconds, you might

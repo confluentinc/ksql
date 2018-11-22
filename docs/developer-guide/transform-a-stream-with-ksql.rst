@@ -45,10 +45,11 @@ Frequently, you need to route messages from a source stream to multiple
 destination streams, based on conditions in the data. This is
 *content-based routing* or *data routing*.
 
-Use a [ WHERE condition ] clause to select a subset of data. If you
-want to route streams with different criteria to other streams that are
-backed by different underlying Kafka topics, write multiple KSQL statements.
-In this example, two streams are derived from a pageview stream, both with
+Use the WHERE clause to select a subset of data. To route streams with different
+criteria to other streams that are backed by different underlying Kafka topics,
+write multiple KSQL queries with different WHERE clauses.
+
+In this example, two streams are derived from a ``pageviews`` stream, both with
 different users selected into the output.
 
 .. code:: sql

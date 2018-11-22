@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,6 +65,19 @@ public class TestUtils {
     return priorCommands;
   }
 
+  /**
+   * Find a free port.
+   *
+   * <p>Note: Has a inherent race condition:
+   * after finding the free port it releases it so the caller can use it. This opens up a window in
+   * which another application can grab the free port, causing the test to fail.
+   *
+   * <p>Use only where there is no alternative. Jetty, for example, can allocate its own free
+   * port. Where you do use it, ensure you do so in a loop that will retry if the port is no longer
+   * free by the time the test comes to using it.
+   *
+   * @return a port that was just free and hopefully still is.
+   */
   public static int randomFreeLocalPort() throws IOException {
     final ServerSocket s = new ServerSocket(0);
     final int port = s.getLocalPort();

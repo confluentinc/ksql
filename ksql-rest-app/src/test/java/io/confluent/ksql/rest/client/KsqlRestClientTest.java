@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,22 @@
 
 package io.confluent.ksql.rest.client;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.notNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -36,16 +44,16 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
+import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource.TestStreamWriter;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.server.utils.TestUtils;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
@@ -53,12 +61,14 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.apache.kafka.streams.StreamsConfig;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlRestClientTest {
 
   private MockApplication mockApplication;
@@ -66,114 +76,77 @@ public class KsqlRestClientTest {
 
   @Before
   public void init() throws Exception {
-    final int port = TestUtils.randomFreeLocalPort();
-    final Map<String, Object> props = new HashMap<>();
-    final String serverAddress = "http://localhost:" + port;
-    props.put(KsqlRestConfig.LISTENERS_CONFIG, serverAddress);
-    props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    props.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
+    final Map<String, Object> props = ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test")
+        .build();
+
     final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(props);
     mockApplication = new MockApplication(ksqlRestConfig);
     mockApplication.start();
 
-    ksqlRestClient = new KsqlRestClient(serverAddress);
+    ksqlRestClient = new KsqlRestClient(mockApplication.getServerAddress());
   }
 
   @After
-  public void cleanUp() throws Exception {
+  public void cleanUp() {
     mockApplication.stop();
   }
 
   @Test
   public void testKsqlResource() {
     final RestResponse<KsqlEntityList> results = ksqlRestClient.makeKsqlRequest("Test request");
-    Assert.assertNotNull(results);
-    Assert.assertTrue(results.isSuccessful());
+
+    assertThat(results, is(notNullValue()));
+    assertThat(results.isSuccessful(), is(true));
+
     final KsqlEntityList ksqlEntityList = results.getResponse();
-    Assert.assertTrue(ksqlEntityList.size() == 1);
-    Assert.assertTrue(ksqlEntityList.get(0) instanceof ExecutionPlan);
+    assertThat(ksqlEntityList, hasSize(1));
+    assertThat(ksqlEntityList.get(0), is(instanceOf(ExecutionPlan.class)));
   }
 
 
   @Test
   public void testStreamRowFromServer() throws InterruptedException {
-    final MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
+    // Given:
     final RestResponse<KsqlRestClient.QueryStream> queryResponse = ksqlRestClient.makeQueryRequest
-            ("Select *");
-    Assert.assertNotNull(queryResponse);
-    Assert.assertTrue(queryResponse.isSuccessful());
+        ("Select *");
 
-    // Get the stream writer from the mock server and load it up with a row
-    final List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
-    Assert.assertEquals(1, writers.size());
-    final MockStreamedQueryResource.TestStreamWriter writer = writers.get(0);
-    try {
-      writer.enq("hello");
+    final ReceiverThread receiver = new ReceiverThread(queryResponse);
 
-      // Try and receive the row. Do this from another thread to avoid blocking indefinitely
-      final KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
-      final Thread t = new Thread(() -> queryStream.hasNext());
-      t.setDaemon(true);
-      t.start();
-      t.join(10000);
-      Assert.assertFalse(t.isAlive());
-      Assert.assertTrue(queryStream.hasNext());
+    final MockStreamedQueryResource.TestStreamWriter writer = getResponseWriter();
 
-      final StreamedRow sr = queryStream.next();
-      Assert.assertNotNull(sr);
-      final GenericRow row = sr.getRow();
-      Assert.assertEquals(1, row.getColumns().
-              size());
-      Assert.assertEquals("hello", row.getColumns().
-              get(0));
-      writer.enq("{\"row\":null,\"errorMessage\":null,\"finalMessage\":\"Limit Reached\"}");
-      final Thread t1 = new Thread(() -> queryStream.hasNext());
-      t1.setDaemon(true);
-      t1.start();
-      t1.join(10000);
-      Assert.assertFalse(t1.isAlive());
-      Assert.assertTrue(queryStream.hasNext());
-      final StreamedRow error_message = queryStream.next();
-      System.out.println();
+    // When:
+    writer.enq("hello");
+    writer.enq("world");
+    writer.enq("{\"row\":null,\"errorMessage\":null,\"finalMessage\":\"Limit Reached\"}");
+    writer.finished();
 
-    } finally {
-      writer.finished();
-    }
+    // Then:
+    assertThat(receiver.getRows(), contains(
+        StreamedRow.row(new GenericRow(ImmutableList.of("hello"))),
+        StreamedRow.row(new GenericRow(ImmutableList.of("world"))),
+        StreamedRow.finalMessage("Limit Reached")));
   }
 
   @Test
-  public void shouldInterruptScannerOnClose() throws InterruptedException {
-    final MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse = ksqlRestClient.makeQueryRequest
-            ("Select *");
-    Assert.assertNotNull(queryResponse);
-    Assert.assertTrue(queryResponse.isSuccessful());
+  public void shouldReturnFalseFromHasNextIfClosedAsynchronously() throws Exception {
+    // Given:
+    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+        ksqlRestClient.makeQueryRequest("Select *");
 
-    final List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
-    Assert.assertEquals(1, writers.size());
-    try {
-      // Try and receive a row. This will block since there is no data to return
-      final KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
-      final CountDownLatch threw = new CountDownLatch(1);
-      final Thread t = new Thread(() -> {
-        try {
-          queryStream.hasNext();
-        } catch (final IllegalStateException e) {
-          threw.countDown();
-        }
-      });
-      t.setDaemon(true);
-      t.start();
+    final QueryStream stream = queryResponse.getResponse();
 
-      // Let the thread run and then close the stream. Verify that it was interrupted
-      Thread.sleep(100);
-      queryStream.close();
-      Assert.assertTrue(threw.await(10, TimeUnit.SECONDS));
-      t.join(10000);
-      Assert.assertFalse(t.isAlive());
-    } finally {
-      writers.get(0).finished();
-    }
+    final Thread closeThread = givenStreamWillCloseIn(Duration.ofMillis(500), stream);
+
+    // When:
+    final boolean result = stream.hasNext();
+
+    // Then:
+    assertThat(result, is(false));
+    closeThread.join(1_000);
+    assertThat("invlaid test", closeThread.isAlive(), is(false));
   }
 
   @Test
@@ -393,25 +366,83 @@ public class KsqlRestClientTest {
 
   @SuppressWarnings("unchecked")
   private <T> void givenServerWillReturn(final int statusCode, final Optional<T> entity) {
+    final Response response = mock(Response.class);
+    when(response.getStatus()).thenReturn(statusCode);
 
-    final Response response = EasyMock.createNiceMock(Response.class);
-    EasyMock.expect(response.getStatus()).andReturn(statusCode).anyTimes();
-    entity.ifPresent(e ->
-        EasyMock.expect(response.readEntity((Class<T>)e.getClass())).andReturn(e).once());
+    entity.ifPresent(e -> when(response.readEntity((Class<T>) e.getClass())).thenReturn(e));
 
-    final Invocation.Builder builder = EasyMock.createNiceMock(Invocation.Builder.class);
-    EasyMock.expect(builder.get()).andReturn(response);
-    EasyMock.expect(builder.post(EasyMock.anyObject())).andReturn(response);
+    final Invocation.Builder builder = mock(Invocation.Builder.class);
+    when(builder.get()).thenReturn(response);
+    when(builder.post(any())).thenReturn(response);
 
-    final WebTarget target = EasyMock.createNiceMock(WebTarget.class);
-    EasyMock.expect(target.path(EasyMock.anyString())).andReturn(target);
-    EasyMock.expect(target.request(MediaType.APPLICATION_JSON_TYPE)).andReturn(builder);
+    final WebTarget target = mock(WebTarget.class);
+    when(target.path(any())).thenReturn(target);
+    when(target.request(MediaType.APPLICATION_JSON_TYPE)).thenReturn(builder);
 
-    final Client client = EasyMock.createNiceMock(Client.class);
-    EasyMock.expect(client.target(EasyMock.anyObject(URI.class))).andReturn(target);
-
-    EasyMock.replay(client, target, builder, response);
+    final Client client = mock(Client.class);
+    when(client.target(any(URI.class))).thenReturn(target);
 
     ksqlRestClient = new KsqlRestClient(client, "http://0.0.0.0", Collections.emptyMap());
+  }
+
+  private TestStreamWriter getResponseWriter() {
+    final MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
+    assertThat(sqr.getWriters(), hasSize(1));
+    return sqr.getWriters().get(0);
+  }
+
+  private Thread givenStreamWillCloseIn(final Duration duration, final QueryStream stream) {
+    final Thread thread = new Thread(() -> {
+      try {
+        Thread.sleep(duration.toMillis());
+        stream.close();
+      } catch (final Exception e) {
+        // Meh
+      }
+    });
+    thread.setDaemon(true);
+    thread.start();
+    return thread;
+  }
+
+  private static final class ReceiverThread {
+
+    private final KsqlRestClient.QueryStream queryStream;
+    private final List<StreamedRow> rows = new CopyOnWriteArrayList<>();
+    private final AtomicReference<Exception> exception = new AtomicReference<>();
+    private final Thread thread;
+
+    private ReceiverThread(final RestResponse<KsqlRestClient.QueryStream> queryResponse) {
+      assertThat("not successful", queryResponse.isSuccessful(), is(true));
+      this.queryStream = queryResponse.getResponse();
+      this.thread = new Thread(() -> {
+        try {
+          while (queryStream.hasNext()) {
+            final StreamedRow row = queryStream.next();
+            rows.add(row);
+          }
+
+        } catch (final Exception e) {
+          exception.set(e);
+        }
+      }, "receiver-thread");
+      thread.setDaemon(true);
+      thread.start();
+    }
+
+    private void waitForFirstRow() {
+      while (rows.isEmpty()) {
+        Thread.yield();
+      }
+    }
+
+    private List<StreamedRow> getRows() throws InterruptedException {
+      thread.join(20_000);
+      assertThat("Receive thread still running", thread.isAlive(),  is(false));
+      if (exception.get() != null) {
+        throw new RuntimeException(exception.get());
+      }
+      return rows;
+    }
   }
 }

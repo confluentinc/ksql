@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,8 +17,10 @@
 package io.confluent.ksql.rest.server.mock;
 
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource.TestStreamWriter;
 import io.confluent.rest.Application;
 import javax.ws.rs.core.Configurable;
+import org.eclipse.jetty.server.NetworkTrafficServerConnector;
 import org.glassfish.jersey.server.ServerProperties;
 
 
@@ -40,5 +42,35 @@ public class MockApplication extends Application<KsqlRestConfig> {
     configurable.register(streamedQueryResource);
     configurable.register(new MockStatusResource());
     configurable.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
+  }
+
+  @Override
+  public void stop() {
+    for (TestStreamWriter testStreamWriter : streamedQueryResource.getWriters()) {
+      try {
+        testStreamWriter.finished();
+      } catch (final Exception e) {
+        System.err.println("Failed to finish stream writer");
+        e.printStackTrace(System.err);
+      }
+    }
+
+   try {
+     super.stop();
+   } catch (final Exception e) {
+     System.err.println("Failed to stop app");
+     e.printStackTrace(System.err);
+   }
+  }
+
+  public String getServerAddress() {
+    if (server == null) {
+      throw new IllegalStateException("Not started");
+    }
+
+    final int localPort = ((NetworkTrafficServerConnector) server.getConnectors()[0])
+        .getLocalPort();
+    
+    return "http://localhost:"+ localPort;
   }
 }

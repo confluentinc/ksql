@@ -33,15 +33,14 @@ because the result of the query is a KSQL table.
 Aggregate Over Windows
 **********************
 
-KSQL supports aggregation over tumbling, hopping, and session windows.
+KSQL supports aggregation using tumbling, hopping, and session windows.
 
 .. For more information see :ref:`time-and-windows`.
 
 Count Records Over a Tumbling Window
 ====================================
 
-The following query is similar to the previous query, but it computes the
-pageview count per region every minute:
+This query computes the pageview count per region per minute:
 
 .. code:: sql
 
@@ -52,8 +51,8 @@ pageview count per region every minute:
       WINDOW TUMBLING (SIZE 1 MINUTE)
       GROUP BY regionid;
 
-If you want to count the pageviews for “Region_6” by female users for every
-30 seconds, you can change the above query to the following:
+To count the pageviews for “Region_6” by female users every
+30 seconds, you can change the previous query to the following:
 
 .. code:: sql
 
@@ -68,11 +67,11 @@ If you want to count the pageviews for “Region_6” by female users for every
 Count Records Over a Hopping Window
 ===================================
 
-The following query is similar to the previous query, but it computes the count
-for a hopping window of 30 seconds that advances by 10 seconds.
+This query computes the count for a hopping window of 30 seconds that advances
+by 10 seconds.
 
 UCASE and LCASE functions are used to convert the values of ``gender``
-and ``regionid`` columns to upper and lower case, so that you can match
+and ``regionid`` columns to uppercase and lowercase, so that you can match
 them correctly. KSQL also supports the LIKE operator for prefix, suffix,
 and substring matching.
 
@@ -91,15 +90,15 @@ Count Records Over a Session Window
 
 The following query counts the number of pageviews per region for session
 windows, with a session inactivity gap of 60 seconds. This query *sessionizes*
-the input data and performs the counting/aggregation step per region.
+the input data and performs the counting step per region.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_session AS \
-      SELECT regionid, \
-             count(*) \
-      FROM pageviews_enriched \
-      WINDOW SESSION (60 SECONDS) \
+    CREATE TABLE pageviews_per_region_per_session AS
+      SELECT regionid,
+             count(*)
+      FROM pageviews
+      WINDOW SESSION (60 SECONDS)
       GROUP BY regionid;
 
 Next Steps

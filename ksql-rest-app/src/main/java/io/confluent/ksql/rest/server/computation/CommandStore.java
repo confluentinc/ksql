@@ -141,19 +141,23 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   public List<QueuedCommand> getNewCommands() {
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
     commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
-        c -> queuedCommands.add(
-            new QueuedCommand(
-                c.key(),
-                Optional.ofNullable(c.value()),
-                Optional.ofNullable(commandStatusMap.remove(c.key()))
-            )
-        )
+        c -> {
+          if (c.value() != null) {
+            queuedCommands.add(
+                new QueuedCommand(
+                    c.key(),
+                    c.value(),
+                    Optional.ofNullable(commandStatusMap.remove(c.key()))
+                )
+            );
+          }
+        }
     );
     return queuedCommands;
   }
 
-  public RestoreCommands getRestoreCommands() {
-    final RestoreCommands restoreCommands = new RestoreCommands();
+  public List<QueuedCommand> getRestoreCommands() {
+    final List<QueuedCommand> restoreCommands = Lists.newArrayList();
 
     final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
@@ -167,7 +171,14 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
       for (final ConsumerRecord<CommandId, Command> record : records) {
-        restoreCommands.addCommand(record.key(), record.value());
+        if (record.value() == null) {
+          continue;
+        }
+        restoreCommands.add(
+            new QueuedCommand(
+                record.key(),
+                record.value(),
+                Optional.empty()));
       }
       records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
     }

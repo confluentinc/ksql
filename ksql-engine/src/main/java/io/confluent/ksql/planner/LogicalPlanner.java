@@ -107,7 +107,7 @@ public class LogicalPlanner {
           extractionPolicy,
           sourcePlanNode.getKeyField(),
           intoDataSource.getKsqlTopic(),
-          intoDataSource.getKsqlTopic().getTopicName(),
+          intoDataSource.getKsqlTopic().getKafkaTopicName(),
           intoProperties,
           analysis.getLimitClause(),
           analysis.isDoCreateInto()

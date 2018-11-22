@@ -28,6 +28,7 @@ public class Command {
   private final String statement;
   private final Map<String, Object> overwriteProperties;
   private final Map<String, String> originalProperties;
+  private final boolean preVersion5;
 
   @JsonCreator
   public Command(@JsonProperty("statement") final String statement,
@@ -35,8 +36,9 @@ public class Command {
                  @JsonProperty("originalProperties") final Map<String, String> originalProperties) {
     this.statement = statement;
     this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
-    this.originalProperties = originalProperties == null
-        ? Collections.emptyMap() : Collections.unmodifiableMap(originalProperties);
+    this.preVersion5 = originalProperties == null;
+    this.originalProperties =
+        originalProperties == null ? Collections.emptyMap() : originalProperties;
   }
 
   @JsonProperty("statement")
@@ -52,6 +54,10 @@ public class Command {
   @JsonProperty("originalProperties")
   public Map<String, String> getOriginalProperties() {
     return originalProperties;
+  }
+
+  boolean isPreVersion5() {
+    return this.preVersion5;
   }
 
   @Override

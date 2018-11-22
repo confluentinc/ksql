@@ -51,10 +51,4 @@ Upgrading from KSQL 5.0.0 and below to KSQL 5.1
 
 * Configuration:
 
-    * When upgrading your headless (non-interactive) mode application, you must include the following configurations in your properties file. Note that this is not required for interactive mode KSQL:
-
-::
-
-    ksql.functions.substring.legacy.args=true
-
-
+    * When upgrading your headless (non-interactive) mode application, you must either update your queries to use the new SUBSTRING indexing semantics, or set ``ksql.functions.substring.legacy.args`` to ``true``. If possible, we recommend that you update your queries accordingly, instead of enabling this configuration setting. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details on how to do so. Note that this is NOT required for interactive mode KSQL.

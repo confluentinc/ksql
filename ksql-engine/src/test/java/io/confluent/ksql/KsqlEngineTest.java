@@ -135,7 +135,7 @@ public class KsqlEngineTest {
       m[i] = (byte)i;
     }
     final ByteBuffer bb = ByteBuffer.wrap(m);
-    final String s = mapper.writeValueAsString(bb);
+    mapper.writeValueAsString(bb);
     ksqlEngine.buildMultipleQueries("blah;", ksqlConfig, Collections.emptyMap());
   }
 
@@ -202,8 +202,7 @@ public class KsqlEngineTest {
         + "CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
         + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
 
-    final List<QueryMetadata> queries =
-        ksqlEngine.buildMultipleQueries(runScriptContent, ksqlConfig, Collections.emptyMap());
+    ksqlEngine.buildMultipleQueries(runScriptContent, ksqlConfig, Collections.emptyMap());
     Assert.assertTrue(topicClient.isTopicExists("T1"));
   }
 
@@ -334,8 +333,7 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldCleanUpInternalTopicSchemasFromSchemaRegistry() throws Exception {
-    final List<QueryMetadata> queries
-        = ksqlEngine.buildMultipleQueries(
+    ksqlEngine.buildMultipleQueries(
         "create stream s1  with (value_format = 'avro') as select * from test1;"
         + "create table t1 as select col1, count(*) from s1 group by col1;",
         ksqlConfig, Collections.emptyMap());
@@ -463,8 +461,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldSetPropertyInRunScript() {
     final Map<String, Object> overriddenProperties = new HashMap<>();
-    final List<QueryMetadata> queries
-        = ksqlEngine.buildMultipleQueries(
+    ksqlEngine.buildMultipleQueries(
         "SET 'auto.offset.reset' = 'earliest'; ",
         ksqlConfig, overriddenProperties);
     assertThat(overriddenProperties.get("auto.offset.reset"), equalTo("earliest"));

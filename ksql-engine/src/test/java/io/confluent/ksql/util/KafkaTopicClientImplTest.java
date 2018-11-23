@@ -76,20 +76,20 @@ import org.junit.runner.RunWith;
 @RunWith(EasyMockRunner.class)
 public class KafkaTopicClientImplTest {
 
-  private final String topicName1 = "topic1";
-  private final String topicName2 = "topic2";
-  private final String topicName3 = "topic3";
-  private final String internalTopic1 = String.format("%s%s_%s",
+  private static final String topicName1 = "topic1";
+  private static final String topicName2 = "topic2";
+  private static final String topicName3 = "topic3";
+  private static final String internalTopic1 = String.format("%s%s_%s",
                                                       KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
                                                       "default",
                                                       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
                                                       + "-STATE-STORE-0000000006-repartition");
-  private final String internalTopic2 = String.format("%s%s_%s",
+  private static final String internalTopic2 = String.format("%s%s_%s",
                                                       KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
                                                       "default",
                                                       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
                                                       + "-STATE-STORE-0000000006-changelog");
-  private final String confluentInternalTopic =
+  private static final String confluentInternalTopic =
       String.format("%s-%s", KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX,
                     "confluent-control-center");
   private Node node;
@@ -284,8 +284,7 @@ public class KafkaTopicClientImplTest {
 
 
   @Test
-  public void shouldSetTopicCleanupPolicyToCompact() throws InterruptedException,
-                                                            ExecutionException {
+  public void shouldSetTopicCleanupPolicyToCompact() {
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
 
     // Verify that the new topic configuration being passed to the admin client is what we expect.

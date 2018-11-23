@@ -27,7 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class JsonExtractStringKudfTest {
-  private final String JSON_DOC = "{"
+  private static final String JSON_DOC = "{"
                                   + "\"thing1\":{\"thing2\":\"hello\"},"
                                   + "\"array\":[101,102]"
                                   + "}";

@@ -37,13 +37,13 @@ public class ItemDataProvider extends TestDataProvider {
       .field("ID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("DESCRIPTION", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
-  private static final Map<String, GenericRow> data = new ItemDataProvider().buildData();
+  private static final Map<String, GenericRow> data = buildData();
 
   public ItemDataProvider() {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
-  private Map<String, GenericRow> buildData() {
+  private static Map<String, GenericRow> buildData() {
 
     final Map<String, GenericRow> dataMap = new HashMap<>();
     dataMap.put("ITEM_1", new GenericRow(Arrays.asList("ITEM_1",  "home cinema")));

@@ -62,7 +62,7 @@ public class KsqlEngineMetricsTest {
   private static final String METRIC_GROUP = "testGroup";
   private KsqlEngineMetrics engineMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
-  private final String metricNamePrefix = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + KSQL_SERVICE_ID;
+  private static final String metricNamePrefix = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + KSQL_SERVICE_ID;
 
   @Mock
   private KsqlEngine ksqlEngine;
@@ -214,7 +214,7 @@ public class KsqlEngineMetricsTest {
   }
 
   private long getLongMetricValue(final Metrics metrics, final String metricName) {
-    return Long.valueOf(
+    return Long.parseLong(
         metrics.metric(metrics.metricName(metricName, METRIC_GROUP + "-query-stats"))
             .metricValue().toString());
   }
@@ -225,8 +225,8 @@ public class KsqlEngineMetricsTest {
     final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
     final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < numMessages; i++) {
-      recordList.add(new ConsumerRecord<>("foo", 1, 1, 1l, TimestampType
-          .CREATE_TIME, 1l, 10, 10, "key", "1234567890"));
+      recordList.add(new ConsumerRecord<>("foo", 1, 1, 1L, TimestampType
+          .CREATE_TIME, 1L, 10, 10, "key", "1234567890"));
     }
     records.put(new TopicPartition("foo", 1), recordList);
     final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);

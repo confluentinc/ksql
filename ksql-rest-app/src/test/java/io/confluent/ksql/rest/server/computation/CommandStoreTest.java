@@ -79,7 +79,7 @@ public class CommandStoreTest {
 
   private final Consumer<CommandId, Command> commandConsumer = niceMock(Consumer.class);
   private final Producer<CommandId, Command> commandProducer = mock(Producer.class);
-  private final String statementText = "test-statement";
+  private static final String statementText = "test-statement";
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
   private final Statement statement = mock(Statement.class);

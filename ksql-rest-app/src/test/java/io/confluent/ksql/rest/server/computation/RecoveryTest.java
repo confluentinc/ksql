@@ -352,15 +352,18 @@ public class RecoveryTest {
           "source set mismatch: ")) {
         return false;
       }
-      for (final String name : sourceMatchers.keySet()) {
+
+      for (final Entry<String, Matcher<StructuredDataSource>> e : sourceMatchers.entrySet()) {
+        final String name = e.getKey();
         if (!test(
-            sourceMatchers.get(name),
+            e.getValue(),
             other.getSource(name),
             description,
             "source " + name + " mismatch: ")) {
           return false;
         }
       }
+
       return true;
     }
   }

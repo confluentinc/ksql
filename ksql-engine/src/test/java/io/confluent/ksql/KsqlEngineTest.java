@@ -144,14 +144,14 @@ public class KsqlEngineTest {
         "create table bar as select * from test2;", ksqlConfig, Collections.emptyMap()).get(0);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Statement not executable: TERMINATE CTAS_BAR_0;"));
+    expectedException.expectMessage(is("Statement(s) not executable: TERMINATE CTAS_BAR_0;"));
 
     // When:
     ksqlEngine.execute("TERMINATE " + query.getQueryId() + ";", ksqlConfig, Collections.emptyMap());
   }
 
   @Test
-  public void shouldThrowOnTryExecuteIfStreamAlreadyExists() {
+  public void shouldThrowWhenParsingIfStreamAlreadyExists() {
     // Given:
     ksqlEngine
         .execute("create stream bar as select * from orders;", ksqlConfig, Collections.emptyMap());
@@ -162,13 +162,11 @@ public class KsqlEngineTest {
         + "Another data source with the same name already exists: KsqlStream name:BAR"));
 
     // When:
-    ksqlEngine
-        .tryExecute("create stream bar as select orderid from orders;", ksqlConfig,
-            Collections.emptyMap());
+    ksqlEngine.parseStatements("create stream bar as select orderid from orders;");
   }
 
   @Test
-  public void shouldThrowOnTryExecuteIfTableAlreadyExists() {
+  public void shouldThrowWhenParsingIfTableAlreadyExists() {
     // Given:
     ksqlEngine
         .execute("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
@@ -179,9 +177,7 @@ public class KsqlEngineTest {
             + "Another data source with the same name already exists: KsqlStream name:BAR");
 
     // When:
-    ksqlEngine
-        .tryExecute("create table bar as select COL0 from test2;", ksqlConfig,
-            Collections.emptyMap());
+    ksqlEngine.parseStatements("create table bar as select COL0 from test2;");
   }
 
   @Test
@@ -190,16 +186,18 @@ public class KsqlEngineTest {
     ksqlEngine
         .execute("create stream bar as select * from orders;", ksqlConfig, Collections.emptyMap());
 
+    final List<PreparedStatement<?>> statements = parse("insert into bar select * from orders;");
+
     // When:
     final List<QueryMetadata> queries = ksqlEngine
-        .tryExecute("insert into bar select * from orders;", ksqlConfig, Collections.emptyMap());
+        .tryExecute(statements, ksqlConfig, Collections.emptyMap());
 
     // Then:
     assertThat(queries, hasSize(1));
   }
 
   @Test
-  public void shouldThrowOnTryExecuteInsertIntoTable() {
+  public void shouldThrowWhenParsingInsertIntoTable() {
     // Given:
     ksqlEngine
         .execute("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
@@ -209,40 +207,7 @@ public class KsqlEngineTest {
         "INSERT INTO can only be used to insert into a stream. BAR is a table.");
 
     // When:
-    ksqlEngine
-        .tryExecute("insert into bar select * from test2;", ksqlConfig, Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldThrowOnExecuteIfStreamAlreadyExists() {
-    // Given:
-    ksqlEngine
-        .execute("create stream bar as select * from orders;", ksqlConfig, Collections.emptyMap());
-
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Exception while processing statement: "
-        + "Cannot add the new data source. "
-        + "Another data source with the same name already exists: KsqlStream name:BAR"));
-
-    // When:
-    ksqlEngine.execute("create stream bar as select orderid from orders;", ksqlConfig,
-        Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldThrowOnExecuteIfTableAlreadyExists() {
-    // Given:
-    ksqlEngine
-        .execute("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
-
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Cannot add the new data source. "
-            + "Another data source with the same name already exists: KsqlStream name:BAR");
-
-    // When:
-    ksqlEngine
-        .execute("create table bar as select COL0 from test2;", ksqlConfig, Collections.emptyMap());
+    ksqlEngine.parseStatements("insert into bar select * from test2;");
   }
 
   @Test
@@ -257,21 +222,6 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(queries, hasSize(1));
-  }
-
-  @Test
-  public void shouldThrowOnExecuteInsertIntoTable() {
-    // Given:
-    ksqlEngine
-        .execute("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
-
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "INSERT INTO can only be used to insert into a stream. BAR is a table.");
-
-    // When:
-    ksqlEngine
-        .execute("insert into bar select * from test2;", ksqlConfig, Collections.emptyMap());
   }
 
   @Test(expected = ParseFailedException.class)
@@ -728,29 +678,31 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenTryExecuteCsasThatCreatesTable() {
     // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;");
+
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Invalid result type. Your SELECT query produces a TABLE. "
             + "Please use CREATE TABLE AS SELECT statement instead.");
 
     // When:
-    ksqlEngine.tryExecute(
-        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;",
-        ksqlConfig, Collections.emptyMap());
+    ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
   }
 
   @Test
   public void shouldThrowWhenTryExecuteCtasThatCreatesStream() {
     // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE TABLE FOO AS SELECT * FROM ORDERS;");
+
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Invalid result type. Your SELECT query produces a STREAM. "
             + "Please use CREATE STREAM AS SELECT statement instead.");
 
     // When:
-    ksqlEngine.tryExecute(
-        "CREATE TABLE FOO AS SELECT * FROM ORDERS;",
-        ksqlConfig, Collections.emptyMap());
+    ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
   }
 
   @Test
@@ -777,7 +729,7 @@ public class KsqlEngineTest {
   public void shouldThrowOnNoneExecutableDdlStatement() {
     // Given:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Statement not executable: SHOW STREAMS;"));
+    expectedException.expectMessage(is("Statement(s) not executable: SHOW STREAMS;"));
 
     // When:
     ksqlEngine.execute(
@@ -791,15 +743,16 @@ public class KsqlEngineTest {
     final long numberOfLiveQueries = ksqlEngine.numberOfLiveQueries();
     final long numPersistentQueries = ksqlEngine.numberOfPersistentQueries();
 
-    // When:
-    ksqlEngine.tryExecute(
-        "SET 'auto.offset.reset' = 'earliest';"
-            + "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
-            + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
-            + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
-            + "DROP TABLE TEST3;",
-        ksqlConfig, Collections.emptyMap());
+    final List<PreparedStatement<?>> statements = parse("SET 'auto.offset.reset' = 'earliest';"
+        + "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
+        + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
+        + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
+        + "DROP TABLE TEST3;");
 
+    // When:
+    ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
+
+    // Then:
     assertThat(metaStore.getSource("TEST3"), is(notNullValue()));
     assertThat(metaStore.getQueriesWithSource("TEST2"), is(empty()));
     assertThat(metaStore.getSource("BAR"), is(nullValue()));
@@ -811,6 +764,10 @@ public class KsqlEngineTest {
   private void givenTopicsExist(final String... topics) {
     Arrays.stream(topics)
         .forEach(topic -> topicClient.createTopic(topic, 1, (short) 1));
+  }
+
+  private List<PreparedStatement<?>> parse(final String sql) {
+    return ksqlEngine.parseStatements(sql);
   }
 
   private void givenTopicWithSchema(final String topicName, final Schema schema) {

@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 
 import static io.confluent.ksql.TestResult.build;
+import static io.confluent.ksql.testutils.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
@@ -63,6 +64,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 import javax.ws.rs.ProcessingException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -90,6 +92,9 @@ public class CliTest extends TestRunner {
   private static final String LOCAL_REST_SERVER_ADDR = "http://localhost:" + PORT;
   private static final OutputFormat CLI_OUTPUT_FORMAT = OutputFormat.TABULAR;
 
+  private static final Pattern WRITE_QUERIES = Pattern
+      .compile(".*The following queries write into this source: \\[(.+)].*", Pattern.DOTALL);
+
   private static final long STREAMED_QUERY_ROW_LIMIT = 10000;
   private static final long STREAMED_QUERY_TIMEOUT_MS = 10000;
 
@@ -100,6 +105,7 @@ public class CliTest extends TestRunner {
   private static String commandTopicName;
   private static TopicProducer topicProducer;
   private static TopicConsumer topicConsumer;
+  private static KsqlRestClient restClient;
 
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
@@ -107,7 +113,7 @@ public class CliTest extends TestRunner {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    final KsqlRestClient restClient = new KsqlRestClient(LOCAL_REST_SERVER_ADDR);
+    restClient = new KsqlRestClient(LOCAL_REST_SERVER_ADDR);
 
     // TODO: Fix Properties Setup in Local().getCli()
     // Local local =  new Local().getCli();
@@ -235,9 +241,8 @@ public class CliTest extends TestRunner {
     /* Assert Results */
     final Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
-    terminateQuery("CSAS_" + resultKStreamName + "_" + (result_stream_no - 1));
-
     dropStream(resultKStreamName);
+
     assertThat(results, equalTo(expectedResults));
   }
 
@@ -249,8 +254,25 @@ public class CliTest extends TestRunner {
   }
 
   private static void dropStream(final String name) {
+    final String dropStatement = String.format("drop stream %s;", name);
+
+    final RestResponse response = restClient.makeKsqlRequest(dropStatement);
+    if (response.isSuccessful()) {
+      return;
+    }
+
+    final java.util.regex.Matcher matcher = WRITE_QUERIES
+        .matcher(response.getErrorMessage().getMessage());
+
+    if (!matcher.matches()) {
+      throw new RuntimeException("Failed to drop stream: " + response.getErrorMessage());
+    }
+
+    Arrays.stream(matcher.group(1).split("/w*,/w*"))
+        .forEach(CliTest::terminateQuery);
+
     test(
-        String.format("drop stream %s", name),
+        dropStatement,
         build("Source " + name + " was dropped. ")
     );
   }
@@ -261,15 +283,22 @@ public class CliTest extends TestRunner {
   }
 
   @Test
-  public void testPrint() throws InterruptedException {
+  public void testPrint() {
+    final Thread thread =
+        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
+    thread.start();
 
-    final Thread wait = new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
-    wait.start();
-    Thread.sleep(1000);
-    wait.interrupt();
+    try {
+      assertThatEventually(() -> terminal.getOutputString(), containsString("Format:JSON"));
+    } finally {
+      thread.interrupt();
 
-    final String terminalOutput = terminal.getOutputString();
-    assertThat(terminalOutput, containsString("Format:JSON"));
+      try {
+        thread.join(0);
+      } catch (InterruptedException e) {
+        //
+      }
+    }
   }
 
   @Test

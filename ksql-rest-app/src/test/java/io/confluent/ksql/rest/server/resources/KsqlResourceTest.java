@@ -92,8 +92,10 @@ import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
+import junit.framework.AssertionFailedError;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -513,13 +515,15 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine(mockEngine -> {
       EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
-          .andReturn(realEngine.parseStatements(ksqlString));
-
+          .andDelegateTo(realEngine);
+      EasyMock.expect(
+          mockEngine.numberOfPersistentQueries())
+          .andReturn(0L);
       EasyMock.expect(mockEngine.getQueryExecutionPlan(EasyMock.anyObject(), EasyMock.anyObject()))
           .andThrow(new RuntimeException("internal error"));
     });
 
-    // Then:
+    // When:
     final KsqlErrorMessage result = makeFailingRequest(
         ksqlString, Code.INTERNAL_SERVER_ERROR);
 
@@ -527,6 +531,67 @@ public class KsqlResourceTest {
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(result.getMessage(), containsString("internal error"));
     EasyMock.verify(ksqlEngine);
+  }
+
+  @Test
+  public void shouldFailIfReachedActivePersistentQueriesLimit() {
+    // Given:
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+    final String ksqlString = "CREATE STREAM new_stream AS SELECT * FROM test_stream;";
+    givenMockEngine(mockEngine -> {
+      EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+          .andDelegateTo(realEngine);
+      EasyMock.expect(
+          mockEngine.numberOfPersistentQueries())
+          .andReturn(3L);
+    });
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        ksqlString, Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(
+        result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+    EasyMock.verify(ksqlEngine);
+  }
+
+  @Test
+  public void shouldFailAllCommandsIfWouldReachActivePersistentQueriesLimit() {
+    // Given:
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+    final String ksqlString = "CREATE STREAM new_stream AS SELECT * FROM test_stream;"
+        + "CREATE STREAM another_stream AS SELECT * FROM test_stream;";
+    givenMockEngine(mockEngine -> {
+      EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+          .andDelegateTo(realEngine);
+      EasyMock.expect(mockEngine.numberOfPersistentQueries())
+          .andReturn(2L);
+    });
+
+    EasyMock.expect(
+        commandStore.enqueueCommand(
+            EasyMock.anyString(), EasyMock.anyObject(), EasyMock.anyObject(), EasyMock.anyObject()))
+        .andThrow(new AssertionFailedError())
+        .anyTimes();
+    EasyMock.replay(commandStore);
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        ksqlString, Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(
+        result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
+    EasyMock.verify(ksqlEngine, commandStore);
   }
 
   @Test
@@ -840,20 +905,20 @@ public class KsqlResourceTest {
       return;
     }
 
-    final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe());
+    final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe(), false);
     kafkaTopicClient.createTopic(topicName, 1, (short) 1);
     metaStore.putTopic(ksqlTopic);
     if (type == DataSource.DataSourceType.KSTREAM) {
       metaStore.putSource(
-          new KsqlStream(
+          new KsqlStream<>(
               "statementText", sourceName, schema, schema.fields().get(0),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic));
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes.String()));
     }
     if (type == DataSource.DataSourceType.KTABLE) {
       metaStore.putSource(
-          new KsqlTable(
+          new KsqlTable<>(
               "statementText", sourceName, schema, schema.fields().get(0),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", false));
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", Serdes.String()));
     }
   }
 

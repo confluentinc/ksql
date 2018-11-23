@@ -29,7 +29,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
@@ -50,8 +52,14 @@ import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class AggregateNodeTest {
-  private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
 
+  private static final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
+
+  static {
+    UdfLoaderUtil.load(functionRegistry);
+  }
+
+  private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private final StreamsBuilder builder = new StreamsBuilder();
 
@@ -155,7 +163,7 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(stream, is(instanceOf(SchemaKTable.class)));
-    assertThat(((SchemaKTable)stream).isWindowed(), is(true));
+    assertThat(stream.hasWindowedKey(), is(true));
   }
 
   private SchemaKStream buildQuery(final String queryString) {

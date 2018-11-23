@@ -36,7 +36,6 @@ public class LogicalPlanBuilder {
 
   private final MetaStore metaStore;
   private final KsqlParser parser = new KsqlParser();
-  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   public LogicalPlanBuilder(final MetaStore metaStore) {
     this.metaStore = metaStore;
@@ -48,9 +47,9 @@ public class LogicalPlanBuilder {
     final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
     analyzer.process(statements.get(0).getStatement(), new AnalysisContext(null));
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
-    final AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter
-        (functionRegistry);
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, metaStore);
+    final AggregateExpressionRewriter aggregateExpressionRewriter =
+        new AggregateExpressionRewriter(metaStore);
     for (final Expression expression: analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
@@ -61,6 +60,6 @@ public class LogicalPlanBuilder {
       aggregateAnalyzer.setHasAggregateFunction(false);
     }
     // Build a logical plan
-    return new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
+    return new LogicalPlanner(analysis, aggregateAnalysis, metaStore).buildPlan();
   }
 }

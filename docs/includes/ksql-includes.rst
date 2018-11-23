@@ -195,7 +195,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: sql
 
-        CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH \
+        CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH
         (kafka_topic='pageviews', value_format='DELIMITED');
 
    Your output should resemble:
@@ -213,7 +213,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
    .. code:: sql
 
-    CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH \
+    CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH
     (kafka_topic='users', value_format='JSON', key = 'userid');
 
    Your output should resemble:
@@ -273,10 +273,10 @@ the latest offset.
 
    .. code:: sql
 
-       CREATE STREAM pageviews_enriched AS \
-       SELECT users_original.userid AS userid, pageid, regionid, gender \
-       FROM pageviews_original \
-       LEFT JOIN users_original \
+       CREATE STREAM pageviews_enriched AS
+       SELECT users_original.userid AS userid, pageid, regionid, gender
+       FROM pageviews_original
+       LEFT JOIN users_original
          ON pageviews_original.userid = users_original.userid;
 
    Your output should resemble:
@@ -311,8 +311,8 @@ the latest offset.
 
    .. code:: sql
 
-    CREATE STREAM pageviews_female AS \
-    SELECT * FROM pageviews_enriched \
+    CREATE STREAM pageviews_female AS
+    SELECT * FROM pageviews_enriched
     WHERE gender = 'FEMALE';
 
    Your output should resemble:
@@ -331,9 +331,9 @@ the latest offset.
 
    .. code:: sql
 
-       CREATE STREAM pageviews_female_like_89 \
-         WITH (kafka_topic='pageviews_enriched_r8_r9') AS \
-       SELECT * FROM pageviews_female \
+       CREATE STREAM pageviews_female_like_89
+         WITH (kafka_topic='pageviews_enriched_r8_r9') AS
+       SELECT * FROM pageviews_female
        WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
    Your output should resemble:
@@ -352,12 +352,12 @@ the latest offset.
 
    .. code:: sql
 
-    CREATE TABLE pageviews_regions \
-      WITH (VALUE_FORMAT='avro') AS \
-    SELECT gender, regionid , COUNT(*) AS numusers \
-    FROM pageviews_enriched \
-      WINDOW TUMBLING (size 30 second) \
-    GROUP BY gender, regionid \
+    CREATE TABLE pageviews_regions
+      WITH (VALUE_FORMAT='avro') AS
+    SELECT gender, regionid , COUNT(*) AS numusers
+    FROM pageviews_enriched
+      WINDOW TUMBLING (size 30 second)
+    GROUP BY gender, regionid
     HAVING COUNT(*) > 1;
 
    Your output should resemble:
@@ -610,10 +610,10 @@ Register both topics with KSQL:
 
 .. code:: sql
 
-    CREATE STREAM NEW_ORDERS (ORDER_ID INT, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR) \
+    CREATE STREAM NEW_ORDERS (ORDER_ID INT, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR)
     WITH (KAFKA_TOPIC='new_orders', VALUE_FORMAT='JSON');
 
-    CREATE STREAM SHIPMENTS (ORDER_ID INT, SHIPMENT_ID INT, WAREHOUSE VARCHAR) \
+    CREATE STREAM SHIPMENTS (ORDER_ID INT, SHIPMENT_ID INT, WAREHOUSE VARCHAR)
     WITH (KAFKA_TOPIC='shipments', VALUE_FORMAT='JSON');
 
 After each ``CREATE STREAM`` statement you should get the message: 
@@ -663,11 +663,11 @@ based on a join window of 1 hours.
 
 .. code:: sql
 
-    SELECT O.ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME, \
-    S.SHIPMENT_ID, S.WAREHOUSE \
-    FROM NEW_ORDERS O \
-    INNER JOIN SHIPMENTS S \
-      WITHIN 1 HOURS \
+    SELECT O.ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME,
+    S.SHIPMENT_ID, S.WAREHOUSE
+    FROM NEW_ORDERS O
+    INNER JOIN SHIPMENTS S
+      WITHIN 1 HOURS
       ON O.ORDER_ID = S.ORDER_ID;
 
 Your output should resemble:
@@ -712,14 +712,14 @@ Register both as KSQL tables:
 
 .. code:: sql
 
-    CREATE TABLE WAREHOUSE_LOCATION (WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR) \
-    WITH (KAFKA_TOPIC='warehouse_location', \
-          VALUE_FORMAT='JSON', \
+    CREATE TABLE WAREHOUSE_LOCATION (WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
+    WITH (KAFKA_TOPIC='warehouse_location',
+          VALUE_FORMAT='JSON',
           KEY='WAREHOUSE_ID');
 
-    CREATE TABLE WAREHOUSE_SIZE (WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE) \
-    WITH (KAFKA_TOPIC='warehouse_size', \
-          VALUE_FORMAT='JSON', \
+    CREATE TABLE WAREHOUSE_SIZE (WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
+    WITH (KAFKA_TOPIC='warehouse_size',
+          VALUE_FORMAT='JSON',
           KEY='WAREHOUSE_ID');
 
 For each ``CREATE TABLE`` statement, you should get the message: 
@@ -771,10 +771,10 @@ Now join the two tables:
 
 .. code:: sql
 
-    SELECT WL.WAREHOUSE_ID, WL.CITY, WL.COUNTRY, WS.SQUARE_FOOTAGE \
-    FROM WAREHOUSE_LOCATION WL \
-      LEFT JOIN WAREHOUSE_SIZE WS \
-        ON WL.WAREHOUSE_ID=WS.WAREHOUSE_ID \
+    SELECT WL.WAREHOUSE_ID, WL.CITY, WL.COUNTRY, WS.SQUARE_FOOTAGE
+    FROM WAREHOUSE_LOCATION WL
+      LEFT JOIN WAREHOUSE_SIZE WS
+        ON WL.WAREHOUSE_ID=WS.WAREHOUSE_ID
     LIMIT 3;
 
 Your output should resemble:
@@ -809,10 +809,10 @@ In KSQL, register the source topic for each:
 
 .. code:: sql
 
-    CREATE STREAM ORDERS_SRC_LOCAL \
+    CREATE STREAM ORDERS_SRC_LOCAL
       WITH (KAFKA_TOPIC='orders_local', VALUE_FORMAT='AVRO');
     
-    CREATE STREAM ORDERS_SRC_3RDPARTY \
+    CREATE STREAM ORDERS_SRC_3RDPARTY
       WITH (KAFKA_TOPIC='orders_3rdparty', VALUE_FORMAT='AVRO');
 
 After each ``CREATE STREAM`` statement you should get the message: 

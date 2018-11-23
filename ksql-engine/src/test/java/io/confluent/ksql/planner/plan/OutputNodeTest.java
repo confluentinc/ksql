@@ -171,7 +171,7 @@ public class OutputNodeTest {
     }
 
     @Override
-    public SchemaKStream buildStream(final StreamsBuilder builder, final KsqlConfig ksqlConfig,
+    public SchemaKStream<?> buildStream(final StreamsBuilder builder, final KsqlConfig ksqlConfig,
                                      final KafkaTopicClient kafkaTopicClient,
                                      final FunctionRegistry functionRegistry,
                                      final Map<String, Object> props,

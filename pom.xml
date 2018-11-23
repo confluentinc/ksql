@@ -7,14 +7,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>rest-utils-parent</artifactId>
-        <version>5.1.0-SNAPSHOT</version>
+        <version>5.2.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksql-parent</name>
-    <version>5.1.0-SNAPSHOT</version>
+    <version>5.2.0-SNAPSHOT</version>
     <licenses>
         <license>
             <name>Apache License 2.0</name>
@@ -36,10 +36,9 @@
         <module>ksql-rest-app</module>
         <module>ksql-version-metrics-client</module>
         <module>ksql-console-scripts</module>
+        <module>ksql-etc</module>
         <module>ksql-package</module>
         <module>ksql-test-util</module>
-        <module>cp-ksql-cli</module>
-        <module>cp-ksql-server</module>
     </modules>
 
     <repositories>
@@ -77,7 +76,6 @@
         <airline.version>2.6.0</airline.version>
         <antlr.version>4.7</antlr.version>
         <csv.version>1.4</csv.version>
-        <gson.version>2.8.5</gson.version>
         <guava.version>24.0-jre</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
@@ -86,7 +84,6 @@
         <jsr305.version>3.0.2</jsr305.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
-        <hamcrest.version>1.3</hamcrest.version>
         <avro.random.generator.version>0.2.1</avro.random.generator.version>
         <apache.curator.version>2.9.0</apache.curator.version>
     </properties>
@@ -256,12 +253,6 @@
             </dependency>
 
             <dependency>
-                <groupId>com.google.code.gson</groupId>
-                <artifactId>gson</artifactId>
-                <version>${gson.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
                 <version>${janino.version}</version>
@@ -279,12 +270,27 @@
                 <version>${jackson.version}</version>
             </dependency>
 
+            <!-- Required for running tests -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.hamcrest</groupId>
+                        <artifactId>hamcrest-core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava-testlib</artifactId>
                 <version>${guava.version}</version>
                 <scope>test</scope>
             </dependency>
+
         </dependencies>
     </dependencyManagement>
 

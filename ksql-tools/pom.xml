@@ -7,22 +7,16 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.1.0-SNAPSHOT</version>
+        <version>5.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-tools</artifactId>
 
+    <properties>
+        <main-class>io.confluent.ksql.tools.printmetrics.PrintMetrics</main-class>
+    </properties>
+
     <dependencies>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-engine</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-version-metrics-client</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
@@ -33,43 +27,14 @@
             <artifactId>jna</artifactId>
         </dependency>
 
-        <!-- Reuse Key Test Classes in ksql-engine -->
+        <!-- Required for running tests -->
+
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-engine</artifactId>
+            <artifactId>ksql-test-util</artifactId>
             <version>${project.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
-        <!-- Required for running tests -->
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-test</artifactId>
-            <version>${apache.curator.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${kafka.scala.version}</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${kafka.scala.version}</artifactId>
-            <classifier>test</classifier>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <classifier>test</classifier>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 
     <build>

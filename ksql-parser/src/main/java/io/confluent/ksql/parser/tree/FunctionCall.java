@@ -73,7 +73,7 @@ public class FunctionCall
     this(Optional.of(location), name, window, distinct, arguments);
   }
 
-  private FunctionCall(
+  public FunctionCall(
       final Optional<NodeLocation> location,
       final QualifiedName name,
       final Optional<Window> window,

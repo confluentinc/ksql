@@ -38,6 +38,7 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class SchemaKGroupedStream {
 
@@ -72,7 +73,7 @@ public class SchemaKGroupedStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKTable aggregate(
+  public SchemaKTable<?> aggregate(
       final Initializer initializer,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final Map<Integer, Integer> aggValToValColumnMap,
@@ -80,17 +81,22 @@ public class SchemaKGroupedStream {
       final Serde<GenericRow> topicValueSerDe) {
 
     final KTable table;
+    final Serde<?> keySerde;
     if (windowExpression != null) {
+      keySerde = getKeySerde(windowExpression);
+
       table = aggregateWindowed(
           initializer, aggValToFunctionMap, aggValToValColumnMap, windowExpression,
           topicValueSerDe);
     } else {
+      keySerde = Serdes.String();
+
       table = aggregateNonWindowed(
           initializer, aggValToFunctionMap, aggValToValColumnMap, topicValueSerDe);
     }
 
     return new SchemaKTable(
-        schema, table, keyField, sourceSchemaKStreams, windowExpression != null,
+        schema, table, keyField, sourceSchemaKStreams, keySerde,
         SchemaKStream.Type.AGGREGATE, ksqlConfig, functionRegistry, schemaRegistryClient);
   }
 
@@ -132,5 +138,13 @@ public class SchemaKGroupedStream {
 
     return aggKtable.mapValues((readOnlyKey, value) ->
         windowSelectMapper.apply((Windowed<?>) readOnlyKey, (GenericRow) value));
+  }
+
+  private Serde<Windowed<String>> getKeySerde(final WindowExpression windowExpression) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
+      return WindowedSerdes.timeWindowedSerdeFrom(String.class);
+    }
+
+    return windowExpression.getKsqlWindowExpression().getKeySerde(String.class);
   }
 }

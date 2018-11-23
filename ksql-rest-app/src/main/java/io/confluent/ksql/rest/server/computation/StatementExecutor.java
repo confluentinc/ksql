@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -49,7 +50,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,26 +82,8 @@ public class StatementExecutor {
     this.statusStore = new ConcurrentHashMap<>();
   }
 
-  void handleRestoration(final List<QueuedCommand> restoreCommands) {
-    restoreCommands.forEach(
-        command -> {
-          log.info("Executing prior statement: '{}'", command);
-          try {
-            handleStatementWithTerminatedQueries(
-                command.getCommand(),
-                command.getCommandId(),
-                Optional.empty(),
-                Mode.RESTORE
-            );
-          } catch (final Exception exception) {
-            log.warn(
-                "Failed to execute statement due to exception",
-                exception
-            );
-          }
-        }
-    );
-    ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
+  protected KsqlEngine getKsqlEngine() {
+    return ksqlEngine;
   }
 
   /**
@@ -115,6 +97,15 @@ public class StatementExecutor {
         queuedCommand.getCommandId(),
         queuedCommand.getStatus(),
         Mode.EXECUTE);
+  }
+
+  void handleRestore(final QueuedCommand queuedCommand) {
+    handleStatementWithTerminatedQueries(
+        queuedCommand.getCommand(),
+        queuedCommand.getCommandId(),
+        queuedCommand.getStatus(),
+        Mode.RESTORE
+    );
   }
 
   /**
@@ -156,7 +147,7 @@ public class StatementExecutor {
    * @param commandId The ID to be used to track the status of the command
    * @param mode was this table/stream subsequently dropped
    */
-  private void handleStatementWithTerminatedQueries(
+  void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
       final Optional<QueuedCommandStatus> queuedCommandStatus,
@@ -177,9 +168,7 @@ public class StatementExecutor {
       );
       executeStatement(
           statement, command, commandId, queuedCommandStatus, mode);
-    } catch (final WakeupException exception) {
-      throw exception;
-    } catch (final Exception exception) {
+    } catch (final KsqlException exception) {
       log.error("Failed to handle: " + command, exception);
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,
@@ -195,7 +184,7 @@ public class StatementExecutor {
       final CommandId commandId,
       final Optional<QueuedCommandStatus> queuedCommandStatus,
       final Mode mode
-  ) throws Exception {
+  ) { 
     final String statementStr = command.getStatement();
 
     DdlCommandResult result = null;
@@ -224,7 +213,7 @@ public class StatementExecutor {
     } else if (statement instanceof RunScript) {
       handleRunScript(command);
     } else {
-      throw new Exception(String.format(
+      throw new KsqlException(String.format(
           "Unexpected statement type: %s",
           statement.getClass().getName()
       ));
@@ -246,11 +235,19 @@ public class StatementExecutor {
       final Map<String, Object> overriddenProperties = new HashMap<>();
       overriddenProperties.putAll(command.getOverwriteProperties());
 
+      final KsqlConfig mergedConfig =
+          ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
       final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
-          ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
+          mergedConfig,
           overriddenProperties
       );
+      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+          ksqlEngine, mergedConfig, 0)) {
+        terminateQueries(queryMetadataList);
+        QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+            ksqlEngine, mergedConfig, command.getStatement());
+      }
       for (final QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
@@ -268,7 +265,7 @@ public class StatementExecutor {
       final Command command,
       final String statementStr,
       final Mode mode
-  ) throws Exception {
+  ) {
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
@@ -288,7 +285,7 @@ public class StatementExecutor {
       final InsertInto statement,
       final Command command,
       final String statementStr,
-      final Mode mode) throws Exception {
+      final Mode mode) {
     final QuerySpecification querySpecification =
         (QuerySpecification) statement.getQuery().getQueryBody();
     final Query query = ksqlEngine.addInto(
@@ -308,7 +305,7 @@ public class StatementExecutor {
       final Query query,
       final Command command,
       final Mode mode
-  ) throws Exception {
+  ) { 
     if (query.getQueryBody() instanceof QuerySpecification) {
       final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
       final Relation into = querySpecification.getInto();
@@ -316,7 +313,7 @@ public class StatementExecutor {
         final Table table = (Table) into;
         if (ksqlEngine.getMetaStore().getSource(table.getName().getSuffix()) != null
             && querySpecification.isShouldCreateInto()) {
-          throw new Exception(String.format(
+          throw new KsqlException(String.format(
               "Sink specified in INTO clause already exists: %s",
               table.getName().getSuffix().toUpperCase()
           ));
@@ -324,9 +321,17 @@ public class StatementExecutor {
       }
     }
 
+    final KsqlConfig mergedConfig =
+        ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+        ksqlEngine, mergedConfig,1)) {
+      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+          ksqlEngine, mergedConfig, queryString);
+    }
+
     final QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         queryString,
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
+        mergedConfig,
         command.getOverwriteProperties()
     ).get(0);
 
@@ -336,7 +341,7 @@ public class StatementExecutor {
         persistentQueryMd.start();
       }
     } else {
-      throw new Exception(String.format(
+      throw new KsqlException(String.format(
           "Unexpected query metadata type: %s; was expecting %s",
           queryMetadata.getClass().getCanonicalName(),
           PersistentQueryMetadata.class.getCanonicalName()
@@ -346,10 +351,10 @@ public class StatementExecutor {
 
   private void terminateQuery(
       final TerminateQuery terminateQuery,
-      final Mode mode) throws Exception {
+      final Mode mode) { 
     final QueryId queryId = terminateQuery.getQueryId();
     if (!ksqlEngine.terminateQuery(queryId, mode == Mode.EXECUTE)) {
-      throw new Exception(String.format("No running query with id %s was found", queryId));
+      throw new KsqlException(String.format("No running query with id %s was found", queryId));
     }
   }
 
@@ -370,6 +375,13 @@ public class StatementExecutor {
     queriesWithSink.stream()
         .map(QueryId::new)
         .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));
+  }
 
+  private void terminateQueries(final List<QueryMetadata> queryMetadataList) {
+    queryMetadataList.stream()
+        .filter(q -> q instanceof PersistentQueryMetadata)
+        .map(PersistentQueryMetadata.class::cast)
+        .map(PersistentQueryMetadata::getQueryId)
+        .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));
   }
 }

@@ -5,7 +5,6 @@
   "tests": [
     {
       "name": "table session",
-      "comment": "This version of KSQL reports the end time of the session window incorrectly.",
       "statements": [
         "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
         "CREATE TABLE S2 as SELECT id, WindowStart(), WindowEnd() FROM test WINDOW SESSION (30 SECONDS) group by id;"
@@ -17,17 +16,16 @@
         {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 40000}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "session"}},
-        {"topic": "S2", "key": 0, "value": null, "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "session"}},
-        {"topic": "S2", "key": 0, "value": "0,0,10000", "timestamp": 10000, "window": {"start": 0, "end": 40000, "type": "session"}},
-        {"topic": "S2", "key": 1, "value": "1,10000,10000", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "session"}},
-        {"topic": "S2", "key": 1, "value": null, "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}},
-        {"topic": "S2", "key": 1, "value": "1,10000,40000", "timestamp": 40000, "window": {"start": 10000, "end": 70000, "type": "session"}}
+        {"topic": "S2", "key": 0, "value": "0,0,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": null, "timestamp": 10000, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": "0,0,10000", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "1,10000,10000", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": null, "timestamp": 40000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "1,10000,40000", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
       ]
     },
     {
       "name": "stream session",
-      "comment": "This version of KSQL reports the end time of the session window incorrectly",
       "statements": [
         "CREATE STREAM TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
         "CREATE STREAM S2 as SELECT id, WindowStart(), WindowEnd() FROM test WINDOW SESSION (30 SECONDS) group by id;"
@@ -39,12 +37,12 @@
         {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 40000}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "session"}},
-        {"topic": "S2", "key": 0, "value": null, "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "session"}},
-        {"topic": "S2", "key": 0, "value": "0,0,10000", "timestamp": 10000, "window": {"start": 0, "end": 40000, "type": "session"}},
-        {"topic": "S2", "key": 1, "value": "1,10000,10000", "timestamp": 10000, "window": {"start": 10000, "end": 40000, "type": "session"}},
-        {"topic": "S2", "key": 1, "value": null, "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}},
-        {"topic": "S2", "key": 1, "value": "1,10000,40000", "timestamp": 40000, "window": {"start": 10000, "end": 70000, "type": "session"}}
+        {"topic": "S2", "key": 0, "value": "0,0,0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": null, "timestamp": 10000, "window": {"start": 0, "end": 0, "type": "session"}},
+        {"topic": "S2", "key": 0, "value": "0,0,10000", "timestamp": 10000, "window": {"start": 0, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "1,10000,10000", "timestamp": 10000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": null, "timestamp": 40000, "window": {"start": 10000, "end": 10000, "type": "session"}},
+        {"topic": "S2", "key": 1, "value": "1,10000,40000", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
       ]
     },
     {

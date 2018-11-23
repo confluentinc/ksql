@@ -97,6 +97,7 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
@@ -161,6 +162,7 @@ public class KsqlResource {
 
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
+      checkPersistentQueryCapacity(parsedStatements, request.getKsql());
     } catch (final ParseFailedException e) {
       return Errors.badStatement(e.getCause(), e.getSqlStatement(), result);
     } catch (final KsqlException e) {
@@ -230,7 +232,7 @@ public class KsqlResource {
         || statement instanceof TerminateQuery) {
       final StatementWithSchema statementWithSchema
           = StatementWithSchema.forStatement(
-              statement, statementText, streamsProperties, ksqlEngine.getSchemaRegistryClient());
+              statement, statementText, ksqlEngine.getSchemaRegistryClient());
       getStatementExecutionPlan(
           statementWithSchema.getStatement(),
           statementWithSchema.getStatementText(),
@@ -287,7 +289,7 @@ public class KsqlResource {
     ) {
       final StatementWithSchema statementWithSchema
           = StatementWithSchema.forStatement(
-              statement, statementText, streamsProperties, ksqlEngine.getSchemaRegistryClient());
+              statement, statementText, ksqlEngine.getSchemaRegistryClient());
       return distributeStatement(
           statementWithSchema.getStatementText(),
           statementWithSchema.getStatement(),
@@ -766,6 +768,25 @@ public class KsqlResource {
             .clone()).execute(ddlCommand, true);
     if (!ddlCommandResult.isSuccess()) {
       throw new KsqlException(ddlCommandResult.getMessage());
+    }
+  }
+
+  private void checkPersistentQueryCapacity(
+      final List<PreparedStatement> parsedStatements, final String queriesString) {
+
+    final long numPersistentQueries = parsedStatements.stream().filter(parsedStatement -> {
+      final Statement statement = parsedStatement.getStatement();
+      // Note: RunScript commands also have the potential to create persistent queries,
+      // but we don't count those queries here (to avoid parsing those commands)
+      return statement instanceof CreateAsSelect || statement instanceof InsertInto;
+    }).count();
+
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+        ksqlEngine,
+        ksqlConfig,
+        numPersistentQueries)) {
+      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+          ksqlEngine, ksqlConfig, queriesString);
     }
   }
 }

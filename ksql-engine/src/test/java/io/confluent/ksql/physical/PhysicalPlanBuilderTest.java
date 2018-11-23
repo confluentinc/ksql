@@ -188,7 +188,7 @@ public class PhysicalPlanBuilderTest {
         "\t\t > [ AGGREGATE ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_AGG_VARIABLE_0 : DOUBLE, KSQL_AGG_VARIABLE_1 : BIGINT].",
         lines[1]);
     Assert.assertEquals(
-        "\t\t\t\t > [ PROJECT ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_INTERNAL_COL_2 : DOUBLE, KSQL_INTERNAL_COL_3 : DOUBLE].",
+        "\t\t\t\t > [ PROJECT ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE].",
         lines[2]);
     Assert.assertEquals(
         "\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, TEST1.COL5 : MAP<VARCHAR,DOUBLE>].",
@@ -388,15 +388,6 @@ public class PhysicalPlanBuilderTest {
       ksqlEngine.close();
     }
     Assert.fail();
-  }
-
-
-  @Test
-  public void shouldReturnCreatedKafkaStream() throws Exception {
-    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
-    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
-    assertThat(1, equalTo(calls.size()));
-    Assert.assertSame(calls.get(0).kafkaStreams, queryMetadata.getKafkaStreams());
   }
 
   @Test
@@ -608,6 +599,26 @@ public class PhysicalPlanBuilderTest {
     closeQueries(queryMetadataList);
     ksqlEngine.close();
   }
+
+  @Test
+  public void shouldSetIsKSQLSinkInMetastoreCorrectly() {
+    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
+        + "DOUBLE) "
+        + "WITH ( "
+        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
+    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
+    final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+        createStream + "\n " + csasQuery + "\n " + ctasQuery,
+        ksqlConfig,
+        Collections.emptyMap());
+    assertThat(ksqlEngine.getMetaStore().getSource("TEST1").getKsqlTopic().isKsqlSink(), equalTo(false));
+    assertThat(ksqlEngine.getMetaStore().getSource("S1").getKsqlTopic().isKsqlSink(), equalTo(true));
+    assertThat(ksqlEngine.getMetaStore().getSource("T1").getKsqlTopic().isKsqlSink(), equalTo(true));
+    ksqlEngine.close();
+  }
+
 
   private void closeQueries(final List<QueryMetadata> queryMetadataList) {
     queryMetadataList.forEach(QueryMetadata::close);

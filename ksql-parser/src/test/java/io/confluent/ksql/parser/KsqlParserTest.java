@@ -68,12 +68,13 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -128,23 +129,24 @@ public class KsqlParserTest {
 
     final KsqlTopic
         ksqlTopicOrders =
-        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
+        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe(), false);
 
-    final KsqlStream ksqlStreamOrders = new KsqlStream(
+    final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
         schemaBuilderOrders,
         schemaBuilderOrders.field("ORDERTIME"),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicOrders);
+        ksqlTopicOrders,
+        Serdes.String());
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic
         ksqlTopicItems =
-        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe());
-    final KsqlTable ksqlTableOrders = new KsqlTable(
+        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe(), false);
+    final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
         itemInfoSchema,
@@ -152,7 +154,7 @@ public class KsqlParserTest {
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         "items",
-        false);
+        Serdes.String());
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }
@@ -1185,5 +1187,24 @@ public class KsqlParserTest {
 
     final String simpleQuery = "SELECT * FROM address, itemid;";
     KSQL_PARSER.buildAst(simpleQuery, metaStore);
+  }
+
+  @Test
+  public void shouldParseSimpleComment() {
+    final String statementString = "--this is a comment.\nSHOW STREAMS;";
+    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+        .getStatement();
+    assertThat(statement, instanceOf(ListStreams.class));
+  }
+
+  @Test
+  public void shouldParseBracketedComment() {
+    final String statementString = "/* this is a bracketed comment. */\n"
+        + "SHOW STREAMS;"
+        + "/*another comment!*/";
+    final List<PreparedStatement> statementList = KSQL_PARSER.buildAst(statementString, metaStore);
+    assertThat(statementList.size(), equalTo(1));
+    final Statement statement = statementList.get(0).getStatement();
+    assertThat(statement, instanceOf(ListStreams.class));
   }
 }

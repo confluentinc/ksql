@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,9 +26,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.ExpressionMetadata;
-import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
@@ -38,6 +36,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -50,16 +49,17 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueJoiner;
-import org.codehaus.commons.compiler.CompileException;
+import org.apache.kafka.streams.kstream.WindowedSerdes;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-public class SchemaKStream {
+public class SchemaKStream<K> {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, TOSTREAM }
 
-  private static String GROUP_BY_COLUMN_SEPARATOR = "|+|";
-
   final Schema schema;
-  final KStream<String, GenericRow> kstream;
+  final KStream<K, GenericRow> kstream;
   final Field keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final Type type;
@@ -67,13 +67,14 @@ public class SchemaKStream {
   final FunctionRegistry functionRegistry;
   private OutputNode output;
   final SchemaRegistryClient schemaRegistryClient;
-
+  final Serde<K> keySerde;
 
   public SchemaKStream(
       final Schema schema,
-      final KStream<String, GenericRow> kstream,
+      final KStream<K, GenericRow> kstream,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
+      final Serde<K> keySerde,
       final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
@@ -87,10 +88,20 @@ public class SchemaKStream {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = functionRegistry;
     this.schemaRegistryClient = schemaRegistryClient;
+    this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
   }
 
   public QueuedSchemaKStream toQueue() {
-    return new QueuedSchemaKStream(this);
+    return new QueuedSchemaKStream<>(this);
+  }
+
+  public Serde<K> getKeySerde() {
+    return keySerde;
+  }
+
+  public boolean hasWindowedKey() {
+    return keySerde instanceof WindowedSerdes.SessionWindowedSerde
+        || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
   }
 
   public SchemaKStream into(
@@ -98,7 +109,6 @@ public class SchemaKStream {
       final Serde<GenericRow> topicValueSerDe,
       final Set<Integer> rowkeyIndexes
   ) {
-
     kstream
         .mapValues(row -> {
           if (row == null) {
@@ -111,21 +121,22 @@ public class SchemaKStream {
             }
           }
           return new GenericRow(columns);
-        }).to(kafkaTopicName, Produced.with(Serdes.String(), topicValueSerDe));
+        }).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
     return this;
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream filter(final Expression filterExpression) {
-    final SqlPredicate predicate = new SqlPredicate(filterExpression, schema, false,
+  public SchemaKStream<K> filter(final Expression filterExpression) {
+    final SqlPredicate predicate = new SqlPredicate(filterExpression, schema, hasWindowedKey(),
         ksqlConfig, functionRegistry);
 
-    final KStream<String, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
-    return new SchemaKStream(
+    final KStream<K, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
+    return new SchemaKStream<>(
         schema,
         filteredKStream,
         keyField,
         Collections.singletonList(this),
+        keySerde,
         Type.FILTER,
         ksqlConfig,
         functionRegistry,
@@ -133,13 +144,14 @@ public class SchemaKStream {
     );
   }
 
-  public SchemaKStream select(final List<SelectExpression> selectExpressions) {
-    final Selection selection = new Selection(selectExpressions, functionRegistry, this);
-    return new SchemaKStream(
+  public SchemaKStream<K> select(final List<SelectExpression> selectExpressions) {
+    final Selection selection = new Selection(selectExpressions);
+    return new SchemaKStream<>(
         selection.getSchema(),
         kstream.mapValues(selection.getSelectValueMapper()),
         selection.getKey(),
         Collections.singletonList(this),
+        keySerde,
         Type.PROJECT,
         ksqlConfig,
         functionRegistry,
@@ -147,36 +159,28 @@ public class SchemaKStream {
     );
   }
 
-  static class Selection {
+  class Selection {
     private final Schema schema;
     private final Field key;
     private final SelectValueMapper selectValueMapper;
 
-    Selection(
-        final List<SelectExpression> selectExpressions,
-        final FunctionRegistry functionRegistry,
-        final SchemaKStream fromStream) {
-      key = findKeyField(selectExpressions, fromStream);
-      final List<ExpressionMetadata> expressionEvaluators = buildExpressions(
-          selectExpressions, functionRegistry, fromStream);
+    Selection(final List<SelectExpression> selectExpressions) {
+      key = findKeyField(selectExpressions);
+      final List<ExpressionMetadata> expressionEvaluators = buildExpressions(selectExpressions);
       schema = buildSchema(selectExpressions, expressionEvaluators);
-      final GenericRowValueTypeEnforcer typeEnforcer =
-          new GenericRowValueTypeEnforcer(fromStream.getSchema());
       final List<String> selectFieldNames = selectExpressions.stream()
           .map(SelectExpression::getName)
           .collect(Collectors.toList());
-      selectValueMapper = new SelectValueMapper(
-          typeEnforcer, selectFieldNames, expressionEvaluators);
+      selectValueMapper = new SelectValueMapper(selectFieldNames, expressionEvaluators);
     }
 
-    private Field findKeyField(
-        final List<SelectExpression> selectExpressions, final SchemaKStream fromStream) {
-      if (fromStream.getKeyField() == null) {
+    private Field findKeyField(final List<SelectExpression> selectExpressions) {
+      if (getKeyField() == null) {
         return null;
       }
-      if (fromStream.getKeyField().index() == -1) {
+      if (getKeyField().index() == -1) {
         // The key "field" isn't an actual field in the schema
-        return fromStream.getKeyField();
+        return getKeyField();
       }
       for (int i = 0; i < selectExpressions.size(); i++) {
         final String toName = selectExpressions.get(i).getName();
@@ -192,17 +196,16 @@ public class SchemaKStream {
         if (toExpression instanceof DereferenceExpression) {
           final DereferenceExpression dereferenceExpression
               = (DereferenceExpression) toExpression;
-          if (SchemaUtil.matchFieldName(
-              fromStream.getKeyField(), dereferenceExpression.toString())) {
-            return new Field(toName, i, fromStream.getKeyField().schema());
+          if (SchemaUtil.matchFieldName(getKeyField(), dereferenceExpression.toString())) {
+            return new Field(toName, i, getKeyField().schema());
           }
         } else if (toExpression instanceof QualifiedNameReference) {
           final QualifiedNameReference qualifiedNameReference
               = (QualifiedNameReference) toExpression;
           if (SchemaUtil.matchFieldName(
-              fromStream.getKeyField(),
+              getKeyField(),
               qualifiedNameReference.getName().getSuffix())) {
-            return new Field(toName, i, fromStream.getKeyField().schema());
+            return new Field(toName, i, getKeyField().schema());
           }
         }
       }
@@ -220,28 +223,13 @@ public class SchemaKStream {
       return schemaBuilder.build();
     }
 
-    private ExpressionMetadata buildExpression(
-        final CodeGenRunner codeGenRunner,
-        final Expression expression) {
-      try {
-        return codeGenRunner.buildCodeGenFromParseTree(expression);
-      } catch (final CompileException e) {
-        throw new KsqlException("Code generation failed for SelectValueMapper", e);
-      } catch (final Exception e) {
-        throw new RuntimeException("Unexpected error generating code for SelectValueMapper", e);
-      }
-    }
+    List<ExpressionMetadata> buildExpressions(final List<SelectExpression> selectExpressions
+    ) {
+      final Stream<Expression> expressions = selectExpressions.stream()
+          .map(SelectExpression::getExpression);
 
-    private List<ExpressionMetadata> buildExpressions(
-        final List<SelectExpression> selectExpressions,
-        final FunctionRegistry functionRegistry,
-        final SchemaKStream fromStream) {
-      final CodeGenRunner codeGenRunner = new CodeGenRunner(
-          fromStream.getSchema(), fromStream.ksqlConfig, functionRegistry);
-      return selectExpressions.stream()
-          .map(SelectExpression::getExpression)
-          .map(e -> buildExpression(codeGenRunner, e))
-          .collect(Collectors.toList());
+      return CodeGenRunner.compileExpressions(
+          expressions, "Select", SchemaKStream.this.getSchema(), ksqlConfig, functionRegistry);
     }
 
     public Schema getSchema() {
@@ -258,18 +246,18 @@ public class SchemaKStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream leftJoin(
-      final SchemaKTable schemaKTable,
+  public SchemaKStream<K> leftJoin(
+      final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
       final Field joinKey,
       final Serde<GenericRow> leftValueSerDe
   ) {
 
-    final KStream joinedKStream =
+    final KStream<K, GenericRow> joinedKStream =
         kstream.leftJoin(
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema()),
-            Joined.with(Serdes.String(), leftValueSerDe, null)
+            Joined.with(keySerde, leftValueSerDe, null)
         );
 
     return new SchemaKStream(
@@ -277,6 +265,7 @@ public class SchemaKStream {
         joinedKStream,
         joinKey,
         ImmutableList.of(this, schemaKTable),
+        keySerde,
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
@@ -285,28 +274,29 @@ public class SchemaKStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream leftJoin(
-      final SchemaKStream otherSchemaKStream,
+  public SchemaKStream<K> leftJoin(
+      final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
       final Field joinKey,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde) {
 
-    final KStream joinStream =
+    final KStream<K, GenericRow> joinStream =
         kstream
             .leftJoin(
                 otherSchemaKStream.kstream,
                 new KsqlValueJoiner(this.getSchema(), otherSchemaKStream.getSchema()),
                 joinWindows,
-                Joined.with(Serdes.String(), leftSerde, rightSerde)
+                Joined.with(keySerde, leftSerde, rightSerde)
             );
 
-    return new SchemaKStream(
+    return new SchemaKStream<>(
         joinSchema,
         joinStream,
         joinKey,
         ImmutableList.of(this, otherSchemaKStream),
+        keySerde,
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
@@ -314,25 +304,26 @@ public class SchemaKStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream join(
-      final SchemaKTable schemaKTable,
+  public SchemaKStream<K> join(
+      final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
       final Field joinKey,
       final Serde<GenericRow> joinSerDe
   ) {
 
-    final KStream joinedKStream =
+    final KStream<K, GenericRow> joinedKStream =
         kstream.join(
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema()),
-            Joined.with(Serdes.String(), joinSerDe, null)
+            Joined.with(keySerde, joinSerDe, null)
         );
 
-    return new SchemaKStream(
+    return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
         joinKey,
         ImmutableList.of(this, schemaKTable),
+        keySerde,
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
@@ -341,55 +332,57 @@ public class SchemaKStream {
   }
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream join(
-      final SchemaKStream otherSchemaKStream,
+  public SchemaKStream<K> join(
+      final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
       final Field joinKey,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde) {
 
-    final KStream joinStream =
+    final KStream<K, GenericRow> joinStream =
         kstream
             .join(
                 otherSchemaKStream.kstream,
                 new KsqlValueJoiner(this.getSchema(), otherSchemaKStream.getSchema()),
                 joinWindows,
-                Joined.with(Serdes.String(), leftSerde, rightSerde)
+                Joined.with(keySerde, leftSerde, rightSerde)
             );
 
-    return new SchemaKStream(
+    return new SchemaKStream<>(
         joinSchema,
         joinStream,
         joinKey,
         ImmutableList.of(this, otherSchemaKStream),
+        keySerde,
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
         schemaRegistryClient);
   }
 
-  public SchemaKStream outerJoin(
-      final SchemaKStream otherSchemaKStream,
+  public SchemaKStream<K> outerJoin(
+      final SchemaKStream<K> otherSchemaKStream,
       final Schema joinSchema,
       final Field joinKey,
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde) {
 
-    final KStream<String, GenericRow> joinStream = kstream
+    final KStream<K, GenericRow> joinStream = kstream
         .outerJoin(
             otherSchemaKStream.kstream,
             new KsqlValueJoiner(this.getSchema(), otherSchemaKStream.getSchema()),
             joinWindows,
-            Joined.with(Serdes.String(), leftSerde, rightSerde)
+            Joined.with(keySerde, leftSerde, rightSerde)
         );
 
-    return new SchemaKStream(
+    return new SchemaKStream<>(
         joinSchema,
         joinStream,
         joinKey,
         ImmutableList.of(this, otherSchemaKStream),
+        keySerde,
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
@@ -398,29 +391,28 @@ public class SchemaKStream {
 
 
   @SuppressWarnings("unchecked")
-  public SchemaKStream selectKey(final Field newKeyField, final boolean updateRowKey) {
+  public SchemaKStream<?> selectKey(final Field newKeyField, final boolean updateRowKey) {
     if (keyField != null && keyField.name().equals(newKeyField.name())) {
       return this;
     }
 
-    final KStream keyedKStream = kstream.filter((key, value) ->
-        value != null
-            && extractColumn(newKeyField, value) != null
-    ).selectKey((key, value) ->
-        extractColumn(newKeyField, value)
-            .toString()
-    ).mapValues((key, row) -> {
-      if (updateRowKey) {
-        row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
-      }
-      return row;
-    });
+    final KStream keyedKStream = kstream
+        .filter((key, value) -> value != null
+            && extractColumn(newKeyField, value) != null)
+        .selectKey((key, value) -> extractColumn(newKeyField, value).toString())
+        .mapValues((key, row) -> {
+          if (updateRowKey) {
+            row.getColumns().set(SchemaUtil.ROWKEY_NAME_INDEX, key);
+          }
+          return row;
+        });
 
-    return new SchemaKStream(
+    return new SchemaKStream<>(
         schema,
         keyedKStream,
         newKeyField,
         Collections.singletonList(this),
+        Serdes.String(),
         Type.REKEY,
         ksqlConfig,
         functionRegistry,
@@ -456,27 +448,7 @@ public class SchemaKStream {
         && fieldNameFromExpression(groupByExpressions.get(0)).equals(keyFieldName));
   }
 
-  static String keyNameForGroupBy(final List<Expression> groupByExpressions) {
-    return groupByExpressions.stream()
-        .map(Expression::toString)
-        .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR));
-  }
-
-  static List<Integer> keyIndexesForGroupBy(
-      final Schema schema, final List<Expression> groupByExpressions) {
-    return groupByExpressions.stream()
-        .map(e -> SchemaUtil.getIndexInSchema(e.toString(), schema))
-        .collect(Collectors.toList());
-  }
-
-  static String buildGroupByKey(final List<Integer> newKeyIndexes, final GenericRow value) {
-    return newKeyIndexes.stream()
-        .map(idx -> String.valueOf(value.getColumns().get(idx)))
-        .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR));
-  }
-
   public SchemaKGroupedStream groupBy(
-      final Serde<String> keySerde,
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions) {
     final boolean rekey = rekeyRequired(groupByExpressions);
@@ -494,17 +466,17 @@ public class SchemaKStream {
       );
     }
 
-    final String aggregateKeyName = keyNameForGroupBy(groupByExpressions);
-    final List<Integer> newKeyIndexes = keyIndexesForGroupBy(getSchema(), groupByExpressions);
+    final GroupBy groupBy = new GroupBy(groupByExpressions);
 
-    final KGroupedStream kgroupedStream = kstream.filter((key, value) -> value != null).groupBy(
-        (key, value) -> buildGroupByKey(newKeyIndexes, value),
-        Grouped.with(keySerde, valSerde));
+    final KGroupedStream kgroupedStream = kstream
+        .filter((key, value) -> value != null)
+        .groupBy(groupBy.mapper, Grouped.with(Serdes.String(), valSerde));
 
     // TODO: if the key is a prefix of the grouping columns then we can
     //       use the repartition reflection hack to tell streams not to
     //       repartition.
-    final Field newKeyField = new Field(aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
+    final Field newKeyField = new Field(
+        groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
     return new SchemaKGroupedStream(
         schema,
         kgroupedStream,
@@ -523,7 +495,7 @@ public class SchemaKStream {
     return schema;
   }
 
-  public KStream<String, GenericRow> getKstream() {
+  public KStream<K, GenericRow> getKstream() {
     return kstream;
   }
 
@@ -565,6 +537,20 @@ public class SchemaKStream {
 
   public SchemaRegistryClient getSchemaRegistryClient() {
     return schemaRegistryClient;
+  }
+
+  class GroupBy {
+
+    final String aggregateKeyName;
+    final GroupByMapper<Object> mapper;
+
+    GroupBy(final List<Expression> expressions) {
+      final List<ExpressionMetadata> groupBy = CodeGenRunner.compileExpressions(
+          expressions.stream(), "Group By", schema, ksqlConfig, functionRegistry);
+
+      this.mapper = new GroupByMapper<>(groupBy);
+      this.aggregateKeyName = GroupByMapper.keyNameFor(expressions);
+    }
   }
 
   protected static class KsqlValueJoiner

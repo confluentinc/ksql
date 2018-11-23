@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@ import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Literal;
@@ -46,12 +47,13 @@ import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -167,7 +169,7 @@ public class AggregateNode extends PlanNode {
 
   @SuppressWarnings("unchecked") // needs investigating
   @Override
-  public SchemaKStream buildStream(
+  public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,
@@ -206,7 +208,7 @@ public class AggregateNode extends PlanNode {
         getGroupByExpressions());
 
     final SchemaKGroupedStream schemaKGroupedStream =
-        aggregateArgExpanded.groupBy(Serdes.String(), genericRowSerde, internalGroupByColumns);
+        aggregateArgExpanded.groupBy(genericRowSerde, internalGroupByColumns);
 
     // Aggregate computations
     final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
@@ -239,12 +241,12 @@ public class AggregateNode extends PlanNode {
         initializer, aggValToFunctionMap, aggValToValColumnMap, getWindowExpression(),
         aggValueGenericRowSerde);
 
-    SchemaKTable result = new SchemaKTable(
+    SchemaKTable<?> result = new SchemaKTable<>(
         aggStageSchema,
         schemaKTable.getKtable(),
         schemaKTable.getKeyField(),
         schemaKTable.getSourceSchemaKStreams(),
-        schemaKTable.isWindowed(),
+        schemaKTable.getKeySerde(),
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
@@ -310,7 +312,7 @@ public class AggregateNode extends PlanNode {
       throw new KsqlException(
           String.format(
               "Failed to create aggregate val to function map. expressionNames:%s",
-              internalSchema.getInternalNameToIndexMap()
+              internalSchema.internalNameToIndexMap.keySet()
           ),
           e
       );
@@ -329,9 +331,13 @@ public class AggregateNode extends PlanNode {
     final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
         .getAggregate(functionCall.getName().toString(), expressionType);
 
-    return aggregateFunctionInfo.getInstance(
-        new AggregateFunctionArguments(internalSchema.getInternalNameToIndexMap(),
-            functionArgs.stream().map(Expression::toString).collect(Collectors.toList())));
+    final List<String> args = functionArgs.stream()
+        .map(Expression::toString)
+        .collect(Collectors.toList());
+
+    final int udafIndex = internalSchema.internalNameToIndexMap.get(args.get(0));
+
+    return aggregateFunctionInfo.getInstance(new AggregateFunctionArguments(udafIndex, args));
   }
 
   private Schema buildAggregateSchema(
@@ -369,19 +375,21 @@ public class AggregateNode extends PlanNode {
     InternalSchema(
         final List<Expression> requiredColumnList,
         final List<Expression> aggregateFunctionArguments) {
-      collectAggregateArgExpressions(requiredColumnList);
-      collectAggregateArgExpressions(aggregateFunctionArguments);
+      final Set<String> seen = new HashSet<>();
+      collectAggregateArgExpressions(requiredColumnList, seen);
+      collectAggregateArgExpressions(aggregateFunctionArguments, seen);
     }
 
-
     private void collectAggregateArgExpressions(
-        final List<Expression> expressions
+        final List<Expression> expressions,
+        final Set<String> seen
     ) {
       expressions.stream()
-          .filter(e -> !internalNameToIndexMap.containsKey(e.toString()))
+          .filter(e -> !seen.contains(e.toString()))
           .forEach(expression -> {
             final String internalColumnName = INTERNAL_COLUMN_NAME_PREFIX
                 + aggArgExpansionList.size();
+            seen.add(expression.toString());
             internalNameToIndexMap.put(internalColumnName, aggArgExpansionList.size());
             aggArgExpansionList.add(SelectExpression.of(internalColumnName, expression));
             expressionToInternalColumnNameMap
@@ -391,9 +399,7 @@ public class AggregateNode extends PlanNode {
 
     List<Expression> getInternalExpressionList(final List<Expression> expressionList) {
       return expressionList.stream()
-          .map(argExpression -> new QualifiedNameReference(
-              QualifiedName.of(getExpressionToInternalColumnNameMap()
-                  .get(argExpression.toString()))))
+          .map(this::resolveToInternal)
           .collect(Collectors.toList());
     }
 
@@ -409,14 +415,11 @@ public class AggregateNode extends PlanNode {
       if (argExpressionList.size() > 2) {
         throw new KsqlException("Currently, KSQL UDAFs can only have two arguments.");
       }
-      final List<Expression> internalExpressionList = new ArrayList<>();
       if (argExpressionList.isEmpty()) {
         return Collections.emptyList();
       }
-      internalExpressionList.add(new QualifiedNameReference(
-          QualifiedName.of(getExpressionToInternalColumnNameMap()
-              .get(argExpressionList.get(0).toString())
-          )));
+      final List<Expression> internalExpressionList = new ArrayList<>();
+      internalExpressionList.add(resolveToInternal(argExpressionList.get(0)));
       if (argExpressionList.size() == 2) {
         if (! (argExpressionList.get(1) instanceof Literal)) {
           throw new KsqlException("Currently, second argument in UDAF should be literal.");
@@ -432,17 +435,8 @@ public class AggregateNode extends PlanNode {
     ) {
       return finalSelectExpressions.stream()
           .map(finalSelectExpression -> {
-            final String internal = expressionToInternalColumnNameMap
-                .get(finalSelectExpression.getExpression().toString());
-
-            if (internal == null) {
-              return finalSelectExpression;
-            }
-
-            return SelectExpression.of(
-                finalSelectExpression.getName(),
-                new QualifiedNameReference(QualifiedName.of(internal)));
-
+            final Expression internal = resolveToInternal(finalSelectExpression.getExpression());
+            return SelectExpression.of(finalSelectExpression.getName(), internal);
           })
           .collect(Collectors.toList());
     }
@@ -455,13 +449,26 @@ public class AggregateNode extends PlanNode {
       return aggArgExpansionList;
     }
 
-    Map<String, Integer> getInternalNameToIndexMap() {
-      return internalNameToIndexMap;
-    }
 
-    private Map<String, String> getExpressionToInternalColumnNameMap() {
-      return expressionToInternalColumnNameMap;
+    private Expression resolveToInternal(final Expression exp) {
+      if (exp instanceof FunctionCall) {
+        final FunctionCall funcCall = (FunctionCall) exp;
+        final List<Expression> internalArgs = getInternalExpressionList(funcCall.getArguments());
+        return new FunctionCall(
+            funcCall.getLocation(), funcCall.getName(), funcCall.getWindow(), funcCall.isDistinct(),
+            internalArgs);
+      }
+
+      final String name = expressionToInternalColumnNameMap.get(exp.toString());
+      if (name != null) {
+        return new QualifiedNameReference(QualifiedName.of(name));
+      }
+
+      if (exp instanceof DereferenceExpression) {
+        throw new KsqlException("GROUP BY expression must be part of SELECT: " + exp.toString());
+      }
+
+      return exp;
     }
   }
-
 }

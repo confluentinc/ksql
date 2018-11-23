@@ -23,7 +23,13 @@
             }
           },
           {"name": "array_value", "type": {"type": "array", "items": "string"}},
-          {"name": "map_value", "type": {"type": "map", "values": "long"}}
+          {"name": "map_value", "type": {"type": "map", "values": "long"}},
+          {
+            "name": "union_value",
+            "type": [
+              "int", "string", "boolean"
+            ]
+          }
         ]
       }
     }

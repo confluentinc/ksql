@@ -50,8 +50,6 @@ class KafkaEmbedded {
 
   private static final Logger log = LoggerFactory.getLogger(KafkaEmbedded.class);
 
-  private static final String DEFAULT_ZK_CONNECT = "127.0.0.1:2181";
-
   private final Properties effectiveConfig;
   private final File logDir;
   private final TemporaryFolder tmpFolder;
@@ -103,13 +101,6 @@ class KafkaEmbedded {
   String brokerList(final SecurityProtocol securityProtocol) {
     return kafka.config().hostName() + ":"
            + kafka.boundPort(new ListenerName(securityProtocol.toString()));
-  }
-
-  /**
-   * The ZooKeeper connection string aka `zookeeper.connect`.
-   */
-  String zookeeperConnect() {
-    return effectiveConfig.getProperty("zookeeper.connect", DEFAULT_ZK_CONNECT);
   }
 
   /**
@@ -188,9 +179,14 @@ class KafkaEmbedded {
     effectiveConfig.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
     effectiveConfig.put(KafkaConfig.MessageMaxBytesProp(), 1_000_000);
     effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), true);
+    effectiveConfig.put(KafkaConfig.ZkSessionTimeoutMsProp(), 30_000);
 
     effectiveConfig.putAll(initialConfig);
     effectiveConfig.put(KafkaConfig.LogDirProp(), logDir.getAbsolutePath());
     return effectiveConfig;
+  }
+
+  private String zookeeperConnect() {
+    return effectiveConfig.getProperty(KafkaConfig.ZkConnectProp());
   }
 }

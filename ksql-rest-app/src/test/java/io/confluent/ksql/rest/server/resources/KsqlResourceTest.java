@@ -587,6 +587,22 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldHandleInterDependantExecutableAndNoneExecutableStatements() {
+    // When:
+    final List<KsqlEntity> results = makeMultipleRequest(
+        "CREATE STREAM S AS SELECT * FROM test_stream; "
+            + "DESCRIBE S;",
+        KsqlEntity.class
+    );
+
+    // Then:
+    verify(commandStore).enqueueCommand(
+        eq("CREATE STREAM S AS SELECT * FROM test_stream;"), any(), any(), any());
+    assertThat(results, hasSize(2));
+    assertThat(results.get(1), is(instanceOf(SourceDescriptionEntity.class)));
+  }
+
+  @Test
   public void shouldFailMultipleStatementsAtomically() {
     // When:
     makeFailingRequest(

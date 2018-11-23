@@ -17,6 +17,7 @@
 package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -287,7 +288,10 @@ public class KsqlEngine implements Closeable {
         ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
     );
 
-    final Map<PreparedStatement<?>, QueryMetadata> queries = new IdentityHashMap<>();
+    final Builder<QueryMetadata> queries = ImmutableList.builderWithExpectedSize(statements.size());
+    final Map<PreparedStatement<?>, QueryMetadata> queriesByStatement =
+        new IdentityHashMap<>(statements.size());
+
     for (int i = 0; i != logicalPlans.size(); ++i) {
       final PreparedStatement<?> statement = postProcessed.get(i);
       final LogicalPlanNode logicalPlan = logicalPlans.get(i);
@@ -309,13 +313,14 @@ public class KsqlEngine implements Closeable {
             updateMetastore
         );
 
-        queries.put(statements.get(i), query);
+        queries.add(query);
+        queriesByStatement.put(statements.get(i), query);
       }
     }
 
-    validateQueries(queries);
+    validateQueries(queriesByStatement);
 
-    return ImmutableList.copyOf(queries.values());
+    return queries.build();
   }
 
   private void validateQueries(final Map<PreparedStatement<?>, QueryMetadata> queries) {

@@ -69,18 +69,32 @@ public final class Errors {
   }
 
   public static Response badStatement(final String msg, final String statementText) {
+    return badStatement(msg, statementText, new KsqlEntityList());
+  }
+
+  public static Response badStatement(
+      final String msg,
+      final String statementText,
+      final KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(
-            ERROR_CODE_BAD_STATEMENT, msg, statementText, new KsqlEntityList()))
+            ERROR_CODE_BAD_STATEMENT, msg, statementText, entities))
         .build();
   }
 
   public static Response badStatement(final Throwable t, final String statementText) {
+    return badStatement(t, statementText, new KsqlEntityList());
+  }
+
+  public static Response badStatement(
+      final Throwable t,
+      final String statementText,
+      final KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(
-            ERROR_CODE_BAD_STATEMENT, t, statementText, new KsqlEntityList()))
+            ERROR_CODE_BAD_STATEMENT, t, statementText, entities))
         .build();
   }
 

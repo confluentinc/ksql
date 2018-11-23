@@ -139,29 +139,29 @@ public class KsqlResource {
   private static final Map<Class<? extends Statement>, Handler<Statement>> CUSTOM_EXECUTORS =
       ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
           .put(ListTopics.class,
-              castHandler(KsqlResource::listTopics, ListTopics.class))
+              castExecutor(KsqlResource::listTopics, ListTopics.class))
           .put(ListRegisteredTopics.class,
-              castHandler(KsqlResource::listRegisteredTopics, ListRegisteredTopics.class))
+              castExecutor(KsqlResource::listRegisteredTopics, ListRegisteredTopics.class))
           .put(ListStreams.class,
-              castHandler(KsqlResource::listStreams, ListStreams.class))
+              castExecutor(KsqlResource::listStreams, ListStreams.class))
           .put(ListTables.class,
-              castHandler(KsqlResource::listTables, ListTables.class))
+              castExecutor(KsqlResource::listTables, ListTables.class))
           .put(ListFunctions.class,
-              castHandler(KsqlResource::listFunctions, ListFunctions.class))
+              castExecutor(KsqlResource::listFunctions, ListFunctions.class))
           .put(ListQueries.class,
-              castHandler(KsqlResource::listQueries, ListQueries.class))
+              castExecutor(KsqlResource::listQueries, ListQueries.class))
           .put(ShowColumns.class,
-              castHandler(KsqlResource::showColumns, ShowColumns.class))
+              castExecutor(KsqlResource::showColumns, ShowColumns.class))
           .put(ListProperties.class,
-              castHandler(KsqlResource::listProperties, ListProperties.class))
+              castExecutor(KsqlResource::listProperties, ListProperties.class))
           .put(Explain.class,
-              castHandler(KsqlResource::explain, Explain.class))
+              castExecutor(KsqlResource::explain, Explain.class))
           .put(DescribeFunction.class,
-              castHandler(KsqlResource::describeFunction, DescribeFunction.class))
+              castExecutor(KsqlResource::describeFunction, DescribeFunction.class))
           .put(RunScript.class,
-              castHandler(KsqlResource::distributeStatement, RunScript.class))
+              castExecutor(KsqlResource::distributeStatement, RunScript.class))
           .put(TerminateQuery.class,
-              castHandler(KsqlResource::distributeStatement, TerminateQuery.class))
+              castExecutor(KsqlResource::distributeStatement, TerminateQuery.class))
           .build();
 
   private final KsqlConfig ksqlConfig;
@@ -223,6 +223,8 @@ public class KsqlResource {
         .getOrDefault(true, Collections.emptyList())
         .forEach(stmt -> customValidateStatement(stmt, propertyOverrides));
 
+    statements.forEach(KsqlResource::validateCanExecute);
+
     final List<PreparedStatement<?>> standardValidated = partitioned
         .getOrDefault(false, Collections.emptyList()).stream()
         .filter(KsqlEngine::isExecutableStatement)
@@ -256,42 +258,38 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides
   ) {
     final KsqlEntityList entities = new KsqlEntityList();
-    statements.forEach(stmt -> executeStatement(stmt, propertyOverrides, entities));
+    statements.forEach(stmt -> entities.add(executeStatement(stmt, propertyOverrides, entities)));
     return Response.ok(entities).build();
   }
 
-  @SuppressWarnings("unchecked")
-  private void executeStatement(
-      final PreparedStatement<?> statement,
+  private <T extends Statement> KsqlEntity executeStatement(
+      final PreparedStatement<T> statement,
       final Map<String, Object> propertyOverrides,
       final KsqlEntityList entities) {
     try {
-      final Handler<Statement> handler = CUSTOM_EXECUTORS.get(statement.getStatement().getClass());
+      final Handler<T> handler = getCustomExecutor(statement);
       if (handler != null) {
-        entities.add(
-            handler.handle(this, (PreparedStatement)statement, propertyOverrides));
-        return;
+        return handler.handle(this, statement, propertyOverrides);
       }
 
-      if (KsqlEngine.isExecutableStatement(statement)) {
-        entities.add(distributeStatement(statement, propertyOverrides));
-        return;
-      }
-
-      throw new KsqlRestException(
-          Errors.badStatement("Unable to execute statement", statement.getStatementText()));
+      return distributeStatement(statement, propertyOverrides);
     } catch (final KsqlRestException e) {
       throw e;
-    } catch (Exception e) {
+    } catch (final KsqlException e) {
+      throw new KsqlRestException(
+          Errors.badStatement(e, statement.getStatementText(), entities));
+    } catch (final Exception e) {
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, statement.getStatementText(), entities));
     }
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
   private void validateQueryEndpointStatements(final PreparedStatement<?> statement) {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
   private void validatePropertyStatements(final PreparedStatement<?> statement) {
     throw new KsqlRestException(Errors.badStatement(
         "SET and UNSET commands are not supported on the REST API. "
@@ -681,6 +679,14 @@ public class KsqlResource {
     }
   }
 
+  private static void validateCanExecute(final PreparedStatement<?> statement) {
+    if (getCustomExecutor(statement) == null
+        && !KsqlEngine.isExecutableStatement(statement)) {
+      throw new KsqlRestException(Errors.badStatement(
+          "Do not know how to execute statement", statement.getStatementText()));
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static <T extends Statement> Validator<T> getCustomValidator(
       final PreparedStatement<T> statement
@@ -704,15 +710,23 @@ public class KsqlResource {
         ((BiConsumer) validator).accept(ksqlResource, statement);
   }
 
+  @SuppressWarnings("unchecked")
+  private static <T extends Statement> Handler<T> getCustomExecutor(
+      final PreparedStatement<T> statement
+  ) {
+    final Class<? extends Statement> type = statement.getStatement().getClass();
+    return (Handler)CUSTOM_EXECUTORS.get(type);
+  }
+
   @SuppressWarnings({"unchecked", "unused"})
-  private static <T extends Statement> Handler<Statement> castHandler(
+  private static <T extends Statement> Handler<Statement> castExecutor(
       final Handler<? super T> handler,
       final Class<T> type) {
     return ((Handler<Statement>) handler);
   }
 
   @SuppressWarnings({"unchecked", "unused"})
-  private static <T extends Statement> Handler<Statement> castHandler(
+  private static <T extends Statement> Handler<Statement> castExecutor(
       final BiFunction<KsqlResource, PreparedStatement<T>, ? extends KsqlEntity> handler,
       final Class<T> type) {
     return (ksqlResource, statement, propertyOverrides) ->

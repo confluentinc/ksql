@@ -224,6 +224,20 @@ public class KsqlEngineTest {
     assertThat(queries, hasSize(1));
   }
 
+  @Test
+  public void shouldMaintainOrderOfReturnedQueries() {
+    // When:
+    final List<QueryMetadata> queries = ksqlEngine.execute(
+        "create stream foo as select * from orders;"
+            + "create stream bar as select * from orders;",
+        ksqlConfig, Collections.emptyMap());
+
+    // Then:
+    assertThat(queries, hasSize(2));
+    assertThat(queries.get(0).getStatementString(), containsString("create stream foo as"));
+    assertThat(queries.get(1).getStatementString(), containsString("create stream bar as"));
+  }
+
   @Test(expected = ParseFailedException.class)
   public void shouldFailToCreateQueryIfSelectingFromNonExistentEntity() {
     ksqlEngine.execute("select * from bar;", ksqlConfig, Collections.emptyMap());

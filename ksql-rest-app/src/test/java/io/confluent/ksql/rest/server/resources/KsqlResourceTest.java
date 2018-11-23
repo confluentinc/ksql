@@ -570,39 +570,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldDistributeMultipleInterDependantStatements() {
-    // When:
-    makeMultipleRequest(
-        "CREATE STREAM S AS SELECT * FROM test_stream; "
-            + "CREATE STREAM S2 AS SELECT * FROM S;",
-        CommandStatusEntity.class
-    );
-
-    // Then:
-    final InOrder inOrder = inOrder(commandStore);
-    inOrder.verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S AS SELECT * FROM test_stream;"), any(), any(), any());
-    inOrder.verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S2 AS SELECT * FROM S;"), any(), any(), any());
-  }
-
-  @Test
-  public void shouldHandleInterDependantExecutableAndNoneExecutableStatements() {
-    // When:
-    final List<KsqlEntity> results = makeMultipleRequest(
-        "CREATE STREAM S AS SELECT * FROM test_stream; "
-            + "DESCRIBE S;",
-        KsqlEntity.class
-    );
-
-    // Then:
-    verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S AS SELECT * FROM test_stream;"), any(), any(), any());
-    assertThat(results, hasSize(2));
-    assertThat(results.get(1), is(instanceOf(SourceDescriptionEntity.class)));
-  }
-
-  @Test
   public void shouldFailMultipleStatementsAtomically() {
     // When:
     makeFailingRequest(
@@ -624,6 +591,26 @@ public class KsqlResourceTest {
         Collections.emptyMap());
 
     final String terminateSql = "TERMINATE " + queryMetadata.getQueryId() + ";";
+
+    // When:
+    final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);
+
+    // Then:
+    verify(commandStore).enqueueCommand(eq(terminateSql), isA(TerminateQuery.class), any(), any());
+    assertThat(result.getStatementText(), is(terminateSql));
+  }
+
+  @Test
+  public void shouldDistributeTerminateQueryWithoutValidation() {
+    // Why? Because currently if the server receives a single request containing two statements:
+    // `CREATE STREAM FOO AS blah;`
+    // `TERMINATE csas_foo_0;`
+    // Then its possible that the terminate line is valid, in that it will terminate the query
+    // started by the first line, but the server can no validate this as the CSAS may not have
+    // be actioned by the StatementExecutor yet.
+
+    // Given:
+    final String terminateSql = "TERMINATE some_id;";
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);

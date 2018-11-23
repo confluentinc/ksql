@@ -98,12 +98,12 @@ public final class Errors {
         .build();
   }
 
-  public static Response queryEndpoint(final String statementText) {
+  public static Response queryEndpoint(final String statementText, final KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(
                 ERROR_CODE_QUERY_ENDPOINT, "SELECT and PRINT queries must use the /query endpoint",
-            statementText, new KsqlEntityList()))
+            statementText, entities))
         .build();
   }
 

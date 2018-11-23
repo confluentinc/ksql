@@ -435,9 +435,6 @@ public class KsqlEngineTest {
         "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;",
         ksqlConfig,
         Collections.emptyMap());
-
-    // Then:
-    assertThat(metaStore.getSource("T"), is(nullValue()));
   }
 
   @Test

@@ -92,7 +92,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -126,8 +125,6 @@ public class KsqlResource {
               castValidator(KsqlResource::validatePropertyStatements, SetProperty.class))
           .put(UnsetProperty.class,
               castValidator(KsqlResource::validatePropertyStatements, UnsetProperty.class))
-          .put(TerminateQuery.class,
-              castValidator(KsqlResource::skipValidate, TerminateQuery.class))
           .put(ShowColumns.class,
               castValidator(KsqlResource::showColumns, ShowColumns.class))
           .put(Explain.class,
@@ -186,11 +183,7 @@ public class KsqlResource {
     try {
       final List<PreparedStatement<?>> statements = parseStatements(request.getKsql());
 
-      final Map<String, Object> propertyOverrides = request.getStreamsProperties();
-
-      validateStatements(statements, propertyOverrides);
-
-      return executeStatements(statements, propertyOverrides);
+      return executeStatements(statements, request.getStreamsProperties());
     } catch (final KsqlRestException e) {
       return e.getResponse();
     } catch (final KsqlStatementException e) {
@@ -212,30 +205,25 @@ public class KsqlResource {
     }
   }
 
-  private void validateStatements(
-      final List<? extends PreparedStatement<?>> statements,
-      final Map<String, Object> propertyOverrides
+  private void validateStatement(
+      final PreparedStatement<?> statement,
+      final Map<String, Object> propertyOverrides,
+      final KsqlEntityList entities
   ) {
-    final Map<Boolean, List<PreparedStatement<?>>> partitioned = statements.stream()
-        .collect(Collectors.groupingBy(stmt -> getCustomValidator(stmt) != null));
+    final Validator<?> customValidator = getCustomValidator(statement);
+    if (customValidator != null) {
+      customValidateStatement(statement, propertyOverrides, entities);
+    } else if (KsqlEngine.isExecutableStatement(statement)) {
+      validateExecutableStatement(statement, propertyOverrides);
+    }
 
-    partitioned
-        .getOrDefault(true, Collections.emptyList())
-        .forEach(stmt -> customValidateStatement(stmt, propertyOverrides));
-
-    statements.forEach(KsqlResource::validateCanExecute);
-
-    final List<PreparedStatement<?>> standardValidated = partitioned
-        .getOrDefault(false, Collections.emptyList()).stream()
-        .filter(KsqlEngine::isExecutableStatement)
-        .collect(Collectors.toList());
-
-    validateExecutableStatements(standardValidated, propertyOverrides);
+    validateCanExecute(statement, entities);
   }
 
   private <T extends Statement> void customValidateStatement(
       final PreparedStatement<T> statement,
-      final Map<String, Object> propertyOverrides
+      final Map<String, Object> propertyOverrides,
+      final KsqlEntityList entities
   ) {
     try {
       final Validator<T> validator = getCustomValidator(statement);
@@ -244,12 +232,14 @@ public class KsqlResource {
       }
     } catch (final KsqlRestException e) {
       throw e;
+    } catch (final ShouldUseQueryEndpointException e) {
+      throw new KsqlRestException(Errors.queryEndpoint(e.getMessage(), entities));
     } catch (final KsqlException e) {
       throw new KsqlRestException(
-          Errors.badStatement(e, statement.getStatementText()));
+          Errors.badStatement(e, statement.getStatementText(), entities));
     } catch (final Exception e) {
       throw new KsqlRestException(
-          Errors.serverErrorForStatement(e, statement.getStatementText(), new KsqlEntityList()));
+          Errors.serverErrorForStatement(e, statement.getStatementText(), entities));
     }
   }
 
@@ -258,7 +248,13 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides
   ) {
     final KsqlEntityList entities = new KsqlEntityList();
-    statements.forEach(stmt -> entities.add(executeStatement(stmt, propertyOverrides, entities)));
+
+    for (final PreparedStatement<?> statement : statements) {
+      validateStatement(statement, propertyOverrides, entities);
+
+      entities.add(executeStatement(statement, propertyOverrides, entities));
+    }
+
     return Response.ok(entities).build();
   }
 
@@ -286,7 +282,7 @@ public class KsqlResource {
 
   @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
   private void validateQueryEndpointStatements(final PreparedStatement<?> statement) {
-    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+    throw new ShouldUseQueryEndpointException(statement.getStatementText());
   }
 
   @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
@@ -295,10 +291,6 @@ public class KsqlResource {
         "SET and UNSET commands are not supported on the REST API. "
             + "Pass properties via the 'streamsProperties' field",
         statement.getStatementText()));
-  }
-
-  @SuppressWarnings("unused")
-  private void skipValidate(final PreparedStatement<?> statement) {
   }
 
   private KafkaTopicsList listTopics(final PreparedStatement<ListTopics> statement) {
@@ -538,15 +530,12 @@ public class KsqlResource {
     );
   }
 
-  private void validateExecutableStatements(
-      final List<? extends PreparedStatement<?>> statements,
+  private void validateExecutableStatement(
+      final PreparedStatement<?> statement,
       final Map<String, Object> propertyOverrides
   ) {
-    final List<PreparedStatement<?>> withSchemas = statements.stream()
-        .map(this::addInferredSchema)
-        .collect(Collectors.toList());
-
-    ksqlEngine.tryExecute(withSchemas, ksqlConfig, propertyOverrides);
+    final PreparedStatement<?> withSchema = addInferredSchema(statement);
+    ksqlEngine.tryExecute(ImmutableList.of(withSchema), ksqlConfig, propertyOverrides);
   }
 
   private CommandStatusEntity distributeStatement(
@@ -679,11 +668,14 @@ public class KsqlResource {
     }
   }
 
-  private static void validateCanExecute(final PreparedStatement<?> statement) {
+  private static void validateCanExecute(
+      final PreparedStatement<?> statement,
+      final KsqlEntityList entities
+  ) {
     if (getCustomExecutor(statement) == null
         && !KsqlEngine.isExecutableStatement(statement)) {
       throw new KsqlRestException(Errors.badStatement(
-          "Do not know how to execute statement", statement.getStatementText()));
+          "Do not know how to execute statement", statement.getStatementText(), entities));
     }
   }
 
@@ -749,5 +741,12 @@ public class KsqlResource {
         KsqlResource ksqlResource,
         PreparedStatement<T> statement,
         Map<String, Object> propertyOverrides);
+  }
+
+  private static final class ShouldUseQueryEndpointException extends RuntimeException {
+
+    private ShouldUseQueryEndpointException(final String statementText) {
+      super(statementText);
+    }
   }
 }

@@ -36,13 +36,13 @@ public class PageViewDataProvider extends TestDataProvider {
       .field("USERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
       .field("PAGEID", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
-  private static final Map<String, GenericRow> data = new PageViewDataProvider().buildData();
+  private static final Map<String, GenericRow> data = buildData();
 
   public PageViewDataProvider() {
     super(namePrefix, ksqlSchemaString, key, schema, data);
   }
 
-  private Map<String, GenericRow> buildData() {
+  private static Map<String, GenericRow> buildData() {
     final Map<String, GenericRow> dataMap = new HashMap<>();
 
     // Create page view records with:

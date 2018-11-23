@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -428,6 +429,7 @@ final class EndToEndEngineTestUtil {
     }
   }
 
+  @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
   static class ExpectedException {
     private final List<Matcher<? super Throwable>> matchers = new ArrayList<>();
 
@@ -715,7 +717,7 @@ final class EndToEndEngineTestUtil {
     try (final BufferedReader reader =
         new BufferedReader((
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
-                getResourceAsStream(file))))) {
+                getResourceAsStream(file), StandardCharsets.UTF_8)))) {
       final StringBuilder topologyFileBuilder = new StringBuilder();
 
       String topologyAndConfigLine;
@@ -742,7 +744,7 @@ final class EndToEndEngineTestUtil {
     try (final BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
-                getResourceAsStream(dir)))) {
+                getResourceAsStream(dir), StandardCharsets.UTF_8))) {
 
       String topology;
       while ((topology = reader.readLine()) != null) {
@@ -755,7 +757,7 @@ final class EndToEndEngineTestUtil {
   private static List<Path> findTests(final Path dir) {
     try (final BufferedReader reader = new BufferedReader(
         new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
-            getResourceAsStream(dir.toString())))) {
+            getResourceAsStream(dir.toString()), StandardCharsets.UTF_8))) {
 
       final List<Path> tests = new ArrayList<>();
 

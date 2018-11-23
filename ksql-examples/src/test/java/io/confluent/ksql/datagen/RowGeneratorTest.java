@@ -39,7 +39,6 @@ public class RowGeneratorTest {
   @Test
   public void shouldGenerateCorrectRow() throws IOException {
     final Generator generator = new Generator(new File("./src/main/resources/orders_schema.avro"), new Random());
-    final Properties props = new Properties();
 
     final Schema addressSchema = SchemaBuilder.struct()
         .field("city", Schema.OPTIONAL_STRING_SCHEMA)

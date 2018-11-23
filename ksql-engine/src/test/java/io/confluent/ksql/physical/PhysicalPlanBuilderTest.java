@@ -70,7 +70,7 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class PhysicalPlanBuilderTest {
 
-  private final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+  private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private LogicalPlanBuilder planBuilder;
@@ -86,29 +86,24 @@ public class PhysicalPlanBuilderTest {
   private KsqlEngine ksqlEngine;
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
-  class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
+  private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
 
-    class Call {
+    private static class Call {
+      private final Properties props;
 
-      public StreamsBuilder builder;
-      public Properties props;
-      KafkaStreams kafkaStreams;
-
-      private Call(final StreamsBuilder builder, final Properties props, final KafkaStreams kafkaStreams) {
-        this.builder = builder;
+      private Call(final Properties props) {
         this.props = props;
-        this.kafkaStreams = kafkaStreams;
       }
     }
 
-    private List<Call> calls = new LinkedList<>();
+    private final List<Call> calls = new LinkedList<>();
 
     @Override
     public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final Map<String, Object> conf) {
       final Properties props = new Properties();
       props.putAll(conf);
       final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
-      calls.add(new Call(builder, props, kafkaStreams));
+      calls.add(new Call(props));
       return kafkaStreams;
     }
 
@@ -374,7 +369,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+      ksqlEngine.execute(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -608,7 +603,7 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+    ksqlEngine.execute(
         createStream + "\n " + csasQuery + "\n " + ctasQuery,
         ksqlConfig,
         Collections.emptyMap());

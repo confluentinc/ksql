@@ -36,7 +36,7 @@ import org.apache.kafka.common.TopicPartitionInfo;
  */
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
-  class FakeTopic {
+  static class FakeTopic {
     private final String topicName;
     private final int numPartitions;
     private final short replicatonFactor;

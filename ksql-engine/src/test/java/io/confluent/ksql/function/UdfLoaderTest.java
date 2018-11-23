@@ -29,6 +29,7 @@ import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.Configurable;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
@@ -67,6 +68,7 @@ public class UdfLoaderTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
+  @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
   public void before() {
     pluginLoader.load();

@@ -48,12 +48,12 @@ public class StreamsSelectAndProjectIntTest {
   private IntegrationTestHarness testHarness;
   private KsqlContext ksqlContext;
   private Map<String, RecordMetadata> jsonRecordMetadataMap;
-  private final String jsonTopicName = "jsonTopic";
-  private final String jsonStreamName = "orders_json";
+  private static final String jsonTopicName = "jsonTopic";
+  private static final String jsonStreamName = "orders_json";
   private Map<String, RecordMetadata> avroRecordMetadataMap;
-  private final String avroTopicName = "avroTopic";
-  private final String avroStreamName = "orders_avro";
-  private final String avroTimestampStreamName = "orders_timestamp_avro";
+  private static final String avroTopicName = "avroTopic";
+  private static final String avroStreamName = "orders_avro";
+  private static final String avroTimestampStreamName = "orders_timestamp_avro";
   private OrderDataProvider dataProvider;
 
   @Before
@@ -492,8 +492,7 @@ public class StreamsSelectAndProjectIntTest {
             + "map<varchar, double>) WITH (kafka_topic='%s', "
             + "value_format='JSON', key='ordertime');",
         jsonStreamName,
-        jsonTopicName,
-        DataSource.DataSourceSerDe.JSON.name()));
+        jsonTopicName));
 
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID "
             + "varchar, "

@@ -75,7 +75,6 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
@@ -94,7 +93,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
@@ -110,13 +108,18 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 public class KsqlResourceTest {
   private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
   private KsqlEngine ksqlEngine;
+
+  @Rule
+  public final Timeout timeout = Timeout.seconds(30);
 
   @Before
   public void setUp() throws IOException, RestClientException {

@@ -1,7 +1,7 @@
 .. _join-streams-and-tables:
 
 Join Streams and Tables with KSQL
-=================================
+#################################
 
 You can use KSQL to merge streams of data in real time by using a SQL-like
 *join* syntax. A KSQL join and a relational database join are similar in that
@@ -74,7 +74,7 @@ Co-partitioned data
     Input data must be co-partitioned when joining. This ensures that input
     records with the same key, from both sides of the join, are delivered to
     the same stream task during processing. It’s your responsibility to ensure
-    data co-partitioning when joining.
+    data co-partitioning when joining. For more information, see :ref:`partition-data-to-enable-joins`.
 
 KEY property
     If you set the KEY property when you create a table, ensure that both of the
@@ -130,7 +130,7 @@ the result stream, which means that the join contains NULL values for fields
 coming from a stream where no match is made.
 
 Semantics of Stream-Stream Joins
---------------------------------
+================================
 
 The semantics of the various stream-stream join variants are shown in the
 following table. In the table, each row represents a new incoming record.
@@ -199,7 +199,7 @@ was marked for re-partitioning.
                or leftRecord-NULL results.
 
 Semantics of Stream-Table Joins
--------------------------------
+===============================
 
 The semantics of the various stream-table join variants are shown in the
 following table. In the table, each row represents a new incoming record.
@@ -279,7 +279,7 @@ Table-table joins are eventually consistent.
                or leftRecord-NULL results.
 
 Semantics of Table-Table Joins
-------------------------------
+==============================
 
 The semantics of the various table-table join variants are shown in the
 following table. In the table, each row represents a new incoming record.

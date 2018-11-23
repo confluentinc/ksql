@@ -93,9 +93,19 @@ How do I shutdown a KSQL environment?
 
    .. code:: bash
 
-       $ jps | grep DataGen
+       jps | grep DataGen
+
+   Your output should resemble:
+
+   .. code:: text
+
        25379 DataGen
-       $ kill 25379
+       
+   Stop the DataGen JVM by using the specified process ID:   
+       
+   .. code:: bash
+
+       kill 25379
 
 -  Exit KSQL.
 
@@ -108,13 +118,13 @@ How do I shutdown a KSQL environment?
 
    .. code:: bash
 
-       $ confluent stop
+       confluent stop
 
 -  To remove all data, topics, and streams:
 
    .. code:: bash
 
-       $ confluent destroy
+       confluent destroy
 
 ============================================
 How do I configure the target Kafka cluster?
@@ -283,7 +293,7 @@ In the KSQL CLI, use the SET statement to assign a value to ``ksql.streams.reten
 
 .. code:: bash
 
-    ksql> SET 'ksql.streams.retention.ms' = '86400000';
+    SET 'ksql.streams.retention.ms' = '86400000';
 
 Make the setting global by assigning ``ksql.streams.retention.ms`` in the KSQL
 server configuration file.
@@ -294,3 +304,11 @@ server configuration file.
           to 7 days, the sink topic retention is 7 days. If you set ``windowstore.changelog.additional.retention.ms``
           to 2 days, the retention for the internal changelog topic for
           statestore is the sum of these values: 7 + 2 = 9 days.
+
+===============================================
+What if automatic topic creation is turned off?
+===============================================
+
+If automatic topic creation is disabled, KSQL and Kafka Streams applications
+continue to work. KSQL and Kafka Streams applications use the Admin Client,
+so topics are still created.

@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -45,8 +46,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -63,6 +67,20 @@ public class CodeGenRunner {
   private final FunctionRegistry functionRegistry;
   private final ExpressionTypeManager expressionTypeManager;
   private final KsqlConfig ksqlConfig;
+
+  public static List<ExpressionMetadata> compileExpressions(
+      final Stream<Expression> expressions,
+      final String type,
+      final Schema schema,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry
+  ) {
+    final CodeGenRunner codeGen = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
+
+    return expressions
+        .map(exp -> codeGen.buildCodeGenFromParseTree(exp, type))
+        .collect(Collectors.toList());
+  }
 
   public CodeGenRunner(
       final Schema schema,
@@ -83,39 +101,48 @@ public class CodeGenRunner {
   }
 
   public ExpressionMetadata buildCodeGenFromParseTree(
-      final Expression expression
-  ) throws Exception {
+      final Expression expression,
+      final String type
+  ) {
+    try {
+      final Set<ParameterType> parameters = getParameterInfo(expression);
 
-    final Set<ParameterType> parameters = getParameterInfo(expression);
+      final String[] parameterNames = new String[parameters.size()];
+      final Class[] parameterTypes = new Class[parameters.size()];
+      final List<Integer> columnIndexes = new ArrayList<>(parameters.size());
+      final List<Kudf> kudfObjects = new ArrayList<>(parameters.size());
 
-    final String[] parameterNames = new String[parameters.size()];
-    final Class[] parameterTypes = new Class[parameters.size()];
-    final List<Integer> columnIndexes = new ArrayList<>(parameters.size());
-    final List<Kudf> kudfObjects = new ArrayList<>(parameters.size());
+      int index = 0;
+      for (final ParameterType param : parameters) {
+        parameterNames[index] = param.name;
+        parameterTypes[index] = param.type;
+        columnIndexes.add(SchemaUtil.getFieldIndexByName(schema, param.name));
+        kudfObjects.add(param.getKudf());
+        index++;
+      }
 
-    int index = 0;
-    for (final ParameterType param : parameters) {
-      parameterNames[index] = param.name;
-      parameterTypes[index] = param.type;
-      columnIndexes.add(SchemaUtil.getFieldIndexByName(schema, param.name));
-      kudfObjects.add(param.getKudf());
-      index++;
+      final String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
+
+      final IExpressionEvaluator ee =
+          CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
+      ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
+      ee.setParameters(parameterNames, parameterTypes);
+
+      final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
+
+      ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
+
+      ee.cook(javaCode);
+
+      return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType, schema);
+    } catch (final KsqlException | CompileException e) {
+      throw new KsqlException("Code generation failed for " + type
+          + ": " + e.getMessage()
+          + ". expression:" + expression + ", schema:" + schema, e);
+    } catch (final Exception e) {
+      throw new RuntimeException("Unexpected error generating code for " + type
+          + ". expression:" + expression, e);
     }
-
-    final String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
-
-    final IExpressionEvaluator ee =
-        CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-    ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
-    ee.setParameters(parameterNames, parameterTypes);
-
-    final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
-
-    ee.setExpressionType(SchemaUtil.getJavaType(expressionType));
-
-    ee.cook(javaCode);
-
-    return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType);
   }
 
   private static final class Visitor extends AstVisitor<Object, Object> {

@@ -22,7 +22,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -124,8 +124,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public SchemaKTable<K> select(final List<Pair<String, Expression>> expressionPairList) {
-    final Selection selection = new Selection(expressionPairList, functionRegistry, this);
+  public SchemaKTable<K> select(final List<SelectExpression> selectExpressions) {
+    final Selection selection = new Selection(selectExpressions);
     return new SchemaKTable<>(
         selection.getSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),
@@ -153,15 +153,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions) {
-    final String aggregateKeyName = keyNameForGroupBy(groupByExpressions);
-    final List<Integer> newKeyIndexes = keyIndexesForGroupBy(getSchema(), groupByExpressions);
+
+    final GroupBy groupBy = new GroupBy(groupByExpressions);
 
     final KGroupedTable kgroupedTable = ktable
         .filter((key, value) -> value != null)
-        .groupBy((key, value) -> new KeyValue<>(buildGroupByKey(newKeyIndexes, value), value),
+        .groupBy((key, value) -> new KeyValue<>(groupBy.mapper.apply(key, value), value),
             Grouped.with(Serdes.String(), valSerde));
 
-    final Field newKeyField = new Field(aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
+    final Field newKeyField = new Field(
+        groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
     return new SchemaKGroupedTable(
         schema,
         kgroupedTable,

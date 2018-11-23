@@ -163,8 +163,7 @@ public class KsqlSchemaRegistryClientFactoryTest {
     EasyMock.replay(clientFactory);
 
     // When:
-    final SchemaRegistryClient schemaRegistryClient =
-        new KsqlSchemaRegistryClientFactory(config,
+    new KsqlSchemaRegistryClientFactory(config,
                                             restServiceSupplier,
                                             sslFactory,
                                             clientFactory).get();

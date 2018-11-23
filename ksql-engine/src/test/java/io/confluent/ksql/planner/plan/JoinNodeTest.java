@@ -100,11 +100,11 @@ public class JoinNodeTest {
   private final Schema rightSchema = createSchema();
   private final Schema joinSchema = joinSchema();
 
-  private final String leftAlias = "left";
-  private final String rightAlias = "right";
+  private static final String leftAlias = "left";
+  private static final String rightAlias = "right";
 
-  private final String leftKeyFieldName = "COL0";
-  private final String rightKeyFieldName = "COL1";
+  private static final String leftKeyFieldName = "COL0";
+  private static final String rightKeyFieldName = "COL1";
 
   private Map<String, Object> properties;
   private StructuredDataSourceNode left;

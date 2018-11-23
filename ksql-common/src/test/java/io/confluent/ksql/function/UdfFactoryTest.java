@@ -36,7 +36,7 @@ public class UdfFactoryTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private final String functionName = "TestFunc";
+  private static final String functionName = "TestFunc";
   private final UdfFactory factory = new UdfFactory(TestFunc.class,
       new UdfMetadata(functionName, "", "", "", "internal", false));
   

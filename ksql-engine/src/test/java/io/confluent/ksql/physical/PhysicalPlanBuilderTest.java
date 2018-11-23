@@ -70,7 +70,7 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class PhysicalPlanBuilderTest {
 
-  private final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+  private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
@@ -85,29 +85,24 @@ public class PhysicalPlanBuilderTest {
   private KsqlEngine ksqlEngine;
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
-  class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
+  private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
 
-    class Call {
+    private static class Call {
+      private final Properties props;
 
-      public StreamsBuilder builder;
-      public Properties props;
-      KafkaStreams kafkaStreams;
-
-      private Call(final StreamsBuilder builder, final Properties props, final KafkaStreams kafkaStreams) {
-        this.builder = builder;
+      private Call(final Properties props) {
         this.props = props;
-        this.kafkaStreams = kafkaStreams;
       }
     }
 
-    private List<Call> calls = new LinkedList<>();
+    private final List<Call> calls = new LinkedList<>();
 
     @Override
     public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final Map<String, Object> conf) {
       final Properties props = new Properties();
       props.putAll(conf);
       final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
-      calls.add(new Call(builder, props, kafkaStreams));
+      calls.add(new Call(props));
       return kafkaStreams;
     }
 
@@ -162,19 +157,19 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldHaveKStreamDataSource() throws Exception {
+  public void shouldHaveKStreamDataSource() {
     final QueryMetadata metadata = buildPhysicalPlan(simpleSelectFilter);
     assertThat(metadata.getDataSourceType(), equalTo(DataSource.DataSourceType.KSTREAM));
   }
 
   @Test
-  public void shouldHaveOutputNode() throws Exception {
+  public void shouldHaveOutputNode() {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
     assertThat(queryMetadata.getOutputNode(), instanceOf(KsqlBareOutputNode.class));
   }
 
   @Test
-  public void shouldCreateExecutionPlan() throws Exception {
+  public void shouldCreateExecutionPlan() {
     final String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
         + "WHERE col0 > 100 GROUP BY col0;";
     final QueryMetadata metadata = buildPhysicalPlan(queryString);
@@ -394,7 +389,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldTurnOptimizationsOff() throws Exception {
+  public void shouldTurnOptimizationsOff() {
     // Given:
     final Map<String, Object> properties =
         Collections.singletonMap(

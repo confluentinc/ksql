@@ -1,0 +1,13 @@
+<assembly>
+  <id>resources</id>
+  <formats>
+    <format>zip</format>
+  </formats>
+
+  <fileSets>
+    <fileSet>
+      <directory>../config</directory>
+      <outputDirectory></outputDirectory>
+    </fileSet>
+  </fileSets>
+</assembly>

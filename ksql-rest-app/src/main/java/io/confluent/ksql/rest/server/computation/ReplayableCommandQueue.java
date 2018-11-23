@@ -19,10 +19,11 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 
-public interface ReplayableCommandQueue {
+public interface ReplayableCommandQueue extends Closeable {
   QueuedCommandStatus enqueueCommand(
       String statementString,
       Statement statement,

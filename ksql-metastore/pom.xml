@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.1.0-SNAPSHOT</version>
+        <version>5.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-metastore</artifactId>
@@ -32,30 +32,12 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-test</artifactId>
-            <version>${apache.curator.version}</version>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-test-util</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.hamcrest</groupId>
-                    <artifactId>hamcrest-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-all</artifactId>
-            <version>${hamcrest.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>

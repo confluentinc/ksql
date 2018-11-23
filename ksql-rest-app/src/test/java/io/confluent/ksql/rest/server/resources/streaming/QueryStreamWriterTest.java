@@ -103,13 +103,10 @@ public class QueryStreamWriterTest {
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
 
-    kStreams.setUncaughtExceptionHandler(capture(ehCapture));
-    expectLastCall();
     kStreams.setStateListener(anyObject());
     expectLastCall();
     expect(kStreams.state()).andReturn(State.RUNNING);
 
-    expect(queryMetadata.getKafkaStreams()).andReturn(kStreams).anyTimes();
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
 
@@ -118,6 +115,9 @@ public class QueryStreamWriterTest {
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();
+
+    queryMetadata.setUncaughtExceptionHandler(capture(ehCapture));
+    expectLastCall();
 
     replay(kStreams);
   }

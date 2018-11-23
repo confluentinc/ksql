@@ -31,6 +31,7 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
@@ -109,7 +110,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCreatePersistentQueries() throws Exception {
+  public void shouldCreatePersistentQueries() {
     final List<QueryMetadata> queries
         = ksqlEngine.buildMultipleQueries("create table bar as select * from test2;" +
         "create table foo as select * from test2;", ksqlConfig, Collections.emptyMap());
@@ -122,7 +123,7 @@ public class KsqlEngineTest {
   }
 
   @Test(expected = ParseFailedException.class)
-  public void shouldFailToCreateQueryIfSelectingFromNonExistentEntity() throws Exception {
+  public void shouldFailToCreateQueryIfSelectingFromNonExistentEntity() {
     ksqlEngine.buildMultipleQueries("select * from bar;", ksqlConfig, Collections.emptyMap());
   }
 
@@ -139,7 +140,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldUpdateReferentialIntegrityTableCorrectly() throws Exception {
+  public void shouldUpdateReferentialIntegrityTableCorrectly() {
     ksqlEngine.buildMultipleQueries("create table bar as select * from test2;" +
                                    "create table foo as select * from test2;", ksqlConfig, Collections
         .emptyMap());
@@ -182,7 +183,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldDropTableIfAllReferencedQueriesTerminated() throws Exception {
+  public void shouldDropTableIfAllReferencedQueriesTerminated() {
     ksqlEngine.buildMultipleQueries("create table bar as select * from test2;" +
                              "create table foo as select * from test2;", ksqlConfig, Collections.emptyMap());
     ksqlEngine.terminateQuery(new QueryId("CTAS_FOO_1"), true);
@@ -191,33 +192,45 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldEnforceTopicExistenceCorrectly() throws Exception {
+  public void shouldEnforceTopicExistenceCorrectly() {
     topicClient.createTopic("s1_topic", 1, (short) 1);
-    final StringBuilder runScriptContent =
-        new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
-                          + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");
-    runScriptContent.append("CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
-                            + "S1 GROUP BY COL1;\n");
-    runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
-                            + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
+
+    final String runScriptContent = "CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
+        + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
+        + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
+        + "S1 GROUP BY COL1;\n"
+        + "CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
+        + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
+
     final List<QueryMetadata> queries =
-        ksqlEngine.buildMultipleQueries(runScriptContent.toString(), ksqlConfig, Collections.emptyMap());
+        ksqlEngine.buildMultipleQueries(runScriptContent, ksqlConfig, Collections.emptyMap());
     Assert.assertTrue(topicClient.isTopicExists("T1"));
   }
 
   @Test
-  public void shouldNotEnforceTopicExistanceWhileParsing() throws Exception {
-    final StringBuilder runScriptContent =
-        new StringBuilder("CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
-                          + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n");
-    runScriptContent.append("CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
-                            + "S1 GROUP BY COL1;\n");
-    runScriptContent.append("CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
-                            + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n");
+  public void shouldNotEnforceTopicExistenceWhileParsing() {
+    final String runScriptContent = "CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
+        + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
+        + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
+        + "S1 GROUP BY COL1;\n"
+        + "CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
+        + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
 
-    final List<?> parsedStatements = ksqlEngine.parseStatements(runScriptContent.toString());
+    final List<?> parsedStatements = ksqlEngine.parseStatements(runScriptContent);
+
     assertThat(parsedStatements.size(), equalTo(3));
+  }
 
+  @Test
+  public void shouldHandleCommandsSpreadOverMultipleLines() {
+    final String runScriptContent = "CREATE STREAM S1 \n"
+        + "(COL1 BIGINT, COL2 VARCHAR)\n"
+        + " WITH \n"
+        + "(KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n";
+
+    final List<?> parsedStatements = ksqlEngine.parseStatements(runScriptContent);
+
+    assertThat(parsedStatements, hasSize(1));
   }
 
   @Test

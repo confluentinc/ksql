@@ -104,6 +104,23 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + " VARCHAR SUBSTRING(str VARCHAR, pos INT, length INT), where pos is base-one indexed,"
       + " and the last argument is the length of the substring to extract.";
 
+  public static final String KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG =
+      KSQL_CONFIG_PROPERTY_PREFIX + "windowed.session.key.legacy";
+
+  private static final String KSQL_WINDOWED_SESSION_KEY_LEGACY_DOC = ""
+      + "Version 5.1 of KSQL and earlier incorrectly excluded the end time in the record key in "
+      + "Kafka for session windowed data. Setting this value to true will make KSQL expect and "
+      + "continue to store session keys without the end time. With the default value of false "
+      + "new queries will now correctly store the session end time as part of the key";
+
+  public static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG =
+      "ksql.query.persistent.active.limit";
+  private static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
+  private static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC =
+      "An upper limit on the number of active, persistent queries that may be running at a time, "
+      + "in interactive mode. Once this limit is reached, any further persistent queries will not "
+      + "be accepted.";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -139,7 +156,21 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               true,
               false,
               ConfigDef.Importance.LOW,
-              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS)
+              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS),
+          new CompatibilityBreakingConfigDef(
+              KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              KSQL_WINDOWED_SESSION_KEY_LEGACY_DOC),
+          new CompatibilityBreakingConfigDef(
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
+              ConfigDef.Type.INT,
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
+              ConfigDef.Importance.LOW,
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC)
   );
 
   private static class CompatibilityBreakingConfigDef {

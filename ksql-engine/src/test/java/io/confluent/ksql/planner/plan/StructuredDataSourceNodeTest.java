@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -65,12 +66,12 @@ public class StructuredDataSourceNodeTest {
       .build();
   private final StructuredDataSourceNode node = new StructuredDataSourceNode(
       new PlanNodeId("0"),
-      new KsqlStream("sqlExpression", "datasource",
+      new KsqlStream<>("sqlExpression", "datasource",
           schema,
           schema.field("key"),
           new LongColumnTimestampExtractionPolicy("timestamp"),
           new KsqlTopic("topic", "topic",
-              new KsqlJsonTopicSerDe())),
+              new KsqlJsonTopicSerDe(), false), Serdes.String()),
       schema);
 
   @Before
@@ -129,14 +130,14 @@ public class StructuredDataSourceNodeTest {
   public void shouldBuildSchemaKTableWhenKTableSource() {
     final StructuredDataSourceNode node = new StructuredDataSourceNode(
         new PlanNodeId("0"),
-        new KsqlTable("sqlExpression", "datasource",
+        new KsqlTable<>("sqlExpression", "datasource",
             schema,
             schema.field("field"),
             new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
-                new KsqlJsonTopicSerDe()),
+                new KsqlJsonTopicSerDe(), false),
             "statestore",
-            false),
+            Serdes.String()),
         schema);
     final SchemaKStream result = build(node);
     assertThat(result.getClass(), equalTo(SchemaKTable.class));
@@ -146,14 +147,14 @@ public class StructuredDataSourceNodeTest {
   public void shouldTransformKStreamToKTableCorrectly() {
     final StructuredDataSourceNode node = new StructuredDataSourceNode(
         new PlanNodeId("0"),
-        new KsqlTable("sqlExpression", "datasource",
+        new KsqlTable<>("sqlExpression", "datasource",
             schema,
             schema.field("field"),
             new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
-                new KsqlJsonTopicSerDe()),
+                new KsqlJsonTopicSerDe(), false),
             "statestore",
-            false),
+            Serdes.String()),
         schema);
     builder = new StreamsBuilder();
     build(node);

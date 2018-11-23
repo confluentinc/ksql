@@ -24,12 +24,17 @@ public class KsqlTopic implements DataSource {
   private final String topicName;
   private final String kafkaTopicName;
   private final KsqlTopicSerDe ksqlTopicSerDe;
+  private final boolean isKsqlSink;
 
-  public KsqlTopic(final String topicName, final String kafkaTopicName, final KsqlTopicSerDe
-      ksqlTopicSerDe) {
+  public KsqlTopic(
+      final String topicName,
+      final String kafkaTopicName,
+      final KsqlTopicSerDe ksqlTopicSerDe,
+      final boolean isKsqlSink) {
     this.topicName = topicName;
     this.kafkaTopicName = kafkaTopicName;
     this.ksqlTopicSerDe = ksqlTopicSerDe;
+    this.isKsqlSink = isKsqlSink;
   }
 
   public KsqlTopicSerDe getKsqlTopicSerDe() {
@@ -42,6 +47,10 @@ public class KsqlTopic implements DataSource {
 
   public String getTopicName() {
     return topicName;
+  }
+
+  public boolean isKsqlSink() {
+    return isKsqlSink;
   }
 
   @Override

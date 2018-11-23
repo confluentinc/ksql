@@ -55,6 +55,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -121,7 +122,7 @@ class QueryEngine {
       final StructuredDataSource
           structuredDataSource =
           (ksqlStructuredDataOutputNode.getNodeOutputType() == DataSourceType.KTABLE)
-              ? new KsqlTable(
+              ? new KsqlTable<>(
                   sqlExpression,
                   ksqlStructuredDataOutputNode.getId().toString(),
                   ksqlStructuredDataOutputNode.getSchema(),
@@ -129,15 +130,16 @@ class QueryEngine {
                   ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
                   ksqlStructuredDataOutputNode.getKsqlTopic(),
                   "", // Placeholder
-                  false  // Placeholder
+                  Serdes.String()  // Placeholder
               )
-              : new KsqlStream(
+              : new KsqlStream<>(
                   sqlExpression,
                   ksqlStructuredDataOutputNode.getId().toString(),
                   ksqlStructuredDataOutputNode.getSchema(),
                   ksqlStructuredDataOutputNode.getKeyField(),
                   ksqlStructuredDataOutputNode.getTimestampExtractionPolicy(),
-                  ksqlStructuredDataOutputNode.getKsqlTopic()
+                  ksqlStructuredDataOutputNode.getKsqlTopic(),
+                  Serdes.String()  // Placeholder
               );
 
       if (analysis.isDoCreateInto()) {
@@ -270,14 +272,15 @@ class QueryEngine {
       }
     }
 
-    final KsqlTopic ksqlTopic = new KsqlTopic(name, name, null);
-    return new KsqlStream(
+    final KsqlTopic ksqlTopic = new KsqlTopic(name, name, null, true);
+    return new KsqlStream<>(
         "QueryEngine-DDLCommand-Not-Needed",
         name,
         dataSource.schema(),
         null,
         null,
-        ksqlTopic
+        ksqlTopic,
+        Serdes.String()
     );
   }
 
@@ -316,14 +319,12 @@ class QueryEngine {
       return StatementWithSchema.forStatement(
           statementWithProperties,
           SqlFormatter.formatSql(statementWithProperties),
-          new HashMap<>(),
           ksqlEngine.getSchemaRegistryClient()
       );
     }
     return StatementWithSchema.forStatement(
         streamCreateStatement,
         statementText,
-        new HashMap<>(),
         ksqlEngine.getSchemaRegistryClient());
   }
 }

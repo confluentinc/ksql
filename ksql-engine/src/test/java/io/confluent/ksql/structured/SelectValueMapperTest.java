@@ -27,7 +27,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.util.ExpressionMetadata;
-import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SelectExpression;
@@ -96,8 +95,7 @@ public class SelectValueMapperTest {
     final List<String> selectFieldNames = selectExpressions.stream()
         .map(SelectExpression::getName)
         .collect(Collectors.toList());
-    final GenericRowValueTypeEnforcer typeEnforcer = new GenericRowValueTypeEnforcer(schema);
-    return new SelectValueMapper(typeEnforcer, selectFieldNames, metadata);
+    return new SelectValueMapper(selectFieldNames, metadata);
   }
 
   private List<ExpressionMetadata> createExpressionMetadata(
@@ -111,7 +109,7 @@ public class SelectValueMapperTest {
       final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
       for (final SelectExpression expressionPair : selectExpressions) {
         expressionEvaluators
-            .add(codeGenRunner.buildCodeGenFromParseTree(expressionPair.getExpression()));
+            .add(codeGenRunner.buildCodeGenFromParseTree(expressionPair.getExpression(), "Select"));
       }
       return expressionEvaluators;
     } catch (final Exception e) {

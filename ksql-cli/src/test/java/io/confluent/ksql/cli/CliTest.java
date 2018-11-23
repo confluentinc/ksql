@@ -12,12 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ */
 
-package io.confluent.ksql;
+package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
+import static org.easymock.EasyMock.niceMock;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -29,7 +30,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.cli.Cli;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.TestResult;
+import io.confluent.ksql.TestTerminal;
+import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.cli.console.Console.RowCaptor;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -58,8 +63,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.ws.rs.ProcessingException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -72,13 +77,17 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.Timeout;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
@@ -102,6 +111,12 @@ public class CliTest {
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
 
+  @Rule
+  public final Timeout timeout = Timeout.builder()
+      .withTimeout(30, TimeUnit.SECONDS)
+      .withLookingForStuckThread(true)
+      .build();
+
   private static final String COMMANDS_KSQL_TOPIC_NAME = KsqlRestApplication.COMMANDS_KSQL_TOPIC_NAME;
   private static final OutputFormat CLI_OUTPUT_FORMAT = OutputFormat.TABULAR;
 
@@ -110,52 +125,65 @@ public class CliTest {
 
   private static final TestResult EMPTY_RESULT = new TestResult();
 
-  private static Cli localCli;
-  private static TestTerminal terminal;
   private static String commandTopicName;
   private static TopicProducer topicProducer;
   private static TopicConsumer topicConsumer;
   private static KsqlRestClient restClient;
-
   private static OrderDataProvider orderDataProvider;
   private static int result_stream_no = 0;
 
-  @BeforeClass
-  public static void setUp() throws Exception {
-    restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
+  private Console console;
+  private TestTerminal terminal;
+  private TestRowCaptor rowCaptor;
+  private Supplier<String> lineSupplier;
+  private Cli localCli;
 
-    terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
+  @BeforeClass
+  public static void classSetUp() throws Exception {
+    restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
 
     commandTopicName = KsqlRestConfig.getCommandTopic(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
 
-    localCli = new Cli(
-        STREAMED_QUERY_ROW_LIMIT,
-        STREAMED_QUERY_TIMEOUT_MS,
-        restClient,
-        terminal
-    );
-
     topicProducer = new TopicProducer(CLUSTER);
     topicConsumer = new TopicConsumer(CLUSTER);
 
     produceInputStream(orderDataProvider);
+
+    try (Cli cli = Cli.build(1L, 1000L, OutputFormat.JSON, restClient)) {
+      createKStream(orderDataProvider, cli);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Before
+  public void setUp() {
+    lineSupplier = niceMock(Supplier.class);
+    terminal = new TestTerminal(lineSupplier);
+    rowCaptor = new TestRowCaptor();
+    console = new Console(CLI_OUTPUT_FORMAT, () -> "v1.2.3", terminal, rowCaptor);
+
+    localCli = new Cli(
+        STREAMED_QUERY_ROW_LIMIT,
+        STREAMED_QUERY_TIMEOUT_MS,
+        restClient,
+        console
+    );
   }
 
   @SuppressWarnings("unchecked")
   private static Matcher<Iterable<List<String>>> hasItems(final TestResult expected) {
     return CoreMatchers.hasItems(expected.rows().stream()
-            .map(CoreMatchers::equalTo)
-            .collect(Collectors.toList())
-            .toArray(new Matcher[0]));
+        .map(CoreMatchers::equalTo)
+        .toArray(Matcher[]::new));
   }
 
   private static class BoundedMatcher extends BaseMatcher<Iterable<List<String>>> {
     private final Matcher<Iterable<? extends List<String>>> internal;
 
-    public BoundedMatcher(Matcher<Iterable<? extends List<String>>> internal) {
+    private BoundedMatcher(Matcher<Iterable<? extends List<String>>> internal) {
       this.internal = internal;
     }
 
@@ -175,8 +203,7 @@ public class CliTest {
     return new BoundedMatcher(
         Matchers.contains(expected.rows().stream()
             .map(CoreMatchers::equalTo)
-            .collect(Collectors.toList())
-            .toArray(new Matcher[0])));
+            .toArray(Matcher[]::new)));
   }
 
   @SuppressWarnings("unchecked")
@@ -184,63 +211,59 @@ public class CliTest {
     return new BoundedMatcher(
         Matchers.containsInAnyOrder(expected.rows().stream()
             .map(CoreMatchers::equalTo)
-            .collect(Collectors.toList())
-            .toArray(new Matcher[0])));
+            .toArray(Matcher[]::new)));
   }
 
-  static void assertRunListCommand(
+  private void assertRunListCommand(
       final String commandSuffix,
       final Matcher<Iterable<List<String>>> matcher) {
     assertRunCommand("list " + commandSuffix, matcher);
     assertRunCommand("show " + commandSuffix, matcher);
   }
 
-  private static void assertRunCommand(
+  private void assertRunCommand(
       final String command,
       final Matcher<Iterable<List<String>>> matcher) {
-    run(command, true);
-    assertThat(terminal.getTestResult(), matcher);
+    rowCaptor.resetTestResult();
+    run(command, localCli);
+    assertThat(rowCaptor.getTestResult(), matcher);
   }
 
-  private static TestResult run(String command, final boolean strict) {
+  private static void run(String command, final Cli localCli) {
     try {
       if (!command.endsWith(";")) {
         command += ";";
       }
       System.out.println("[Run Command] " + command);
-      terminal.resetTestResult(strict);
       localCli.handleLine(command);
-      return terminal.getTestResult();
     } catch (final Exception e) {
       throw new AssertionError("Failed to run command: " + command, e);
     }
   }
 
   private static void produceInputStream(final TestDataProvider dataProvider) throws Exception {
-    createKStream(dataProvider);
     topicProducer.produceInputData(dataProvider);
   }
 
-  private static void createKStream(final TestDataProvider dataProvider) {
-    assertRunCommand(
-        String.format("CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s')",
-            dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(), dataProvider.key()),
-        anyOf(
-            equalTo(new TestResult("Stream created")),
-            equalTo(new TestResult("Parsing statement")),
-            equalTo(new TestResult("Executing statement"))));
+  private static void createKStream(final TestDataProvider dataProvider, final Cli cli) {
+    run(String.format(
+        "CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s')",
+        dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(),
+        dataProvider.key()),
+        cli);
   }
 
-  @AfterClass
-  public static void tearDown() throws Exception {
-    // If WARN NetworkClient:589 - Connection to node -1 could not be established. Broker may not be available.
-    // It may be due to not closing the resource.
-    // ksqlEngine.close();
+  @After
+  public void tearDown() {
     System.out.println("[Terminal Output]");
     System.out.println(terminal.getOutputString());
 
     localCli.close();
-    terminal.close();
+    console.close();
+  }
+
+  @AfterClass
+  public static void classTearDown() {
     restClient.close();
   }
 
@@ -272,7 +295,7 @@ public class CliTest {
     );
   }
 
-  private static void testCreateStreamAsSelect(String selectQuery, final Schema resultSchema, final Map<String, GenericRow> expectedResults) {
+  private void testCreateStreamAsSelect(String selectQuery, final Schema resultSchema, final Map<String, GenericRow> expectedResults) {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
@@ -325,7 +348,6 @@ public class CliTest {
     }
   }
 
-
   private static void terminateQuery(final String queryId) {
     runStatement(String.format("terminate %s;", queryId), restClient);
   }
@@ -351,7 +373,7 @@ public class CliTest {
     runStatement(dropStatement, restClient);
   }
 
-  private static void selectWithLimit(String selectQuery, final int limit, final TestResult expectedResults) {
+  private void selectWithLimit(String selectQuery, final int limit, final TestResult expectedResults) {
     selectQuery += " LIMIT " + limit + ";";
     assertRunCommand(selectQuery, contains(expectedResults));
   }
@@ -387,7 +409,7 @@ public class CliTest {
   @Test
   public void testPrint() {
     final Thread thread =
-        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", false));
+        new Thread(() -> run("print 'ORDER_TOPIC' FROM BEGINNING INTERVAL 2;", localCli));
     thread.start();
 
     try {
@@ -573,22 +595,30 @@ public class CliTest {
 
   @Test
   public void testSelectUDFs() {
-    final String selectColumns =
-        "ITEMID, ORDERUNITS*10, PRICEARRAY[0]+10, KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10, PRICEARRAY[1]>1000";
-    final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
-
     final String queryString = String.format(
-        "SELECT %s FROM %s WHERE %s;",
-        selectColumns,
-        orderDataProvider.kstreamName(),
-        whereClause
+        "SELECT ITEMID, "
+            + "ORDERUNITS*10 AS Col1, "
+            + "PRICEARRAY[0]+10 AS Col2, "
+            + "KEYVALUEMAP['key1']*KEYVALUEMAP['key2']+10 AS Col3, "
+            + "PRICEARRAY[1]>1000 AS Col4 "
+            + "FROM %s "
+            + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
+        orderDataProvider.kstreamName()
     );
+
+    final Schema sourceSchema = orderDataProvider.schema();
+    final Schema resultSchema = SchemaBuilder.struct()
+        .field("ITEMID", sourceSchema.field("ITEMID").schema())
+        .field("COL1", sourceSchema.field("ORDERUNITS").schema())
+        .field("COL2", sourceSchema.field("PRICEARRAY").schema().valueSchema())
+        .field("COL3", sourceSchema.field("KEYVALUEMAP").schema().valueSchema())
+        .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
+        .build();
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("8", new GenericRow(ImmutableList.of("ITEM_8", 800.0, 1110.0, 12.0, true)));
 
-    // TODO: tests failed!
-    // testCreateStreamAsSelect(queryString, orderDataProvider.schema(), expectedResults);
+    testCreateStreamAsSelect(queryString, resultSchema, expectedResults);
   }
 
   // ===================================================================
@@ -597,34 +627,11 @@ public class CliTest {
 
   @Test
   public void testRunInteractively() {
+    // Given:
+    givenRunInteractivelyWillExit();
+
+    // When:
     localCli.runInteractively();
-  }
-
-  @Test
-  public void testEmptyInput() throws Exception {
-    localCli.runNonInteractively("");
-  }
-
-  @Test
-  public void testExitCommand() throws Exception {
-    localCli.runNonInteractively("exit");
-    localCli.runNonInteractively("\nexit\n\n\n");
-    localCli.runNonInteractively("exit\nexit\nexit");
-    localCli.runNonInteractively("\n\nexit\nexit\n\n\n\nexit\n\n\n");
-  }
-
-  @Test
-  public void testExtraCommands() throws Exception {
-    localCli.runNonInteractively("help");
-    localCli.runNonInteractively("version");
-    localCli.runNonInteractively("output");
-    localCli.runNonInteractively("clear");
-  }
-
-  @Test
-  public void testCommandsOverMultipleLines() throws Exception {
-    localCli.runNonInteractively("he\\\nlp");
-    localCli.runNonInteractively("he\\ \nlp");
   }
 
   @Test
@@ -634,15 +641,16 @@ public class CliTest {
 
   @Test
   public void shouldPrintErrorIfCantConnectToRestServer() throws Exception {
+    givenRunInteractivelyWillExit();
+
     final KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
     EasyMock.expect(mockRestClient.makeRootRequest()).andThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
     EasyMock.expect(mockRestClient.getServerInfo()).andReturn(
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008")).anyTimes();
     EasyMock.replay(mockRestClient);
-    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, mockRestClient);
 
-    new Cli(1L, 1L, mockRestClient, terminal)
+    new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
     assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
@@ -650,13 +658,15 @@ public class CliTest {
 
   @Test
   public void shouldRegisterRemoteCommand() {
-    new Cli(1L, 1L, restClient, terminal);
-    assertThat(terminal.getCliSpecificCommands().get("server"),
+    new Cli(1L, 1L, restClient, console);
+    assertThat(console.getCliSpecificCommands().get("server"),
         instanceOf(RemoteServerSpecificCommand.class));
   }
 
   @Test
   public void shouldPrintErrorOnUnsupportedAPI() throws Exception {
+    givenRunInteractivelyWillExit();
+
     final KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
     EasyMock.expect(mockRestClient.makeRootRequest()).andReturn(
         RestResponse.erroneous(
@@ -667,9 +677,8 @@ public class CliTest {
         RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
     EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
     EasyMock.replay(mockRestClient);
-    final TestTerminal terminal = new TestTerminal(CLI_OUTPUT_FORMAT, restClient);
 
-    new Cli(1L, 1L, mockRestClient, terminal)
+    new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
     Assert.assertThat(
@@ -783,5 +792,32 @@ public class CliTest {
     localCli.handleLine("describe function foobar;");
     final String expectedOutput = "Can't find any functions with the name 'foobar'";
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  private void givenRunInteractivelyWillExit() {
+    EasyMock.expect(lineSupplier.get()).andReturn("eXiT");
+    EasyMock.replay(lineSupplier);
+  }
+
+  private static class TestRowCaptor implements RowCaptor {
+    private TestResult.Builder output = new TestResult.Builder();
+
+    @Override
+    public void addRow(final GenericRow row) {
+      output.addRow(row);
+    }
+
+    @Override
+    public void addRows(final List<List<String>> rows) {
+      output.addRows(rows);
+    }
+
+    private void resetTestResult() {
+      output = new TestResult.Builder();
+    }
+
+    private TestResult getTestResult() {
+      return output.build();
+    }
   }
 }

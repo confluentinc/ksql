@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,32 +16,27 @@
 
 package io.confluent.ksql.cli.console;
 
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 
-public class JLineTerminal extends Console {
+class JLineTerminal implements KsqlTerminal {
 
   private final org.jline.terminal.Terminal terminal;
+  private final JLineReader lineReader;
 
-  public JLineTerminal(final OutputFormat outputFormat, final KsqlRestClient restClient) {
-    super(outputFormat, restClient);
-
-    try {
-      terminal = TerminalBuilder.builder().system(true).build();
-    } catch (final IOException e) {
-      throw new RuntimeException("JLineTerminal failed to start!", e);
-    }
-    // Ignore ^C when not reading a line
-    terminal.handle(
-        org.jline.terminal.Terminal.Signal.INT,
-        org.jline.terminal.Terminal.SignalHandler.SIG_IGN
-    );
+  JLineTerminal(
+      final Predicate<String> cliLinePredicate,
+      final Path historyFilePath
+  ) {
+    this.terminal = buildTerminal();
+    this.lineReader = new JLineReader(this.terminal, historyFilePath, cliLinePredicate);
   }
 
   @Override
@@ -60,20 +55,17 @@ public class JLineTerminal extends Console {
   }
 
   @Override
-  public void close() throws IOException {
-    terminal.close();
+  public void close() {
+    try {
+      terminal.close();
+    } catch (final IOException e) {
+      // Swallow
+    }
   }
 
-  /* jline specific */
-
   @Override
-  protected JLineReader buildLineReader() {
-    final Path historyFilePath = Paths.get(System.getProperty(
-        "history-file",
-        System.getProperty("user.home")
-        + "/.ksql-history"
-    )).toAbsolutePath();
-    return new JLineReader(this.terminal, historyFilePath);
+  public String readLine() {
+    return lineReader.readLine();
   }
 
   @Override
@@ -87,5 +79,26 @@ public class JLineTerminal extends Console {
       final Terminal.SignalHandler signalHandler
   ) {
     terminal.handle(signal, signalHandler);
+  }
+
+  @Override
+  public List<HistoryEntry> getHistory() {
+    final List<HistoryEntry> history = new ArrayList<>();
+    lineReader.getHistory()
+        .forEach(entry -> history.add(HistoryEntry.of(entry.index() + 1, entry.line())));
+    return history;
+  }
+
+  private static Terminal buildTerminal() {
+    final Terminal terminal;
+    try {
+      terminal = TerminalBuilder.builder().system(true).build();
+
+      // Ignore ^C when not reading a line
+      terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+      return terminal;
+    } catch (final IOException e) {
+      throw new RuntimeException("JLineTerminal failed to start!", e);
+    }
   }
 }

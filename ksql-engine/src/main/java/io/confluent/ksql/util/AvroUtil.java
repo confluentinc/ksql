@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.connect.avro.AvroData;
+import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -25,28 +27,24 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.serde.avro.AvroSchemaTranslator;
+import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class AvroUtil {
-
-  private static final Logger log = LoggerFactory.getLogger(AvroUtil.class);
 
   private AvroUtil() {
   }
 
   public static AbstractStreamCreateStatement checkAndSetAvroSchema(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
-      final Map<String, Object> streamsProperties,
       final SchemaRegistryClient schemaRegistryClient
   ) {
 
@@ -65,6 +63,12 @@ public final class AvroUtil {
       return abstractStreamCreateStatement;
     }
 
+    if (!ddlProperties.containsKey(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)) {
+      throw new KsqlException(String.format(
+          "Corresponding Kafka topic (%s) should be set in WITH clause.",
+          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY
+      ));
+    }
     final String kafkaTopicName = StringUtil.cleanQuotes(
             ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString()
     );
@@ -81,7 +85,7 @@ public final class AvroUtil {
       final String avroSchemaString = schemaMetadata.getSchema();
       return addAvroFields(
               abstractStreamCreateStatement,
-              AvroSchemaTranslator.toKsqlSchema(avroSchemaString),
+              toKsqlSchema(avroSchemaString),
               schemaMetadata.getId()
       );
 
@@ -230,5 +234,12 @@ public final class AvroUtil {
           "Could not connect to Schema Registry service: %s", e.getMessage()
       ));
     }
+  }
+
+  public static Schema toKsqlSchema(final String avroSchemaString) {
+    final org.apache.avro.Schema avroSchema =
+        new org.apache.avro.Schema.Parser().parse(avroSchemaString);
+    final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
+    return new ConnectSchemaTranslator().toKsqlSchema(avroData.toConnectSchema(avroSchema));
   }
 }

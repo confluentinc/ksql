@@ -112,7 +112,7 @@ public class ProjectNode
   }
 
   @Override
-  public SchemaKStream buildStream(
+  public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final KafkaTopicClient kafkaTopicClient,

@@ -105,13 +105,13 @@ public class SchemaKTableTest {
                                                            secondKsqlTable.getSchema())));
 
     mockKTable = EasyMock.niceMock(KTable.class);
-    firstSchemaKTable = new SchemaKTable(ksqlTable.getSchema(), mockKTable,
+    firstSchemaKTable = new SchemaKTable<>(ksqlTable.getSchema(), mockKTable,
                                          ksqlTable.getKeyField(), new ArrayList<>(),
-                                         false, SchemaKStream.Type.SOURCE, ksqlConfig,
+                                         Serdes.String(), SchemaKStream.Type.SOURCE, ksqlConfig,
                                          functionRegistry, schemaRegistryClient);
 
-    secondSchemaKTable = new SchemaKTable(secondKsqlTable.getSchema(), secondKTable,
-                                          secondKsqlTable.getKeyField(), new ArrayList<>(), false,
+    secondSchemaKTable = new SchemaKTable<>(secondKsqlTable.getSchema(), secondKTable,
+                                          secondKsqlTable.getKeyField(), new ArrayList<>(), Serdes.String(),
                                           SchemaKStream.Type.SOURCE, ksqlConfig,
                                           functionRegistry, schemaRegistryClient);
 
@@ -134,10 +134,10 @@ public class SchemaKTableTest {
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
+    initialSchemaKTable = new SchemaKTable<>(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
-                                           false,
+                                           Serdes.String(),
                                            SchemaKStream.Type.SOURCE, ksqlConfig,
                                            functionRegistry, schemaRegistryClient);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable
@@ -167,10 +167,10 @@ public class SchemaKTableTest {
     final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100;";
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
+    initialSchemaKTable = new SchemaKTable<>(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
                                            ksqlTable.getKeyField(),
-                                           new ArrayList<>(), false,
+                                           new ArrayList<>(), Serdes.String(),
                                            SchemaKStream.Type.SOURCE, ksqlConfig,
                                            functionRegistry, schemaRegistryClient);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable
@@ -202,10 +202,10 @@ public class SchemaKTableTest {
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
-    initialSchemaKTable = new SchemaKTable(logicalPlan.getTheSourceNode().getSchema(),
+    initialSchemaKTable = new SchemaKTable<>(logicalPlan.getTheSourceNode().getSchema(),
                                            kTable,
                                            ksqlTable.getKeyField(), new ArrayList<>(),
-                                           false,
+                                           Serdes.String(),
                                            SchemaKStream.Type.SOURCE, ksqlConfig,
                                            functionRegistry, schemaRegistryClient);
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(filterNode.getPredicate());
@@ -237,9 +237,9 @@ public class SchemaKTableTest {
   public void testGroupBy() {
     final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-    initialSchemaKTable = new SchemaKTable(
+    initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(), kTable,
-        ksqlTable.getKeyField(), new ArrayList<>(), false,
+        ksqlTable.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig,
         functionRegistry, schemaRegistryClient);
 
@@ -252,7 +252,7 @@ public class SchemaKTableTest {
         initialSchemaKTable.getSchema(), null, false, () -> null);
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
-        Serdes.String(), rowSerde, groupByExpressions);
+        rowSerde, groupByExpressions);
 
     assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     assertThat(groupedSchemaKTable.getKeyField().name(), equalTo("TEST2.COL2|+|TEST2.COL1"));
@@ -274,9 +274,9 @@ public class SchemaKTableTest {
     // Build our test object from the mocks
     final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
-    initialSchemaKTable = new SchemaKTable(
+    initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(), mockKTable,
-        ksqlTable.getKeyField(), new ArrayList<>(), false,
+        ksqlTable.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig,
         functionRegistry, schemaRegistryClient);
 
@@ -290,7 +290,7 @@ public class SchemaKTableTest {
         initialSchemaKTable.getSchema(), null, false, () -> null);
 
     // Call groupBy and extract the captured mapper
-    initialSchemaKTable.groupBy(Serdes.String(), rowSerde, groupByExpressions);
+    initialSchemaKTable.groupBy(rowSerde, groupByExpressions);
     verify(mockKTable, mockKGroupedTable);
     final KeyValueMapper keySelector = capturedKeySelector.getValue();
     final GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));

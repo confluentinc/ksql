@@ -128,8 +128,7 @@ public class UdfCompilerTest {
         "desc"
     );
     assertThat(function.getInstance(
-        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
-            Collections.singletonList("udfIndex"))),
+        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex"))),
         not(nullValue()));
   }
 
@@ -154,8 +153,7 @@ public class UdfCompilerTest {
         "desc"
     );
     final KsqlAggregateFunction instance = function.getInstance(
-        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
-            Arrays.asList("udfIndex", "some string")));
+        new AggregateFunctionArguments(0, Arrays.asList("udfIndex", "some string")));
     assertThat(instance,
         not(nullValue()));
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
@@ -174,8 +172,7 @@ public class UdfCompilerTest {
     );
 
     final KsqlAggregateFunction<Long, Long> executable = function.getInstance(
-        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
-            Collections.singletonList("udfIndex")));
+        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
 
     executable.aggregate(1L, 1L);
     executable.aggregate(1L, 1L);

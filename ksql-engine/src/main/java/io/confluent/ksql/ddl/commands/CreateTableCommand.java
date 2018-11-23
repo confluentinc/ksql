@@ -65,15 +65,15 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       registerTopicCommand.run(metaStore, isValidatePhase);
     }
     checkMetaData(metaStore, sourceName, topicName);
-    final KsqlTable ksqlTable = new KsqlTable(
+    final KsqlTable ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
         schema,
-        (keyColumnName.length() == 0)
+        (keyColumnName.isEmpty())
           ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),
-        stateStoreName, isWindowed
+        stateStoreName, keySerde
     );
 
     // TODO: Need to check if the topic exists.

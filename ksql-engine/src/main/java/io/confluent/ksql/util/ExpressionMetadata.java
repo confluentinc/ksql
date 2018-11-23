@@ -16,50 +16,68 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Kudf;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class ExpressionMetadata {
 
   private final IExpressionEvaluator expressionEvaluator;
-  private final int[] indexes;
-  private final Kudf[] udfs;
+  private final List<Integer> indexes;
+  private final List<Kudf> udfs;
   private final Schema expressionType;
+  private final GenericRowValueTypeEnforcer typeEnforcer;
+  private final Object[] parameters;
 
   public ExpressionMetadata(
       final IExpressionEvaluator expressionEvaluator,
-      final int[] indexes,
-      final Kudf[] udfs,
-      final Schema expressionType) {
-    this.expressionEvaluator = expressionEvaluator;
-    this.indexes = indexes;
-    this.udfs = udfs;
-    this.expressionType = expressionType;
+      final List<Integer> indexes,
+      final List<Kudf> udfs,
+      final Schema expressionType,
+      final Schema schema) {
+    this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
+    this.indexes = Collections.unmodifiableList(Objects.requireNonNull(indexes, "indexes"));
+    this.udfs = Collections.unmodifiableList(Objects.requireNonNull(udfs, "udfs"));
+    this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
+    this.typeEnforcer = new GenericRowValueTypeEnforcer(schema);
+    this.parameters = new Object[indexes.size()];
   }
 
-  public int[] getIndexes() {
-    final int [] result = new int[indexes.length];
-    System.arraycopy(indexes, 0, result, 0, indexes.length);
-    return result;
+  public List<Integer> getIndexes() {
+    return indexes;
   }
 
-  public Kudf[] getUdfs() {
-    final Kudf[] result = new Kudf[udfs.length];
-    System.arraycopy(udfs, 0, result, 0, udfs.length);
-    return result;
+  public List<Kudf> getUdfs() {
+    return udfs;
   }
 
   public Schema getExpressionType() {
     return expressionType;
   }
 
-  public Object evaluate(final Object[] parameterObjects) {
+  public Object evaluate(final GenericRow row) {
     try {
-      return expressionEvaluator.evaluate(parameterObjects);
-    } catch (final InvocationTargetException e) {
+      return expressionEvaluator.evaluate(getParameters(row));
+    } catch (InvocationTargetException e) {
       throw new KsqlException(e.getMessage(), e);
     }
+  }
+
+  private Object[] getParameters(final GenericRow row) {
+    for (int idx = 0; idx < indexes.size(); idx++) {
+      final int paramIndex = indexes.get(idx);
+      if (paramIndex < 0) {
+        parameters[idx] = udfs.get(idx);
+      } else {
+        parameters[idx] = typeEnforcer
+            .enforceFieldType(paramIndex, row.getColumns().get(paramIndex));
+      }
+    }
+    return parameters;
   }
 }

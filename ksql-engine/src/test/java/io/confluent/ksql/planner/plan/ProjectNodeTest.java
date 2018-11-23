@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,13 +38,21 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.easymock.EasyMock;
+import org.easymock.EasyMockRunner;
+import org.easymock.Mock;
+import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(EasyMockRunner.class)
 public class ProjectNodeTest {
 
-  private final PlanNode source = EasyMock.createMock(PlanNode.class);
-  private final SchemaKStream stream = EasyMock.createNiceMock(SchemaKStream.class);
+  @Mock
+  private PlanNode source;
+  @Mock(MockType.NICE)
+  private SchemaKStream<String> stream;
+
   private final StreamsBuilder builder = new StreamsBuilder();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final FakeKafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();

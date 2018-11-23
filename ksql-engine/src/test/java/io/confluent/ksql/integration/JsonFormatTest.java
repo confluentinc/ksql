@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -58,6 +59,7 @@ public class JsonFormatTest {
   private static final String usersTable = "USERS";
   private static final String messageLogTopic = "log_topic";
   private static final String messageLogStream = "message_log";
+  private static final AtomicInteger COUNTER = new AtomicInteger();
 
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
@@ -70,9 +72,12 @@ public class JsonFormatTest {
 
   private QueryId queryId;
   private KafkaTopicClient topicClient;
+  private String streamName;
 
   @Before
   public void before() throws Exception {
+    streamName = "STREAM_" + COUNTER.getAndIncrement();
+
     final Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put("commit.interval.ms", 0);
@@ -113,7 +118,7 @@ public class JsonFormatTest {
     topicProducer.produceInputData(messageLogTopic, records, messageSchema);
   }
 
-  private void execInitCreateStreamQueries() throws Exception {
+  private void execInitCreateStreamQueries() {
     final String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
         + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
         + "map<varchar, double>) WITH (value_format = 'json', "
@@ -176,7 +181,6 @@ public class JsonFormatTest {
 
   @Test
   public void testSinkProperties() throws Exception {
-    final String streamName = "SinkPropertiesStream".toUpperCase();
     final int resultPartitionCount = 3;
     final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
             + "FROM %s;",
@@ -198,26 +202,22 @@ public class JsonFormatTest {
 
   @Test
   public void testTableSinkCleanupProperty() throws Exception {
-    final String tableName = "SinkCleanupTable".toUpperCase();
-    final int resultPartitionCount = 3;
     final String queryString = String.format("CREATE TABLE %s AS SELECT * "
                                              + "FROM %s;",
-                                             tableName, usersTable);
+        streamName, usersTable);
     executePersistentQuery(queryString);
 
     TestUtils.waitForCondition(
-        () -> topicClient.isTopicExists(tableName),
+        () -> topicClient.isTopicExists(streamName),
         "Wait for async topic creation"
     );
 
-    assertThat(topicClient.getTopicCleanupPolicy(tableName), equalTo(
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
 
   @Test
-  public void testJsonStreamExtractor() throws Exception {
-
-    final String streamName = "JSONSTREAM";
+  public void testJsonStreamExtractor() {
     final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
             + "(message, '$.log.cloud') "
             + "FROM %s;",
@@ -237,9 +237,7 @@ public class JsonFormatTest {
   }
 
   @Test
-  public void testJsonStreamExtractorNested() throws Exception {
-
-    final String streamName = "JSONSTREAM";
+  public void testJsonStreamExtractorNested() {
     final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
                     + "(message, '$.log.logs[0].entry') "
                     + "FROM %s;",
@@ -258,7 +256,7 @@ public class JsonFormatTest {
     assertThat(results, equalTo(expectedResults));
   }
 
-  private void executePersistentQuery(final String queryString) throws Exception {
+  private void executePersistentQuery(final String queryString) {
     final QueryMetadata queryMetadata = ksqlEngine
         .buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()).get(0);
 

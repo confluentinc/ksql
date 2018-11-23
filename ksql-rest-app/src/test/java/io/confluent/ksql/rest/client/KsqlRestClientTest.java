@@ -144,7 +144,7 @@ public class KsqlRestClientTest {
     // Then:
     assertThat(result, is(false));
     closeThread.join(1_000);
-    assertThat("invlaid test", closeThread.isAlive(), is(false));
+    assertThat("invalid test", closeThread.isAlive(), is(false));
   }
 
   @Test

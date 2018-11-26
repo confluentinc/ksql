@@ -49,7 +49,7 @@ import org.junit.Test;
 
 
 public class KsqlGenericRowAvroDeserializerTest {
-  private final String schemaStr = "{"
+  private static final String schemaStr = "{"
                      + "\"namespace\": \"kql\","
                      + " \"name\": \"orders\","
                      + " \"type\": \"record\","

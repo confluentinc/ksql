@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.GenericRow;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
@@ -50,7 +51,7 @@ public class KsqlDelimitedSerializerTest {
     final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
     final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
-    final String delimitedString = new String(bytes);
+    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
     assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,10.0"));
   }
 
@@ -61,7 +62,7 @@ public class KsqlDelimitedSerializerTest {
     final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
     final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
-    final String delimitedString = new String(bytes);
+    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
     assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,"));
   }
 }

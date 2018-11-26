@@ -94,7 +94,6 @@ public class BasicCollectorTest {
 
   @Test
   public void shouldReportVersion() {
-
     // When:
     final KsqlVersionMetrics merics = basicCollector.collectMetrics();
 

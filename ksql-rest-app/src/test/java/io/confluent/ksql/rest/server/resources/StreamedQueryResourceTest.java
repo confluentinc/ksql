@@ -94,7 +94,7 @@ public class StreamedQueryResourceTest {
   private ActivenessRegistrar activenessRegistrar;
   private StreamedQueryResource testResource;
 
-  final String queryString = "SELECT * FROM test_stream;";
+  private final static String queryString = "SELECT * FROM test_stream;";
 
   @Before
   public void setup() {
@@ -116,39 +116,18 @@ public class StreamedQueryResourceTest {
     expect(mockStatementParser.parseSingleStatement(anyString()))
         .andThrow(new IllegalArgumentException("some error message"));
 
-    replay( mockStatementParser);
+    replay(mockStatementParser);
 
     // When:
     final Response response = testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap()));
 
     // Then:
+    verify(mockStatementParser);
     assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
     assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(errorMessage.getMessage(), containsString("some error message"));
-  }
-
-  @Test
-  public void shouldReturn400OnBuildMultipleQueriesError() throws Exception {
-    // Given:
-    reset(mockStatementParser);
-    expect(mockStatementParser.parseSingleStatement(anyString()))
-        .andThrow(new IllegalArgumentException("some error message"));
-
-    replay( mockStatementParser);
-
-    // When:
-    final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
-
-    // Then:
-    assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
-    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
-    assertThat(
-        errorMessage.getMessage(), containsString("some error message"));
   }
 
   @SuppressWarnings("unchecked")

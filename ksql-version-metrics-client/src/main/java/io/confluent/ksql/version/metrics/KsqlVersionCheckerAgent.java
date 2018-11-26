@@ -32,10 +32,10 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
 
-  private final boolean enableSettlingTime;
+  private final boolean enableSettingTime;
 
   private final Clock clock;
-  private final VerisonCheckerFactory verisonCheckerFactory;
+  private final VersionCheckerFactory versionCheckerFactory;
 
   private volatile long requestTime;
   private final Supplier<Boolean> activeQuerySupplier;
@@ -52,13 +52,14 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   KsqlVersionCheckerAgent(
       final Supplier<Boolean> activeQuerySupplier,
-      final boolean enableSettlingTime,
+      final boolean enableSettingTime,
       final Clock clock,
-      final VerisonCheckerFactory versionCheckerFactory) {
-    this.enableSettlingTime = enableSettlingTime;
+      final VersionCheckerFactory versionCheckerFactory) {
+    this.enableSettingTime = enableSettingTime;
     this.activeQuerySupplier = Objects.requireNonNull(activeQuerySupplier, "activeQuerySupplier");
-    this.clock = clock;
-    this.verisonCheckerFactory = versionCheckerFactory;
+    this.clock = Objects.requireNonNull(clock, "clock");
+    this.versionCheckerFactory =
+        Objects.requireNonNull(versionCheckerFactory, "versionCheckerFactory");
   }
 
   @Override
@@ -72,10 +73,10 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
       log.warn(legalDisclaimerProactiveSupportDisabled());
       return;
     }
-    final KsqlVersionChecker ksqlVersionChecker = verisonCheckerFactory.create(
+    final KsqlVersionChecker ksqlVersionChecker = versionCheckerFactory.create(
         ksqlVersionCheckerConfig,
         moduleType,
-        enableSettlingTime,
+        enableSettingTime,
         this::isActive
     );
     try {
@@ -96,11 +97,11 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   }
 
   @FunctionalInterface
-  interface VerisonCheckerFactory {
+  interface VersionCheckerFactory {
     KsqlVersionChecker create(
         BaseSupportConfig ksqlVersionCheckerConfig,
         KsqlModuleType moduleType,
-        boolean enableSettlingTime,
+        boolean enableSettingTime,
         Supplier<Boolean> activenessStatusSupplier
     );
   }

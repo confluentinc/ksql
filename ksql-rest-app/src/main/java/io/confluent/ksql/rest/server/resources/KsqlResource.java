@@ -216,27 +216,16 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides,
       final KsqlEntityList entities
   ) {
-    final Validator<?> customValidator = getCustomValidator(statement);
-    if (customValidator != null) {
-      customValidateStatement(statement, propertyOverrides, entities);
-    } else if (KsqlEngine.isExecutableStatement(statement)) {
-      validateExecutableStatement(statement, propertyOverrides);
-    }
-
-    validateCanExecute(statement, entities);
-  }
-
-  private <T extends Statement> void customValidateStatement(
-      final PreparedStatement<T> statement,
-      final Map<String, Object> propertyOverrides,
-      final KsqlEntityList entities
-  ) {
     try {
-      final Validator<T> validator = getCustomValidator(statement);
-      if (validator != null) {
-        validator.validate(this, statement, propertyOverrides);
+      final Validator<?> customValidator = getCustomValidator(statement);
+      if (customValidator != null) {
+        customValidateStatement(statement, propertyOverrides);
+      } else if (KsqlEngine.isExecutableStatement(statement)) {
+        validateExecutableStatement(statement, propertyOverrides);
       }
-    } catch (final KsqlRestException e) {
+
+      validateCanExecute(statement, entities);
+    } catch (final KsqlRestException | KsqlStatementException e) {
       throw e;
     } catch (final ShouldUseQueryEndpointException e) {
       throw new KsqlRestException(Errors.queryEndpoint(e.getMessage(), entities));
@@ -246,6 +235,16 @@ public class KsqlResource {
     } catch (final Exception e) {
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, statement.getStatementText(), entities));
+    }
+  }
+
+  private <T extends Statement> void customValidateStatement(
+      final PreparedStatement<T> statement,
+      final Map<String, Object> propertyOverrides
+  ) {
+    final Validator<T> validator = getCustomValidator(statement);
+    if (validator != null) {
+      validator.validate(this, statement, propertyOverrides);
     }
   }
 

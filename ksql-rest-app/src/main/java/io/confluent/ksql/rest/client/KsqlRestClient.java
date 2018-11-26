@@ -51,6 +51,7 @@ import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import javax.naming.AuthenticationException;
+import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -65,6 +66,8 @@ import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlRestClient implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final int MAX_TIMEOUT = (int)TimeUnit.SECONDS.toMillis(32);
 
   private static final KsqlErrorMessage UNAUTHORIZED_ERROR_MESSAGE = new KsqlErrorMessage(
       Errors.ERROR_CODE_UNAUTHORIZED,
@@ -198,6 +201,11 @@ public class KsqlRestClient implements Closeable {
           ? RestResponse.successful(mapper.apply(response))
           : createErrorResponse(path, response);
 
+    } catch (final ProcessingException e) {
+      if (shouldRetry(readTimeoutMs, e)) {
+        return postRequest(path, jsonEntity, calcReadTimeout(readTimeoutMs), closeResponse, mapper);
+      }
+      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
     } catch (final Exception e) {
       throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
     } finally {
@@ -205,6 +213,18 @@ public class KsqlRestClient implements Closeable {
         response.close();
       }
     }
+  }
+
+  private static boolean shouldRetry(
+      final Optional<Integer> readTimeoutMs,
+      final ProcessingException e
+  ) {
+    return readTimeoutMs.map(timeout -> timeout < MAX_TIMEOUT).orElse(false)
+        && e.getCause() instanceof SocketTimeoutException;
+  }
+
+  private static Optional<Integer> calcReadTimeout(final Optional<Integer> previousTimeoutMs) {
+    return previousTimeoutMs.map(timeout -> Math.min(timeout * 2, MAX_TIMEOUT));
   }
 
   private static <T> RestResponse<T> createErrorResponse(

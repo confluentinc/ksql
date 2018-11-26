@@ -74,14 +74,7 @@ public class KsqlRestClientTest {
 
   @Before
   public void init() throws Exception {
-    final Map<String, Object> props = ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
-        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test")
-        .build();
-
-    final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(props);
-    mockApplication = new MockApplication(ksqlRestConfig);
+    mockApplication = new MockApplication();
     mockApplication.start();
 
     ksqlRestClient = new KsqlRestClient(mockApplication.getServerAddress());
@@ -389,7 +382,7 @@ public class KsqlRestClientTest {
     return sqr.getWriters().get(0);
   }
 
-  private Thread givenStreamWillCloseIn(final Duration duration, final QueryStream stream) {
+  private static Thread givenStreamWillCloseIn(final Duration duration, final QueryStream stream) {
     final Thread thread = new Thread(() -> {
       try {
         Thread.sleep(duration.toMillis());

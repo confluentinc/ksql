@@ -37,7 +37,6 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -187,12 +186,12 @@ public class KsqlEngine implements Closeable {
           sql,
           parserMetaStore,
           stmt -> {
-            validateSingleQueryAstAndUpdateParser(stmt, parserMetaStore);
+            validateSingleQueryAstAndUpdateParserMetaStore(stmt, parserMetaStore);
           });
     } catch (final KsqlException e) {
       throw e;
     } catch (final Exception e) {
-      throw new ParseFailedException(
+      throw new KsqlStatementException(
           "Exception while processing statements: " + e.getMessage(), sql, e);
     }
   }
@@ -371,7 +370,7 @@ public class KsqlEngine implements Closeable {
   }
 
   @SuppressWarnings("unchecked")
-  private void validateSingleQueryAstAndUpdateParser(
+  private void validateSingleQueryAstAndUpdateParserMetaStore(
       final PreparedStatement<?> statement,
       final MetaStore parserMetaStore
   ) {
@@ -379,51 +378,54 @@ public class KsqlEngine implements Closeable {
 
     try {
       if (statement.getStatement() instanceof CreateAsSelect) {
-        applyCreateAsSelectToMetaStore(statement, parserMetaStore);
+        applyCreateAsSelectToMetaStore((CreateAsSelect) statement.getStatement(), parserMetaStore);
       } else if (statement.getStatement() instanceof InsertInto) {
         validateInsertIntoStatement((PreparedStatement<InsertInto>) statement, parserMetaStore);
       } else if (statement.getStatement() instanceof ExecutableDdlStatement) {
         applyDdlStatementToMetaStore(statement, parserMetaStore);
       }
+    } catch (final KsqlStatementException e) {
+      throw e;
     } catch (final Exception e) {
-      throw new ParseFailedException("Exception while processing statement: " + e.getMessage(),
+      throw new KsqlStatementException(
+          "Exception while processing statement: " + e.getMessage(),
           statement.getStatementText(), e);
     }
   }
 
   private void applyCreateAsSelectToMetaStore(
-      final PreparedStatement<?> statement,
+      final CreateAsSelect statement,
       final MetaStore parserMetaStore
   ) {
-    final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
-
     final QuerySpecification querySpecification =
-        (QuerySpecification) createAsSelect.getQuery().getQueryBody();
+        (QuerySpecification) statement.getQuery().getQueryBody();
 
     final StructuredDataSource resultDataSource = queryEngine.getResultDatasource(
         querySpecification.getSelect(),
-        createAsSelect.getName().getSuffix()
+        statement.getName().getSuffix()
     );
 
     parserMetaStore.putSource(resultDataSource.cloneWithTimeKeyColumns());
   }
 
-  private void validateInsertIntoStatement(
+  private static void validateInsertIntoStatement(
       final PreparedStatement<InsertInto> statement,
       final MetaStore parserMetaStore
   ) {
     final InsertInto insertInto = statement.getStatement();
-    if (parserMetaStore.getSource(insertInto.getTarget().getSuffix()) == null) {
-      throw new KsqlException(String.format("%s. Error: Sink, "
-              + "%s, does not exist for the INSERT INTO statement.",
-          statement.getStatementText(), insertInto.getTarget().getSuffix()));
+    final String target = insertInto.getTarget().getSuffix();
+
+    if (parserMetaStore.getSource(target) == null) {
+      throw new KsqlStatementException(String.format(
+          "Sink '%s' does not exist for the INSERT INTO statement.", target),
+          statement.getStatementText());
     }
 
-    if (parserMetaStore.getSource(insertInto.getTarget().getSuffix()).getDataSourceType()
+    if (parserMetaStore.getSource(target).getDataSourceType()
         != DataSource.DataSourceType.KSTREAM) {
-      throw new KsqlException(String.format("INSERT INTO can only be used to insert into a "
-              + "stream. %s is a table.",
-          insertInto.getTarget().getSuffix()));
+      throw new KsqlStatementException(String.format(
+          "INSERT INTO can only be used to insert into a stream. %s is a table.", target),
+          statement.getStatementText());
     }
   }
 
@@ -465,12 +467,12 @@ public class KsqlEngine implements Closeable {
 
       return statement;
     } catch (final Exception e) {
-      throw new ParseFailedException("Exception while processing statement: " + e.getMessage(),
+      throw new KsqlStatementException("Exception while processing statement: " + e.getMessage(),
           statement.getStatementText(), e);
     }
   }
 
-  private PreparedStatement<?> postProcessCreateAsSelectStatement(
+  private static PreparedStatement<?> postProcessCreateAsSelectStatement(
       final PreparedStatement<?> statement
   ) {
     final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
@@ -490,7 +492,7 @@ public class KsqlEngine implements Closeable {
     return new PreparedStatement<>(statement.getStatementText(), query);
   }
 
-  private PreparedStatement<?> postProcessInsertIntoStatement(
+  private static PreparedStatement<?> postProcessInsertIntoStatement(
       final PreparedStatement<?> statement
   ) {
     final InsertInto insertInto = (InsertInto) statement.getStatement();
@@ -528,7 +530,7 @@ public class KsqlEngine implements Closeable {
     return statement;
   }
 
-  private Query addInto(
+  private static Query addInto(
       final QuerySpecification querySpecification,
       final String intoName,
       final Optional<String> limit,
@@ -677,7 +679,7 @@ public class KsqlEngine implements Closeable {
         executeDdlStatement(sqlExpression, statement, overriddenProperties);
 
     if (!result.isSuccess()) {
-      throw new KsqlException(result.getMessage());
+      throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }
   }
 
@@ -700,7 +702,9 @@ public class KsqlEngine implements Closeable {
       resultingSqlExpression = statementWithSchema.getStatementText();
 
       if (((AbstractStreamCreateStatement) resultingStatement).getElements().isEmpty()) {
-        throw new KsqlException("The statement or topic schema does not define any columns.");
+        throw new KsqlStatementException(
+            "The statement or topic schema does not define any columns.",
+            sqlExpression);
       }
     } else {
       resultingSqlExpression = sqlExpression;
@@ -725,10 +729,9 @@ public class KsqlEngine implements Closeable {
       );
       final KsqlTopic ksqlTopic = metaStore.getTopic(ksqlRegisteredTopicName);
       if (ksqlTopic == null) {
-        throw new KsqlException(String.format(
-            "Could not find %s topic in the metastore.",
-            ksqlRegisteredTopicName
-        ));
+        throw new KsqlStatementException(
+            String.format("Could not find %s topic in the metastore.", ksqlRegisteredTopicName),
+            statementText);
       }
       final Map<String, Expression> newProperties = new HashMap<>();
       newProperties.put(
@@ -780,7 +783,7 @@ public class KsqlEngine implements Closeable {
         .collect(Collectors.joining("\n"));
 
     if (!nonExecutable.isEmpty()) {
-      throw new KsqlException("Statement(s) not executable: " + nonExecutable);
+      throw new KsqlStatementException("Statement(s) not executable", nonExecutable);
     }
   }
 }

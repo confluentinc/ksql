@@ -27,7 +27,6 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
@@ -200,7 +199,7 @@ public class KsqlResource {
       final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(sql);
       checkPersistentQueryCapacity(statements, sql);
       return statements;
-    } catch (final ParseFailedException e) {
+    } catch (final KsqlStatementException e) {
       throw new KsqlRestException(Errors.badStatement(e.getCause(), e.getSqlStatement()));
     }
   }

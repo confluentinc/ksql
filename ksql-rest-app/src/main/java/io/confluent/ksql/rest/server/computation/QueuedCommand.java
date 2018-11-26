@@ -21,15 +21,19 @@ import java.util.Optional;
 
 public class QueuedCommand {
   private final CommandId commandId;
-  private final Optional<Command> command;
+  private final Command command;
   private final Optional<QueuedCommandStatus> status;
 
   public QueuedCommand(final CommandId commandId,
-                       final Optional<Command> command,
+                       final Command command,
                        final Optional<QueuedCommandStatus> status) {
     this.commandId = Objects.requireNonNull(commandId);
     this.command = Objects.requireNonNull(command);
     this.status = Objects.requireNonNull(status);
+  }
+
+  QueuedCommand(final CommandId commandId, final Command command) {
+    this(commandId, command, Optional.empty());
   }
 
   public CommandId getCommandId() {
@@ -40,7 +44,27 @@ public class QueuedCommand {
     return status;
   }
 
-  public Optional<Command> getCommand() {
+  public Command getCommand() {
     return command;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(commandId, command, status);
+  }
+
+  @Override
+  public boolean equals(final Object other) {
+    if (this == other) {
+      return true;
+    }
+    if ((other == null) || (getClass() != other.getClass())) {
+      return false;
+    }
+    QueuedCommand otherQueuedCommand = (QueuedCommand) other;
+    return this.command.equals(otherQueuedCommand.getCommand())
+        && this.commandId.equals(otherQueuedCommand.getCommandId())
+        && this.status.equals(otherQueuedCommand.getStatus());
+
   }
 }

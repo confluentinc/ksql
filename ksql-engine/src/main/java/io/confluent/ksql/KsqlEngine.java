@@ -71,6 +71,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -90,6 +91,7 @@ public class KsqlEngine implements Closeable {
   private static final Set<String> IMMUTABLE_PROPERTIES = ImmutableSet.<String>builder()
       .add(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
       .add(KsqlConfig.KSQL_EXT_DIR)
+      .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 
@@ -122,45 +124,18 @@ public class KsqlEngine implements Closeable {
         clientSupplier,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ksqlConfig,
-        adminClient);
-  }
-
-  // called externally by tests only
-  public KsqlEngine(final KafkaTopicClient topicClient,
-                    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                    final MetaStore metaStore,
-                    final KsqlConfig initializationKsqlConfig) {
-    this(
-        topicClient,
-        schemaRegistryClientFactory,
-        new DefaultKafkaClientSupplier(),
-        metaStore,
-        initializationKsqlConfig
+        adminClient,
+        KsqlEngine::createKsqlEngineMetrics
     );
   }
 
-  KsqlEngine(final KafkaTopicClient kafkaTopicClient,
-             final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-             final KafkaClientSupplier kafkaClientSupplier,
-             final MetaStore metaStore,
-             final KsqlConfig initializationKsqlConfig) {
-    this(kafkaTopicClient,
-        schemaRegistryClientFactory,
-        kafkaClientSupplier,
-        metaStore,
-        initializationKsqlConfig,
-        kafkaClientSupplier.getAdminClient(
-            initializationKsqlConfig.getKsqlAdminClientConfigProps()));
-
-  }
-
-  // called externally by tests only
   KsqlEngine(final KafkaTopicClient topicClient,
              final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
              final KafkaClientSupplier clientSupplier,
              final MetaStore metaStore,
              final KsqlConfig initializationKsqlConfig,
-             final AdminClient adminClient
+             final AdminClient adminClient,
+             final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient can't be null");
@@ -179,16 +154,20 @@ public class KsqlEngine implements Closeable {
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
-    this.engineMetrics = new KsqlEngineMetrics("ksql-engine", this);
+    this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     this.queryIdGenerator = new QueryIdGenerator();
     this.adminClient = Objects.requireNonNull(adminClient, "adminCluent can't be null");
     aggregateMetricsCollector.scheduleAtFixedRate(
-        engineMetrics::updateMetrics,
+        this.engineMetrics::updateMetrics,
         1000,
         1000,
         TimeUnit.MILLISECONDS
     );
+  }
+
+  static KsqlEngineMetrics createKsqlEngineMetrics(final KsqlEngine ksqlEngine) {
+    return new KsqlEngineMetrics("ksql-engine", ksqlEngine);
   }
 
   /**
@@ -554,7 +533,6 @@ public class KsqlEngine implements Closeable {
   public long numberOfPersistentQueries() {
     return this.livePersistentQueries.size();
   }
-
 
   @Override
   public void close() {

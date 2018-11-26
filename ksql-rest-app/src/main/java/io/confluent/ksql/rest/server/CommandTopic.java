@@ -16,15 +16,20 @@
 
 package io.confluent.ksql.rest.server;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import io.confluent.ksql.rest.server.computation.RestoreCommands;
 import io.confluent.ksql.rest.util.CommandTopicJsonSerdeUtil;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -99,9 +104,9 @@ public class CommandTopic {
     return commandConsumer.poll(timeout);
   }
 
-  public RestoreCommands getRestoreCommands(final Duration duration) {
+  public List<QueuedCommand> getRestoreCommands(final Duration duration) {
     Objects.requireNonNull(duration, "duration");
-    final RestoreCommands restoreCommands = new RestoreCommands();
+    final List<QueuedCommand> restoreCommands = Lists.newArrayList();
 
     final Collection<TopicPartition> cmdTopicPartitions =
         getTopicPartitionsForTopic(commandTopicName);
@@ -110,18 +115,23 @@ public class CommandTopic {
 
     log.debug("Reading prior command records");
 
-    int readCommandCount = 0;
+    final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = Maps.newLinkedHashMap();
     ConsumerRecords<CommandId, Command> records =
         commandConsumer.poll(duration);
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
       for (final ConsumerRecord<CommandId, Command> record : records) {
-        restoreCommands.addCommand(record.key(), record.value());
-        readCommandCount ++;
+        if (record.value() == null) {
+          continue;
+        }
+        restoreCommands.add(
+            new QueuedCommand(
+                record.key(),
+                record.value(),
+                Optional.empty()));
       }
       records = commandConsumer.poll(duration);
     }
-    log.debug("Retrieved records:" + readCommandCount);
     return restoreCommands;
   }
 

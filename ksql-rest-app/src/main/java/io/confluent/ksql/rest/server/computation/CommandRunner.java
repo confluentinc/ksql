@@ -25,8 +25,9 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.io.IOException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +46,8 @@ public class CommandRunner implements Runnable, Closeable {
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
 
   private final StatementExecutor statementExecutor;
-  private final CommandStore commandStore;
   private final KsqlEngine ksqlEngine;
+  private final ReplayableCommandQueue commandStore;
   private volatile boolean closed;
   private final int maxRetries;
 
@@ -54,7 +55,7 @@ public class CommandRunner implements Runnable, Closeable {
 
   public CommandRunner(
       final StatementExecutor statementExecutor,
-      final CommandStore commandStore,
+      final ReplayableCommandQueue commandStore,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final int maxRetries
@@ -70,7 +71,7 @@ public class CommandRunner implements Runnable, Closeable {
 
   CommandRunner(
       final StatementExecutor statementExecutor,
-      final CommandStore commandStore,
+      final ReplayableCommandQueue commandStore,
       final KsqlEngine ksqlEngine,
       final int maxRetries,
       final ClusterTerminator clusterTerminator
@@ -107,29 +108,28 @@ public class CommandRunner implements Runnable, Closeable {
   @Override
   public void close() {
     closed = true;
-    commandStore.close();
+    try {
+      commandStore.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
     log.trace("Found {} new writes to command topic", commands.size());
     final AtomicBoolean shouldProcess = new AtomicBoolean(true);
-    commands.stream()
-        .filter(c -> c.getCommand().isPresent())
-        .forEach(c -> {
+    commands.forEach(c -> {
           if (!shouldProcess.get()) {
             return;
           }
-          if (c.getCommand().get().getStatement()
+          if (c.getCommand().getStatement()
               .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-            terminateCluster(c.getCommand().get());
+            terminateCluster(c.getCommand());
             shouldProcess.set(false);
             return;
           }
-          executeStatement(
-              c.getCommand().get(),
-              c.getCommandId(),
-              c.getStatus());
+          executeStatement(c);
         });
   }
 
@@ -137,45 +137,39 @@ public class CommandRunner implements Runnable, Closeable {
    * Read and execute all commands on the command topic, starting at the earliest offset.
    */
   public void processPriorCommands() {
-    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
-    final AtomicBoolean shouldProcess = new AtomicBoolean(true);
+    final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
+          final AtomicBoolean shouldProcess = new AtomicBoolean(true);
     restoreCommands.forEach(
-        (commandId, command, terminatedQueries, wasDropped) -> {
+        command -> {
           if (!shouldProcess.get()) {
             return;
           }
-          if (command.getStatement()
+          if (command.getCommand().getStatement()
               .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-            terminateCluster(command);
+            terminateCluster(command.getCommand());
             shouldProcess.set(false);
-            return;
+          } else {
+            RetryUtil.retryWithBackoff(
+                maxRetries,
+                STATEMENT_RETRY_MS,
+                MAX_STATEMENT_RETRY_MS,
+                () -> statementExecutor.handleRestore(command),
+                WakeupException.class
+            );
           }
-          RetryUtil.retryWithBackoff(
-              maxRetries,
-              STATEMENT_RETRY_MS,
-              MAX_STATEMENT_RETRY_MS,
-              () -> statementExecutor.handleStatementWithTerminatedQueries(
-                  command,
-                  commandId,
-                  Optional.empty(),
-                  terminatedQueries,
-                  wasDropped
-              ),
-              WakeupException.class
-          );
         }
     );
+    final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
+    ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
 
-  private void executeStatement(final Command command,
-                                final CommandId commandId,
-                                final Optional<QueuedCommandStatus> status) {
-    log.info("Executing statement: " + command.getStatement());
+  private void executeStatement(final QueuedCommand queuedCommand) {
+    log.info("Executing statement: " + queuedCommand.getCommand().getStatement());
     RetryUtil.retryWithBackoff(
         maxRetries,
         STATEMENT_RETRY_MS,
         MAX_STATEMENT_RETRY_MS,
-        () -> statementExecutor.handleStatement(command, commandId, status),
+        () -> statementExecutor.handleStatement(queuedCommand),
         WakeupException.class
     );
   }

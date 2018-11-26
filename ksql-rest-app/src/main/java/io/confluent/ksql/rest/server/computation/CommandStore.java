@@ -131,18 +131,23 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    */
   public List<QueuedCommand> getNewCommands() {
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
-    commandTopic
-        .getNewCommands(Duration.ofMillis(Long.MAX_VALUE))
-        .forEach(c -> queuedCommands.add(
-            new QueuedCommand(
-                c.key(),
-                Optional.ofNullable(c.value()),
-                Optional.ofNullable(commandStatusMap.remove(c.key())))));
-
+    commandTopic.getNewCommands(Duration.ofMillis(Long.MAX_VALUE)).forEach(
+        c -> {
+          if (c.value() != null) {
+            queuedCommands.add(
+                new QueuedCommand(
+                    c.key(),
+                    c.value(),
+                    Optional.ofNullable(commandStatusMap.remove(c.key()))
+                )
+            );
+          }
+        }
+    );
     return queuedCommands;
   }
 
-  public RestoreCommands getRestoreCommands() {
+  public List<QueuedCommand> getRestoreCommands() {
     return commandTopic.getRestoreCommands(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
   }
 

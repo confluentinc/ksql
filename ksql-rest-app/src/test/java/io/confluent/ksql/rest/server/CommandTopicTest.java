@@ -30,12 +30,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.RestoreCommands;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -44,6 +49,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,6 +98,11 @@ public class CommandTopicTest {
   private ConsumerRecords consumerRecords;
   @Captor
   private ArgumentCaptor<Collection<TopicPartition>> collectionArgumentCaptor;
+  @Mock
+  private Node node;
+
+  private final PartitionInfo partitionInfo = new PartitionInfo("topic", 1, node,
+      new Node[]{node}, new Node[]{node});
 
   private final static TopicPartition topicPartition = new TopicPartition("topic", 0);
 
@@ -143,19 +155,17 @@ public class CommandTopicTest {
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords())
         .thenReturn(new ConsumerRecords(Collections.emptyMap()));
-//    when()
-
 
     // When:
-    final RestoreCommands restoreCommands = commandTopic.getRestoreCommands(Duration.ofMillis(1));
+    final List<QueuedCommand> queuedCommandList = commandTopic.getRestoreCommands(Duration.ofMillis(1));
 
 
     // Then:
     verify(commandConsumer).seekToBeginning(collectionArgumentCaptor.capture());
-    assertThat(restoreCommands.getToRestore().keySet(), equalTo(ImmutableSet.of(
-        new Pair<>(0, commandId1),
-        new Pair<>(1, commandId2),
-        new Pair<>(2, commandId3))));
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty()),
+        new QueuedCommand(commandId2, command2, Optional.empty()),
+        new QueuedCommand(commandId3, command3, Optional.empty()))));
   }
 
   @Test
@@ -171,6 +181,35 @@ public class CommandTopicTest {
     verify(commandProducer).close();
 
   }
+
+  @Test
+  public void shouldHaveAllCreateCommandsInOrder() {
+    // Given:
+    when(commandConsumer.partitionsFor(any(String.class))).thenReturn(ImmutableList.of(partitionInfo));
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords());
+
+    
+//    final CommandId createId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
+//    final CommandId dropId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.DROP);
+//    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+//    final Command originalCommand = new Command(
+//        "some statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+//    final Command dropCommand = new Command(
+//        "drop", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+//    final Command latestCommand = new Command(
+//        "a new statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+
+//    when(commandConsumer.poll(any(Duration.class))).thenReturn();
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic.getRestoreCommands(Duration.ofMillis(1));
+
+
+
+
+  }
+
 
   private static ConsumerRecords<CommandId, Command> someConsumerRecords() {
     return new ConsumerRecords<>(

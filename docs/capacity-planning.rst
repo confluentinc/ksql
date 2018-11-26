@@ -70,10 +70,15 @@ Some queries require that the input stream be repartitioned so that all messages
     To determine if your query needs a repartition, you can use the ``DESCRIBE EXTENDED`` and ``EXPLAIN`` statements.
     For example, consider the following table created from the quickstart:
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid;
-        ksql> DESCRIBE EXTENDED pageviews_by_page;
+        CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid;
+        DESCRIBE EXTENDED pageviews_by_page;
+        
+    Your output should resemble:
+
+    ::
+
         ...
         Queries that write into this TABLE
         -----------------------------------
@@ -83,9 +88,13 @@ Some queries require that the input stream be repartitioned so that all messages
 
     The DESCRIBE EXTENDED output includes the Query ID for the query populating the table. You can run EXPLAIN against the query to print the underlying streams topology:
 
-    .. code:: bash
+    .. code:: text
 
-        ksql> EXPLAIN CTAS_PAGEVIEWS_BY_PAGE;
+        EXPLAIN CTAS_PAGEVIEWS_BY_PAGE;
+
+    Your output should resemble:
+
+    ::
 
         Type                 : QUERY
         SQL                  : CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid;

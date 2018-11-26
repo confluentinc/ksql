@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,7 +84,7 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
       this.queryMetadata = queryMetadata;
 
       queryMetadata.setLimitHandler(this::setDone);
-      queryMetadata.getKafkaStreams().setUncaughtExceptionHandler(
+      queryMetadata.setUncaughtExceptionHandler(
           (thread, e) -> setError(e)
       );
     }

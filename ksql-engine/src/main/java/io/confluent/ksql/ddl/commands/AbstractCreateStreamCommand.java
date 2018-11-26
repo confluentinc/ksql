@@ -172,9 +172,10 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
           "Topic format(" + DdlConfig.VALUE_FORMAT_PROPERTY + ") should be set in WITH clause.");
     }
     if (!properties.containsKey(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)) {
-      throw new KsqlException(
-          "Corresponding kafka topic(" + DdlConfig.KAFKA_TOPIC_NAME_PROPERTY
-          + ") should be set in WITH clause.");
+      throw new KsqlException(String.format(
+          "Corresponding Kafka topic (%s) should be set in WITH clause.",
+          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY
+      ));
     }
     final String kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());

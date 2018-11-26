@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -388,15 +388,6 @@ public class PhysicalPlanBuilderTest {
       ksqlEngine.close();
     }
     Assert.fail();
-  }
-
-
-  @Test
-  public void shouldReturnCreatedKafkaStream() throws Exception {
-    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
-    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
-    assertThat(1, equalTo(calls.size()));
-    Assert.assertSame(calls.get(0).kafkaStreams, queryMetadata.getKafkaStreams());
   }
 
   @Test

@@ -15,7 +15,10 @@ Aggregate Results in a KSQL Table
 
 The result of an aggregate query in KSQL is always a table, because KSQL
 computes the aggregate for each key, and possibly for each window per key, and
-updates these results as it processes new input data.
+updates these results as it processes new input data for a key.
+
+.. image:: ../img/ksql-stream-table-numVisitedLocations.gif
+   :alt: A KSQL table aggregating results of a per-region count on a stream  
 
 Assume that you want to count the number of pageviews per region. The following
 query uses the COUNT function to count the pageviews from the time you start the
@@ -24,10 +27,10 @@ because the result of the query is a KSQL table.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region AS
-      SELECT regionid,
-             count(*)
-      FROM pageviews
+    CREATE TABLE pageviews_per_region AS \
+      SELECT regionid, \
+             COUNT(*) \
+      FROM pageviews \
       GROUP BY regionid;
 
 Aggregate Over Windows
@@ -37,18 +40,18 @@ KSQL supports aggregation using tumbling, hopping, and session windows.
 
 .. For more information see :ref:`time-and-windows`.
 
-Count Records Over a Tumbling Window
-====================================
+Aggregate Records Over a Tumbling Window
+========================================
 
 This query computes the pageview count per region per minute:
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_minute AS
-      SELECT regionid,
-             count(*)
-      FROM pageviews
-      WINDOW TUMBLING (SIZE 1 MINUTE)
+    CREATE TABLE pageviews_per_region_per_minute AS \
+      SELECT regionid, \
+             COUNT(*) \
+      FROM pageviews \
+      WINDOW TUMBLING (SIZE 1 MINUTE) \
       GROUP BY regionid;
 
 To count the pageviews for “Region_6” by female users every
@@ -56,16 +59,16 @@ To count the pageviews for “Region_6” by female users every
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_30secs AS
-      SELECT regionid,
-             count(*)
-      FROM pageviews
-      WINDOW TUMBLING (SIZE 30 SECONDS)
-      WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6'
+    CREATE TABLE pageviews_per_region_per_30secs AS \
+      SELECT regionid, \
+             COUNT(*) \
+      FROM pageviews \
+      WINDOW TUMBLING (SIZE 30 SECONDS) \
+      WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6' \
       GROUP BY regionid;
 
-Count Records Over a Hopping Window
-===================================
+Aggregate Records Over a Hopping Window
+=======================================
 
 This query computes the count for a hopping window of 30 seconds that advances
 by 10 seconds.
@@ -77,16 +80,16 @@ and substring matching.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_30secs10secs AS
-      SELECT regionid,
-             count(*)
-      FROM pageviews
-      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)
-      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
+    CREATE TABLE pageviews_per_region_per_30secs10secs AS \
+      SELECT regionid, \
+             COUNT(*) \
+      FROM pageviews \
+      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
+      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6' \
       GROUP BY regionid;
 
-Count Records Over a Session Window
-===================================
+Aggregate Records Over a Session Window
+=======================================
 
 The following query counts the number of pageviews per region for session
 windows, with a session inactivity gap of 60 seconds. This query *sessionizes*
@@ -94,11 +97,11 @@ the input data and performs the counting step per region.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_session AS
-      SELECT regionid,
-             count(*)
-      FROM pageviews
-      WINDOW SESSION (60 SECONDS)
+    CREATE TABLE pageviews_per_region_per_session AS \
+      SELECT regionid, \
+             COUNT(*) \
+      FROM pageviews \
+      WINDOW SESSION (60 SECONDS) \
       GROUP BY regionid;
 
 Next Steps

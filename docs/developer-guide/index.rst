@@ -14,6 +14,7 @@ These topics show how to develop KSQL applications for |cp|.
     create-a-table
     aggregate-streaming-data
     join-streams-and-tables
+    transform-a-stream-with-ksql
     partition-data
     syntax-reference
     api

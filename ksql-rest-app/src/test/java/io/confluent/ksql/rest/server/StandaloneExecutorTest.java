@@ -44,6 +44,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -78,6 +80,8 @@ public class StandaloneExecutorTest {
   private PersistentQueryMetadata queryMd;
   @Mock
   private QueryMetadata nonPeristentQueryMd;
+  @Mock
+  private VersionCheckerAgent versionCheckerAgent;
 
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
@@ -89,7 +93,15 @@ public class StandaloneExecutorTest {
     when(engine.execute(any(), any(), any())).thenReturn(ImmutableList.of(queryMd));
 
     standaloneExecutor = new StandaloneExecutor(
-        ksqlConfig, engine, queriesFile.toString(), udfLoader, false);
+        ksqlConfig, engine, queriesFile.toString(), udfLoader, false, versionCheckerAgent);
+  }
+
+  @Test
+  public void shouldStartTheVersionCheckerAgent() {
+    // When:
+    standaloneExecutor.start();
+
+    verify(versionCheckerAgent).start(eq(KsqlModuleType.SERVER), any());
   }
 
   @Test

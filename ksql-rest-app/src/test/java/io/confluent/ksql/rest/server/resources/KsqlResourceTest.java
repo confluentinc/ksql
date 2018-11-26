@@ -95,6 +95,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.util.Collection;
@@ -146,6 +147,8 @@ public class KsqlResourceTest {
   private KsqlEngine ksqlEngine;
   @Mock
   private CommandStore commandStore;
+  @Mock(MockType.NICE)
+  private ActivenessRegistrar activenessRegistrar;
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
   private QueuedCommandStatus commandStatus;
@@ -949,6 +952,15 @@ public class KsqlResourceTest {
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
   }
 
+  @Test
+  public void shouldUpdateTheLastRequestTime() {
+    // When:
+    ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap()));
+
+    // Then:
+    verify(activenessRegistrar).updateLastRequestTime();
+  }
+
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Table sourceTable(final String name) {
     final KsqlTable table = (KsqlTable) ksqlEngine.getMetaStore().getSource(name);
@@ -1072,7 +1084,7 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
+        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, activenessRegistrar);
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

@@ -18,51 +18,50 @@ package io.confluent.ksql.version.metrics.collector;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Version;
 import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class BasicCollectorTest {
 
   private static final KsqlModuleType MODULE_TYPE = KsqlModuleType.SERVER;
 
   private BasicCollector basicCollector;
-  @Mock(MockType.NICE)
+  @Mock
   private Clock clock;
-  @Mock(MockType.NICE)
+  @Mock
   private Supplier<Boolean> activenessStatusSupplier;
 
   @Before
   public void setUp() throws Exception {
-    EasyMock.expect(clock.millis()).andReturn(12345L).anyTimes();
-    EasyMock.expect(activenessStatusSupplier.get()).andReturn(true).anyTimes();
-    EasyMock.replay(activenessStatusSupplier, clock);
-
+    when(clock.millis()).thenReturn(12345L);
+    when(activenessStatusSupplier.get()).thenReturn(true);
     basicCollector = new BasicCollector(MODULE_TYPE, activenessStatusSupplier, clock);
   }
 
   @Test
   public void testCollectMetricsAssignsCurrentTime() {
+    // Given:
     final long t1 = 1000L;
     final long t2 = 1001L;
-    EasyMock.reset(clock);
-    EasyMock.expect(clock.millis())
-        .andReturn(TimeUnit.SECONDS.toMillis(t1))
-        .andReturn(TimeUnit.SECONDS.toMillis(t2));
-    EasyMock.replay(clock);
+    when(clock.millis())
+        .thenReturn(TimeUnit.SECONDS.toMillis(t1))
+        .thenReturn(TimeUnit.SECONDS.toMillis(t2));
 
+    // When:
     KsqlVersionMetrics metrics = basicCollector.collectMetrics();
+
+    // Then:
     assertThat(metrics.getTimestamp(), is(t1));
 
     metrics = basicCollector.collectMetrics();
@@ -71,37 +70,44 @@ public class BasicCollectorTest {
 
   @Test
   public void shouldSetActivenessToTrue() {
-    EasyMock.reset(activenessStatusSupplier);
-    EasyMock.expect(activenessStatusSupplier.get()).andReturn(true);
-    EasyMock.replay(activenessStatusSupplier);
+    // Given:
+    when(activenessStatusSupplier.get()).thenReturn(true);
 
+    // When:
     final KsqlVersionMetrics merics = basicCollector.collectMetrics();
 
+    // Then:
     assertThat(merics.getIsActive(), is(true));
   }
 
   @Test
   public void shouldSetActivenessToFalse() {
-    EasyMock.reset(activenessStatusSupplier);
-    EasyMock.expect(activenessStatusSupplier.get()).andReturn(false);
-    EasyMock.replay(activenessStatusSupplier);
+    // Given:
+    when(activenessStatusSupplier.get()).thenReturn(false);
 
+    // When:
     final KsqlVersionMetrics merics = basicCollector.collectMetrics();
 
+    // Then:
     assertThat(merics.getIsActive(), is(false));
   }
 
   @Test
   public void shouldReportVersion() {
+
+    // When:
     final KsqlVersionMetrics merics = basicCollector.collectMetrics();
 
+    // Then:
     assertThat(merics.getConfluentPlatformVersion(), is(Version.getVersion()));
   }
 
   @Test
   public void shouldReportComponentType() {
+    // When:
     final KsqlVersionMetrics merics = basicCollector.collectMetrics();
 
+    // Then:
     assertThat(merics.getKsqlComponentType(), is(MODULE_TYPE.name()));
   }
 }

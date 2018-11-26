@@ -100,8 +100,9 @@ public class StreamedQueryResourceTest {
   public void setup() {
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
-
-    replay(mockKsqlEngine);
+    expect(mockStatementParser.parseSingleStatement(queryString))
+        .andReturn(mock(Statement.class));
+    replay(mockKsqlEngine, mockStatementParser);
 
     testResource = new StreamedQueryResource(
         ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
@@ -111,6 +112,7 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturn400OnBadStatement() throws Exception {
     // Given:
+    reset(mockStatementParser);
     expect(mockStatementParser.parseSingleStatement(anyString()))
         .andThrow(new IllegalArgumentException("some error message"));
 
@@ -130,6 +132,7 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturn400OnBuildMultipleQueriesError() throws Exception {
     // Given:
+    reset(mockStatementParser);
     expect(mockStatementParser.parseSingleStatement(anyString()))
         .andThrow(new IllegalArgumentException("some error message"));
 
@@ -346,18 +349,13 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldUpdateTheLastRequestTime() throws Exception {
     // Given:
-    final ActivenessRegistrar activenessRegistrar = mock(ActivenessRegistrar.class);
     activenessRegistrar.updateLastRequestTime();
     EasyMock.expectLastCall();
-    expect(mockStatementParser.parseSingleStatement(queryString))
-          .andReturn(mock(Statement.class));
-    final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
 
-    EasyMock.replay(activenessRegistrar, mockStatementParser);
+    EasyMock.replay(activenessRegistrar);
 
     // When:
-    streamedQueryResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
+    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
 
     // Then:
     EasyMock.verify(activenessRegistrar);

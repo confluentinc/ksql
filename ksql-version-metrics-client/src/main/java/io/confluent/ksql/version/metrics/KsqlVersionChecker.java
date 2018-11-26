@@ -29,25 +29,23 @@ public class KsqlVersionChecker extends BaseMetricsReporter {
 
   private final Collector metricsCollector;
 
-  private AtomicBoolean shuttingDown = new AtomicBoolean(false);
+  private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   public KsqlVersionChecker(
-      final String threadName,
-      final boolean isDaemon,
       final BaseSupportConfig ksqlVersionCheckerConfig,
-      final Runtime serverRuntime,
       final KsqlModuleType moduleType,
       final boolean enableSettlingTime,
       final Supplier<Boolean> activenessStatusSupplier
   ) {
     super(
-        threadName,
-        isDaemon,
+        "KsqlVersionCheckerAgent",
+        true,
         ksqlVersionCheckerConfig,
         new KafkaUtilities(),
         new KsqlVersionCheckerResponseHandler(),
         enableSettlingTime
     );
+    final Runtime serverRuntime = Runtime.getRuntime();
     Objects.requireNonNull(serverRuntime, "serverRuntime is required");
     serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
     this.metricsCollector = new BasicCollector(moduleType, activenessStatusSupplier);

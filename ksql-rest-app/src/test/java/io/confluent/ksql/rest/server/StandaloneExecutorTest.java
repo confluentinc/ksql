@@ -20,6 +20,7 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.niceMock;
 
 import com.google.common.collect.ImmutableList;
@@ -45,10 +46,12 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -57,6 +60,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.same;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -72,6 +76,7 @@ public class StandaloneExecutorTest {
 
   private Query query;
   private QueryMetadata persistentQueryMetadata;
+  private VersionCheckerAgent versionCheckerAgent;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -82,6 +87,7 @@ public class StandaloneExecutorTest {
     query = EasyMock.niceMock(Query.class);
     persistentQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
     queriesFile = TestUtils.tempFile().getPath();
+    versionCheckerAgent = niceMock(VersionCheckerAgent.class);
     standaloneExecutor =
         new StandaloneExecutor(
             ksqlConfig,
@@ -89,9 +95,26 @@ public class StandaloneExecutorTest {
             queriesFile,
             udfLoader,
             false,
-            niceMock(VersionCheckerAgent.class));
+            versionCheckerAgent);
     final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
     EasyMock.expect(engine.getMetaStore()).andReturn(metaStore).anyTimes();
+
+  }
+
+  @Test
+  public void shouldStartTheVersionCheckerAgent() {
+
+    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
+        new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value"))
+    ));
+
+    versionCheckerAgent.start(same(KsqlModuleType.SERVER), anyObject(Properties.class));
+    expectLastCall();
+
+    EasyMock.replay(engine, versionCheckerAgent);
+    standaloneExecutor.start();
+    EasyMock.verify(engine, versionCheckerAgent);
+
   }
 
   @Test
@@ -127,7 +150,7 @@ public class StandaloneExecutorTest {
             queriesFile,
             udfLoader,
             true,
-            niceMock(VersionCheckerAgent.class));
+            versionCheckerAgent);
 
     EasyMock.expect(engine.parseStatements(anyString()))
         .andReturn(ImmutableList.of(

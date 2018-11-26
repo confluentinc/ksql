@@ -21,8 +21,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
+import io.confluent.support.metrics.BaseSupportConfig;
 import java.time.Clock;
 import java.util.Properties;
+import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,13 +45,20 @@ public class KsqlVersionCheckerAgentTest {
 
   @Before
   public void setup() {
-    ksqlVersionCheckerAgent = new KsqlVersionCheckerAgent(() -> true, true, clock);
+    ksqlVersionCheckerAgent = new KsqlVersionCheckerAgent(
+        () -> true,
+        true,
+        clock,
+        (BaseSupportConfig ksqlVersionCheckerConfig,
+            KsqlModuleType moduleType,
+            boolean enableSettlingTime,
+            Supplier<Boolean> activenessStatusSupplier) -> ksqlVersionChecker);
   }
 
   @Test
   public void shouldStartTheAgentCorrectly() throws Exception {
     // When:
-    ksqlVersionCheckerAgent.start(ksqlVersionChecker, KsqlModuleType.SERVER, properties);
+    ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
 
     // Then:
     verify(ksqlVersionChecker).init();
@@ -63,7 +72,7 @@ public class KsqlVersionCheckerAgentTest {
     doThrow(new Exception("FOO")).when(ksqlVersionChecker).start();
 
     // When:
-    ksqlVersionCheckerAgent.start(ksqlVersionChecker, KsqlModuleType.SERVER, properties);
+    ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
   }
 
 

@@ -102,7 +102,7 @@ public class StandaloneExecutor implements Executable {
         queriesFile,
         udfLoader,
         true,
-        new KsqlVersionCheckerAgent(() -> !ksqlEngine.getLivePersistentQueries().isEmpty())
+        new KsqlVersionCheckerAgent(ksqlEngine::hasActiveQueries)
     );
   }
 

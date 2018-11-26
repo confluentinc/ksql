@@ -20,8 +20,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
-import java.util.function.Supplier;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -85,7 +83,6 @@ public class RestApiTest {
     final Map<String, Object> config = new HashMap<>();
     config.put(KsqlRestConfig.INSTALL_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     config.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "rest_api_test_service");
-
 
     testHarness.start(config);
 

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql;
 
+import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
+import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
@@ -62,7 +64,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlReferentialIntegrityException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -143,8 +145,9 @@ public class KsqlEngineTest {
     final PersistentQueryMetadata query = (PersistentQueryMetadata) ksqlEngine.execute(
         "create table bar as select * from test2;", ksqlConfig, Collections.emptyMap()).get(0);
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Statement(s) not executable: TERMINATE CTAS_BAR_0;"));
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is("Statement(s) not executable")));
+    expectedException.expect(statementText(is("TERMINATE CTAS_BAR_0;")));
 
     // When:
     ksqlEngine.execute("TERMINATE " + query.getQueryId() + ";", ksqlConfig, Collections.emptyMap());
@@ -156,10 +159,11 @@ public class KsqlEngineTest {
     ksqlEngine
         .execute("create stream bar as select * from orders;", ksqlConfig, Collections.emptyMap());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Exception while processing statement: "
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is("Exception while processing statement: "
         + "Cannot add the new data source. "
-        + "Another data source with the same name already exists: KsqlStream name:BAR"));
+        + "Another data source with the same name already exists: KsqlStream name:BAR")));
+    expectedException.expect(statementText(is("create stream bar as select orderid from orders;")));
 
     // When:
     ksqlEngine.parseStatements("create stream bar as select orderid from orders;");
@@ -171,10 +175,10 @@ public class KsqlEngineTest {
     ksqlEngine
         .execute("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Cannot add the new data source. "
-            + "Another data source with the same name already exists: KsqlStream name:BAR");
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString("Cannot add the new data source. "
+        + "Another data source with the same name already exists: KsqlStream name:BAR")));
+    expectedException.expect(statementText(is("create table bar as select COL0 from test2;")));
 
     // When:
     ksqlEngine.parseStatements("create table bar as select COL0 from test2;");
@@ -202,9 +206,10 @@ public class KsqlEngineTest {
     ksqlEngine
         .execute("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "INSERT INTO can only be used to insert into a stream. BAR is a table.");
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
+        "INSERT INTO can only be used to insert into a stream. BAR is a table.")));
+    expectedException.expect(statementText(is("insert into bar select * from test2;")));
 
     // When:
     ksqlEngine.parseStatements("insert into bar select * from test2;");
@@ -262,20 +267,21 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldFailIfReferentialIntegrityIsViolated() {
-    try {
-      ksqlEngine.execute("create table bar as select * from test2;" +
-                                 "create table foo as select * from test2;",
-          ksqlConfig, Collections.emptyMap());
-      ksqlEngine.execute("drop table foo;", ksqlConfig, Collections.emptyMap());
-      fail();
-    } catch (final Exception e) {
-      assertThat(e.getCause(), instanceOf(KsqlReferentialIntegrityException.class));
-      assertThat(e.getMessage(), equalTo(
-          "Exception while processing statement: Cannot drop FOO. \n"
-              + "The following queries read from this source: []. \n"
-              + "The following queries write into this source: [CTAS_FOO_1]. \n"
-              + "You need to terminate them before dropping FOO."));
-    }
+    // Given:
+    ksqlEngine.execute("create table bar as select * from test2;" +
+            "create table foo as select * from test2;",
+        ksqlConfig, Collections.emptyMap());
+
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is(
+        "Exception while processing statement: Cannot drop FOO. \n"
+            + "The following queries read from this source: []. \n"
+            + "The following queries write into this source: [CTAS_FOO_1]. \n"
+            + "You need to terminate them before dropping FOO.")));
+    expectedException.expect(statementText(is("drop table foo;")));
+
+    // When:
+    ksqlEngine.execute("drop table foo;", ksqlConfig, Collections.emptyMap());
   }
 
   @Test
@@ -425,10 +431,12 @@ public class KsqlEngineTest {
     // Given:
     givenTopicWithSchema("T", Schema.create(Type.INT));
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
         "Cannot register avro schema for T as the schema registry rejected it, "
-            + "(maybe schema evolution issues?)");
+            + "(maybe schema evolution issues?)")));
+    expectedException.expect(statementText(is(
+        "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;")));
 
     // When:
     ksqlEngine.execute(
@@ -615,11 +623,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowExpectedExceptionForDuplicateTable() {
     // Given:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is(
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is(
         "Exception while processing statement: Cannot add the new data source. "
-            + "Another data source with the same name already exists: KsqlStream name:FOO"
-    ));
+            + "Another data source with the same name already exists: KsqlStream name:FOO")));
+    expectedException.expect(statementText(is(
+        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
 
     // When:
     ksqlEngine.parseStatements(
@@ -630,11 +639,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowExpectedExceptionForDuplicateStream() {
     // Given:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is(
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is(
         "Exception while processing statement: Cannot add the new data source. "
-            + "Another data source with the same name already exists: KsqlStream name:FOO"
-    ));
+            + "Another data source with the same name already exists: KsqlStream name:FOO")));
+    expectedException.expect(statementText(is(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
 
     // When:
     ksqlEngine.parseStatements(
@@ -661,10 +671,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingQueriesIfCsasCreatesTable() {
     // Given:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
         "Invalid result type. Your SELECT query produces a TABLE. "
-            + "Please use CREATE TABLE AS SELECT statement instead.");
+            + "Please use CREATE TABLE AS SELECT statement instead.")));
+    expectedException.expect(statementText(is(
+        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
 
     // When:
     ksqlEngine.execute(
@@ -675,10 +687,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingQueriesIfCtasCreatesStream() {
     // Given:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
         "Invalid result type. Your SELECT query produces a STREAM. "
-            + "Please use CREATE STREAM AS SELECT statement instead.");
+            + "Please use CREATE STREAM AS SELECT statement instead.")));
+    expectedException.expect(statementText(is(
+        "CREATE TABLE FOO AS SELECT * FROM ORDERS;")));
 
     // When:
     ksqlEngine.execute(
@@ -692,10 +706,12 @@ public class KsqlEngineTest {
     final List<PreparedStatement<?>> statements = parse(
         "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;");
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
         "Invalid result type. Your SELECT query produces a TABLE. "
-            + "Please use CREATE TABLE AS SELECT statement instead.");
+            + "Please use CREATE TABLE AS SELECT statement instead.")));
+    expectedException.expect(statementText(is(
+        "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
 
     // When:
     ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
@@ -707,10 +723,11 @@ public class KsqlEngineTest {
     final List<PreparedStatement<?>> statements = parse(
         "CREATE TABLE FOO AS SELECT * FROM ORDERS;");
 
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(statementText(is("CREATE TABLE FOO AS SELECT * FROM ORDERS;")));
+    expectedException.expect(rawMessage(is(
         "Invalid result type. Your SELECT query produces a STREAM. "
-            + "Please use CREATE STREAM AS SELECT statement instead.");
+            + "Please use CREATE STREAM AS SELECT statement instead.")));
 
     // When:
     ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
@@ -739,13 +756,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowOnNoneExecutableDdlStatement() {
     // Given:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Statement(s) not executable: SHOW STREAMS;"));
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is("Statement(s) not executable")));
+    expectedException.expect(statementText(is("SHOW STREAMS;")));
 
     // When:
-    ksqlEngine.execute(
-        "SHOW STREAMS;",
-        ksqlConfig, Collections.emptyMap());
+    ksqlEngine.execute("SHOW STREAMS;", ksqlConfig, Collections.emptyMap());
   }
 
   @Test

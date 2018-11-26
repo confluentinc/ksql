@@ -36,7 +36,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -107,7 +106,6 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
-import junit.framework.AssertionFailedError;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -121,7 +119,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -147,7 +144,7 @@ public class KsqlResourceTest {
   private KsqlEngine ksqlEngine;
   @Mock
   private CommandStore commandStore;
-  @Mock(MockType.NICE)
+  @Mock
   private ActivenessRegistrar activenessRegistrar;
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -1034,14 +1031,6 @@ public class KsqlResourceTest {
     return entities.get(0);
   }
 
-  @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
-  private <T extends KsqlEntity> List<T> makeMultipleRequest(
-      final String sql,
-      final Class<T> expectedEntityType
-  ) {
-    return makeMultipleRequest(new KsqlRequest(sql, Collections.emptyMap()), expectedEntityType);
-  }
-
   private <T extends KsqlEntity> List<T> makeMultipleRequest(
       final KsqlRequest ksqlRequest,
       final Class<T> expectedEntityType) {
@@ -1084,7 +1073,8 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, activenessRegistrar);
+        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar);
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

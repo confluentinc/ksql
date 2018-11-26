@@ -355,8 +355,8 @@ public class StandaloneExecutorTest {
   }
 
   private void givenExecutorWillFailOnNoQueries() {
-    standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile.toString(), udfLoader, true);
+    standaloneExecutor = new StandaloneExecutor(
+        ksqlConfig, engine, queriesFile.toString(), udfLoader, true, versionCheckerAgent);
   }
 
   private void givenFileContainsAPersistentQuery() {

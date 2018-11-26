@@ -14,8 +14,11 @@
 
 package io.confluent.ksql.physical;
 
+import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
+import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
@@ -39,6 +42,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
@@ -49,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -65,7 +68,9 @@ import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("unchecked")
 public class PhysicalPlanBuilderTest {
@@ -84,6 +89,9 @@ public class PhysicalPlanBuilderTest {
           "auto.offset.reset", "earliest"));
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
   private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
@@ -232,20 +240,20 @@ public class PhysicalPlanBuilderTest {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(statementText(is("INSERT INTO s1 SELECT col0, col1, col2 FROM test1;")));
+    expectedException
+        .expect(rawMessage(is("Sink 'S1' does not exist for the INSERT INTO statement.")));
+
     try {
       ksqlEngine.execute(
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } catch (final KsqlException ksqlException) {
-      assertThat(ksqlException.getMessage(), equalTo("Exception while processing statement: "
-          + "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;. "
-          + "Error: Sink, S1, does not exist for the INSERT INTO statement."));
-      return;
     } finally {
       ksqlEngine.close();
     }
-    Assert.fail();
   }
 
   @Test
@@ -320,7 +328,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+      ksqlEngine.execute(
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());

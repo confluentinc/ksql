@@ -193,7 +193,7 @@ public class KsqlResource {
     } catch (final KsqlRestException e) {
       return e.getResponse();
     } catch (final KsqlStatementException e) {
-      return Errors.badStatement(e, e.getSqlStatement());
+      return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return Errors.badRequest(e);
     } catch (final Exception e) {

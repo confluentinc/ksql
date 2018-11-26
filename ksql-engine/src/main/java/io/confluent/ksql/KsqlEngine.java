@@ -572,6 +572,10 @@ public class KsqlEngine implements Closeable {
     return livePersistentQueries;
   }
 
+  public boolean hasActiveQueries() {
+    return !livePersistentQueries.isEmpty();
+  }
+
   public MetaStore getMetaStore() {
     return metaStore;
   }

@@ -21,7 +21,6 @@ import static org.mockserver.model.HttpRequest.request;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import java.util.Properties;
-import java.util.function.Supplier;
 import org.apache.kafka.test.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;

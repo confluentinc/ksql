@@ -366,7 +366,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final StatusResource statusResource = new StatusResource(statementExecutor);
     final VersionCheckerAgent versionChecker = versionCheckerFactory
-        .apply(() -> !ksqlEngine.getLivePersistentQueries().isEmpty());
+        .apply(ksqlEngine::hasActiveQueries);
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,

@@ -155,7 +155,11 @@ public class KsqlParser {
       }
       return new PreparedStatement<>(parsedStatement.getStatementText(), statement);
     } catch (final ParseFailedException e) {
-      throw e;
+      if (!e.getSqlStatement().isEmpty()) {
+        throw e;
+      }
+      throw new ParseFailedException(
+          e.getRawMessage(), parsedStatement.statementText, e.getCause());
     } catch (final Exception e) {
       throw new ParseFailedException(
           "Failed to prepare statement: " + e.getMessage(), parsedStatement.statementText, e);

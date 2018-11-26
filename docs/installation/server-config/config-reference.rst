@@ -153,7 +153,7 @@ ksql.functions.substring.legacy.args
 
 Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details.
 
-When upgrading headless mode KSQL applications from versions 5.0.0 or earlier without updating your queries that use SUBSTRING to match 
+When upgrading headless mode KSQL applications from versions 5.0.x or earlier without updating your queries that use SUBSTRING to match 
 the new 5.1 behavior, you must set this config to ``true`` to enforce the previous SUBSTRING behavior. If possible, however, we recommend
 that you update your queries accordingly instead of enabling this configuration setting.
 

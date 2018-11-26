@@ -7,7 +7,7 @@ KSQL enables *streaming transformations*, which you can use to convert
 streaming data from one format to another in real time. With a streaming
 transformation, not only is every record that arrives on the source stream
 converted, but you can configure KSQL so that all previously existing records
-in a stream is converted.
+in the stream are converted.
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: offsetreset_start

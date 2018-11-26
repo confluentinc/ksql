@@ -1211,6 +1211,8 @@ Scalar functions
 | UCASE                  |  ``UCASE(col1)``                                           | Convert a string to uppercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 
+.. _ksql_aggregate_functions:
+
 ===================
 Aggregate functions
 ===================

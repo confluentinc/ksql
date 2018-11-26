@@ -61,7 +61,6 @@ import org.junit.rules.ExternalResource;
  * }</pre>
  */
 public class TestKsqlRestApp extends ExternalResource {
-  private final int COMMAND_RETRY_LIMIT = 3;
 
   private final Map<String, ?> baseConfig;
   private final Supplier<String> bootstrapServers;

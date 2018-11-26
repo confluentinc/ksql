@@ -53,6 +53,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -230,7 +231,7 @@ public class StreamedQueryResourceTest {
     queryWriterThread.setUncaughtExceptionHandler(threadExceptionHandler);
     queryWriterThread.start();
 
-    final Scanner responseScanner = new Scanner(responseInputStream);
+    final Scanner responseScanner = new Scanner(responseInputStream, "UTF-8");
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     for (int i = 0; i != NUM_ROWS; i++) {
       if (!responseScanner.hasNextLine()) {

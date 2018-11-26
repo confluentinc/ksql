@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.verify;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap0;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
@@ -343,6 +344,7 @@ public class HandlerMapsTest {
         .build();
   }
 
+  @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE", "UC_USELESS_VOID_METHOD"}) // Compile-time check
   @SuppressWarnings("unused")
   @Test
   public void shouldReturnedTypedHandler() {

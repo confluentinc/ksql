@@ -63,6 +63,12 @@ public final class AvroUtil {
       return abstractStreamCreateStatement;
     }
 
+    if (!ddlProperties.containsKey(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)) {
+      throw new KsqlException(String.format(
+          "Corresponding Kafka topic (%s) should be set in WITH clause.",
+          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY
+      ));
+    }
     final String kafkaTopicName = StringUtil.cleanQuotes(
             ddlProperties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString()
     );

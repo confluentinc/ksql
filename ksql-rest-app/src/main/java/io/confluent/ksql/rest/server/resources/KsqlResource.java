@@ -225,7 +225,7 @@ public class KsqlResource {
       }
 
       validateCanExecute(statement, entities);
-    } catch (final KsqlRestException | KsqlStatementException e) {
+    } catch (final KsqlRestException e) {
       throw e;
     } catch (final ShouldUseQueryEndpointException e) {
       throw new KsqlRestException(Errors.queryEndpoint(e.getMessage(), entities));

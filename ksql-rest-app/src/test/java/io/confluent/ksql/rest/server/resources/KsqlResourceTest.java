@@ -495,6 +495,20 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldReturnBadStatementIfStatementFailsValidation() {
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "DESCRIBE i_do_not_exist;",
+        Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
+        is("DESCRIBE i_do_not_exist;"));
+  }
+
+  @Test
   public void shouldDistributeCreateStatementEvenIfTopicDoesNotExist() {
     // When:
     makeSingleRequest(
@@ -1059,7 +1073,7 @@ public class KsqlResourceTest {
     validateQueryDescription(queryMetadata, overriddenProperties, entity);
   }
 
-  private void validateQueryDescription(
+  private static void validateQueryDescription(
       final QueryMetadata queryMetadata,
       final Map<String, Object> overriddenProperties,
       final KsqlEntity entity) {

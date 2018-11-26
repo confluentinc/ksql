@@ -16,8 +16,10 @@
 
 package io.confluent.ksql.rest.client;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -33,7 +35,9 @@ import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import java.io.Closeable;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -136,6 +140,7 @@ public class KsqlRestClientTest {
     }
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   public void shouldInterruptScannerOnClose() throws InterruptedException {
     final MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
@@ -146,29 +151,19 @@ public class KsqlRestClientTest {
 
     final List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
     Assert.assertEquals(1, writers.size());
-    try {
-      // Try and receive a row. This will block since there is no data to return
-      final KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
-      final CountDownLatch threw = new CountDownLatch(1);
-      final Thread t = new Thread(() -> {
-        try {
-          queryStream.hasNext();
-        } catch (final IllegalStateException e) {
-          threw.countDown();
-        }
-      });
-      t.setDaemon(true);
-      t.start();
 
-      // Let the thread run and then close the stream. Verify that it was interrupted
-      Thread.sleep(100);
-      queryStream.close();
-      Assert.assertTrue(threw.await(10, TimeUnit.SECONDS));
-      t.join(10000);
-      Assert.assertFalse(t.isAlive());
-    } finally {
-      writers.get(0).finished();
+          final KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+
+    final Thread closeThread = givenStreamWillBeClosedIn(Duration.ofMillis(100), queryStream);
+    try {
+      queryStream.hasNext();
+      fail();
+    } catch (final IllegalStateException e) {
+      // expected
     }
+
+    closeThread.join(10_000);
+    assertThat("invalid test", closeThread.isAlive(), is(false));
   }
 
   @Test
@@ -256,5 +251,19 @@ public class KsqlRestClientTest {
     final RestResponse restResponse = ksqlRestClient.makeRequest("/info", ServerInfo.class);
     assertThat(restResponse.isErroneous(), CoreMatchers.equalTo(true));
     assertThat(restResponse.getErrorMessage(), CoreMatchers.equalTo(ksqlError));
+  }
+
+  private static Thread givenStreamWillBeClosedIn(final Duration duration, final Closeable stream) {
+    final Thread thread = new Thread(() -> {
+      try {
+        Thread.sleep(duration.toMillis());
+        stream.close();
+      } catch (final Exception e) {
+        // Meh
+      }
+    });
+    thread.setDaemon(true);
+    thread.start();
+    return thread;
   }
 }

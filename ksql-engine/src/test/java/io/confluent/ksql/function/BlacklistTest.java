@@ -20,6 +20,7 @@ import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -56,6 +57,7 @@ public class BlacklistTest {
     assertFalse(blacklist.test("java.lang.Class"));
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   public void shouldNotBlacklistAnythingIfFailsToLoadFile() {

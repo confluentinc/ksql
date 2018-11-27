@@ -136,7 +136,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   private void handleStatement(
       final Command command,
       final CommandId commandId,
-      final Optional<QueuedCommandStatus> commandStatus) {
+      final Optional<CommandStatusFuture> commandStatus) {
     handleStatement(statementExecutor, command, commandId, commandStatus);
   }
 
@@ -144,7 +144,7 @@ public class StatementExecutorTest extends EasyMockSupport {
       final StatementExecutor statementExecutor,
       final Command command,
       final CommandId commandId,
-      final Optional<QueuedCommandStatus> commandStatus) {
+      final Optional<CommandStatusFuture> commandStatus) {
     statementExecutor.handleStatement(new QueuedCommand(commandId, command, commandStatus));
   }
 
@@ -373,7 +373,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
         "foo",
         CommandId.Action.CREATE);
-    final QueuedCommandStatus status = mock(QueuedCommandStatus.class);
+    final CommandStatusFuture status = mock(CommandStatusFuture.class);
     status.setStatus(sameStatus(CommandStatus.Status.PARSING));
     expectLastCall();
     status.setStatus(sameStatus(CommandStatus.Status.EXECUTING));
@@ -402,7 +402,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
         "foo",
         CommandId.Action.CREATE);
-    final QueuedCommandStatus status = mock(QueuedCommandStatus.class);
+    final CommandStatusFuture status = mock(CommandStatusFuture.class);
 
     status.setStatus(sameStatus(CommandStatus.Status.PARSING));
     expectLastCall();

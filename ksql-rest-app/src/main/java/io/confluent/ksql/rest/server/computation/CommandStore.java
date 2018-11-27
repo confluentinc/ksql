@@ -21,10 +21,8 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.io.Closeable;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,7 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -58,11 +58,12 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
 
   private final String commandTopic;
+  private final TopicPartition topicPartition;
   private final Consumer<CommandId, Command> commandConsumer;
   private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
-  private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
-  private List<Pair<CompletableFuture<Void>, Long>> commandOffsetFutures;
+  private final Map<CommandId, CommandStatusFuture> commandStatusMap;
+  private final OffsetFutureStore offsetFutureStore;
 
   public CommandStore(
       final String commandTopic,
@@ -70,14 +71,26 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
       final Producer<CommandId, Command> commandProducer,
       final CommandIdAssigner commandIdAssigner
   ) {
+    this(
+        commandTopic,commandConsumer, commandProducer, commandIdAssigner, new OffsetFutureStore());
+  }
+
+  CommandStore(
+      final String commandTopic,
+      final Consumer<CommandId, Command> commandConsumer,
+      final Producer<CommandId, Command> commandProducer,
+      final CommandIdAssigner commandIdAssigner,
+      final OffsetFutureStore offsetFutureStore
+  ) {
     this.commandTopic = commandTopic;
+    this.topicPartition = new TopicPartition(commandTopic, 0);
     this.commandConsumer = commandConsumer;
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
-    this.commandOffsetFutures = new ArrayList<>();
+    this.offsetFutureStore = offsetFutureStore;
 
-    commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopic, 0)));
+    commandConsumer.assign(Collections.singleton(topicPartition));
   }
 
   /**
@@ -110,12 +123,11 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
         statementString,
         overwriteProperties,
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final QueuedCommandStatus status = new QueuedCommandStatus(commandId);
-    this.commandStatusMap.compute(
+    final CommandStatusFuture statusFuture = this.commandStatusMap.compute(
         commandId,
         (k, v) -> {
           if (v == null) {
-            return status;
+            return new CommandStatusFuture(commandId);
           }
           // We should fail registration if a future is already registered, to prevent
           // a caller from receiving a future for a different statement.
@@ -129,7 +141,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     try {
       final RecordMetadata recordMetadata =
           commandProducer.send(new ProducerRecord<>(commandTopic, commandId, command)).get();
-      status.setCommandOffset(recordMetadata.offset());
+      return new QueuedCommandStatus(recordMetadata.offset(), statusFuture);
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);
       throw new KsqlException(
@@ -141,7 +153,6 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
           e
       );
     }
-    return status;
   }
 
   /**
@@ -199,23 +210,34 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     return restoreCommands;
   }
 
-  public CompletableFuture<Void> getConsumerPositionFuture(final long offset) {
-    final CompletableFuture<Void> future = new CompletableFuture<>();
-
-    final long consumerPosition = getConsumerPosition();
+  @Override
+  public void ensureConsumedUpThrough(final long offset, final long timeout)
+      throws TimeoutException {
+    final long consumerPosition = getNextConsumerOffset();
     if (consumerPosition > offset) {
-      future.complete(null);
-    } else {
-      commandOffsetFutures.add(Pair.of(future, offset));
+      return;
     }
-    return future;
+
+    final CompletableFuture<Void> future = offsetFutureStore.getFutureForOffset(offset);
+    try {
+      future.get(timeout, TimeUnit.MILLISECONDS);
+    } catch (final ExecutionException e) {
+      throw new RuntimeException(
+          "Error waiting for command offset of " + offset, e.getCause());
+    } catch (final InterruptedException e) {
+      throw new RuntimeException(
+          "Interrupted while waiting for command offset of " + offset, e);
+    } catch (final TimeoutException e) {
+      throw new TimeoutException(
+          String.format(
+              "Timeout reached while waiting for command offset of %d. (Timeout: %d ms)",
+              offset,
+              timeout));
+    }
   }
 
-  // returns the next offset to be consumed
-  private long getConsumerPosition() {
-    final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);
-    // NOTE: assumes there's only one partition
-    return commandConsumer.position(cmdTopicPartitions.iterator().next());
+  private long getNextConsumerOffset() {
+    return commandConsumer.position(topicPartition);
   }
 
   private Collection<TopicPartition> getTopicPartitionsForTopic(final String topic) {
@@ -229,13 +251,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   }
 
   private void completeSatisfiedOffsetFutures() {
-    final long offset = getConsumerPosition();
-    commandOffsetFutures.stream()
-        .filter(futureOffsetPair -> futureOffsetPair.getRight() < offset)
-        .map(futureOffsetPair -> futureOffsetPair.getLeft())
-        .forEach(future -> future.complete(null));
-    commandOffsetFutures = commandOffsetFutures.stream()
-        .filter(futureOffsetPair -> !futureOffsetPair.getLeft().isDone())
-        .collect(Collectors.toList());
+    final long consumerPosition = getNextConsumerOffset();
+    offsetFutureStore.completeFuturesUpToOffset(consumerPosition);
   }
 }

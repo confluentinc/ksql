@@ -3,8 +3,10 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,6 +28,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -35,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -60,9 +64,15 @@ public class WSQueryEndpointTest {
   private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest("other-sql",
       ImmutableMap.of(), null);
 
+  private static final long OFFSET = 2L;
+  private static final KsqlRequest REQUEST_WITHOUT_OFFSET = VALID_REQUEST;
+  private static final KsqlRequest REQUEST_WITH_OFFSET = new KsqlRequest("test-sql",
+      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), OFFSET);
+
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;
   private static final KsqlRequest[] NO_REQUEST_PROPERTY = (KsqlRequest[]) null;
+  private static final long COMMAND_QUEUE_CATCHUP_TIMEOUT = 5000L;
 
   @Mock
   private KsqlConfig ksqlConfig;
@@ -80,6 +90,8 @@ public class WSQueryEndpointTest {
   private Session session;
   @Mock
   private QueryBody queryBody;
+  @Mock
+  private ReplayableCommandQueue replayableCommandQueue;
   @Mock
   private QueryPublisher queryPublisher;
   @Mock
@@ -106,8 +118,8 @@ public class WSQueryEndpointTest {
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, exec,
-        queryPublisher, topicPublisher);
+        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, replayableCommandQueue, exec,
+        queryPublisher, topicPublisher, COMMAND_QUEUE_CATCHUP_TIMEOUT);
   }
 
   @Test
@@ -119,7 +131,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Received invalid api version: [bad-version]");
+    verifyClosedWithReason("Received invalid api version: [bad-version]", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -131,7 +143,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Received multiple api versions: [1, 2]");
+    verifyClosedWithReason("Received multiple api versions: [1, 2]", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -179,7 +191,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Error parsing request: missing request parameter");
+    verifyClosedWithReason(
+        "Error parsing request: missing request parameter", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -191,7 +204,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Error parsing request: missing request parameter");
+    verifyClosedWithReason(
+        "Error parsing request: missing request parameter", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -228,7 +242,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Error parsing query: Boom!");
+    verifyClosedWithReason("Error parsing query: Boom!", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -246,7 +260,9 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Error parsing request: Failed to set 'unknown-property' to 'true'");
+    verifyClosedWithReason(
+        "Error parsing request: Failed to set 'unknown-property' to 'true'",
+        CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -297,7 +313,45 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("topic does not exist: bob");
+    verifyClosedWithReason("topic does not exist: bob", CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldNotWaitIfNoOffsetSpecified() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITHOUT_OFFSET);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(replayableCommandQueue, never()).ensureConsumedUpThrough(anyLong(), anyLong());
+  }
+
+  @Test
+  public void shouldWaitIfOffsetSpecified() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITH_OFFSET);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(replayableCommandQueue).ensureConsumedUpThrough(eq(OFFSET), anyLong());
+  }
+
+  @Test
+  public void shouldReturnErrorIfCommandQueueCatchupTimeout() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITH_OFFSET);
+    doThrow(new TimeoutException("yikes"))
+        .when(replayableCommandQueue).ensureConsumedUpThrough(eq(OFFSET), anyLong());
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("yikes", CloseCodes.TRY_AGAIN_LATER);
   }
 
   private PrintTopic printTopic(final String name, final boolean fromBeginning) {
@@ -365,10 +419,10 @@ public class WSQueryEndpointTest {
     }
   }
 
-  private void verifyClosedWithReason(final String reason) throws Exception {
+  private void verifyClosedWithReason(final String reason, final CloseCodes code) throws Exception {
     verify(session).close(closeReasonCaptor.capture());
     final CloseReason closeReason = closeReasonCaptor.getValue();
     assertThat(closeReason.getReasonPhrase(), is(reason));
-    assertThat(closeReason.getCloseCode(), is(CloseCodes.CANNOT_ACCEPT));
+    assertThat(closeReason.getCloseCode(), is(code));
   }
 }

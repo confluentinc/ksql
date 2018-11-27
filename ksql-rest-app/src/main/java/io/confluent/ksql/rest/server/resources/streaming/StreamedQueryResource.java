@@ -24,8 +24,10 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -50,6 +52,7 @@ public class StreamedQueryResource {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
+  private final ReplayableCommandQueue replayableCommandQueue;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
 
@@ -57,11 +60,14 @@ public class StreamedQueryResource {
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
+      final ReplayableCommandQueue replayableCommandQueue,
       final Duration disconnectCheckInterval
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
+    this.replayableCommandQueue =
+        Objects.requireNonNull(replayableCommandQueue, "replayableCommandQueue");
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
@@ -76,7 +82,11 @@ public class StreamedQueryResource {
     }
 
     try {
+      CommandStoreUtil.httpWaitForCommandOffset(
+          replayableCommandQueue, request, disconnectCheckInterval.toMillis());
       statement = statementParser.parseSingleStatement(ksql);
+    } catch (final KsqlRestException e) {
+      throw e;
     } catch (IllegalArgumentException | KsqlException e) {
       return Errors.badRequest(e);
     }

@@ -121,6 +121,7 @@ public class RecoveryTest {
         final KsqlConfig ksqlConfig,
         final Map<String, Object> overwriteProperties) {
       final CommandId commandId = commandIdAssigner.getCommandId(statement);
+      final long commandSequenceNumber = commandLog.size();
       commandLog.add(
           new QueuedCommand(
               commandId,
@@ -129,7 +130,7 @@ public class RecoveryTest {
                   Collections.emptyMap(),
                   ksqlConfig.getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));
-      return new QueuedCommandStatus(commandId);
+      return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
 
     @Override
@@ -147,8 +148,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public CompletableFuture<Void> getConsumerPositionFuture(final long offset) {
-      return null;
+    public void ensureConsumedUpThrough(final long offset, final long timeout) {
     }
 
     @Override

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import java.util.Map;
@@ -41,30 +42,20 @@ public class CommandStatusEntity extends KsqlEntity {
     this.commandOffset = commandOffset;
   }
 
+  @JsonCreator
   public CommandStatusEntity(
-      final String statementText,
-      final String commandId,
-      final String status,
-      final String message,
-      final String commandOffset
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("commandId") final String commandId,
+      @JsonProperty("commandStatus") final Map<String, Object> commandStatus,
+      @JsonProperty("commandOffset") final Long commandOffset
   ) {
     this(
         statementText,
         CommandId.fromString(commandId),
-        new CommandStatus(CommandStatus.Status.valueOf(status), message),
-        Long.parseLong(commandOffset)
-    );
-  }
-
-  @SuppressWarnings("unchecked") // needs investigating
-  @JsonCreator
-  public CommandStatusEntity(final Map<String, Object> properties) {
-    this(
-        (String) properties.get("statementText"),
-        (String) properties.get("commandId"),
-        (String) ((Map<String, Object>) properties.get("commandStatus")).get("status"),
-        (String) ((Map<String, Object>) properties.get("commandStatus")).get("message"),
-        String.valueOf(properties.get("commandOffset"))
+        new CommandStatus(
+            CommandStatus.Status.valueOf((String) commandStatus.get("status")),
+            (String) commandStatus.get("message")),
+        commandOffset == null ? -1 : commandOffset
     );
   }
 
@@ -90,9 +81,9 @@ public class CommandStatusEntity extends KsqlEntity {
       return false;
     }
     final CommandStatusEntity that = (CommandStatusEntity) o;
-    return Objects.equals(getCommandId(), that.getCommandId())
-        && Objects.equals(getCommandStatus(), that.getCommandStatus())
-        && (getCommandOffset() == that.getCommandOffset());
+    return Objects.equals(commandId, that.commandId)
+        && Objects.equals(commandStatus, that.commandStatus)
+        && (commandOffset == that.commandOffset);
   }
 
   @Override
@@ -105,7 +96,7 @@ public class CommandStatusEntity extends KsqlEntity {
     return "CommandStatusEntity{"
         + "commandId=" + commandId
         + ", commandStatus=" + commandStatus
-        + ", commandOffset=" + String.valueOf(commandOffset)
+        + ", commandOffset=" + commandOffset
         + '}';
   }
 }

@@ -262,7 +262,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
-                      exec
+                      commandRunner.getCommandStore(),
+                      exec,
+                      config.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
                   );
                 }
 
@@ -366,6 +368,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlConfig,
         ksqlEngine,
         statementParser,
+        commandStore,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG))
     );

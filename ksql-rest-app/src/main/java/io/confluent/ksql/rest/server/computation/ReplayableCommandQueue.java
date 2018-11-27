@@ -22,7 +22,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 
 public interface ReplayableCommandQueue extends Closeable {
   QueuedCommandStatus enqueueCommand(
@@ -36,5 +36,5 @@ public interface ReplayableCommandQueue extends Closeable {
 
   List<QueuedCommand> getRestoreCommands();
 
-  CompletableFuture<Void> getConsumerPositionFuture(long offset);
+  void ensureConsumedUpThrough(long offset, long timeout) throws TimeoutException;
 }

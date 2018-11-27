@@ -19,62 +19,30 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.rest.entity.CommandStatus;
 
 import java.time.Duration;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class QueuedCommandStatus {
-  private static final CommandStatus INITIAL_STATUS = new CommandStatus(
-      CommandStatus.Status.QUEUED, "Statement written to command topic");
-  private static final long INITIAL_OFFSET = -1L;
+  private final CommandStatusFuture commandStatusFuture;
+  private final long commandOffset;
 
-  private final CommandId commandId;
-  private volatile CommandStatus commandStatus;
-  private final CompletableFuture<CommandStatus> future;
-  private long commandOffset;
-
-  public QueuedCommandStatus(final CommandId commandId) {
-    this.commandId = Objects.requireNonNull(commandId);
-    this.commandStatus = INITIAL_STATUS;
-    this.future = new CompletableFuture<>();
-    this.commandOffset = INITIAL_OFFSET;
-  }
-
-  public CommandId getCommandId() {
-    return commandId;
+  public QueuedCommandStatus(
+      final long commandOffset, final CommandStatusFuture commandStatusFuture) {
+    this.commandOffset = commandOffset;
+    this.commandStatusFuture = commandStatusFuture;
   }
 
   public CommandStatus getStatus() {
-    return commandStatus;
+    return commandStatusFuture.getStatus();
+  }
+
+  public CommandId getCommandId() {
+    return commandStatusFuture.getCommandId();
   }
 
   public long getCommandOffset() {
     return commandOffset;
   }
 
-  public CommandStatus tryWaitForFinalStatus(final Duration timeout)
-      throws InterruptedException {
-    try {
-      return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-    } catch (final ExecutionException e) {
-      throw new RuntimeException("Error executing command " + commandId, e.getCause());
-    } catch (final TimeoutException e) {
-      return commandStatus;
-    }
-  }
-
-  public void setStatus(final CommandStatus status) {
-    this.commandStatus = Objects.requireNonNull(status);
-  }
-
-  public void setFinalStatus(final CommandStatus status) {
-    setStatus(status);
-    future.complete(status);
-  }
-
-  public void setCommandOffset(final long offset) {
-    commandOffset = offset;
+  public CommandStatus tryWaitForFinalStatus(final Duration timeout) throws InterruptedException {
+    return commandStatusFuture.tryWaitForFinalStatus(timeout);
   }
 }

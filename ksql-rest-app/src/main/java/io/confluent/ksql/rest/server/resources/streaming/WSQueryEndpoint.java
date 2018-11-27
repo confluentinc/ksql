@@ -28,6 +28,8 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
@@ -35,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.EndpointConfig;
@@ -63,9 +66,11 @@ public class WSQueryEndpoint {
   private final ObjectMapper mapper;
   private final StatementParser statementParser;
   private final KsqlEngine ksqlEngine;
+  private final ReplayableCommandQueue replayableCommandQueue;
   private final ListeningScheduledExecutorService exec;
   private final QueryPublisher queryPublisher;
   private final PrintTopicPublisher topicPublisher;
+  private final long timeout;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -74,10 +79,13 @@ public class WSQueryEndpoint {
       final ObjectMapper mapper,
       final StatementParser statementParser,
       final KsqlEngine ksqlEngine,
-      final ListeningScheduledExecutorService exec
+      final ReplayableCommandQueue replayableCommandQueue,
+      final ListeningScheduledExecutorService exec,
+      final long commandQueueCatchupTimeout
   ) {
-    this(ksqlConfig, mapper, statementParser, ksqlEngine, exec,
-        WSQueryEndpoint::startQueryPublisher, WSQueryEndpoint::startPrintPublisher);
+    this(ksqlConfig, mapper, statementParser, ksqlEngine, replayableCommandQueue, exec,
+        WSQueryEndpoint::startQueryPublisher, WSQueryEndpoint::startPrintPublisher,
+        commandQueueCatchupTimeout);
   }
 
   WSQueryEndpoint(
@@ -85,17 +93,22 @@ public class WSQueryEndpoint {
       final ObjectMapper mapper,
       final StatementParser statementParser,
       final KsqlEngine ksqlEngine,
+      final ReplayableCommandQueue replayableCommandQueue,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher queryPublisher,
-      final PrintTopicPublisher topicPublisher
+      final PrintTopicPublisher topicPublisher,
+      final long timeout
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.replayableCommandQueue =
+        Objects.requireNonNull(replayableCommandQueue, "replayableCommandQueue");
     this.exec = Objects.requireNonNull(exec, "exec");
     this.queryPublisher = Objects.requireNonNull(queryPublisher, "queryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
+    this.timeout = timeout;
   }
 
   @SuppressWarnings("unused")
@@ -107,12 +120,16 @@ public class WSQueryEndpoint {
       validateVersion(session);
 
       final KsqlRequest request = parseRequest(session);
+      CommandStoreUtil.waitForCommandOffset(replayableCommandQueue, request, timeout);
+
       final Statement statement = parseStatement(request);
 
       HANDLER_MAP
           .getOrDefault(statement.getClass(), WSQueryEndpoint::handleUnsupportedStatement)
           .handle(this, new SessionAndRequest(session, request), statement);
-
+    } catch (final TimeoutException e) {
+      log.debug("Timeout while processing request", e);
+      SessionUtil.closeSilently(session, CloseCodes.TRY_AGAIN_LATER, e.getMessage());
     } catch (final Exception e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, e.getMessage());

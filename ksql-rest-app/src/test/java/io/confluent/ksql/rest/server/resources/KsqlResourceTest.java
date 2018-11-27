@@ -68,9 +68,9 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
-import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -89,9 +89,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
@@ -111,7 +108,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.model.TestTimedOutException;
 
 @SuppressWarnings("unchecked")
 @RunWith(EasyMockRunner.class)
@@ -163,8 +159,7 @@ public class KsqlResourceTest {
   public void shouldInstantRegisterTopic() {
     // Given:
     final QueuedCommandStatus cmdStatus
-        = new QueuedCommandStatus(new CommandId("TABLE", "orders", "CREATE"));
-    cmdStatus.setCommandOffset(0);
+        = givenQueuedCommandStatus(new CommandId("TABLE", "orders", "CREATE"));
 
     givenCommandStore(mockCommandStore ->
         EasyMock.expect(mockCommandStore.enqueueCommand(
@@ -402,9 +397,8 @@ public class KsqlResourceTest {
   public void shouldDistributeStatementWithConfigAndColumnInference() {
     // Given:
     givenCommandStore(mockCommandStore -> {
-      final QueuedCommandStatus queuedCommandStatus
-          = new QueuedCommandStatus(new CommandId("TABLE", "orders", "CREATE"));
-      queuedCommandStatus.setFinalStatus(
+      final QueuedCommandStatus queuedCommandStatus = givenQueuedCommandStatusWithStatus(
+          new CommandId("TABLE", "orders", "CREATE"),
           new CommandStatus(CommandStatus.Status.SUCCESS, "success"));
 
       final String ksqlStringWithSchema =
@@ -696,13 +690,13 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldNotWaitIfNoCommandTopicOffsetSpecified() {
+  public void shouldNotWaitIfNoCommandTopicOffsetSpecified() throws Exception {
     // Given:
     final String sql = "LIST REGISTERED TOPICS;";
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), null);
 
-    EasyMock.expect(commandStore.getConsumerPositionFuture(EasyMock.anyLong()))
-        .andThrow(new AssertionFailedError()).anyTimes();
+    commandStore.ensureConsumedUpThrough(EasyMock.anyLong(), EasyMock.anyLong());
+    EasyMock.expectLastCall().andThrow(new AssertionFailedError()).anyTimes();
     EasyMock.replay(commandStore);
 
     // When:
@@ -713,47 +707,40 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldNotWaitIfCommandTopicOffsetReached()
-      throws InterruptedException, ExecutionException, TimeoutException {
+  public void shouldWaitIfCommandTopicOffsetSpecified() throws Exception {
     // Given:
     final String sql = "LIST REGISTERED TOPICS;";
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), 2L);
 
-    final CompletableFuture<Void> future = EasyMock.mock(CompletableFuture.class);
-    EasyMock.expect(future.get(EasyMock.anyLong(), EasyMock.anyObject())).andReturn(null);
-    EasyMock.expect(commandStore.getConsumerPositionFuture(EasyMock.anyLong()))
-        .andReturn(future);
-    EasyMock.replay(future, commandStore);
+    commandStore.ensureConsumedUpThrough(EasyMock.anyLong(), EasyMock.anyLong());
+    EasyMock.expectLastCall();
+    EasyMock.replay(commandStore);
 
     // When:
     makeSingleRequest(request, KsqlTopicsList.class);
 
     // Then:
-    EasyMock.verify(future, commandStore);
+    EasyMock.verify(commandStore);
   }
 
   @Test
-  public void shouldReturn5xxIfTimeoutWhileWaitingForCommandTopicOffset()
-      throws InterruptedException, ExecutionException, TimeoutException {
+  public void shouldReturn503IfTimeoutWhileWaitingForCommandTopicOffset() throws Exception {
     // Given:
     final String sql = "LIST REGISTERED TOPICS;";
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), 2L);
 
-    final CompletableFuture<Void> future = EasyMock.mock(CompletableFuture.class);
-    EasyMock.expect(future.get(EasyMock.anyLong(), EasyMock.anyObject()))
-        .andThrow(new TimeoutException());
-    EasyMock.expect(commandStore.getConsumerPositionFuture(EasyMock.anyLong()))
-        .andReturn(future);
-    EasyMock.replay(future, commandStore);
+    commandStore.ensureConsumedUpThrough(EasyMock.anyLong(), EasyMock.anyLong());
+    EasyMock.expectLastCall()
+        .andThrow(new KsqlRestException(Errors.commandQueueCatchUpTimeout("timed out!")));
+    EasyMock.replay(commandStore);
 
     // When:
-    final KsqlErrorMessage result = makeFailingRequest(request, Code.INTERNAL_SERVER_ERROR);
+    final KsqlErrorMessage result = makeFailingRequest(request, Code.SERVICE_UNAVAILABLE);
 
     // Then:
-    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_SERVER_ERROR));
-    assertThat(result.getMessage(),
-        containsString("Timeout reached while waiting for command offset"));
-    EasyMock.verify(future, commandStore);
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT));
+    assertThat(result.getMessage(), is("timed out!"));
+    EasyMock.verify(commandStore);
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -962,5 +949,16 @@ public class KsqlResourceTest {
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
     schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
         avroSchema);
+  }
+
+  private static QueuedCommandStatus givenQueuedCommandStatus(final CommandId commandId) {
+    return new QueuedCommandStatus(0, new CommandStatusFuture(commandId));
+  }
+
+  private static QueuedCommandStatus givenQueuedCommandStatusWithStatus(
+      final CommandId commandId, final CommandStatus status) {
+    final CommandStatusFuture commandStatusFuture = new CommandStatusFuture(commandId);
+    commandStatusFuture.setFinalStatus(status);
+    return new QueuedCommandStatus(0, commandStatusFuture);
   }
 }

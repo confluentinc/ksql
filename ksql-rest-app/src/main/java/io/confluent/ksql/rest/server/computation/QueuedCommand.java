@@ -22,11 +22,11 @@ import java.util.Optional;
 public class QueuedCommand {
   private final CommandId commandId;
   private final Command command;
-  private final Optional<QueuedCommandStatus> status;
+  private final Optional<CommandStatusFuture> status;
 
   public QueuedCommand(final CommandId commandId,
                        final Command command,
-                       final Optional<QueuedCommandStatus> status) {
+                       final Optional<CommandStatusFuture> status) {
     this.commandId = Objects.requireNonNull(commandId);
     this.command = Objects.requireNonNull(command);
     this.status = Objects.requireNonNull(status);
@@ -40,7 +40,7 @@ public class QueuedCommand {
     return commandId;
   }
 
-  public Optional<QueuedCommandStatus> getStatus() {
+  public Optional<CommandStatusFuture> getStatus() {
     return status;
   }
 

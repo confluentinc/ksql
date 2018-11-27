@@ -48,7 +48,7 @@ public class KsqlRequest {
     this.streamsProperties = streamsProperties == null
         ? Collections.emptyMap()
         : Collections.unmodifiableMap(new HashMap<>(streamsProperties));
-    this.commandOffset = commandOffset == null ? Optional.empty() : Optional.of(commandOffset);
+    this.commandOffset = Optional.ofNullable(commandOffset);
   }
 
   public String getKsql() {

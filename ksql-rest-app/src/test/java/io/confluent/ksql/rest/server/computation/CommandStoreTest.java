@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.computation;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
@@ -49,8 +50,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -66,6 +68,7 @@ import org.apache.kafka.common.record.RecordBatch;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -77,19 +80,34 @@ public class CommandStoreTest {
   private static final String COMMAND_TOPIC = "command";
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
   private static final Map<String, Object> OVERRIDE_PROPERTIES = Collections.emptyMap();
+  private static final long TIMEOUT = 1000;
 
   private final Consumer<CommandId, Command> commandConsumer = niceMock(Consumer.class);
   private final Producer<CommandId, Command> commandProducer = mock(Producer.class);
+  private CommandIdAssigner commandIdAssigner =
+      new CommandIdAssigner(new MetaStoreImpl(new InternalFunctionRegistry()));
+  private final OffsetFutureStore offsetFutureStore = mock(OffsetFutureStore.class);
+  private final CompletableFuture<Void> future = niceMock(CompletableFuture.class);
   private final String statementText = "test-statement";
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
   private final Statement statement = mock(Statement.class);
-  private final Future<RecordMetadata> future = niceMock(Future.class);
+  private final Future<RecordMetadata> recordMetadataFuture = niceMock(Future.class);
   private final Command command =
       new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
   private final Node node = mock(Node.class);
   private final RecordMetadata recordMetadata = new RecordMetadata(
       new TopicPartition("topic", 0), 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
+
+  private CommandStore commandStore;
+
+  @Before
+  public void setUp() throws Exception {
+    expect(recordMetadataFuture.get()).andReturn(recordMetadata);
+    replay(recordMetadataFuture);
+
+    setUpCommandStore();
+  }
 
   @Test
   public void shouldHaveAllCreateCommandsInOrder() {
@@ -115,21 +133,19 @@ public class CommandStoreTest {
         .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
     EasyMock.replay(commandConsumer);
 
-    final CommandStore command = createCommandStore();
-    final List<Pair<CommandId, Command>> commands = getPriorCommands(command);
+    final List<Pair<CommandId, Command>> commands = getPriorCommands(commandStore);
     assertThat(commands, equalTo(Arrays.asList(new Pair<>(createId, originalCommand),
         new Pair<>(dropId, dropCommand),
         new Pair<>(createId, latestCommand))));
   }
 
   @Test
-  public void shouldFailEnqueueIfCommandWithSameIdRegistered() throws InterruptedException, ExecutionException {
-    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
+  public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
+    givenCommandStoreThatAssignsSameId(commandId);
 
     // Given:
-    expect(commandProducer.send(anyObject())).andReturn(future);
-    expect(future.get()).andReturn(recordMetadata);
-    replay(commandProducer, future);
+    expect(commandProducer.send(anyObject())).andReturn(recordMetadataFuture);
+    replay(commandProducer);
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     try {
@@ -143,14 +159,13 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldCleanupCommandStatusOnProduceError() throws InterruptedException, ExecutionException {
-    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
+  public void shouldCleanupCommandStatusOnProduceError() {
+    givenCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     expect(commandProducer.send(anyObject())).andThrow(new RuntimeException("oops")).times(1);
-    expect(commandProducer.send(anyObject())).andReturn(future).times(1);
-    expect(future.get()).andReturn(recordMetadata);
-    replay(commandProducer, future);
+    expect(commandProducer.send(anyObject())).andReturn(recordMetadataFuture).times(1);
+    replay(commandProducer);
     try {
       commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
       fail("enqueueCommand should have raised an exception");
@@ -166,33 +181,33 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldEnqueueNewAfterHandlingExistingCommand() throws InterruptedException, ExecutionException {
-    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
+  public void shouldEnqueueNewAfterHandlingExistingCommand() throws Exception {
+    givenCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     setupConsumerToReturnCommand(commandId, command);
     expect(commandProducer.send(anyObject(ProducerRecord.class))).andAnswer(
         () -> {
           commandStore.getNewCommands();
-          return future;
+          return recordMetadataFuture;
         }
     ).times(1);
-    expect(commandProducer.send(anyObject(ProducerRecord.class))).andReturn(future);
-    expect(future.get()).andReturn(recordMetadata).times(2);
-    replay(future, commandProducer);
+    expect(commandProducer.send(anyObject(ProducerRecord.class))).andReturn(recordMetadataFuture);
+    reset(recordMetadataFuture);
+    expect(recordMetadataFuture.get()).andReturn(recordMetadata).times(2);
+    replay(recordMetadataFuture, commandProducer);
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // When:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    verify(future, commandProducer, commandConsumer);
+    verify(recordMetadataFuture, commandProducer, commandConsumer);
   }
 
   @Test
-  public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands()
-      throws ExecutionException, InterruptedException {
-    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
+  public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
+    givenCommandStoreThatAssignsSameId(commandId);
 
     // Given:
     setupConsumerToReturnCommand(commandId, command);
@@ -204,18 +219,17 @@ public class CommandStoreTest {
           assertThat(
               queuedCommand.getStatus().get().getStatus().getStatus(),
               equalTo(CommandStatus.Status.QUEUED));
-          return future;
+          return recordMetadataFuture;
         }
     );
-    expect(future.get()).andReturn(recordMetadata);
-    replay(future, commandProducer);
+    replay(commandProducer);
 
     // When:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
     // verifying the commandProducer also verifies the assertions in its IAnswer were run
-    verify(future, commandProducer, commandConsumer);
+    verify(recordMetadataFuture, commandProducer, commandConsumer);
   }
 
   @Test
@@ -227,12 +241,11 @@ public class CommandStoreTest {
     final ConsumerRecords<CommandId, Command> records = buildRecords(
         id, null,
         id, command);
-    expectConsumerToReturnPartitionInfo();
     expect(commandConsumer.poll(anyObject())).andReturn(records);
     replay(commandConsumer);
 
     // When:
-    final List<QueuedCommand> commands = createCommandStore().getNewCommands();
+    final List<QueuedCommand> commands = commandStore.getNewCommands();
 
     // Then:
     assertThat(commands, hasSize(1));
@@ -249,13 +262,16 @@ public class CommandStoreTest {
     final ConsumerRecords<CommandId, Command> records = buildRecords(
         id, null,
         id, command);
-    expectConsumerToReturnPartitionInfo();
+    expect(commandConsumer.partitionsFor(COMMAND_TOPIC))
+        .andReturn(ImmutableList.of(
+            new PartitionInfo(COMMAND_TOPIC, 0, node, new Node[]{node}, new Node[]{node})
+        ));
     expect(commandConsumer.poll(anyObject())).andReturn(records);
     expect(commandConsumer.poll(anyObject())).andReturn(ConsumerRecords.empty());
     replay(commandConsumer);
 
     // When:
-    final List<QueuedCommand> commands = createCommandStore().getRestoreCommands();
+    final List<QueuedCommand> commands = commandStore.getRestoreCommands();
 
     // Then:
     assertThat(commands, hasSize(1));
@@ -264,7 +280,7 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldDistributeCommand() throws ExecutionException, InterruptedException {
+  public void shouldDistributeCommand() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
     final Map<String, Object> overrideProperties = Collections.singletonMap(
@@ -274,14 +290,13 @@ public class CommandStoreTest {
     final Statement statement = mock(Statement.class);
     final Capture<ProducerRecord<CommandId, Command>> recordCapture = Capture.newInstance();
 
-    expect(commandProducer.send(capture(recordCapture))).andReturn(future);
-    expect(future.get()).andReturn(recordMetadata);
-    replay(commandProducer, future);
+    expect(commandProducer.send(capture(recordCapture))).andReturn(recordMetadataFuture);
+    replay(commandProducer);
 
-    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
+    givenCommandStoreThatAssignsSameId(commandId);
     commandStore.enqueueCommand(statementText, statement, ksqlConfig, overrideProperties);
 
-    verify(commandProducer, future);
+    verify(commandProducer, recordMetadataFuture);
 
     final ProducerRecord<CommandId, Command> record = recordCapture.getValue();
     assertThat(record.key(), equalTo(commandId));
@@ -291,14 +306,12 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldIncludeTopicOffsetInSuccessfulQueuedCommandStatus()
-      throws InterruptedException, ExecutionException {
+  public void shouldIncludeTopicOffsetInSuccessfulQueuedCommandStatus() {
     // Given:
-    final CommandStore commandStore = createCommandStoreThatAssignsSameId(commandId);
+    givenCommandStoreThatAssignsSameId(commandId);
 
-    expect(commandProducer.send(anyObject(ProducerRecord.class))).andReturn(future);
-    expect(future.get()).andReturn(recordMetadata);
-    replay(commandProducer, future);
+    expect(commandProducer.send(anyObject(ProducerRecord.class))).andReturn(recordMetadataFuture);
+    replay(commandProducer);
 
     // When:
     final QueuedCommandStatus commandStatus =
@@ -307,71 +320,75 @@ public class CommandStoreTest {
     // Then:
     assertThat(commandStatus.getCommandOffset(), equalTo(recordMetadata.offset()));
 
-    verify(commandProducer, future);
+    verify(commandProducer, recordMetadataFuture);
   }
 
   @Test
-  public void shouldReturnCompletedFutureIfOffsetReached() {
+  public void shouldNotWaitIfOffsetReached() throws Exception {
     // Given:
-    givenCmdConsumerAtPosition(1);
-
-    final CommandStore commandStore = createCommandStore();
+    givenCmdStoreUpThroughPosition(1);
+    expect(offsetFutureStore.getFutureForOffset(EasyMock.anyLong()))
+        .andThrow(new AssertionError()).anyTimes();
+    replay(offsetFutureStore);
 
     // When:
-    final CompletableFuture<Void> future = commandStore.getConsumerPositionFuture(0);
+    commandStore.ensureConsumedUpThrough(0, TIMEOUT);
 
     // Then:
-    assertFutureIsCompleted(future);
-    verify(commandConsumer);
+    verify(commandConsumer, offsetFutureStore);
   }
 
   @Test
-  public void shouldReturnUncompletedFutureIfOffsetNotReached() {
+  public void shouldWaitIfOffsetNotReached() throws Exception {
     // Given:
-    givenCmdConsumerAtPosition(2);
-
-    final CommandStore commandStore = createCommandStore();
+    givenCmdStoreUpThroughPosition(2);
+    expect(offsetFutureStore.getFutureForOffset(EasyMock.anyLong())).andReturn(future);
+    expect(future.get(EasyMock.anyLong(), EasyMock.anyObject(TimeUnit.class))).andReturn(null);
+    replay(future, offsetFutureStore);
 
     // When:
-    final CompletableFuture<Void> future = commandStore.getConsumerPositionFuture(2);
+    commandStore.ensureConsumedUpThrough(2, TIMEOUT);
 
     // Then:
-    assertFutureIsNotCompleted(future);
-    verify(commandConsumer);
+    verify(commandConsumer, offsetFutureStore, future);
   }
 
   @Test
-  public void shouldCompleteFutureWhenOffsetIsReached() {
+  public void shouldThrowExceptionOnTimeout() throws Exception {
     // Given:
-    final CommandStore commandStore = createCommandStore();
+    givenCmdStoreUpThroughPosition(0);
+    expect(offsetFutureStore.getFutureForOffset(EasyMock.anyLong())).andReturn(future);
+    expect(future.get(EasyMock.anyLong(), EasyMock.anyObject(TimeUnit.class)))
+        .andThrow(new TimeoutException());
+    replay(future, offsetFutureStore);
 
-    givenCmdConsumerAtPosition(0);
-    final CompletableFuture future = commandStore.getConsumerPositionFuture(2);
-    givenCmdConsumerAtPosition(3, true);
+    try {
+      // When:
+      commandStore.ensureConsumedUpThrough(2, TIMEOUT);
+
+      // Then:
+      fail("TimeoutException should be propagated.");
+    } catch (final TimeoutException e) {
+      assertThat(e.getMessage(),
+          is(String.format(
+              "Timeout reached while waiting for command offset of 2. (Timeout: %d ms)", TIMEOUT)));
+    }
+    verify(commandConsumer, future, offsetFutureStore);
+  }
+
+  @Test
+  public void shouldCompleteFuturesWhenGettingNewCommands() {
+    // Given:
+    offsetFutureStore.completeFuturesUpToOffset(EasyMock.anyLong());
+    expectLastCall();
+    expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(buildRecords());
+    replay(offsetFutureStore, commandConsumer);
 
     // When:
     commandStore.getNewCommands();
 
     // Then:
-    assertFutureIsCompleted(future);
-    verify(commandConsumer);
-  }
-
-  @Test
-  public void shouldNotCompleteFutureWhenOffsetIsNotReached() {
-    // Given:
-    final CommandStore commandStore = createCommandStore();
-
-    givenCmdConsumerAtPosition(0);
-    final CompletableFuture future = commandStore.getConsumerPositionFuture(2);
-    givenCmdConsumerAtPosition(2, true);
-
-    // When:
-    commandStore.getNewCommands();
-
-    // Then:
-    assertFutureIsNotCompleted(future);
-    verify(commandConsumer);
+    verify(offsetFutureStore);
   }
 
   private void setupConsumerToReturnCommand(final CommandId commandId, final Command command) {
@@ -379,54 +396,35 @@ public class CommandStoreTest {
     expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(
         buildRecords(commandId, command)
     ).times(1);
-    expectConsumerToReturnPartitionInfo();
     replay(commandConsumer);
   }
 
-  private void givenCmdConsumerAtPosition(long position) {
-    givenCmdConsumerAtPosition(position, false);
-  }
-
-  private void givenCmdConsumerAtPosition(long position, boolean poll) {
+  private void givenCmdStoreUpThroughPosition(long position) {
     reset(commandConsumer);
-    expectConsumerToReturnPartitionInfo();
     expect(commandConsumer.position(anyObject(TopicPartition.class))).andReturn(position);
-    if (poll) {
-      expect(commandConsumer.poll(anyObject()))
-          .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
-    }
     replay(commandConsumer);
   }
 
-  private void expectConsumerToReturnPartitionInfo() {
-    expect(commandConsumer.partitionsFor(COMMAND_TOPIC))
-        .andReturn(ImmutableList.of(
-            new PartitionInfo(COMMAND_TOPIC, 0, node, new Node[]{node}, new Node[]{node})
-        ));
-  }
-
-  private CommandStore createCommandStoreThatAssignsSameId(final CommandId commandId) {
-    final CommandIdAssigner commandIdAssigner = mock(CommandIdAssigner.class);
+  private void givenCommandStoreThatAssignsSameId(final CommandId commandId) {
+    commandIdAssigner = mock(CommandIdAssigner.class);
     expect(commandIdAssigner.getCommandId(anyObject())).andStubAnswer(
         () -> new CommandId(commandId.getType(), commandId.getEntity(), commandId.getAction())
     );
     replay(commandIdAssigner);
-    return createCommandStore(commandIdAssigner);
+    setUpCommandStore();
   }
 
-  private CommandStore createCommandStore() {
-    return createCommandStore(new CommandIdAssigner(new MetaStoreImpl(new InternalFunctionRegistry())));
-  }
-
-  private CommandStore createCommandStore(final CommandIdAssigner commandIdAssigner) {
-    return new CommandStore(
+  private void setUpCommandStore() {
+    commandStore = new CommandStore(
         COMMAND_TOPIC,
         commandConsumer,
         commandProducer,
-        commandIdAssigner);
+        commandIdAssigner,
+        offsetFutureStore
+    );
   }
 
-  private List<Pair<CommandId, Command>> getPriorCommands(final CommandStore commandStore) {
+  private static List<Pair<CommandId, Command>> getPriorCommands(final CommandStore commandStore) {
     return commandStore.getRestoreCommands().stream()
         .map(
             queuedCommand -> new Pair<>(
@@ -434,7 +432,7 @@ public class CommandStoreTest {
         .collect(Collectors.toList());
   }
 
-  private ConsumerRecords<CommandId, Command> buildRecords(final Object ...args) {
+  private static ConsumerRecords<CommandId, Command> buildRecords(final Object ...args) {
     assertThat(args.length % 2, equalTo(0));
     final List<ConsumerRecord<CommandId, Command>> records = new ArrayList<>();
     for (int i = 0; i < args.length; i += 2) {
@@ -449,15 +447,5 @@ public class CommandStoreTest {
             records
         )
     );
-  }
-
-  private void assertFutureIsCompleted(CompletableFuture<Void> future) {
-    assertThat(future.isDone(), is(true));
-    assertThat(future.isCancelled(), is(false));
-    assertThat(future.isCompletedExceptionally(), is(false));
-  }
-
-  private void assertFutureIsNotCompleted(CompletableFuture<Void> future) {
-    assertThat(future.isDone(), is(false));
   }
 }

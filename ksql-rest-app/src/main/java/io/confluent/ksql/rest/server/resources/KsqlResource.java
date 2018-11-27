@@ -109,6 +109,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -141,18 +142,22 @@ public class KsqlResource {
   private final KsqlEngine ksqlEngine;
   private final ReplayableCommandQueue replayableCommandQueue;
   private final long distributedCommandResponseTimeout;
+  private final ActivenessRegistrar activenessRegistrar;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final ReplayableCommandQueue replayableCommandQueue,
-      final long distributedCommandResponseTimeout
+      final long distributedCommandResponseTimeout,
+      final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar cannot be null.");
   }
 
   @POST
@@ -160,6 +165,7 @@ public class KsqlResource {
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
 
+    activenessRegistrar.updateLastRequestTime();
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
       checkPersistentQueryCapacity(parsedStatements, request.getKsql());

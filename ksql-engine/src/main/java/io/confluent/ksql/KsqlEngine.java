@@ -159,7 +159,13 @@ public class KsqlEngine implements Closeable {
     this.queryIdGenerator = new QueryIdGenerator();
     this.adminClient = Objects.requireNonNull(adminClient, "adminCluent can't be null");
     aggregateMetricsCollector.scheduleAtFixedRate(
-        this.engineMetrics::updateMetrics,
+        () -> {
+          try {
+            this.engineMetrics.updateMetrics();
+          } catch (final Exception e) {
+            log.info("Error updating engine metrics", e);
+          }
+        },
         1000,
         1000,
         TimeUnit.MILLISECONDS

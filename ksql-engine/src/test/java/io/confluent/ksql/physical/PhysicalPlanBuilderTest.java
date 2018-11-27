@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -70,7 +70,7 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class PhysicalPlanBuilderTest {
 
-  private final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+  private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private LogicalPlanBuilder planBuilder;
@@ -86,29 +86,24 @@ public class PhysicalPlanBuilderTest {
   private KsqlEngine ksqlEngine;
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
-  class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
+  private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
 
-    class Call {
+    private static class Call {
+      private final Properties props;
 
-      public StreamsBuilder builder;
-      public Properties props;
-      KafkaStreams kafkaStreams;
-
-      private Call(final StreamsBuilder builder, final Properties props, final KafkaStreams kafkaStreams) {
-        this.builder = builder;
+      private Call(final Properties props) {
         this.props = props;
-        this.kafkaStreams = kafkaStreams;
       }
     }
 
-    private List<Call> calls = new LinkedList<>();
+    private final List<Call> calls = new LinkedList<>();
 
     @Override
     public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final Map<String, Object> conf) {
       final Properties props = new Properties();
       props.putAll(conf);
       final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
-      calls.add(new Call(builder, props, kafkaStreams));
+      calls.add(new Call(props));
       return kafkaStreams;
     }
 
@@ -158,25 +153,25 @@ public class PhysicalPlanBuilderTest {
 
   }
 
-  private QueryMetadata buildPhysicalPlan(final String query) throws Exception {
+  private QueryMetadata buildPhysicalPlan(final String query) {
     final PlanNode logical = planBuilder.buildLogicalPlan(query);
     return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
   }
 
   @Test
-  public void shouldHaveKStreamDataSource() throws Exception {
+  public void shouldHaveKStreamDataSource() {
     final QueryMetadata metadata = buildPhysicalPlan(simpleSelectFilter);
     assertThat(metadata.getDataSourceType(), equalTo(DataSource.DataSourceType.KSTREAM));
   }
 
   @Test
-  public void shouldHaveOutputNode() throws Exception {
+  public void shouldHaveOutputNode() {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
     assertThat(queryMetadata.getOutputNode(), instanceOf(KsqlBareOutputNode.class));
   }
 
   @Test
-  public void shouldCreateExecutionPlan() throws Exception {
+  public void shouldCreateExecutionPlan() {
     final String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
         + "WHERE col0 > 100 GROUP BY col0;";
     final QueryMetadata metadata = buildPhysicalPlan(queryString);
@@ -199,7 +194,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCreateExecutionPlanForInsert() throws Exception {
+  public void shouldCreateExecutionPlanForInsert() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
@@ -233,12 +228,12 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailIfInsertSinkDoesNotExist() throws Exception {
+  public void shouldFailIfInsertSinkDoesNotExist() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      ksqlEngine.buildMultipleQueries(
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -255,7 +250,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailInsertIfTheResultSchemaDoesNotMatch() throws Exception {
+  public void shouldFailInsertIfTheResultSchemaDoesNotMatch() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
@@ -265,7 +260,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      ksqlEngine.buildMultipleQueries(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -281,7 +276,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCreatePlanForInsertIntoTableFromTable() throws Exception {
+  public void shouldCreatePlanForInsertIntoTableFromTable() {
     final String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
@@ -310,7 +305,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailInsertIfTheResultTypesDontMatch() throws Exception {
+  public void shouldFailInsertIfTheResultTypesDontMatch() {
     final String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
@@ -326,7 +321,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      ksqlEngine.buildMultipleQueries(
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -341,7 +336,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCheckSinkAndResultKeysDoNotMatch() throws Exception {
+  public void shouldCheckSinkAndResultKeysDoNotMatch() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
@@ -367,7 +362,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldFailIfSinkAndResultKeysDoNotMatch() throws Exception {
+  public void shouldFailIfSinkAndResultKeysDoNotMatch() {
     final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
@@ -375,7 +370,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+      ksqlEngine.buildMultipleQueries(
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -388,15 +383,6 @@ public class PhysicalPlanBuilderTest {
       ksqlEngine.close();
     }
     Assert.fail();
-  }
-
-
-  @Test
-  public void shouldReturnCreatedKafkaStream() throws Exception {
-    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
-    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
-    assertThat(1, equalTo(calls.size()));
-    Assert.assertSame(calls.get(0).kafkaStreams, queryMetadata.getKafkaStreams());
   }
 
   @Test
@@ -421,7 +407,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldTurnOptimizationsOff() throws Exception {
+  public void shouldTurnOptimizationsOff() {
     // Given:
     final Map<String, Object> properties =
         Collections.singletonMap(
@@ -618,7 +604,7 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    ksqlEngine.buildMultipleQueries(
         createStream + "\n " + csasQuery + "\n " + ctasQuery,
         ksqlConfig,
         Collections.emptyMap());

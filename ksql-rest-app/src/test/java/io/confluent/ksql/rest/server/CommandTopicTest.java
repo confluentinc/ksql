@@ -135,6 +135,28 @@ public class CommandTopicTest {
     commandTopic.send(commandId1, command1);
   }
 
+  @Test (expected = RuntimeException.class)
+  @SuppressWarnings("unchecked")
+  public void shouldThrowRuntimeExceptionIfSendCausesRunTimeException() throws Exception {
+    // Given:
+    final ExecutionException executionException = mock(ExecutionException.class);
+    when(executionException.getCause()).thenReturn(mock(RuntimeException.class));
+    when(future.get()).thenThrow(executionException);
+
+    // When
+    commandTopic.send(commandId1, command1);
+  }
+
+  @Test (expected = RuntimeException.class)
+  @SuppressWarnings("unchecked")
+  public void shouldThrowRuntimeExceptionIfSendThrowsInterruptedException() throws Exception {
+    // Given:
+    when(future.get()).thenThrow(mock(InterruptedException.class));
+
+    // When
+    commandTopic.send(commandId1, command1);
+  }
+
   @Test
   @SuppressWarnings("unchecked")
   public void shouldGetNewCommandsIteratorCorrectly() {
@@ -153,7 +175,7 @@ public class CommandTopicTest {
   public void shouldGetRestoreCommandsCorrectly() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
-        .thenReturn(someConsumerRecords())
+        .thenReturn(someConsumerRecords(false))
         .thenReturn(new ConsumerRecords(Collections.emptyMap()));
 
     // When:
@@ -166,6 +188,25 @@ public class CommandTopicTest {
         new QueuedCommand(commandId1, command1, Optional.empty()),
         new QueuedCommand(commandId2, command2, Optional.empty()),
         new QueuedCommand(commandId3, command3, Optional.empty()))));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldFilterNullCommandsWhileRestoringCommands() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords(true))
+        .thenReturn(new ConsumerRecords(Collections.emptyMap()));
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic.getRestoreCommands(Duration.ofMillis(1));
+
+
+    // Then:
+    verify(commandConsumer).seekToBeginning(collectionArgumentCaptor.capture());
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty()),
+        new QueuedCommand(commandId2, command2, Optional.empty()))));
   }
 
   @Test
@@ -182,41 +223,13 @@ public class CommandTopicTest {
 
   }
 
-  @Test
-  public void shouldHaveAllCreateCommandsInOrder() {
-    // Given:
-    when(commandConsumer.partitionsFor(any(String.class))).thenReturn(ImmutableList.of(partitionInfo));
-    when(commandConsumer.poll(any(Duration.class)))
-        .thenReturn(someConsumerRecords());
 
-    
-//    final CommandId createId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
-//    final CommandId dropId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.DROP);
-//    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-//    final Command originalCommand = new Command(
-//        "some statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-//    final Command dropCommand = new Command(
-//        "drop", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-//    final Command latestCommand = new Command(
-//        "a new statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-
-//    when(commandConsumer.poll(any(Duration.class))).thenReturn();
-
-    // When:
-    final List<QueuedCommand> queuedCommandList = commandTopic.getRestoreCommands(Duration.ofMillis(1));
-
-
-
-
-  }
-
-
-  private static ConsumerRecords<CommandId, Command> someConsumerRecords() {
+  private static ConsumerRecords<CommandId, Command> someConsumerRecords(boolean addNull) {
     return new ConsumerRecords<>(
         ImmutableMap.of(topicPartition, ImmutableList.of(
             new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
             new ConsumerRecord<>("topic", 0, 0, commandId2, command2),
-            new ConsumerRecord<>("topic", 0, 0, commandId3, command3))
+            new ConsumerRecord<>("topic", 0, 0, commandId3, addNull? null : command3))
         ));
   }
 

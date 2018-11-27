@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,7 +51,7 @@ public class MockStreamedQueryResource {
 
   public List<TestStreamWriter> getWriters() { return writers; }
 
-  public class TestStreamWriter implements StreamingOutput {
+  public static class TestStreamWriter implements StreamingOutput {
     BlockingQueue<String> dataq = new LinkedBlockingQueue<>();
     ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
 

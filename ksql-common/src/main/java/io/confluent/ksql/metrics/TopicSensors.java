@@ -191,7 +191,7 @@ class TopicSensors<R> {
     }
 
     public double value() {
-      return metric.measurable().measure(metric.config(), time.milliseconds());
+      return (Double) metric.metricValue();
     }
 
     public void close(final Metrics metrics) {

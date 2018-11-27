@@ -18,49 +18,36 @@ package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -70,12 +57,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.KafkaStreams;
 import org.easymock.EasyMock;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RecoveryTest {
@@ -101,7 +86,7 @@ public class RecoveryTest {
         engineMetrics);
   }
 
-  private class FakeCommandQueue implements ReplayableCommandQueue {
+  private static class FakeCommandQueue implements ReplayableCommandQueue {
     private final List<QueuedCommand> commandLog;
     private final CommandIdAssigner commandIdAssigner;
     private int offset;
@@ -370,15 +355,18 @@ public class RecoveryTest {
           "source set mismatch: ")) {
         return false;
       }
-      for (final String name : sourceMatchers.keySet()) {
+
+      for (final Entry<String, Matcher<StructuredDataSource>> e : sourceMatchers.entrySet()) {
+        final String name = e.getKey();
         if (!test(
-            sourceMatchers.get(name),
+            e.getValue(),
             other.getSource(name),
             description,
             "source " + name + " mismatch: ")) {
           return false;
         }
       }
+
       return true;
     }
   }
@@ -393,14 +381,14 @@ public class RecoveryTest {
     private final Matcher<Set<String>> sinkNamesMatcher;
     private final Matcher<Schema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
-    private final Matcher<KafkaStreams.State> stateMatcher;
+    private final Matcher<String> stateMatcher;
 
     PersistentQueryMetadataMatcher(final PersistentQueryMetadata metadata) {
       this.sourcesNamesMatcher = equalTo(metadata.getSourceNames());
       this.sinkNamesMatcher = equalTo(metadata.getSinkNames());
       this.resultSchemaMatcher = equalTo(metadata.getResultSchema());
       this.sqlMatcher = equalTo(metadata.getStatementString());
-      this.stateMatcher = equalTo(metadata.getKafkaStreams().state());
+      this.stateMatcher = equalTo(metadata.getState());
     }
 
     @Override
@@ -455,7 +443,7 @@ public class RecoveryTest {
       }
       return test(
           stateMatcher,
-          metadata.getKafkaStreams().state(),
+          metadata.getState(),
           description,
           "state mismatch: ");
     }

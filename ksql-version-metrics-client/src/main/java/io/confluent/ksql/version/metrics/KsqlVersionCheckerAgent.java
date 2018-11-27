@@ -135,7 +135,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   }
 
   private boolean hasRecentRequests() {
-    return (System.currentTimeMillis() - this.requestTime) < MAX_INTERVAL;
+    return (clock.millis() - this.requestTime) < MAX_INTERVAL;
   }
 
   private boolean isActive() {

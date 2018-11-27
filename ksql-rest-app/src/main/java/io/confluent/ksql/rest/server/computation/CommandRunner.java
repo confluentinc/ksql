@@ -20,14 +20,14 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.io.IOException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,17 +120,17 @@ public class CommandRunner implements Runnable, Closeable {
     log.trace("Found {} new writes to command topic", commands.size());
     final AtomicBoolean shouldProcess = new AtomicBoolean(true);
     commands.forEach(c -> {
-          if (!shouldProcess.get()) {
-            return;
-          }
-          if (c.getCommand().getStatement()
-              .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-            terminateCluster(c.getCommand());
-            shouldProcess.set(false);
-            return;
-          }
-          executeStatement(c);
-        });
+      if (!shouldProcess.get()) {
+        return;
+      }
+      if (c.getCommand().getStatement()
+          .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
+        terminateCluster(c.getCommand());
+        shouldProcess.set(false);
+        return;
+      }
+      executeStatement(c);
+    });
   }
 
   /**
@@ -138,7 +138,7 @@ public class CommandRunner implements Runnable, Closeable {
    */
   public void processPriorCommands() {
     final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
-          final AtomicBoolean shouldProcess = new AtomicBoolean(true);
+    final AtomicBoolean shouldProcess = new AtomicBoolean(true);
     restoreCommands.forEach(
         command -> {
           if (!shouldProcess.get()) {

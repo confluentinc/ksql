@@ -61,10 +61,9 @@ public class QueuedCommand {
     if ((other == null) || (getClass() != other.getClass())) {
       return false;
     }
-    QueuedCommand otherQueuedCommand = (QueuedCommand) other;
+    final QueuedCommand otherQueuedCommand = (QueuedCommand) other;
     return this.command.equals(otherQueuedCommand.getCommand())
         && this.commandId.equals(otherQueuedCommand.getCommandId())
         && this.status.equals(otherQueuedCommand.getStatus());
-
   }
 }

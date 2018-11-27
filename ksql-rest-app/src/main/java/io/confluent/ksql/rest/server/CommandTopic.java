@@ -17,11 +17,9 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
-import io.confluent.ksql.rest.server.computation.RestoreCommands;
 import io.confluent.ksql.rest.util.CommandTopicJsonSerdeUtil;
 import java.time.Duration;
 import java.util.Collection;
@@ -114,8 +112,6 @@ public class CommandTopic {
     commandConsumer.seekToBeginning(cmdTopicPartitions);
 
     log.debug("Reading prior command records");
-
-    final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = Maps.newLinkedHashMap();
     ConsumerRecords<CommandId, Command> records =
         commandConsumer.poll(duration);
     while (!records.isEmpty()) {

@@ -120,7 +120,7 @@ public class WSQueryEndpoint {
       validateVersion(session);
 
       final KsqlRequest request = parseRequest(session);
-      CommandStoreUtil.waitForCommandOffset(replayableCommandQueue, request, timeout);
+      CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request, timeout);
 
       final Statement statement = parseStatement(request);
 

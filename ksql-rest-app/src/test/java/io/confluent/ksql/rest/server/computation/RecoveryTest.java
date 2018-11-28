@@ -148,7 +148,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public void ensureConsumedUpThrough(final long offset, final long timeout) {
+    public void ensureConsumedUpThrough(final long seqNum, final long timeout) {
     }
 
     @Override

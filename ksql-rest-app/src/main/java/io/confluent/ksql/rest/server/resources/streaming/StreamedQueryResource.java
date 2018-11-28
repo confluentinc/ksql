@@ -82,7 +82,7 @@ public class StreamedQueryResource {
     }
 
     try {
-      CommandStoreUtil.httpWaitForCommandOffset(
+      CommandStoreUtil.httpWaitForCommandSequenceNumber(
           replayableCommandQueue, request, disconnectCheckInterval.toMillis());
       statement = statementParser.parseSingleStatement(ksql);
     } catch (final KsqlRestException e) {

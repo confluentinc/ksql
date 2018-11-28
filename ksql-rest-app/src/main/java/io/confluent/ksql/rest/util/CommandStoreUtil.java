@@ -27,25 +27,25 @@ public final class CommandStoreUtil {
   private CommandStoreUtil() {
   }
 
-  public static void httpWaitForCommandOffset(
+  public static void httpWaitForCommandSequenceNumber(
       final ReplayableCommandQueue replayableCommandQueue,
       final KsqlRequest request,
       final long timeout) {
     try {
-      waitForCommandOffset(replayableCommandQueue, request, timeout);
+      waitForCommandSequenceNumber(replayableCommandQueue, request, timeout);
     } catch (final TimeoutException e) {
       throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(e.getMessage()));
     }
   }
 
-  public static void waitForCommandOffset(
+  public static void waitForCommandSequenceNumber(
       final ReplayableCommandQueue replayableCommandQueue,
       final KsqlRequest request,
       final long timeout) throws TimeoutException {
-    final Optional<Long> commandOffset = request.getCommandOffset();
-    if (commandOffset.isPresent()) {
-      final long offset = commandOffset.get();
-      replayableCommandQueue.ensureConsumedUpThrough(offset, timeout);
+    final Optional<Long> commandSequenceNumber = request.getCommandSequenceNumber();
+    if (commandSequenceNumber.isPresent()) {
+      final long seqNum = commandSequenceNumber.get();
+      replayableCommandQueue.ensureConsumedUpThrough(seqNum, timeout);
     }
   }
 }

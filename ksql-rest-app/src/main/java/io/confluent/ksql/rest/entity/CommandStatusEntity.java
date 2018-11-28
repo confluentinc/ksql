@@ -28,18 +28,18 @@ import java.util.Objects;
 public class CommandStatusEntity extends KsqlEntity {
   private final CommandId commandId;
   private final CommandStatus commandStatus;
-  private final long commandOffset;
+  private final long commandSequenceNumber;
 
   public CommandStatusEntity(
       final String statementText,
       final CommandId commandId,
       final CommandStatus commandStatus,
-      final long commandOffset
+      final long commandSequenceNumber
   ) {
     super(statementText);
     this.commandId = commandId;
     this.commandStatus = commandStatus;
-    this.commandOffset = commandOffset;
+    this.commandSequenceNumber = commandSequenceNumber;
   }
 
   @JsonCreator
@@ -47,7 +47,7 @@ public class CommandStatusEntity extends KsqlEntity {
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("commandId") final String commandId,
       @JsonProperty("commandStatus") final Map<String, Object> commandStatus,
-      @JsonProperty("commandOffset") final Long commandOffset
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     this(
         statementText,
@@ -55,7 +55,7 @@ public class CommandStatusEntity extends KsqlEntity {
         new CommandStatus(
             CommandStatus.Status.valueOf((String) commandStatus.get("status")),
             (String) commandStatus.get("message")),
-        commandOffset == null ? -1 : commandOffset
+        commandSequenceNumber == null ? -1 : commandSequenceNumber
     );
   }
 
@@ -68,8 +68,8 @@ public class CommandStatusEntity extends KsqlEntity {
     return commandStatus;
   }
 
-  public long getCommandOffset() {
-    return commandOffset;
+  public long getCommandSequenceNumber() {
+    return commandSequenceNumber;
   }
 
   @Override
@@ -83,12 +83,12 @@ public class CommandStatusEntity extends KsqlEntity {
     final CommandStatusEntity that = (CommandStatusEntity) o;
     return Objects.equals(commandId, that.commandId)
         && Objects.equals(commandStatus, that.commandStatus)
-        && (commandOffset == that.commandOffset);
+        && (commandSequenceNumber == that.commandSequenceNumber);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getCommandId(), getCommandStatus(), getCommandOffset());
+    return Objects.hash(getCommandId(), getCommandStatus(), getCommandSequenceNumber());
   }
 
   @Override
@@ -96,7 +96,7 @@ public class CommandStatusEntity extends KsqlEntity {
     return "CommandStatusEntity{"
         + "commandId=" + commandId
         + ", commandStatus=" + commandStatus
-        + ", commandOffset=" + commandOffset
+        + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';
   }
 }

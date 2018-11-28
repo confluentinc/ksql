@@ -28,7 +28,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CommandStoreUtilTest {
 
   private static final long TIMEOUT = 5000L;
-  private static final long OFFSET = 2;
+  private static final long SEQUENCE_NUMBER = 2;
 
   @Mock
   private ReplayableCommandQueue replayableCommandQueue;
@@ -36,39 +36,39 @@ public class CommandStoreUtilTest {
   private KsqlRequest request;
 
   @Test
-  public void shouldNotWaitIfNoOffsetSpecified() throws Exception {
+  public void shouldNotWaitIfNoSequenceNumberSpecified() throws Exception {
     // Given:
-    when(request.getCommandOffset()).thenReturn(Optional.empty());
+    when(request.getCommandSequenceNumber()).thenReturn(Optional.empty());
 
     // When:
-    CommandStoreUtil.waitForCommandOffset(replayableCommandQueue, request, TIMEOUT);
+    CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request, TIMEOUT);
 
     // Then:
     verify(replayableCommandQueue, never()).ensureConsumedUpThrough(anyLong(), anyLong());
   }
 
   @Test
-  public void shouldWaitIfOffsetSpecified() throws Exception {
+  public void shouldWaitIfSequenceNumberSpecified() throws Exception {
     // Given:
-    when(request.getCommandOffset()).thenReturn(Optional.of(OFFSET));
+    when(request.getCommandSequenceNumber()).thenReturn(Optional.of(SEQUENCE_NUMBER));
 
     // When:
-    CommandStoreUtil.waitForCommandOffset(replayableCommandQueue, request, TIMEOUT);
+    CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request, TIMEOUT);
 
     // Then:
-    verify(replayableCommandQueue).ensureConsumedUpThrough(OFFSET, TIMEOUT);
+    verify(replayableCommandQueue).ensureConsumedUpThrough(SEQUENCE_NUMBER, TIMEOUT);
   }
 
   @Test
   public void shouldThrowKsqlRestExceptionOnTimeout() throws Exception {
     // Given:
-    when(request.getCommandOffset()).thenReturn(Optional.of(OFFSET));
+    when(request.getCommandSequenceNumber()).thenReturn(Optional.of(SEQUENCE_NUMBER));
     doThrow(new TimeoutException("uh oh"))
-        .when(replayableCommandQueue).ensureConsumedUpThrough(OFFSET, TIMEOUT);
+        .when(replayableCommandQueue).ensureConsumedUpThrough(SEQUENCE_NUMBER, TIMEOUT);
 
     try {
       // When:
-      CommandStoreUtil.httpWaitForCommandOffset(replayableCommandQueue, request, TIMEOUT);
+      CommandStoreUtil.httpWaitForCommandSequenceNumber(replayableCommandQueue, request, TIMEOUT);
 
       // Then:
       fail("Should propagate error.");

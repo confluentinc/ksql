@@ -19,23 +19,23 @@ package io.confluent.ksql.rest.server.computation;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class OffsetFutureStore {
-  private final ConcurrentHashMap<Long, CompletableFuture<Void>> offsetFutures;
+public class SequenceNumberFutureStore {
+  private final ConcurrentHashMap<Long, CompletableFuture<Void>> sequenceNumberFutures;
 
-  public OffsetFutureStore() {
-    offsetFutures = new ConcurrentHashMap<>(8, 0.9f, 1);
+  public SequenceNumberFutureStore() {
+    sequenceNumberFutures = new ConcurrentHashMap<>(8, 0.9f, 1);
   }
 
-  public CompletableFuture<Void> getFutureForOffset(final long offset) {
-    return offsetFutures.computeIfAbsent(offset, k -> new CompletableFuture<>());
+  public CompletableFuture<Void> getFutureForSequenceNumber(final long seqNum) {
+    return sequenceNumberFutures.computeIfAbsent(seqNum, k -> new CompletableFuture<>());
   }
 
-  public void completeFuturesUpToOffset(final long offset) {
-    offsetFutures.keySet().stream()
-        .filter(k -> k < offset)
+  public void completeFuturesUpToSequenceNumber(final long seqNum) {
+    sequenceNumberFutures.keySet().stream()
+        .filter(k -> k < seqNum)
         .forEach(k -> {
-          offsetFutures.get(k).complete(null);
-          offsetFutures.remove(k);
+          sequenceNumberFutures.get(k).complete(null);
+          sequenceNumberFutures.remove(k);
         });
   }
 }

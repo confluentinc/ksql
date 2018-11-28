@@ -36,19 +36,19 @@ public class KsqlRequest {
 
   private final String ksql;
   private final Map<String, Object> streamsProperties;
-  private final Optional<Long> commandOffset;
+  private final Optional<Long> commandSequenceNumber;
 
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
       @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties,
-      @JsonProperty("commandOffset") final Long commandOffset
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     this.ksql = ksql == null ? "" : ksql;
     this.streamsProperties = streamsProperties == null
         ? Collections.emptyMap()
         : Collections.unmodifiableMap(new HashMap<>(streamsProperties));
-    this.commandOffset = Optional.ofNullable(commandOffset);
+    this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
   public String getKsql() {
@@ -59,8 +59,8 @@ public class KsqlRequest {
     return coerceTypes(streamsProperties);
   }
 
-  public Optional<Long> getCommandOffset() {
-    return commandOffset;
+  public Optional<Long> getCommandSequenceNumber() {
+    return commandSequenceNumber;
   }
 
   @Override
@@ -76,12 +76,12 @@ public class KsqlRequest {
     final KsqlRequest that = (KsqlRequest) o;
     return Objects.equals(getKsql(), that.getKsql())
         && Objects.equals(getStreamsProperties(), that.getStreamsProperties())
-        && Objects.equals(getCommandOffset(), that.getCommandOffset());
+        && Objects.equals(getCommandSequenceNumber(), that.getCommandSequenceNumber());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getKsql(), getStreamsProperties(), getCommandOffset());
+    return Objects.hash(getKsql(), getStreamsProperties(), getCommandSequenceNumber());
   }
 
   private static Map<String, Object> coerceTypes(final Map<String, Object> streamsProperties) {

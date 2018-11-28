@@ -86,7 +86,8 @@ public class CommandStoreTest {
   private final Producer<CommandId, Command> commandProducer = mock(Producer.class);
   private CommandIdAssigner commandIdAssigner =
       new CommandIdAssigner(new MetaStoreImpl(new InternalFunctionRegistry()));
-  private final OffsetFutureStore offsetFutureStore = mock(OffsetFutureStore.class);
+  private final SequenceNumberFutureStore sequenceNumberFutureStore = mock(
+      SequenceNumberFutureStore.class);
   private final CompletableFuture<Void> future = niceMock(CompletableFuture.class);
   private final String statementText = "test-statement";
   private final CommandId commandId =
@@ -306,7 +307,7 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldIncludeTopicOffsetInSuccessfulQueuedCommandStatus() {
+  public void shouldIncludeCommandSequenceNumberInSuccessfulQueuedCommandStatus() {
     // Given:
     givenCommandStoreThatAssignsSameId(commandId);
 
@@ -318,49 +319,49 @@ public class CommandStoreTest {
         commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    assertThat(commandStatus.getCommandOffset(), equalTo(recordMetadata.offset()));
+    assertThat(commandStatus.getCommandSequenceNumber(), equalTo(recordMetadata.offset()));
 
     verify(commandProducer, recordMetadataFuture);
   }
 
   @Test
-  public void shouldNotWaitIfOffsetReached() throws Exception {
+  public void shouldNotWaitIfSequenceNumberReached() throws Exception {
     // Given:
     givenCmdStoreUpThroughPosition(1);
-    expect(offsetFutureStore.getFutureForOffset(EasyMock.anyLong()))
+    expect(sequenceNumberFutureStore.getFutureForSequenceNumber(EasyMock.anyLong()))
         .andThrow(new AssertionError()).anyTimes();
-    replay(offsetFutureStore);
+    replay(sequenceNumberFutureStore);
 
     // When:
     commandStore.ensureConsumedUpThrough(0, TIMEOUT);
 
     // Then:
-    verify(commandConsumer, offsetFutureStore);
+    verify(commandConsumer, sequenceNumberFutureStore);
   }
 
   @Test
-  public void shouldWaitIfOffsetNotReached() throws Exception {
+  public void shouldWaitIfSequenceNumberNotReached() throws Exception {
     // Given:
     givenCmdStoreUpThroughPosition(2);
-    expect(offsetFutureStore.getFutureForOffset(EasyMock.anyLong())).andReturn(future);
+    expect(sequenceNumberFutureStore.getFutureForSequenceNumber(EasyMock.anyLong())).andReturn(future);
     expect(future.get(EasyMock.anyLong(), EasyMock.anyObject(TimeUnit.class))).andReturn(null);
-    replay(future, offsetFutureStore);
+    replay(future, sequenceNumberFutureStore);
 
     // When:
     commandStore.ensureConsumedUpThrough(2, TIMEOUT);
 
     // Then:
-    verify(commandConsumer, offsetFutureStore, future);
+    verify(commandConsumer, sequenceNumberFutureStore, future);
   }
 
   @Test
   public void shouldThrowExceptionOnTimeout() throws Exception {
     // Given:
     givenCmdStoreUpThroughPosition(0);
-    expect(offsetFutureStore.getFutureForOffset(EasyMock.anyLong())).andReturn(future);
+    expect(sequenceNumberFutureStore.getFutureForSequenceNumber(EasyMock.anyLong())).andReturn(future);
     expect(future.get(EasyMock.anyLong(), EasyMock.anyObject(TimeUnit.class)))
         .andThrow(new TimeoutException());
-    replay(future, offsetFutureStore);
+    replay(future, sequenceNumberFutureStore);
 
     try {
       // When:
@@ -371,24 +372,24 @@ public class CommandStoreTest {
     } catch (final TimeoutException e) {
       assertThat(e.getMessage(),
           is(String.format(
-              "Timeout reached while waiting for command offset of 2. (Timeout: %d ms)", TIMEOUT)));
+              "Timeout reached while waiting for command sequence number of 2. (Timeout: %d ms)", TIMEOUT)));
     }
-    verify(commandConsumer, future, offsetFutureStore);
+    verify(commandConsumer, future, sequenceNumberFutureStore);
   }
 
   @Test
   public void shouldCompleteFuturesWhenGettingNewCommands() {
     // Given:
-    offsetFutureStore.completeFuturesUpToOffset(EasyMock.anyLong());
+    sequenceNumberFutureStore.completeFuturesUpToSequenceNumber(EasyMock.anyLong());
     expectLastCall();
     expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(buildRecords());
-    replay(offsetFutureStore, commandConsumer);
+    replay(sequenceNumberFutureStore, commandConsumer);
 
     // When:
     commandStore.getNewCommands();
 
     // Then:
-    verify(offsetFutureStore);
+    verify(sequenceNumberFutureStore);
   }
 
   private void setupConsumerToReturnCommand(final CommandId commandId, final Command command) {
@@ -420,7 +421,7 @@ public class CommandStoreTest {
         commandConsumer,
         commandProducer,
         commandIdAssigner,
-        offsetFutureStore
+        sequenceNumberFutureStore
     );
   }
 

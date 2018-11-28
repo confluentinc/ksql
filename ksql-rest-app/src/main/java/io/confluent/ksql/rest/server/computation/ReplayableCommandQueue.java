@@ -36,5 +36,5 @@ public interface ReplayableCommandQueue extends Closeable {
 
   List<QueuedCommand> getRestoreCommands();
 
-  void ensureConsumedUpThrough(long offset, long timeout) throws TimeoutException;
+  void ensureConsumedUpThrough(long seqNum, long timeout) throws TimeoutException;
 }

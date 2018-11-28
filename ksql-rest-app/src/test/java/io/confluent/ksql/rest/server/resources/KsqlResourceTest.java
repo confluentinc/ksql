@@ -690,7 +690,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldNotWaitIfNoCommandTopicOffsetSpecified() throws Exception {
+  public void shouldNotWaitIfNoCommandSequenceNumberSpecified() throws Exception {
     // Given:
     final String sql = "LIST REGISTERED TOPICS;";
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), null);
@@ -707,7 +707,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldWaitIfCommandTopicOffsetSpecified() throws Exception {
+  public void shouldWaitIfCommandSequenceNumberSpecified() throws Exception {
     // Given:
     final String sql = "LIST REGISTERED TOPICS;";
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), 2L);
@@ -724,7 +724,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturn503IfTimeoutWhileWaitingForCommandTopicOffset() throws Exception {
+  public void shouldReturn503IfTimeoutWhileWaitingForCommandSequenceNumber() throws Exception {
     // Given:
     final String sql = "LIST REGISTERED TOPICS;";
     final KsqlRequest request = new KsqlRequest(sql, Collections.emptyMap(), 2L);

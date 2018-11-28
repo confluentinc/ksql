@@ -22,11 +22,11 @@ import java.time.Duration;
 
 public class QueuedCommandStatus {
   private final CommandStatusFuture commandStatusFuture;
-  private final long commandOffset;
+  private final long commandSequenceNumber;
 
   public QueuedCommandStatus(
-      final long commandOffset, final CommandStatusFuture commandStatusFuture) {
-    this.commandOffset = commandOffset;
+      final long commandSequenceNumber, final CommandStatusFuture commandStatusFuture) {
+    this.commandSequenceNumber = commandSequenceNumber;
     this.commandStatusFuture = commandStatusFuture;
   }
 
@@ -38,8 +38,8 @@ public class QueuedCommandStatus {
     return commandStatusFuture.getCommandId();
   }
 
-  public long getCommandOffset() {
-    return commandOffset;
+  public long getCommandSequenceNumber() {
+    return commandSequenceNumber;
   }
 
   public CommandStatus tryWaitForFinalStatus(final Duration timeout) throws InterruptedException {

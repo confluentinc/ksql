@@ -27,48 +27,48 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class OffsetFutureStoreTest {
+public class SequenceNumberFutureStoreTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private OffsetFutureStore offsetFutureStore;
+  private SequenceNumberFutureStore sequenceNumberFutureStore;
 
   @Before
   public void setUp() {
-    offsetFutureStore = new OffsetFutureStore();
+    sequenceNumberFutureStore = new SequenceNumberFutureStore();
   }
 
   @Test
-  public void shouldReturnFutureForNewOffset() {
+  public void shouldReturnFutureForNewSequenceNumber() {
     // When:
-    final CompletableFuture<Void> future = offsetFutureStore.getFutureForOffset(2);
+    final CompletableFuture<Void> future = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
 
     // Then:
     assertFutureIsNotCompleted(future);
   }
 
   @Test
-  public void shouldReturnFutureForExistingOffset() {
+  public void shouldReturnFutureForExistingSequenceNumber() {
     // Given:
-    final CompletableFuture<Void> existingFuture = offsetFutureStore.getFutureForOffset(2);
+    final CompletableFuture<Void> existingFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
 
     // When:
-    final CompletableFuture<Void> newFuture = offsetFutureStore.getFutureForOffset(2);
+    final CompletableFuture<Void> newFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
 
     // Then:
     assertThat(newFuture, is(sameInstance(existingFuture)));
   }
 
   @Test
-  public void shouldReturnFutureForCompletedOffset() {
+  public void shouldReturnFutureForCompletedSequenceNumber() {
     // Given:
-    final CompletableFuture<Void> firstFuture = offsetFutureStore.getFutureForOffset(2);
-    offsetFutureStore.completeFuturesUpToOffset(3);
+    final CompletableFuture<Void> firstFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
+    sequenceNumberFutureStore.completeFuturesUpToSequenceNumber(3);
     assertFutureIsCompleted(firstFuture);
 
     // When:
-    final CompletableFuture<Void> secondFuture = offsetFutureStore.getFutureForOffset(2);
+    final CompletableFuture<Void> secondFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
 
     // Then:
     assertFutureIsNotCompleted(secondFuture);
@@ -78,11 +78,11 @@ public class OffsetFutureStoreTest {
   @Test
   public void shouldCompleteFutures() {
     // Given:
-    final CompletableFuture<Void> firstFuture = offsetFutureStore.getFutureForOffset(2);
-    final CompletableFuture<Void> secondFuture = offsetFutureStore.getFutureForOffset(3);
+    final CompletableFuture<Void> firstFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
+    final CompletableFuture<Void> secondFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(3);
 
     // When:
-    offsetFutureStore.completeFuturesUpToOffset(3);
+    sequenceNumberFutureStore.completeFuturesUpToSequenceNumber(3);
 
     // Then:
     assertFutureIsCompleted(firstFuture);

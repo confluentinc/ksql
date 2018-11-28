@@ -64,10 +64,10 @@ public class WSQueryEndpointTest {
   private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest("other-sql",
       ImmutableMap.of(), null);
 
-  private static final long OFFSET = 2L;
-  private static final KsqlRequest REQUEST_WITHOUT_OFFSET = VALID_REQUEST;
-  private static final KsqlRequest REQUEST_WITH_OFFSET = new KsqlRequest("test-sql",
-      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), OFFSET);
+  private static final long SEQUENCE_NUMBER = 2L;
+  private static final KsqlRequest REQUEST_WITHOUT_SEQUENCE_NUMBER = VALID_REQUEST;
+  private static final KsqlRequest REQUEST_WITH_SEQUENCE_NUMBER = new KsqlRequest("test-sql",
+      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), SEQUENCE_NUMBER);
 
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;
@@ -317,9 +317,9 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldNotWaitIfNoOffsetSpecified() throws Exception {
+  public void shouldNotWaitIfNoSequenceNumberSpecified() throws Exception {
     // Given:
-    givenRequest(REQUEST_WITHOUT_OFFSET);
+    givenRequest(REQUEST_WITHOUT_SEQUENCE_NUMBER);
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
@@ -329,23 +329,23 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldWaitIfOffsetSpecified() throws Exception {
+  public void shouldWaitIfSequenceNumberSpecified() throws Exception {
     // Given:
-    givenRequest(REQUEST_WITH_OFFSET);
+    givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(replayableCommandQueue).ensureConsumedUpThrough(eq(OFFSET), anyLong());
+    verify(replayableCommandQueue).ensureConsumedUpThrough(eq(SEQUENCE_NUMBER), anyLong());
   }
 
   @Test
   public void shouldReturnErrorIfCommandQueueCatchupTimeout() throws Exception {
     // Given:
-    givenRequest(REQUEST_WITH_OFFSET);
+    givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
     doThrow(new TimeoutException("yikes"))
-        .when(replayableCommandQueue).ensureConsumedUpThrough(eq(OFFSET), anyLong());
+        .when(replayableCommandQueue).ensureConsumedUpThrough(eq(SEQUENCE_NUMBER), anyLong());
 
     // When:
     wsQueryEndpoint.onOpen(session, null);

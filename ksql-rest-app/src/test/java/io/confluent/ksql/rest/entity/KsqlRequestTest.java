@@ -48,27 +48,27 @@ public class KsqlRequestTest {
       + "\"streamsProperties\":{"
       + "\"" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "\":\"some-service-id\""
       + "}}";
-  private static final String A_JSON_REQUEST_WITH_OFFSET = "{"
+  private static final String A_JSON_REQUEST_WITH_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
       + "\"" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "\":\"some-service-id\""
       + "},"
-      + "\"commandOffset\":2}";
-  private static final String A_JSON_REQUEST_WITH_NULL_OFFSET = "{"
+      + "\"commandSequenceNumber\":2}";
+  private static final String A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
       + "\"" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "\":\"some-service-id\""
       + "},"
-      + "\"commandOffset\":null}";
+      + "\"commandSequenceNumber\":null}";
 
   private static final ImmutableMap<String, Object> SOME_PROPS = ImmutableMap.of(
       KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some-service-id"
   );
-  private static final long SOME_OFFSET = 2L;
+  private static final long SOME_COMMAND_NUMBER = 2L;
 
   private static final KsqlRequest A_REQUEST = new KsqlRequest("sql", SOME_PROPS, null);
-  private static final KsqlRequest A_REQUEST_WITH_OFFSET =
-      new KsqlRequest("sql", SOME_PROPS, SOME_OFFSET);
+  private static final KsqlRequest A_REQUEST_WITH_COMMAND_NUMBER =
+      new KsqlRequest("sql", SOME_PROPS, SOME_COMMAND_NUMBER);
 
   @BeforeClass
   public static void setUpClass() {
@@ -80,18 +80,18 @@ public class KsqlRequestTest {
 
   @Test
   public void shouldHandleNullStatement() {
-    assertThat(new KsqlRequest(null, SOME_PROPS, SOME_OFFSET).getKsql(), is(""));
+    assertThat(new KsqlRequest(null, SOME_PROPS, SOME_COMMAND_NUMBER).getKsql(), is(""));
   }
 
   @Test
   public void shouldHandleNullProps() {
-    assertThat(new KsqlRequest("sql", null, SOME_OFFSET).getStreamsProperties(),
+    assertThat(new KsqlRequest("sql", null, SOME_COMMAND_NUMBER).getStreamsProperties(),
         is(Collections.emptyMap()));
   }
 
   @Test
-  public void shouldHandleNullOffset() {
-    assertThat(new KsqlRequest("sql", SOME_PROPS, null).getCommandOffset(), is(Optional.empty()));
+  public void shouldHandleNullCommandNumber() {
+    assertThat(new KsqlRequest("sql", SOME_PROPS, null).getCommandSequenceNumber(), is(Optional.empty()));
   }
 
   @Test
@@ -104,18 +104,18 @@ public class KsqlRequestTest {
   }
 
   @Test
-  public void shouldDeserializeFromJsonWithOffset() {
+  public void shouldDeserializeFromJsonWithCommandNumber() {
     // When:
-    final KsqlRequest request = deserialize(A_JSON_REQUEST_WITH_OFFSET);
+    final KsqlRequest request = deserialize(A_JSON_REQUEST_WITH_COMMAND_NUMBER);
 
     // Then:
-    assertThat(request, is(A_REQUEST_WITH_OFFSET));
+    assertThat(request, is(A_REQUEST_WITH_COMMAND_NUMBER));
   }
 
   @Test
-  public void shouldDeserializeFromJsonWithNullOffset() {
+  public void shouldDeserializeFromJsonWithNullCommandNumber() {
     // When:
-    final KsqlRequest request = deserialize(A_JSON_REQUEST_WITH_NULL_OFFSET);
+    final KsqlRequest request = deserialize(A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER);
 
     // Then:
     assertThat(request, is(A_REQUEST));
@@ -127,25 +127,25 @@ public class KsqlRequestTest {
     final String jsonRequest = serialize(A_REQUEST);
 
     // Then:
-    assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_NULL_OFFSET));
+    assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER));
   }
 
   @Test
-  public void shouldSerializeToJsonWithOffset() {
+  public void shouldSerializeToJsonWithCommandNumber() {
     // When:
-    final String jsonRequest = serialize(A_REQUEST_WITH_OFFSET);
+    final String jsonRequest = serialize(A_REQUEST_WITH_COMMAND_NUMBER);
 
     // Then:
-    assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_OFFSET));
+    assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_COMMAND_NUMBER));
   }
 
   @Test
   public void shouldImplementHashCodeAndEqualsCorrectly() {
     new EqualsTester()
-        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_OFFSET),
-            new KsqlRequest("sql", SOME_PROPS, SOME_OFFSET))
-        .addEqualityGroup(new KsqlRequest("different-sql", SOME_PROPS, SOME_OFFSET))
-        .addEqualityGroup(new KsqlRequest("sql", ImmutableMap.of(), SOME_OFFSET))
+        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_COMMAND_NUMBER),
+            new KsqlRequest("sql", SOME_PROPS, SOME_COMMAND_NUMBER))
+        .addEqualityGroup(new KsqlRequest("different-sql", SOME_PROPS, SOME_COMMAND_NUMBER))
+        .addEqualityGroup(new KsqlRequest("sql", ImmutableMap.of(), SOME_COMMAND_NUMBER))
         .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, null))
         .testEquals();
   }

@@ -63,7 +63,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   private final Producer<CommandId, Command> commandProducer;
   private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, CommandStatusFuture> commandStatusMap;
-  private final OffsetFutureStore offsetFutureStore;
+  private final SequenceNumberFutureStore sequenceNumberFutureStore;
 
   public CommandStore(
       final String commandTopic,
@@ -72,7 +72,11 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
       final CommandIdAssigner commandIdAssigner
   ) {
     this(
-        commandTopic,commandConsumer, commandProducer, commandIdAssigner, new OffsetFutureStore());
+        commandTopic,
+        commandConsumer,
+        commandProducer,
+        commandIdAssigner,
+        new SequenceNumberFutureStore());
   }
 
   CommandStore(
@@ -80,7 +84,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer,
       final CommandIdAssigner commandIdAssigner,
-      final OffsetFutureStore offsetFutureStore
+      final SequenceNumberFutureStore sequenceNumberFutureStore
   ) {
     this.commandTopic = commandTopic;
     this.topicPartition = new TopicPartition(commandTopic, 0);
@@ -88,7 +92,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     this.commandProducer = commandProducer;
     this.commandIdAssigner = commandIdAssigner;
     this.commandStatusMap = Maps.newConcurrentMap();
-    this.offsetFutureStore = offsetFutureStore;
+    this.sequenceNumberFutureStore = sequenceNumberFutureStore;
 
     commandConsumer.assign(Collections.singleton(topicPartition));
   }
@@ -161,7 +165,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
    * @return The commands that have been polled from the command topic
    */
   public List<QueuedCommand> getNewCommands() {
-    completeSatisfiedOffsetFutures();
+    completeSatisfiedSequenceNumberFutures();
 
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
     commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
@@ -211,32 +215,33 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   }
 
   @Override
-  public void ensureConsumedUpThrough(final long offset, final long timeout)
+  public void ensureConsumedUpThrough(final long seqNum, final long timeout)
       throws TimeoutException {
-    final long consumerPosition = getNextConsumerOffset();
-    if (consumerPosition > offset) {
+    final long consumerPosition = getNextConsumerSequenceNumber();
+    if (consumerPosition > seqNum) {
       return;
     }
 
-    final CompletableFuture<Void> future = offsetFutureStore.getFutureForOffset(offset);
+    final CompletableFuture<Void> future =
+        sequenceNumberFutureStore.getFutureForSequenceNumber(seqNum);
     try {
       future.get(timeout, TimeUnit.MILLISECONDS);
     } catch (final ExecutionException e) {
       throw new RuntimeException(
-          "Error waiting for command offset of " + offset, e.getCause());
+          "Error waiting for command sequence number of " + seqNum, e.getCause());
     } catch (final InterruptedException e) {
       throw new RuntimeException(
-          "Interrupted while waiting for command offset of " + offset, e);
+          "Interrupted while waiting for command sequence number of " + seqNum, e);
     } catch (final TimeoutException e) {
       throw new TimeoutException(
           String.format(
-              "Timeout reached while waiting for command offset of %d. (Timeout: %d ms)",
-              offset,
+              "Timeout reached while waiting for command sequence number of %d. (Timeout: %d ms)",
+              seqNum,
               timeout));
     }
   }
 
-  private long getNextConsumerOffset() {
+  private long getNextConsumerSequenceNumber() {
     return commandConsumer.position(topicPartition);
   }
 
@@ -250,8 +255,8 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     return result;
   }
 
-  private void completeSatisfiedOffsetFutures() {
-    final long consumerPosition = getNextConsumerOffset();
-    offsetFutureStore.completeFuturesUpToOffset(consumerPosition);
+  private void completeSatisfiedSequenceNumberFutures() {
+    final long consumerPosition = getNextConsumerSequenceNumber();
+    sequenceNumberFutureStore.completeFuturesUpToSequenceNumber(consumerPosition);
   }
 }

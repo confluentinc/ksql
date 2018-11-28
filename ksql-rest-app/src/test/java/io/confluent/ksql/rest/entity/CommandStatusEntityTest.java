@@ -34,7 +34,7 @@ public class CommandStatusEntityTest {
       + "\"status\":\"SUCCESS\","
       + "\"message\":\"some success message\""
       + "},"
-      + "\"commandOffset\":0"
+      + "\"commandSequenceNumber\":0"
       + "}";
 
   private static final CommandStatusEntity ENTITY = new CommandStatusEntity(

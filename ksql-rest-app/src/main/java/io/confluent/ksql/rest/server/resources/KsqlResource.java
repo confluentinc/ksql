@@ -163,7 +163,7 @@ public class KsqlResource {
     final KsqlEntityList result = new KsqlEntityList();
 
     try {
-      CommandStoreUtil.httpWaitForCommandOffset(
+      CommandStoreUtil.httpWaitForCommandSequenceNumber(
           replayableCommandQueue, request, distributedCommandResponseTimeout);
     } catch (final KsqlRestException e) {
       throw e;
@@ -352,7 +352,7 @@ public class KsqlResource {
           queuedCommandStatus.getCommandId(),
           queuedCommandStatus.tryWaitForFinalStatus(
               Duration.ofMillis(distributedCommandResponseTimeout)),
-          queuedCommandStatus.getCommandOffset()
+          queuedCommandStatus.getCommandSequenceNumber()
       );
     } catch (final Exception e) {
       throw new RuntimeException(e);

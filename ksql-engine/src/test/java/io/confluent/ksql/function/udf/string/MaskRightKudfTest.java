@@ -45,7 +45,7 @@ public class MaskRightKudfTest {
   public void shouldThrowIfLengthIsNegative() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("mask_right requires a non-negative number");
-    final String result = udf.mask("AbCd#$123xy Z", -1);
+    udf.mask("AbCd#$123xy Z", -1);
   }
 
   @Test

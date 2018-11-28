@@ -147,6 +147,16 @@ ksql.sink.replicas
 
 The default number of replicas for the topics created by KSQL. The default is one.
 
+------------------------------------
+ksql.functions.substring.legacy.args
+------------------------------------
+
+Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details.
+
+When upgrading headless mode KSQL applications from versions 5.0.x or earlier without updating your queries that use SUBSTRING to match 
+the new 5.1 behavior, you must set this config to ``true`` to enforce the previous SUBSTRING behavior. If possible, however, we recommend
+that you update your queries accordingly instead of enabling this configuration setting.
+
 KSQL Server Settings
 --------------------
 
@@ -155,6 +165,22 @@ These configurations control the general behavior of the KSQL server. These conf
 
 .. important:: KSQL server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
                for ``ksql.streams.replication.factor`` is set in both the KSQL server and KSQL CLI, the KSQL server value is used.
+
+.. _ksql.query.persistent.active.limit:
+
+----------------------------------
+ksql.query.persistent.active.limit
+----------------------------------
+
+The maximum number of persistent queries that may be running at any given time. Applies to interactive mode only.
+Once the limit is reached, commands that try to start additional persistent queries will be rejected.
+Users may terminate existing queries before attempting to start new ones to avoid hitting the limit.
+The default is no limit.
+
+When setting up KSQL servers, it may be desirable to configure this limit to prevent users from overloading the server
+with too many queries, since throughput suffers as more queries are run simultaneously,
+and also because there is some small CPU overhead associated with starting each new query.
+See :ref:`KSQL Sizing Recommendations <important-sizing-factors>` for more details.
 
 .. _ksql-queries-file:
 

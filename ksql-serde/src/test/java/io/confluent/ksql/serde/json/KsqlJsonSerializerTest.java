@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -70,7 +71,7 @@ public class KsqlJsonSerializerTest {
     final KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
     final byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
 
-    final String jsonString = new String(bytes);
+    final String jsonString = new String(bytes, StandardCharsets.UTF_8);
     assertThat("Incorrect serialization.", jsonString, equalTo(
         "{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":[100.0],\"MAPCOL\":{\"key1\":100.0}}"));
   }
@@ -83,7 +84,7 @@ public class KsqlJsonSerializerTest {
     final KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
     final byte[] bytes = ksqlJsonDeserializer.serialize("t1", genericRow);
 
-    final String jsonString = new String(bytes);
+    final String jsonString = new String(bytes, StandardCharsets.UTF_8);
     assertThat("Incorrect serialization.", jsonString, equalTo(
         "{\"ORDERTIME\":1511897796092,\"ORDERID\":1,\"ITEMID\":\"item_1\",\"ORDERUNITS\":10.0,\"ARRAYCOL\":null,\"MAPCOL\":null}"));
   }

@@ -88,6 +88,7 @@ KSQL Documentation
 
     quickstart
     installation/index
+    concepts/index
     developer-guide/index
     operations
     capacity-planning

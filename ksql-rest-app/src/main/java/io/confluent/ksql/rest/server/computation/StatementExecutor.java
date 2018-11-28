@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -234,11 +235,19 @@ public class StatementExecutor {
       final Map<String, Object> overriddenProperties = new HashMap<>();
       overriddenProperties.putAll(command.getOverwriteProperties());
 
+      final KsqlConfig mergedConfig =
+          ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
       final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
           queries,
-          ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
+          mergedConfig,
           overriddenProperties
       );
+      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+          ksqlEngine, mergedConfig, 0)) {
+        terminateQueries(queryMetadataList);
+        QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+            ksqlEngine, mergedConfig, command.getStatement());
+      }
       for (final QueryMetadata queryMetadata : queryMetadataList) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
@@ -312,9 +321,17 @@ public class StatementExecutor {
       }
     }
 
+    final KsqlConfig mergedConfig =
+        ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+        ksqlEngine, mergedConfig,1)) {
+      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+          ksqlEngine, mergedConfig, queryString);
+    }
+
     final QueryMetadata queryMetadata = ksqlEngine.buildMultipleQueries(
         queryString,
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties()),
+        mergedConfig,
         command.getOverwriteProperties()
     ).get(0);
 
@@ -358,6 +375,13 @@ public class StatementExecutor {
     queriesWithSink.stream()
         .map(QueryId::new)
         .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));
+  }
 
+  private void terminateQueries(final List<QueryMetadata> queryMetadataList) {
+    queryMetadataList.stream()
+        .filter(q -> q instanceof PersistentQueryMetadata)
+        .map(PersistentQueryMetadata.class::cast)
+        .map(PersistentQueryMetadata::getQueryId)
+        .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));
   }
 }

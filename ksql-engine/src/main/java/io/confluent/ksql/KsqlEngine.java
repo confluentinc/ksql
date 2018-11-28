@@ -90,6 +90,7 @@ public class KsqlEngine implements Closeable {
   private static final Set<String> IMMUTABLE_PROPERTIES = ImmutableSet.<String>builder()
       .add(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
       .add(KsqlConfig.KSQL_EXT_DIR)
+      .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 
@@ -155,7 +156,13 @@ public class KsqlEngine implements Closeable {
     this.queryIdGenerator = new QueryIdGenerator();
     this.adminClient = Objects.requireNonNull(adminClient, "adminCluent can't be null");
     aggregateMetricsCollector.scheduleAtFixedRate(
-        this.engineMetrics::updateMetrics,
+        () -> {
+          try {
+            this.engineMetrics.updateMetrics();
+          } catch (final Exception e) {
+            log.info("Error updating engine metrics", e);
+          }
+        },
         1000,
         1000,
         TimeUnit.MILLISECONDS
@@ -529,7 +536,6 @@ public class KsqlEngine implements Closeable {
   public long numberOfPersistentQueries() {
     return this.livePersistentQueries.size();
   }
-
 
   @Override
   public void close() {

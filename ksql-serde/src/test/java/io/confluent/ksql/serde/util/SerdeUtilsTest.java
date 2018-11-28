@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,7 @@ public class SerdeUtilsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonBooleanToBoolean() {
-    final Boolean b = SerdeUtils.toBoolean(1);
+    SerdeUtils.toBoolean(1);
   }
 
   @Test
@@ -61,12 +61,12 @@ public class SerdeUtilsTest {
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToInt() {
-    final Integer i = SerdeUtils.toInteger("1!:)");
+    SerdeUtils.toInteger("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonIntegerToIntegr() {
-    final Object i = SerdeUtils.toInteger(true);
+    SerdeUtils.toInteger(true);
   }
 
   @Test
@@ -95,14 +95,13 @@ public class SerdeUtilsTest {
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToLong() {
-    final Long l = SerdeUtils.toLong("1!:)");
+    SerdeUtils.toLong("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleLong() {
-    final Object i = SerdeUtils.toInteger(true);
+    SerdeUtils.toInteger(true);
   }
-
 
   @Test
   public void shouldConvertToDoubleCorrectly() {
@@ -130,11 +129,11 @@ public class SerdeUtilsTest {
 
   @Test(expected = KsqlException.class)
   public void shouldNotConvertIncorrectStringToDouble() {
-    final Double d = SerdeUtils.toDouble("1!:)");
+    SerdeUtils.toDouble("1!:)");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleDouble() {
-    final Object i = SerdeUtils.toDouble(true);
+    SerdeUtils.toDouble(true);
   }
 }

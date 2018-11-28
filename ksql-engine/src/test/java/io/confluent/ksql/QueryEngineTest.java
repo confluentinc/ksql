@@ -89,4 +89,26 @@ public class QueryEngineTest {
     }
 
   }
+
+  @Test
+  public void shouldThrowExpectedExceptionForMissingTopicConfig() {
+    final QueryEngine queryEngine = new QueryEngine(ksqlEngine,
+    new CommandFactories(topicClient, schemaRegistryClient));
+    String[] statements = {
+      "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO');",
+      "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO');",
+      "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');",
+      "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');",
+    };
+    for (String statement : statements) {
+      try {
+        final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
+            statement, metaStore.clone(), true);
+        queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
+        Assert.fail();
+      } catch (final KsqlException e) {
+        assertThat(e.getMessage(), equalTo("Exception while processing statement: Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause."));
+      }
+    }
+  }
 }

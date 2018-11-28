@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.confluent.ksql.rest.entity;
 
 import static org.easymock.EasyMock.expect;
@@ -42,12 +58,12 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Test;
 
 public class QueryDescriptionTest {
-  private static Schema SCHEMA =
+  private static final Schema SCHEMA =
       SchemaBuilder.struct()
           .field("field1", SchemaBuilder.int32().build())
           .field("field2", SchemaBuilder.string().build())
           .build();
-  private static String STATEMENT = "statement";
+  private static final String STATEMENT = "statement";
 
   private static class FakeSourceNode extends StructuredDataSourceNode {
     FakeSourceNode(final String name) {
@@ -64,7 +80,7 @@ public class QueryDescriptionTest {
   private static class FakeOutputNode extends OutputNode {
     FakeOutputNode(final FakeSourceNode sourceNode) {
       super(
-          new PlanNodeId("fake"), sourceNode, SCHEMA, Optional.of(new Integer(1)),
+          new PlanNodeId("fake"), sourceNode, SCHEMA, Optional.of(1),
           new MetadataTimestampExtractionPolicy());
     }
 

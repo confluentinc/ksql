@@ -81,6 +81,7 @@ public class CommandStoreTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
   private static final Map<String, Object> OVERRIDE_PROPERTIES = Collections.emptyMap();
   private static final long TIMEOUT = 1000;
+  private static final String statementText = "test-statement";
 
   private final Consumer<CommandId, Command> commandConsumer = niceMock(Consumer.class);
   private final Producer<CommandId, Command> commandProducer = mock(Producer.class);
@@ -89,7 +90,6 @@ public class CommandStoreTest {
   private final SequenceNumberFutureStore sequenceNumberFutureStore = mock(
       SequenceNumberFutureStore.class);
   private final CompletableFuture<Void> future = niceMock(CompletableFuture.class);
-  private final String statementText = "test-statement";
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
   private final Statement statement = mock(Statement.class);

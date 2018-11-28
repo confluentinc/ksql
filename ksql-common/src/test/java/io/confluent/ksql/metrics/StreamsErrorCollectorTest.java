@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.TopicSensors.Stat;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -54,6 +55,7 @@ public class StreamsErrorCollectorTest {
     applicationId = buildApplicationId();
   }
 
+  @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @After
   public void tearDown() {
     while (appCounter > 0) {

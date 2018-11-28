@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -126,7 +126,7 @@ public class ErrorMessageUtilTest {
     }
   }
 
-  private static class RecursiveException extends Throwable {
+  private static class RecursiveException extends Exception {
 
     private RecursiveException(final String message) {
       super(message);

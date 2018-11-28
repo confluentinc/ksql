@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -66,10 +67,10 @@ public class KsqlJsonDeserializerTest {
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(6));
-    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
-    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
-    assertThat(((String) genericRow.getColumns().get(2)), equalTo("Item_1"));
-    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
+    assertThat(genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat(genericRow.getColumns().get(1), equalTo(1L));
+    assertThat(genericRow.getColumns().get(2), equalTo("Item_1"));
+    assertThat(genericRow.getColumns().get(3), equalTo(10.0));
 
   }
 
@@ -116,10 +117,10 @@ public class KsqlJsonDeserializerTest {
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(6));
-    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
-    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
-    assertThat((String) genericRow.getColumns().get(2), equalTo("Item_1"));
-    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
+    assertThat(genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat(genericRow.getColumns().get(1), equalTo(1L));
+    assertThat(genericRow.getColumns().get(2), equalTo("Item_1"));
+    assertThat(genericRow.getColumns().get(3), equalTo(10.0));
     Assert.assertNull(genericRow.getColumns().get(4));
     Assert.assertNull(genericRow.getColumns().get(5));
   }
@@ -147,11 +148,10 @@ public class KsqlJsonDeserializerTest {
         .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
     final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, false);
-    final Map<String, Object> row = new HashMap<>();
-    row.put("itemid", "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}");
-    
-    final GenericRow expected = new GenericRow(Arrays.asList("{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
-    final GenericRow genericRow = deserializer.deserialize("", "{\"itemid\":{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}}".getBytes());
+
+    final GenericRow expected = new GenericRow(Collections.singletonList(
+        "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
+    final GenericRow genericRow = deserializer.deserialize("", "{\"itemid\":{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}}".getBytes(StandardCharsets.UTF_8));
     assertThat(genericRow, equalTo(expected));
   }
 

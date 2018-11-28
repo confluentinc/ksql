@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,7 @@ import org.apache.kafka.common.TopicPartitionInfo;
  */
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
-  class FakeTopic {
+  static class FakeTopic {
     private final String topicName;
     private final int numPartitions;
     private final short replicatonFactor;

@@ -202,8 +202,6 @@ public class KsqlStructuredDataOutputNodeTest {
         new HashMap<>(),
         new MockSchemaRegistryClientFactory()::get);
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
-    EasyMock.verify();
-
   }
 
   @Test
@@ -223,8 +221,6 @@ public class KsqlStructuredDataOutputNodeTest {
         new HashMap<>(),
         new MockSchemaRegistryClientFactory()::get);
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
-    EasyMock.verify();
-
   }
 
   @Test
@@ -242,8 +238,6 @@ public class KsqlStructuredDataOutputNodeTest {
         new HashMap<>(),
         new MockSchemaRegistryClientFactory()::get);
     assertThat(schemaKStream, instanceOf(SchemaKStream.class));
-    EasyMock.verify();
-
   }
 
   private KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNode(final Serde<?> keySerde) {

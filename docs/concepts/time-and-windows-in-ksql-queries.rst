@@ -186,11 +186,12 @@ retention period controls how long KSQL waits for out-of-order or late-arriving
 records for a given window. If a record arrives after the retention period of a
 window has passed, the record is discarded and isn't processed in that window.
 
-.. Note for version 5.1
+.. note::
+
     Starting in KSQL 5.1, a *grace period* configuration determines how long
-    to wait before closing a window. Retention time is still a valid parameter
-    that defines for how long the potentially closed window is stored. This
-    enables accessing the window with interactive queries, even if it's closed.
+    to wait before closing a window. This enables accessing the window with
+    interactive queries, even if it's closed. Retention time is still a valid
+    parameter that defines for how long the potentially closed window is stored. 
 
 In the real world, late-arriving records are always possible, and your KSQL
 applications must account for them properly. The system's time semantics

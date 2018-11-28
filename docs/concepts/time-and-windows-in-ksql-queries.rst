@@ -155,14 +155,24 @@ Windows in KSQL Queries
 
 Representing time consistently enables aggregation operations on streams and
 tables, like SUM, that have distinct time boundaries. In KSQL, these boundaries
-are named *time windows*.
+are named *windows*. 
 
 .. image:: ../img/ksql-window.png
-   :alt: Diagram showing the relationship between events and time in a KSQL stream
+   :alt: Diagram showing the relationship between records and time in a KSQL stream
+
+A window has a start time and an end time, which you access in your queries by
+using the WINDOWSTART() and WINDOWEND() functions.
 
 Windowing lets you control how to group records that have the same key for
 stateful operations, like aggregations or joins, into time spans. KSQL tracks
 windows per record key.
+
+.. note::
+
+   A related operation is *grouping*, which groups all records that have the
+   same key to ensure that records are properly partitioned, or “keyed”, for
+   subsequent operations. When you use the GROUP BY clause in a query, windowing
+   enables you to further sub-group the records of a key.
 
 When using windows in your KSQL queries, aggregate functions are applied only
 to the records that occur within a specific time window. Records that arrive
@@ -199,50 +209,40 @@ semantics. In both cases, KSQL is able to handle late-arriving records properly.
 Window Types
 ============
 
-.. Crib some more content from https://docs.confluent.io/current/streams/developer-guide/dsl-api.html#windowing
+There are three ways to define time windows in KSQL: hopping windows, tumbling
+windows, and session windows. Hopping and tumbling windows are time windows,
+because they're defined by fixed durations they you specify. Session windows
+are dynamically sized based on incoming data and defined by periods of activity
+separated by gaps of inactivity.
 
-There are three ways to define time windows in KSQL.
++-----------------------------+----------------------+---------------------------------------------------------+
+| Window type                 | Behavior             | Description                                             |
++=============================+======================+=========================================================+
+| :ref:`ksql_hopping_window`  | Time-based           | Fixed-duration, overlapping windows                     |
++-----------------------------+----------------------+---------------------------------------------------------+
+| :ref:`ksql_tumbling_window` | Time-based           | Fixed-duration, non-overlapping, gap-less windows       |
++-----------------------------+----------------------+---------------------------------------------------------+
+| :ref:`ksql_session_window`  | Session-based        | Dynamically-sized, non-overlapping, data-driven windows |
++-----------------------------+----------------------+---------------------------------------------------------+
 
 .. image:: ../img/ksql-window-aggregation.png
    :alt: Diagram showing three types of time windows in KSQL streams: tumbling, hopping, and session
 
-Tumbling Window
----------------
-
-All time windows are the same size and adjacent to each other, which
-means that whenever a window ends, the next window starts.
-
-.. image:: ../img/ksql-time-windows-tumbling.png
-   :alt: Windowing a KSQL stream of data records with a tumbling window
-
-For example, if you want to compute the the five highest-value orders
-per zip code per hour in an ``orders`` stream, you might run a query like this:
-
-.. code:: sql
-
-    SELECT orderzip_code, TOPK(order_total, 5) FROM orders
-      WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY order_zipcode;
-
-Here's another example: to detect potential credit card fraud in an
-``authorization_attempts`` stream, you might run a query for the number of
-authorization attempts on a particular card that's greater than three, during
-a time interval of five seconds.
-
-.. code:: sql
-
-    SELECT card_number, count(*) FROM authorization_attempts
-      WINDOW TUMBLING (SIZE 5 SECONDS)
-      GROUP BY card_number HAVING COUNT(*) > 3;
-
-The tumbling window's start time is inclusive, but the end time is exclusive.
-This is important for non-overlapping windows, in which each record must be
-contained in exactly one window.
+.. _ksql_hopping_window:
 
 Hopping Window
 --------------
 
-All time windows are the same size, but they might overlap, depending on the
-length of time specified in the ADVANCE BY property.
+Hopping windows are based on time intervals. They model fixed-sized, possibly
+overlapping windows. A hopping window is defined by two properties: the window’s
+duration and its advance, or “hop”, interval. The advance interval specifies
+how far a window moves forward in time relative to the previous window. For
+example, you can configure a hopping window with a duration of five minutes and
+an advance interval of one minute. Because hopping windows can overlap, and
+usually they do, a record can belong to more than one such window.
+
+All hopping windows have the same duration, but they might overlap, depending
+on the length of time specified in the ADVANCE BY property.
 
 .. image:: ../img/ksql-time-windows-hopping.png
    :alt: Windowing a KSQL stream of data records with a hopping window
@@ -253,20 +253,81 @@ run a query like this:
 
 .. code:: sql
 
-    SELECT regionid, COUNT(*) FROM pageviews 
-      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)
-      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
+    SELECT regionid, COUNT(*) FROM pageviews \
+      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
+      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6' \
       GROUP BY regionid;
 
 The hopping window's start time is inclusive, but the end time is exclusive.
 This is important for non-overlapping windows, in which each record must be
 contained in exactly one window.
 
+.. _ksql_tumbling_window:
+
+Tumbling Window
+---------------
+
+Tumbling windows are a special case of hopping windows. Like hopping windows,
+tumbling windows are based on time intervals. They model fixed-size,
+non-overlapping, gap-less windows. A tumbling window is defined by a single
+property: the window’s duration. A tumbling window is a hopping window whose
+window duration is equal to its advance interval. Since tumbling windows never
+overlap, a record will belong to one and only one window.
+
+All tumbling windows are the same size and adjacent to each other, which
+means that whenever a window ends, the next window starts.
+
+.. image:: ../img/ksql-time-windows-tumbling.png
+   :alt: Windowing a KSQL stream of data records with a tumbling window
+
+For example, if you want to compute the the five highest-value orders
+per zip code per hour in an ``orders`` stream, you might run a query like this:
+
+.. code:: sql
+
+    SELECT orderzip_code, TOPK(order_total, 5) FROM orders \
+      WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY order_zipcode;
+
+Here's another example: to detect potential credit card fraud in an
+``authorization_attempts`` stream, you might run a query for the number of
+authorization attempts on a particular card that's greater than three, during
+a time interval of five seconds.
+
+.. code:: sql
+
+    SELECT card_number, count(*) FROM authorization_attempts \
+      WINDOW TUMBLING (SIZE 5 SECONDS) \
+      GROUP BY card_number HAVING COUNT(*) > 3;
+
+The tumbling window's start time is inclusive, but the end time is exclusive.
+This is important for non-overlapping windows, in which each record must be
+contained in exactly one window.
+
+.. _ksql_session_window:
+
 Session Window
 --------------
 
-A new window starts if the last event that arrived is further back in time
-than a specified activity gap / inactivity gap.
+A session window aggregates records into a session, which represents a period
+of activity separated by a specified gap of inactivity, or “idleness”. Any
+records with timestamps that occur within the inactivity gap of existing
+sessions are merged into the existing sessions. If a record's timestamp occurs
+outside of the session gap, a new session is created.
+
+A new session window starts if the last record that arrived is further back in
+time than the specified inactivity gap.
+
+Session windows are different from the other window types, because:
+
+* KSQL tracks all session windows independently across keys, so windows of
+  different keys typically have different start and end times.
+* Session window durations vary. Even windows for the same key typically have
+  different durations.
+
+Session windows are especially useful for user behavior analysis. Session-based
+analyses range from simple metrics, like counting user visits on a news website
+or social platform, to more complex metrics, like customer-conversion funnel
+and event flows.
 
 .. image:: ../img/ksql-session-windows.gif
    :alt: Windowing a KSQL stream of data records with session windows
@@ -278,25 +339,27 @@ per region:
 
 .. code:: sql
 
-    SELECT regionid, COUNT(*) FROM pageviews
-      WINDOW SESSION (60 SECONDS)
+    SELECT regionid, COUNT(*) FROM pageviews \
+      WINDOW SESSION (60 SECONDS) \
       GROUP BY regionid;
 
 The start and end times for a session window are both inclusive, in contrast to
 time windows.
 
-* A session window contains at least one record. It's not possible for a session
-  window to have zero records.
-* If a session window contains exactly one record, the record's timestamp
-  (via ROWTIME) is identical to the window's own start and end times. Access
-  these by using WINDOWSTART() and WINDOWEND().
-* If a session window contains 2 or more records, then the "earliest/oldest"
-  record's timestamp (ROWTIME) is identical to the window's start time
-  (WINDOWSTART()), and the "latest/newest" record's timestamp (ROWTIME) is
-  identical to the window's end time (WINDOWEND()).
+A session window contains at least one record. It's not possible for a session
+window to have zero records.
+
+If a session window contains exactly one record, the record's ROWTIME timestamp
+is identical to the window's own start and end times. Access these by using the
+WINDOWSTART() and WINDOWEND() functions.
+
+If a session window contains two or more records, then the earliest/oldest
+record's ROWTIME timestamp is identical to the window's start time, and the
+latest/newest record's ROWTIME timestamp is identical to the window's end
+time.
 
 Windowed Joins
---------------
+==============
 
 KSQL supports using windows in JOIN queries by using the WITHIN clause.
 
@@ -305,10 +368,10 @@ For example, to find orders that have shipped within the last hour from an
 
 .. code:: sql
 
-    SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
-      FROM new_orders o
-      INNER JOIN shipments s
-        WITHIN 1 HOURS
+    SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse \
+      FROM new_orders o \
+      INNER JOIN shipments s \
+        WITHIN 1 HOURS \
         ON o.order_id = s.order_id;
 
 Next Steps

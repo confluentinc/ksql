@@ -81,6 +81,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.util.Collection;
@@ -125,6 +126,8 @@ public class KsqlResourceTest {
   private KsqlEngine ksqlEngine;
   @Mock(MockType.NICE)
   private CommandStore commandStore;
+  @Mock(MockType.NICE)
+  private ActivenessRegistrar activenessRegistrar;
   private KsqlResource ksqlResource;
 
   @Before
@@ -495,8 +498,9 @@ public class KsqlResourceTest {
   public void shouldReturn5xxOnSystemError() {
     // Given:
     givenMockEngine(mockEngine ->
-        EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
-            .andThrow(new RuntimeException("internal error")));
+          EasyMock.expect(mockEngine.parseStatements(EasyMock.anyString()))
+              .andThrow(new RuntimeException("internal error"))
+        );
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -753,6 +757,20 @@ public class KsqlResourceTest {
         not(hasItems(KsqlConfig.SSL_CONFIG_NAMES.toArray(new String[0]))));
   }
 
+  @Test
+  public void shouldUpdateTheLastRequestTime() {
+    activenessRegistrar.updateLastRequestTime();
+    EasyMock.expectLastCall();
+
+    EasyMock.replay(activenessRegistrar);
+
+    // When:
+    ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap()));
+
+    // Then:
+    EasyMock.verify(activenessRegistrar);
+  }
+
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Table sourceTable(final String name) {
     final KsqlTable table = (KsqlTable) ksqlResource
@@ -863,7 +881,7 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
+        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT, activenessRegistrar);
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

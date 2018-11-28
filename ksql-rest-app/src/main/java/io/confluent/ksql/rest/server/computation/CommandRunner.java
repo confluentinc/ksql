@@ -110,7 +110,7 @@ public class CommandRunner implements Runnable, Closeable {
     closed = true;
     try {
       commandStore.close();
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException(e);
     }
   }

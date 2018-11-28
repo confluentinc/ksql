@@ -19,36 +19,36 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseMetricsReporter;
 import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.common.Collector;
+import io.confluent.support.metrics.common.kafka.KafkaUtilities;
 import io.confluent.support.metrics.common.kafka.ZkClientProvider;
-import io.confluent.support.metrics.common.time.TimeUtils;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 public class KsqlVersionChecker extends BaseMetricsReporter {
 
   private final Collector metricsCollector;
 
-  private AtomicBoolean shuttingDown = new AtomicBoolean(false);
+  private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   public KsqlVersionChecker(
-      final String threadName,
-      final boolean isDaemon,
       final BaseSupportConfig ksqlVersionCheckerConfig,
-      final Runtime serverRuntime,
       final KsqlModuleType moduleType,
-      final boolean enableSettlingTime
+      final boolean enableSettlingTime,
+      final Supplier<Boolean> activenessStatusSupplier
   ) {
     super(
-        threadName,
-        isDaemon,
+        "KsqlVersionCheckerAgent",
+        true,
         ksqlVersionCheckerConfig,
-        null,
+        new KafkaUtilities(),
         new KsqlVersionCheckerResponseHandler(),
         enableSettlingTime
     );
+    final Runtime serverRuntime = Runtime.getRuntime();
     Objects.requireNonNull(serverRuntime, "serverRuntime is required");
     serverRuntime.addShutdownHook(new Thread(() -> shuttingDown.set(true)));
-    this.metricsCollector = new BasicCollector(moduleType, new TimeUtils());
+    this.metricsCollector = new BasicCollector(moduleType, activenessStatusSupplier);
   }
 
   @Override

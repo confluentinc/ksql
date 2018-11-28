@@ -16,85 +16,97 @@
 
 package io.confluent.ksql.version.metrics.collector;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.version.metrics.KsqlVersionMetrics;
 import io.confluent.support.metrics.common.Version;
-import io.confluent.support.metrics.common.time.Clock;
-import io.confluent.support.metrics.common.time.TimeUtils;
-import java.util.Collection;
-import java.util.EnumSet;
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
+import java.time.Clock;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(Parameterized.class)
+@RunWith(MockitoJUnitRunner.class)
 public class BasicCollectorTest {
 
-  public class MockClock implements Clock {
-    private long currentTime = 0;
+  private static final KsqlModuleType MODULE_TYPE = KsqlModuleType.SERVER;
 
-    public MockClock() {
-    }
-
-    public long currentTimeMs() {
-      return currentTime;
-    }
-
-    public void setCurrentTimeMillis(final long timeMillis) {
-      currentTime = timeMillis;
-    }
-  }
-
-  @Parameterized.Parameters
-  public static Collection<KsqlModuleType> data() {
-    return EnumSet.allOf(KsqlModuleType.class);
-  }
-
-  @Parameterized.Parameter
-  public KsqlModuleType moduleType;
-
-  private MockClock mockClock;
-  private TimeUtils timeUtils;
+  private BasicCollector basicCollector;
+  @Mock
+  private Clock clock;
+  @Mock
+  private Supplier<Boolean> activenessStatusSupplier;
 
   @Before
   public void setUp() throws Exception {
-    mockClock = new MockClock();
-    timeUtils = new TimeUtils(mockClock);
-  }
-
-  @Test
-  public void testGetCollector() {
-    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
-
-    final KsqlVersionMetrics expectedMetrics = new KsqlVersionMetrics();
-    expectedMetrics.setTimestamp(timeUtils.nowInUnixTime());
-    expectedMetrics.setConfluentPlatformVersion(Version.getVersion());
-    expectedMetrics.setKsqlComponentType(moduleType.name());
-
-    // should match because we don't advance the clock
-    Assert.assertThat(basicCollector.collectMetrics(), CoreMatchers.equalTo(expectedMetrics));
+    when(clock.millis()).thenReturn(12345L);
+    when(activenessStatusSupplier.get()).thenReturn(true);
+    basicCollector = new BasicCollector(MODULE_TYPE, activenessStatusSupplier, clock);
   }
 
   @Test
   public void testCollectMetricsAssignsCurrentTime() {
-    Long currentTimeSec = 1000l;
+    // Given:
+    final long t1 = 1000L;
+    final long t2 = 1001L;
+    when(clock.millis())
+        .thenReturn(TimeUnit.SECONDS.toMillis(t1))
+        .thenReturn(TimeUnit.SECONDS.toMillis(t2));
 
-    mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
-    final BasicCollector basicCollector = new BasicCollector(moduleType, timeUtils);
+    // When:
+    KsqlVersionMetrics metrics = basicCollector.collectMetrics();
 
-    currentTimeSec += 12300l;
-    mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
-    KsqlVersionMetrics metrics = (KsqlVersionMetrics) basicCollector.collectMetrics();
-    assertEquals(currentTimeSec, metrics.getTimestamp());
+    // Then:
+    assertThat(metrics.getTimestamp(), is(t1));
 
-    currentTimeSec += 734l;
-    mockClock.setCurrentTimeMillis(currentTimeSec * 1000);
-    metrics = (KsqlVersionMetrics) basicCollector.collectMetrics();
-    assertEquals(currentTimeSec, metrics.getTimestamp());
+    metrics = basicCollector.collectMetrics();
+    assertThat(metrics.getTimestamp(), is(t2));
   }
 
+  @Test
+  public void shouldSetActivenessToTrue() {
+    // Given:
+    when(activenessStatusSupplier.get()).thenReturn(true);
+
+    // When:
+    final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
+
+    // Then:
+    assertThat(metrics.getIsActive(), is(true));
+  }
+
+  @Test
+  public void shouldSetActivenessToFalse() {
+    // Given:
+    when(activenessStatusSupplier.get()).thenReturn(false);
+
+    // When:
+    final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
+
+    // Then:
+    assertThat(metrics.getIsActive(), is(false));
+  }
+
+  @Test
+  public void shouldReportVersion() {
+    // When:
+    final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
+
+    // Then:
+    assertThat(metrics.getConfluentPlatformVersion(), is(Version.getVersion()));
+  }
+
+  @Test
+  public void shouldReportComponentType() {
+    // When:
+    final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
+
+    // Then:
+    assertThat(metrics.getKsqlComponentType(), is(MODULE_TYPE.name()));
+  }
 }

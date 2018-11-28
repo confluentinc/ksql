@@ -66,7 +66,7 @@ public class KsqlContext {
         schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        ksqlConfig,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         adminClient,
         KsqlEngineMetrics::new
     );

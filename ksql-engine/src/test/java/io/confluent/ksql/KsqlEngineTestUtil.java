@@ -42,7 +42,7 @@ public final class KsqlEngineTestUtil {
         schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        initializationKsqlConfig,
+        initializationKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         adminClient,
         KsqlEngineMetrics::new
     );
@@ -62,7 +62,7 @@ public final class KsqlEngineTestUtil {
         schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        initializationKsqlConfig,
+        initializationKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         adminClient,
         ignored -> engineMetrics
     );

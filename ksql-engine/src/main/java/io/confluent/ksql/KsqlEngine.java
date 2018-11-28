@@ -132,7 +132,7 @@ public class KsqlEngine implements Closeable {
         new KsqlSchemaRegistryClientFactory(ksqlConfig)::get,
         clientSupplier,
         new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         adminClient,
         KsqlEngineMetrics::new
     );
@@ -142,7 +142,7 @@ public class KsqlEngine implements Closeable {
              final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
              final KafkaClientSupplier clientSupplier,
              final MetaStore metaStore,
-             final KsqlConfig initializationKsqlConfig,
+             final String serviceId,
              final AdminClient adminClient,
              final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
@@ -152,7 +152,7 @@ public class KsqlEngine implements Closeable {
         schemaRegistryClientFactory, "schemaRegistryClientFactory can't be null").get(),
         "Schema registry can't be null");
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
-    this.serviceId = initializationKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.ddlCommandExec = new DdlCommandExec(this.metaStore);
     this.ddlCommandFactory = new CommandFactories(topicClient, schemaRegistryClient);
     this.queryEngine = new QueryEngine(topicClient, schemaRegistryClientFactory);
@@ -309,7 +309,7 @@ public class KsqlEngine implements Closeable {
           );
         }
       } else {
-        final QueryMetadata query = queryEngine.buildPhysicalPlans(
+        final QueryMetadata query = queryEngine.buildPhysicalPlan(
             logicalPlan,
             ksqlConfig,
             overriddenProperties,

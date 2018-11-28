@@ -18,28 +18,25 @@ package io.confluent.ksql;
 
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
-import static org.easymock.EasyMock.anyBoolean;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.niceMock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.same;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -56,11 +53,9 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -92,19 +87,33 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
 
-  private final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
-  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
-      () -> schemaRegistryClient;
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+
+  private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
+
   private final KsqlConfig ksqlConfig
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
   private final KafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
   private final AdminClient adminClient
       = kafkaClientSupplier.getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
+
+  private MetaStore metaStore;
+  @Mock
+  private AdminClient mockAdminClient;
+  @Spy
+  private final KsqlTopicSerDe jsonKsqlSerde = new KsqlJsonTopicSerDe();
+  @Spy
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
+      () -> schemaRegistryClient;
+
   private KsqlEngine ksqlEngine;
 
   @Rule
@@ -112,6 +121,9 @@ public class KsqlEngineTest {
 
   @Before
   public void setUp() {
+    metaStore = MetaStoreFixture
+        .getNewMetaStore(new InternalFunctionRegistry(), () -> jsonKsqlSerde);
+
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         topicClient,
         schemaRegistryClientFactory,
@@ -519,59 +531,32 @@ public class KsqlEngineTest {
   @Test
   public void shouldCloseAdminClientOnClose() {
     // Given:
-    final AdminClient adminClient = niceMock(AdminClient.class);
-    adminClient.close();
-    expectLastCall();
-    replay(adminClient);
     ksqlEngine.close();
-    final KsqlEngine localKsqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         new FakeKafkaTopicClient(),
         schemaRegistryClientFactory,
         new DefaultKafkaClientSupplier(),
         metaStore,
         ksqlConfig,
-        adminClient);
+        mockAdminClient);
 
     // When:
-    localKsqlEngine.close();
+    ksqlEngine.close();
 
     // Then:
-    verify(adminClient);
+    verify(mockAdminClient).close();
   }
 
   @Test
   public void shouldUseSerdeSupplierToBuildQueries() {
-    final KsqlTopicSerDe mockKsqlSerde = mock(KsqlTopicSerDe.class);
-    this.ksqlEngine.close();
-    final MetaStore metaStore =
-        MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry(), () -> mockKsqlSerde);
-    final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        topicClient,
-        schemaRegistryClientFactory,
-        kafkaClientSupplier,
-        metaStore,
-        ksqlConfig,
-        adminClient
+    // When:
+    ksqlEngine.execute(
+        "create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
+
+    // Then:
+    verify(jsonKsqlSerde, atLeastOnce()).getGenericRowSerde(
+        any(), any(), anyBoolean(), eq(schemaRegistryClientFactory)
     );
-
-    expect(
-        mockKsqlSerde.getGenericRowSerde(
-            anyObject(org.apache.kafka.connect.data.Schema.class),
-            anyObject(KsqlConfig.class),
-            anyBoolean(),
-            same(schemaRegistryClientFactory)))
-        .andDelegateTo(new KsqlJsonTopicSerDe())
-        .atLeastOnce();
-
-    expect(mockKsqlSerde.getSerDe()).andReturn(DataSourceSerDe.JSON);
-
-    replay(mockKsqlSerde);
-
-    ksqlEngine
-        .execute("create table bar as select * from test2;", ksqlConfig, Collections.emptyMap());
-
-    verify(mockKsqlSerde);
-    ksqlEngine.close();
   }
 
   @Test
@@ -770,11 +755,12 @@ public class KsqlEngineTest {
     final long numberOfLiveQueries = ksqlEngine.numberOfLiveQueries();
     final long numPersistentQueries = ksqlEngine.numberOfPersistentQueries();
 
-    final List<PreparedStatement<?>> statements = parse("SET 'auto.offset.reset' = 'earliest';"
-        + "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
-        + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
-        + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
-        + "DROP TABLE TEST3;");
+    final List<PreparedStatement<?>> statements = parse(
+        "SET 'auto.offset.reset' = 'earliest';"
+            + "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
+            + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
+            + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
+            + "DROP TABLE TEST3;");
 
     // When:
     ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
@@ -786,6 +772,56 @@ public class KsqlEngineTest {
     assertThat(metaStore.getSource("FOO"), is(nullValue()));
     assertThat("live", ksqlEngine.numberOfLiveQueries(), is(numberOfLiveQueries));
     assertThat("peristent", ksqlEngine.numberOfPersistentQueries(), is(numPersistentQueries));
+  }
+
+  @Test
+  public void shouldNotCreateAnyTopicsDuringTryExecute() {
+    // Given:
+    topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, Collections.emptyMap());
+
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
+            + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
+            + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
+            + "DROP TABLE TEST3;");
+
+    // When:
+    ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
+
+    // Then:
+    assertThat("no topics should be created during a tryExecute call",
+        topicClient.createdTopics().keySet(), is(empty()));
+  }
+
+  @Test
+  public void shouldNotIncrementQueryIdCounterDuringTryExecute() {
+    // Given:
+    final String sql = "create table foo as select * from test2;";
+    final List<PreparedStatement<?>> statements = parse(sql);
+
+    // When:
+    ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
+
+    // Then:
+    final List<QueryMetadata> queries = ksqlEngine.execute(sql, ksqlConfig, Collections.emptyMap());
+    assertThat("query id of actual execute should not be affected by previous tryExecute",
+        ((PersistentQueryMetadata)queries.get(0)).getQueryId(), is(new QueryId("CTAS_FOO_0")));
+  }
+
+  @Test
+  public void shouldNotRegisterAnySchemasDuringTryExecute() throws Exception {
+    // Given:
+    final String sql =
+        "create table foo WITH(VALUE_FORMAT='AVRO') as select * from test2;\n"
+        + "create stream foo2 WITH(VALUE_FORMAT='AVRO') as select * from orders;\n";
+
+    final List<PreparedStatement<?>> statements = parse(sql);
+
+    // When:
+    ksqlEngine.tryExecute(statements, ksqlConfig, Collections.emptyMap());
+
+    // Then:
+    verify(schemaRegistryClient, never()).register(any(), any());
   }
 
   private void givenTopicsExist(final String... topics) {

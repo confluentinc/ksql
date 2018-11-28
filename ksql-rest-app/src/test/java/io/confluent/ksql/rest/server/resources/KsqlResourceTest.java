@@ -360,7 +360,9 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result.getMessage(), is(
         "Invalid result type. Your SELECT query produces a TABLE. " +
-            "Please use CREATE TABLE AS SELECT statement instead."));
+            "Please use CREATE TABLE AS SELECT statement instead.\n"
+            + "Statement: "
+            + "CREATE STREAM s1 AS SELECT * FROM test_table;"));
   }
 
   @Test
@@ -373,7 +375,9 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result.getMessage(), is(
         "Invalid result type. Your SELECT query produces a TABLE. " +
-            "Please use CREATE TABLE AS SELECT statement instead."));
+            "Please use CREATE TABLE AS SELECT statement instead.\n"
+            + "Statement: "
+            + "CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;"));
   }
 
   @Test
@@ -385,7 +389,9 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result.getMessage(), containsString(
         "Invalid result type. Your SELECT query produces a STREAM. "
-            + "Please use CREATE STREAM AS SELECT statement instead."));
+            + "Please use CREATE STREAM AS SELECT statement instead.\n"
+            + "Statement: "
+            + "CREATE TABLE s1 AS SELECT * FROM test_stream;"));
   }
 
   @Test

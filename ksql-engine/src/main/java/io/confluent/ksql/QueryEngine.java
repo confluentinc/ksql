@@ -158,7 +158,7 @@ class QueryEngine {
     return logicalPlan;
   }
 
-  QueryMetadata buildPhysicalPlans(
+  QueryMetadata buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,

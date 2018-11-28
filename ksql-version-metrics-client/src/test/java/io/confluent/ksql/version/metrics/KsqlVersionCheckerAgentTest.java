@@ -156,7 +156,7 @@ public class KsqlVersionCheckerAgentTest {
   }
 
   @Test
-  public void shouldReportInActiveIfThereAreNoActiveQueriesAndNoRequests() {
+  public void shouldReportInactiveIfThereAreNoActiveQueriesAndNoRequests() {
     // Given:
     final Supplier<Boolean> activenessCheck = getActivenessCheck();
 

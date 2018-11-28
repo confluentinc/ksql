@@ -105,7 +105,8 @@ public class WSQueryEndpoint {
     this.exec = Objects.requireNonNull(exec, "exec");
     this.queryPublisher = Objects.requireNonNull(queryPublisher, "queryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
-    this.activenessRegistrar = activenessRegistrar;
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
   }
 
   @SuppressWarnings("unused")

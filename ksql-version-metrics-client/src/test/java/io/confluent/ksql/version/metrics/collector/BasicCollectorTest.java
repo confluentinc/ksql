@@ -74,10 +74,10 @@ public class BasicCollectorTest {
     when(activenessStatusSupplier.get()).thenReturn(true);
 
     // When:
-    final KsqlVersionMetrics merics = basicCollector.collectMetrics();
+    final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
 
     // Then:
-    assertThat(merics.getIsActive(), is(true));
+    assertThat(metrics.getIsActive(), is(true));
   }
 
   @Test
@@ -86,27 +86,27 @@ public class BasicCollectorTest {
     when(activenessStatusSupplier.get()).thenReturn(false);
 
     // When:
-    final KsqlVersionMetrics merics = basicCollector.collectMetrics();
+    final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
 
     // Then:
-    assertThat(merics.getIsActive(), is(false));
+    assertThat(metrics.getIsActive(), is(false));
   }
 
   @Test
   public void shouldReportVersion() {
     // When:
-    final KsqlVersionMetrics merics = basicCollector.collectMetrics();
+    final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
 
     // Then:
-    assertThat(merics.getConfluentPlatformVersion(), is(Version.getVersion()));
+    assertThat(metrics.getConfluentPlatformVersion(), is(Version.getVersion()));
   }
 
   @Test
   public void shouldReportComponentType() {
     // When:
-    final KsqlVersionMetrics merics = basicCollector.collectMetrics();
+    final KsqlVersionMetrics metrics = basicCollector.collectMetrics();
 
     // Then:
-    assertThat(merics.getKsqlComponentType(), is(MODULE_TYPE.name()));
+    assertThat(metrics.getKsqlComponentType(), is(MODULE_TYPE.name()));
   }
 }

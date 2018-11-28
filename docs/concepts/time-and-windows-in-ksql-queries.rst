@@ -150,6 +150,8 @@ By creating a custom timestamp extractor class, you can enforce different notion
 or semantics of time, depending on the requirements of your business logic. For
 more information see :ref:`streams_developer-guide_timestamp-extractor`.
 
+.. _windows_in_ksql_queries:
+
 Windows in KSQL Queries
 ***********************
 
@@ -373,6 +375,8 @@ For example, to find orders that have shipped within the last hour from an
       INNER JOIN shipments s \
         WITHIN 1 HOURS \
         ON o.order_id = s.order_id;
+
+For more information on joins, see :ref:`join-streams-and-tables`.
 
 Next Steps
 **********

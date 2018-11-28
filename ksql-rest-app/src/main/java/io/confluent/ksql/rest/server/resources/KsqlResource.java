@@ -28,6 +28,8 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -80,6 +82,7 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -540,7 +543,29 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides
   ) {
     final PreparedStatement<?> withSchema = addInferredSchema(statement);
-    ksqlEngine.tryExecute(ImmutableList.of(withSchema), ksqlConfig, propertyOverrides);
+    final List<QueryMetadata> queries = ksqlEngine
+        .tryExecute(ImmutableList.of(withSchema), ksqlConfig, propertyOverrides);
+    if (queries.isEmpty()) {
+      return;
+    }
+
+    final QueryMetadata query = queries.get(0);
+
+    if (statement.getStatement() instanceof CreateStreamAsSelect
+        && query.getDataSourceType() == DataSourceType.KTABLE) {
+      throw new KsqlStatementException("Invalid result type. "
+          + "Your SELECT query produces a TABLE. "
+          + "Please use CREATE TABLE AS SELECT statement instead.",
+          statement.getStatementText());
+    }
+
+    if (statement.getStatement() instanceof CreateTableAsSelect
+        && query.getDataSourceType() == DataSourceType.KSTREAM) {
+      throw new KsqlStatementException("Invalid result type. "
+          + "Your SELECT query produces a STREAM. "
+          + "Please use CREATE STREAM AS SELECT statement instead.",
+          statement.getStatementText());
+    }
   }
 
   private CommandStatusEntity distributeStatement(

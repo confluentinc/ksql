@@ -49,6 +49,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -222,8 +223,18 @@ public class KsqlEngine implements Closeable {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
+    final List<PreparedStatement<?>> toExecute = statements.stream()
+        .map(statement -> {
+              if (statement.getStatement() instanceof QueryContainer) {
+                final Query query = ((QueryContainer) statement.getStatement()).getQuery();
+                return new PreparedStatement<Statement>(statement.getStatementText(), query);
+              }
+              return statement;
+            }
+        ).collect(Collectors.toList());
+
     final List<QueryMetadata> queries = doExecute(
-        statements, ksqlConfig, overriddenProperties, false);
+        toExecute, ksqlConfig, overriddenProperties, false);
 
     queries.forEach(QueryMetadata::close);
 

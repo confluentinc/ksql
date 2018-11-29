@@ -32,7 +32,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
 
-  private final boolean enableSettingTime;
+  private final boolean enableSettlingTime;
 
   private final Clock clock;
   private final VersionCheckerFactory versionCheckerFactory;
@@ -73,13 +73,15 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
       log.warn(legalDisclaimerProactiveSupportDisabled());
       return;
     }
-    final KsqlVersionChecker ksqlVersionChecker = versionCheckerFactory.create(
-        ksqlVersionCheckerConfig,
-        moduleType,
-        enableSettingTime,
-        this::isActive
-    );
+
     try {
+      final KsqlVersionChecker ksqlVersionChecker = versionCheckerFactory.create(
+          ksqlVersionCheckerConfig,
+          moduleType,
+          enableSettingTime,
+          this::isActive
+      );
+
       ksqlVersionChecker.init();
       ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
           -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
@@ -135,7 +137,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   }
 
   private boolean hasRecentRequests() {
-    return (System.currentTimeMillis() - this.requestTime) < MAX_INTERVAL;
+    return (clock.millis() - this.requestTime) < MAX_INTERVAL;
   }
 
   private boolean isActive() {

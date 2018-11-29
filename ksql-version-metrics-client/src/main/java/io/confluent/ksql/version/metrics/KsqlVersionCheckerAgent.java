@@ -32,7 +32,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
 
-  private final boolean enableSettlingTime;
+  private final boolean enableSettingTime;
 
   private final Clock clock;
   private final VersionCheckerFactory versionCheckerFactory;

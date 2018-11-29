@@ -81,32 +81,32 @@ public class KsqlVersionCheckerAgentTest {
   }
 
   @Test
-  public void shouldStartTheAgentCorrectly () {
-      // When:
-      ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
+  public void shouldStartTheAgentCorrectly() {
+    // When:
+    ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
 
-      // Then:
-      final InOrder inOrder = Mockito.inOrder(ksqlVersionChecker);
-      inOrder.verify(ksqlVersionChecker).init();
-      inOrder.verify(ksqlVersionChecker).setUncaughtExceptionHandler(any());
-      inOrder.verify(ksqlVersionChecker).start();
-    }
+    // Then:
+    final InOrder inOrder = Mockito.inOrder(ksqlVersionChecker);
+    inOrder.verify(ksqlVersionChecker).init();
+    inOrder.verify(ksqlVersionChecker).setUncaughtExceptionHandler(any());
+    inOrder.verify(ksqlVersionChecker).start();
+  }
 
-    @Test(expected = Exception.class)
-    public void shouldFailIfVersionCheckerFails () {
-        // Given:
-        doThrow(new Exception("FOO")).when(ksqlVersionChecker).start();
+  @Test(expected = Exception.class)
+  public void shouldFailIfVersionCheckerFails() {
+    // Given:
+    doThrow(new Exception("FOO")).when(ksqlVersionChecker).start();
 
-        // When:
-        ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
-      }
+    // When:
+    ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
+  }
 
   @Test
   public void shouldCreateKsqlVersionCheckerWithCorrectConfigArg() {
-          // When:
-          ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
+    // When:
+    ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
 
-          // Then:
+    // Then:
     verify(versionCheckerFactory).create(configCaptor.capture(), any(), anyBoolean(), any());
     assertThat(configCaptor.getValue().getProperties().getProperty("foo"), equalTo("bar"));
   }
@@ -189,6 +189,6 @@ public class KsqlVersionCheckerAgentTest {
     when(clock.millis()).thenReturn(at);
     ksqlVersionCheckerAgent.updateLastRequestTime();
     when(clock.millis()).thenReturn(NOW);
-        }
+  }
 
 }

@@ -181,7 +181,6 @@ public class KsqlResource {
     this.ksqlEngine = ksqlEngine;
     this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
-    this.registerKsqlStatementTasks();
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar cannot be null.");
   }
@@ -190,7 +189,6 @@ public class KsqlResource {
   public Response handleKsqlStatements(final KsqlRequest request) {
     activenessRegistrar.updateLastRequestTime();
 
-    activenessRegistrar.updateLastRequestTime();
     try {
       final List<PreparedStatement<?>> statements = parseStatements(request.getKsql());
 

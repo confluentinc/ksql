@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
@@ -61,9 +62,11 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
+import junit.framework.AssertionFailedError;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -89,7 +92,7 @@ public class StreamedQueryResourceTest {
   private KafkaTopicClient mockKafkaTopicClient;
   @Mock(MockType.NICE)
   private StatementParser mockStatementParser;
-  @Mock(MockType.NICE)
+  @Mock
   private ReplayableCommandQueue replayableCommandQueue;
   @Mock(MockType.NICE)
   private ActivenessRegistrar activenessRegistrar;
@@ -134,6 +137,57 @@ public class StreamedQueryResourceTest {
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
     assertThat(errorMessage.getMessage(), containsString("some error message"));
+  }
+
+  @Test
+  public void shouldNotWaitIfCommandSequenceNumberSpecified() throws Exception {
+    // Given:
+    replayableCommandQueue.ensureConsumedUpThrough(anyLong(), anyLong());
+    expectLastCall().andThrow(new AssertionFailedError()).anyTimes();
+
+    replay(replayableCommandQueue);
+
+    // When:
+    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+
+    // Then:
+    verify(replayableCommandQueue);
+  }
+
+  @Test
+  public void shouldWaitIfCommandSequenceNumberSpecified() throws Exception {
+    // Given:
+    replayableCommandQueue.ensureConsumedUpThrough(anyLong(), anyLong());
+    expectLastCall();
+
+    replay(replayableCommandQueue);
+
+    // When:
+    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+
+    // Then:
+    verify(replayableCommandQueue);
+  }
+
+  @Test
+  public void shouldReturn503IfTimeoutWhileWaitingForCommandSequenceNumber() throws Exception {
+    // Given:
+    replayableCommandQueue.ensureConsumedUpThrough(anyLong(), anyLong());
+    expectLastCall().andThrow(new TimeoutException("whoops"));
+
+    replay(replayableCommandQueue);
+
+    // When:
+    final Response response = testResource
+        .streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(Response.Status.SERVICE_UNAVAILABLE.getStatusCode()));
+    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    assertThat(
+        errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT));
+    assertThat(errorMessage.getMessage(), equalTo("whoops"));
   }
 
   @SuppressWarnings("unchecked")

@@ -91,7 +91,7 @@ public class StreamedQueryResource {
           replayableCommandQueue, request, disconnectCheckInterval.toMillis());
       statement = statementParser.parseSingleStatement(ksql);
     } catch (final KsqlRestException e) {
-      throw e;
+      return e.getResponse();
     } catch (IllegalArgumentException | KsqlException e) {
       return Errors.badRequest(e);
     }

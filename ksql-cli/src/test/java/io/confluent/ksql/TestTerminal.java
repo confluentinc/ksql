@@ -19,6 +19,7 @@ package io.confluent.ksql;
 import io.confluent.ksql.cli.console.KsqlTerminal;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import org.jline.terminal.Terminal;
@@ -80,12 +81,7 @@ public class TestTerminal implements KsqlTerminal {
   }
 
   @Override
-  public void printHowToInterruptMsg() {
-    // Ignore
-  }
-
-  @Override
-  public void clearStatusMsg() {
-    // Ignore
+  public StatusClosable setStatusMessage(final String message) {
+    return () -> {};
   }
 }

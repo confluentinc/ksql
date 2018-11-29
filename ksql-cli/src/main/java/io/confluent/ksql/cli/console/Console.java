@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.cli.console.table.Table;
@@ -208,9 +209,9 @@ public final class Console implements Closeable {
     terminal.clearScreen();
   }
 
-  public abstract void printHowToInterruptMsg();
-
-  public abstract void clearStatusMsg();
+  public StatusClosable setStatusMessage(final String message) {
+    return terminal.setStatusMessage(message);
+  }
 
   public void handle(final Signal signal, final SignalHandler signalHandler) {
     terminal.handle(signal, signalHandler);

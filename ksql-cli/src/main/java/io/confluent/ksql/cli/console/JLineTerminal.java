@@ -20,28 +20,42 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.Status;
 
 class JLineTerminal implements KsqlTerminal {
 
+  private static final AttributedString DEFAULT_STATUS_MSG =
+      new AttributedString("", AttributedStyle.DEFAULT);
+
   private final org.jline.terminal.Terminal terminal;
   private final JLineReader lineReader;
+  private final Function<Terminal, Status> statusFactory;
 
   JLineTerminal(
       final Predicate<String> cliLinePredicate,
       final Path historyFilePath
   ) {
+    this(cliLinePredicate, historyFilePath, Status::getStatus);
+  }
+
+  JLineTerminal(
+      final Predicate<String> cliLinePredicate,
+      final Path historyFilePath,
+      final Function<Terminal, Status> statusFactory
+  ) {
     this.terminal = buildTerminal();
     this.lineReader = new JLineReader(this.terminal, historyFilePath, cliLinePredicate);
+    this.statusFactory = Objects.requireNonNull(statusFactory, "statusFactory");
   }
 
   @Override
@@ -87,22 +101,6 @@ class JLineTerminal implements KsqlTerminal {
   }
 
   @Override
-  public void printHowToInterruptMsg() {
-    final Status statusBar = Status.getStatus(terminal);
-    final AttributedStringBuilder sb = new AttributedStringBuilder();
-    sb.style(AttributedStyle.INVERSE);
-    sb.append("Press CTRL-C to interrupt");
-    statusBar.update(Arrays.asList(sb.toAttributedString()));
-  }
-
-  @Override
-  public void clearStatusMsg() {
-    final Status statusBar = Status.getStatus(terminal);
-    statusBar.update(Arrays.asList(new AttributedString("", AttributedStyle.DEFAULT)));
-    statusBar.reset();
-    statusBar.redraw();
-  }
-
   public List<HistoryEntry> getHistory() {
     final List<HistoryEntry> history = new ArrayList<>();
     lineReader.getHistory()
@@ -110,10 +108,20 @@ class JLineTerminal implements KsqlTerminal {
     return history;
   }
 
+  @Override
+  public StatusClosable setStatusMessage(final String message) {
+    updateStatusBar(new AttributedString(message, AttributedStyle.INVERSE));
+    return () -> updateStatusBar(DEFAULT_STATUS_MSG);
+  }
+
+  private void updateStatusBar(final AttributedString message) {
+    final Status statusBar = statusFactory.apply(terminal);
+    statusBar.update(Collections.singletonList(message));
+  }
+
   private static Terminal buildTerminal() {
-    final Terminal terminal;
     try {
-      terminal = TerminalBuilder.builder().system(true).build();
+      final Terminal terminal = TerminalBuilder.builder().system(true).build();
 
       // Ignore ^C when not reading a line
       terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);

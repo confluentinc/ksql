@@ -42,13 +42,19 @@ import javax.ws.rs.core.StreamingOutput;
 @Produces(MediaType.APPLICATION_JSON)
 public class MockStreamedQueryResource {
   private final List<TestStreamWriter> writers = new java.util.LinkedList<>();
+  private long responseDelay = 0;
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Response streamQuery(final KsqlRequest request) {
+  public Response streamQuery(final KsqlRequest request) throws Exception {
+    Thread.sleep(responseDelay);
     final TestStreamWriter testStreamWriter = new TestStreamWriter();
     writers.add(testStreamWriter);
     return Response.ok().entity(testStreamWriter).build();
+  }
+
+  public void setResponseDelay(final long delay) {
+    responseDelay = delay;
   }
 
   public List<TestStreamWriter> getWriters() { return writers; }

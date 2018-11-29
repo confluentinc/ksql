@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -39,7 +40,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
@@ -49,7 +49,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
@@ -59,7 +58,6 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,12 +95,36 @@ public class KsqlRestClientTest {
     assertThat(ksqlEntityList.get(0), is(instanceOf(ExecutionPlan.class)));
   }
 
-
   @Test
   public void testStreamRowFromServer() throws InterruptedException {
     // Given:
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse = ksqlRestClient.makeQueryRequest
-        ("Select *");
+    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+        ksqlRestClient.makeQueryRequest("Select *");
+
+    final ReceiverThread receiver = new ReceiverThread(queryResponse);
+
+    final MockStreamedQueryResource.TestStreamWriter writer = getResponseWriter();
+
+    // When:
+    writer.enq("hello");
+    writer.enq("world");
+    writer.enq("{\"row\":null,\"errorMessage\":null,\"finalMessage\":\"Limit Reached\"}");
+    writer.finished();
+
+    // Then:
+    assertThat(receiver.getRows(), contains(
+        StreamedRow.row(new GenericRow(ImmutableList.of("hello"))),
+        StreamedRow.row(new GenericRow(ImmutableList.of("world"))),
+        StreamedRow.finalMessage("Limit Reached")));
+  }
+
+  @Test
+  public void shouldHandleSlowResponsesFromServer() throws InterruptedException {
+    // Given:
+    givenResponsesDelayedBy(Duration.ofSeconds(3));
+
+    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+        ksqlRestClient.makeQueryRequest("Select *");
 
     final ReceiverThread receiver = new ReceiverThread(queryResponse);
 
@@ -376,10 +398,15 @@ public class KsqlRestClientTest {
     ksqlRestClient = new KsqlRestClient(client, "http://0.0.0.0", Collections.emptyMap());
   }
 
+  private void givenResponsesDelayedBy(final Duration delay) {
+    mockApplication.getStreamedQueryResource().setResponseDelay(delay.toMillis());
+  }
+
   private TestStreamWriter getResponseWriter() {
     final MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
-    assertThat(sqr.getWriters(), hasSize(1));
-    return sqr.getWriters().get(0);
+    // There can be multiple writers, due to some requests timing out and retrying.
+    // The last is the one we want:
+    return Iterables.getLast(sqr.getWriters());
   }
 
   private static Thread givenStreamWillCloseIn(final Duration duration, final QueryStream stream) {
@@ -419,12 +446,6 @@ public class KsqlRestClientTest {
       }, "receiver-thread");
       thread.setDaemon(true);
       thread.start();
-    }
-
-    private void waitForFirstRow() {
-      while (rows.isEmpty()) {
-        Thread.yield();
-      }
     }
 
     private List<StreamedRow> getRows() throws InterruptedException {

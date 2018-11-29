@@ -32,7 +32,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
   private static final long MAX_INTERVAL = TimeUnit.DAYS.toMillis(1);
 
 
-  private final boolean enableSettingTime;
+  private final boolean enableSettlingTime;
 
   private final Clock clock;
   private final VersionCheckerFactory versionCheckerFactory;
@@ -52,10 +52,10 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
 
   KsqlVersionCheckerAgent(
       final Supplier<Boolean> activeQuerySupplier,
-      final boolean enableSettingTime,
+      final boolean enableSettlingTime,
       final Clock clock,
       final VersionCheckerFactory versionCheckerFactory) {
-    this.enableSettingTime = enableSettingTime;
+    this.enableSettlingTime = enableSettlingTime;
     this.activeQuerySupplier = Objects.requireNonNull(activeQuerySupplier, "activeQuerySupplier");
     this.clock = Objects.requireNonNull(clock, "clock");
     this.versionCheckerFactory =
@@ -78,7 +78,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
       final KsqlVersionChecker ksqlVersionChecker = versionCheckerFactory.create(
           ksqlVersionCheckerConfig,
           moduleType,
-          enableSettingTime,
+          enableSettlingTime,
           this::isActive
       );
 

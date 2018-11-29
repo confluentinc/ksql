@@ -353,7 +353,7 @@ public final class Console implements Closeable {
   }
 
   @SuppressWarnings("ConstantConditions")
-  private String schemaToTypeString(final SchemaInfo schema) {
+  private static String schemaToTypeString(final SchemaInfo schema) {
     // For now just dump the whole type out into 1 string.
     // In the future we should consider a more readable format
     switch (schema.getType()) {
@@ -378,7 +378,7 @@ public final class Console implements Closeable {
     }
   }
 
-  private String formatFieldType(final FieldInfo field, final String keyField) {
+  private static String formatFieldType(final FieldInfo field, final String keyField) {
 
     if (field.getName().equals("ROWTIME") || field.getName().equals("ROWKEY")) {
       return String.format("%-16s %s", schemaToTypeString(field.getSchema()), "(system)");

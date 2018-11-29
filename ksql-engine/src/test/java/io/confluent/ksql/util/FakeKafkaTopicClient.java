@@ -78,18 +78,30 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     }
   }
 
-  private Map<String, FakeTopic> topicMap = new HashMap<>();
+  private final Map<String, FakeTopic> topicMap = new HashMap<>();
+  private final Map<String, FakeTopic> createdTopics = new HashMap<>();
+
+  public void preconditionTopicExists(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor,
+      final Map<String, ?> configs) {
+    topicMap.put(topic, createFakeTopic(topic, numPartitions, replicationFactor, configs));
+  }
 
   @Override
   public void createTopic(final String topic, final int numPartitions, final short replicationFactor, final Map<String, ?> configs) {
-    if (!topicMap.containsKey(topic)) {
-      final TopicCleanupPolicy cleanUpPolicy =
-          CLEANUP_POLICY_COMPACT.equals(configs.get(COMPRESSION_TYPE_CONFIG))
-          ? TopicCleanupPolicy.COMPACT
-          : TopicCleanupPolicy.DELETE;
-
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicationFactor, cleanUpPolicy));
+    if (topicMap.containsKey(topic)) {
+      return;
     }
+
+    final FakeTopic info = createFakeTopic(topic, numPartitions, replicationFactor, configs);
+    topicMap.put(topic, info);
+    createdTopics.put(topic, info);
+  }
+
+  public Map<String, FakeTopic> createdTopics() {
+    return createdTopics;
   }
 
   @Override
@@ -114,7 +126,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     return listTopicNames()
         .stream()
-        .filter(n -> topicNames.contains(n))
+        .filter(topicNames::contains)
         .collect(
             Collectors.toMap(n -> n, n -> topicMap.get(n).getDescription()));
   }
@@ -143,5 +155,15 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
+  }
+
+  private static FakeTopic createFakeTopic(final String topic, final int numPartitions,
+      final short replicationFactor, final Map<String, ?> configs) {
+    final TopicCleanupPolicy cleanUpPolicy =
+        CLEANUP_POLICY_COMPACT.equals(configs.get(COMPRESSION_TYPE_CONFIG))
+            ? TopicCleanupPolicy.COMPACT
+            : TopicCleanupPolicy.DELETE;
+
+    return new FakeTopic(topic, numPartitions, replicationFactor, cleanUpPolicy);
   }
 }

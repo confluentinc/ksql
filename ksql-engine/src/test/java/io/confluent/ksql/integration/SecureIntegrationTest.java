@@ -272,7 +272,7 @@ public class SecureIntegrationTest {
   }
 
   private void assertCanRunRepartitioningKsqlQuery() throws Exception {
-    assertCanRunKsqlQuery("CREATE STREAM %s AS SELECT itemid, count(*) "
+    assertCanRunKsqlQuery("CREATE TABLE %s AS SELECT itemid, count(*) "
                           + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
                           outputTopic, INPUT_STREAM);
   }
@@ -335,7 +335,7 @@ public class SecureIntegrationTest {
                                            + "kafka_topic='%s' , "
                                            + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
 
-    ksqlEngine.buildMultipleQueries(
+    ksqlEngine.execute(
         ordersStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
@@ -344,7 +344,7 @@ public class SecureIntegrationTest {
     final String query = String.format(queryString, params);
 
     final QueryMetadata queryMetadata = ksqlEngine
-        .buildMultipleQueries(query, ksqlConfig, Collections.emptyMap()).get(0);
+        .execute(query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();

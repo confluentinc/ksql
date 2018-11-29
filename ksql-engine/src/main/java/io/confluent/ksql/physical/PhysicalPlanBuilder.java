@@ -278,8 +278,10 @@ public class PhysicalPlanBuilder {
 
   private void sinkSetUp(final KsqlStructuredDataOutputNode outputNode,
                          final StructuredDataSource sinkDataSource) {
-    if (updateMetastore && outputNode.isDoCreateInto()) {
-      metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+    if (outputNode.isDoCreateInto()) {
+      if (updateMetastore) {
+        metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+      }
     } else {
       final StructuredDataSource structuredDataSource =
           metaStore.getSource(sinkDataSource.getName());

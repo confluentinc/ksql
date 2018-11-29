@@ -7,7 +7,7 @@
       "name": "group by field",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', KEY='data', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
+        "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "d1", "value": "d1", "timestamp": 0},
@@ -28,7 +28,7 @@
       "name": "group by fields",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2, f1;"
+        "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "1,a", "timestamp": 0},
@@ -49,7 +49,7 @@
       "name": "group by field with re-key",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
+        "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
@@ -70,7 +70,7 @@
       "name": "group by with aggregate arithmetic",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT data, COUNT(*)*2 AS COUNT FROM TEST GROUP BY DATA;"
+        "CREATE TABLE OUTPUT AS SELECT data, COUNT(*)*2 AS COUNT FROM TEST GROUP BY DATA;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
@@ -87,7 +87,7 @@
       "name": "group by function",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "some string", "timestamp": 0},
@@ -110,7 +110,7 @@
       "name": "group by json field",
       "statements": [
         "CREATE STREAM TEST (data STRUCT<field VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT data->field AS FIELD, COUNT(*) AS COUNT FROM TEST GROUP BY data->field;"
+        "CREATE TABLE OUTPUT AS SELECT data->field AS FIELD, COUNT(*) AS COUNT FROM TEST GROUP BY data->field;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"data": {"field": "Something"}}, "timestamp": 0},
@@ -131,7 +131,7 @@
       "name": "group by ROWKEY",
       "statements": [
         "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT ROWKEY, COUNT(*) AS COUNT FROM TEST GROUP BY ROWKEY;"
+        "CREATE TABLE OUTPUT AS SELECT ROWKEY, COUNT(*) AS COUNT FROM TEST GROUP BY ROWKEY;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
@@ -152,7 +152,7 @@
       "name": "group by constant",
       "statements": [
         "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY 1;"
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY 1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
@@ -173,7 +173,7 @@
       "name": "group by missing matching select element",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY data;"
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY data;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
@@ -190,7 +190,7 @@
       "name": "group by with expression not in select",
       "statements": [
         "CREATE STREAM TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT d1, COUNT(*) AS COUNT FROM TEST GROUP BY d2;"
+        "CREATE TABLE OUTPUT AS SELECT d1, COUNT(*) AS COUNT FROM TEST GROUP BY d2;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
@@ -203,7 +203,7 @@
       "name": "group by with function not in select",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 1);"
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 1);"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",

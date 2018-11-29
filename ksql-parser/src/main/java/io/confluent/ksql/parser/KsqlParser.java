@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.DataSourceExtractor;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -61,11 +62,11 @@ public class KsqlParser {
     }
   }
 
-  public static final class PreparedStatement {
+  public static final class PreparedStatement<T extends Statement> {
     private final String statementText;
-    private final Statement statement;
+    private final T statement;
 
-    public PreparedStatement(final String statementText, final Statement statement) {
+    public PreparedStatement(final String statementText, final T statement) {
       this.statementText = Objects.requireNonNull(statementText, "statementText");
       this.statement = Objects.requireNonNull(statement, "statement");
     }
@@ -74,22 +75,38 @@ public class KsqlParser {
       return statementText;
     }
 
-    public Statement getStatement() {
+    public T getStatement() {
       return statement;
+    }
+
+    @Override
+    public String toString() {
+      return statementText;
     }
   }
 
-  public List<PreparedStatement> buildAst(
+  public List<PreparedStatement<?>> buildAst(
       final String sql,
       final MetaStore metaStore) {
 
     return buildAst(sql, metaStore, Function.identity());
   }
 
+  public List<PreparedStatement<?>> buildAst(
+      final String sql,
+      final MetaStore metaStore,
+      final Consumer<? super PreparedStatement<?>> mapper) {
+
+    return buildAst(sql, metaStore, stmt -> true, stmt -> {
+      mapper.accept(stmt);
+      return stmt;
+    });
+  }
+
   public <T> List<T> buildAst(
       final String sql,
       final MetaStore metaStore,
-      final Function<PreparedStatement, T> mapper) {
+      final Function<? super PreparedStatement<?>, T> mapper) {
 
     return buildAst(sql, metaStore, stmt -> true, mapper);
   }
@@ -98,7 +115,7 @@ public class KsqlParser {
       final String sql,
       final MetaStore metaStore,
       final Predicate<ParsedStatement> filter,
-      final Function<PreparedStatement, T> mapper) {
+      final Function<? super PreparedStatement<?>, T> mapper) {
 
     return getStatements(sql)
         .stream()
@@ -121,7 +138,7 @@ public class KsqlParser {
     }
   }
 
-  private PreparedStatement prepareStatement(
+  private PreparedStatement<?> prepareStatement(
       final ParsedStatement parsedStatement,
       final MetaStore metaStore) {
 
@@ -136,9 +153,13 @@ public class KsqlParser {
         statement = new StatementRewriteForStruct(statement, dataSourceExtractor)
             .rewriteForStruct();
       }
-      return new PreparedStatement(parsedStatement.getStatementText(), statement);
+      return new PreparedStatement<>(parsedStatement.getStatementText(), statement);
     } catch (final ParseFailedException e) {
-      throw e;
+      if (!e.getSqlStatement().isEmpty()) {
+        throw e;
+      }
+      throw new ParseFailedException(
+          e.getRawMessage(), parsedStatement.statementText, e.getCause());
     } catch (final Exception e) {
       throw new ParseFailedException(
           "Failed to prepare statement: " + e.getMessage(), parsedStatement.statementText, e);

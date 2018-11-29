@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,7 @@ public class WSQueryEndpoint {
   private final StatementParser statementParser;
   private final KsqlEngine ksqlEngine;
   private final ListeningScheduledExecutorService exec;
+  private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher queryPublisher;
   private final PrintTopicPublisher topicPublisher;
 
@@ -74,10 +76,16 @@ public class WSQueryEndpoint {
       final ObjectMapper mapper,
       final StatementParser statementParser,
       final KsqlEngine ksqlEngine,
-      final ListeningScheduledExecutorService exec
+      final ListeningScheduledExecutorService exec,
+      final ActivenessRegistrar activenessRegistrar
   ) {
-    this(ksqlConfig, mapper, statementParser, ksqlEngine, exec,
-        WSQueryEndpoint::startQueryPublisher, WSQueryEndpoint::startPrintPublisher);
+    this(ksqlConfig,
+        mapper,
+        statementParser,
+        ksqlEngine, exec,
+        WSQueryEndpoint::startQueryPublisher,
+        WSQueryEndpoint::startPrintPublisher,
+        activenessRegistrar);
   }
 
   WSQueryEndpoint(
@@ -87,7 +95,8 @@ public class WSQueryEndpoint {
       final KsqlEngine ksqlEngine,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher queryPublisher,
-      final PrintTopicPublisher topicPublisher
+      final PrintTopicPublisher topicPublisher,
+      final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -96,6 +105,8 @@ public class WSQueryEndpoint {
     this.exec = Objects.requireNonNull(exec, "exec");
     this.queryPublisher = Objects.requireNonNull(queryPublisher, "queryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
   }
 
   @SuppressWarnings("unused")
@@ -139,6 +150,7 @@ public class WSQueryEndpoint {
 
   private void validateVersion(final Session session) {
     final Map<String, List<String>> parameters = session.getRequestParameterMap();
+    activenessRegistrar.updateLastRequestTime();
 
     final List<String> versionParam = parameters.getOrDefault(
         Versions.KSQL_V1_WS_PARAM, Collections.singletonList(Versions.KSQL_V1_WS));

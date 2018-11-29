@@ -65,6 +65,8 @@ Windows are tracked per record key. In join operations, KSQL uses a windowing
 window boundary. Old records in the state store are purged after the specified
 window retention period.
 
+For more information on windows, see :ref:`windows_in_ksql_queries`.
+
 Join Requirements
 *****************
 

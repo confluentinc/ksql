@@ -16,30 +16,18 @@
 
 package io.confluent.ksql.parser.exception;
 
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 
-public class ParseFailedException extends KsqlException {
-
-  private final String sqlStatement;
+public class ParseFailedException extends KsqlStatementException {
 
   public ParseFailedException(final String message) {
-    super(message);
-    this.sqlStatement = "";
-  }
-
-  public ParseFailedException(final String message, final Throwable throwable) {
-    this(message, "", throwable);
+    super(message, "");
   }
 
   public ParseFailedException(
       final String message,
       final String sqlStatement,
-      final Throwable throwable) {
-    super(message, throwable);
-    this.sqlStatement = sqlStatement;
-  }
-
-  public String getSqlStatement() {
-    return sqlStatement;
+      final Throwable cause) {
+    super(message, sqlStatement, cause);
   }
 }

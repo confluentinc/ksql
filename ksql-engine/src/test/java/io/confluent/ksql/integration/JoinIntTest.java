@@ -19,6 +19,7 @@ package io.confluent.ksql.integration;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.KsqlTestContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
@@ -70,10 +71,10 @@ public class JoinIntTest {
     // turn caching off to improve join consistency
     ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
     ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-    ksqlContext = KsqlContext.create(new KsqlConfig(ksqlStreamConfigProps),
+    ksqlContext = KsqlTestContext.create(new KsqlConfig(ksqlStreamConfigProps),
                                      testHarness.schemaRegistryClientFactory);
 
-    /**
+    /*
      * Setup test data
      */
     testHarness.createTopic(itemTableTopicJson);
@@ -103,7 +104,7 @@ public class JoinIntTest {
   }
 
   @After
-  public void after() throws Exception {
+  public void after() {
     ksqlContext.close();
     testHarness.stop();
   }
@@ -286,7 +287,7 @@ public class JoinIntTest {
 
   }
 
-  private void createStreams() throws Exception {
+  private void createStreams() {
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
                                   + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, "
                                   + "KEYVALUEMAP map<varchar, double>) "

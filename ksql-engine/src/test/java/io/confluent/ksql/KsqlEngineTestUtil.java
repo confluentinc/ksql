@@ -21,7 +21,6 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -43,9 +42,9 @@ public final class KsqlEngineTestUtil {
         schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        initializationKsqlConfig,
+        initializationKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         adminClient,
-        KsqlEngine::createKsqlEngineMetrics
+        KsqlEngineMetrics::new
     );
   }
 
@@ -63,7 +62,7 @@ public final class KsqlEngineTestUtil {
         schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        initializationKsqlConfig,
+        initializationKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         adminClient,
         ignored -> engineMetrics
     );

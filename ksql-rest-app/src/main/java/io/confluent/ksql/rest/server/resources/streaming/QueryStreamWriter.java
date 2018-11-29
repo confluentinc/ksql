@@ -58,7 +58,7 @@ class QueryStreamWriter implements StreamingOutput {
       final ObjectMapper objectMapper
   ) throws Exception {
     final QueryMetadata queryMetadata =
-        ksqlEngine.buildMultipleQueries(
+        ksqlEngine.execute(
             queryString, ksqlConfig, overriddenProperties).get(0);
     this.objectMapper = objectMapper;
     if (!(queryMetadata instanceof QueuedQueryMetadata)) {

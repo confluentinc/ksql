@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.KsqlTestContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.text.SimpleDateFormat;
@@ -59,7 +60,7 @@ public class StreamsSelectAndProjectIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start(Collections.emptyMap());
-    ksqlContext = KsqlContext.create(
+    ksqlContext = KsqlTestContext.create(
         testHarness.ksqlConfig,
         testHarness.schemaRegistryClientFactory);
     testHarness.createTopic(jsonTopicName);
@@ -89,7 +90,7 @@ public class StreamsSelectAndProjectIntTest {
 
 
   @Test
-  public void testTimestampColumnSelectionJson() throws Exception {
+  public void testTimestampColumnSelectionJson() {
 
     testTimestampColumnSelection(
         "ORIGINALSTREAM_JSON",
@@ -100,7 +101,7 @@ public class StreamsSelectAndProjectIntTest {
   }
 
   @Test
-  public void testTimestampColumnSelectionAvro() throws Exception {
+  public void testTimestampColumnSelectionAvro() {
 
     testTimestampColumnSelection(
         "ORIGINALSTREAM_AVRO",
@@ -111,7 +112,7 @@ public class StreamsSelectAndProjectIntTest {
   }
 
   @Test
-  public void testSelectProjectKeyTimestampJson() throws Exception {
+  public void testSelectProjectKeyTimestampJson() {
     testSelectProjectKeyTimestamp("PROJECT_KEY_TIMESTAMP_JSON",
                                   jsonStreamName,
                                   DataSource.DataSourceSerDe.JSON,
@@ -119,7 +120,7 @@ public class StreamsSelectAndProjectIntTest {
   }
 
   @Test
-  public void testSelectProjectKeyTimestampAvro() throws Exception {
+  public void testSelectProjectKeyTimestampAvro() {
     testSelectProjectKeyTimestamp("PROJECT_KEY_TIMESTAMP_AVRO",
                                   avroStreamName,
                                   DataSource.DataSourceSerDe.AVRO,
@@ -127,28 +128,28 @@ public class StreamsSelectAndProjectIntTest {
   }
 
   @Test
-  public void testSelectProjectJson() throws Exception {
+  public void testSelectProjectJson() {
     testSelectProject("PROJECT_STREAM_JSON",
                       jsonStreamName,
                       DataSource.DataSourceSerDe.JSON);
   }
 
   @Test
-  public void testSelectProjectAvro() throws Exception {
+  public void testSelectProjectAvro() {
     testSelectProject("PROJECT_STREAM_AVRO",
                       avroStreamName,
                       DataSource.DataSourceSerDe.AVRO);
   }
 
   @Test
-  public void testSelectStarJson() throws Exception {
+  public void testSelectStarJson() {
     testSelectStar("EASYORDERS_JSON",
                    jsonStreamName,
                    DataSource.DataSourceSerDe.JSON);
   }
 
   @Test
-  public void testSelectStarAvro() throws Exception {
+  public void testSelectStarAvro() {
     testSelectStar("EASYORDERS_AVRO",
                    avroStreamName,
                    DataSource.DataSourceSerDe.AVRO);
@@ -156,21 +157,21 @@ public class StreamsSelectAndProjectIntTest {
 
 
   @Test
-  public void testSelectWithFilterJson() throws Exception {
+  public void testSelectWithFilterJson() {
     testSelectWithFilter("BIGORDERS_JSON",
                          jsonStreamName,
                          DataSource.DataSourceSerDe.JSON);
   }
 
   @Test
-  public void testSelectWithFilterAvro() throws Exception {
+  public void testSelectWithFilterAvro() {
     testSelectWithFilter("BIGORDERS_AVRO",
                          avroStreamName,
                          DataSource.DataSourceSerDe.AVRO);
   }
 
   @Test
-  public void shouldSkipBadData() throws Exception {
+  public void shouldSkipBadData() {
     testHarness.createTopic(jsonTopicName);
     testHarness.produceRecord(jsonTopicName, "bad", "something that is not json");
     testSelectWithFilter("BIGORDERS_JSON1",
@@ -179,7 +180,7 @@ public class StreamsSelectAndProjectIntTest {
   }
 
   @Test
-  public void shouldSkipBadDataAvro() throws Exception {
+  public void shouldSkipBadDataAvro() {
     testHarness.createTopic(avroTopicName);
     testHarness.produceRecord(avroTopicName, "bad", "something that is not avro");
     testSelectWithFilter("BIGORDERS_AVRO1",

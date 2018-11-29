@@ -56,4 +56,12 @@ public class FieldInfo {
   public int hashCode() {
     return Objects.hash(name, schema);
   }
+
+  @Override
+  public String toString() {
+    return "FieldInfo{"
+        + "name='" + name + '\''
+        + ", schema=" + schema
+        + '}';
+  }
 }

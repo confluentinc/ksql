@@ -82,7 +82,6 @@ public class RestApiTest {
     config.put(KsqlRestConfig.INSTALL_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     config.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "rest_api_test_service");
 
-
     testHarness.start(config);
 
     startRestServer(testHarness.allConfigs());

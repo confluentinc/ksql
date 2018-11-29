@@ -154,7 +154,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return result;
   }
 
-  private boolean shouldBeCompacted(final SchemaKStream result) {
+  private static boolean shouldBeCompacted(final SchemaKStream result) {
     return (result instanceof SchemaKTable)
            && !((SchemaKTable<?>) result).hasWindowedKey();
   }
@@ -212,7 +212,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     ));
   }
 
-  private void createSinkTopic(
+  private static void createSinkTopic(
       final String kafkaTopicName,
       final KafkaTopicClient kafkaTopicClient,
       final boolean isCompacted,
@@ -238,7 +238,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return outputProperties;
   }
 
-  public KsqlTopicSerDe getTopicSerde() {
+  private KsqlTopicSerDe getTopicSerde() {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 

@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.KsqlTestContext;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
@@ -129,7 +130,7 @@ public class UdfIntTest {
   public void before() {
     resultStreamName = "OUTPUT-" + COUNTER.getAndIncrement();
 
-    ksqlContext = KsqlContext.create(
+    ksqlContext = KsqlTestContext.create(
         TEST_HARNESS.ksqlConfig, () -> TEST_HARNESS.schemaRegistryClient);
 
     UdfLoaderUtil.load(ksqlContext.getMetaStore());

@@ -168,7 +168,7 @@ public class SqlFormatterTest {
     assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
     assertThat("not literal escaping failure", sql, containsString("NOLIT STRING"));
     assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
-    final List<PreparedStatement> statements = new KsqlParser().buildAst(sql,
+    final List<PreparedStatement<?>> statements = new KsqlParser().buildAst(sql,
         MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry()));
     assertFalse("formatted sql parsing error", statements.isEmpty());
   }

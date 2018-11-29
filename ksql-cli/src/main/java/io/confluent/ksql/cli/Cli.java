@@ -16,7 +16,10 @@
 
 package io.confluent.ksql.cli;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -43,7 +46,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -265,10 +267,7 @@ public class Cli implements Closeable {
     final String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
     final String fileContent;
     try {
-      fileContent = new String(
-          Files.readAllBytes(Paths.get(schemaFilePath)),
-          StandardCharsets.UTF_8
-      );
+      fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)), UTF_8);
     } catch (final IOException e) {
       throw new KsqlException(
           " Could not read statements from the provided script file " + schemaFilePath + ": "
@@ -337,7 +336,8 @@ public class Cli implements Closeable {
     if (!queryResponse.isSuccessful()) {
       terminal.printErrorMessage(queryResponse.getErrorMessage());
     } else {
-      try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
+      try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+          StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
         streamResults(queryStream);
       }
     }
@@ -397,10 +397,9 @@ public class Cli implements Closeable {
         restClient.makePrintTopicRequest(printTopic);
 
     if (topicResponse.isSuccessful()) {
-      try (Scanner topicStreamScanner = new Scanner(
-          topicResponse.getResponse(),
-          StandardCharsets.UTF_8.name()
-      )) {
+      try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse(), UTF_8.name());
+          StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")
+      ) {
         final Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
           while (!Thread.currentThread().isInterrupted() && topicStreamScanner.hasNextLine()) {
             final String line = topicStreamScanner.nextLine();

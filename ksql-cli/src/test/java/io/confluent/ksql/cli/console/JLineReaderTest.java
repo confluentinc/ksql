@@ -19,7 +19,7 @@ package io.confluent.ksql.cli.console;
 import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasSize;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -188,7 +188,7 @@ public class JLineReaderTest {
   public void shouldHandleMultiLineWithoutContinuationChar() throws Exception {
     // Given:
     final JLineReader reader = createReaderForInput(
-        "select * \n\t"
+        "select *\n\t"
             + "from foo;\n"
     );
 
@@ -211,11 +211,26 @@ public class JLineReaderTest {
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("select * 'string that ends in termination char;' from foo;"));
+    assertThat(commands, contains("select * 'string that ends in termination char; ' from foo;"));
+  }
+
+  @Test
+  public void shouldHandleMultiLineWithComments() throws Exception {
+    // Given:
+    final JLineReader reader = createReaderForInput(
+        "select * '-- not a comment\n"
+            + "' from foo; -- some comment\n"
+    );
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains("select * '-- not a comment ' from foo; -- some comment"));
   }
 
   @SuppressWarnings("InfiniteLoopStatement")
-  private List<String> readAllLines(final JLineReader reader) throws IOException {
+  private static List<String> readAllLines(final JLineReader reader) {
     final List<String> commands = new ArrayList<>();
     try {
       while (true) {
@@ -228,7 +243,7 @@ public class JLineReaderTest {
     return commands;
   }
 
-  private List<String> getHistory(final JLineReader reader) {
+  private static List<String> getHistory(final JLineReader reader) {
     final List<String> commands = new ArrayList<>();
     reader.getHistory().forEach(entry -> commands.add(entry.line()));
     return commands;

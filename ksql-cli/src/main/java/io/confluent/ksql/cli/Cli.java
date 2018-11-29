@@ -337,6 +337,7 @@ public class Cli implements Closeable {
     if (queryResponse.isSuccessful()) {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
         final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
+          terminal.printHowToInterruptMsg();
           for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
             try {
               final StreamedRow row = queryStream.next();
@@ -370,6 +371,7 @@ public class Cli implements Closeable {
           // It's fine
         }
       } finally {
+        terminal.clearStatusMsg();
         terminal.writer().println("Query terminated");
         terminal.flush();
       }
@@ -393,6 +395,7 @@ public class Cli implements Closeable {
           StandardCharsets.UTF_8.name()
       )) {
         final Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
+          terminal.printHowToInterruptMsg();
           while (!Thread.currentThread().isInterrupted() && topicStreamScanner.hasNextLine()) {
             final String line = topicStreamScanner.nextLine();
             if (!line.isEmpty()) {
@@ -411,6 +414,7 @@ public class Cli implements Closeable {
           topicPrintFuture.get();
         } catch (final CancellationException exception) {
           topicResponse.getResponse().close();
+          terminal.clearStatusMsg();
           terminal.writer().println("Topic printing ceased");
           terminal.flush();
         }

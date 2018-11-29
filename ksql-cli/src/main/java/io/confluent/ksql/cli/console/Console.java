@@ -208,6 +208,10 @@ public final class Console implements Closeable {
     terminal.clearScreen();
   }
 
+  public abstract void printHowToInterruptMsg();
+
+  public abstract void clearStatusMsg();
+
   public void handle(final Signal signal, final SignalHandler signalHandler) {
     terminal.handle(signal, signalHandler);
   }

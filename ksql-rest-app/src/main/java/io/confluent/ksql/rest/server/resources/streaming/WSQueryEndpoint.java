@@ -33,6 +33,7 @@ import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -68,9 +69,10 @@ public class WSQueryEndpoint {
   private final KsqlEngine ksqlEngine;
   private final ReplayableCommandQueue replayableCommandQueue;
   private final ListeningScheduledExecutorService exec;
+  private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher queryPublisher;
   private final PrintTopicPublisher topicPublisher;
-  private final long timeout;
+  private final long commandQueueCatchupTimeout;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -81,10 +83,18 @@ public class WSQueryEndpoint {
       final KsqlEngine ksqlEngine,
       final ReplayableCommandQueue replayableCommandQueue,
       final ListeningScheduledExecutorService exec,
+      final ActivenessRegistrar activenessRegistrar,
       final long commandQueueCatchupTimeout
   ) {
-    this(ksqlConfig, mapper, statementParser, ksqlEngine, replayableCommandQueue, exec,
-        WSQueryEndpoint::startQueryPublisher, WSQueryEndpoint::startPrintPublisher,
+    this(ksqlConfig,
+        mapper,
+        statementParser,
+        ksqlEngine,
+        replayableCommandQueue,
+        exec,
+        WSQueryEndpoint::startQueryPublisher,
+        WSQueryEndpoint::startPrintPublisher,
+        activenessRegistrar,
         commandQueueCatchupTimeout);
   }
 
@@ -97,7 +107,8 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService exec,
       final QueryPublisher queryPublisher,
       final PrintTopicPublisher topicPublisher,
-      final long timeout
+      final ActivenessRegistrar activenessRegistrar,
+      final long commandQueueCatchupTimeout
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -108,7 +119,9 @@ public class WSQueryEndpoint {
     this.exec = Objects.requireNonNull(exec, "exec");
     this.queryPublisher = Objects.requireNonNull(queryPublisher, "queryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
-    this.timeout = timeout;
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
+    this.commandQueueCatchupTimeout = commandQueueCatchupTimeout;
   }
 
   @SuppressWarnings("unused")
@@ -120,7 +133,8 @@ public class WSQueryEndpoint {
       validateVersion(session);
 
       final KsqlRequest request = parseRequest(session);
-      CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request, timeout);
+      CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request,
+          commandQueueCatchupTimeout);
 
       final Statement statement = parseStatement(request);
 
@@ -156,6 +170,7 @@ public class WSQueryEndpoint {
 
   private void validateVersion(final Session session) {
     final Map<String, List<String>> parameters = session.getRequestParameterMap();
+    activenessRegistrar.updateLastRequestTime();
 
     final List<String> versionParam = parameters.getOrDefault(
         Versions.KSQL_V1_WS_PARAM, Collections.singletonList(Versions.KSQL_V1_WS));

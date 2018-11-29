@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.Objects;
 import javax.ws.rs.Consumes;
@@ -55,13 +56,15 @@ public class StreamedQueryResource {
   private final ReplayableCommandQueue replayableCommandQueue;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
+  private final ActivenessRegistrar activenessRegistrar;
 
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
       final ReplayableCommandQueue replayableCommandQueue,
-      final Duration disconnectCheckInterval
+      final Duration disconnectCheckInterval,
+      final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
@@ -71,6 +74,8 @@ public class StreamedQueryResource {
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
   }
 
   @POST
@@ -80,7 +85,7 @@ public class StreamedQueryResource {
     if (ksql.isEmpty()) {
       return Errors.badRequest("\"ksql\" field must be populated");
     }
-
+    activenessRegistrar.updateLastRequestTime();
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
           replayableCommandQueue, request, disconnectCheckInterval.toMillis());

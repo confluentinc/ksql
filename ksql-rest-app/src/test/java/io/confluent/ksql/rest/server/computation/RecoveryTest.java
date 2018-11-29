@@ -159,7 +159,8 @@ public class RecoveryTest {
           ksqlConfig,
           ksqlEngine,
           fakeCommandQueue,
-          0
+          0,
+          ()->{}
       );
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,

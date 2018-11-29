@@ -49,6 +49,7 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTo
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -114,6 +115,9 @@ public class WSQueryEndpointTest {
   private PrintTopicPublisher topicPublisher;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
+  @Mock
+  private ActivenessRegistrar activenessRegistrar;
+
 
   private Query query;
   private WSQueryEndpoint wsQueryEndpoint;
@@ -135,7 +139,7 @@ public class WSQueryEndpointTest {
 
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, replayableCommandQueue, exec,
-        queryPublisher, topicPublisher, COMMAND_QUEUE_CATCHUP_TIMEOUT);
+        queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT);
   }
 
   @Test
@@ -441,4 +445,16 @@ public class WSQueryEndpointTest {
     assertThat(closeReason.getReasonPhrase(), is(reason));
     assertThat(closeReason.getCloseCode(), is(code));
   }
+
+  @Test
+  public void shouldUpdateTheLastRequestTime() throws Exception {
+    // Given:
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(activenessRegistrar).updateLastRequestTime();
+  }
+
 }

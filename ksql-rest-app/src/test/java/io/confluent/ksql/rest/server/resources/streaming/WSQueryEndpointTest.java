@@ -447,7 +447,7 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldUpdateTheLastRequestTime() throws Exception {
+  public void shouldUpdateTheLastRequestTime() {
     // Given:
 
     // When:

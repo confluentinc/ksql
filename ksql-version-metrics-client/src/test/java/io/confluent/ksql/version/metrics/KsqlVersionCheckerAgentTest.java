@@ -16,18 +16,16 @@
 
 package io.confluent.ksql.version.metrics;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent.VersionCheckerFactory;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
@@ -55,7 +53,6 @@ public class KsqlVersionCheckerAgentTest {
   private Clock clock;
   @Mock
   private KsqlVersionChecker ksqlVersionChecker;
-
   private Properties properties;
   @Mock
   private Supplier<Boolean> activeQuerySupplier;
@@ -72,7 +69,10 @@ public class KsqlVersionCheckerAgentTest {
   public void setup() {
     properties = new Properties();
     properties.put("foo", "bar");
-    when(versionCheckerFactory.create(any(), any(), anyBoolean(), any())).thenReturn(ksqlVersionChecker);
+
+    when(versionCheckerFactory.create(any(), any(), anyBoolean(), any()))
+        .thenReturn(ksqlVersionChecker);
+
     ksqlVersionCheckerAgent = new KsqlVersionCheckerAgent(
         activeQuerySupplier,
         true,
@@ -82,7 +82,6 @@ public class KsqlVersionCheckerAgentTest {
 
   @Test
   public void shouldStartTheAgentCorrectly() {
-
     // When:
     ksqlVersionCheckerAgent.start(KsqlModuleType.SERVER, properties);
 
@@ -93,7 +92,7 @@ public class KsqlVersionCheckerAgentTest {
     inOrder.verify(ksqlVersionChecker).start();
   }
 
-  @Test (expected = Exception.class)
+  @Test(expected = Exception.class)
   public void shouldFailIfVersionCheckerFails() {
     // Given:
     doThrow(new Exception("FOO")).when(ksqlVersionChecker).start();

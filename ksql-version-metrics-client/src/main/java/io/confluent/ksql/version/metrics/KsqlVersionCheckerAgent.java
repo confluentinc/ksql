@@ -73,13 +73,15 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
       log.warn(legalDisclaimerProactiveSupportDisabled());
       return;
     }
-    final KsqlVersionChecker ksqlVersionChecker = versionCheckerFactory.create(
-        ksqlVersionCheckerConfig,
-        moduleType,
-        enableSettlingTime,
-        this::isActive
-    );
+
     try {
+      final KsqlVersionChecker ksqlVersionChecker = versionCheckerFactory.create(
+          ksqlVersionCheckerConfig,
+          moduleType,
+          enableSettlingTime,
+          this::isActive
+      );
+
       ksqlVersionChecker.init();
       ksqlVersionChecker.setUncaughtExceptionHandler((t, e)
           -> log.error("Uncaught exception in thread '{}':", t.getName(), e));
@@ -101,7 +103,7 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
     KsqlVersionChecker create(
         BaseSupportConfig ksqlVersionCheckerConfig,
         KsqlModuleType moduleType,
-        boolean enableSettlingTime,
+        boolean enableSettingTime,
         Supplier<Boolean> activenessStatusSupplier
     );
   }

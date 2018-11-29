@@ -16,18 +16,19 @@
 
 package io.confluent.ksql.rest.server;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.anyString;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.niceMock;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -37,10 +38,8 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -48,270 +47,339 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
-import java.util.Properties;
 import org.apache.kafka.test.TestUtils;
-import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.same;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
+@RunWith(MockitoJUnitRunner.class)
 public class StandaloneExecutorTest {
 
-  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final KsqlEngine engine = EasyMock.niceMock(KsqlEngine.class);
-  private final UdfLoader udfLoader = EasyMock.niceMock(UdfLoader.class);
-  private StandaloneExecutor standaloneExecutor;
-  private final Map<String, Object> props = ImmutableMap.of();
-  private final QualifiedName qualifiedName = QualifiedName.of("Test");
-
-  private Query query;
-  private QueryMetadata persistentQueryMetadata;
-  private VersionCheckerAgent versionCheckerAgent;
+  private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
+  private static final QualifiedName SOME_NAME = QualifiedName.of("Test");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
-  private String queriesFile;
+
+  @Mock
+  private Query query;
+  @Mock
+  private KsqlEngine engine;
+  @Mock
+  private UdfLoader udfLoader;
+  @Mock
+  private PersistentQueryMetadata queryMd;
+  @Mock
+  private QueryMetadata nonPeristentQueryMd;
+  @Mock
+  private VersionCheckerAgent versionCheckerAgent;
+
+  private Path queriesFile;
+  private StandaloneExecutor standaloneExecutor;
 
   @Before
   public void before() throws IOException {
-    query = EasyMock.niceMock(Query.class);
-    persistentQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
-    queriesFile = TestUtils.tempFile().getPath();
-    versionCheckerAgent = niceMock(VersionCheckerAgent.class);
-    standaloneExecutor =
-        new StandaloneExecutor(
-            ksqlConfig,
-            engine,
-            queriesFile,
-            udfLoader,
-            false,
-            versionCheckerAgent);
-    final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
-    EasyMock.expect(engine.getMetaStore()).andReturn(metaStore).anyTimes();
+    queriesFile = Paths.get(TestUtils.tempFile().getPath());
 
+    when(engine.execute(any(), any(), any())).thenReturn(ImmutableList.of(queryMd));
+
+    standaloneExecutor = new StandaloneExecutor(
+        ksqlConfig, engine, queriesFile.toString(), udfLoader, false, versionCheckerAgent);
   }
 
   @Test
   public void shouldStartTheVersionCheckerAgent() {
+    // When:
+    standaloneExecutor.start();
 
-    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
-        new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value"))
+    verify(versionCheckerAgent).start(eq(KsqlModuleType.SERVER), any());
+  }
+
+  @Test
+  public void shouldLoadQueryFile() {
+    // Given:
+    givenQueryFileContains("This statement");
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(engine).parseStatements("This statement");
+  }
+
+  @Test
+  public void shouldThrowIfCanNotLoadQueryFile() {
+    // Given:
+    givenFileDoesNotExist();
+
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not read the query file");
+
+    // When:
+    standaloneExecutor.start();
+  }
+
+  @Test
+  public void shouldLoadUdfs() {
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(udfLoader).load();
+  }
+
+  @Test
+  public void shouldFailOnDropStatement() {
+    // Given:
+    when(engine.parseStatements(any())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("DROP",
+            new DropStream(SOME_NAME, false, false))
     ));
 
-    versionCheckerAgent.start(same(KsqlModuleType.SERVER), anyObject(Properties.class));
-    expectLastCall();
-
-    EasyMock.replay(engine, versionCheckerAgent);
-    standaloneExecutor.start();
-    EasyMock.verify(engine, versionCheckerAgent);
-
-  }
-
-  @Test
-  public void shouldFailDropStatement() {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Ignoring statements: DROP\n"
-        + "Only DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.");
+        + "Only DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
+        + "and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.");
 
-    EasyMock.expect(engine.parseStatements(anyString()))
-        .andReturn(ImmutableList.of(
-            new PreparedStatement("CS",
-                new CreateStream(qualifiedName, Collections.emptyList(), false, Collections.emptyMap())),
-            new PreparedStatement("DROP",
-                new DropStream(qualifiedName, false, false))));
-
-    EasyMock.expect(engine.buildMultipleQueries("CS", ksqlConfig, props))
-        .andReturn(Collections.emptyList());
-
-
-    EasyMock.replay(engine);
+    // When:
     standaloneExecutor.start();
   }
 
   @Test
-  public void shouldFailIfNotQueries() {
+  public void shouldFailIfNoPersistentQueries() {
+    // Given:
+    givenExecutorWillFailOnNoQueries();
+
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("Transient query", query)
+    ));
+
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("The SQL file did not contain any queries");
 
-    standaloneExecutor =
-        new StandaloneExecutor(
-            ksqlConfig,
-            engine,
-            queriesFile,
-            udfLoader,
-            true,
-            versionCheckerAgent);
-
-    EasyMock.expect(engine.parseStatements(anyString()))
-        .andReturn(ImmutableList.of(
-            new PreparedStatement("DROP",
-                new Query(mock(QueryBody.class), Optional.empty())),
-            new PreparedStatement("DROP",
-                new DropStream(qualifiedName, false, false))));
-
-    EasyMock.expect(engine.buildMultipleQueries("CS", ksqlConfig, props))
-        .andReturn(Collections.emptyList());
-
-    EasyMock.replay(engine);
+    // When:
     standaloneExecutor.start();
   }
 
   @Test
   public void shouldRunCsStatement() {
+    // Given:
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("CS",
+            new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
+    ));
 
-    EasyMock.expect(engine.parseStatements(anyString()))
-        .andReturn(ImmutableList.of(new PreparedStatement("CS",
-            new CreateStream(qualifiedName, Collections.emptyList(), false, Collections.emptyMap()))));
-
-    EasyMock.expect(engine.buildMultipleQueries("CS", ksqlConfig, props))
-        .andReturn(Collections.emptyList());
-
-    EasyMock.replay(engine);
+    // When:
     standaloneExecutor.start();
-    EasyMock.verify(engine);
+
+    // Then:
+    verify(engine).execute("CS", ksqlConfig, emptyMap());
   }
 
   @Test
   public void shouldRunCtStatement() {
+    // Given:
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("CT",
+            new CreateTable(SOME_NAME, emptyList(), false, emptyMap()))
+    ));
 
-    EasyMock.expect(engine.parseStatements(anyString()))
-        .andReturn(ImmutableList.of(new PreparedStatement("CT",
-            new CreateTable(qualifiedName, Collections.emptyList(), false, Collections.emptyMap()))));
-
-    EasyMock.expect(engine.buildMultipleQueries("CT", ksqlConfig, props))
-        .andReturn(Collections.emptyList());
-    EasyMock.replay(engine);
+    // When:
     standaloneExecutor.start();
-    EasyMock.verify(engine);
+
+    // Then:
+    verify(engine).execute("CT", ksqlConfig, emptyMap());
   }
 
   @Test
   public void shouldRunSetStatements() {
-
-    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
-        new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value"))
+    // Given:
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("CS",
+            new SetProperty(Optional.empty(), "name", "value")),
+        new PreparedStatement<>("CS",
+            new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
     ));
-    EasyMock.replay(engine);
+
+    // When:
     standaloneExecutor.start();
-    EasyMock.verify(engine);
 
-    assertThat(standaloneExecutor.getConfigProperties().get("name"), equalTo("value"));
+    // Then:
+    verify(engine).execute(any(), any(), eq(ImmutableMap.of("name", "value")));
   }
-
 
   @Test
   public void shouldRunUnSetStatements() {
-
-    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
-        new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value")),
-        new PreparedStatement("UNSET", new UnsetProperty(Optional.empty(), "name"))
+    // Given:
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("SET",
+            new SetProperty(Optional.empty(), "name", "value")),
+        new PreparedStatement<>("UNSET",
+            new UnsetProperty(Optional.empty(), "name")),
+        new PreparedStatement<>("CS",
+            new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
     ));
 
-    EasyMock.replay(engine);
+    // When:
     standaloneExecutor.start();
-    EasyMock.verify(engine);
 
-    assertTrue(standaloneExecutor.getConfigProperties().isEmpty());
+    // Then:
+    verify(engine).execute(any(), any(), eq(emptyMap()));
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldRunCsasStatements() {
-
-    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
-        new PreparedStatement("CSAS1", new CreateStreamAsSelect(qualifiedName, query, false, Collections.emptyMap(), Optional.empty()))
-    ));
-    expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KSTREAM);
-    EasyMock.expect(engine.buildMultipleQueries(eq("CSAS1"), anyObject(KsqlConfig.class), anyObject(Map.class)))
-        .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
-    EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
-        .andReturn(persistentQueryMetadata).once();
-
-    EasyMock.replay(query, persistentQueryMetadata, engine);
-    standaloneExecutor.start();
-    EasyMock.verify(query, persistentQueryMetadata, engine);
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void shouldRunInsertIntoStatements() {
-
-    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
-        new PreparedStatement("InsertInto", new InsertInto(qualifiedName, query, Optional.empty()))
+    // Given:
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("CSAS1",
+            new CreateStreamAsSelect(SOME_NAME, query, false, emptyMap(), Optional.empty()))
     ));
 
-    EasyMock.expect(engine.buildMultipleQueries(eq("InsertInto"), anyObject(KsqlConfig.class), anyObject(Map.class)))
-        .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
-    EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
-        .andReturn(persistentQueryMetadata).once();
-    EasyMock.replay(persistentQueryMetadata, engine);
+    // When:
     standaloneExecutor.start();
-    EasyMock.verify(persistentQueryMetadata, engine);
+
+    // Then:
+    verify(engine).execute("CSAS1", ksqlConfig, emptyMap());
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldRunCtasStatements() {
-
-    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
-        new PreparedStatement("CTAS", new CreateTableAsSelect(qualifiedName, query, false, Collections.emptyMap()))
+    // Given:
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("CTAS",
+            new CreateTableAsSelect(SOME_NAME, query, false, emptyMap()))
     ));
-    expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KTABLE);
-    EasyMock.expect(engine.buildMultipleQueries(eq("CTAS"), anyObject(KsqlConfig.class), anyObject(Map.class)))
-        .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
-    EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
-        .andReturn(persistentQueryMetadata).once();
 
-    EasyMock.replay(query, persistentQueryMetadata, engine);
+    // When:
     standaloneExecutor.start();
-    EasyMock.verify(query, persistentQueryMetadata, engine);
+
+    // Then:
+    verify(engine).execute("CTAS", ksqlConfig, emptyMap());
   }
 
-  @Test(expected = KsqlException.class)
+  @Test
   @SuppressWarnings("unchecked")
-  public void shouldFailInvalidCsasStatements() {
-
-    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
-        new PreparedStatement("CSAS2", new CreateStreamAsSelect(qualifiedName, query, false, Collections.emptyMap(), Optional.empty()))
+  public void shouldRunInsertIntoStatements() {
+    // Given:
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("InsertInto",
+            new InsertInto(SOME_NAME, query, Optional.empty()))
     ));
-    expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KTABLE);
-    EasyMock.expect(engine.buildMultipleQueries(eq("CSAS2"), anyObject(KsqlConfig.class), anyObject(Map.class)))
-        .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
-    EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
-        .andReturn(persistentQueryMetadata).once();
 
-    EasyMock.replay(query, persistentQueryMetadata, engine);
+    // When:
     standaloneExecutor.start();
-    EasyMock.verify(query, persistentQueryMetadata, engine);
 
+    // Then:
+    verify(engine).execute("InsertInto", ksqlConfig, emptyMap());
   }
 
-  @Test(expected = KsqlException.class)
-  @SuppressWarnings("unchecked")
-  public void shouldFailInvalidCtasStatements() {
+  @Test
+  public void shouldThrowIfExecutingPersistentQueryDoesNotReturnQuery() {
+    // Given:
+    givenFileContainsAPersistentQuery();
 
-    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
-        new PreparedStatement("CTAS1", new CreateTableAsSelect(qualifiedName, query, false, Collections.emptyMap()))
-    ));
-    expect(persistentQueryMetadata.getDataSourceType()).andReturn(DataSourceType.KSTREAM);
-    EasyMock.expect(engine.buildMultipleQueries(eq("CTAS1"), anyObject(KsqlConfig.class), anyObject(Map.class)))
-        .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
-    EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
-        .andReturn(persistentQueryMetadata).once();
+    when(engine.execute(any(), any(), any())).thenReturn(emptyList());
 
-    EasyMock.replay(query, persistentQueryMetadata, engine);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not build the query");
+
+    // When:
     standaloneExecutor.start();
-    EasyMock.verify(query, persistentQueryMetadata, engine);
   }
 
+  @Test
+  public void shouldThrowIfExecutingPersistentQueryReturnsMultiple() {
+    // Given:
+    givenFileContainsAPersistentQuery();
+
+    when(engine.execute(any(), any(), any())).thenReturn(ImmutableList.of(queryMd, queryMd));
+
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not build the query");
+
+    // When:
+    standaloneExecutor.start();
+  }
+
+  @Test
+  public void shouldThrowIfExecutingPersistentQueryReturnsNonPersistentMetaData() {
+    // Given:
+    givenFileContainsAPersistentQuery();
+
+    when(engine.execute(any(), any(), any())).thenReturn(ImmutableList.of(nonPeristentQueryMd));
+
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not build the query");
+
+    // When:
+    standaloneExecutor.start();
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void shouldThrowIfParseThrows() {
+    // Given:
+    when(engine.parseStatements(any())).thenThrow(new RuntimeException("Boom!"));
+
+    // When:
+    standaloneExecutor.start();
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void shouldThrowIfExecuteThrows() {
+    // Given:
+    givenFileContainsAPersistentQuery();
+
+    when(engine.execute(any(), any(), any())).thenThrow(new RuntimeException("Boom!"));
+
+    // When:
+    standaloneExecutor.start();
+  }
+
+  @Test
+  public void shouldCloseEngineOnStop() {
+    // When:
+    standaloneExecutor.stop();
+
+    // Then:
+    verify(engine).close();
+  }
+
+  private void givenExecutorWillFailOnNoQueries() {
+    standaloneExecutor = new StandaloneExecutor(
+        ksqlConfig, engine, queriesFile.toString(), udfLoader, true, versionCheckerAgent);
+  }
+
+  private void givenFileContainsAPersistentQuery() {
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
+        new PreparedStatement<>("InsertInto",
+            new InsertInto(SOME_NAME, query, Optional.empty()))
+    ));
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private void givenQueryFileContains(final String sql) {
+    try {
+      Files.write(queriesFile, sql.getBytes(StandardCharsets.UTF_8));
+    } catch (final IOException e) {
+      fail("invalid test: " + e.getMessage());
+    }
+  }
+
+  private void givenFileDoesNotExist() {
+    try {
+      Files.delete(queriesFile);
+    } catch (final IOException e) {
+      fail("invalid test: " + e.getMessage());
+    }
+  }
 }

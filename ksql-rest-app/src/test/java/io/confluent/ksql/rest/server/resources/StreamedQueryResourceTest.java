@@ -100,7 +100,7 @@ public class StreamedQueryResourceTest {
   @Before
   public void setup() {
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
-    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
+    expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(mock(Statement.class));
     replay(mockKsqlEngine, mockStatementParser);
@@ -124,8 +124,8 @@ public class StreamedQueryResourceTest {
     replay(mockStatementParser);
 
     // When:
-    final Response response =
-        testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap(), null));
+    final Response response = testResource.
+        streamQuery(new KsqlRequest("query", Collections.emptyMap(), null));
 
     // Then:
     verify(mockStatementParser);
@@ -180,7 +180,6 @@ public class StreamedQueryResourceTest {
     mockKafkaStreams.close();
     expectLastCall();
 
-
     final OutputNode mockOutputNode = niceMock(OutputNode.class);
     expect(mockOutputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject()))
         .andReturn(null);
@@ -190,7 +189,8 @@ public class StreamedQueryResourceTest {
     reset(mockKsqlEngine);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
-    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
+    expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
+
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
             rowQueue, DataSource.DataSourceType.KSTREAM, "",
@@ -198,7 +198,7 @@ public class StreamedQueryResourceTest {
     reset(mockOutputNode);
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
-    expect(mockKsqlEngine.buildMultipleQueries(queryString, ksqlConfig, requestStreamsProperties))
+    expect(mockKsqlEngine.execute(queryString, ksqlConfig, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
     expectLastCall();

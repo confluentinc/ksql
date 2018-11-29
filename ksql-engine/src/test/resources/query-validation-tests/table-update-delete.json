@@ -12,7 +12,7 @@
       "name": "table-update-delete",
       "statements": [
         "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE int) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE STREAM T1 as SELECT NAME, VALUE FROM test;"
+        "CREATE TABLE T1 as SELECT NAME, VALUE FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": "1,one,100", "timestamp": 0},

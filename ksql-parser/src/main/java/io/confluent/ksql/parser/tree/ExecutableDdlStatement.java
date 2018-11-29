@@ -14,21 +14,10 @@
  * limitations under the License.
  **/
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.parser.tree;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
-
-public class QueryIdGenerator {
-
-  private final AtomicLong queryIdCounter = new AtomicLong(0);
-  private final String postfix;
-
-  public QueryIdGenerator(final String postfix) {
-    this.postfix = Objects.requireNonNull(postfix, "postfix");
-  }
-
-  public String getNextId() {
-    return queryIdCounter.getAndIncrement() + postfix;
-  }
+/**
+ * A Marker interface to signal that a Statement is an executable DDLStatement
+ */
+public interface ExecutableDdlStatement extends DdlStatement {
 }

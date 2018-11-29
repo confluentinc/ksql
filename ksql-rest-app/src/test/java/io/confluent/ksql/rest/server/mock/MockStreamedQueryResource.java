@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.rest.server.mock;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -24,6 +25,7 @@ import io.confluent.ksql.rest.util.JsonMapper;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -39,14 +41,20 @@ import javax.ws.rs.core.StreamingOutput;
 @Path("/query")
 @Produces(MediaType.APPLICATION_JSON)
 public class MockStreamedQueryResource {
-  List<TestStreamWriter> writers = new java.util.LinkedList<>();
+  private final List<TestStreamWriter> writers = new java.util.LinkedList<>();
+  private long responseDelay = 0;
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   public Response streamQuery(final KsqlRequest request) throws Exception {
+    Thread.sleep(responseDelay);
     final TestStreamWriter testStreamWriter = new TestStreamWriter();
     writers.add(testStreamWriter);
     return Response.ok().entity(testStreamWriter).build();
+  }
+
+  public void setResponseDelay(final long delay) {
+    responseDelay = delay;
   }
 
   public List<TestStreamWriter> getWriters() { return writers; }
@@ -60,12 +68,17 @@ public class MockStreamedQueryResource {
     public void finished() throws InterruptedException { dataq.put(""); }
 
     private void writeRow(final String data, final OutputStream out) throws IOException {
-      final List<Object> rowColumns = new java.util.LinkedList<Object>();
-      rowColumns.add(data);
-      final GenericRow row = new GenericRow(rowColumns);
-      objectMapper.writeValue(out, StreamedRow.row(row));
+      final String toWrite = data.startsWith("{") ? data : formatData(data);
+      out.write(toWrite.getBytes(StandardCharsets.UTF_8));
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
+    }
+
+    private String formatData(final String data) throws JsonProcessingException {
+      final List<Object> rowColumns = new ArrayList<>();
+      rowColumns.add(data);
+      final GenericRow row = new GenericRow(rowColumns);
+      return objectMapper.writeValueAsString(StreamedRow.row(row));
     }
 
     @Override

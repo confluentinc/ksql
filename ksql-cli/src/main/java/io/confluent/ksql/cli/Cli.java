@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -181,9 +182,8 @@ public class Cli implements Closeable {
    *
    * @return The parsed, logical line.
    * @throws EndOfFileException If there is no more input available from the user.
-   * @throws IOException        If any other I/O error occurs.
    */
-  private String readLine() throws IOException {
+  private String readLine() {
     while (true) {
       try {
         final String result = terminal.readLine();
@@ -326,60 +326,68 @@ public class Cli implements Closeable {
     }
   }
 
-  private void handleStreamedQuery(final String query)
-      throws InterruptedException, ExecutionException, IOException {
+  private void handleStreamedQuery(final String query) throws IOException {
+
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
         restClient.makeQueryRequest(query);
 
     LOGGER.debug("Handling streamed query");
 
-    if (queryResponse.isSuccessful()) {
-      try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
-          StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")
-      ) {
-        final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
-          for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
-            try {
-              final StreamedRow row = queryStream.next();
-              terminal.printStreamedRow(row);
-              if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
-                break;
-              }
-            } catch (final IOException exception) {
-              throw new RuntimeException(exception);
-            }
-          }
-        });
-
-        terminal.handle(Terminal.Signal.INT, signal -> {
-          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-          queryStreamFuture.cancel(true);
-        });
-
-        try {
-          if (streamedQueryTimeoutMs == null) {
-            queryStreamFuture.get();
-            Thread.sleep(1000); // TODO: Make things work without this
-          } else {
-            try {
-              queryStreamFuture.get(streamedQueryTimeoutMs, TimeUnit.MILLISECONDS);
-            } catch (final TimeoutException exception) {
-              queryStreamFuture.cancel(true);
-            }
-          }
-        } catch (final CancellationException exception) {
-          // It's fine
-        }
-      } finally {
-        terminal.writer().println("Query terminated");
-        terminal.flush();
-      }
-    } else {
+    if (!queryResponse.isSuccessful()) {
       terminal.printErrorMessage(queryResponse.getErrorMessage());
+    } else {
+      try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+          StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
+        streamResults(queryStream);
+      }
     }
   }
 
-  private boolean keepReading(final long rowsRead) {
+  private void streamResults(final QueryStream queryStream) {
+
+    final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
+      for (long rowsRead = 0; limitNotReached(rowsRead) && queryStream.hasNext(); rowsRead++) {
+        try {
+          final StreamedRow row = queryStream.next();
+          terminal.printStreamedRow(row);
+          if (row.isTerminal()) {
+            break;
+          }
+        } catch (final IOException exception) {
+          throw new RuntimeException(exception);
+        }
+      }
+    });
+
+    terminal.handle(Terminal.Signal.INT, signal -> {
+      terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+      queryStream.close();
+    });
+
+    try {
+      if (streamedQueryTimeoutMs != null) {
+        try {
+          queryStreamFuture.get(streamedQueryTimeoutMs, TimeUnit.MILLISECONDS);
+        } catch (final TimeoutException exception) {
+          queryStream.close();
+        }
+      }
+
+      queryStreamFuture.get();
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    } catch (final ExecutionException e) {
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException)e.getCause();
+      }
+      throw new RuntimeException(e.getCause());
+    } finally {
+      terminal.writer().println("Query terminated");
+      terminal.flush();
+    }
+  }
+
+  private boolean limitNotReached(final long rowsRead) {
     return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
   }
 
@@ -393,7 +401,6 @@ public class Cli implements Closeable {
           StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")
       ) {
         final Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
-          terminal.setStatusMessage("Press CTRL-C to interrupt");
           while (!Thread.currentThread().isInterrupted() && topicStreamScanner.hasNextLine()) {
             final String line = topicStreamScanner.nextLine();
             if (!line.isEmpty()) {

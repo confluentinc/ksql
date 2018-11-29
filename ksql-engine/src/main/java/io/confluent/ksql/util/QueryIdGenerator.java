@@ -16,12 +16,19 @@
 
 package io.confluent.ksql.util;
 
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
+
 public class QueryIdGenerator {
 
-  private long queryIdCounter = -1;
+  private final AtomicLong queryIdCounter = new AtomicLong(0);
+  private final String postfix;
 
-  public long getNextId() {
-    return ++queryIdCounter;
+  public QueryIdGenerator(final String postfix) {
+    this.postfix = Objects.requireNonNull(postfix, "postfix");
   }
 
+  public String getNextId() {
+    return queryIdCounter.getAndIncrement() + postfix;
+  }
 }

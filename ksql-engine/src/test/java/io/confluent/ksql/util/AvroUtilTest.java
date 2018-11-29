@@ -19,12 +19,13 @@ package io.confluent.ksql.util;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -38,6 +39,7 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -166,33 +168,32 @@ public class AvroUtilTest {
     final PersistentQueryMetadata persistentQueryMetadata = buildStubPersistentQueryMetadata(resultSchema, resultTopic);
     final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
     final org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
-    expect(schemaRegistryClient.testCompatibility(anyString(), EasyMock.isA(avroSchema.getClass())))
+    expect(schemaRegistryClient.testCompatibility(eq("testTopic-value"), EasyMock.isA(avroSchema.getClass())))
         .andReturn(true);
     replay(schemaRegistryClient);
-    AvroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
+    final boolean result = AvroUtil.isValidSchemaEvolution(persistentQueryMetadata, schemaRegistryClient);
+    assertThat(result, is(true));
   }
 
   @Test
   public void shouldFailForInvalidResultAvroSchema()
       throws IOException, RestClientException {
     final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    final KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe(), false);
+    final KsqlTopic resultTopic = new KsqlTopic("testTopic", "testTopic", new KsqlAvroTopicSerDe(),
+        false);
     final Schema resultSchema = AvroUtil.toKsqlSchema(ordersAvroSchemaStr);
-    final PersistentQueryMetadata persistentQueryMetadata = buildStubPersistentQueryMetadata(resultSchema, resultTopic);
+    final PersistentQueryMetadata persistentQueryMetadata = buildStubPersistentQueryMetadata(
+        resultSchema, resultTopic);
     expect(schemaRegistryClient.testCompatibility(anyString(), anyObject())).andReturn(false);
     replay(schemaRegistryClient);
-    try {
-      AvroUtil.validatePersistentQueryResults(persistentQueryMetadata, schemaRegistryClient);
-      fail();
-    } catch (final Exception e) {
-      assertThat("Incorrect exception message", "Cannot register avro schema for testTopic since "
-                                                + "it is not valid for schema registry.", equalTo(e.getMessage()));
-    }
+
+    final boolean result = AvroUtil
+        .isValidSchemaEvolution(persistentQueryMetadata, schemaRegistryClient);
+    assertThat(result, is(false));
   }
 
-
   private AbstractStreamCreateStatement getAbstractStreamCreateStatement(final String statementString) {
-    final List<PreparedStatement> statementList = new KsqlParser().buildAst
+    final List<PreparedStatement<?>> statementList = new KsqlParser().buildAst
         (statementString, new MetaStoreImpl(new InternalFunctionRegistry()));
     if (statementList.get(0).getStatement() instanceof AbstractStreamCreateStatement) {
       return (AbstractStreamCreateStatement) statementList.get(0).getStatement();

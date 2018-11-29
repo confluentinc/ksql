@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class DropStream
-    extends AbstractStreamDropStatement implements DdlStatement {
+    extends AbstractStreamDropStatement implements ExecutableDdlStatement {
 
   private final QualifiedName streamName;
   private final boolean ifExists;

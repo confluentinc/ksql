@@ -44,6 +44,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
@@ -284,7 +285,7 @@ public class QueryTranslationTest {
         stmt.getStatement().statement() instanceof SqlBaseParser.CreateStreamContext
             || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
 
-    final Function<PreparedStatement, Topic> mapper = stmt -> {
+    final Function<PreparedStatement<?>, Topic> mapper = stmt -> {
       final AbstractStreamCreateStatement statement = (AbstractStreamCreateStatement) stmt
           .getStatement();
 

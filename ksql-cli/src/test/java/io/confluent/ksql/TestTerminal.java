@@ -79,4 +79,9 @@ public class TestTerminal implements KsqlTerminal {
   public void handle(final Terminal.Signal signal, final Terminal.SignalHandler signalHandler) {
     // Ignore
   }
+
+  @Override
+  public StatusClosable setStatusMessage(final String message) {
+    return () -> {};
+  }
 }

@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -32,16 +31,16 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
@@ -74,14 +73,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
 
   private static final Map<String, String> PRE_VERSION_5_NULL_ORIGNAL_PROPS = null;
 
@@ -219,7 +214,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final String statementText
         = "CREATE STREAM user1pv AS select * from pageviews WHERE userid = 'user1';";
     final StatementParser realParser = new StatementParser(ksqlEngine);
-    final DdlStatement ddlStatement = (DdlStatement) realParser.parseSingleStatement(ddlText);
+    final ExecutableDdlStatement ddlStatement = (ExecutableDdlStatement) realParser.parseSingleStatement(ddlText);
     ksqlEngine.executeDdlStatement(ddlText, ddlStatement, Collections.emptyMap());
     final CreateStreamAsSelect csasStatement =
         (CreateStreamAsSelect) realParser.parseSingleStatement(statementText);
@@ -243,19 +238,8 @@ public class StatementExecutorTest extends EasyMockSupport {
         CommandId.Action.CREATE);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
-    expect(
-        mockEngine.addInto(
-            (QuerySpecification)csasStatement.getQuery().getQueryBody(),
-            csasStatement.getName().getSuffix(),
-            csasStatement.getQuery().getLimit(),
-            csasStatement.getProperties(),
-            csasStatement.getPartitionByColumn(),
-            true))
-        .andReturn(csasStatement.getQuery());
-    expect(mockEngine.getMetaStore()).andReturn(mockMetaStore);
-    expect(mockMetaStore.getSource(anyObject())).andReturn(null);
     expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
-    expect(mockEngine.buildMultipleQueries(statementText, expectedConfig, Collections.emptyMap()))
+    expect(mockEngine.execute(statementText, expectedConfig, Collections.emptyMap()))
         .andReturn(Collections.singletonList(mockQueryMetadata));
     mockQueryMetadata.start();
     expectLastCall();
@@ -533,14 +517,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
     expect(mockQuery.getQueryId()).andStubReturn(queryId);
     expect(mockParser.parseSingleStatement(statement)).andReturn(mockCSAS);
-    expect(
-        mockEngine.addInto(
-            anyObject(), anyObject(), anyObject(), anyObject(), anyObject(), anyBoolean()))
-        .andStubReturn(mockCSASQuery(name));
-    expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
     expect(mockMetaStore.getSource(name)).andStubReturn(null);
     expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
-    expect(mockEngine.buildMultipleQueries(eq(statement), anyObject(), anyObject()))
+    expect(mockEngine.execute(eq(statement), anyObject(), anyObject()))
         .andReturn(Collections.singletonList(mockQuery));
     return mockQuery;
   }

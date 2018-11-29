@@ -21,10 +21,12 @@ import static org.mockserver.model.HttpRequest.request;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import java.util.Properties;
-import java.util.function.Supplier;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.test.TestUtils;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.mockserver.integration.ClientAndProxy;
 import org.mockserver.socket.PortFactory;
 
@@ -32,6 +34,12 @@ public class VersionCheckerIntegrationTest {
 
   private static int proxyPort;
   private static ClientAndProxy clientAndProxy;
+
+  @Rule
+  public final Timeout timeout = Timeout.builder()
+      .withTimeout(30, TimeUnit.SECONDS)
+      .withLookingForStuckThread(true)
+      .build();
 
   @BeforeClass
   public static void startProxy() {

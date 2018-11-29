@@ -29,13 +29,13 @@ public class StatementParser {
   }
 
   public Statement parseSingleStatement(final String statementString) {
-    final List<PreparedStatement> statements = ksqlEngine.parseStatements(statementString);
+    final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(statementString);
     if ((statements.size() != 1)) {
       throw new IllegalArgumentException(
           String.format("Expected exactly one KSQL statement; found %d instead", statements.size())
       );
-    } else {
-      return statements.get(0).getStatement();
     }
+
+    return statements.get(0).getStatement();
   }
 }

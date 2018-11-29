@@ -49,14 +49,12 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -100,13 +98,14 @@ public class StreamedQueryResourceTest {
   @Before
   public void setup() {
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
-    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
+    expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(mock(Statement.class));
     replay(mockKsqlEngine, mockStatementParser);
 
     testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, activenessRegistrar);
+        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL,
+        activenessRegistrar);
 
   }
 
@@ -120,7 +119,8 @@ public class StreamedQueryResourceTest {
     replay(mockStatementParser);
 
     // When:
-    final Response response = testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap()));
+    final Response response = testResource
+        .streamQuery(new KsqlRequest("query", Collections.emptyMap()));
 
     // Then:
     verify(mockStatementParser);
@@ -175,7 +175,6 @@ public class StreamedQueryResourceTest {
     mockKafkaStreams.close();
     expectLastCall();
 
-
     final OutputNode mockOutputNode = niceMock(OutputNode.class);
     expect(mockOutputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject()))
         .andReturn(null);
@@ -187,7 +186,7 @@ public class StreamedQueryResourceTest {
     final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
     expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
-    expect(mockKsqlEngine.getLivePersistentQueries()).andReturn(Collections.emptySet());
+    expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
 
     replay(mockOutputNode, mockKafkaStreams);
     final QueuedQueryMetadata queuedQueryMetadata =
@@ -197,7 +196,7 @@ public class StreamedQueryResourceTest {
     reset(mockOutputNode);
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
-    expect(mockKsqlEngine.buildMultipleQueries(queryString, mockKsqlConfig, requestStreamsProperties))
+    expect(mockKsqlEngine.execute(queryString, mockKsqlConfig, requestStreamsProperties))
         .andReturn(Collections.singletonList(queuedQueryMetadata));
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
     expectLastCall();
@@ -207,7 +206,8 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, ()->{});
+        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, () -> {
+    });
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties));

@@ -27,6 +27,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -422,7 +423,7 @@ public class AvroSchemaInferenceTest {
     final KsqlParser parser = new KsqlParser();
     final Statement statement = parser.buildAst(statementText, metaStore).get(0).getStatement();
 
-    final StatementWithSchema inferred
+    final PreparedStatement<?> inferred
         = StatementWithSchema.forStatement(
         statement, statementText, schemaRegistryClient);
 

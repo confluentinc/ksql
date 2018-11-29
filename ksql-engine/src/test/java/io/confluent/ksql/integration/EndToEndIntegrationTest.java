@@ -98,12 +98,12 @@ public class EndToEndIntegrationTest {
         usersTopic, new UserDataProvider(), System.currentTimeMillis() - 10000);
     testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
 
-    ksqlEngine.buildMultipleQueries(
+    ksqlEngine.execute(
         format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
                "userid varchar) WITH (kafka_topic='%s', value_format='JSON', key = 'userid');",
                userTable,
                usersTopic), ksqlConfig, Collections.emptyMap());
-    ksqlEngine.buildMultipleQueries(
+    ksqlEngine.execute(
         format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
                "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream,
                pageViewTopic), ksqlConfig, Collections.emptyMap());
@@ -297,7 +297,7 @@ public class EndToEndIntegrationTest {
     log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries =
-        ksqlEngine.buildMultipleQueries(formatted, ksqlConfig, Collections.emptyMap());
+        ksqlEngine.execute(formatted, ksqlConfig, Collections.emptyMap());
 
     queries.forEach(queryMetadata -> queryMetadata.start());
 

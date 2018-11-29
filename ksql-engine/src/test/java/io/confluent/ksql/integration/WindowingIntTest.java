@@ -231,7 +231,7 @@ public class WindowingIntTest {
       final AssertType type
   ) {
     ksqlContext
-        .sql(String.format("CREATE STREAM %s_TWO AS SELECT * FROM %s;", streamName, streamName));
+        .sql(String.format("CREATE TABLE %s_TWO AS SELECT * FROM %s;", streamName, streamName));
     streamName = streamName + "_TWO";
     resultSchema = ksqlContext.getMetaStore().getSource(streamName).getSchema();
 

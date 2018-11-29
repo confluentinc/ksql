@@ -68,30 +68,42 @@ public final class Errors {
         .build();
   }
 
-  public static Response badStatement(
-      final String msg, final String statementText, final KsqlEntityList entities) {
-    return Response
-        .status(BAD_REQUEST)
-        .entity(
-            new KsqlStatementErrorMessage(ERROR_CODE_BAD_STATEMENT, msg, statementText, entities))
-        .build();
+  public static Response badStatement(final String msg, final String statementText) {
+    return badStatement(msg, statementText, new KsqlEntityList());
   }
 
   public static Response badStatement(
-      final Throwable t, final String statementText, final KsqlEntityList entities) {
+      final String msg,
+      final String statementText,
+      final KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
-        .entity(new KsqlStatementErrorMessage(ERROR_CODE_BAD_STATEMENT, t, statementText, entities))
+        .entity(new KsqlStatementErrorMessage(
+            ERROR_CODE_BAD_STATEMENT, msg, statementText, entities))
+        .build();
+  }
+
+  public static Response badStatement(final Throwable t, final String statementText) {
+    return badStatement(t, statementText, new KsqlEntityList());
+  }
+
+  public static Response badStatement(
+      final Throwable t,
+      final String statementText,
+      final KsqlEntityList entities) {
+    return Response
+        .status(BAD_REQUEST)
+        .entity(new KsqlStatementErrorMessage(
+            ERROR_CODE_BAD_STATEMENT, t, statementText, entities))
         .build();
   }
 
   public static Response queryEndpoint(final String statementText, final KsqlEntityList entities) {
     return Response
         .status(BAD_REQUEST)
-        .entity(
-            new KsqlStatementErrorMessage(
+        .entity(new KsqlStatementErrorMessage(
                 ERROR_CODE_QUERY_ENDPOINT, "SELECT and PRINT queries must use the /query endpoint",
-                statementText, entities))
+            statementText, entities))
         .build();
   }
 

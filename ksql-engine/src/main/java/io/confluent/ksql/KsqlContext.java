@@ -18,6 +18,7 @@ package io.confluent.ksql;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
@@ -45,42 +46,29 @@ public class KsqlContext {
   private final KsqlEngine ksqlEngine;
 
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
-    return create(
-        ksqlConfig,
-        (new KsqlSchemaRegistryClientFactory(ksqlConfig))::get);
-  }
-
-  public static KsqlContext create(
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    return create(
-        ksqlConfig,
-        schemaRegistryClientFactory,
-        new DefaultKafkaClientSupplier()
-    );
-  }
-
-  public static KsqlContext create(
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final KafkaClientSupplier clientSupplier
-  ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
-    Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClient cannot be null.");
+
+    final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
+        new KsqlSchemaRegistryClientFactory(ksqlConfig)::get;
+
+    final KafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
+
     final AdminClient adminClient = clientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
+
     final KafkaTopicClient kafkaTopicClient = new
         KafkaTopicClientImpl(adminClient);
+
     final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+
     final KsqlEngine engine = new KsqlEngine(
         kafkaTopicClient,
         schemaRegistryClientFactory,
         clientSupplier,
         metaStore,
-        ksqlConfig,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         adminClient,
-        KsqlEngine::createKsqlEngineMetrics
+        KsqlEngineMetrics::new
     );
 
     return new KsqlContext(ksqlConfig, engine);
@@ -107,7 +95,7 @@ public class KsqlContext {
   }
 
   public void sql(final String sql, final Map<String, Object> overriddenProperties) {
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.buildMultipleQueries(
+    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
         sql, ksqlConfig, overriddenProperties);
 
     for (final QueryMetadata queryMetadata : queryMetadataList) {

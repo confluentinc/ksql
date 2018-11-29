@@ -104,7 +104,7 @@
       "name": "import hopping table",
       "statements": [
         "CREATE TABLE TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='HoPping');",
-        "CREATE STREAM S2 as SELECT *, ROWKEY as KEY FROM test;"
+        "CREATE TABLE S2 as SELECT *, ROWKEY as KEY FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},

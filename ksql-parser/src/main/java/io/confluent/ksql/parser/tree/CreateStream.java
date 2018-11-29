@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-public class CreateStream extends AbstractStreamCreateStatement implements DdlStatement {
+public class CreateStream extends AbstractStreamCreateStatement implements ExecutableDdlStatement {
 
   private final QualifiedName name;
   private final List<TableElement> elements;

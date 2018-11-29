@@ -90,7 +90,7 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
-  protected R visitShowFunctions(final ShowFunctions node, final C context) {
+  protected R visitShowFunctions(final ListFunctions node, final C context) {
     return visitStatement(node, context);
   }
 

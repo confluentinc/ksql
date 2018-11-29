@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.cli.console;
 
+import java.io.Closeable;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +37,22 @@ public interface KsqlTerminal {
   List<HistoryEntry> getHistory();
 
   void handle(Terminal.Signal signal, Terminal.SignalHandler signalHandler);
+
+  @FunctionalInterface
+  interface StatusClosable extends Closeable {
+
+    void close();
+  }
+
+  /**
+   * Set a status message in the terminal.
+   *
+   * <p>The message is removed once the returned {@link StatusClosable} is closed.
+   *
+   * @param message the message to display
+   * @return the closable that will remove the status message.
+   */
+  StatusClosable setStatusMessage(String message);
 
   void close();
 

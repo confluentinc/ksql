@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -478,6 +479,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return Collections.unmodifiableMap(allPropsCleaned);
   }
 
+  @SuppressFBWarnings("CN_IDIOM_NO_SUPER_CALL")
   public KsqlConfig clone() {
     return new KsqlConfig(true, values(), ksqlStreamConfigProps);
   }

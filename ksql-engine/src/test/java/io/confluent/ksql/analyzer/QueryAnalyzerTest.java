@@ -41,6 +41,7 @@ import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -85,7 +86,7 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldCreateAnalysisForInserInto() {
     // Given:
-    final List<PreparedStatement> statements = ksqlParser.buildAst(
+    final List<PreparedStatement<?>> statements = ksqlParser.buildAst(
         "insert into test2 select col1 from test1;", metaStore);
     final Query query = ((InsertInto) statements.get(0).getStatement()).getQuery();
 
@@ -224,7 +225,7 @@ public class QueryAnalyzerTest {
   }
 
   private Query givenQuery(final String sql) {
-    final List<PreparedStatement> statements = ksqlParser.buildAst(sql, metaStore);
+    final List<PreparedStatement<?>> statements = ksqlParser.buildAst(sql, metaStore);
     return (Query) statements.get(0).getStatement();
   }
 

@@ -48,11 +48,19 @@ final class KsqlLineParser implements Parser {
       return parsed;
     }
 
-    if (context == ParseContext.ACCEPT_LINE
-        && !parsed.line().isEmpty()
-        && !parsed.line().endsWith(TERMINATION_CHAR)) {
+    if (context != ParseContext.ACCEPT_LINE) {
+      return parsed;
+    }
+
+    final String bare = CommentStripper.strip(parsed.line());
+    if (bare.isEmpty()) {
+      return parsed;
+    }
+
+    if (!bare.endsWith(TERMINATION_CHAR)) {
       throw new EOFError(-1, -1, "Missing termination char", "termination char");
     }
+
     return parsed;
   }
 }

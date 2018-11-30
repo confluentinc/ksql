@@ -1356,6 +1356,7 @@ The ``KEY`` property is:
   .. important::
      Don't set the KEY property, unless you have validated that your stream doesn't need to be re-partitioned for future joins.
      If you set the KEY property, you will need to re-partition explicitly if your record key doesn't meet partitioning requirements.
+     For more information, see :ref:`partition-data-to-enable-joins`.
 
 In either case, when setting ``KEY`` you must be sure that *both* of the following conditions are true:
 

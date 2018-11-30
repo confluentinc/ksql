@@ -385,7 +385,18 @@ continuously write the result of the SELECT query into the stream and
 its corresponding topic.
 
 If the PARTITION BY clause is present, then the resulting stream will
-have the specified column as its key.
+have the specified column as its key. For more information, see
+:ref:`partition-data-to-enable-joins`.
+
+For joins, the key of the resulting stream will be the value from the column
+from the left stream that was used in the join criteria. This column will be
+registered as the key of the resulting stream if included in the selected
+columns.
+
+For stream-table joins, the column used in the join criteria for the table
+must be the table key.
+
+For more information, see :ref:`join-streams-and-tables`.
 
 The WITH clause for the result supports the following properties:
 
@@ -457,6 +468,16 @@ CREATE TABLE AS SELECT
 Create a new KSQL table along with the corresponding Kafka topic and
 stream the result of the SELECT query as a changelog into the topic.
 Note that the WINDOW clause can only be used if the ``from_item`` is a stream.
+
+For joins, the key of the resulting table will be the value from the column
+from the left table that was used in the join criteria. This column will be
+registered as the key of the resulting table if included in the selected
+columns.
+
+For joins, the columns used in the join criteria must be the keys of the tables
+being joined.
+
+For more information, see :ref:`join-streams-and-tables`.
 
 The WITH clause supports the following properties:
 
@@ -891,6 +912,8 @@ the following WINDOW types:
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
 
+For more information, see :ref:`windows_in_ksql_queries`.
+
 CAST
 ~~~~
 
@@ -1231,6 +1254,7 @@ Aggregate functions
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` |  Return the distinct Top *K* values for the given column and window |
 +------------------------+---------------------------+---------------------------------------------------------------------+
 
+For more information, see :ref:`aggregate-streaming-data-with-ksql`.
 
 .. _ksql_key_requirements:
 
@@ -1345,3 +1369,5 @@ Example:
       WITH (KAFKA_TOPIC='users-with-proper-key',
             VALUE_FORMAT='JSON',
             KEY='userid_string');
+
+For more information, see :ref:`partition-data-to-enable-joins`.

@@ -28,12 +28,12 @@ public interface JoinedFactory {
       String name);
 
   static JoinedFactory create(final KsqlConfig ksqlConfig) {
-    return create(ksqlConfig, new RealStreamsStatics());
+    return create(ksqlConfig, Joined::with);
   }
 
-  static JoinedFactory create(final KsqlConfig ksqlConfig, final StreamsStatics streamsStatics) {
+  static JoinedFactory create(final KsqlConfig ksqlConfig, final Joiner joiner) {
     if (StreamsUtil.useProvidedName(ksqlConfig)) {
-      return streamsStatics::joinedWith;
+      return joiner::joinedWith;
     }
     return new JoinedFactory() {
       @Override
@@ -42,8 +42,17 @@ public interface JoinedFactory {
           final Serde<V> leftSerde,
           final Serde<V0> rightSerde,
           final String name) {
-        return streamsStatics.joinedWith(keySerde, leftSerde, rightSerde, null);
+        return joiner.joinedWith(keySerde, leftSerde, rightSerde, null);
       }
     };
+  }
+
+  @FunctionalInterface
+  interface Joiner {
+    <K, V, V0> Joined<K, V, V0> joinedWith(
+        Serde<K> keySerde,
+        Serde<V> leftSerde,
+        Serde<V0> rightSerde,
+        String name);
   }
 }

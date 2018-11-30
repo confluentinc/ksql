@@ -40,7 +40,7 @@ public class MaterializedFactoryTest {
   @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
-  private StreamsStatics streamsStatics;
+  private MaterializedFactory.Materializer materializer;
   @Mock
   private Materialized<String, GenericRow, StateStore> materialized;
 
@@ -53,16 +53,16 @@ public class MaterializedFactoryTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
     );
-    when(streamsStatics.materializedWith(keySerde, rowSerde)).thenReturn(materialized);
+    when(materializer.materializedWith(keySerde, rowSerde)).thenReturn(materialized);
 
     // When:
     final Materialized<String, GenericRow, StateStore> returned
-        = MaterializedFactory.create(ksqlConfig, streamsStatics).create(
+        = MaterializedFactory.create(ksqlConfig, materializer).create(
             keySerde, rowSerde, opName);
 
     // Then:
     assertThat(returned, is(materialized));
-    verify(streamsStatics).materializedWith(keySerde, rowSerde);
+    verify(materializer).materializedWith(keySerde, rowSerde);
   }
 
   @Test
@@ -73,7 +73,7 @@ public class MaterializedFactoryTest {
         ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE)
     );
     final Materialized asName = mock(Materialized.class);
-    when(streamsStatics.materializedAs(opName)).thenReturn(asName);
+    when(materializer.materializedAs(opName)).thenReturn(asName);
     final Materialized withKeySerde = mock(Materialized.class);
     when(asName.withKeySerde(keySerde)).thenReturn(withKeySerde);
     final Materialized withRowSerde = mock(Materialized.class);
@@ -81,12 +81,12 @@ public class MaterializedFactoryTest {
 
     // When:
     final Materialized<String, GenericRow, StateStore> returned
-        = MaterializedFactory.create(ksqlConfig, streamsStatics).create(
+        = MaterializedFactory.create(ksqlConfig, materializer).create(
             keySerde, rowSerde, opName);
 
     // Then:
     assertThat(returned, is(withRowSerde));
-    verify(streamsStatics).materializedAs(opName);
+    verify(materializer).materializedAs(opName);
     verify(asName).withKeySerde(keySerde);
     verify(withKeySerde).withValueSerde(rowSerde);
   }

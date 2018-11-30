@@ -27,12 +27,28 @@ public interface MaterializedFactory {
       Serde<K> keySerde, Serde<GenericRow> valSerde, String name);
 
   static MaterializedFactory create(final KsqlConfig ksqlConfig) {
-    return create(ksqlConfig, new RealStreamsStatics());
+    return create(
+        ksqlConfig,
+        new Materializer() {
+          @Override
+          public <K, V, S extends StateStore> Materialized<K, V, S> materializedWith(
+              final Serde<K> keySerde,
+              final Serde<V> valueSerde) {
+            return Materialized.with(keySerde, valueSerde);
+          }
+
+          @Override
+          public <K, V, S extends StateStore> Materialized<K, V, S> materializedAs(
+              final String storeName) {
+            return Materialized.as(storeName);
+          }
+        }
+    );
   }
 
   static MaterializedFactory create(
       final KsqlConfig ksqlConfig,
-      final StreamsStatics streamsStatics) {
+      final Materializer materializer) {
     if (StreamsUtil.useProvidedName(ksqlConfig)) {
       return new MaterializedFactory() {
         @Override
@@ -40,7 +56,7 @@ public interface MaterializedFactory {
             final Serde<K> keySerde,
             final Serde<GenericRow> valSerde,
             final String name) {
-          return streamsStatics.<K, GenericRow, S>materializedAs(name)
+          return materializer.<K, GenericRow, S>materializedAs(name)
               .withKeySerde(keySerde)
               .withValueSerde(valSerde);
         }
@@ -52,8 +68,16 @@ public interface MaterializedFactory {
           final Serde<K> keySerde,
           final Serde<GenericRow> valSerde,
           final String name) {
-        return streamsStatics.materializedWith(keySerde, valSerde);
+        return materializer.materializedWith(keySerde, valSerde);
       }
     };
+  }
+
+  interface Materializer {
+    <K, V, S extends StateStore> Materialized<K, V, S> materializedWith(
+        Serde<K> keySerde,
+        Serde<V> valueSerde);
+
+    <K, V, S extends StateStore> Materialized<K, V, S> materializedAs(String storeName);
   }
 }

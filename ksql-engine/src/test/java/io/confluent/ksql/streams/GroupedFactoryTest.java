@@ -38,7 +38,7 @@ public class GroupedFactoryTest {
   @Mock
   private Serde<GenericRow> rowSerde;
   @Mock
-  private StreamsStatics streamsStatics;
+  private GroupedFactory.Grouper grouper;
   @Mock
   private Grouped<String, GenericRow> grouped;
 
@@ -51,10 +51,10 @@ public class GroupedFactoryTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
     );
-    when(streamsStatics.groupedWith(null, keySerde, rowSerde)).thenReturn(grouped);
+    when(grouper.groupedWith(null, keySerde, rowSerde)).thenReturn(grouped);
 
     // When:
-    final Grouped returned = GroupedFactory.create(ksqlConfig, streamsStatics).create(
+    final Grouped returned = GroupedFactory.create(ksqlConfig, grouper).create(
         opName,
         keySerde,
         rowSerde
@@ -62,7 +62,7 @@ public class GroupedFactoryTest {
 
     // Then:
     assertThat(returned, is(grouped));
-    verify(streamsStatics).groupedWith(null, keySerde, rowSerde);
+    verify(grouper).groupedWith(null, keySerde, rowSerde);
   }
 
   @Test
@@ -71,10 +71,10 @@ public class GroupedFactoryTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE)
     );
-    when(streamsStatics.groupedWith(opName, keySerde, rowSerde)).thenReturn(grouped);
+    when(grouper.groupedWith(opName, keySerde, rowSerde)).thenReturn(grouped);
 
     // When:
-    final Grouped returned = GroupedFactory.create(ksqlConfig, streamsStatics).create(
+    final Grouped returned = GroupedFactory.create(ksqlConfig, grouper).create(
         opName,
         keySerde,
         rowSerde
@@ -82,6 +82,6 @@ public class GroupedFactoryTest {
 
     // Then:
     assertThat(returned, is(grouped));
-    verify(streamsStatics).groupedWith(opName, keySerde, rowSerde);
+    verify(grouper).groupedWith(opName, keySerde, rowSerde);
   }
 }

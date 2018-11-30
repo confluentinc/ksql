@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -88,7 +89,7 @@ public class StructuredDataSourceNode
 
   private final StructuredDataSource structuredDataSource;
   private final Schema schema;
-
+  final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
   // TODO: pass in the "assignments" and the "outputs" separately
   // TODO: (i.e., get rid if the symbol := symbol idiom)
@@ -98,11 +99,20 @@ public class StructuredDataSourceNode
       @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
       @JsonProperty("schema") final Schema schema
   ) {
+    this(id, structuredDataSource, schema, MaterializedFactory::create);
+  }
+
+  public StructuredDataSourceNode(
+      final PlanNodeId id,
+      final StructuredDataSource structuredDataSource,
+      final Schema schema,
+      final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier) {
     super(id, structuredDataSource.getDataSourceType());
     Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
     Objects.requireNonNull(schema, "schema can't be null");
     this.schema = schema;
     this.structuredDataSource = structuredDataSource;
+    this.materializedFactorySupplier = materializedFactorySupplier;
   }
 
   public String getTopicName() {
@@ -293,7 +303,7 @@ public class StructuredDataSourceNode
         .transformValues(new AddTimestampColumn());
   }
 
-  private String getReduceName() {
+  private String getReduceOpName() {
     return getId().toString() + "-REDUCE";
   }
 
@@ -350,10 +360,10 @@ public class StructuredDataSourceNode
         .withTimestampExtractor(timestampExtractor);
 
     final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        MaterializedFactory.create(ksqlConfig).create(
+        materializedFactorySupplier.apply(ksqlConfig).create(
             keySerde,
             genericRowSerdeAfterRead,
-            getReduceName());
+            getReduceOpName());
     return builder
         .stream(ksqlTopic.getKafkaTopicName(), consumed)
         .mapValues(valueMapper)

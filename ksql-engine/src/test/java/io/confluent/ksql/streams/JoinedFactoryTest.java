@@ -40,7 +40,7 @@ public class JoinedFactoryTest {
   @Mock
   private Serde<GenericRow> rightSerde;
   @Mock
-  private StreamsStatics streamsStatics;
+  private JoinedFactory.Joiner joiner;
   @Mock
   private Joined<String, GenericRow, GenericRow> joined;
 
@@ -53,16 +53,16 @@ public class JoinedFactoryTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
     );
-    when(streamsStatics.joinedWith(keySerde, leftSerde, rightSerde, null)).thenReturn(joined);
+    when(joiner.joinedWith(keySerde, leftSerde, rightSerde, null)).thenReturn(joined);
 
     // When:
     final Joined<String, GenericRow, GenericRow> returned
-        = JoinedFactory.create(ksqlConfig, streamsStatics).create(
+        = JoinedFactory.create(ksqlConfig, joiner).create(
             keySerde, leftSerde, rightSerde, opName);
 
     // Then:
     assertThat(returned, is(joined));
-    verify(streamsStatics).joinedWith(keySerde, leftSerde, rightSerde, null);
+    verify(joiner).joinedWith(keySerde, leftSerde, rightSerde, null);
   }
 
   @Test
@@ -71,15 +71,15 @@ public class JoinedFactoryTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE)
     );
-    when(streamsStatics.joinedWith(keySerde, leftSerde, rightSerde, opName)).thenReturn(joined);
+    when(joiner.joinedWith(keySerde, leftSerde, rightSerde, opName)).thenReturn(joined);
 
     // When:
     final Joined<String, GenericRow, GenericRow> returned
-        = JoinedFactory.create(ksqlConfig, streamsStatics).create(
+        = JoinedFactory.create(ksqlConfig, joiner).create(
         keySerde, leftSerde, rightSerde, opName);
 
     // Then:
     assertThat(returned, is(joined));
-    verify(streamsStatics).joinedWith(keySerde, leftSerde, rightSerde, opName);
+    verify(joiner).joinedWith(keySerde, leftSerde, rightSerde, opName);
   }
 }

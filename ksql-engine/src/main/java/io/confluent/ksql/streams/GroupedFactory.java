@@ -24,12 +24,12 @@ public interface GroupedFactory {
   <K, V> Grouped<K, V> create(String name, Serde<K> keySerde, Serde<V> valSerde);
 
   static GroupedFactory create(final KsqlConfig ksqlConfig) {
-    return create(ksqlConfig, new RealStreamsStatics());
+    return create(ksqlConfig, Grouped::with);
   }
 
-  static GroupedFactory create(final KsqlConfig ksqlConfig, final StreamsStatics streamsStatics) {
+  static GroupedFactory create(final KsqlConfig ksqlConfig, final Grouper grouper) {
     if (StreamsUtil.useProvidedName(ksqlConfig)) {
-      return streamsStatics::groupedWith;
+      return grouper::groupedWith;
     }
     return new GroupedFactory() {
       @Override
@@ -37,8 +37,13 @@ public interface GroupedFactory {
           final String name,
           final Serde<K> keySerde,
           final Serde<V> valSerde) {
-        return streamsStatics.groupedWith(null, keySerde, valSerde);
+        return grouper.groupedWith(null, keySerde, valSerde);
       }
     };
+  }
+
+  @FunctionalInterface
+  interface Grouper {
+    <K, V> Grouped<K, V> groupedWith(String name, Serde<K> keySerde, Serde<V> valSerde);
   }
 }

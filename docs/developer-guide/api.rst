@@ -103,6 +103,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
    :json string ksql: A semicolon-delimited sequence of KSQL statements to run.
    :json map streamsProperties: Property overrides to run the statements with. Refer to the :ref:`Config Reference <ksql-param-reference>` for details on properties that can be set.
    :json string streamsProperties[``property-name``]: The value of the property named by ``property-name``. Both the value and ``property-name`` should be strings.
+   :json long commandSequenceNumber: Optional. If specified, the statements will not be run until all existing commands up through the specified sequence number have completed. If unspecified, the statements will be run immediately.
 
    The response JSON is an array of result objects. The result object contents depend on the statement that it is returning results for. The following sections detail the contents of the result objects by statement.
 
@@ -112,6 +113,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
    :>json string commandId: A string that identifies the requested operation. You can use this ID to poll the result of the operation using the status endpoint.
    :>json string commandStatus.status: One of QUEUED, PARSING, EXECUTING, TERMINATED, SUCCESS, or ERROR.
    :>json string commandStatus.message: Detailed message regarding the status of the execution statement.
+   :>json long commandSequenceNumber: The sequence number of the requested operation in the command queue.
 
    **LIST STREAMS, SHOW STREAMS**
 

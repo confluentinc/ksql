@@ -1144,7 +1144,7 @@ Scalar functions
 | IFNULL                 |  ``IFNULL(col1, retval)``                                  | If the provided VARCHAR is NULL, return           |
 |                        |                                                            | ``retval``, otherwise, return the value. Only     |
 |                        |                                                            | VARCHAR values are supported for the input. The   |
-|                        |                                                            | return value can be any valid KSQL type.          |
+|                        |                                                            | return value must be a VARCHAR.                   |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+

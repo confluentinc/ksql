@@ -1141,6 +1141,11 @@ Scalar functions
 |                        |                                                            | optional final parameter specifies ``KM``         |
 |                        |                                                            | (the default) or ``miles``.                       |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
+| IFNULL                 |  ``IFNULL(col1, retval)``                                  | If the provided VARCHAR is NULL, return           |
+|                        |                                                            | ``retval``, otherwise, return the value. Only     |
+|                        |                                                            | VARCHAR values are supported for the input. The   |
+|                        |                                                            | return value can be any valid KSQL type.          |
++------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                           | Convert a string to lowercase.                    |
 +------------------------+------------------------------------------------------------+---------------------------------------------------+
 | LEN                    |  ``LEN(col1)``                                             | The length of a string.                           |

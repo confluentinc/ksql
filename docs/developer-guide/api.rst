@@ -103,7 +103,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
    :json string ksql: A semicolon-delimited sequence of KSQL statements to run.
    :json map streamsProperties: Property overrides to run the statements with. Refer to the :ref:`Config Reference <ksql-param-reference>` for details on properties that can be set.
    :json string streamsProperties[``property-name``]: The value of the property named by ``property-name``. Both the value and ``property-name`` should be strings.
-   :json long commandSequenceNumber: Optional. If specified, the statements will not be run until all existing commands up through the specified sequence number have completed. If unspecified, the statements will be run immediately.
+   :json long commandSequenceNumber: Optional. If specified, the statements will not be run until all existing commands up through the specified sequence number have completed. If unspecified, the statements are run immediately.
 
    The response JSON is an array of result objects. The result object contents depend on the statement that it is returning results for. The following sections detail the contents of the result objects by statement.
 

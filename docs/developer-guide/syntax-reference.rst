@@ -1119,7 +1119,6 @@ The explanation for each operator includes a supporting example based on the fol
 
    SELECT orders.address->street, o.address->zip FROM orders o;
 
-
 .. _functions:
 
 ================

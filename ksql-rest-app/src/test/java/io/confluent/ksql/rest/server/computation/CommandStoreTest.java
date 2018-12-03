@@ -325,24 +325,8 @@ public class CommandStoreTest {
   }
 
   @Test
-  public void shouldNotWaitIfSequenceNumberReached() throws Exception {
+  public void shouldWaitOnSequenceNumberFuture() throws Exception {
     // Given:
-    givenCmdStoreUpThroughPosition(1);
-    expect(sequenceNumberFutureStore.getFutureForSequenceNumber(EasyMock.anyLong()))
-        .andThrow(new AssertionError()).anyTimes();
-    replay(sequenceNumberFutureStore);
-
-    // When:
-    commandStore.ensureConsumedUpThrough(0, TIMEOUT);
-
-    // Then:
-    verify(commandConsumer, sequenceNumberFutureStore);
-  }
-
-  @Test
-  public void shouldWaitIfSequenceNumberNotReached() throws Exception {
-    // Given:
-    givenCmdStoreUpThroughPosition(2);
     expect(sequenceNumberFutureStore.getFutureForSequenceNumber(EasyMock.anyLong())).andReturn(future);
     expect(future.get(EasyMock.anyLong(), EasyMock.anyObject(TimeUnit.class))).andReturn(null);
     replay(future, sequenceNumberFutureStore);
@@ -351,13 +335,12 @@ public class CommandStoreTest {
     commandStore.ensureConsumedUpThrough(2, TIMEOUT);
 
     // Then:
-    verify(commandConsumer, sequenceNumberFutureStore, future);
+    verify(sequenceNumberFutureStore, future);
   }
 
   @Test
   public void shouldThrowExceptionOnTimeout() throws Exception {
     // Given:
-    givenCmdStoreUpThroughPosition(0);
     expect(sequenceNumberFutureStore.getFutureForSequenceNumber(EasyMock.anyLong())).andReturn(future);
     expect(future.get(EasyMock.anyLong(), EasyMock.anyObject(TimeUnit.class)))
         .andThrow(new TimeoutException());
@@ -374,13 +357,13 @@ public class CommandStoreTest {
           is(String.format(
               "Timeout reached while waiting for command sequence number of 2. (Timeout: %d ms)", TIMEOUT)));
     }
-    verify(commandConsumer, future, sequenceNumberFutureStore);
+    verify(future, sequenceNumberFutureStore);
   }
 
   @Test
   public void shouldCompleteFuturesWhenGettingNewCommands() {
     // Given:
-    sequenceNumberFutureStore.completeFuturesUpToSequenceNumber(EasyMock.anyLong());
+    sequenceNumberFutureStore.completeFuturesUpThroughSequenceNumber(EasyMock.anyLong());
     expectLastCall();
     expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(buildRecords());
     replay(sequenceNumberFutureStore, commandConsumer);
@@ -397,12 +380,6 @@ public class CommandStoreTest {
     expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(
         buildRecords(commandId, command)
     ).times(1);
-    replay(commandConsumer);
-  }
-
-  private void givenCmdStoreUpThroughPosition(long position) {
-    reset(commandConsumer);
-    expect(commandConsumer.position(anyObject(TopicPartition.class))).andReturn(position);
     replay(commandConsumer);
   }
 

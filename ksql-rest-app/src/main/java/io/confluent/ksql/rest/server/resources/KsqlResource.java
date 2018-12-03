@@ -198,7 +198,7 @@ public class KsqlResource {
 
       return executeStatements(statements, request.getStreamsProperties());
     } catch (final KsqlRestException e) {
-      return e.getResponse();
+      throw e;
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {

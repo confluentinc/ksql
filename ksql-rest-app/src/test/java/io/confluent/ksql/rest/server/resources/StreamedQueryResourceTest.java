@@ -29,8 +29,10 @@ import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -142,9 +144,6 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldNotWaitIfCommandSequenceNumberSpecified() throws Exception {
     // Given:
-    replayableCommandQueue.ensureConsumedUpThrough(anyLong(), anyLong());
-    expectLastCall().andThrow(new AssertionFailedError()).anyTimes();
-
     replay(replayableCommandQueue);
 
     // When:
@@ -177,17 +176,21 @@ public class StreamedQueryResourceTest {
 
     replay(replayableCommandQueue);
 
-    // When:
-    final Response response = testResource
-        .streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    try {
+      // When:
+      testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
 
-    // Then:
-    assertThat(response.getStatus(), equalTo(Response.Status.SERVICE_UNAVAILABLE.getStatusCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
-    assertThat(
-        errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT));
-    assertThat(errorMessage.getMessage(), equalTo("whoops"));
+      // Then:
+      fail("Should throw KsqlRestException in response to timeout.");
+    } catch (KsqlRestException e) {
+      final Response response = e.getResponse();
+      assertThat(response.getStatus(), is(Response.Status.SERVICE_UNAVAILABLE.getStatusCode()));
+      assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+      final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+      assertThat(
+          errorMessage.getErrorCode(), is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT));
+      assertThat(errorMessage.getMessage(), equalTo("whoops"));
+    }
   }
 
   @SuppressWarnings("unchecked")

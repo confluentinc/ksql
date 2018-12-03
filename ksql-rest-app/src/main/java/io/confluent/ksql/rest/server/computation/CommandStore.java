@@ -217,11 +217,6 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   @Override
   public void ensureConsumedUpThrough(final long seqNum, final long timeout)
       throws TimeoutException {
-    final long consumerPosition = getNextConsumerSequenceNumber();
-    if (consumerPosition > seqNum) {
-      return;
-    }
-
     final CompletableFuture<Void> future =
         sequenceNumberFutureStore.getFutureForSequenceNumber(seqNum);
     try {
@@ -241,10 +236,6 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     }
   }
 
-  private long getNextConsumerSequenceNumber() {
-    return commandConsumer.position(topicPartition);
-  }
-
   private Collection<TopicPartition> getTopicPartitionsForTopic(final String topic) {
     final List<PartitionInfo> partitionInfoList = commandConsumer.partitionsFor(topic);
 
@@ -256,7 +247,7 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   }
 
   private void completeSatisfiedSequenceNumberFutures() {
-    final long consumerPosition = getNextConsumerSequenceNumber();
-    sequenceNumberFutureStore.completeFuturesUpToSequenceNumber(consumerPosition);
+    final long consumerPosition = commandConsumer.position(topicPartition);;
+    sequenceNumberFutureStore.completeFuturesUpThroughSequenceNumber(consumerPosition - 1);
   }
 }

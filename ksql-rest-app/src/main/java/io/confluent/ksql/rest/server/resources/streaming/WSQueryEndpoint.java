@@ -133,17 +133,20 @@ public class WSQueryEndpoint {
       validateVersion(session);
 
       final KsqlRequest request = parseRequest(session);
-      CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request,
-          commandQueueCatchupTimeout);
+
+      try {
+        CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request,
+            commandQueueCatchupTimeout);
+      } catch (final TimeoutException e) {
+        log.debug("Timeout while processing request", e);
+        SessionUtil.closeSilently(session, CloseCodes.TRY_AGAIN_LATER, e.getMessage());
+      }
 
       final Statement statement = parseStatement(request);
 
       HANDLER_MAP
           .getOrDefault(statement.getClass(), WSQueryEndpoint::handleUnsupportedStatement)
           .handle(this, new SessionAndRequest(session, request), statement);
-    } catch (final TimeoutException e) {
-      log.debug("Timeout while processing request", e);
-      SessionUtil.closeSilently(session, CloseCodes.TRY_AGAIN_LATER, e.getMessage());
     } catch (final Exception e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, e.getMessage());

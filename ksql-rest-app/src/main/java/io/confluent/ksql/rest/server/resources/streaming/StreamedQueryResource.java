@@ -90,8 +90,6 @@ public class StreamedQueryResource {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
           replayableCommandQueue, request, disconnectCheckInterval.toMillis());
       statement = statementParser.parseSingleStatement(ksql);
-    } catch (final KsqlRestException e) {
-      return e.getResponse();
     } catch (IllegalArgumentException | KsqlException e) {
       return Errors.badRequest(e);
     }

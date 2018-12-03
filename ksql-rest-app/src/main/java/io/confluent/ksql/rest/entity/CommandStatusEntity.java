@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -30,33 +29,17 @@ public class CommandStatusEntity extends KsqlEntity {
   private final CommandStatus commandStatus;
   private final long commandSequenceNumber;
 
+  @JsonCreator
   public CommandStatusEntity(
-      final String statementText,
-      final CommandId commandId,
-      final CommandStatus commandStatus,
-      final long commandSequenceNumber
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("commandId") final CommandId commandId,
+      @JsonProperty("commandStatus") final CommandStatus commandStatus,
+      @JsonProperty("commandSequenceNumber") final long commandSequenceNumber
   ) {
     super(statementText);
     this.commandId = commandId;
     this.commandStatus = commandStatus;
     this.commandSequenceNumber = commandSequenceNumber;
-  }
-
-  @JsonCreator
-  public CommandStatusEntity(
-      @JsonProperty("statementText") final String statementText,
-      @JsonProperty("commandId") final String commandId,
-      @JsonProperty("commandStatus") final Map<String, Object> commandStatus,
-      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
-  ) {
-    this(
-        statementText,
-        CommandId.fromString(commandId),
-        new CommandStatus(
-            CommandStatus.Status.valueOf((String) commandStatus.get("status")),
-            (String) commandStatus.get("message")),
-        commandSequenceNumber == null ? -1 : commandSequenceNumber
-    );
   }
 
   public CommandId getCommandId() {

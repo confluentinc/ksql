@@ -1009,7 +1009,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldUpdateTheLastRequestTime() {
     // When:
-    ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap(), null));
+    ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
 
     // Then:
     verify(activenessRegistrar).updateLastRequestTime();
@@ -1076,10 +1076,14 @@ public class KsqlResourceTest {
   }
 
   private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
-    final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
-    assertThat(response.getStatus(), is(errorCode.getCode()));
-    assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-    return (KsqlErrorMessage) response.getEntity();
+    try {
+      final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
+      assertThat(response.getStatus(), is(errorCode.getCode()));
+      assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
+      return (KsqlErrorMessage) response.getEntity();
+    } catch (KsqlRestException e) {
+      return (KsqlErrorMessage) e.getResponse().getEntity();
+    }
   }
 
   private <T extends KsqlEntity> T makeSingleRequest(

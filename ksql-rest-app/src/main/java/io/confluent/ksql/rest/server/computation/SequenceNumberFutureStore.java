@@ -21,18 +21,26 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SequenceNumberFutureStore {
   private final ConcurrentHashMap<Long, CompletableFuture<Void>> sequenceNumberFutures;
+  private volatile long lastCompletedSequenceNumber;
 
   public SequenceNumberFutureStore() {
-    sequenceNumberFutures = new ConcurrentHashMap<>(8, 0.9f, 1);
+    sequenceNumberFutures = new ConcurrentHashMap<>();
+    lastCompletedSequenceNumber = -1;
   }
 
-  public CompletableFuture<Void> getFutureForSequenceNumber(final long seqNum) {
+  public synchronized CompletableFuture<Void> getFutureForSequenceNumber(final long seqNum) {
+    if (seqNum <= lastCompletedSequenceNumber) {
+      return CompletableFuture.completedFuture(null);
+    }
     return sequenceNumberFutures.computeIfAbsent(seqNum, k -> new CompletableFuture<>());
   }
 
-  public void completeFuturesUpToSequenceNumber(final long seqNum) {
+  public void completeFuturesUpThroughSequenceNumber(final long seqNum) {
+    synchronized (this) {
+      lastCompletedSequenceNumber = seqNum;
+    }
     sequenceNumberFutures.keySet().stream()
-        .filter(k -> k < seqNum)
+        .filter(k -> k <= seqNum)
         .forEach(k -> {
           sequenceNumberFutures.get(k).complete(null);
           sequenceNumberFutures.remove(k);

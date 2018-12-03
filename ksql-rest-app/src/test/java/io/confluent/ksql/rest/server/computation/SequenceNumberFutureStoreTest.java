@@ -64,14 +64,14 @@ public class SequenceNumberFutureStoreTest {
   public void shouldReturnFutureForCompletedSequenceNumber() {
     // Given:
     final CompletableFuture<Void> firstFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
-    sequenceNumberFutureStore.completeFuturesUpToSequenceNumber(3);
+    sequenceNumberFutureStore.completeFuturesUpThroughSequenceNumber(2);
     assertFutureIsCompleted(firstFuture);
 
     // When:
     final CompletableFuture<Void> secondFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
 
     // Then:
-    assertFutureIsNotCompleted(secondFuture);
+    assertFutureIsCompleted(secondFuture);
     assertThat(secondFuture, is(not(sameInstance(firstFuture))));
   }
 
@@ -82,7 +82,7 @@ public class SequenceNumberFutureStoreTest {
     final CompletableFuture<Void> secondFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(3);
 
     // When:
-    sequenceNumberFutureStore.completeFuturesUpToSequenceNumber(3);
+    sequenceNumberFutureStore.completeFuturesUpThroughSequenceNumber(2);
 
     // Then:
     assertFutureIsCompleted(firstFuture);

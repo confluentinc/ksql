@@ -86,10 +86,6 @@ public class CommandRunner implements Runnable, Closeable {
     }
   }
 
-  public ReplayableCommandQueue getCommandStore() {
-    return commandStore;
-  }
-
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
     log.trace("Found {} new writes to command topic", commands.size());

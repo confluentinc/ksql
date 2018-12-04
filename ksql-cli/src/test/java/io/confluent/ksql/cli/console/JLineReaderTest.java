@@ -16,9 +16,10 @@
 
 package io.confluent.ksql.cli.console;
 
-import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,10 +33,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
@@ -44,20 +41,21 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class JLineReaderTest {
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder();
 
-  @Mock(MockType.NICE)
+  @Mock
   private Predicate<String> cliLinePredicate;
 
   @Before
   public void setUp() {
-    EasyMock.expect(cliLinePredicate.test(anyString())).andReturn(false).anyTimes();
-    EasyMock.replay(cliLinePredicate);
+    when(cliLinePredicate.test(any())).thenReturn(false);
   }
 
   @Test

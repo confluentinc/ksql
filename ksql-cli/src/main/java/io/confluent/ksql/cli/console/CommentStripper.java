@@ -23,13 +23,15 @@ package io.confluent.ksql.cli.console;
  */
 final class CommentStripper {
 
+  private static final char NONE = 'x';
+
   private CommentStripper() {
   }
 
   static String strip(final String line) {
 
-    char lastChar = 'x';
-    char lastQuote = 'x';
+    char lastChar = NONE;
+    char lastQuote = NONE;
     for (int i = 0; i != line.length(); ++i) {
       final char c = line.charAt(i);
       switch (c) {
@@ -38,14 +40,14 @@ final class CommentStripper {
         case '"':
           if (lastQuote == c) {
             // Matching pair:
-            lastQuote = 'x';
-          } else if (lastQuote == 'x') {
+            lastQuote = NONE;
+          } else if (lastQuote == NONE) {
             lastQuote = c;
           }
           break;
 
         case '-':
-          if (lastChar == '-' && lastQuote == 'x') {
+          if (lastChar == '-' && lastQuote == NONE) {
             // Found unquoted comment marker:
             return line.substring(0, i - 1).trim();
           }

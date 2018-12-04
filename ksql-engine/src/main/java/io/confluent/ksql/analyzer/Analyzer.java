@@ -644,9 +644,9 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
       analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
 
-      if (node.getProperties().containsKey(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME)) {
-        final Expression avroSchemaFullName =
-            node.getProperties().get(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME);
+      final Expression avroSchemaFullName =
+              node.getProperties().get(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME);
+      if (avroSchemaFullName != null) {
         analysis.getIntoProperties()
             .put(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME, avroSchemaFullName);
       }

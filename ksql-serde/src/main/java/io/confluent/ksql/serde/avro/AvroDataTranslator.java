@@ -89,7 +89,7 @@ public class AvroDataTranslator implements DataTranslator {
     TypeNameGenerator(final Map<String, String> properties) {
       final String schemaFullName = properties.get(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME);
       this.names = ImmutableList.of(schemaFullName == null
-                                    ? KsqlConstants.AVRO_SCHEMA_FULL_NAME :
+                                    ? KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
                                       StringUtil.cleanQuotes(schemaFullName));
     }
 

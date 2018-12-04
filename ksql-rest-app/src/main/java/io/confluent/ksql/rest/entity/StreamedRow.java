@@ -73,6 +73,10 @@ public class StreamedRow {
     return finalMessage;
   }
 
+  public boolean isTerminal() {
+    return finalMessage != null || errorMessage != null;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

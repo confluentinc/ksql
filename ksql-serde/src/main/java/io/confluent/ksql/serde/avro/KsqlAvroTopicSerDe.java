@@ -28,10 +28,9 @@ import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.SchemaUtil;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -43,17 +42,17 @@ import org.apache.kafka.connect.data.Schema;
 
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
-  private final Map<String, String> properties;
+  private final String fullSchemaName;
 
   public static final String AVRO_SCHEMA_FULL_NAME = "AVRO_SCHEMA_FULL_NAME";
 
   public KsqlAvroTopicSerDe() {
-    this(new HashMap<String, String>());
+    this(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
   }
 
-  public KsqlAvroTopicSerDe(final Map<String, String> properties) {
+  public KsqlAvroTopicSerDe(final String fullSchemaName) {
     super(DataSource.DataSourceSerDe.AVRO);
-    this.properties = properties;
+    this.fullSchemaName = fullSchemaName;
   }
 
   private static AvroConverter getAvroConverter(
@@ -80,12 +79,12 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
         ? schemaMaybeWithSource : SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource);
     final Serializer<GenericRow> genericRowSerializer = new ThreadLocalSerializer(
         () -> new KsqlConnectSerializer(
-            new AvroDataTranslator(schema, this.properties),
+            new AvroDataTranslator(schema, this.fullSchemaName),
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig)));
     final Deserializer<GenericRow> genericRowDeserializer = new ThreadLocalDeserializer(
         () -> new KsqlConnectDeserializer(
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig),
-            new AvroDataTranslator(schema, this.properties))
+            new AvroDataTranslator(schema, this.fullSchemaName))
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }

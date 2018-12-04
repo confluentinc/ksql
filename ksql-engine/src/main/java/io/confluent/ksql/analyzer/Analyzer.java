@@ -57,7 +57,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -151,8 +150,12 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       if (analysis.getIntoFormat() != null) {
         switch (analysis.getIntoFormat().toUpperCase()) {
           case DataSource.AVRO_SERDE_NAME:
-            intoTopicSerde = new KsqlAvroTopicSerDe(
-              getStringProperties(analysis.getIntoProperties()));
+            final String schemaFullName =
+                StringUtil.cleanQuotes(
+                 analysis.getIntoProperties().getOrDefault(
+                   KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME,
+                   KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).toString());
+            intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
             break;
           case DataSource.JSON_SERDE_NAME:
             intoTopicSerde = new KsqlJsonTopicSerDe();
@@ -162,12 +165,16 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             break;
           default:
             throw new KsqlException(
-                String.format("Unsupported format: %s", analysis.getIntoFormat()));
+              String.format("Unsupported format: %s", analysis.getIntoFormat()));
         }
       } else {
         if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
-          intoTopicSerde = new KsqlAvroTopicSerDe(
-            getStringProperties(analysis.getIntoProperties()));
+          final String schemaFullName =
+              StringUtil.cleanQuotes(
+                analysis.getIntoProperties().getOrDefault(
+                  KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME,
+                  KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).toString());
+          intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
         }
       }
 
@@ -689,14 +696,5 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         throw new KsqlException("Invalid config variable in the WITH clause: " + withVariable);
       }
     }
-  }
-
-  private Map<String, String> getStringProperties(final Map<String, Object> properties) {
-    final Map<String, String> stringProperties = new HashMap<>();
-    for (final Map.Entry<String, Object> entry : properties.entrySet()) {
-      stringProperties.put(entry.getKey(), entry.getValue() == null
-                           ? null : StringUtil.cleanQuotes(entry.getValue().toString()));
-    }
-    return stringProperties;
   }
 }

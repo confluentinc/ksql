@@ -27,12 +27,12 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -198,13 +198,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   private void addAvroSchemaToResultTopic(final Builder builder) {
-    final Map<String, String> stringProperties = new HashMap<>();
-    for (final Map.Entry<String, Object> entry : outputProperties.entrySet()) {
-      stringProperties.put(entry.getKey(), entry.getValue() == null
-                           ? null : StringUtil.cleanQuotes(entry.getValue().toString()));
-    }
+    final String schemaFullName = StringUtil.cleanQuotes(
+        outputProperties.getOrDefault(
+                KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME,
+                KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).toString());
     final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe(stringProperties);
+        new KsqlAvroTopicSerDe(schemaFullName);
     builder.withKsqlTopic(new KsqlTopic(
         getKsqlTopic().getName(),
         getKsqlTopic().getKafkaTopicName(),

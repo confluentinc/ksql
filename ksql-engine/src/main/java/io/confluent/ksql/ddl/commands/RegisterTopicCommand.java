@@ -70,13 +70,12 @@ public class RegisterTopicCommand implements DdlCommand {
     }
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
-        final Map<String, String> avroRecordConfig = new HashMap<>();
-        for (Map.Entry<String, Expression> entry : properties.entrySet()) {
-          avroRecordConfig.put(entry.getKey(), entry.getValue() == null
-                               ? null :
-                                 StringUtil.cleanQuotes(entry.getValue().toString()));
-        }
-        return new KsqlAvroTopicSerDe(avroRecordConfig);
+        final Expression schemaFullNameExp =
+                properties.get(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME);
+        final String schemaFullName = schemaFullNameExp == null ?
+                KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
+                StringUtil.cleanQuotes(schemaFullNameExp.toString());
+        return new KsqlAvroTopicSerDe(schemaFullName);
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe();
       case DataSource.DELIMITED_SERDE_NAME:

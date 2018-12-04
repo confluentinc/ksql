@@ -115,11 +115,6 @@ Download the Tutorial and Start KSQL
               -t new_orders \
               -K: \
               -P <<EOF
-
-Your output should resemble:
-
-::
-
     1:{"order_id":1,"total_amount":10.50,"customer_name":"Bob Smith"}
     2:{"order_id":2,"total_amount":3.32,"customer_name":"Sarah Black"}
     3:{"order_id":3,"total_amount":21.00,"customer_name":"Emma Turner"}
@@ -133,11 +128,6 @@ Your output should resemble:
               -t shipments \
               -K: \
               -P <<EOF
-    
-Your output should resemble:
-
-::
-
     1:{"order_id":1,"shipment_id":42,"warehouse":"Nashville"}
     3:{"order_id":3,"shipment_id":43,"warehouse":"Palo Alto"}
     EOF
@@ -160,11 +150,6 @@ Your output should resemble:
               -t warehouse_location \
               -K: \
               -P <<EOF
-
-Your output should resemble:
-
-::
-
     1:{"warehouse_id":1,"city":"Leeds","country":"UK"}
     2:{"warehouse_id":2,"city":"Sheffield","country":"UK"}
     3:{"warehouse_id":3,"city":"Berlin","country":"Germany"}
@@ -178,11 +163,6 @@ Your output should resemble:
               -t warehouse_size \
               -K: \
               -P <<EOF
-    
-Your output should resemble:
-
-::
-
     1:{"warehouse_id":1,"square_footage":16000}
     2:{"warehouse_id":2,"square_footage":42000}
     3:{"warehouse_id":3,"square_footage":94000}

@@ -18,6 +18,8 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
 public final class SerdeUtils {
+  public static final String DESERIALIZER_LOGGER_NAME = "deserializer";
+
   private SerdeUtils() {
   }
 

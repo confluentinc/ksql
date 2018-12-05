@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -15,6 +16,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import javax.ws.rs.core.Response;
@@ -27,7 +29,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class CommandStoreUtilTest {
 
-  private static final long TIMEOUT = 5000L;
+  private static final Duration TIMEOUT = Duration.ofMillis(5000L);
   private static final long SEQUENCE_NUMBER = 2;
 
   @Mock
@@ -44,7 +46,7 @@ public class CommandStoreUtilTest {
     CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request, TIMEOUT);
 
     // Then:
-    verify(replayableCommandQueue, never()).ensureConsumedUpThrough(anyLong(), anyLong());
+    verify(replayableCommandQueue, never()).ensureConsumedPast(anyLong(), any());
   }
 
   @Test
@@ -56,7 +58,7 @@ public class CommandStoreUtilTest {
     CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request, TIMEOUT);
 
     // Then:
-    verify(replayableCommandQueue).ensureConsumedUpThrough(SEQUENCE_NUMBER, TIMEOUT);
+    verify(replayableCommandQueue).ensureConsumedPast(SEQUENCE_NUMBER, TIMEOUT);
   }
 
   @Test
@@ -64,7 +66,7 @@ public class CommandStoreUtilTest {
     // Given:
     when(request.getCommandSequenceNumber()).thenReturn(Optional.of(SEQUENCE_NUMBER));
     doThrow(new TimeoutException("uh oh"))
-        .when(replayableCommandQueue).ensureConsumedUpThrough(SEQUENCE_NUMBER, TIMEOUT);
+        .when(replayableCommandQueue).ensureConsumedPast(SEQUENCE_NUMBER, TIMEOUT);
 
     try {
       // When:

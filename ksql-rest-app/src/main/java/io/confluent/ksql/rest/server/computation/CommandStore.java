@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -86,13 +87,14 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
       final CommandIdAssigner commandIdAssigner,
       final SequenceNumberFutureStore sequenceNumberFutureStore
   ) {
-    this.commandTopic = commandTopic;
+    this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
     this.topicPartition = new TopicPartition(commandTopic, 0);
-    this.commandConsumer = commandConsumer;
-    this.commandProducer = commandProducer;
-    this.commandIdAssigner = commandIdAssigner;
+    this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
+    this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");
+    this.commandIdAssigner = Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
     this.commandStatusMap = Maps.newConcurrentMap();
-    this.sequenceNumberFutureStore = sequenceNumberFutureStore;
+    this.sequenceNumberFutureStore =
+        Objects.requireNonNull(sequenceNumberFutureStore, "sequenceNumberFutureStore");
 
     commandConsumer.assign(Collections.singleton(topicPartition));
   }
@@ -215,24 +217,24 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   }
 
   @Override
-  public void ensureConsumedUpThrough(final long seqNum, final long timeout)
-      throws TimeoutException {
+  public void ensureConsumedPast(final long seqNum, final Duration timeout)
+      throws InterruptedException, TimeoutException {
     final CompletableFuture<Void> future =
         sequenceNumberFutureStore.getFutureForSequenceNumber(seqNum);
     try {
-      future.get(timeout, TimeUnit.MILLISECONDS);
+      future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     } catch (final ExecutionException e) {
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException)e.getCause();
+      }
       throw new RuntimeException(
           "Error waiting for command sequence number of " + seqNum, e.getCause());
-    } catch (final InterruptedException e) {
-      throw new RuntimeException(
-          "Interrupted while waiting for command sequence number of " + seqNum, e);
     } catch (final TimeoutException e) {
       throw new TimeoutException(
           String.format(
               "Timeout reached while waiting for command sequence number of %d. (Timeout: %d ms)",
               seqNum,
-              timeout));
+              timeout.toMillis()));
     }
   }
 
@@ -248,6 +250,6 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
 
   private void completeSatisfiedSequenceNumberFutures() {
     final long consumerPosition = commandConsumer.position(topicPartition);;
-    sequenceNumberFutureStore.completeFuturesUpThroughSequenceNumber(consumerPosition - 1);
+    sequenceNumberFutureStore.completeFuturesUpToAndIncludingSequenceNumber(consumerPosition - 1);
   }
 }

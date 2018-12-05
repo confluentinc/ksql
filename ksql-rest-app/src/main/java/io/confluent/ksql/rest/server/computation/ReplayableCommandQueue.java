@@ -20,6 +20,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 
 import java.io.Closeable;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -36,5 +37,6 @@ public interface ReplayableCommandQueue extends Closeable {
 
   List<QueuedCommand> getRestoreCommands();
 
-  void ensureConsumedUpThrough(long seqNum, long timeout) throws TimeoutException;
+  void ensureConsumedPast(long seqNum, Duration timeout)
+      throws InterruptedException, TimeoutException;
 }

@@ -19,23 +19,23 @@ package io.confluent.ksql.rest.server.computation;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class SequenceNumberFutureStore {
+class SequenceNumberFutureStore {
   private final ConcurrentHashMap<Long, CompletableFuture<Void>> sequenceNumberFutures;
-  private volatile long lastCompletedSequenceNumber;
+  private long lastCompletedSequenceNumber;
 
-  public SequenceNumberFutureStore() {
+  SequenceNumberFutureStore() {
     sequenceNumberFutures = new ConcurrentHashMap<>();
     lastCompletedSequenceNumber = -1;
   }
 
-  public synchronized CompletableFuture<Void> getFutureForSequenceNumber(final long seqNum) {
+  synchronized CompletableFuture<Void> getFutureForSequenceNumber(final long seqNum) {
     if (seqNum <= lastCompletedSequenceNumber) {
       return CompletableFuture.completedFuture(null);
     }
     return sequenceNumberFutures.computeIfAbsent(seqNum, k -> new CompletableFuture<>());
   }
 
-  public void completeFuturesUpThroughSequenceNumber(final long seqNum) {
+  void completeFuturesUpToAndIncludingSequenceNumber(final long seqNum) {
     synchronized (this) {
       lastCompletedSequenceNumber = seqNum;
     }

@@ -34,6 +34,7 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,7 @@ public class WSQueryEndpoint {
   private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher queryPublisher;
   private final PrintTopicPublisher topicPublisher;
-  private final long commandQueueCatchupTimeout;
+  private final Duration commandQueueCatchupTimeout;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -84,7 +85,7 @@ public class WSQueryEndpoint {
       final ReplayableCommandQueue replayableCommandQueue,
       final ListeningScheduledExecutorService exec,
       final ActivenessRegistrar activenessRegistrar,
-      final long commandQueueCatchupTimeout
+      final Duration commandQueueCatchupTimeout
   ) {
     this(ksqlConfig,
         mapper,
@@ -108,7 +109,7 @@ public class WSQueryEndpoint {
       final QueryPublisher queryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
-      final long commandQueueCatchupTimeout
+      final Duration commandQueueCatchupTimeout
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -121,7 +122,8 @@ public class WSQueryEndpoint {
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
-    this.commandQueueCatchupTimeout = commandQueueCatchupTimeout;
+    this.commandQueueCatchupTimeout =
+        Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
   }
 
   @SuppressWarnings("unused")
@@ -137,9 +139,16 @@ public class WSQueryEndpoint {
       try {
         CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request,
             commandQueueCatchupTimeout);
+      } catch (final InterruptedException e) {
+        log.debug("Interrupted while waiting for command queue "
+            + "to reach specified command sequence number",
+            e);
+        SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, e.getMessage());
+        return;
       } catch (final TimeoutException e) {
         log.debug("Timeout while processing request", e);
         SessionUtil.closeSilently(session, CloseCodes.TRY_AGAIN_LATER, e.getMessage());
+        return;
       }
 
       final Statement statement = parseStatement(request);

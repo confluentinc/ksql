@@ -34,12 +34,12 @@ public class CommandStatusEntity extends KsqlEntity {
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("commandId") final CommandId commandId,
       @JsonProperty("commandStatus") final CommandStatus commandStatus,
-      @JsonProperty("commandSequenceNumber") final long commandSequenceNumber
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     super(statementText);
-    this.commandId = commandId;
-    this.commandStatus = commandStatus;
-    this.commandSequenceNumber = commandSequenceNumber;
+    this.commandId = Objects.requireNonNull(commandId, "commandId");
+    this.commandStatus = Objects.requireNonNull(commandStatus, "commandStatus");
+    this.commandSequenceNumber = commandSequenceNumber == null ? -1 : commandSequenceNumber;
   }
 
   public CommandId getCommandId() {
@@ -51,7 +51,7 @@ public class CommandStatusEntity extends KsqlEntity {
     return commandStatus;
   }
 
-  public long getCommandSequenceNumber() {
+  public Long getCommandSequenceNumber() {
     return commandSequenceNumber;
   }
 
@@ -71,7 +71,7 @@ public class CommandStatusEntity extends KsqlEntity {
 
   @Override
   public int hashCode() {
-    return Objects.hash(getCommandId(), getCommandStatus(), getCommandSequenceNumber());
+    return Objects.hash(commandId, commandStatus, commandSequenceNumber);
   }
 
   @Override

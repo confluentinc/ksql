@@ -86,9 +86,10 @@ public class StreamedQueryResource {
       return Errors.badRequest("\"ksql\" field must be populated");
     }
     activenessRegistrar.updateLastRequestTime();
+
+    CommandStoreUtil.httpWaitForCommandSequenceNumber(
+        replayableCommandQueue, request, disconnectCheckInterval);
     try {
-      CommandStoreUtil.httpWaitForCommandSequenceNumber(
-          replayableCommandQueue, request, disconnectCheckInterval.toMillis());
       statement = statementParser.parseSingleStatement(ksql);
     } catch (IllegalArgumentException | KsqlException e) {
       return Errors.badRequest(e);

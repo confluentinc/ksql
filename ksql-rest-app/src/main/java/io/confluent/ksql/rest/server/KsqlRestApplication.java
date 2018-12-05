@@ -271,7 +271,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       replayableCommandQueue,
                       exec,
                       versionCheckerAgent::updateLastRequestTime,
-                      config.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
+                      Duration.ofMillis(config.getLong(
+                          KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG))
                   );
                 }
 

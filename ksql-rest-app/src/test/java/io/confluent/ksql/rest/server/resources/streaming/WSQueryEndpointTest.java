@@ -51,6 +51,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -89,7 +90,7 @@ public class WSQueryEndpointTest {
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;
   private static final KsqlRequest[] NO_REQUEST_PROPERTY = (KsqlRequest[]) null;
-  private static final long COMMAND_QUEUE_CATCHUP_TIMEOUT = 5000L;
+  private static final Duration COMMAND_QUEUE_CATCHUP_TIMEOUT = Duration.ofMillis(5000L);
 
   @Mock
   private KsqlConfig ksqlConfig;
@@ -345,7 +346,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(replayableCommandQueue, never()).ensureConsumedUpThrough(anyLong(), anyLong());
+    verify(replayableCommandQueue, never()).ensureConsumedPast(anyLong(), any());
   }
 
   @Test
@@ -357,7 +358,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(replayableCommandQueue).ensureConsumedUpThrough(eq(SEQUENCE_NUMBER), anyLong());
+    verify(replayableCommandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
   }
 
   @Test
@@ -365,13 +366,14 @@ public class WSQueryEndpointTest {
     // Given:
     givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
     doThrow(new TimeoutException("yikes"))
-        .when(replayableCommandQueue).ensureConsumedUpThrough(eq(SEQUENCE_NUMBER), anyLong());
+        .when(replayableCommandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
     verifyClosedWithReason("yikes", CloseCodes.TRY_AGAIN_LATER);
+    verify(statementParser, never()).parseSingleStatement(any());
   }
 
   private PrintTopic printTopic(final String name, final boolean fromBeginning) {

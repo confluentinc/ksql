@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.rest.entity.CommandStatus;
 
 import java.time.Duration;
+import java.util.Objects;
 
 public class QueuedCommandStatus {
   private final CommandStatusFuture commandStatusFuture;
@@ -26,8 +27,9 @@ public class QueuedCommandStatus {
 
   public QueuedCommandStatus(
       final long commandSequenceNumber, final CommandStatusFuture commandStatusFuture) {
-    this.commandSequenceNumber = commandSequenceNumber;
-    this.commandStatusFuture = commandStatusFuture;
+    this.commandSequenceNumber =
+        Objects.requireNonNull(commandSequenceNumber, "commandSequenceNumber");
+    this.commandStatusFuture = Objects.requireNonNull(commandStatusFuture, "commandStatusFuture");
   }
 
   public CommandStatus getStatus() {

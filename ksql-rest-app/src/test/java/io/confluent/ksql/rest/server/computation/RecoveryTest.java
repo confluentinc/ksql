@@ -45,6 +45,7 @@ import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,7 +55,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
@@ -133,7 +133,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public void ensureConsumedUpThrough(final long seqNum, final long timeout) {
+    public void ensureConsumedPast(final long seqNum, final Duration timeout) {
     }
 
     @Override

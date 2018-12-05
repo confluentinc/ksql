@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server.resources;
 import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
@@ -68,7 +69,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-import junit.framework.AssertionFailedError;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -156,7 +156,7 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldWaitIfCommandSequenceNumberSpecified() throws Exception {
     // Given:
-    replayableCommandQueue.ensureConsumedUpThrough(anyLong(), anyLong());
+    replayableCommandQueue.ensureConsumedPast(eq(3L), anyObject());
     expectLastCall();
 
     replay(replayableCommandQueue);
@@ -169,9 +169,10 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldReturn503IfTimeoutWhileWaitingForCommandSequenceNumber() throws Exception {
+  public void shouldReturnServiceUnavailableIfTimeoutWaitingForCommandSequenceNumber()
+      throws Exception {
     // Given:
-    replayableCommandQueue.ensureConsumedUpThrough(anyLong(), anyLong());
+    replayableCommandQueue.ensureConsumedPast(anyLong(), anyObject());
     expectLastCall().andThrow(new TimeoutException("whoops"));
 
     replay(replayableCommandQueue);

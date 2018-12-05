@@ -29,39 +29,39 @@ public class CommandStatusFuture {
       CommandStatus.Status.QUEUED, "Statement written to command topic");
 
   private final CommandId commandId;
-  private volatile CommandStatus commandStatus;
-  private final CompletableFuture<CommandStatus> future;
+  private volatile CommandStatus currentStatus;
+  private final CompletableFuture<CommandStatus> finalStatusFuture;
 
   public CommandStatusFuture(final CommandId commandId) {
     this.commandId = Objects.requireNonNull(commandId, "commandId cannot be null");
-    this.commandStatus = INITIAL_STATUS;
-    this.future = new CompletableFuture<>();
+    this.currentStatus = INITIAL_STATUS;
+    this.finalStatusFuture = new CompletableFuture<>();
   }
 
-  public CommandId getCommandId() {
+  CommandId getCommandId() {
     return commandId;
   }
 
-  public CommandStatus getStatus() {
-    return commandStatus;
+  CommandStatus getStatus() {
+    return currentStatus;
   }
 
-  public CommandStatus tryWaitForFinalStatus(final Duration timeout) throws InterruptedException {
+  CommandStatus tryWaitForFinalStatus(final Duration timeout) throws InterruptedException {
     try {
-      return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+      return finalStatusFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     } catch (final ExecutionException e) {
       throw new RuntimeException("Error executing command " + commandId, e.getCause());
     } catch (final TimeoutException e) {
-      return commandStatus;
+      return currentStatus;
     }
   }
 
-  public void setStatus(final CommandStatus status) {
-    this.commandStatus = Objects.requireNonNull(status);
+  void setStatus(final CommandStatus status) {
+    this.currentStatus = Objects.requireNonNull(status);
   }
 
-  public void setFinalStatus(final CommandStatus status) {
+  void setFinalStatus(final CommandStatus status) {
     setStatus(status);
-    future.complete(status);
+    finalStatusFuture.complete(status);
   }
 }

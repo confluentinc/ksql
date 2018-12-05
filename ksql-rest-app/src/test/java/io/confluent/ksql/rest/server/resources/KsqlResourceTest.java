@@ -106,6 +106,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
@@ -198,7 +199,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(new CommandStatusEntity(
         "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
-        commandStatus.getCommandId(), commandStatus.getStatus(), 0)));
+        commandStatus.getCommandId(), commandStatus.getStatus(), 0L)));
   }
 
   @Test
@@ -485,7 +486,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(new CommandStatusEntity(
         "CREATE STREAM S AS SELECT * FROM test_stream;",
-        commandStatus.getCommandId(), commandStatus.getStatus(), 0)));
+        commandStatus.getCommandId(), commandStatus.getStatus(), 0L)));
   }
 
   @Test
@@ -979,7 +980,7 @@ public class KsqlResourceTest {
     makeSingleRequestWithSequenceNumber("list properties;", null, PropertiesList.class);
 
     // Then:
-    verify(commandStore, never()).ensureConsumedUpThrough(anyLong(), anyLong());
+    verify(commandStore, never()).ensureConsumedPast(anyLong(), any());
   }
 
   @Test
@@ -988,14 +989,15 @@ public class KsqlResourceTest {
     makeSingleRequestWithSequenceNumber("list properties;", 2L, PropertiesList.class);
 
     // Then:
-    verify(commandStore).ensureConsumedUpThrough(eq(2L), anyLong());
+    verify(commandStore).ensureConsumedPast(eq(2L), any());
   }
 
   @Test
-  public void shouldReturn503IfTimeoutWhileWaitingForCommandSequenceNumber() throws Exception {
+  public void shouldReturnServiceUnavailableIfTimeoutWaitingForCommandSequenceNumber()
+      throws Exception {
     // Given:
-    doThrow(new KsqlRestException(Errors.commandQueueCatchUpTimeout("timed out!")))
-        .when(commandStore).ensureConsumedUpThrough(anyLong(), anyLong());
+    doThrow(new TimeoutException("timed out!"))
+        .when(commandStore).ensureConsumedPast(anyLong(), any());
 
     // When:
     final KsqlErrorMessage result =

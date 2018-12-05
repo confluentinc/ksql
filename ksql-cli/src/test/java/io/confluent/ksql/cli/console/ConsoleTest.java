@@ -133,7 +133,7 @@ public class ConsoleTest {
               "e",
               CommandId.fromString("topic/1/create"),
               new CommandStatus(CommandStatus.Status.SUCCESS, "Success Message"),
-              0),
+              0L),
           new PropertiesList("e", properties, Collections.emptyList(), Collections.emptyList()),
           new Queries("e", queries),
           new SourceDescriptionEntity(

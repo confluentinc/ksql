@@ -192,7 +192,7 @@ public class KsqlResource {
 
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
-          replayableCommandQueue, request, distributedCommandResponseTimeout);
+          replayableCommandQueue, request, Duration.ofMillis(distributedCommandResponseTimeout));
 
       final List<PreparedStatement<?>> statements = parseStatements(request.getKsql());
 

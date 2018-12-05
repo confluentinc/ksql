@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -65,6 +67,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -74,11 +78,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CommandStoreTest {
 
   private static final String COMMAND_TOPIC = "command";
+  private static final TopicPartition COMMAND_TOPIC_PARTITION =
+      new TopicPartition(COMMAND_TOPIC, 0);
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(
       Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
   private static final Map<String, Object> OVERRIDE_PROPERTIES =
       Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-  private static final long TIMEOUT = 1000;
+  private static final Duration TIMEOUT = Duration.ofMillis(1000);
+  private static final AtomicInteger COUNTER = new AtomicInteger();
   private static final String statementText = "test-statement";
 
   @Rule
@@ -101,18 +108,23 @@ public class CommandStoreTest {
   @Mock
   private CommandIdAssigner commandIdAssigner;
 
+  @Captor
+  private ArgumentCaptor<ProducerRecord<CommandId, Command>> recordCaptor;
+
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
   private final Command command =
       new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
   private final RecordMetadata recordMetadata = new RecordMetadata(
-      new TopicPartition("topic", 0), 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
+      COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
 
   private CommandStore commandStore;
 
   @Before
   public void setUp() throws Exception {
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
+    when(commandIdAssigner.getCommandId(any()))
+        .thenAnswer(invocation -> new CommandId(
+            CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
 
     when(commandProducer.send(any(ProducerRecord.class))).thenReturn(recordMetadataFuture);
     when(recordMetadataFuture.get()).thenReturn(recordMetadata);
@@ -169,9 +181,11 @@ public class CommandStoreTest {
   @Test
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
-    expectedException.expect(IllegalStateException.class);
+    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
 
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
+    expectedException.expect(IllegalStateException.class);
 
     // When:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
@@ -189,29 +203,31 @@ public class CommandStoreTest {
     } catch (final KsqlException e) {
     }
 
-    // When:
+    // Should:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
-
-    // Then: condition being verified is that the above call doesn't throw
   }
 
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
+    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
     commandStore.getNewCommands();
 
-    // When:
+    // Should:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
-
-    // Then: condition being verified is that the above call doesn't throw
   }
 
   @Test
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
     // Given:
+    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
     when(commandProducer.send(any(ProducerRecord.class))).thenAnswer(
         invocation -> {
+          // Set up consumer to return record with matching key, i.e. force a race condition:
+          final ProducerRecord<CommandId, Command> record = invocation.getArgument(0);
+          when(commandConsumer.poll(any())).thenReturn(buildRecords(record.key(), record.value()));
+
           final QueuedCommand queuedCommand = commandStore.getNewCommands().get(0);
           assertThat(queuedCommand.getCommandId(), equalTo(commandId));
           assertThat(queuedCommand.getStatus().isPresent(), equalTo(true));
@@ -250,12 +266,9 @@ public class CommandStoreTest {
   @Test
   public void shouldFilterNullPriorCommand() {
     // Given:
-    final CommandId id = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
-    final Command command = new Command(
-        "some statement", Collections.emptyMap(), Collections.emptyMap());
     final ConsumerRecords<CommandId, Command> records = buildRecords(
-        id, null,
-        id, command);
+        commandId, null,
+        commandId, command);
     when(commandConsumer.poll(any()))
         .thenReturn(records)
         .thenReturn(ConsumerRecords.empty());
@@ -265,15 +278,13 @@ public class CommandStoreTest {
 
     // Then:
     assertThat(commands, hasSize(1));
-    assertThat(commands.get(0).getCommandId(), equalTo(id));
+    assertThat(commands.get(0).getCommandId(), equalTo(commandId));
     assertThat(commands.get(0).getCommand(), equalTo(command));
   }
 
   @Test
   public void shouldDistributeCommand() {
-    ArgumentCaptor<ProducerRecord<CommandId, Command>> recordCaptor =
-        ArgumentCaptor.forClass(ProducerRecord.class);
-
+    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
     when(commandProducer.send(recordCaptor.capture())).thenReturn(recordMetadataFuture);
 
     // When:
@@ -301,32 +312,39 @@ public class CommandStoreTest {
   @Test
   public void shouldWaitOnSequenceNumberFuture() throws Exception {
     // When:
-    commandStore.ensureConsumedUpThrough(2, TIMEOUT);
+    commandStore.ensureConsumedPast(2, TIMEOUT);
 
     // Then:
-    verify(future).get(eq(TIMEOUT), eq(TimeUnit.MILLISECONDS));
+    verify(future).get(eq(TIMEOUT.toMillis()), eq(TimeUnit.MILLISECONDS));
   }
 
   @Test
   public void shouldThrowExceptionOnTimeout() throws Exception {
     // Given:
-    expectedException.expect(TimeoutException.class);
-    expectedException.expectMessage(String.format(
-        "Timeout reached while waiting for command sequence number of 2. (Timeout: %d ms)", TIMEOUT));
-
     when(future.get(anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException());
 
+    expectedException.expect(TimeoutException.class);
+    expectedException.expectMessage(String.format(
+        "Timeout reached while waiting for command sequence number of 2. (Timeout: %d ms)",
+        TIMEOUT.toMillis()));
+
     // When:
-    commandStore.ensureConsumedUpThrough(2, TIMEOUT);
+    commandStore.ensureConsumedPast(2, TIMEOUT);
   }
 
   @Test
   public void shouldCompleteFuturesWhenGettingNewCommands() {
+    // Given:
+    when(commandConsumer.position(COMMAND_TOPIC_PARTITION)).thenReturn(22L);
+
     // When:
     commandStore.getNewCommands();
 
     // Then:
-    verify(sequenceNumberFutureStore).completeFuturesUpThroughSequenceNumber(eq(-1L));
+    final InOrder inOrder = inOrder(sequenceNumberFutureStore, commandConsumer);
+    inOrder.verify(sequenceNumberFutureStore)
+        .completeFuturesUpToAndIncludingSequenceNumber(eq(21L));
+    inOrder.verify(commandConsumer).poll(any());
   }
 
   private static List<Pair<CommandId, Command>> getPriorCommands(final CommandStore commandStore) {
@@ -344,13 +362,8 @@ public class CommandStoreTest {
       assertThat(args[i], instanceOf(CommandId.class));
       assertThat(args[i + 1], anyOf(is(nullValue()), instanceOf(Command.class)));
       records.add(
-          new ConsumerRecord<>("topic", 0, 0, (CommandId) args[i], (Command) args[i + 1]));
+          new ConsumerRecord<>(COMMAND_TOPIC, 0, 0, (CommandId) args[i], (Command) args[i + 1]));
     }
-    return new ConsumerRecords<>(
-        Collections.singletonMap(
-            new TopicPartition("topic", 0),
-            records
-        )
-    );
+    return new ConsumerRecords<>(Collections.singletonMap(COMMAND_TOPIC_PARTITION, records));
   }
 }

@@ -23,17 +23,16 @@ public enum OutputFormat {
   JSON,
   TABULAR;
 
-  public static final String VALID_FORMATS = String.format(
-      "'%s'",
-      String.join(
-          "', '",
-          Arrays.stream(OutputFormat.values())
-              .map(Object::toString)
-              .collect(Collectors.toList())
-      )
-  );
+  public static final String VALID_FORMATS = Arrays.stream(OutputFormat.values())
+      .map(Object::toString)
+      .collect(Collectors.joining("', '", "'", "'"));
 
-  public static OutputFormat get(final String format) throws IllegalArgumentException {
-    return OutputFormat.valueOf(format);
+  public static OutputFormat get(final String format) {
+    try {
+      return OutputFormat.valueOf(format);
+    } catch (final IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unknown Output format: " + format
+          + ". Valid values are: " + VALID_FORMATS);
+    }
   }
 }

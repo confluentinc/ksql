@@ -51,7 +51,11 @@ final class TrimmingParser implements Parser {
     return delegate.parse(trimmed, adjCursor, context);
   }
 
-  private int adjustCursor(final String origLine, final String trimmedLine, final int origCursor) {
+  private static int adjustCursor(
+      final String origLine,
+      final String trimmedLine,
+      final int origCursor
+  ) {
     final int prefixLen = origLine.indexOf(trimmedLine);
     if (origCursor < prefixLen) {
       return 0; // Before first char trimmed line

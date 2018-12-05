@@ -74,14 +74,14 @@ public class KsqlRequest {
     }
 
     final KsqlRequest that = (KsqlRequest) o;
-    return Objects.equals(getKsql(), that.getKsql())
-        && Objects.equals(getStreamsProperties(), that.getStreamsProperties())
-        && Objects.equals(getCommandSequenceNumber(), that.getCommandSequenceNumber());
+    return Objects.equals(ksql, that.ksql)
+        && Objects.equals(streamsProperties, that.streamsProperties)
+        && Objects.equals(commandSequenceNumber, that.commandSequenceNumber);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getKsql(), getStreamsProperties(), getCommandSequenceNumber());
+    return Objects.hash(ksql, streamsProperties, commandSequenceNumber);
   }
 
   private static Map<String, Object> coerceTypes(final Map<String, Object> streamsProperties) {

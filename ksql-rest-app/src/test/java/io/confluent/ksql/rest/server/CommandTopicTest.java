@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -27,16 +28,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
-import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
-import io.confluent.ksql.rest.server.computation.RestoreCommands;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -50,7 +45,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Node;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,8 +68,6 @@ public class CommandTopicTest {
 
   @Mock
   private Future<RecordMetadata> future ;
-  @Captor
-  private ArgumentCaptor<ProducerRecord> recordCaptor;
 
   @Mock
   private static CommandId commandId1;
@@ -91,18 +83,11 @@ public class CommandTopicTest {
   private static Command command3;
 
   @Mock
-  private QueuedCommandStatus queuedCommandStatus1;
-  @Mock
-  private ConsumerRecord consumerRecord;
-  @Mock
-  private ConsumerRecords consumerRecords;
+  private ConsumerRecords<CommandId, Command> consumerRecords;
   @Captor
   private ArgumentCaptor<Collection<TopicPartition>> collectionArgumentCaptor;
   @Mock
   private Node node;
-
-  private final PartitionInfo partitionInfo = new PartitionInfo("topic", 1, node,
-      new Node[]{node}, new Node[]{node});
 
   private final static TopicPartition topicPartition = new TopicPartition("topic", 0);
 
@@ -115,18 +100,21 @@ public class CommandTopicTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
+  public void shouldAssignCorrectAssignPartitionToConsumer() {
+    verify(commandConsumer).assign(eq(Collections.singleton(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
+  }
+
+  @Test
   public void shouldSendCommandCorrectly() throws Exception {
     // When
     commandTopic.send(commandId1, command1);
 
     // Then
-    verify(commandProducer).send(new ProducerRecord<>(COMMAND_TOPIC_NAME, commandId1, command1));
+    verify(commandProducer).send(new ProducerRecord<>(COMMAND_TOPIC_NAME, 0, commandId1, command1));
     verify(future).get();
   }
 
   @Test (expected = RuntimeException.class)
-  @SuppressWarnings("unchecked")
   public void shouldThrowExceptionIfSendIsNotSuccessfull() throws Exception {
     // Given:
     when(future.get()).thenThrow(mock(ExecutionException.class));
@@ -136,7 +124,6 @@ public class CommandTopicTest {
   }
 
   @Test (expected = RuntimeException.class)
-  @SuppressWarnings("unchecked")
   public void shouldThrowRuntimeExceptionIfSendCausesRunTimeException() throws Exception {
     // Given:
     final ExecutionException executionException = mock(ExecutionException.class);
@@ -148,7 +135,6 @@ public class CommandTopicTest {
   }
 
   @Test (expected = RuntimeException.class)
-  @SuppressWarnings("unchecked")
   public void shouldThrowRuntimeExceptionIfSendThrowsInterruptedException() throws Exception {
     // Given:
     when(future.get()).thenThrow(mock(InterruptedException.class));
@@ -158,7 +144,6 @@ public class CommandTopicTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldGetNewCommandsIteratorCorrectly() {
     // Given:
     when(commandConsumer.poll(any(Duration.class))).thenReturn(consumerRecords);
@@ -171,12 +156,11 @@ public class CommandTopicTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldGetRestoreCommandsCorrectly() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(false))
-        .thenReturn(new ConsumerRecords(Collections.emptyMap()));
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic.getRestoreCommands(Duration.ofMillis(1));
@@ -184,6 +168,7 @@ public class CommandTopicTest {
 
     // Then:
     verify(commandConsumer).seekToBeginning(collectionArgumentCaptor.capture());
+    assertThat(collectionArgumentCaptor.getValue(), equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
     assertThat(queuedCommandList, equalTo(ImmutableList.of(
         new QueuedCommand(commandId1, command1, Optional.empty()),
         new QueuedCommand(commandId2, command2, Optional.empty()),
@@ -191,12 +176,11 @@ public class CommandTopicTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldFilterNullCommandsWhileRestoringCommands() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(true))
-        .thenReturn(new ConsumerRecords(Collections.emptyMap()));
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic.getRestoreCommands(Duration.ofMillis(1));
@@ -204,6 +188,7 @@ public class CommandTopicTest {
 
     // Then:
     verify(commandConsumer).seekToBeginning(collectionArgumentCaptor.capture());
+    assertThat(collectionArgumentCaptor.getValue(), equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
     assertThat(queuedCommandList, equalTo(ImmutableList.of(
         new QueuedCommand(commandId1, command1, Optional.empty()),
         new QueuedCommand(commandId2, command2, Optional.empty()))));
@@ -224,7 +209,7 @@ public class CommandTopicTest {
   }
 
 
-  private static ConsumerRecords<CommandId, Command> someConsumerRecords(boolean addNull) {
+  private static ConsumerRecords<CommandId, Command> someConsumerRecords(final boolean addNull) {
     return new ConsumerRecords<>(
         ImmutableMap.of(topicPartition, ImmutableList.of(
             new ConsumerRecord<>("topic", 0, 0, commandId1, command1),

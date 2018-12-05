@@ -66,7 +66,6 @@ public class CommandTopic {
         CommandTopicJsonSerdeUtil.getJsonSerializer(true),
         CommandTopicJsonSerdeUtil.getJsonSerializer(false)
     ));
-    commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopicName, 0)));
   }
 
   CommandTopic(
@@ -77,6 +76,7 @@ public class CommandTopic {
     this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
     this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");;
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
+    commandConsumer.assign(Collections.singleton(new TopicPartition(commandTopicName, 0)));
   }
 
 
@@ -84,6 +84,7 @@ public class CommandTopic {
   public void send(final CommandId commandId, final Command command) {
     final ProducerRecord producerRecord = new ProducerRecord<>(
         commandTopicName,
+        0,
         Objects.requireNonNull(commandId, "commandId"),
         Objects.requireNonNull(command, "command"));
     try {
@@ -106,10 +107,8 @@ public class CommandTopic {
     Objects.requireNonNull(duration, "duration");
     final List<QueuedCommand> restoreCommands = Lists.newArrayList();
 
-    final Collection<TopicPartition> cmdTopicPartitions =
-        getTopicPartitionsForTopic(commandTopicName);
-
-    commandConsumer.seekToBeginning(cmdTopicPartitions);
+    commandConsumer.seekToBeginning(
+        Collections.singletonList(new TopicPartition(commandTopicName, 0)));
 
     log.debug("Reading prior command records");
     ConsumerRecords<CommandId, Command> records =
@@ -129,12 +128,6 @@ public class CommandTopic {
       records = commandConsumer.poll(duration);
     }
     return restoreCommands;
-  }
-
-  private Collection<TopicPartition> getTopicPartitionsForTopic(final String topic) {
-    return commandConsumer.partitionsFor(topic).stream()
-        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
-        .collect(Collectors.toList());
   }
 
   public void close() {

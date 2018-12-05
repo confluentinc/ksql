@@ -195,15 +195,6 @@ public class KsqlResource {
     final KsqlEntityList result = new KsqlEntityList();
 
     try {
-      request.getDeleteTopicList()
-          .forEach(pattern -> {
-            try {
-              Pattern.compile(pattern);
-            } catch (final PatternSyntaxException patternSyntaxException) {
-              throw new KsqlException("Invalid pattern: " + pattern);
-            }
-          });
-
       result.add(distributeStatement(
           new PreparedStatement<>(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
               new TerminateCluster()),
@@ -228,7 +219,6 @@ public class KsqlResource {
           new KsqlEntityList()
       );
     }
-    final List<PreparedStatement> parsedStatements;
     activenessRegistrar.updateLastRequestTime();
 
     try {

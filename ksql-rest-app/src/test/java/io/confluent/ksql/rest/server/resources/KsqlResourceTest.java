@@ -120,6 +120,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.After;
 import org.junit.Before;
@@ -987,7 +988,7 @@ public class KsqlResourceTest {
   public void shoudlHandleTerminateRequestCorrectly() throws InterruptedException {
     // Given:
     final KsqlResource testResource = getMockKsqlResource();
-    final ClusterTerminateRequest request = getCLClusterTerminateRequest(ImmutableList.of("Foo"));
+    final ClusterTerminateRequest request = new ClusterTerminateRequest(ImmutableList.of("Foo"));
 
     // When:
     final Response response = testResource.terminateCluster(request);
@@ -1000,7 +1001,7 @@ public class KsqlResourceTest {
   public void shoudlFailIfCannotWriteTerminateCommand() throws InterruptedException {
     // Given:
     final KsqlResource testResource = getMockKsqlResource();
-    final ClusterTerminateRequest request = getCLClusterTerminateRequest(ImmutableList.of("Foo"));
+    final ClusterTerminateRequest request = new ClusterTerminateRequest(ImmutableList.of("Foo"));
     when(replayableCommandQueue.enqueueCommand(any(), any(), any(), any())).thenThrow(new RuntimeException());
 
     // When:
@@ -1015,14 +1016,14 @@ public class KsqlResourceTest {
   public void shouldFailForInvalidTerminateClusterParameters() throws InterruptedException {
     // Given:
     final KsqlResource testResource = getMockKsqlResource();
-    final ClusterTerminateRequest request = getCLClusterTerminateRequest(ImmutableList.of("["));
+    final ClusterTerminateRequest request = new ClusterTerminateRequest(ImmutableList.of("[Invalid Regex"));
 
     // When:
     final Response response = testResource.terminateCluster(request);
 
     // Then:
-    assertThat(response.getStatus(), equalTo(500));
-    assertThat(response.getEntity().toString(), startsWith("Invalid pattern: ["));
+    assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST_400));
+    assertThat(response.getEntity().toString(), startsWith("Invalid pattern: [Invalid Regex"));
   }
 
   public void shouldUpdateTheLastRequestTime() {
@@ -1245,13 +1246,6 @@ public class KsqlResourceTest {
 
   }
 
-  private ClusterTerminateRequest getCLClusterTerminateRequest(final List<String> deleteTopicList) {
-    final ClusterTerminateRequest request = Mockito.mock(ClusterTerminateRequest.class);
-    when(request.getDeleteTopicList()).thenReturn(deleteTopicList);
-    when(request.getStreamsProperties()).thenReturn(ImmutableMap.of("deleteTopicList", deleteTopicList));
-    return request;
-
-  }
 
   @SuppressWarnings("SameParameterValue")
   private void givenAvroSchemaNotEvolveable(final String topicName) {

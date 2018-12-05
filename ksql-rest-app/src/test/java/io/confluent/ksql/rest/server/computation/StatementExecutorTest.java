@@ -90,7 +90,6 @@ public class StatementExecutorTest extends EasyMockSupport {
   private final PersistentQueryMetadata mockQueryMetadata
       = niceMock(PersistentQueryMetadata.class);
   private StatementExecutor statementExecutorWithMocks;
-  private CommandStore mockCommandStore = niceMock(CommandStore.class);;
 
   @Before
   @SuppressWarnings("unchecked")
@@ -110,9 +109,9 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser, mockCommandStore);
+    statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser);
     statementExecutorWithMocks
-        = new StatementExecutor(ksqlConfig, mockEngine, mockParser, mockCommandStore);
+        = new StatementExecutor(ksqlConfig, mockEngine, mockParser);
   }
 
   @After
@@ -177,7 +176,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final KsqlEngine mockEngine = mock(KsqlEngine.class);
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig, mockEngine, statementParser, niceMock(CommandStore.class));
+        ksqlConfig, mockEngine, statementParser);
     final RuntimeException exception = new RuntimeException("i'm gonna knock you out");
     expect(statementParser.parseSingleStatement(statementText)).andThrow(
         exception);
@@ -226,7 +225,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         originalConfig.getAllConfigPropsWithSecretsObfuscated());
 
     final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig, mockEngine, mockParser, mock(CommandStore.class));
+        ksqlConfig, mockEngine, mockParser);
 
     final Command csasCommand = new Command(
         statementText,

@@ -72,9 +72,6 @@ public class CommandRunnerTest {
   @Mock
   private CommandId commandId3;
 
-  @Mock
-  private RestoreCommands restoreCommands;
-
   @Captor
   private ArgumentCaptor<Command> commandCaptor;
   @Captor
@@ -123,9 +120,6 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommandList.get(0)));
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommandList.get(1)));
     verify(ksqlEngine).stopAcceptingStatements();
     verify(commandStore).close();
     verify(clusterTerminator).terminateCluster(eq(ImmutableList.of("foo", "bar*")));
@@ -141,8 +135,6 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommandList.get(0)));
     verify(ksqlEngine).stopAcceptingStatements();
     verify(commandStore).close();
     verify(clusterTerminator).terminateCluster(eq(ImmutableList.of("foo", "bar*")));
@@ -173,9 +165,6 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommandList.get(0)));
-    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommandList.get(1)));
     verify(ksqlEngine).stopAcceptingStatements();
     verify(commandStore).close();
     verify(clusterTerminator).terminateCluster(eq(ImmutableList.of("foo", "bar*")));
@@ -191,7 +180,6 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    verify(statementExecutor).handleStatement(eq(queuedCommandList.get(0)));
     verify(ksqlEngine).stopAcceptingStatements();
     verify(commandStore).close();
     verify(clusterTerminator).terminateCluster(eq(ImmutableList.of("foo", "bar*")));
@@ -215,7 +203,6 @@ public class CommandRunnerTest {
     commandRunner.close();
   }
 
-
   private static List<QueuedCommand> getQueuedCommands(final Object ...args) {
     assertThat(args.length % 2, equalTo(0));
     final List<QueuedCommand> queuedCommandList = new ArrayList<>();
@@ -228,12 +215,4 @@ public class CommandRunnerTest {
     return queuedCommandList;
   }
 
-  private static List<QueryMetadata> getSampleQueryMetadata() {
-    final List<QueryMetadata> queryMetadataList = new ArrayList<>();
-    for (int i = 0; i < 3; i ++) {
-      final QueryMetadata queryMetadata = mock(QueryMetadata.class);
-      queryMetadataList.add(queryMetadata);
-    }
-    return queryMetadataList;
-  }
 }

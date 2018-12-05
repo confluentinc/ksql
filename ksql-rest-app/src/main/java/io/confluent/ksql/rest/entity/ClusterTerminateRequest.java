@@ -21,23 +21,29 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class ClusterTerminateRequest {
 
+  public static final String DELETE_TOPIC_LIST_PROP = "deleteTopicList";
+
   private final List<String> deleteTopicList;
 
   public ClusterTerminateRequest(
-      @JsonProperty("deleteTopicList") final List<String> deleteTopicList
+      @JsonProperty(DELETE_TOPIC_LIST_PROP) final List<String> deleteTopicList
   ) {
     this.deleteTopicList = deleteTopicList == null
         ? Collections.emptyList()
         : ImmutableList.copyOf(deleteTopicList);
+    validateDeleteTopicList();
   }
 
   public List<String> getDeleteTopicList() {
@@ -46,7 +52,18 @@ public class ClusterTerminateRequest {
 
   @JsonIgnore
   public Map<String, Object> getStreamsProperties() {
-    return Collections.singletonMap("deleteTopicList", deleteTopicList);
+    return Collections.singletonMap(DELETE_TOPIC_LIST_PROP, deleteTopicList);
+  }
+
+  private void validateDeleteTopicList() {
+    deleteTopicList
+        .forEach(pattern -> {
+          try {
+            Pattern.compile(pattern);
+          } catch (final PatternSyntaxException patternSyntaxException) {
+            throw new KsqlException("Invalid pattern: " + pattern);
+          }
+        });
   }
 
   @Override
@@ -64,6 +81,6 @@ public class ClusterTerminateRequest {
       return false;
     }
     final ClusterTerminateRequest that = (ClusterTerminateRequest) o;
-    return Objects.equals(deleteTopicList, that.getDeleteTopicList());
+    return Objects.equals(deleteTopicList, deleteTopicList);
   }
 }

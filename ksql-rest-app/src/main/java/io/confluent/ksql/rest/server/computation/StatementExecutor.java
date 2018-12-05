@@ -70,13 +70,10 @@ public class StatementExecutor {
   public StatementExecutor(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final StatementParser statementParser,
-      final ReplayableCommandQueue commandStore
+      final StatementParser statementParser
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
-    Objects.requireNonNull(commandStore, "commandStore cannot be null.");
-
 
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;

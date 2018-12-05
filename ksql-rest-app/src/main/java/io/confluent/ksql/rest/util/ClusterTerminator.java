@@ -50,6 +50,7 @@ public class ClusterTerminator {
   // Todo: Fail requesst if user requests non-sink topic to be deleted using non-regex
   @SuppressWarnings("unchecked")
   public void terminateCluster(final List<String> deleteTopicPatterns) {
+    shouldNotRequestDeleteOfNonKSQLSink(deleteTopicPatterns);
     terminatePersistentQueries();
     deleteSinkTopics(deleteTopicPatterns);
     deleteCommandTopic();
@@ -60,6 +61,24 @@ public class ClusterTerminator {
     new ArrayList<>(ksqlEngine.getPersistentQueries()).stream()
         .map(PersistentQueryMetadata::getQueryId)
         .forEach(queryId -> ksqlEngine.terminateQuery(queryId, true));
+  }
+
+  private void shouldNotRequestDeleteOfNonKSQLSink(final List<String> deleteTopicPatterns) {
+    if (deleteTopicPatterns.isEmpty()) {
+      return;
+    }
+    ksqlEngine.getMetaStore().getAllKsqlTopics().values().stream()
+        .forEach(ksqlTopic -> {
+          deleteTopicPatterns.forEach(
+              deleteTopicPattern -> {
+                if (ksqlTopic.getKafkaTopicName().equals(deleteTopicPattern)
+                    && !ksqlTopic.isKsqlSink()) {
+                  throw new KsqlException("Invalid request: " + deleteTopicPattern
+                      + " is not a KSQL sink topic.");
+                }
+              }
+          );
+        });
   }
 
   private void deleteSinkTopics(final List<String> deleteTopicPatterns) {

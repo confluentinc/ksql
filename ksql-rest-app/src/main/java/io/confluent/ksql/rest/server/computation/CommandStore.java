@@ -48,10 +48,10 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
 
   public CommandStore(
       final String commandTopicName,
-      final Map<String, Object> commandConsumerProperties,
+      final Map<String, Object> kafkaClientProperties,
       final CommandIdAssigner commandIdAssigner
   ) {
-    this(commandIdAssigner, new CommandTopic(commandTopicName, commandConsumerProperties));
+    this(commandIdAssigner, new CommandTopic(commandTopicName, kafkaClientProperties));
   }
 
   CommandStore(

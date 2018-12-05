@@ -29,6 +29,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import org.junit.Before;
@@ -65,7 +66,8 @@ public class ClusterTerminatorTest {
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("command_topic");
     when(ksqlEngine.getTopicClient()).thenReturn(kafkaTopicClient);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
-    when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of("FOO", getKsqlTopic("FOO", "K_FOO", true)));
+    when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of("FOO", getKsqlTopic("FOO", "K_FOO", true),
+        "BAR", getKsqlTopic("BAR", "bar", false)));
   }
 
   @Test
@@ -88,15 +90,12 @@ public class ClusterTerminatorTest {
     verify(kafkaTopicClient).deleteTopics(Collections.singletonList("K_FOO"));
   }
 
-  @Test
+  @Test (expected = KsqlException.class)
   public void shouldNotDeleteTopicNonSinkTopic() {
     // Given:
 
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("bar"));
-
-    // Then:
-    verify(kafkaTopicClient).deleteTopics(Collections.emptyList());
   }
 
   @Test

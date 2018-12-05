@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.KsqlConfig;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
@@ -117,20 +119,15 @@ public class CommandRunner implements Runnable, Closeable {
 
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
+
+    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
+    if (terminateCmd.isPresent()) {
+      terminateCluster(terminateCmd.get().getCommand());
+      return;
+    }
+
     log.trace("Found {} new writes to command topic", commands.size());
-    final AtomicBoolean shouldProcess = new AtomicBoolean(true);
-    commands.forEach(c -> {
-      if (!shouldProcess.get()) {
-        return;
-      }
-      if (c.getCommand().getStatement()
-          .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-        terminateCluster(c.getCommand());
-        shouldProcess.set(false);
-        return;
-      }
-      executeStatement(c);
-    });
+    commands.forEach(this::executeStatement);
   }
 
   /**
@@ -138,27 +135,25 @@ public class CommandRunner implements Runnable, Closeable {
    */
   public void processPriorCommands() {
     final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
-    final AtomicBoolean shouldProcess = new AtomicBoolean(true);
+
+    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(restoreCommands);
+    if (terminateCmd.isPresent()) {
+      terminateCluster(terminateCmd.get().getCommand());
+      return;
+    }
+
     restoreCommands.forEach(
         command -> {
-          if (!shouldProcess.get()) {
-            return;
-          }
-          if (command.getCommand().getStatement()
-              .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-            terminateCluster(command.getCommand());
-            shouldProcess.set(false);
-          } else {
-            RetryUtil.retryWithBackoff(
-                maxRetries,
-                STATEMENT_RETRY_MS,
-                MAX_STATEMENT_RETRY_MS,
-                () -> statementExecutor.handleRestore(command),
-                WakeupException.class
-            );
-          }
+          RetryUtil.retryWithBackoff(
+              maxRetries,
+              STATEMENT_RETRY_MS,
+              MAX_STATEMENT_RETRY_MS,
+              () -> statementExecutor.handleRestore(command),
+              WakeupException.class
+          );
         }
     );
+
     final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
@@ -174,13 +169,24 @@ public class CommandRunner implements Runnable, Closeable {
     );
   }
 
+  private static Optional<QueuedCommand> findTerminateCommand(
+      final List<QueuedCommand> restoreCommands
+  ) {
+    return restoreCommands.stream()
+        .filter(command -> command.getCommand().getStatement()
+            .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))
+        .findFirst();
+  }
+
   @SuppressWarnings("unchecked")
   private void terminateCluster(final Command command) {
     ksqlEngine.stopAcceptingStatements();
+    log.info("Terminating the KSQL server.");
     this.close();
     final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
-        .getOrDefault("deleteTopicList", Collections.emptyList());
+        .getOrDefault(ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, Collections.emptyList());
 
     clusterTerminator.terminateCluster(deleteTopicList);
+    log.info("The KSQL server was terminated.");
   }
 }

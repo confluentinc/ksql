@@ -44,16 +44,16 @@ final class KsqlLineParser implements Parser {
   public ParsedLine parse(final String line, final int cursor, final ParseContext context) {
     final ParsedLine parsed = delegate.parse(line, cursor, context);
 
-    if (cliCmdPredicate.test(line)) {
-      return parsed;
-    }
-
     if (context != ParseContext.ACCEPT_LINE) {
       return parsed;
     }
 
     final String bare = CommentStripper.strip(parsed.line());
     if (bare.isEmpty()) {
+      return parsed;
+    }
+
+    if (cliCmdPredicate.test(bare)) {
       return parsed;
     }
 

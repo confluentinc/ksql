@@ -1211,4 +1211,29 @@ public class KsqlParserTest {
     assertThat(statements, hasSize(1));
     assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
   }
+
+  @Test
+  public void shouldParseMultiLineWithInlineComments() {
+    final String statementString =
+        "SHOW -- inline comment\n"
+        + "STREAMS;";
+
+    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+
+    assertThat(statements, hasSize(1));
+    assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
+  }
+
+  @Test
+  public void shouldParseMultiLineWithInlineBracketedComments() {
+    final String statementString =
+        "SHOW /* inline\n"
+            + "comment */\n"
+            + "STREAMS;";
+
+    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+
+    assertThat(statements, hasSize(1));
+    assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
+  }
 }

@@ -16,10 +16,11 @@
 
 package io.confluent.ksql.cli.console;
 
-import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,10 +33,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
@@ -44,20 +41,21 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class JLineReaderTest {
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder();
 
-  @Mock(MockType.NICE)
+  @Mock
   private Predicate<String> cliLinePredicate;
 
   @Before
   public void setUp() {
-    EasyMock.expect(cliLinePredicate.test(anyString())).andReturn(false).anyTimes();
-    EasyMock.replay(cliLinePredicate);
+    when(cliLinePredicate.test(any())).thenReturn(false);
   }
 
   @Test
@@ -188,7 +186,7 @@ public class JLineReaderTest {
   public void shouldHandleMultiLineWithoutContinuationChar() throws Exception {
     // Given:
     final JLineReader reader = createReaderForInput(
-        "select * \n\t"
+        "select *\n\t"
             + "from foo;\n"
     );
 
@@ -211,11 +209,26 @@ public class JLineReaderTest {
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("select * 'string that ends in termination char;' from foo;"));
+    assertThat(commands, contains("select * 'string that ends in termination char; ' from foo;"));
+  }
+
+  @Test
+  public void shouldHandleMultiLineWithComments() throws Exception {
+    // Given:
+    final JLineReader reader = createReaderForInput(
+        "select * '-- not a comment\n"
+            + "' from foo; -- some comment\n"
+    );
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains("select * '-- not a comment ' from foo; -- some comment"));
   }
 
   @SuppressWarnings("InfiniteLoopStatement")
-  private List<String> readAllLines(final JLineReader reader) throws IOException {
+  private static List<String> readAllLines(final JLineReader reader) {
     final List<String> commands = new ArrayList<>();
     try {
       while (true) {
@@ -228,7 +241,7 @@ public class JLineReaderTest {
     return commands;
   }
 
-  private List<String> getHistory(final JLineReader reader) {
+  private static List<String> getHistory(final JLineReader reader) {
     final List<String> commands = new ArrayList<>();
     reader.getHistory().forEach(entry -> commands.add(entry.line()));
     return commands;

@@ -70,7 +70,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   public String readLine() {
     final String line = lineReader
         .readLine(prompt)
-        .replace("\n", "");
+        .replace("\n", " ");
 
     addToHistory(line);
     return line;

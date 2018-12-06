@@ -238,7 +238,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     }
 
     private void define(final ConfigDef configDef, final Object defaultValue) {
-      configDef.define(name, type, defaultValue, importance, documentation);
+      configDef.define(name, type, defaultValue, validator, importance, documentation);
     }
 
     void defineLegacy(final ConfigDef configDef) {

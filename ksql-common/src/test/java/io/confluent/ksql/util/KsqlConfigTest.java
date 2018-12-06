@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.core.IsEqual;
@@ -493,6 +494,17 @@ public class KsqlConfigTest {
             KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
             StreamsConfig.TOPOLOGY_OPTIMIZATION,
             StreamsConfig.OPTIMIZE)
+    );
+  }
+
+  @Test
+  public void shouldRaiseOnInvalidInternalTopicNamingValue() {
+    expectedException.expect(ConfigException.class);
+    new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            "foobar"
+        )
     );
   }
 }

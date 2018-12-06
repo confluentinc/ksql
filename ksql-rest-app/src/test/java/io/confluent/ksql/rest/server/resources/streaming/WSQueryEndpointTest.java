@@ -43,6 +43,7 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -84,6 +85,8 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
+  private ServiceContext serviceContext;
+  @Mock
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
   private KafkaTopicClient topicClient;
@@ -114,12 +117,12 @@ public class WSQueryEndpointTest {
 
     when(session.getId()).thenReturn("session-id");
     when(statementParser.parseSingleStatement(anyString())).thenReturn(query);
-    when(ksqlEngine.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
-    when(ksqlEngine.getTopicClient()).thenReturn(topicClient);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, exec,
+        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, serviceContext, exec,
         queryPublisher, topicPublisher, activenessRegistrar);
   }
 

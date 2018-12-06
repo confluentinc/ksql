@@ -46,19 +46,19 @@ public class JoinIntTest {
   private KsqlContext ksqlContext;
 
 
-  private String orderStreamTopicJson = "OrderTopicJson";
-  private String orderStreamNameJson = "Orders_json";
+  private static final String orderStreamTopicJson = "OrderTopicJson";
+  private static final String orderStreamNameJson = "Orders_json";
   private OrderDataProvider orderDataProvider;
 
-  private String orderStreamTopicAvro = "OrderTopicAvro";
-  private String orderStreamNameAvro = "Orders_avro";
+  private static final String orderStreamTopicAvro = "OrderTopicAvro";
+  private static final String orderStreamNameAvro = "Orders_avro";
 
-  private String itemTableTopicJson = "ItemTopicJson";
-  private String itemTableNameJson = "Item_json";
+  private static final String itemTableTopicJson = "ItemTopicJson";
+  private static final String itemTableNameJson = "Item_json";
   private ItemDataProvider itemDataProvider;
 
-  private String itemTableTopicAvro = "ItemTopicAvro";
-  private String itemTableNameAvro = "Item_avro";
+  private static final String itemTableTopicAvro = "ItemTopicAvro";
+  private static final String itemTableNameAvro = "Item_avro";
 
   private final long now = System.currentTimeMillis();
 
@@ -66,8 +66,8 @@ public class JoinIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start(Collections.emptyMap());
-    final Map<String, Object> ksqlStreamConfigProps = new HashMap<>();
-    ksqlStreamConfigProps.putAll(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    final Map<String, Object> ksqlStreamConfigProps = new HashMap<>(
+        testHarness.ksqlConfig.getKsqlStreamConfigProps());
     // turn caching off to improve join consistency
     ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
     ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");

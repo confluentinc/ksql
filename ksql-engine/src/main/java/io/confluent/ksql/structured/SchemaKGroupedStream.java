@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -48,7 +47,6 @@ public class SchemaKGroupedStream {
   final List<SchemaKStream> sourceSchemaKStreams;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
-  final SchemaRegistryClient schemaRegistryClient;
 
   SchemaKGroupedStream(
       final Schema schema,
@@ -56,8 +54,7 @@ public class SchemaKGroupedStream {
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient
+      final FunctionRegistry functionRegistry
   ) {
     this.schema = schema;
     this.kgroupedStream = kgroupedStream;
@@ -65,7 +62,6 @@ public class SchemaKGroupedStream {
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = functionRegistry;
-    this.schemaRegistryClient = schemaRegistryClient;
   }
 
   public Field getKeyField() {
@@ -97,7 +93,7 @@ public class SchemaKGroupedStream {
 
     return new SchemaKTable(
         schema, table, keyField, sourceSchemaKStreams, keySerde,
-        SchemaKStream.Type.AGGREGATE, ksqlConfig, functionRegistry, schemaRegistryClient);
+        SchemaKStream.Type.AGGREGATE, ksqlConfig, functionRegistry);
   }
 
   @SuppressWarnings("unchecked")

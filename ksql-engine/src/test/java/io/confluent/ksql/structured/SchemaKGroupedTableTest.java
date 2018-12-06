@@ -33,7 +33,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
@@ -75,7 +74,7 @@ public class SchemaKGroupedTableTest {
     kTable = builder
         .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
             , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(ksqlTable.getSchema(), new
-                KsqlConfig(Collections.emptyMap()), false, new MockSchemaRegistryClientFactory()::get)));
+                KsqlConfig(Collections.emptyMap()), false, MockSchemaRegistryClient::new)));
 
   }
 
@@ -83,7 +82,7 @@ public class SchemaKGroupedTableTest {
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(query);
     final SchemaKTable initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(), kTable, ksqlTable.getKeyField(), new ArrayList<>(),
-        Serdes.String(), SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, new MockSchemaRegistryClient());
+        Serdes.String(), SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry);
     final List<Expression> groupByExpressions =
         Arrays.stream(groupByColumns)
             .map(c -> new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST1")), c))

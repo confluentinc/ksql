@@ -27,13 +27,14 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -48,9 +49,12 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
-import org.easymock.EasyMock;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
   private static final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -59,9 +63,17 @@ public class AggregateNodeTest {
     UdfLoaderUtil.load(functionRegistry);
   }
 
-  private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
+  @Mock
+  private KafkaTopicClient topicClient;
+  @Mock
+  private ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private final StreamsBuilder builder = new StreamsBuilder();
+
+  @Test
+  public void name() {
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
+  }
 
   @Test
   public void shouldBuildSourceNode() {
@@ -170,9 +182,9 @@ public class AggregateNodeTest {
     return buildAggregateNode(queryString)
         .buildStream(builder,
             ksqlConfig,
-            topicClient,
+            serviceContext,
             new InternalFunctionRegistry(),
-            new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
+            new HashMap<>());
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {

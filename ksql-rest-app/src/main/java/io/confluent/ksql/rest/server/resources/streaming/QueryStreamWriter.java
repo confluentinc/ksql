@@ -22,6 +22,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
@@ -32,6 +33,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.streams.KeyValue;
@@ -46,17 +48,20 @@ class QueryStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private final KsqlEngine ksqlEngine;
+  private final ServiceContext serviceContext;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
 
   QueryStreamWriter(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
       final long disconnectCheckInterval,
       final String queryString,
       final Map<String, Object> overriddenProperties,
       final ObjectMapper objectMapper
   ) throws Exception {
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     final QueryMetadata queryMetadata =
         ksqlEngine.execute(
             queryString, ksqlConfig, overriddenProperties).get(0);
@@ -115,7 +120,7 @@ class QueryStreamWriter implements StreamingOutput {
     } finally {
       ksqlEngine.removeTemporaryQuery(queryMetadata);
       queryMetadata.close();
-      queryMetadata.cleanUpInternalTopicAvroSchemas(ksqlEngine.getSchemaRegistryClient());
+      queryMetadata.cleanUpInternalTopicAvroSchemas(serviceContext.getSchemaRegistryClient());
     }
   }
 

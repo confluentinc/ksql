@@ -47,7 +47,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
     super(DataSource.DataSourceSerDe.AVRO);
   }
 
-  private AvroConverter getAvroConverter(
+  private static AvroConverter getAvroConverter(
       final SchemaRegistryClient schemaRegistryClient, final KsqlConfig ksqlConfig) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
     avroConverter.configure(

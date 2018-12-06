@@ -16,84 +16,88 @@
 
 package io.confluent.ksql;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.DataSource;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
-import java.util.List;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlContextTest {
 
-  private static final String statement1 = "CREATE STREAM orders (ordertime bigint, orderid bigint, "
-                                   + "itemid varchar, "
-                      + "orderunits double, arraycol array<double>, mapcol map<varchar, double>) "
-                      + "WITH (kafka_topic='ordertopic', value_format='JSON' , "
-                      + "key='orderid');\n";
-  private static final String statement2 = "CREATE STREAM BIGORDERS AS SELECT * FROM orders WHERE ORDERUNITS > 5;";
+  private static final KsqlConfig SOME_CONFIG = new KsqlConfig(Collections.emptyMap());
+
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private KsqlEngine ksqlEngine;
+  @Mock
+  private PersistentQueryMetadata persistentQuery;
+  @Mock
+  private QueuedQueryMetadata transientQuery;
+  private KsqlContext ksqlContext;
+
+  @Before
+  public void setUp() {
+    ksqlContext = new KsqlContext(serviceContext, SOME_CONFIG, ksqlEngine);
+  }
 
   @Test
-  public void shouldRunSimpleStatements() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
-    expect(ksqlEngine.execute(statement1, ksqlConfig, Collections.emptyMap()))
-        .andReturn
-        (Collections.emptyList());
-    expect(ksqlEngine.execute(statement2, ksqlConfig, Collections.emptyMap()))
-        .andReturn(getQueryMetadata(new QueryId("CSAS_BIGORDERS"), DataSource.DataSourceType.KSTREAM));
-    replay(ksqlEngine);
+  public void shouldInvokeEngineWithCorrectParams() {
+    // When:
+    ksqlContext.sql("Some SQL", ImmutableMap.of("overridden", "props"));
 
-    final KsqlContext ksqlContext = new KsqlContext(ksqlConfig, ksqlEngine);
-    ksqlContext.sql(statement1);
-    ksqlContext.sql(statement2);
-
-    verify(ksqlEngine);
+    // Then:
+    verify(ksqlEngine).execute("Some SQL", SOME_CONFIG, ImmutableMap.of("overridden", "props"));
   }
 
-  @SuppressWarnings("unchecked")
-  private static List<QueryMetadata> getQueryMetadata(final QueryId queryid, final DataSource.DataSourceType type) {
-    final KafkaStreams queryStreams = mock(KafkaStreams.class);
-    queryStreams.start();
-    expectLastCall();
-    queryStreams.setStateListener(anyObject());
-    expect(queryStreams.state()).andReturn(State.RUNNING);
+  @Test
+  public void shouldStartPersistentQueries() {
+    // Given:
+    when(ksqlEngine.execute(any(), any(), any()))
+        .thenReturn(ImmutableList.of(persistentQuery));
 
-    final OutputNode outputNode = mock(OutputNode.class);
-    expect(outputNode.accept(anyObject(PlanSourceExtractorVisitor.class), anyObject())).andReturn(null);
-    final StructuredDataSource structuredDataSource = mock(StructuredDataSource.class);
-    expect(structuredDataSource.getName()).andReturn("");
-    replay(structuredDataSource, outputNode, queryStreams);
+    // When:
+    ksqlContext.sql("Some SQL", ImmutableMap.of("overridden", "props"));
 
-    final PersistentQueryMetadata persistentQueryMetadata = new PersistentQueryMetadata(queryid.toString(),
-                                                                                   queryStreams,
-                                                                                   outputNode,
-                                                                                  structuredDataSource,
-                                                                                  "",
-                                                                                  queryid,
-                                                                                  type,
-                                                                                  "KSQL_query_" + queryid,
-                                                                                  null,
-                                                                                  null,
-                                                                                  null,
-                                                                                  null);
-
-    return Collections.singletonList(persistentQueryMetadata);
+    // Then:
+    verify(persistentQuery).start();
   }
 
+  @Test
+  public void shouldNotBlowUpOnSqlThatDoesNotResultInPersistentQueries() {
+    // Given:
+    when(ksqlEngine.execute(any(), any(), any()))
+        .thenReturn(ImmutableList.of(transientQuery));
+
+    // When:
+    ksqlContext.sql("Some SQL", ImmutableMap.of("overridden", "props"));
+
+    // Then:
+    // Did not blow up.
+  }
+
+  @Test
+  public void shouldCloseEngineBeforeServiceContextOnClose() {
+    // When:
+    ksqlContext.close();
+
+    // Then:
+    final InOrder inOrder = inOrder(ksqlEngine, serviceContext);
+    inOrder.verify(ksqlEngine).close();
+    inOrder.verify(serviceContext).close();
+  }
 }

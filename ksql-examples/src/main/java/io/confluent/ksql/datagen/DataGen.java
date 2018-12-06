@@ -29,9 +29,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.function.BiConsumer;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class DataGen {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private DataGen() {
   }

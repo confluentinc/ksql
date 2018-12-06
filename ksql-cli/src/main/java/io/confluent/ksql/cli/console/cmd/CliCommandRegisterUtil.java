@@ -22,9 +22,7 @@ import java.util.function.Supplier;
 /**
  * God class for registering Cli commands
  */
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling // God class.
 public final class CliCommandRegisterUtil {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private CliCommandRegisterUtil() {
   }

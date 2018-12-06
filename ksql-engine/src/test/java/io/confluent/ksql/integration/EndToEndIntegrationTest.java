@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
@@ -67,6 +68,7 @@ public class EndToEndIntegrationTest {
   private IntegrationTestHarness testHarness;
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
+  private ServiceContext serviceContext;
 
   private PageViewDataProvider pageViewDataProvider;
 
@@ -87,7 +89,10 @@ public class EndToEndIntegrationTest {
 
     ksqlConfig = testHarness.ksqlConfig.clone();
 
-    ksqlEngine = KsqlEngine.create(ksqlConfig);
+    serviceContext = ServiceContext.create(ksqlConfig);
+
+    ksqlEngine = new KsqlEngine(
+        serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
     testHarness.createTopic(pageViewTopic);
     testHarness.createTopic(usersTopic);
@@ -113,6 +118,7 @@ public class EndToEndIntegrationTest {
   public void after() {
     ksqlEngine.close();
     testHarness.stop();
+    serviceContext.close();
   }
 
   @Test

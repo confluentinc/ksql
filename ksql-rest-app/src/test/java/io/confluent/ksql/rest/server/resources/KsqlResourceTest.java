@@ -42,7 +42,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlEngine;
@@ -87,8 +86,9 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.util.FakeKafkaClientSupplier;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -97,6 +97,7 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -129,7 +130,7 @@ public class KsqlResourceTest {
   private static final long STATE_CLEANUP_DELAY_MS_DEFAULT = 10 * 60 * 1000L;
   private static final int FETCH_MIN_BYTES_DEFAULT = 1;
   private static final long BUFFER_MEMORY_DEFAULT = 32 * 1024 * 1024L;
-  private static final long DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = 1000;
+  private static final Duration DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = Duration.ofMillis(1000);
   private static final KsqlRequest VALID_EXECUTABLE_REQUEST = new KsqlRequest(
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG, true));
@@ -139,7 +140,7 @@ public class KsqlResourceTest {
 
   private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
-  private FakeKafkaTopicClient kafkaTopicClient;
+  private KafkaTopicClient kafkaTopicClient;
   private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
   @Mock
@@ -150,24 +151,24 @@ public class KsqlResourceTest {
   private SchemaRegistryClient schemaRegistryClient;
   private QueuedCommandStatus commandStatus;
   private MetaStoreImpl metaStore;
+  private ServiceContext serviceContext;
 
   @Before
   public void setUp() throws IOException, RestClientException {
     commandStatus
         = new QueuedCommandStatus(new CommandId(TOPIC, "whateva", CREATE));
-    schemaRegistryClient = new MockSchemaRegistryClient();
+    serviceContext = TestServiceContext.create();
+    kafkaTopicClient = serviceContext.getTopicClient();
+    schemaRegistryClient = serviceContext.getSchemaRegistryClient();
     registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
-    kafkaTopicClient = new FakeKafkaTopicClient();
+
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+
     realEngine = KsqlEngineTestUtil.createKsqlEngine(
-        kafkaTopicClient,
-        () -> schemaRegistryClient,
-        new FakeKafkaClientSupplier(),
-        metaStore,
-        ksqlConfig,
-        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps())
+        serviceContext,
+        metaStore
     );
 
     ksqlEngine = realEngine;
@@ -182,6 +183,7 @@ public class KsqlResourceTest {
   @After
   public void tearDown() {
     realEngine.close();
+    serviceContext.close();
   }
 
   @Test
@@ -1093,7 +1095,7 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        ksqlConfig, ksqlEngine, serviceContext, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar);
   }
 

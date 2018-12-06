@@ -19,7 +19,6 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -34,6 +33,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -51,7 +51,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
@@ -172,19 +171,17 @@ public class AggregateNode extends PlanNode {
   public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Map<String, Object> props
   ) {
     final StructuredDataSourceNode streamSourceNode = getTheSourceNode();
     final SchemaKStream sourceSchemaKStream = getSource().buildStream(
         builder,
         ksqlConfig,
-        kafkaTopicClient,
+        serviceContext,
         functionRegistry,
-        props,
-        schemaRegistryClientFactory
+        props
     );
 
     // Pre aggregate computations
@@ -201,7 +198,7 @@ public class AggregateNode extends PlanNode {
         aggregateArgExpanded.getSchema(),
         ksqlConfig,
         true,
-        schemaRegistryClientFactory
+        serviceContext.getSchemaRegistryClientFactory()
     );
 
     final List<Expression> internalGroupByColumns = internalSchema.getInternalExpressionList(
@@ -228,7 +225,7 @@ public class AggregateNode extends PlanNode {
         aggStageSchema,
         ksqlConfig,
         true,
-        schemaRegistryClientFactory
+        serviceContext.getSchemaRegistryClientFactory()
     );
 
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
@@ -249,8 +246,7 @@ public class AggregateNode extends PlanNode {
         schemaKTable.getKeySerde(),
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClientFactory.get()
+        functionRegistry
     );
 
     if (getHavingExpressions() != null) {

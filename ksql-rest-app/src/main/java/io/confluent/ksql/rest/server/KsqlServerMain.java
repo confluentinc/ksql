@@ -70,9 +70,9 @@ public class KsqlServerMain {
       final Properties properties,
       final Optional<String> queriesFile,
       final String installDir
-  ) throws Exception {
+  ) {
     if (queriesFile.isPresent()) {
-      return StandaloneExecutor.create(properties, queriesFile.get(), installDir);
+      return StandaloneExecutorFactory.create(properties, queriesFile.get(), installDir);
     }
 
     if (!properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {

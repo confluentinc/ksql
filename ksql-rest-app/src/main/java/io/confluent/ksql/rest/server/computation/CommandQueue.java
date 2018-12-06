@@ -23,7 +23,7 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 
-public interface ReplayableCommandQueue extends Closeable {
+public interface CommandQueue extends Closeable {
   QueuedCommandStatus enqueueCommand(
       String statementString,
       Statement statement,

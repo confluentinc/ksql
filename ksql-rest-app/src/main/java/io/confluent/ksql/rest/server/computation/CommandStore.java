@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * the beginning until now, or any new messages since then), and writing to it.
  */
 
-public class CommandStore implements ReplayableCommandQueue, Closeable {
+public class CommandStore implements CommandQueue, Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(CommandStore.class);
 

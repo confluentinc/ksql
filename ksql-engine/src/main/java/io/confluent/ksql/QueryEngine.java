@@ -16,7 +16,6 @@
 
 package io.confluent.ksql;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
@@ -37,7 +36,7 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -46,7 +45,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -59,23 +57,19 @@ import org.slf4j.LoggerFactory;
 class QueryEngine {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger log = LoggerFactory.getLogger(QueryEngine.class);
-  private final KafkaTopicClient topicClient;
-  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
+  private static final Logger LOG = LoggerFactory.getLogger(QueryEngine.class);
+
+  private final ServiceContext serviceContext;
   private final QueryIdGenerator queryIdGenerator;
   private final QueryIdGenerator tryQueryIdGenerator;
 
-  QueryEngine(
-      final KafkaTopicClient topicClient,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
+  QueryEngine(final ServiceContext serviceContext) {
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.queryIdGenerator = new QueryIdGenerator("");
     this.tryQueryIdGenerator = new QueryIdGenerator("_TRY");
-    this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
-    this.schemaRegistryClientFactory =
-        Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClientFactory");
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.
   List<LogicalPlanNode> buildLogicalPlans(
       final MetaStore metaStore,
       final List<? extends PreparedStatement<?>> statements,
@@ -95,16 +89,68 @@ class QueryEngine {
         logicalPlansList.add(new LogicalPlanNode(statement.getStatementText(), null));
       }
 
-      log.info("Build logical plan for {}.", statement.getStatementText());
+      LOG.info("Build logical plan for {}.", statement.getStatementText());
     }
     return logicalPlansList;
   }
 
-  private PlanNode buildQueryLogicalPlan(
+  QueryMetadata buildPhysicalPlan(
+      final LogicalPlanNode logicalPlanNode,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties,
+      final KafkaClientSupplier clientSupplier,
+      final MetaStore metaStore,
+      final boolean updateMetastore
+  ) {
+
+    final StreamsBuilder builder = new StreamsBuilder();
+
+    // Build a physical plan, in this case a Kafka Streams DSL
+    final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
+        builder,
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
+        serviceContext,
+        metaStore,
+        overriddenProperties,
+        updateMetastore,
+        metaStore,
+        updateMetastore ? queryIdGenerator : tryQueryIdGenerator,
+        new KafkaStreamsBuilderImpl(clientSupplier)
+    );
+
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
+  }
+
+  @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.
+  StructuredDataSource getResultDatasource(final Select select, final String name) {
+
+    SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
+    for (final SelectItem selectItem : select.getSelectItems()) {
+      if (selectItem instanceof SingleColumn) {
+        final SingleColumn singleColumn = (SingleColumn) selectItem;
+        final String fieldName = singleColumn.getAlias().get();
+        dataSource = dataSource.field(fieldName, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      }
+    }
+
+    final KsqlTopic ksqlTopic = new KsqlTopic(name, name, null, true);
+    return new KsqlStream<>(
+        "QueryEngine-DDLCommand-Not-Needed",
+        name,
+        dataSource.schema(),
+        null,
+        null,
+        ksqlTopic,
+        Serdes.String()
+    );
+  }
+
+  private static PlanNode buildQueryLogicalPlan(
       final String sqlExpression,
       final Query query,
       final MetaStore tempMetaStore,
-      final KsqlConfig config) {
+      final KsqlConfig config
+  ) {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         tempMetaStore,
         tempMetaStore,
@@ -156,56 +202,5 @@ class QueryEngine {
       }
     }
     return logicalPlan;
-  }
-
-  QueryMetadata buildPhysicalPlan(
-      final LogicalPlanNode logicalPlanNode,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final KafkaClientSupplier clientSupplier,
-      final MetaStore metaStore,
-      final boolean updateMetastore
-  ) {
-
-    final StreamsBuilder builder = new StreamsBuilder();
-
-    // Build a physical plan, in this case a Kafka Streams DSL
-    final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
-        builder,
-        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
-        topicClient,
-        metaStore,
-        overriddenProperties,
-        updateMetastore,
-        metaStore,
-        schemaRegistryClientFactory,
-        updateMetastore ? queryIdGenerator : tryQueryIdGenerator,
-        new KafkaStreamsBuilderImpl(clientSupplier)
-    );
-
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
-  }
-
-  StructuredDataSource getResultDatasource(final Select select, final String name) {
-
-    SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
-    for (final SelectItem selectItem : select.getSelectItems()) {
-      if (selectItem instanceof SingleColumn) {
-        final SingleColumn singleColumn = (SingleColumn) selectItem;
-        final String fieldName = singleColumn.getAlias().get();
-        dataSource = dataSource.field(fieldName, Schema.OPTIONAL_BOOLEAN_SCHEMA);
-      }
-    }
-
-    final KsqlTopic ksqlTopic = new KsqlTopic(name, name, null, true);
-    return new KsqlStream<>(
-        "QueryEngine-DDLCommand-Not-Needed",
-        name,
-        dataSource.schema(),
-        null,
-        null,
-        ksqlTopic,
-        Serdes.String()
-    );
   }
 }

@@ -32,7 +32,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
@@ -46,8 +45,8 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -86,6 +85,8 @@ public class StreamedQueryResourceTest {
   @Mock(MockType.NICE)
   private KsqlEngine mockKsqlEngine;
   @Mock(MockType.NICE)
+  private ServiceContext serviceContext;
+  @Mock(MockType.NICE)
   private KafkaTopicClient mockKafkaTopicClient;
   @Mock(MockType.NICE)
   private StatementParser mockStatementParser;
@@ -97,14 +98,14 @@ public class StreamedQueryResourceTest {
 
   @Before
   public void setup() {
-    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
+    expect(serviceContext.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(mock(Statement.class));
     replay(mockKsqlEngine, mockStatementParser);
 
     testResource = new StreamedQueryResource(
-        ksqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL,
+        ksqlConfig, mockKsqlEngine, serviceContext, mockStatementParser, DISCONNECT_CHECK_INTERVAL,
         activenessRegistrar);
 
   }
@@ -183,9 +184,7 @@ public class StreamedQueryResourceTest {
 
     final KsqlConfig mockKsqlConfig = mock(KsqlConfig.class);
     final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    final KafkaTopicClient mockKafkaTopicClient = mock(KafkaTopicClientImpl.class);
-    expect(mockKsqlEngine.getTopicClient()).andReturn(mockKafkaTopicClient);
-    expect(mockKsqlEngine.getSchemaRegistryClient()).andReturn(new MockSchemaRegistryClient());
+    expect(serviceContext.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
 
     replay(mockOutputNode, mockKafkaStreams);
@@ -206,7 +205,7 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser, mockOutputNode);
 
     final StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlConfig, mockKsqlEngine, mockStatementParser, DISCONNECT_CHECK_INTERVAL, () -> {
+        mockKsqlConfig, mockKsqlEngine, serviceContext, mockStatementParser, DISCONNECT_CHECK_INTERVAL, () -> {
     });
 
     final Response response =

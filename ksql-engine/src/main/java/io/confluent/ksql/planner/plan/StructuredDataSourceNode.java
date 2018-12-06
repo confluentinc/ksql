@@ -18,7 +18,6 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -27,6 +26,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -35,12 +35,11 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -124,7 +123,7 @@ public class StructuredDataSourceNode
   public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     final String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
     final Map<String, TopicDescription> descriptions
-        = kafkaTopicClient.describeTopics(Arrays.asList(topicName));
+        = kafkaTopicClient.describeTopics(Collections.singletonList(topicName));
     if (!descriptions.containsKey(topicName)) {
       throw new KsqlException("Could not get topic description for " + topicName);
     }
@@ -146,10 +145,9 @@ public class StructuredDataSourceNode
   public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final Map<String, Object> props
   ) {
     final int timeStampColumnIndex = getTimeStampColumnIndex();
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
@@ -160,7 +158,7 @@ public class StructuredDataSourceNode
     final Serde<GenericRow> genericRowSerde =
         ksqlTopicSerDe.getGenericRowSerde(
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
-            ksqlConfig, false, schemaRegistryClientFactory);
+            ksqlConfig, false, serviceContext.getSchemaRegistryClientFactory());
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
@@ -170,7 +168,7 @@ public class StructuredDataSourceNode
           getAutoOffsetReset(props),
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-              getSchema(), ksqlConfig, true, schemaRegistryClientFactory),
+              getSchema(), ksqlConfig, true, serviceContext.getSchemaRegistryClientFactory()),
           timestampExtractor
       );
       return new SchemaKTable<>(
@@ -181,8 +179,7 @@ public class StructuredDataSourceNode
           table.getKeySerde(),
           SchemaKStream.Type.SOURCE,
           ksqlConfig,
-          functionRegistry,
-          schemaRegistryClientFactory.get()
+          functionRegistry
       );
     }
 
@@ -192,14 +189,16 @@ public class StructuredDataSourceNode
     return new SchemaKStream<>(
         getSchema(),
         kstream,
-        getKeyField(), new ArrayList<>(),
+        getKeyField(),
+        new ArrayList<>(),
         stream.getKeySerde(),
-        SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry,
-        schemaRegistryClientFactory.get()
+        SchemaKStream.Type.SOURCE,
+        ksqlConfig,
+        functionRegistry
     );
   }
 
-  private Topology.AutoOffsetReset getAutoOffsetReset(final Map<String, Object> props) {
+  private static Topology.AutoOffsetReset getAutoOffsetReset(final Map<String, Object> props) {
     if (props.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
       final String offestReset = props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).toString();
       if (offestReset.equalsIgnoreCase("EARLIEST")) {
@@ -324,7 +323,7 @@ public class StructuredDataSourceNode
         genericRowSerde, genericRowSerdeAfterRead);
   }
 
-  private <K> KTable<?, GenericRow> table(
+  private static <K> KTable<?, GenericRow> table(
       final StreamsBuilder builder,
       final Topology.AutoOffsetReset autoOffsetReset,
       final TimestampExtractor timestampExtractor,
@@ -355,7 +354,7 @@ public class StructuredDataSourceNode
     return structuredDataSource.getDataSourceType();
   }
 
-  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
+  TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return structuredDataSource.getTimestampExtractionPolicy();
   }
 }

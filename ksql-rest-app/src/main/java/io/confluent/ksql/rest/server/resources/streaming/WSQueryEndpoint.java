@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
@@ -64,6 +65,7 @@ public class WSQueryEndpoint {
   private final ObjectMapper mapper;
   private final StatementParser statementParser;
   private final KsqlEngine ksqlEngine;
+  private final ServiceContext serviceContext;
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher queryPublisher;
@@ -76,13 +78,16 @@ public class WSQueryEndpoint {
       final ObjectMapper mapper,
       final StatementParser statementParser,
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ActivenessRegistrar activenessRegistrar
   ) {
     this(ksqlConfig,
         mapper,
         statementParser,
-        ksqlEngine, exec,
+        ksqlEngine,
+        serviceContext,
+        exec,
         WSQueryEndpoint::startQueryPublisher,
         WSQueryEndpoint::startPrintPublisher,
         activenessRegistrar);
@@ -93,6 +98,7 @@ public class WSQueryEndpoint {
       final ObjectMapper mapper,
       final StatementParser statementParser,
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher queryPublisher,
       final PrintTopicPublisher topicPublisher,
@@ -102,6 +108,7 @@ public class WSQueryEndpoint {
     this.mapper = Objects.requireNonNull(mapper, "mapper");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.exec = Objects.requireNonNull(exec, "exec");
     this.queryPublisher = Objects.requireNonNull(queryPublisher, "queryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
@@ -216,7 +223,7 @@ public class WSQueryEndpoint {
   private void handlePrintTopic(final SessionAndRequest info, final PrintTopic printTopic) {
     final String topicName = printTopic.getTopic().toString();
 
-    if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
+    if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
       throw new IllegalArgumentException("topic does not exist: " + topicName);
     }
 
@@ -224,7 +231,7 @@ public class WSQueryEndpoint {
         new WebSocketSubscriber<>(info.session, mapper);
     this.subscriber = topicSubscriber;
 
-    topicPublisher.start(exec, ksqlEngine.getSchemaRegistryClient(),
+    topicPublisher.start(exec, serviceContext.getSchemaRegistryClient(),
         ksqlConfig.getKsqlStreamConfigProps(), topicName, printTopic.getFromBeginning(),
         topicSubscriber
     );

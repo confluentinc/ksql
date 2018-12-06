@@ -27,6 +27,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -50,6 +51,7 @@ public class StreamedQueryResource {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
+  private final ServiceContext serviceContext;
   private final StatementParser statementParser;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
@@ -58,13 +60,15 @@ public class StreamedQueryResource {
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
       final StatementParser statementParser,
       final Duration disconnectCheckInterval,
       final ActivenessRegistrar activenessRegistrar
   ) {
-    this.ksqlConfig = ksqlConfig;
-    this.ksqlEngine = ksqlEngine;
-    this.statementParser = statementParser;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
@@ -92,6 +96,7 @@ public class StreamedQueryResource {
         queryStreamWriter = new QueryStreamWriter(
             ksqlConfig,
             ksqlEngine,
+            serviceContext,
             disconnectCheckInterval.toMillis(),
             ksql,
             request.getStreamsProperties(),
@@ -116,7 +121,7 @@ public class StreamedQueryResource {
   private TopicStreamWriter getTopicStreamWriter(final PrintTopic printTopic) {
     final String topicName = printTopic.getTopic().toString();
 
-    if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
+    if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
       throw new KsqlRestException(
           Errors.badRequest(String.format(
               "Could not find topic '%s', KSQL uses uppercase.%n"
@@ -124,7 +129,7 @@ public class StreamedQueryResource {
               topicName)));
     }
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
-        ksqlEngine.getSchemaRegistryClient(),
+        serviceContext.getSchemaRegistryClient(),
         ksqlConfig.getKsqlStreamConfigProps(),
         topicName,
         printTopic.getIntervalValue(),

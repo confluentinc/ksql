@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -71,8 +70,6 @@ public class SchemaKGroupedStreamTest {
   @Mock(MockType.NICE)
   private FunctionRegistry funcRegistry;
   @Mock(MockType.NICE)
-  private SchemaRegistryClient srClient;
-  @Mock(MockType.NICE)
   private Initializer initializer;
   @Mock(MockType.NICE)
   private Serde<GenericRow> topicValueSerDe;
@@ -97,7 +94,7 @@ public class SchemaKGroupedStreamTest {
   @Before
   public void setUp() {
     schemaGroupedStream = new SchemaKGroupedStream(
-        schema, groupedStream, keyField, sourceStreams, config, funcRegistry, srClient);
+        schema, groupedStream, keyField, sourceStreams, config, funcRegistry);
 
     EasyMock.expect(windowStartFunc.getFunctionName()).andReturn("WindowStart").anyTimes();
     EasyMock.expect(windowEndFunc.getFunctionName()).andReturn("WindowEnd").anyTimes();

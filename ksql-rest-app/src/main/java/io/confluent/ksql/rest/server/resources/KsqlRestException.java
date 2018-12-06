@@ -23,7 +23,7 @@ import javax.ws.rs.core.Response;
  * internal function call of a resource
  */
 public class KsqlRestException extends RuntimeException {
-  Response response;
+  private final Response response;
 
   public KsqlRestException(final Response response) {
     this.response = response;

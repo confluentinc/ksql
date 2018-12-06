@@ -31,11 +31,9 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.ArrayList;
@@ -52,7 +50,6 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
 
-  private final MockSchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private SchemaKStream initialSchemaKStream;
   private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
@@ -68,13 +65,13 @@ public class SqlPredicateTest {
     functionRegistry = new InternalFunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     final StreamsBuilder builder = new StreamsBuilder();
-    kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),
-                             ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-                                 ksqlStream.getSchema(), new KsqlConfig(Collections.emptyMap()),
-                                                   false, new MockSchemaRegistryClientFactory()::get
-                                                   )));
+    kStream = builder.stream(
+        ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),
+            ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
+                ksqlStream.getSchema(), new KsqlConfig(Collections.emptyMap()),
+                false, MockSchemaRegistryClient::new
+            )));
   }
-
 
   private PlanNode buildLogicalPlan(final String queryStr) {
     final Analysis analysis = analyzeQuery(queryStr, metaStore);
@@ -98,7 +95,7 @@ public class SqlPredicateTest {
                                              kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
                                              SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
+                                             functionRegistry);
     final SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
         .getSchema(), false, ksqlConfig, functionRegistry);
 
@@ -118,7 +115,7 @@ public class SqlPredicateTest {
                                              kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
                                              SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
+                                             functionRegistry);
     final SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
         .getSchema(), false, ksqlConfig, functionRegistry);
 
@@ -141,13 +138,18 @@ public class SqlPredicateTest {
     final Expression filterExpr = querySpecification.getWhere().get();
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
 
-    initialSchemaKStream = new SchemaKStream<>(logicalPlan.getTheSourceNode().getSchema(),
+    initialSchemaKStream = new SchemaKStream<>(
+        logicalPlan.getTheSourceNode().getSchema(),
         kStream,
-        ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-        SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry, new MockSchemaRegistryClient());
+        ksqlStream.getKeyField(),
+        new ArrayList<>(),
+        Serdes.String(),
+        SchemaKStream.Type.SOURCE,
+        ksqlConfig,
+        functionRegistry);
+
     final SqlPredicate sqlPredicate = new SqlPredicate(filterExpr, initialSchemaKStream.getSchema(), false, ksqlConfig, functionRegistry);
     final boolean result = sqlPredicate.getPredicate().test("key", null);
     Assert.assertFalse(result);
   }
-
 }

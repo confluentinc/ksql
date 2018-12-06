@@ -42,7 +42,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
@@ -71,7 +70,6 @@ import org.junit.Test;
 @SuppressWarnings("unchecked")
 public class SchemaKStreamTest {
 
-  private final MockSchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private SchemaKStream initialSchemaKStream;
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
@@ -79,10 +77,6 @@ public class SchemaKStreamTest {
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private KStream kStream;
   private KsqlStream ksqlStream;
-  private KStream secondKStream;
-  private KsqlStream secondKsqlStream;
-  private KTable kTable;
-  private KsqlTable ksqlTable;
   private InternalFunctionRegistry functionRegistry;
   private KStream mockKStream;
   private SchemaKStream firstSchemaKStream;
@@ -98,38 +92,40 @@ public class SchemaKStreamTest {
     functionRegistry = new InternalFunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     final StreamsBuilder builder = new StreamsBuilder();
-    kStream = builder.stream(ksqlStream.getKsqlTopic().getKafkaTopicName(),
-                             Consumed.with(Serdes.String(),
-                                           getRowSerde(ksqlStream.getKsqlTopic(),
-                                                       ksqlStream.getSchema())));
+    kStream = builder.stream(
+        ksqlStream.getKsqlTopic().getKafkaTopicName(),
+        Consumed.with(Serdes.String(),
+        getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema())));
 
-    secondKsqlStream = (KsqlStream) metaStore.getSource("ORDERS");
-    secondKStream = builder.stream(secondKsqlStream.getKsqlTopic().getKafkaTopicName(),
-                                   Consumed.with(Serdes.String(),
-                                                 getRowSerde(secondKsqlStream.getKsqlTopic(),
-                                                             secondKsqlStream.getSchema())));
+    final KsqlStream secondKsqlStream = (KsqlStream) metaStore.getSource("ORDERS");
+    final KStream secondKStream = builder
+        .stream(secondKsqlStream.getKsqlTopic().getKafkaTopicName(),
+            Consumed.with(Serdes.String(),
+                getRowSerde(secondKsqlStream.getKsqlTopic(),
+                    secondKsqlStream.getSchema())));
 
-    ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
-    kTable = builder.table(ksqlTable.getKsqlTopic().getKafkaTopicName(),
-                           Consumed.with(Serdes.String(),
-                                         getRowSerde(ksqlTable.getKsqlTopic(),
-                                                     ksqlTable.getSchema())));
-
+    final KsqlTable ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
+    final KTable kTable = builder.table(ksqlTable.getKsqlTopic().getKafkaTopicName(),
+        Consumed.with(Serdes.String(),
+            getRowSerde(ksqlTable.getKsqlTopic(),
+                ksqlTable.getSchema())));
 
     mockKStream = niceMock(KStream.class);
 
-    firstSchemaKStream =  new SchemaKStream(ksqlStream.getSchema(), mockKStream,
-                                            ksqlStream.getKeyField(), new ArrayList<>(),
-                                            Serdes.String(),
-                                            SchemaKStream.Type.SOURCE, ksqlConfig,
-                                            functionRegistry, schemaRegistryClient);
+    firstSchemaKStream =  new SchemaKStream(
+        ksqlStream.getSchema(), mockKStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        Serdes.String(),
+        SchemaKStream.Type.SOURCE, ksqlConfig,
+        functionRegistry);
 
 
-    secondSchemaKStream  = new SchemaKStream(secondKsqlStream.getSchema(), secondKStream,
-                                             secondKsqlStream.getKeyField(), new ArrayList<>(),
-                                             Serdes.String(),
-                                             SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
+    secondSchemaKStream  = new SchemaKStream(
+        secondKsqlStream.getSchema(), secondKStream,
+        secondKsqlStream.getKeyField(), new ArrayList<>(),
+        Serdes.String(),
+        SchemaKStream.Type.SOURCE, ksqlConfig,
+        functionRegistry);
 
     leftSerde = getRowSerde(ksqlStream.getKsqlTopic(),
                                                     ksqlStream.getSchema());
@@ -137,10 +133,11 @@ public class SchemaKStreamTest {
                                                      secondKsqlStream.getSchema());
 
 
-    schemaKTable = new SchemaKTable<>(ksqlTable.getSchema(), kTable,
-                                    ksqlTable.getKeyField(), new ArrayList<>(),  Serdes.String(),
-                                    SchemaKStream.Type.SOURCE, ksqlConfig,
-                                    functionRegistry, schemaRegistryClient);
+    schemaKTable = new SchemaKTable<>(
+        ksqlTable.getSchema(), kTable,
+        ksqlTable.getKeyField(), new ArrayList<>(),  Serdes.String(),
+        SchemaKStream.Type.SOURCE, ksqlConfig,
+        functionRegistry);
 
     joinSchema = getJoinSchema(ksqlStream.getSchema(), secondKsqlStream.getSchema());
   }
@@ -148,7 +145,7 @@ public class SchemaKStreamTest {
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return topic.getKsqlTopicSerDe().getGenericRowSerde(
         schema, new KsqlConfig(Collections.emptyMap()), false,
-        new MockSchemaRegistryClientFactory()::get);
+        MockSchemaRegistryClient::new);
   }
 
   @Test
@@ -156,11 +153,12 @@ public class SchemaKStreamTest {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(),
-                                             Serdes.String(),
-                                             SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
+    initialSchemaKStream = new SchemaKStream(
+        logicalPlan.getTheSourceNode().getSchema(), kStream,
+        ksqlStream.getKeyField(), new ArrayList<>(),
+        Serdes.String(),
+        SchemaKStream.Type.SOURCE, ksqlConfig,
+        functionRegistry);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -188,7 +186,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
         ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+        functionRegistry);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -211,8 +209,7 @@ public class SchemaKStreamTest {
         Serdes.String(),
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
-        functionRegistry,
-        new MockSchemaRegistryClient());
+        functionRegistry);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -229,7 +226,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
         ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+        functionRegistry);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -246,7 +243,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
         ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+        functionRegistry);
 
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(selectExpressions);
@@ -261,7 +258,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
                                              SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
+                                             functionRegistry);
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(projectNode.getProjectSelectExpressions());
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -287,7 +284,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
                                              ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
                                              SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry, schemaRegistryClient);
+                                             functionRegistry);
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(filterNode.getPredicate());
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 8);
@@ -316,7 +313,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
         ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+        functionRegistry);
     final SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(initialSchemaKStream
         .getSchema().fields()
         .get(3), true);
@@ -330,7 +327,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
         ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+        functionRegistry);
 
     final Expression keyExpression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
@@ -351,7 +348,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(logicalPlan.getTheSourceNode().getSchema(), kStream,
         ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
         SchemaKStream.Type.SOURCE, ksqlConfig,
-        functionRegistry, schemaRegistryClient);
+        functionRegistry);
 
     final Expression col0Expression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");

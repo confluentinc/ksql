@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
+
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
@@ -53,6 +55,7 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -74,6 +77,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -84,7 +88,6 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.TopicConfig;
@@ -117,12 +120,14 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionCheckerAgent;
+  private final ServiceContext serviceContext;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
-  private KsqlRestApplication(
+  KsqlRestApplication(
+      final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final KsqlRestConfig config,
@@ -134,18 +139,21 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final VersionCheckerAgent versionCheckerAgent
   ) {
     super(config);
-    this.ksqlConfig = ksqlConfig;
-    this.ksqlEngine = ksqlEngine;
-    this.commandRunner = commandRunner;
-    this.rootDocument = rootDocument;
-    this.statusResource = statusResource;
-    this.streamedQueryResource = streamedQueryResource;
-    this.ksqlResource = ksqlResource;
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
+    this.rootDocument = Objects.requireNonNull(rootDocument, "rootDocument");
+    this.statusResource = Objects.requireNonNull(statusResource, "statusResource");
+    this.streamedQueryResource =
+        Objects.requireNonNull(streamedQueryResource, "streamedQueryResource");
+    this.ksqlResource = Objects.requireNonNull(ksqlResource, "ksqlResource");
 
-    this.versionCheckerAgent = versionCheckerAgent;
+    this.versionCheckerAgent =
+        Objects.requireNonNull(versionCheckerAgent, "versionCheckerAgent");
     this.serverInfo = new ServerInfo(
         Version.getVersion(),
-        getKafkaClusterId(ksqlConfig),
+        getKafkaClusterId(serviceContext),
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
     this.commandRunnerThread = new Thread(commandRunner, "CommandRunner");
@@ -160,7 +168,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     config.register(streamedQueryResource);
     config.register(new KsqlExceptionMapper());
   }
-
 
   @Override
   public void start() throws Exception {
@@ -188,6 +195,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       commandRunnerThread.join();
     } catch (final Exception e) {
       log.error("Exception while waiting for CommandRunner thread to complete", e);
+    }
+
+    try {
+      serviceContext.close();
+    } catch (final Exception e) {
+      log.error("Exception while closing services", e);
     }
 
     try {
@@ -264,6 +277,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
+                      serviceContext,
                       exec,
                       versionCheckerAgent::updateLastRequestTime
                   );
@@ -287,13 +301,16 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
-    final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
-    final KafkaTopicClient topicClient = ksqlEngine.getTopicClient();
+    final ServiceContext serviceContext = ServiceContext.create(ksqlConfig);
+
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+
     UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
 
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
-    ensureCommandTopic(restConfig, topicClient, commandTopic);
+    ensureCommandTopic(restConfig, serviceContext.getTopicClient(), commandTopic);
 
     final Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
@@ -325,7 +342,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                 new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
             )
         ),
-        ksqlEngine.getTopicClient(),
+        serviceContext.getTopicClient(),
         true
     ), false);
 
@@ -367,25 +384,30 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final StatusResource statusResource = new StatusResource(statementExecutor);
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,
+        serviceContext,
         statementParser,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
         versionChecker::updateLastRequestTime
     );
+
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
+        serviceContext,
         commandStore,
-        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG),
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime
     );
 
     commandRunner.processPriorCommands();
 
     return new KsqlRestApplication(
+        serviceContext,
         ksqlEngine,
         ksqlConfig,
         restConfig,
@@ -398,11 +420,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     );
   }
 
-  private static String getKafkaClusterId(final KsqlConfig ksqlConfig) {
-
-    try (AdminClient client = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps())) {
-
-      return client.describeCluster().clusterId().get();
+  private static String getKafkaClusterId(final ServiceContext serviceContext) {
+    try {
+      return serviceContext.getAdminClient().describeCluster().clusterId().get();
 
     } catch (final UnsupportedVersionException e) {
       throw new KsqlException(

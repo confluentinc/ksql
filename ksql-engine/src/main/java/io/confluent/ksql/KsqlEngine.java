@@ -19,16 +19,13 @@ package io.confluent.ksql;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommand;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
-import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -55,12 +52,10 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.AvroUtil;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -85,12 +80,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +100,6 @@ public class KsqlEngine implements Closeable {
       .build();
 
   private final MetaStore metaStore;
-  private final KafkaTopicClient topicClient;
   private final DdlCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
@@ -117,53 +107,39 @@ public class KsqlEngine implements Closeable {
   private final Set<QueryMetadata> allLiveQueries;
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
-  private final SchemaRegistryClient schemaRegistryClient;
-  private final KafkaClientSupplier clientSupplier;
-  private final AdminClient adminClient;
 
   private final String serviceId;
   private final CommandFactories ddlCommandFactory;
+  private final ServiceContext serviceContext;
 
-  public static KsqlEngine create(final KsqlConfig ksqlConfig) {
-    final DefaultKafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
-    final AdminClient adminClient = clientSupplier
-        .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
-    return new KsqlEngine(
-        new KafkaTopicClientImpl(adminClient),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig)::get,
-        clientSupplier,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-        adminClient,
-        KsqlEngineMetrics::new
-    );
+  public KsqlEngine(
+      final ServiceContext serviceContext,
+      final String serviceId
+  ) {
+    this(
+        serviceContext,
+        serviceId, new MetaStoreImpl(new InternalFunctionRegistry()),
+        KsqlEngineMetrics::new);
   }
 
-  KsqlEngine(final KafkaTopicClient topicClient,
-             final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-             final KafkaClientSupplier clientSupplier,
-             final MetaStore metaStore,
-             final String serviceId,
-             final AdminClient adminClient,
-             final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
+  KsqlEngine(
+      final ServiceContext serviceContext,
+      final String serviceId,
+      final MetaStore metaStore,
+      final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
-    this.topicClient = Objects.requireNonNull(topicClient, "topicClient can't be null");
-    this.schemaRegistryClient = Objects.requireNonNull(Objects.requireNonNull(
-        schemaRegistryClientFactory, "schemaRegistryClientFactory can't be null").get(),
-        "Schema registry can't be null");
-    this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
-    this.ddlCommandExec = new DdlCommandExec(this.metaStore);
-    this.ddlCommandFactory = new CommandFactories(topicClient, schemaRegistryClient);
-    this.queryEngine = new QueryEngine(topicClient, schemaRegistryClientFactory);
+    this.ddlCommandExec = new DdlCommandExec(metaStore);
+    this.ddlCommandFactory = new CommandFactories(serviceContext);
+    this.queryEngine = new QueryEngine(serviceContext);
     this.persistentQueries = new HashMap<>();
     this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
-    this.adminClient = Objects.requireNonNull(adminClient, "adminCluent can't be null");
-    aggregateMetricsCollector.scheduleAtFixedRate(
+    this.aggregateMetricsCollector.scheduleAtFixedRate(
         () -> {
           try {
             this.engineMetrics.updateMetrics();
@@ -175,6 +151,69 @@ public class KsqlEngine implements Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
+  }
+
+  public long numberOfLiveQueries() {
+    return this.allLiveQueries.size();
+  }
+
+  public long numberOfPersistentQueries() {
+    return this.livePersistentQueries.size();
+  }
+
+  public PersistentQueryMetadata getPersistentQuery(final QueryId queryId) {
+    return persistentQueries.get(queryId);
+  }
+
+  public Collection<PersistentQueryMetadata> getPersistentQueries() {
+    return Collections.unmodifiableList(
+        new ArrayList<>(
+            persistentQueries.values()));
+  }
+
+  public void removeTemporaryQuery(final QueryMetadata queryMetadata) {
+    this.allLiveQueries.remove(queryMetadata);
+  }
+
+  Set<QueryMetadata> getLivePersistentQueries() {
+    return livePersistentQueries;
+  }
+
+  public boolean hasActiveQueries() {
+    return !livePersistentQueries.isEmpty();
+  }
+
+  public MetaStore getMetaStore() {
+    return metaStore;
+  }
+
+  public FunctionRegistry getFunctionRegistry() {
+    return metaStore;
+  }
+
+  public DdlCommandExec getDdlCommandExec() {
+    return ddlCommandExec;
+  }
+
+  public String getServiceId() {
+    return serviceId;
+  }
+
+  public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
+    final PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
+    if (persistentQueryMetadata == null) {
+      return false;
+    }
+    livePersistentQueries.remove(persistentQueryMetadata);
+    allLiveQueries.remove(persistentQueryMetadata);
+    metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
+    if (closeStreams) {
+      persistentQueryMetadata.close();
+      persistentQueryMetadata
+          .cleanUpInternalTopicAvroSchemas(serviceContext.getSchemaRegistryClient());
+    }
+
+    return true;
   }
 
   /**
@@ -268,6 +307,31 @@ public class KsqlEngine implements Closeable {
     return queries;
   }
 
+  @Override
+  public void close() {
+    for (final QueryMetadata queryMetadata : allLiveQueries) {
+      queryMetadata.close();
+    }
+    engineMetrics.close();
+    aggregateMetricsCollector.shutdown();
+  }
+
+  public DdlCommandResult executeDdlStatement(
+      final String sqlExpression,
+      final ExecutableDdlStatement statement,
+      final Map<String, Object> overriddenProperties
+  ) {
+    throwOnImmutableOverride(overriddenProperties);
+
+    final DdlCommand command = createDdlCommand(
+        sqlExpression,
+        statement,
+        overriddenProperties,
+        true);
+
+    return ddlCommandExec.execute(command, false);
+  }
+
   /**
    * Determines if a statement is executable by the engine.
    *
@@ -278,6 +342,10 @@ public class KsqlEngine implements Closeable {
     return statement.getStatement() instanceof ExecutableDdlStatement
         || statement.getStatement() instanceof QueryContainer
         || statement.getStatement() instanceof Query;
+  }
+
+  public static Set<String> getImmutableProperties() {
+    return IMMUTABLE_PROPERTIES;
   }
 
   private List<QueryMetadata> doExecute(
@@ -324,7 +392,7 @@ public class KsqlEngine implements Closeable {
             logicalPlan,
             ksqlConfig,
             overriddenProperties,
-            clientSupplier,
+            serviceContext.getKafkaClientSupplier(),
             updateMetastore ? metaStore : tempMetaStore,
             updateMetastore
         );
@@ -360,7 +428,8 @@ public class KsqlEngine implements Closeable {
 
       if (query instanceof PersistentQueryMetadata) {
         final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
-        if (!AvroUtil.isValidSchemaEvolution(persistentQuery, schemaRegistryClient)) {
+        if (!AvroUtil.isValidSchemaEvolution(
+            persistentQuery, serviceContext.getSchemaRegistryClient())) {
           throw new KsqlStatementException(String.format(
               "Cannot register avro schema for %s as the schema registry rejected it, "
                   + "(maybe schema evolution issues?)",
@@ -579,118 +648,6 @@ public class KsqlEngine implements Closeable {
     return new Query(newQuerySpecification, limit);
   }
 
-  Set<QueryMetadata> getLivePersistentQueries() {
-    return livePersistentQueries;
-  }
-
-  public boolean hasActiveQueries() {
-    return !livePersistentQueries.isEmpty();
-  }
-
-  public MetaStore getMetaStore() {
-    return metaStore;
-  }
-
-  public FunctionRegistry getFunctionRegistry() {
-    return metaStore;
-  }
-
-  public KafkaTopicClient getTopicClient() {
-    return topicClient;
-  }
-
-  public DdlCommandExec getDdlCommandExec() {
-    return ddlCommandExec;
-  }
-
-  public String getServiceId() {
-    return serviceId;
-  }
-
-  public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
-    final PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
-    if (persistentQueryMetadata == null) {
-      return false;
-    }
-    livePersistentQueries.remove(persistentQueryMetadata);
-    allLiveQueries.remove(persistentQueryMetadata);
-    metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
-    if (closeStreams) {
-      persistentQueryMetadata.close();
-      persistentQueryMetadata.cleanUpInternalTopicAvroSchemas(schemaRegistryClient);
-    }
-
-    return true;
-  }
-
-  public PersistentQueryMetadata getPersistentQuery(final QueryId queryId) {
-    return persistentQueries.get(queryId);
-  }
-
-  public Collection<PersistentQueryMetadata> getPersistentQueries() {
-    return Collections.unmodifiableList(
-        new ArrayList<>(
-            persistentQueries.values()));
-  }
-
-  public static List<String> getImmutableProperties() {
-    return new ArrayList<>(IMMUTABLE_PROPERTIES);
-  }
-
-  public long numberOfLiveQueries() {
-    return this.allLiveQueries.size();
-  }
-
-  public long numberOfPersistentQueries() {
-    return this.livePersistentQueries.size();
-  }
-
-  @Override
-  public void close() {
-    for (final QueryMetadata queryMetadata : allLiveQueries) {
-      queryMetadata.close();
-    }
-    adminClient.close();
-    engineMetrics.close();
-    aggregateMetricsCollector.shutdown();
-  }
-
-  public void removeTemporaryQuery(final QueryMetadata queryMetadata) {
-    this.allLiveQueries.remove(queryMetadata);
-  }
-
-  public DdlCommandResult executeDdlStatement(
-      final String sqlExpression,
-      final ExecutableDdlStatement statement,
-      final Map<String, Object> overriddenProperties
-  ) {
-    throwOnImmutableOverride(overriddenProperties);
-
-    final DdlCommand command = createDdlCommand(
-        sqlExpression,
-        statement,
-        overriddenProperties,
-        true);
-
-    return ddlCommandExec.execute(command, false);
-  }
-
-  public SchemaRegistryClient getSchemaRegistryClient() {
-    return schemaRegistryClient;
-  }
-
-  public List<UdfFactory> listScalarFunctions() {
-    return metaStore.listFunctions();
-  }
-
-  public List<AggregateFunctionFactory> listAggregateFunctions() {
-    return metaStore.listAggregateFunctions();
-  }
-
-  public AdminClient getAdminClient() {
-    return adminClient;
-  }
-
   private void doExecuteDdlStatement(
       final String sqlExpression,
       final ExecutableDdlStatement statement,
@@ -770,14 +727,14 @@ public class KsqlEngine implements Closeable {
       return StatementWithSchema.forStatement(
           statementWithProperties,
           SqlFormatter.formatSql(statementWithProperties),
-          schemaRegistryClient
+          serviceContext.getSchemaRegistryClient()
       );
     }
 
     return StatementWithSchema.forStatement(
         streamCreateStatement,
         statementText,
-        schemaRegistryClient);
+        serviceContext.getSchemaRegistryClient());
   }
 
   private static void throwOnImmutableOverride(final Map<String, Object> overriddenProperties) {

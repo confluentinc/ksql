@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -24,7 +23,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reportMatcher;
 import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -57,9 +55,9 @@ import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
-import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -76,9 +74,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
@@ -95,6 +91,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   private final PersistentQueryMetadata mockQueryMetadata
       = niceMock(PersistentQueryMetadata.class);
   private StatementExecutor statementExecutorWithMocks;
+  private ServiceContext serviceContext;
 
   @Before
   public void setUp() {
@@ -102,13 +99,10 @@ public class StatementExecutorTest extends EasyMockSupport {
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
     ksqlConfig = new KsqlConfig(props);
+    serviceContext = TestServiceContext.create(new MockKafkaTopicClient());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        new MockKafkaTopicClient(),
-        new MockSchemaRegistryClientFactory()::get,
-        new FakeKafkaClientSupplier(),
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig,
-        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps())
+        serviceContext,
+        new MetaStoreImpl(new InternalFunctionRegistry())
     );
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
@@ -122,6 +116,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @After
   public void tearDown() {
     ksqlEngine.close();
+    serviceContext.close();
   }
 
   @ClassRule

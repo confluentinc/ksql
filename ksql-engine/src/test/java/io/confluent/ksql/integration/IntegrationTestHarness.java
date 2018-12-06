@@ -419,7 +419,7 @@ public class IntegrationTestHarness {
       case AVRO:
         return new KsqlAvroTopicSerDe().getGenericRowSerde(
             schema, new KsqlConfig(Collections.emptyMap()), false,
-            () -> this.schemaRegistryClient
+            schemaRegistryClientFactory
         ).serializer();
       case DELIMITED:
         return new KsqlDelimitedSerializer(schema);
@@ -436,7 +436,7 @@ public class IntegrationTestHarness {
       case AVRO:
         return new KsqlAvroTopicSerDe().getGenericRowSerde(
             schema, new KsqlConfig(Collections.emptyMap()), false,
-            () -> this.schemaRegistryClient
+            schemaRegistryClientFactory
         ).deserializer();
       case DELIMITED:
         return new KsqlDelimitedDeserializer(schema);

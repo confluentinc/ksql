@@ -29,11 +29,11 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import java.util.Arrays;
@@ -50,6 +50,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,20 +75,27 @@ public class StructuredDataSourceNodeTest {
               new KsqlJsonTopicSerDe(), false), Serdes.String()),
       schema);
 
+  private ServiceContext serviceContext;
+
   @Before
   public void before() {
     builder = new StreamsBuilder();
+    serviceContext = TestServiceContext.create();
     stream = build(node);
+  }
+
+  @After
+  public void tearDown() {
+    serviceContext.close();
   }
 
   private SchemaKStream build(final StructuredDataSourceNode node) {
     return node.buildStream(builder,
         ksqlConfig,
-        new FakeKafkaTopicClient(),
+        serviceContext,
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
+        new HashMap<>());
   }
-
 
   @Test
   public void shouldBuildSourceNode() {

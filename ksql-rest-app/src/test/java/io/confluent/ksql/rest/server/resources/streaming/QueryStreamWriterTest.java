@@ -33,6 +33,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -76,6 +77,8 @@ public class QueryStreamWriterTest {
 
   @Mock(MockType.NICE)
   private KsqlEngine ksqlEngine;
+  @Mock(MockType.NICE)
+  private ServiceContext serviceContext;
   @Mock(MockType.NICE)
   private QueuedQueryMetadata queryMetadata;
   @Mock(MockType.NICE)
@@ -187,6 +190,7 @@ public class QueryStreamWriterTest {
     writer = new QueryStreamWriter(
         new KsqlConfig(Collections.emptyMap()),
         ksqlEngine,
+        serviceContext,
         1000,
         "a KSQL statement",
         Collections.emptyMap(),

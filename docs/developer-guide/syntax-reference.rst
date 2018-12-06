@@ -242,7 +242,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                  |
+|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
@@ -345,7 +345,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                  |
+|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -1278,7 +1278,7 @@ Scalar functions
 Aggregate functions
 ===================
 
-+------------------------+---------------------------+----------------------------------------------------------------------------------+
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | Function               | Example                   | Input Type | Description                                                         |
 +========================+===========================+============+=====================================================================+
 | COLLECT_LIST           | ``COLLECT_LIST(col1)``    | Stream,    | Return an array containing all the values of ``col1`` from each     |
@@ -1307,8 +1307,10 @@ Aggregate functions
 |                        |                           |            | late-arriving record, then the records from the second window in    |
 |                        |                           |            | the order they were originally processed.                           |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| COUNT                  | ``COUNT(col1)``           | Stream,    | Count the number of rows                                            |
-|                        |                           | Table      |                                                                     |
+| COUNT                  | ``COUNT(col1)``,          | Stream,    | Count the number of rows. When ``col1`` is specified, the count     |
+|                        | ``COUNT(*)``              | Table      | returned will be the number of rows where ``col1`` is non-null.     |
+|                        |                           |            | When ``*`` is specified, the count returned will be the total       |
+|                        |                           |            | number of rows.                                                     |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | HISTOGRAM              | ``HISTOGRAM(col1)``       | Stream,    | Return a map containing the distinct String values of ``col1``      |
 |                        |                           | Table      | mapped to the number of times each one occurs for the given window. |
@@ -1322,16 +1324,20 @@ Aggregate functions
 |                        |                           |            | late-arriving record, then the records from the second window in    |
 |                        |                           |            | the order they were originally processed.                           |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window              |
+| MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window.             |
+|                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| MIN                    | ``MIN(col1)``             | Stream     | Return the minimum value for a given column and window              |
+| MIN                    | ``MIN(col1)``             | Stream     | Return the minimum value for a given column and window.             |
+|                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | SUM                    | ``SUM(col1)``             | Stream,    | Sums the column values                                              |
-|                        |                           | Table      |                                                                     |
+|                        |                           | Table      | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | TOPK                   | ``TOPK(col1, k)``         | Stream     | Return the Top *K* values for the given column and window           |
+|                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Stream     | Return the distinct Top *K* values for the given column and window  |
+|                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | WindowStart            | ``WindowStart()``         | Stream     | Extract the start time of the current window, in milliseconds.      |
 |                        |                           | Table      | If the query is not windowed the function will return null.         |

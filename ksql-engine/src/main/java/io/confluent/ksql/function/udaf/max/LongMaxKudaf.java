@@ -34,20 +34,15 @@ public class LongMaxKudaf extends BaseAggregateFunction<Long, Long> {
 
   @Override
   public Long aggregate(final Long currentValue, final Long aggregateValue) {
-    if (currentValue > aggregateValue) {
-      return currentValue;
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return aggregateValue;
+    return Math.max(currentValue, aggregateValue);
   }
 
   @Override
   public Merger<String, Long> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> {
-      if (aggOne > aggTwo) {
-        return aggOne;
-      }
-      return aggTwo;
-    };
+    return (aggKey, aggOne, aggTwo) -> Math.max(aggOne, aggTwo);
   }
 
   @Override

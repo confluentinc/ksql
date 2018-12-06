@@ -51,7 +51,11 @@ public class JoinedFactoryTest {
   public void shouldCreateJoinedCorrectlyWhenOptimizationsDisabled() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
+        ImmutableMap.of(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION,
+            StreamsConfig.NO_OPTIMIZATION,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
     );
     when(joiner.joinedWith(keySerde, leftSerde, rightSerde, null)).thenReturn(joined);
 
@@ -69,7 +73,9 @@ public class JoinedFactoryTest {
   public void shouldCreateJoinedCorrectlyWhenOptimizationsEnabled() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE)
+        ImmutableMap.of(
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
     );
     when(joiner.joinedWith(keySerde, leftSerde, rightSerde, opName)).thenReturn(joined);
 

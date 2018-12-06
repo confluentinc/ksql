@@ -49,7 +49,11 @@ public class GroupedFactoryTest {
   public void shouldCreateGroupedCorrectlyWhenOptimizationsDisabled() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
+        ImmutableMap.of(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION,
+            StreamsConfig.NO_OPTIMIZATION,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
     );
     when(grouper.groupedWith(null, keySerde, rowSerde)).thenReturn(grouped);
 
@@ -69,7 +73,9 @@ public class GroupedFactoryTest {
   public void shouldCreateGroupedCorrectlyWhenOptimationsEnabled() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE)
+        ImmutableMap.of(
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
     );
     when(grouper.groupedWith(opName, keySerde, rowSerde)).thenReturn(grouped);
 

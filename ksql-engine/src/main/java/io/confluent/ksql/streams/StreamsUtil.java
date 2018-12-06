@@ -14,11 +14,7 @@
 
 package io.confluent.ksql.streams;
 
-import static org.apache.kafka.streams.StreamsConfig.OPTIMIZE;
-import static org.apache.kafka.streams.StreamsConfig.TOPOLOGY_OPTIMIZATION;
-
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
 import java.util.Objects;
 
 public final class StreamsUtil {
@@ -26,7 +22,9 @@ public final class StreamsUtil {
   }
 
   public static boolean useProvidedName(final KsqlConfig ksqlConfig) {
-    final Map<String, Object> streamsConfigs = ksqlConfig.getKsqlStreamConfigProps();
-    return Objects.equals(streamsConfigs.get(TOPOLOGY_OPTIMIZATION), OPTIMIZE);
+    return Objects.equals(
+        ksqlConfig.getString(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS),
+        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON
+    );
   }
 }

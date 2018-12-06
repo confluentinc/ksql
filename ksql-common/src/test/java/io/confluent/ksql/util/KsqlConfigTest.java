@@ -36,9 +36,13 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.core.IsEqual;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class KsqlConfigTest {
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldSetInitialValuesCorrectly() {
@@ -476,5 +480,19 @@ public class KsqlConfigTest {
     assertThat(
         merged.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
         equalTo(StreamsConfig.NO_OPTIMIZATION));
+  }
+
+  @Test
+  public void shouldRaiseIfInternalTopicNamingOffAndStreamsOptimizationsOn() {
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage(
+        "Internal topic naming must be enabled if streams optimizations enabled");
+    new KsqlConfig(
+        ImmutableMap.of(
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
+            StreamsConfig.TOPOLOGY_OPTIMIZATION,
+            StreamsConfig.OPTIMIZE)
+    );
   }
 }

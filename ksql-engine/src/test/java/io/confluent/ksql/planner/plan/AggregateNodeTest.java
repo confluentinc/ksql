@@ -110,7 +110,8 @@ public class AggregateNodeTest {
     buildRequireRekey(
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(
             ImmutableMap.of(
-                StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)));
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+                String.valueOf(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF))));
 
     // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
@@ -139,9 +140,11 @@ public class AggregateNodeTest {
   public void shouldHaveSourceNodeForSecondSubtopolgyWithDefaultNameForRepartition() {
     buildRequireRekey(
         new KsqlConfig(
-            Collections.singletonMap(
+            ImmutableMap.of(
                 StreamsConfig.TOPOLOGY_OPTIMIZATION,
-                StreamsConfig.NO_OPTIMIZATION)
+                StreamsConfig.NO_OPTIMIZATION,
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
         )
     );
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
@@ -159,12 +162,14 @@ public class AggregateNodeTest {
   }
 
   @Test
-  public void shouldHaveDefaultNameForAggregationStateStoreIfOptimizationsOff() {
+  public void shouldHaveDefaultNameForAggregationStateStoreIfInternalTopicNamingOff() {
     build(
         new KsqlConfig(
-            Collections.singletonMap(
+            ImmutableMap.of(
                 StreamsConfig.TOPOLOGY_OPTIMIZATION,
-                StreamsConfig.NO_OPTIMIZATION)
+                StreamsConfig.NO_OPTIMIZATION,
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
         )
     );
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(

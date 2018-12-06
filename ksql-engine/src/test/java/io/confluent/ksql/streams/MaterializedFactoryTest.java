@@ -51,7 +51,11 @@ public class MaterializedFactoryTest {
   public void shouldCreateMaterializedCorrectlyWhenOptimizationsDisabled() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
+        ImmutableMap.of(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION,
+            StreamsConfig.NO_OPTIMIZATION,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
     );
     when(materializer.materializedWith(keySerde, rowSerde)).thenReturn(materialized);
 
@@ -70,7 +74,9 @@ public class MaterializedFactoryTest {
   public void shouldCreateJoinedCorrectlyWhenOptimizationsEnabled() {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE)
+        ImmutableMap.of(
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
     );
     final Materialized asName = mock(Materialized.class);
     when(materializer.materializedAs(opName)).thenReturn(asName);

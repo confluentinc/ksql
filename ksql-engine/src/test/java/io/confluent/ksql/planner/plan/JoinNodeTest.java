@@ -217,7 +217,9 @@ public class JoinNodeTest {
     setupTopicClientExpectations(1, 1);
     buildJoin(
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(
-            ImmutableMap.of(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
+            ImmutableMap.of(
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+                String.valueOf(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF))
         )
     );
     final Topology topology = builder.build();

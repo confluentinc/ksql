@@ -110,6 +110,7 @@ public class StructuredDataSourceNode
     super(id, structuredDataSource.getDataSourceType());
     Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
     Objects.requireNonNull(schema, "schema can't be null");
+    Objects.requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
     this.schema = schema;
     this.structuredDataSource = structuredDataSource;
     this.materializedFactorySupplier = materializedFactorySupplier;

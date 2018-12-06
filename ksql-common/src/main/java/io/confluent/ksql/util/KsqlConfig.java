@@ -34,6 +34,8 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.ValidString;
+import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -123,6 +125,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "in interactive mode. Once this limit is reached, any further persistent queries will not "
       + "be accepted.";
 
+  public static final String KSQL_USE_NAMED_INTERNAL_TOPICS = "ksql.named.internal.topics";
+  private static final String KSQL_USE_NAMED_INTERNAL_TOPICS_DOC = "";
+  public static final String KSQL_USE_NAMED_INTERNAL_TOPICS_ON = "on";
+  public static final String KSQL_USE_NAMED_INTERNAL_TOPICS_OFF = "off";
+  private static final Validator KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR = ValidString.in(
+      KSQL_USE_NAMED_INTERNAL_TOPICS_ON, KSQL_USE_NAMED_INTERNAL_TOPICS_OFF
+  );
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -172,7 +182,15 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
               KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
               ConfigDef.Importance.LOW,
-              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC)
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC),
+          new CompatibilityBreakingConfigDef(
+              KSQL_USE_NAMED_INTERNAL_TOPICS,
+              ConfigDef.Type.STRING,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_ON,
+              ConfigDef.Importance.LOW,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_DOC,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR)
   );
 
   private enum ConfigGeneration {
@@ -187,19 +205,32 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     private final Object defaultValueCurrent;
     private final ConfigDef.Importance importance;
     private final String documentation;
+    private final Validator validator;
 
     CompatibilityBreakingConfigDef(final String name,
-                                   final ConfigDef.Type type,
-                                   final Object defaultValueLegacy,
-                                   final Object defaultValueCurrent,
-                                   final ConfigDef.Importance importance,
-                                   final String documentation) {
+        final ConfigDef.Type type,
+        final Object defaultValueLegacy,
+        final Object defaultValueCurrent,
+        final ConfigDef.Importance importance,
+        final String documentation) {
+      this(name, type, defaultValueLegacy, defaultValueCurrent, importance, documentation, null);
+    }
+
+    CompatibilityBreakingConfigDef(
+        final String name,
+        final ConfigDef.Type type,
+        final Object defaultValueLegacy,
+        final Object defaultValueCurrent,
+        final ConfigDef.Importance importance,
+        final String documentation,
+        final Validator validator) {
       this.name = name;
       this.type = type;
       this.defaultValueLegacy = defaultValueLegacy;
       this.defaultValueCurrent = defaultValueCurrent;
       this.importance = importance;
       this.documentation = documentation;
+      this.validator = validator;
     }
 
     public String getName() {
@@ -436,6 +467,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+    validate();
   }
 
   private KsqlConfig(final ConfigGeneration generation,
@@ -443,6 +475,17 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                      final Map<String, ConfigValue> ksqlStreamConfigProps) {
     super(configDef(generation), values);
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
+  }
+
+  private void validate() {
+    final Object optimizationsConfig = getKsqlStreamConfigProps().get(
+        StreamsConfig.TOPOLOGY_OPTIMIZATION);
+    final Object useInternalNamesConfig = get(KSQL_USE_NAMED_INTERNAL_TOPICS);
+    if (Objects.equals(optimizationsConfig, StreamsConfig.OPTIMIZE)
+        && useInternalNamesConfig.equals(KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)) {
+      throw new RuntimeException(
+          "Internal topic naming must be enabled if streams optimizations enabled");
+    }
   }
 
   public Map<String, Object> getKsqlStreamConfigProps() {

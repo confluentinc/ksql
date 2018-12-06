@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
@@ -47,7 +48,9 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -70,17 +73,17 @@ public class CommandTopicTest {
   private Future<RecordMetadata> future ;
 
   @Mock
-  private static CommandId commandId1;
+  private CommandId commandId1;
   @Mock
-  private static Command command1;
+  private Command command1;
   @Mock
-  private static CommandId commandId2;
+  private CommandId commandId2;
   @Mock
-  private static Command command2;
+  private Command command2;
   @Mock
-  private static CommandId commandId3;
+  private CommandId commandId3;
   @Mock
-  private static Command command3;
+  private Command command3;
 
   @Mock
   private ConsumerRecords<CommandId, Command> consumerRecords;
@@ -89,7 +92,10 @@ public class CommandTopicTest {
   @Mock
   private Node node;
 
-  private final static TopicPartition topicPartition = new TopicPartition("topic", 0);
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
+
+  private final static TopicPartition TOPIC_PARTITION = new TopicPartition("topic", 0);
 
 
   @Before
@@ -114,10 +120,12 @@ public class CommandTopicTest {
     verify(future).get();
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test //(expected = RuntimeException.class)
   public void shouldThrowExceptionIfSendIsNotSuccessfull() throws Exception {
     // Given:
-    when(future.get()).thenThrow(mock(ExecutionException.class));
+    when(future.get()).thenThrow(new ExecutionException("Send was unsuccessful!", new RuntimeException()));
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage("Send was unsuccessful!");
 
     // When
     commandTopic.send(commandId1, command1);
@@ -209,9 +217,9 @@ public class CommandTopicTest {
   }
 
 
-  private static ConsumerRecords<CommandId, Command> someConsumerRecords(final boolean addNull) {
+  private ConsumerRecords<CommandId, Command> someConsumerRecords(final boolean addNull) {
     return new ConsumerRecords<>(
-        ImmutableMap.of(topicPartition, ImmutableList.of(
+        ImmutableMap.of(TOPIC_PARTITION, ImmutableList.of(
             new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
             new ConsumerRecord<>("topic", 0, 0, commandId2, command2),
             new ConsumerRecord<>("topic", 0, 0, commandId3, addNull? null : command3))

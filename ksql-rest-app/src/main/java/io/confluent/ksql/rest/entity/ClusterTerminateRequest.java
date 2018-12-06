@@ -81,6 +81,6 @@ public class ClusterTerminateRequest {
       return false;
     }
     final ClusterTerminateRequest that = (ClusterTerminateRequest) o;
-    return Objects.equals(deleteTopicList, deleteTopicList);
+    return Objects.equals(deleteTopicList, that.deleteTopicList);
   }
 }

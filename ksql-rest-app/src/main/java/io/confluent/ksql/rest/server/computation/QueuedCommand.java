@@ -57,9 +57,9 @@ public class QueuedCommand {
       return false;
     }
     final QueuedCommand that = (QueuedCommand) o;
-    return Objects.equals(commandId, that.commandId) &&
-        Objects.equals(command, that.command) &&
-        Objects.equals(status, that.status);
+    return Objects.equals(commandId, that.commandId)
+        && Objects.equals(command, that.command)
+        && Objects.equals(status, that.status);
   }
 
   @Override

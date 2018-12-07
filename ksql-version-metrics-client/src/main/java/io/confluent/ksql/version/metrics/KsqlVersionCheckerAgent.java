@@ -73,7 +73,6 @@ public class KsqlVersionCheckerAgent implements VersionCheckerAgent {
       log.warn(legalDisclaimerProactiveSupportDisabled());
       return;
     }
-
     try {
       final KsqlVersionChecker ksqlVersionChecker = versionCheckerFactory.create(
           ksqlVersionCheckerConfig,

@@ -110,3 +110,4 @@ public class BasicCollectorTest {
     assertThat(metrics.getKsqlComponentType(), is(MODULE_TYPE.name()));
   }
 }
+

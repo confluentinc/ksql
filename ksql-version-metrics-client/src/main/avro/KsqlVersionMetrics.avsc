@@ -21,6 +21,11 @@
       "name": "ksqlComponentType",
       "type": "string",
       "doc": "Identifies the ksql component"
+    },
+    {
+      "name": "isActive",
+      "type": "boolean",
+      "doc": "Indicates if the server was active in the last 24 hours. A server is considered active if it received a rest request or it has at least one running query."
     }
   ]
 }

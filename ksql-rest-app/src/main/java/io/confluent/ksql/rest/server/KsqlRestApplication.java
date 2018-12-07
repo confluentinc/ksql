@@ -76,6 +76,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerEndpoint;
@@ -262,7 +264,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
-                      exec
+                      exec,
+                      versionCheckerAgent::updateLastRequestTime
                   );
                 }
 
@@ -276,9 +279,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   public static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
-      final VersionCheckerAgent versionCheckerAgent
-  )
-      throws Exception {
+      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
+  ) {
 
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
@@ -361,18 +363,22 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final RootDocument rootDocument = new RootDocument();
 
     final StatusResource statusResource = new StatusResource(statementExecutor);
+    final VersionCheckerAgent versionChecker = versionCheckerFactory
+        .apply(() -> !ksqlEngine.getLivePersistentQueries().isEmpty());
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,
         statementParser,
         Duration.ofMillis(
-            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG))
+            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
+        versionChecker::updateLastRequestTime
     );
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
         commandStore,
-        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
+        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG),
+        versionChecker::updateLastRequestTime
     );
 
     commandRunner.processPriorCommands();
@@ -386,7 +392,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        versionCheckerAgent
+        versionChecker
     );
   }
 

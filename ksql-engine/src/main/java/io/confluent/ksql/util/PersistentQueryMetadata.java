@@ -35,23 +35,31 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final Set<String> sinkNames;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  public PersistentQueryMetadata(
-      final String statementString,
-      final KafkaStreams kafkaStreams,
-      final OutputNode outputNode,
-      final StructuredDataSource sinkDataSource,
-      final String executionPlan,
-      final QueryId id,
-      final DataSource.DataSourceType dataSourceType,
-      final String queryApplicationId,
-      final KsqlTopic resultTopic,
-      final Topology topology,
-      final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback
-  ) {
+  public PersistentQueryMetadata(final String statementString,
+                                 final KafkaStreams kafkaStreams,
+                                 final OutputNode outputNode,
+                                 final StructuredDataSource sinkDataSource,
+                                 final String executionPlan,
+                                 final QueryId id,
+                                 final DataSource.DataSourceType dataSourceType,
+                                 final String queryApplicationId,
+                                 final KsqlTopic resultTopic,
+                                 final Topology topology,
+                                 final Map<String, Object> streamsProperties,
+                                 final Map<String, Object> overriddenProperties,
+                                 final Consumer<QueryMetadata> closeCallback) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, topology, overriddenProperties, closeCallback);
+    super(
+        statementString,
+        kafkaStreams,
+        outputNode,
+        executionPlan,
+        dataSourceType,
+        queryApplicationId,
+        topology,
+        streamsProperties,
+        overriddenProperties,
+        closeCallback);
     this.id = Objects.requireNonNull(id, "id");
     this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = new HashSet<>();

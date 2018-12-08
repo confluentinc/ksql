@@ -95,7 +95,7 @@ public class KsqlLineParserTest {
   }
 
   @Test
-  public void shouldReturnResultIfEmptyLine() {
+  public void shouldAcceptIfEmptyLine() {
     // Given:
     givenDelegateWillReturn("");
 
@@ -107,7 +107,7 @@ public class KsqlLineParserTest {
   }
 
   @Test
-  public void shouldReturnResultIfLineTerminated() {
+  public void shouldAcceptIfLineTerminated() {
     // Given:
     givenDelegateWillReturn(TERMINATED_LINE);
 
@@ -119,7 +119,7 @@ public class KsqlLineParserTest {
   }
 
   @Test
-  public void shouldReturnResultIfPredicateReturnsTrue() {
+  public void shouldAcceptIfPredicateReturnsTrue() {
     // Given:
     givenPredicateWillReturnTrue();
     givenDelegateWillReturn(UNTERMINATED_LINE);
@@ -132,12 +132,48 @@ public class KsqlLineParserTest {
   }
 
   @Test
-  public void shouldThrowIfUnterminatedAcceptLine() {
+  public void shouldNotAcceptUnterminatedAcceptLine() {
     // Given:
     expectedException.expect(EOFError.class);
     expectedException.expectMessage("Missing termination char");
 
     givenDelegateWillReturn(UNTERMINATED_LINE);
+
+    // When:
+    parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+  }
+
+  @Test
+  public void shouldAlwaysAcceptCommentLines() {
+    // Given:
+    givenDelegateWillReturn(" -- this is a comment");
+
+    // When:
+    final ParsedLine result = parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+
+    // Then:
+    assertThat(result, is(parsedLine));
+  }
+
+  @Test
+  public void shouldAcceptTerminatedLineEndingInComment() {
+    // Given:
+    givenDelegateWillReturn(TERMINATED_LINE + " -- this is a comment");
+
+    // When:
+    final ParsedLine result = parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+
+    // Then:
+    assertThat(result, is(parsedLine));
+  }
+
+  @Test
+  public void shouldNotAcceptUnterminatedLineEndingInComment() {
+    // Given:
+    givenDelegateWillReturn(UNTERMINATED_LINE + " -- this is a comment");
+
+    expectedException.expect(EOFError.class);
+    expectedException.expectMessage("Missing termination char");
 
     // When:
     parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);

@@ -139,6 +139,14 @@ public class AggregateNode extends PlanNode {
     return requiredColumnList;
   }
 
+  private String groupByOpName() {
+    return getId().toString() + "-GROUP-BY";
+  }
+
+  private String aggregationOpName() {
+    return getId().toString() + "-AGGREGATION";
+  }
+
   private List<SelectExpression> getFinalSelectExpressions() {
     final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
     if (finalSelectExpressions.size() != schema.fields().size()) {
@@ -208,7 +216,9 @@ public class AggregateNode extends PlanNode {
         getGroupByExpressions());
 
     final SchemaKGroupedStream schemaKGroupedStream =
-        aggregateArgExpanded.groupBy(genericRowSerde, internalGroupByColumns);
+        aggregateArgExpanded.groupBy(
+            genericRowSerde, internalGroupByColumns,
+            groupByOpName());
 
     // Aggregate computations
     final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
@@ -238,8 +248,12 @@ public class AggregateNode extends PlanNode {
         functionRegistry, internalSchema);
 
     final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
-        initializer, aggValToFunctionMap, aggValToValColumnMap, getWindowExpression(),
-        aggValueGenericRowSerde);
+        initializer,
+        aggValToFunctionMap,
+        aggValToValColumnMap,
+        getWindowExpression(),
+        aggValueGenericRowSerde,
+        aggregationOpName());
 
     SchemaKTable<?> result = new SchemaKTable<>(
         aggStageSchema,

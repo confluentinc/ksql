@@ -32,20 +32,20 @@ public class ExpressionMetadata {
   private final List<Kudf> udfs;
   private final Schema expressionType;
   private final GenericRowValueTypeEnforcer typeEnforcer;
-  private final Object[] parameters;
+  private final ThreadLocal<Object[]> threadLocalParameters;
 
   public ExpressionMetadata(
       final IExpressionEvaluator expressionEvaluator,
       final List<Integer> indexes,
       final List<Kudf> udfs,
       final Schema expressionType,
-      final Schema schema) {
+      final GenericRowValueTypeEnforcer typeEnforcer) {
     this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
     this.indexes = Collections.unmodifiableList(Objects.requireNonNull(indexes, "indexes"));
     this.udfs = Collections.unmodifiableList(Objects.requireNonNull(udfs, "udfs"));
     this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
-    this.typeEnforcer = new GenericRowValueTypeEnforcer(schema);
-    this.parameters = new Object[indexes.size()];
+    this.typeEnforcer = Objects.requireNonNull(typeEnforcer, "typeEnforcer");
+    this.threadLocalParameters = ThreadLocal.withInitial(() -> new Object[indexes.size()]);
   }
 
   public List<Integer> getIndexes() {
@@ -69,6 +69,7 @@ public class ExpressionMetadata {
   }
 
   private Object[] getParameters(final GenericRow row) {
+    final Object[] parameters = this.threadLocalParameters.get();
     for (int idx = 0; idx < indexes.size(); idx++) {
       final int paramIndex = indexes.get(idx);
       if (paramIndex < 0) {

@@ -24,9 +24,9 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
-import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,15 +66,16 @@ public class RegisterTopicCommand implements DdlCommand {
     // if the property can be an unquoted identifier, then capitalization will have already happened
     if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)
         && properties.containsKey(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME)) {
-      log.warn("AVRO_SCHEMA_FULL_NAME is only valid for AVRO topics. Ignoring...");
+      throw new KsqlException(
+              KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
         final Expression schemaFullNameExp =
                 properties.get(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME);
-        final String schemaFullName = schemaFullNameExp == null ?
-                KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
-                StringUtil.cleanQuotes(schemaFullNameExp.toString());
+        final String schemaFullName = schemaFullNameExp == null
+                ? KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
+                  StringUtil.cleanQuotes(schemaFullNameExp.toString());
         return new KsqlAvroTopicSerDe(schemaFullName);
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe();

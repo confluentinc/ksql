@@ -238,6 +238,6 @@ public class LocalPropertiesTest {
 
   @Test
   public void shouldAllowUnknownUdfConfigToBeSet() {
-    realProps.set(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "some thing");
+    realProps.set(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "some thing");
   }
 }

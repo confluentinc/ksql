@@ -92,8 +92,8 @@ Data Definition Language (DDL) Statements
 
     The DDL statements include:
 
+    * CREATE STREAM 
     * CREATE TABLE
-    * CREATE STREAM
     * DROP STREAM
     * DROP TABLE
 
@@ -101,12 +101,13 @@ Data Manipulation Language (DML) Statements
     Declarative verbs that read and modify data in KSQL streams and tables.
     Data Manipulation Language statements modify data only and don't change
     metadata. The KSQL engine compiles DML statements into Kafka Streams
-    applications, which run on a Kafka cluster like any other Streams application.
+    applications, which run on a Kafka cluster like any other Kafka Streams
+    application.
 
     The DML statements include:
 
+    * CREATE STREAM AS SELECT (CSAS) 
     * CREATE TABLE AS SELECT (CTAS)
-    * CREATE STREAM AS SELECT (CSAS)
     * SELECT
     * INSERT INTO
 
@@ -115,12 +116,27 @@ Data Manipulation Language (DML) Statements
 KSQL Deployment Modes
 *********************
 
+KSQL supports three ways to deploy your streaming applications:
+
+* Interactive – data exploration and pipeline development
+* Headless – long-running production environments
+* Embedded – KSQL statements and queries run directly in your Java
+  applications
+
+In all deployment modes, KSQL enables distributing the processing load for your
+KSQL applications across all KSQL server instances, and scaling up and down
+without restarting your applications.
+
+Command topic
+
+
+
 https://docs.google.com/presentation/d/1CU2-r2ZiSG_cTa1UqFq4ZwJnq7imr89pXkJVYAlecp4/edit#slide=id.g49c8886607_0_80
 
 Interactive
 =========== 
 
-Use the interactive mode to developer your KSQL applications. When you deploy a
+Use the interactive mode to develop your KSQL applications. When you deploy a
 KSQL server in interactive mode, the REST interface is available for the KSQL
 CLI and |c3| to connect to. 
 
@@ -132,7 +148,8 @@ In interactive mode, you can:
 
 * Start any number of server nodes: ``bin/ksql-server-start``
 * Start one or more CLIs or REST Clients and point them to a server: ``bin/ksql https://myksqlserver:8090``
-* All KSQL server instances share the processing load for your KSQL application (Technically, instances of the same Kafka Streams Application)
+* Distribute the processing load for your KSQL application across all KSQL
+  server instances
 * Scale up and down without restarting your application
 
 Headless
@@ -151,10 +168,12 @@ Headless mode is ideal for streaming ETL application deployments.
 In headless mode you can:
 
 * Start any number of server nodes
-* Pass a file of KSQL statements to execute: ``bin/ksql-node query-file=foo/bar.sql``
+* Pass a SQL file with KSQL statements to execute: ``bin/ksql-node query-file=foo/bar.sql``
 * Version-control your queries and transformations as code
+* Ensure resource isolation
 * Leave resource management to dedicated systems, like Kubernetes
-* All KSQL server instances share the processing load for your KSQL application
+* Distribute the processing load for your KSQL application across all KSQL
+  server instances
 * Scale up and down without restarting your application
 
 Embedded
@@ -169,10 +188,11 @@ separate KSQL server cluster.
 
 In embedded mode you can:
 
-* Embed directly in your Java application
+* Embed your KSQL statements and queries directly in your Java application
 * Generate and execute KSQL queries through the Java API
 * Version-control your queries and transformations as code
-* All KSQL server instances share the processing load for your KSQL application
+* Distribute the processing load for your KSQL application across all KSQL
+  server instances
 * Scale up and down without restarting your application
 
 In embedded mode, you deploy a JVM-based application by using the application
@@ -182,46 +202,37 @@ You embed the KSQL engine in your application, and you scale the application and
 its stream processing the same way that you scale a Kafka Streams application or
 KSQL cluster, by using a consumer group.
 
-
 Dedicating Resources
 ====================
+
+Join KSQL engines to the same *service pool* by using the ``ksql.service.id``
+property. The following diagram shows a Kafka cluster with separate workloads
+for a ``finance`` pool and a ``sales`` pool. For more information, see
+:ref:`ksql-service-id`.
 
 .. image:: ../img/ksql-dedicating-resources.png
    :alt: Diagram showing how to join KSQL engines to the same service pool
    :align: center
 
-Join Engines to the same ‘service pool’ by means of the ksql.service.id property
-
-Deployment
-Two modes: non-interactive, aka "headless", 
-Long-running production deployments
-Resource isolation
-No REST API
-KSQL servers with a SQL file
-
-
-Interactive service, which enables data exploration and pipeline design.
-REST API
-Command topic
-(animated gif)
-
-
 To scale out, just add more KSQL server instances. There's no master node or 
-coordination among them required.
-
-For more information, see :ref:`ksql_capacity_planning`.
+coordination among them required. For more information, see
+:ref:`ksql_capacity_planning`.
 
 KSQL Query Lifecycle
 ********************
 
-#. You register the stream, e.g., CREATE STREAM <my-stream> WITH <topic-name>
-#. You express your app by using a KSQL statement, e.g., CREATE TABLE AS SELECT
-   FROM <my-stream>
-#. KSQL parses your statement into an abstract syntax tree (AST)
-#. KSQL uses the AST to create the logical plan for your statement
-#. KSQL the logical plan to create the physical plan for your statement
+To create a streaming application with KSQL, you write KSQL statements and
+queries. Each statement and query has a lifecycle with the following steps:
+
+#. You register a KSQL stream or table from an existing Kafka topic with a DDL
+   statement, like CREATE STREAM <my-stream> WITH <topic-name>.
+#. You express your app by using a DML statement, like CREATE TABLE AS SELECT
+   FROM <my-stream>.
+#. KSQL parses your statement into an abstract syntax tree (AST).
+#. KSQL uses the AST to create the logical plan for your statement.
+#. KSQL the logical plan to create the physical plan for your statement.
 #. KSQL generates and runs the Kafka Streams application.
-#. You manage the application as a STREAM or TABLE and a corresponding
+#. You manage the application as a STREAM or TABLE with a corresponding
    persistent query.
 
 .. image:: ../img/ksql-query-lifecycle.gif
@@ -231,24 +242,27 @@ KSQL Query Lifecycle
 Register the Stream
 ===================
 
+Register a stream or table by using the DDL statements, CREATE STREAM and
+CREATE TABLE. For example, the following KSQL statement creates a stream named
+``authorization_attempts`` that's backed by a topic named ``authorizations``.
+
 .. code:: sql
 
     CREATE STREAM authorization_attempts 
       (card_number VARCHAR, attemptTime BIGINT, ...)
       WITH (kafka_topic='authorizations', value_format=‘JSON’);
 
+KSQL writes the DDL statement to the *command topic*. Each KSQL server reads the
+statement from the command topic and parses/analyzes the statement.
 
-DDL statement is written to the command topic
-Each server reads the DDL statement
-Parse/analyze the statement -- action is to update the KSQL metastore
-each server has an internal in-memory metastore that they build when they receive DDL statements
-Add an entry to the metastore 
-metastore is an in-memory map
+For the CREATE STREAM statement, the action is to update the KSQL metastore.
 
-The KSQL metastore is implemented in the
-`io.confluent.ksql.metastore <https://github.com/confluentinc/ksql/tree/master/ksql-metastore/src/main/java/io/confluent/ksql/metastore>`__
-package.
+Each KSQL server has an internal, in-memory metadata store, or *metastore*, that
+it builds when it receives DDL statements. The metastore is an in-memory map.
+For each DDL statement, the KSQL engine adds an entry to the metastore.
 
+For example, the metastore entry for the previous CREATE STREAM statement might
+resemble:  
 
 +-------------------------+----------------------------------------------------------------------------------+
 | Source Name             | Structured Data Source                                                           |
@@ -260,12 +274,16 @@ package.
 |                         | ...                                                                              |
 +-------------------------+----------------------------------------------------------------------------------+
 
+The KSQL metastore is implemented in the
+`io.confluent.ksql.metastore <https://github.com/confluentinc/ksql/tree/master/ksql-metastore/src/main/java/io/confluent/ksql/metastore>`__
+package.
+
 Express Your Application as a KSQL Statement
 ============================================
 
-Now that we have a stream, we want to express our application by using a KSQL
-statement. The following DML statement creates a table from the
-``authorization_attempts`` stream:
+Now that you have a stream, express your application's business logic by using
+a KSQL statement. The following DML statement creates a ``possible_fraud`` table
+from the ``authorization_attempts`` stream:
 
 .. code:: sql
 
@@ -277,16 +295,19 @@ statement. The following DML statement creates a table from the
       GROUP BY card_number
       HAVING count(*) > 3; 
 
-The KSQL engine translates the DML statement into a Kafka Streams application,
-which reads the source topic continuously, processes records, and when the
-condition is met, writes records to the output topic.
+The KSQL engine translates the DML statement into a Kafka Streams application.
+The application reads the source topic continuously, and whenever the
+``count(*) > 3`` condition is met, it writes records to the ``possible_fraud``
+table.
 
 KSQL Parses Your Statement
 ==========================
 
-parser creates an Abstract Syntax Tree
+To express your DML statement as a Kafka Streams application, the KSQL engine
+starts by parsing the statement. The parser creates an abstract syntax tree
+(AST). The KSQL engine uses the AST to plan the query.
 
-KSQL statement parser is based on `ANTLR <https://www.antlr.org/>`__ and is
+The KSQL statement parser is based on `ANTLR <https://www.antlr.org/>`__ and is
 implemented in the
 `io.confluent.ksql.parser <https://github.com/confluentinc/ksql/tree/master/ksql-parser/src/main>`__
 package.
@@ -294,13 +315,14 @@ package.
 KSQL Creates the Logical Plan
 =============================
 
-The KSQL engine creates the logical plan by using the AST:
+The KSQL engine creates the logical plan for the query by using the AST:
 
-#. First step is the source (FROM node in AST)
-#. Filter (WHERE clause)
-#. Aggregation (GROUP BY), projection (WINDOW)
-#. Post-aggregation filter (HAVING applies to result of aggregation)
-#. Projection for result
+#. Define the source – FROM node in the AST
+#. Filter – WHERE clause
+#. Aggregation – GROUP BY
+#. Projection – WINDOW
+#. Post-aggregation filter – HAVING, applied to the result of the aggregation
+#. Projection – for the result
 
 .. image:: ../img/ksql-statement-logical-plan.gif
    :alt: Diagram showing how the KSQL engine creates a logical plan for a KSQL statement
@@ -309,25 +331,29 @@ The KSQL engine creates the logical plan by using the AST:
 KSQL Creates the Physical Plan
 ==============================
 
-From the logical plan, KSQL engine creates the physical plan, which is a specific kind of Kafka Streams
-application with a schema.
+From the logical plan, the KSQL engine creates the physical plan, which is a Kafka
+Streams DSL application with a schema.
 
-Kafka Streams DSL with schema. 
-KStream  → SchemaKStream (KStream + Schema)
-KTable     → SchemaKTable (KTable + Schema) 
+* KSQL Stream – rendered as `SchemaKStream.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/structured/SchemaKStream.java>`__,
+  which is a KStream with Schema
+* KSQL Table – rendered as `SchemaKTable.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/structured/SchemaKTable.java>`__,
+  which is a KTable with Schema
+* Schema awareness – provided by the `SchemaRegistryClient <https://github.com/confluentinc/schema-registry/blob/master/client/src/main/java/io/confluent/kafka/schemaregistry/client/SchemaRegistryClient.java>`__.
 
-Traverse the logical plan and create a Kafka Streams application
+The KSQL engine traverses the logical plan and emits Kafka Streams API calls:
 
-#. First step is the source (SchemaKStream with info from metastore)
-#. Filter, which produces another SchemaKStream
-#. Projection, which is the SELECT function
-#. Apply aggregation (multiple steps, may need to re-partition data if it's not keyed by GROUP BY phrase) rekey, groupby, aggregate
-#. Filter (HAVING)
-#. Projection for result (select())
+#. Define the source – SchemaKStream or SchemaKTable with info from the KSQL metastore
+#. Filter – produces another SchemaKStream
+#. Projection – the SELECT function
+#. Apply aggregation – Multiple steps: rekey, groupby, aggregate. May need to re-partition data if it's not keyed with a GROUP BY phrase.  
+#. Filter – HAVING
+#. Projection for result – select()
 
 .. image:: ../img/ksql-statement-physical-plan.gif
    :alt: Diagram showing how the KSQL engine creates a physical plan for a KSQL statement
    :align: center
+
+
 
 
 

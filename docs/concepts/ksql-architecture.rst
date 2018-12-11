@@ -4,11 +4,24 @@ KSQL Architecture
 #################
 
 The architecture of KSQL enables you to build real-time streaming applications
-by using only SQL statements and queries. KSQL is built on Kafka Streams, so a
-KSQL application runs on an Apache Kafka® cluster like any other Kafka Streams
-application.
+from Kafka topics by using only SQL statements and queries. KSQL is built on
+Kafka Streams, so a KSQL application runs on a  Kafka cluster like any other
+Kafka Streams application.
 
-KSQL has three main components: 
+KSQL Components
+***************
+
+KSQL has three main components: the engine, the REST API, and the command-line
+interface (CLI).
+
+KSQL Server comprises the KSQL engine and the REST API.
+
+Use the KSQL CLI to interact with KSQL Server instances and develop your
+streaming applications.
+
+.. image:: ../img/ksql-architecture-and-components.png
+   :alt: Diagram showing architecture of KSQL
+   :align: center
 
 KSQL Engine
     The KSQL engine executes KSQL statements and queries. Each KSQL server
@@ -18,7 +31,7 @@ KSQL Engine
     Engine implementation: `KsqlEngine.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/KsqlEngine.java>`__
 
 KSQL CLI
-    The KSQL CLI provides a command-line interface for the KSQL engine. that's designed to be
+    The KSQL CLI provides a console with a command-line interface for the KSQL engine. that's designed to be
     familiar to users of MySQL, Postgres etc.
     CLI implementation: `io.confluent.ksql.cli <https://github.com/confluentinc/ksql/tree/master/ksql-cli/src/main/java/io/confluent/ksql/cli>`__
 
@@ -28,13 +41,13 @@ REST Interface
     which enables access to the engine.
     REST server implementation: `KsqlRestApplication.java <https://github.com/confluentinc/ksql/blob/master/ksql-rest-app/src/main/java/io/confluent/ksql/rest/server/KsqlRestApplication.java>`__
 
-KSQL Server comprises the KSQL Engine and the REST API.
+When you deploy your KSQL application, it runs on KSQL Server instances that
+are independent of one another, are fault-tolerant, and can scale elastically
+with load.
 
-.. image:: ../img/ksql-architecture-and-components.png
+.. image:: ../img/ksql-server-scale-out.gif
    :alt: Diagram showing architecture of KSQL
-
-
-
+   :align: center
 
 
 KSQL and Kafka Streams
@@ -89,7 +102,8 @@ Interactive
 =========== 
 
 .. image:: ../img/ksql-client-server-interactive-mode.png
-   :alt: Diagram showing interactive KSQL deployment 
+   :alt: Diagram showing interactive KSQL deployment
+   :align: center
 
 Start any number of server nodes
 bin/ksql-server-start
@@ -103,7 +117,8 @@ Headless
 ========
 
 .. image:: ../img/ksql-standalone-headless.png
-   :alt: Diagram showing headless KSQL deployment 
+   :alt: Diagram showing headless KSQL deployment
+   :align: center
 
 
 Start any number of server nodes
@@ -127,7 +142,8 @@ Embedded
 
 
 .. image:: ../img/ksql-embedded-in-application.png
-   :alt: Diagram showing KSQL embedded in an application 
+   :alt: Diagram showing KSQL embedded in an application
+   :align: center
 
 
 Embed directly in your Java application
@@ -149,9 +165,10 @@ Dedicating Resources
 ====================
 
 .. image:: ../img/ksql-dedicating-resources.png
-   :alt: Diagram showing how to join KSQL engines to the same service pool 
+   :alt: Diagram showing how to join KSQL engines to the same service pool
+   :align: center
 
-
+Join Engines to the same ‘service pool’ by means of the ksql.service.id property
 
 Deployment
 Two modes: non-interactive, aka "headless", 
@@ -170,6 +187,8 @@ Command topic
 To scale out, just add more KSQL server instances. There's no master node or 
 coordination among them required.
 
+For more information, see :ref:`ksql_capacity_planning`.
+
 KSQL Query Lifecycle
 ********************
 
@@ -182,6 +201,10 @@ KSQL Query Lifecycle
 #. KSQL generates and runs the Kafka Streams application.
 #. You manage the application as a STREAM or TABLE and a corresponding
    persistent query.
+
+.. image:: ../img/ksql-query-lifecycle.gif
+   :alt: Diagram showing how the KSQL query lifecycle for a KSQL statement
+   :align: center
 
 Register the Stream
 ===================
@@ -256,6 +279,7 @@ The KSQL engine creates the logical plan by using the AST:
 
 .. image:: ../img/ksql-statement-logical-plan.gif
    :alt: Diagram showing how the KSQL engine creates a logical plan for a KSQL statement
+   :align: center
 
 KSQL Creates the Physical Plan
 ==============================
@@ -277,5 +301,10 @@ Traverse the logical plan and create a Kafka Streams application
 #. Projection for result (select())
 
 .. image:: ../img/ksql-statement-physical-plan.gif
-   :alt: Diagram showing how the KSQL engine creates a physical plan for a KSQL statement 
+   :alt: Diagram showing how the KSQL engine creates a physical plan for a KSQL statement
+   :align: center
 
+
+
+.. graphics-file: https://docs.google.com/presentation/d/1CU2-r2ZiSG_cTa1UqFq4ZwJnq7imr89pXkJVYAlecp4/edit#slide=id.p64
+.. graphics-file: https://docs.google.com/presentation/d/1IMBU414rxEt4HrvqvEjjRiyCxMJzcQytC8ypD0dsvTg/edit#slide=id.g4a42e8b1c4_0_19

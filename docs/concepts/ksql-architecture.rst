@@ -127,14 +127,12 @@ In all deployment modes, KSQL enables distributing the processing load for your
 KSQL applications across all KSQL server instances, and scaling up and down
 without restarting your applications.
 
-Command topic
+.. image:: ../img/ksql-deploy-command-topic.gif
+   :alt: Diagram showing deployment of a KSQL file to a command topic
+   :align: center
 
-
-
-https://docs.google.com/presentation/d/1CU2-r2ZiSG_cTa1UqFq4ZwJnq7imr89pXkJVYAlecp4/edit#slide=id.g49c8886607_0_80
-
-Interactive
-=========== 
+Interactive Deployment
+====================== 
 
 Use the interactive mode to develop your KSQL applications. When you deploy a
 KSQL server in interactive mode, the REST interface is available for the KSQL
@@ -146,14 +144,12 @@ CLI and |c3| to connect to.
 
 In interactive mode, you can:
 
+* Write statements and queries on the fly
 * Start any number of server nodes: ``bin/ksql-server-start``
 * Start one or more CLIs or REST Clients and point them to a server: ``bin/ksql https://myksqlserver:8090``
-* Distribute the processing load for your KSQL application across all KSQL
-  server instances
-* Scale up and down without restarting your application
 
-Headless
-========
+Headless Deployment
+===================
 
 Use headless mode to deploy your KSQL application to a production environment.
 When you deploy a KSQL server in headless mode, the REST interface isn't
@@ -172,12 +168,9 @@ In headless mode you can:
 * Version-control your queries and transformations as code
 * Ensure resource isolation
 * Leave resource management to dedicated systems, like Kubernetes
-* Distribute the processing load for your KSQL application across all KSQL
-  server instances
-* Scale up and down without restarting your application
 
-Embedded
-========
+Embedded Deployment
+===================
 
 Use embedded KSQL when you want to execute KSQL queries without starting a
 separate KSQL server cluster. 
@@ -191,9 +184,6 @@ In embedded mode you can:
 * Embed your KSQL statements and queries directly in your Java application
 * Generate and execute KSQL queries through the Java API
 * Version-control your queries and transformations as code
-* Distribute the processing load for your KSQL application across all KSQL
-  server instances
-* Scale up and down without restarting your application
 
 In embedded mode, you deploy a JVM-based application by using the application
 framework of your choice, like Spring, Grails, Jersey, VertX, or Ratpack. Your 
@@ -230,9 +220,9 @@ queries. Each statement and query has a lifecycle with the following steps:
    FROM <my-stream>.
 #. KSQL parses your statement into an abstract syntax tree (AST).
 #. KSQL uses the AST to create the logical plan for your statement.
-#. KSQL the logical plan to create the physical plan for your statement.
+#. KSQL uses the logical plan to create the physical plan for your statement.
 #. KSQL generates and runs the Kafka Streams application.
-#. You manage the application as a STREAM or TABLE with a corresponding
+#. You manage the application as a STREAM or TABLE with its corresponding
    persistent query.
 
 .. image:: ../img/ksql-query-lifecycle.gif

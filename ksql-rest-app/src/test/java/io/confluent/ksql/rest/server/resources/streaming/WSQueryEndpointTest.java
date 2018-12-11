@@ -114,11 +114,10 @@ public class WSQueryEndpointTest {
   private QueryPublisher queryPublisher;
   @Mock
   private PrintTopicPublisher topicPublisher;
-  @Captor
-  private ArgumentCaptor<CloseReason> closeReasonCaptor;
   @Mock
   private ActivenessRegistrar activenessRegistrar;
-
+  @Captor
+  private ArgumentCaptor<CloseReason> closeReasonCaptor;
 
   private Query query;
   private WSQueryEndpoint wsQueryEndpoint;

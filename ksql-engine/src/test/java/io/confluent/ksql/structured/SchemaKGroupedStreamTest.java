@@ -17,13 +17,17 @@
 package io.confluent.ksql.structured;
 
 import static java.util.Collections.emptyMap;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -32,7 +36,9 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serde;
@@ -42,70 +48,80 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
-@RunWith(EasyMockRunner.class)
 public class SchemaKGroupedStreamTest {
+  private static final String AGGREGATE_OP_NAME = "AGGREGATE";
 
-  @Mock(MockType.NICE)
+  @Mock
   private Schema schema;
-  @Mock(MockType.NICE)
+  @Mock
   private KGroupedStream groupedStream;
-  @Mock(MockType.NICE)
+  @Mock
   private Field keyField;
-  @Mock(MockType.NICE)
+  @Mock
   private List<SchemaKStream> sourceStreams;
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlConfig config;
-  @Mock(MockType.NICE)
+  @Mock
   private FunctionRegistry funcRegistry;
-  @Mock(MockType.NICE)
+  @Mock
   private SchemaRegistryClient srClient;
-  @Mock(MockType.NICE)
+  @Mock
   private Initializer initializer;
-  @Mock(MockType.NICE)
+  @Mock
   private Serde<GenericRow> topicValueSerDe;
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlAggregateFunction windowStartFunc;
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlAggregateFunction windowEndFunc;
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlAggregateFunction otherFunc;
-  @Mock(MockType.NICE)
+  @Mock
   private KTable table;
-  @Mock(MockType.NICE)
+  @Mock
   private KTable table2;
-  @Mock(MockType.NICE)
+  @Mock
   private WindowExpression windowExp;
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlWindowExpression ksqlWindowExp;
-  @Mock(MockType.NICE)
+  @Mock
   private Serde<Windowed<String>> windowedKeySerde;
+  @Mock
+  private MaterializedFactory materializedFactory;
+  @Mock
+  private Materialized materialized;
   private SchemaKGroupedStream schemaGroupedStream;
+
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void setUp() {
     schemaGroupedStream = new SchemaKGroupedStream(
-        schema, groupedStream, keyField, sourceStreams, config, funcRegistry, srClient);
+        schema, groupedStream, keyField, sourceStreams, config, funcRegistry, srClient,
+        materializedFactory);
 
-    EasyMock.expect(windowStartFunc.getFunctionName()).andReturn("WindowStart").anyTimes();
-    EasyMock.expect(windowEndFunc.getFunctionName()).andReturn("WindowEnd").anyTimes();
-    EasyMock.expect(otherFunc.getFunctionName()).andReturn("NotWindowStartFunc").anyTimes();
-    EasyMock.expect(windowExp.getKsqlWindowExpression()).andReturn(ksqlWindowExp).anyTimes();
-    EasyMock.expect(ksqlWindowExp.getKeySerde(String.class)).andReturn(windowedKeySerde).anyTimes();
-    EasyMock.expect(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).andReturn(false);
-    EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc, windowExp, config);
+    when(windowStartFunc.getFunctionName()).thenReturn("WindowStart");
+    when(windowEndFunc.getFunctionName()).thenReturn("WindowEnd");
+    when(otherFunc.getFunctionName()).thenReturn("NotWindowStartFunc");
+    when(windowExp.getKsqlWindowExpression()).thenReturn(ksqlWindowExp);
+    when(ksqlWindowExp.getKeySerde(String.class)).thenReturn(windowedKeySerde);
+    when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
+    when(config.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
+    when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
+
   }
 
   @Test
@@ -151,7 +167,8 @@ public class SchemaKGroupedStreamTest {
   public void shouldUseStringKeySerdeForNoneWindowed() {
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), null, topicValueSerDe);
+        .aggregate(
+            initializer,emptyMap(), emptyMap(), null, topicValueSerDe, "GROUP");
 
     // Then:
     assertThat(result.getKeySerde(), instanceOf(Serdes.String().getClass()));
@@ -159,12 +176,9 @@ public class SchemaKGroupedStreamTest {
 
   @Test
   public void shouldUseWindowExpressionKeySerde() {
-    // Given:
-    replay(ksqlWindowExp);
-
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe);
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, "AGG");
 
     // Then:
     assertThat(result.getKeySerde(), is(sameInstance(windowedKeySerde)));
@@ -173,15 +187,14 @@ public class SchemaKGroupedStreamTest {
   @Test
   public void shouldUseTimeWindowKeySerdeForWindowedIfLegacyConfig() {
     // Given:
-    EasyMock.reset(config);
-    EasyMock.expect(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG))
-        .andReturn(true);
+    when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG))
+        .thenReturn(true);
+    when(config.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
 
-    EasyMock.replay(config);
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe);
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, "GROUP");
 
     // Then:
     assertThat(result.getKeySerde(),
@@ -194,52 +207,108 @@ public class SchemaKGroupedStreamTest {
 
     // Given:
     if (windowExp != null) {
-      EasyMock
-          .expect(ksqlWindowExp.applyAggregate(anyObject(), anyObject(), anyObject(), anyObject()))
-          .andReturn(table);
+      when(ksqlWindowExp.applyAggregate(any(), any(), any(), any()))
+          .thenReturn(table);
     } else {
-      EasyMock
-          .expect(groupedStream.aggregate(anyObject(), anyObject(), anyObject()))
-          .andReturn(table);
+      when(groupedStream.aggregate(any(), any(), any()))
+          .thenReturn(table);
     }
 
-    EasyMock.expect(table.mapValues(anyObject(ValueMapper.class)))
-        .andThrow(new AssertionError("Should not be called"))
-        .anyTimes();
-    EasyMock.expect(table.mapValues(anyObject(ValueMapperWithKey.class)))
-        .andThrow(new AssertionError("Should not be called"))
-        .anyTimes();
-
-    EasyMock.replay(ksqlWindowExp, groupedStream, table);
+    when(table.mapValues(any(ValueMapper.class)))
+        .thenThrow(new AssertionError("Should not be called"));
+    when(table.mapValues(any(ValueMapperWithKey.class)))
+        .thenThrow(new AssertionError("Should not be called"));
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe);
+        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, "AGG");
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table)));
-    verify(table);
   }
 
   private void assertDoesInstallWindowSelectMapper(
       final Map<Integer, KsqlAggregateFunction> funcMap) {
     // Given:
-    EasyMock
-        .expect(ksqlWindowExp.applyAggregate(anyObject(), anyObject(), anyObject(), anyObject()))
-        .andReturn(table);
+    when(ksqlWindowExp.applyAggregate(any(), any(), any(), any()))
+        .thenReturn(table);
 
-    EasyMock.expect(table.mapValues(anyObject(ValueMapperWithKey.class)))
-        .andReturn(table2)
-        .once();
+    when(table.mapValues(any(ValueMapperWithKey.class)))
+        .thenReturn(table2);
 
-    EasyMock.replay(ksqlWindowExp, table);
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe);
+        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, "AGG");
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table2)));
-    verify(table);
+    verify(table, times(1)).mapValues(any(ValueMapperWithKey.class));
+  }
+
+  @SuppressWarnings("unchecked")
+  private Materialized whenMaterializedFactoryCreates() {
+    final Materialized materialized = mock(Materialized.class);
+    when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
+    when(materialized.withKeySerde(any()))
+        .thenReturn(materialized);
+    when(materialized.withValueSerde(any()))
+        .thenReturn(materialized);
+    return materialized;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldUseMaterializedFactoryForStateStore() {
+    // Given:
+    final Materialized materialized = whenMaterializedFactoryCreates();
+    final KTable mockKTable = mock(KTable.class);
+    when(groupedStream.aggregate(any(), any(), same(materialized)))
+        .thenReturn(mockKTable);
+
+    // When:
+    schemaGroupedStream.aggregate(
+        () -> null,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        null,
+        topicValueSerDe,
+        AGGREGATE_OP_NAME
+    );
+
+    // Then:
+    verify(materializedFactory)
+        .create(
+            any(Serdes.String().getClass()),
+            same(topicValueSerDe),
+            eq(AGGREGATE_OP_NAME));
+    verify(groupedStream, times(1)).aggregate(any(), any(), same(materialized));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldUseMaterializedFactoryWindowedStateStore() {
+    // Given:
+    final Materialized materialized = whenMaterializedFactoryCreates();
+    when(ksqlWindowExp.getKeySerde(String.class)).thenReturn(windowedKeySerde);
+    when(ksqlWindowExp.applyAggregate(any(), any(), any(), same(materialized)))
+        .thenReturn(table);
+
+    // When:
+    schemaGroupedStream.aggregate(
+        () -> null,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        windowExp,
+        topicValueSerDe,
+        AGGREGATE_OP_NAME);
+
+    // Then:
+    verify(materializedFactory)
+        .create(
+            any(Serdes.String().getClass()),
+            same(topicValueSerDe),
+            eq(AGGREGATE_OP_NAME));
+    verify(ksqlWindowExp, times(1)).applyAggregate(any(), any(), any(), same(materialized));
   }
 }

@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,6 +34,8 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.ValidString;
+import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -40,11 +43,11 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
-  public static final String KSQ_FUNCTIONS_PROPERTY_PREFIX =
+  public static final String KSQL_FUNCTIONS_PROPERTY_PREFIX =
       KSQL_CONFIG_PROPERTY_PREFIX + "functions.";
 
   static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
-      KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
+      KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
@@ -93,7 +96,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
   public static final String KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG =
-      KSQ_FUNCTIONS_PROPERTY_PREFIX + "substring.legacy.args";
+      KSQL_FUNCTIONS_PROPERTY_PREFIX + "substring.legacy.args";
   private static final String
       KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS = "Switch the SUBSTRING function into legacy mode,"
       + " i.e. back to how it was in version 5.0 and earlier of KSQL."
@@ -122,6 +125,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "in interactive mode. Once this limit is reached, any further persistent queries will not "
       + "be accepted.";
 
+  public static final String KSQL_USE_NAMED_INTERNAL_TOPICS = "ksql.named.internal.topics";
+  private static final String KSQL_USE_NAMED_INTERNAL_TOPICS_DOC = "";
+  public static final String KSQL_USE_NAMED_INTERNAL_TOPICS_ON = "on";
+  public static final String KSQL_USE_NAMED_INTERNAL_TOPICS_OFF = "off";
+  private static final Validator KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR = ValidString.in(
+      KSQL_USE_NAMED_INTERNAL_TOPICS_ON, KSQL_USE_NAMED_INTERNAL_TOPICS_OFF
+  );
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -132,7 +143,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String DEFAULT_EXT_DIR = "ext";
 
-  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEBS
+  private static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
               KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
@@ -171,29 +182,55 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
               KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
               ConfigDef.Importance.LOW,
-              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC)
+              KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC),
+          new CompatibilityBreakingConfigDef(
+              KSQL_USE_NAMED_INTERNAL_TOPICS,
+              ConfigDef.Type.STRING,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_ON,
+              ConfigDef.Importance.LOW,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_DOC,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR)
   );
+
+  private enum ConfigGeneration {
+    LEGACY,
+    CURRENT
+  }
 
   private static class CompatibilityBreakingConfigDef {
     private final String name;
     private final ConfigDef.Type type;
-    private final Object defaultValueOld;
+    private final Object defaultValueLegacy;
     private final Object defaultValueCurrent;
     private final ConfigDef.Importance importance;
     private final String documentation;
+    private final Validator validator;
 
     CompatibilityBreakingConfigDef(final String name,
-                                   final ConfigDef.Type type,
-                                   final Object defaultValueOld,
-                                   final Object defaultValueCurrent,
-                                   final ConfigDef.Importance importance,
-                                   final String documentation) {
+        final ConfigDef.Type type,
+        final Object defaultValueLegacy,
+        final Object defaultValueCurrent,
+        final ConfigDef.Importance importance,
+        final String documentation) {
+      this(name, type, defaultValueLegacy, defaultValueCurrent, importance, documentation, null);
+    }
+
+    CompatibilityBreakingConfigDef(
+        final String name,
+        final ConfigDef.Type type,
+        final Object defaultValueLegacy,
+        final Object defaultValueCurrent,
+        final ConfigDef.Importance importance,
+        final String documentation,
+        final Validator validator) {
       this.name = name;
       this.type = type;
-      this.defaultValueOld = defaultValueOld;
+      this.defaultValueLegacy = defaultValueLegacy;
       this.defaultValueCurrent = defaultValueCurrent;
       this.importance = importance;
       this.documentation = documentation;
+      this.validator = validator;
     }
 
     public String getName() {
@@ -201,11 +238,11 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     }
 
     private void define(final ConfigDef configDef, final Object defaultValue) {
-      configDef.define(name, type, defaultValue, importance, documentation);
+      configDef.define(name, type, defaultValue, validator, importance, documentation);
     }
 
-    void defineOld(final ConfigDef configDef) {
-      define(configDef, defaultValueOld);
+    void defineLegacy(final ConfigDef configDef) {
+      define(configDef, defaultValueLegacy);
     }
 
     void defineCurrent(final ConfigDef configDef) {
@@ -213,15 +250,44 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     }
   }
 
-  public static final ConfigDef CURRENT_DEF = buildConfigDef(true);
-  public static final ConfigDef LEGACY_DEF = buildConfigDef(false);
-  public static final Set<String> SSL_CONFIG_NAMES = sslConfigNames();
+  private static final Collection<CompatibilityBreakingStreamsConfig>
+      COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of(
+          new CompatibilityBreakingStreamsConfig(
+              StreamsConfig.TOPOLOGY_OPTIMIZATION,
+              StreamsConfig.NO_OPTIMIZATION,
+              StreamsConfig.OPTIMIZE)
+  );
 
-  private static ConfigDef configDef(final boolean current) {
-    return current ? CURRENT_DEF : LEGACY_DEF;
+  private static final class CompatibilityBreakingStreamsConfig {
+    final String name;
+    final Object defaultValueLegacy;
+    final Object defaultValueCurrent;
+
+    CompatibilityBreakingStreamsConfig(final String name, final Object defaultValueLegacy,
+        final Object defaultValueCurrent) {
+      this.name = Objects.requireNonNull(name);
+      if (!StreamsConfig.configDef().names().contains(name)) {
+        throw new IllegalArgumentException(
+            String.format("%s is not a valid streams config", name));
+      }
+      this.defaultValueLegacy = defaultValueLegacy;
+      this.defaultValueCurrent = defaultValueCurrent;
+    }
+
+    String getName() {
+      return this.name;
+    }
   }
 
-  private static ConfigDef buildConfigDef(final boolean current) {
+  public static final ConfigDef CURRENT_DEF = buildConfigDef(ConfigGeneration.CURRENT);
+  public static final ConfigDef LEGACY_DEF = buildConfigDef(ConfigGeneration.LEGACY);
+  public static final Set<String> SSL_CONFIG_NAMES = sslConfigNames();
+
+  private static ConfigDef configDef(final ConfigGeneration generation) {
+    return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;
+  }
+
+  private static ConfigDef buildConfigDef(final ConfigGeneration generation) {
     final ConfigDef configDef = new ConfigDef()
         .define(
             KSQL_SERVICE_ID_CONFIG,
@@ -304,11 +370,11 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         .withClientSslSupport();
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
-        : COMPATIBLY_BREAKING_CONFIG_DEBS) {
-      if (current) {
+        : COMPATIBLY_BREAKING_CONFIG_DEFS) {
+      if (generation == ConfigGeneration.CURRENT) {
         compatibilityBreakingConfigDef.defineCurrent(configDef);
       } else {
-        compatibilityBreakingConfigDef.defineOld(configDef);
+        compatibilityBreakingConfigDef.defineLegacy(configDef);
       }
     }
     return configDef;
@@ -334,11 +400,21 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     }
   }
 
+  private static void applyStreamsConfig(
+      final Map<String, ?> props,
+      final Map<String, ConfigValue> streamsConfigProps) {
+    props.entrySet()
+        .stream()
+        .map(e -> resolveStreamsConfig(e.getKey(), e.getValue()))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .forEach(
+            configValue -> streamsConfigProps.put(configValue.key, configValue));
+  }
 
   private static Optional<ConfigValue> resolveStreamsConfig(
       final String maybePrefixedKey,
       final Object value) {
-
     final String key = maybePrefixedKey.startsWith(KSQL_STREAMS_PREFIX)
         ? maybePrefixedKey.substring(KSQL_STREAMS_PREFIX.length()) : maybePrefixedKey;
 
@@ -359,26 +435,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     return ImmutableMap.copyOf(streamConfigProps);
   }
 
-  private static void applyStreamsConfig(
-      final Map<String, ?> props,
-      final Map<String, ConfigValue> streamsConfigProps) {
-    props.entrySet()
-        .stream()
-        .map(e -> resolveStreamsConfig(e.getKey(), e.getValue()))
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .forEach(
-            configValue -> streamsConfigProps.put(configValue.key, configValue));
-  }
-
   private final Map<String, ConfigValue> ksqlStreamConfigProps;
 
   public KsqlConfig(final Map<?, ?> props) {
-    this(true, props);
+    this(ConfigGeneration.CURRENT, props);
   }
 
-  public KsqlConfig(final boolean current, final Map<?, ?> props) {
-    super(configDef(current), props);
+  private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
+    super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
     streamsConfigDefaults.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, KsqlConstants
@@ -397,14 +461,31 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
           LogMetricAndContinueExceptionHandler.class
       );
     }
+    COMPATIBILITY_BREAKING_STREAMS_CONFIGS.forEach(
+        config -> streamsConfigDefaults.put(
+            config.name,
+            generation == ConfigGeneration.CURRENT
+                ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+    validate();
   }
 
-  private KsqlConfig(final boolean current,
+  private KsqlConfig(final ConfigGeneration generation,
                      final Map<String, ?> values,
                      final Map<String, ConfigValue> ksqlStreamConfigProps) {
-    super(configDef(current), values);
+    super(configDef(generation), values);
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
+  }
+
+  private void validate() {
+    final Object optimizationsConfig = getKsqlStreamConfigProps().get(
+        StreamsConfig.TOPOLOGY_OPTIMIZATION);
+    final Object useInternalNamesConfig = get(KSQL_USE_NAMED_INTERNAL_TOPICS);
+    if (Objects.equals(optimizationsConfig, StreamsConfig.OPTIMIZE)
+        && useInternalNamesConfig.equals(KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)) {
+      throw new RuntimeException(
+          "Internal topic naming must be enabled if streams optimizations enabled");
+    }
   }
 
   public Map<String, Object> getKsqlStreamConfigProps() {
@@ -426,7 +507,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public Map<String, Object> getKsqlFunctionsConfigProps(final String functionName) {
     final Map<String, Object> udfProps = originalsWithPrefix(
-        KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase(), false);
+        KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase(), false);
 
     final Map<String, Object> globals = originalsWithPrefix(
         KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX, false);
@@ -439,10 +520,10 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   private Map<String, String> getKsqlConfigPropsWithSecretsObfuscated() {
     final Map<String, String> props = new HashMap<>();
 
-    originalsWithPrefix(KSQ_FUNCTIONS_PROPERTY_PREFIX, false)
+    originalsWithPrefix(KSQL_FUNCTIONS_PROPERTY_PREFIX, false)
         .forEach((key, value) -> props.put(key, "[hidden]"));
 
-    configDef(true).names().stream()
+    configDef(ConfigGeneration.CURRENT).names().stream()
         .filter(key -> !SSL_CONFIG_NAMES.contains(key))
         .forEach(
             key -> props.put(key, ConfigDef.convertToString(values().get(key), typeOf(key))));
@@ -481,7 +562,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   @SuppressFBWarnings("CN_IDIOM_NO_SUPER_CALL")
   public KsqlConfig clone() {
-    return new KsqlConfig(true, values(), ksqlStreamConfigProps);
+    return new KsqlConfig(ConfigGeneration.CURRENT, values(), ksqlStreamConfigProps);
   }
 
   public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {
@@ -490,17 +571,23 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
     final Map<String, ConfigValue> streamConfigProps =
         buildStreamingConfig(getKsqlStreamConfigProps(), props);
 
-    return new KsqlConfig(true, cloneProps, streamConfigProps);
+    return new KsqlConfig(ConfigGeneration.CURRENT, cloneProps, streamConfigProps);
   }
 
   public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
-    final KsqlConfig originalConfig = new KsqlConfig(false, props);
+    final KsqlConfig originalConfig = new KsqlConfig(ConfigGeneration.LEGACY, props);
     final Map<String, Object> mergedProperties = new HashMap<>(originals());
-    COMPATIBLY_BREAKING_CONFIG_DEBS.stream()
+    COMPATIBLY_BREAKING_CONFIG_DEFS.stream()
         .map(CompatibilityBreakingConfigDef::getName)
         .forEach(
             k -> mergedProperties.put(k, originalConfig.get(k)));
-    return new KsqlConfig(true, mergedProperties, ksqlStreamConfigProps);
+    final Map<String, ConfigValue> mergedStreamConfigProps
+        = new HashMap<>(this.ksqlStreamConfigProps);
+    COMPATIBILITY_BREAKING_STREAMS_CONFIGS.stream()
+        .map(CompatibilityBreakingStreamsConfig::getName)
+        .forEach(
+            k -> mergedStreamConfigProps.put(k, originalConfig.ksqlStreamConfigProps.get(k)));
+    return new KsqlConfig(ConfigGeneration.LEGACY, mergedProperties, mergedStreamConfigProps);
   }
 
   private static Set<String> sslConfigNames() {

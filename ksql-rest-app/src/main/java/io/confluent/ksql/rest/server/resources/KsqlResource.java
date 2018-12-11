@@ -189,7 +189,6 @@ public class KsqlResource {
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
     activenessRegistrar.updateLastRequestTime();
-
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
           replayableCommandQueue, request, Duration.ofMillis(distributedCommandResponseTimeout));

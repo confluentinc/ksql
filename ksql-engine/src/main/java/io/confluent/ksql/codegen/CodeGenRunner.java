@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -134,7 +135,12 @@ public class CodeGenRunner {
 
       ee.cook(javaCode);
 
-      return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType, schema);
+      return new ExpressionMetadata(
+          ee,
+          columnIndexes,
+          kudfObjects,
+          expressionType,
+          new GenericRowValueTypeEnforcer(schema));
     } catch (final KsqlException | CompileException e) {
       throw new KsqlException("Code generation failed for " + type
           + ": " + e.getMessage()

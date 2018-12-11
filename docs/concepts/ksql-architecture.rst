@@ -11,51 +11,69 @@ Kafka Streams application.
 KSQL Components
 ***************
 
-KSQL has three main components: the engine, the REST API, and the command-line
-interface (CLI).
+KSQL has four main components:
 
-KSQL Server comprises the KSQL engine and the REST API.
+* KSQL engine – processes KSQL statements and queries 
+* REST interface – enables client access to the engine
+* KSQL CLI – console that provides a command-line interface (CLI) to the engine
+* KSQL UI – enables developing KSQL applications in |c3|
 
-Use the KSQL CLI to interact with KSQL Server instances and develop your
-streaming applications.
+KSQL Server comprises the KSQL engine and the REST API. KSQL Server instances
+communicate with the Kafka cluster and scale out with load as necessary. 
 
 .. image:: ../img/ksql-architecture-and-components.png
    :alt: Diagram showing architecture of KSQL
    :align: center
 
 KSQL Engine
-    The KSQL engine executes KSQL statements and queries. Each KSQL server
-    instance runs a KSQL engine. 
-    which means that it runs Kafka Streams topologies.
-    which processes KSQL queries,
-    Engine implementation: `KsqlEngine.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/KsqlEngine.java>`__
+    The KSQL engine executes KSQL statements and queries. You define your
+    application logic by writing KSQL statements, and the engine builds and
+    runs the application on available KSQL servers. Each KSQL server instance
+    runs a KSQL engine. Under the hood, the engine parses your KSQL statements
+    and builds corresponding Kafka Streams topologies.
+    
+    The KSQL engine is implemented in the
+    `KsqlEngine.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/KsqlEngine.java>`__
+    class.
 
 KSQL CLI
-    The KSQL CLI provides a console with a command-line interface for the KSQL engine. that's designed to be
-    familiar to users of MySQL, Postgres etc.
-    CLI implementation: `io.confluent.ksql.cli <https://github.com/confluentinc/ksql/tree/master/ksql-cli/src/main/java/io/confluent/ksql/cli>`__
+    The KSQL CLI provides a console with a command-line interface for the KSQL
+    engine. Use the KSQL CLI to interact with KSQL Server instances and develop
+    your streaming applications. The KSQL CLI is designed to be familiar to
+    users of MySQL, Postgres, and similar applications.
+
+    The KSQL CLI is implemented in the
+    `io.confluent.ksql.cli <https://github.com/confluentinc/ksql/tree/master/ksql-cli/src/main/java/io/confluent/ksql/cli>`__
+    package.
 
 REST Interface
-    The REST server interface enables communicating with a KSQL engine from
-    the CLI or any other REST client.
-    which enables access to the engine.
-    REST server implementation: `KsqlRestApplication.java <https://github.com/confluentinc/ksql/blob/master/ksql-rest-app/src/main/java/io/confluent/ksql/rest/server/KsqlRestApplication.java>`__
+    The REST server interface enables communicating with the KSQL engine from
+    the CLI, |c3|, or from any other REST client. For more information, see
+    :ref:`ksql-rest-api`.
+    
+    The KSQL REST server is implemented in the
+    `KsqlRestApplication.java <https://github.com/confluentinc/ksql/blob/master/ksql-rest-app/src/main/java/io/confluent/ksql/rest/server/KsqlRestApplication.java>`__
+    class.
 
 When you deploy your KSQL application, it runs on KSQL Server instances that
 are independent of one another, are fault-tolerant, and can scale elastically
-with load.
+with load. For more information, see :ref:`ksql-deployment-modes`.
 
 .. image:: ../img/ksql-server-scale-out.gif
    :alt: Diagram showing architecture of KSQL
    :align: center
 
-
 KSQL and Kafka Streams
 **********************
 
 KSQL is built on Kafka Streams and occupies the top of the stack in |cp|.
+You can use KSQL and Kafka Streams together in your streaming applications. 
 For more information on their relationship, see :ref:`ksql-and-kafka-streams`.
 For more information on Kafka Streams, see :ref:`streams_architecture`.
+
+Also, you can create User Defined Functions in Java, to implement custom logic
+and aggregations in your KSQL applications. For more information, see
+:ref:`ksql-udfs`.
 
 KSQL Language Elements
 **********************
@@ -63,8 +81,8 @@ KSQL Language Elements
 Like traditional relational databases, KSQL supports two categories of
 statements: Data Definition Language (DDL) and Data Manipulation Language (DML).
 
-These two categories are similar in syntax, data types, and expressions, but
-they have different functions on a KSQL server.
+These categories are similar in syntax, data types, and expressions, but they
+have different functions on a KSQL server.
 
 Data Definition Language (DDL) Statements
     Imperative verbs that define metadata on the KSQL server by adding,
@@ -92,6 +110,7 @@ Data Manipulation Language (DML) Statements
     * SELECT
     * INSERT INTO
 
+.. _ksql-deployment-modes:
 
 KSQL Deployment Modes
 *********************
@@ -101,64 +120,67 @@ https://docs.google.com/presentation/d/1CU2-r2ZiSG_cTa1UqFq4ZwJnq7imr89pXkJVYAle
 Interactive
 =========== 
 
+Use the interactive mode to developer your KSQL applications. When you deploy a
+KSQL server in interactive mode, the REST interface is available for the KSQL
+CLI and |c3| to connect to. 
+
 .. image:: ../img/ksql-client-server-interactive-mode.png
    :alt: Diagram showing interactive KSQL deployment
    :align: center
 
-Start any number of server nodes
-bin/ksql-server-start
-Start one or more CLIs or REST Clients and point them to a server
-bin/ksql https://myksqlserver:8090
-All servers share the processing load
-Technically, instances of the same Kafka Streams Applications
- scale up / down without restart
+In interactive mode, you can:
+
+* Start any number of server nodes: ``bin/ksql-server-start``
+* Start one or more CLIs or REST Clients and point them to a server: ``bin/ksql https://myksqlserver:8090``
+* All KSQL server instances share the processing load for your KSQL application (Technically, instances of the same Kafka Streams Application)
+* Scale up and down without restarting your application
 
 Headless
 ========
+
+Use headless mode to deploy your KSQL application to a production environment.
+When you deploy a KSQL server in headless mode, the REST interface isn't
+available, so you assign workloads to KSQL servers by using a SQL file. The SQL
+file contains the KSQL statements and queries that define your application.
+Headless mode is ideal for streaming ETL application deployments.
 
 .. image:: ../img/ksql-standalone-headless.png
    :alt: Diagram showing headless KSQL deployment
    :align: center
 
+In headless mode you can:
 
-Start any number of server nodes
-Pass a file of KSQL statement to execute
-bin/ksql-node query-file=foo/bar.sql
-Ideal for streaming ETL application deployment
-Version-control your queries and transformations as code
-All running engines share the processing load
-Technically, instances of the same Kafka Streams Applications
- scale up / down without restart
-
-Leave resource mgmt. to dedicated systems such as k8s
-All running Engines share the processing load
-Technically, instances of the same Kafka Streams Applications
-Scale up/down without restart
-
-
+* Start any number of server nodes
+* Pass a file of KSQL statements to execute: ``bin/ksql-node query-file=foo/bar.sql``
+* Version-control your queries and transformations as code
+* Leave resource management to dedicated systems, like Kubernetes
+* All KSQL server instances share the processing load for your KSQL application
+* Scale up and down without restarting your application
 
 Embedded
 ========
 
+Use embedded KSQL when you want to execute KSQL queries without starting a
+separate KSQL server cluster. 
 
 .. image:: ../img/ksql-embedded-in-application.png
    :alt: Diagram showing KSQL embedded in an application
    :align: center
 
+In embedded mode you can:
 
-Embed directly in your Java application
-Generate and execute KSQL queries through the Java API
-Version-control your queries and transformations as code
-All running application instances share the processing load
-Technically, instances of the same Kafka Streams Applications
- scale up / down without restart
+* Embed directly in your Java application
+* Generate and execute KSQL queries through the Java API
+* Version-control your queries and transformations as code
+* All KSQL server instances share the processing load for your KSQL application
+* Scale up and down without restarting your application
 
-Here, you are just deploying a JVM-based application using the application
-framework of your choosing: Spring, Grails, Jersey, VertX, Ratpack, or whatever.
-You want that application to be able to execute KSQL queries without spinning up
-a separate KSQL cluster. You can embed the engine itself into the app, then scale
-the app (and its stream processing) the way you would normally scale a Streams app
-or a KSQL cluster. It’s a consumer group, and gets all that magic for free.
+In embedded mode, you deploy a JVM-based application by using the application
+framework of your choice, like Spring, Grails, Jersey, VertX, or Ratpack. Your 
+application executes KSQL queries without starting a separate KSQL cluster.
+You embed the KSQL engine in your application, and you scale the application and
+its stream processing the same way that you scale a Kafka Streams application or
+KSQL cluster, by using a consumer group.
 
 
 Dedicating Resources
@@ -223,7 +245,9 @@ each server has an internal in-memory metastore that they build when they receiv
 Add an entry to the metastore 
 metastore is an in-memory map
 
-Metastore implementation: `io.confluent.ksql.metastore <https://github.com/confluentinc/ksql/tree/master/ksql-metastore/src/main/java/io/confluent/ksql/metastore>`__
+The KSQL metastore is implemented in the
+`io.confluent.ksql.metastore <https://github.com/confluentinc/ksql/tree/master/ksql-metastore/src/main/java/io/confluent/ksql/metastore>`__
+package.
 
 
 +-------------------------+----------------------------------------------------------------------------------+
@@ -262,9 +286,10 @@ KSQL Parses Your Statement
 
 parser creates an Abstract Syntax Tree
 
-KSQL statement parser is based on `ANTLR <https://www.antlr.org/>`__
-
-Code for the KSQL statement parser: `io.confluent.ksql.parser <https://github.com/confluentinc/ksql/tree/master/ksql-parser/src/main>`__
+KSQL statement parser is based on `ANTLR <https://www.antlr.org/>`__ and is
+implemented in the
+`io.confluent.ksql.parser <https://github.com/confluentinc/ksql/tree/master/ksql-parser/src/main>`__
+package.
 
 KSQL Creates the Logical Plan
 =============================

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.util;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,7 +34,9 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -55,6 +58,9 @@ public class ClusterTerminatorTest {
   private MetaStore metaStore;
   @Mock
   private KsqlTopic ksqlTopic;
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   private ClusterTerminator clusterTerminator;
 
@@ -128,7 +134,26 @@ public class ClusterTerminatorTest {
     verify(kafkaTopicClient).deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
   }
 
-  private KsqlTopic getKsqlTopic(final String topicName, final String kafkaTopicName, final boolean isSink) {
+  @Test
+  public void shouldThrowIfCannotDeleteCommandTopic() {
+    // Given:
+    doThrow(KsqlException.class)
+        .doThrow(KsqlException.class)
+        .doThrow(KsqlException.class)
+        .doThrow(KsqlException.class)
+        .doThrow(KsqlException.class)
+        .when(kafkaTopicClient).deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
+    thrown.expect(KsqlException.class);
+    thrown.expectMessage("Could not delete the command topic: _confluent-ksql-command_topic_command_topic");
+
+    // When:
+    clusterTerminator.terminateCluster(Collections.emptyList());
+
+    // Then:
+    verify(kafkaTopicClient).deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
+  }
+
+  private static KsqlTopic getKsqlTopic(final String topicName, final String kafkaTopicName, final boolean isSink) {
     return new KsqlTopic(topicName, kafkaTopicName, null, isSink);
   }
 }

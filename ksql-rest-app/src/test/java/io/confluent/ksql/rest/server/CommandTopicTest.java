@@ -17,13 +17,11 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -120,10 +118,10 @@ public class CommandTopicTest {
     verify(future).get();
   }
 
-  @Test //(expected = RuntimeException.class)
+  @Test
   public void shouldThrowExceptionIfSendIsNotSuccessfull() throws Exception {
     // Given:
-    when(future.get()).thenThrow(new ExecutionException("Send was unsuccessful!", new RuntimeException()));
+    when(future.get()).thenThrow(new ExecutionException(new RuntimeException("Send was unsuccessful!")));
     thrown.expect(RuntimeException.class);
     thrown.expectMessage("Send was unsuccessful!");
 
@@ -131,21 +129,23 @@ public class CommandTopicTest {
     commandTopic.send(commandId1, command1);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void shouldThrowRuntimeExceptionIfSendCausesRunTimeException() throws Exception {
     // Given:
-    final ExecutionException executionException = mock(ExecutionException.class);
-    when(executionException.getCause()).thenReturn(mock(RuntimeException.class));
-    when(future.get()).thenThrow(executionException);
+    when(future.get()).thenThrow(new ExecutionException(new Exception("Send was unsuccessful because of non RunTime exception!")));
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage("java.lang.Exception: Send was unsuccessful because of non RunTime exception!");
 
     // When
     commandTopic.send(commandId1, command1);
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test
   public void shouldThrowRuntimeExceptionIfSendThrowsInterruptedException() throws Exception {
     // Given:
-    when(future.get()).thenThrow(mock(InterruptedException.class));
+    when(future.get()).thenThrow(new InterruptedException("InterruptedException"));
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage("InterruptedException");
 
     // When
     commandTopic.send(commandId1, command1);
@@ -167,7 +167,11 @@ public class CommandTopicTest {
   public void shouldGetRestoreCommandsCorrectly() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
-        .thenReturn(someConsumerRecords(false))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+            new ConsumerRecord<>("topic", 0, 0, commandId2, command2)))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 0, commandId3, command3)))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
@@ -183,11 +187,41 @@ public class CommandTopicTest {
         new QueuedCommand(commandId3, command3, Optional.empty()))));
   }
 
+
+  @Test
+  public void shouldGetRestoreCommandsCorrectlyWithDuplicateKeys() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class)))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+            new ConsumerRecord<>("topic", 0, 0, commandId2, command2)))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 0, commandId2, command3),
+            new ConsumerRecord<>("topic", 0, 0, commandId3, command3)))
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic.getRestoreCommands(Duration.ofMillis(1));
+
+
+    // Then:
+    verify(commandConsumer).seekToBeginning(collectionArgumentCaptor.capture());
+    assertThat(collectionArgumentCaptor.getValue(), equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+        new QueuedCommand(commandId1, command1, Optional.empty()),
+        new QueuedCommand(commandId2, command2, Optional.empty()),
+        new QueuedCommand(commandId2, command3, Optional.empty()),
+        new QueuedCommand(commandId3, command3, Optional.empty()))));
+  }
+
+
   @Test
   public void shouldFilterNullCommandsWhileRestoringCommands() {
     // Given:
     when(commandConsumer.poll(any(Duration.class)))
-        .thenReturn(someConsumerRecords(true))
+        .thenReturn(someConsumerRecords(
+            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+            new ConsumerRecord<>("topic", 0, 0, commandId2, command2)))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
@@ -208,22 +242,17 @@ public class CommandTopicTest {
     commandTopic.close();
 
     //Then:
-
     final InOrder ordered = inOrder(commandConsumer);
     ordered.verify(commandConsumer).wakeup();
     ordered.verify(commandConsumer).close();
     verify(commandProducer).close();
-
   }
 
 
-  private ConsumerRecords<CommandId, Command> someConsumerRecords(final boolean addNull) {
-    return new ConsumerRecords<>(
-        ImmutableMap.of(TOPIC_PARTITION, ImmutableList.of(
-            new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
-            new ConsumerRecord<>("topic", 0, 0, commandId2, command2),
-            new ConsumerRecord<>("topic", 0, 0, commandId3, addNull? null : command3))
-        ));
+  @SuppressWarnings("unchecked")
+  private static ConsumerRecords<CommandId, Command> someConsumerRecords(final ConsumerRecord... consumerRecords) {
+    return new ConsumerRecords(
+        ImmutableMap.of(TOPIC_PARTITION, ImmutableList.copyOf(consumerRecords)));
   }
 
 }

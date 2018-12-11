@@ -161,7 +161,9 @@ public class KsqlResourceTest {
   private QueuedCommandStatus commandStatus;
   private MetaStoreImpl metaStore;
 
+  @Mock
   private ReplayableCommandQueue replayableCommandQueue;
+  @Mock
   private QueuedCommandStatus queuedCommandStatus;
 
   @Before
@@ -189,8 +191,6 @@ public class KsqlResourceTest {
 
     setUpKsqlResource();
 
-    replayableCommandQueue = Mockito.mock(ReplayableCommandQueue.class);
-    queuedCommandStatus = mock(QueuedCommandStatus.class);
     when(commandStore.enqueueCommand(any(), any(), any(), any())).thenReturn(commandStatus);
   }
 

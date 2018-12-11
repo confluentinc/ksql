@@ -104,6 +104,8 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -191,7 +193,11 @@ public class KsqlResource {
   @Path("/terminate")
   public Response terminateCluster(final ClusterTerminateRequest request) {
     final KsqlEntityList result = new KsqlEntityList();
-
+    try {
+      ensureValidPatterns(request.getDeleteTopicList());
+    } catch (final Exception e) {
+      return Errors.badRequest(e);
+    }
     try {
       result.add(distributeStatement(
           new PreparedStatement<>(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
@@ -808,5 +814,16 @@ public class KsqlResource {
     private ShouldUseQueryEndpointException(final String statementText) {
       super(statementText);
     }
+  }
+
+  private static void ensureValidPatterns(final List<String> deleteTopicList) {
+    deleteTopicList
+        .forEach(pattern -> {
+          try {
+            Pattern.compile(pattern);
+          } catch (final PatternSyntaxException patternSyntaxException) {
+            throw new KsqlException("Invalid pattern: " + pattern);
+          }
+        });
   }
 }

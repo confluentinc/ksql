@@ -99,7 +99,9 @@ public class ClusterTerminator {
     ksqlEngine.getTopicClient().deleteTopics(toDelete);
   }
 
-  private static boolean topicShouldBeDeleted(final String topicName, final List<Pattern> patterns) {
+  private static boolean topicShouldBeDeleted(
+      final String topicName, final List<Pattern> patterns
+  ) {
     return patterns.stream()
         .anyMatch(pattern -> pattern.matcher(topicName).matches());
   }

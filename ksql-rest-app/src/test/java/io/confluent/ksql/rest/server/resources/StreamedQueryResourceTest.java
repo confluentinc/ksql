@@ -64,6 +64,7 @@ import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -151,11 +152,11 @@ public class StreamedQueryResourceTest {
         testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap()));
 
     // Then:
-    assertThat(response.getStatus(), equalTo(Response.Status.BAD_REQUEST.getStatusCode()));
+    assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
-    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
     assertThat(
-        errorMessage.getMessage(), containsString("The cluster has been terminated. No new request will be accepted."));
+        errorMessage.getMessage(), containsString("Cluster has been terminated."));
   }
 
   @SuppressWarnings("unchecked")

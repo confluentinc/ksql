@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -38,6 +40,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import java.io.IOException;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
@@ -158,6 +161,33 @@ public class AvroUtilTest {
   }
 
   @Test
+  public void shouldValidateSchemaEvolutionWithCorrectSubject() throws Exception {
+    // Given:
+    when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
+
+    // When:
+    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+
+    // Then:
+    verify(srClient).testCompatibility(eq(RESULT_TOPIC.getKafkaTopicName() + "-value"), any());
+  }
+
+  @Test
+  public void shouldValidateSchemaEvolutionWithCorrectSchema() throws Exception {
+    // Given:
+    when(persistentQuery.getResultSchema()).thenReturn(RESULT_SCHEMA);
+
+    final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
+        .buildAvroSchema(RESULT_SCHEMA, RESULT_TOPIC.getName());
+
+    // When:
+    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+
+    // Then:
+    verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
+  }
+
+  @Test
   public void shouldReturnValidEvolution() throws Exception {
     // Given:
     when(srClient.testCompatibility(any(), any())).thenReturn(true);
@@ -179,6 +209,47 @@ public class AvroUtilTest {
 
     // Then:
     assertThat(result, is(false));
+  }
+
+  @Test
+  public void shouldReturnValidEvolutionIfSubjectNotRegistered() throws Exception {
+    // Given:
+    when(srClient.testCompatibility(any(), any()))
+        .thenThrow(new RestClientException("Unknown subject", 404, 40401));
+
+    // When:
+    final boolean result = AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+
+    // Then:
+    assertThat(result, is(true));
+  }
+
+  @Test
+  public void shouldThrowOnAnyOtherEvolutionSrException() throws Exception {
+    // Given:
+    when(srClient.testCompatibility(any(), any()))
+        .thenThrow(new RestClientException("Unknown subject", 403, 40401));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not connect to Schema Registry service");
+
+    // When:
+    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+  }
+
+  @Test
+  public void shouldThrowOnAnyOtherEvolutionIOException() throws Exception {
+    // Given:
+    when(srClient.testCompatibility(any(), any()))
+        .thenThrow(new IOException("something"));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not check Schema compatibility");
+
+    // When:
+    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
   }
 
   private static AbstractStreamCreateStatement createStreamCreateSql() {

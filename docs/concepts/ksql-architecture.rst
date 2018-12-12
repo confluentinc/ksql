@@ -111,6 +111,8 @@ Data Manipulation Language (DML) Statements
     * SELECT
     * INSERT INTO
 
+For more information, see :ref:`ksql_syntax_reference`.
+
 .. _ksql-deployment-modes:
 
 KSQL Deployment Modes
@@ -126,10 +128,6 @@ KSQL supports three ways to deploy your streaming applications:
 In all deployment modes, KSQL enables distributing the processing load for your
 KSQL applications across all KSQL server instances, and scaling up and down
 without restarting your applications.
-
-.. image:: ../img/ksql-deploy-command-topic.gif
-   :alt: Diagram showing deployment of a KSQL file to a command topic
-   :align: center
 
 Interactive Deployment
 ====================== 
@@ -242,17 +240,23 @@ CREATE TABLE. For example, the following KSQL statement creates a stream named
       (card_number VARCHAR, attemptTime BIGINT, ...)
       WITH (kafka_topic='authorizations', value_format=‘JSON’);
 
-KSQL writes the DDL statement to the *command topic*. Each KSQL server reads the
-statement from the command topic and parses/analyzes the statement.
+KSQL writes DDL and DML statements to the *command topic*. Each KSQL
+Server reads the statement from the command topic, parsing and analyzing
+it.
 
-For the CREATE STREAM statement, the action is to update the KSQL metastore.
+.. image:: ../img/ksql-deploy-command-topic.gif
+   :alt: Diagram showing deployment of a KSQL file to a command topic
+   :align: center
+
+The CREATE STREAM statement is a DDL statement, so the action is to update
+the KSQL metadata.
 
 Each KSQL server has an internal, in-memory metadata store, or *metastore*, that
-it builds when it receives DDL statements. The metastore is an in-memory map.
-For each DDL statement, the KSQL engine adds an entry to the metastore.
+it builds as it receives DDL statements. The metastore is an in-memory map.
+For each new DDL statement, the KSQL engine adds an entry to the metastore.
 
 For example, the metastore entry for the previous CREATE STREAM statement might
-resemble:  
+resemble:
 
 +-------------------------+----------------------------------------------------------------------------------+
 | Source Name             | Structured Data Source                                                           |
@@ -305,14 +309,16 @@ package.
 KSQL Creates the Logical Plan
 =============================
 
-The KSQL engine creates the logical plan for the query by using the AST:
+The KSQL engine creates the logical plan for the query by using the AST. For
+the previous ``possible_fraud`` statement, the logical plan has the following
+steps:
 
-#. Define the source – FROM node in the AST
-#. Filter – WHERE clause
-#. Aggregation – GROUP BY
-#. Projection – WINDOW
-#. Post-aggregation filter – HAVING, applied to the result of the aggregation
-#. Projection – for the result
+#. Define the source – FROM node
+#. Apply the filter – WHERE clause
+#. Apply aggregation – GROUP BY
+#. Project – WINDOW
+#. Apply post-aggregation filter – HAVING, applied to the result of GROUP BY
+#. Project – for the result
 
 .. image:: ../img/ksql-statement-logical-plan.gif
    :alt: Diagram showing how the KSQL engine creates a logical plan for a KSQL statement
@@ -321,30 +327,41 @@ The KSQL engine creates the logical plan for the query by using the AST:
 KSQL Creates the Physical Plan
 ==============================
 
-From the logical plan, the KSQL engine creates the physical plan, which is a Kafka
-Streams DSL application with a schema.
+From the logical plan, the KSQL engine creates the physical plan, which is a
+Kafka Streams DSL application with a schema.
 
-* KSQL Stream – rendered as `SchemaKStream.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/structured/SchemaKStream.java>`__,
-  which is a KStream with Schema
-* KSQL Table – rendered as `SchemaKTable.java <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/structured/SchemaKTable.java>`__,
-  which is a KTable with Schema
-* Schema awareness – provided by the `SchemaRegistryClient <https://github.com/confluentinc/schema-registry/blob/master/client/src/main/java/io/confluent/kafka/schemaregistry/client/SchemaRegistryClient.java>`__.
+The generated code is based on the KSQL classes, ``SchemaKStream`` and
+``SchemaKTable``:
 
-The KSQL engine traverses the logical plan and emits Kafka Streams API calls:
+* A KSQL stream is rendered as a `SchemaKStream <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/structured/SchemaKStream.java>`__
+  instance, which is a `KStream <https://docs.confluent.io/current/streams/javadocs/org/apache/kafka/streams/kstream/KStream.html>`__
+  with a `Schema <https://kafka.apache.org/20/javadoc/org/apache/kafka/connect/data/Schema.html>`__.
+* A KSQL table is rendered as a `SchemaKTable <https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/structured/SchemaKTable.java>`__
+  instance, which is a `KTable <https://docs.confluent.io/current/streams/javadocs/org/apache/kafka/streams/kstream/KTable.html>`__
+  with a `Schema <https://kafka.apache.org/20/javadoc/org/apache/kafka/connect/data/Schema.html>`__.
+* Schema awareness is provided by the `SchemaRegistryClient <https://github.com/confluentinc/schema-registry/blob/master/client/src/main/java/io/confluent/kafka/schemaregistry/client/SchemaRegistryClient.java>`__
+  class.
 
-#. Define the source – SchemaKStream or SchemaKTable with info from the KSQL metastore
-#. Filter – produces another SchemaKStream
-#. Projection – the SELECT function
-#. Apply aggregation – Multiple steps: rekey, groupby, aggregate. May need to re-partition data if it's not keyed with a GROUP BY phrase.  
-#. Filter – HAVING
-#. Projection for result – select()
+The KSQL engine traverses the nodes of the logical plan and emits corresponding
+Kafka Streams API calls:
+
+#. Define the source – a ``SchemaKStream`` or ``SchemaKTable`` with info from
+   the KSQL metastore
+#. Filter – produces another ``SchemaKStream``
+#. Project – ``select()`` method
+#. Apply aggregation – Multiple steps: ``rekey()``, ``groupby()``, and
+   ``aggregate()`` methods. KSQL may re-partition data if it's not keyed with
+   a GROUP BY phrase.  
+#. Filter – ``filter()`` method
+#. Project – ``select()`` method for the result 
 
 .. image:: ../img/ksql-statement-physical-plan.gif
    :alt: Diagram showing how the KSQL engine creates a physical plan for a KSQL statement
    :align: center
 
-
-
+If the DML statement is CREATE STREAM AS SELECT or CREATE TABLE AS SELECT,
+the result from the generated Kafka Streams application is a persistent query
+that writes continuously to its output topic until the query is terminated.
 
 
 .. graphics-file: https://docs.google.com/presentation/d/1CU2-r2ZiSG_cTa1UqFq4ZwJnq7imr89pXkJVYAlecp4/edit#slide=id.p64

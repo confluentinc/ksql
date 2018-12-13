@@ -5,8 +5,8 @@ KSQL Architecture
 
 The architecture of KSQL enables you to build real-time streaming applications
 from Kafka topics by using only SQL statements and queries. KSQL is built on
-Kafka Streams, so a KSQL application runs on a  Kafka cluster like any other
-Kafka Streams application.
+Kafka Streams, so a KSQL application communicates with a Kafka cluster like any
+other Kafka Streams application.
 
 KSQL Components
 ***************
@@ -19,7 +19,7 @@ KSQL has four main components:
 * KSQL UI – enables developing KSQL applications in |c3|
 
 KSQL Server comprises the KSQL engine and the REST API. KSQL Server instances
-communicate with the Kafka cluster and scale out with load as necessary. 
+communicate with the Kafka cluster, and you can scale them as necessary.
 
 .. image:: ../img/ksql-architecture-and-components.png
    :alt: Diagram showing architecture of KSQL

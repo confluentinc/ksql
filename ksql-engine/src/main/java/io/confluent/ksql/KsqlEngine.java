@@ -118,7 +118,8 @@ public class KsqlEngine implements Closeable {
   ) {
     this(
         serviceContext,
-        serviceId, new MetaStoreImpl(new InternalFunctionRegistry()),
+        serviceId,
+        new MetaStoreImpl(new InternalFunctionRegistry()),
         KsqlEngineMetrics::new);
   }
 

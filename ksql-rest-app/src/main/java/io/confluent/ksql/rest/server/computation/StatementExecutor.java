@@ -205,7 +205,7 @@ public class StatementExecutor {
       terminateQuery((TerminateQuery) statement, mode);
       successMessage = "Query terminated.";
     } else if (statement instanceof RunScript) {
-      handleRunScript(command);
+      handleRunScript(command, mode);
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",
@@ -220,7 +220,7 @@ public class StatementExecutor {
     putFinalStatus(commandId, queuedCommandStatus, successStatus);
   }
 
-  private void handleRunScript(final Command command) {
+  private void handleRunScript(final Command command, final Mode mode) {
 
     if (command.getOverwriteProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       final String queries =
@@ -244,10 +244,12 @@ public class StatementExecutor {
             ksqlEngine, mergedConfig, command.getStatement());
       }
 
-      for (final QueryMetadata queryMetadata : queryMetadataList) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMd.start();
+      if (mode == Mode.EXECUTE) {
+        for (final QueryMetadata queryMetadata : queryMetadataList) {
+          if (queryMetadata instanceof PersistentQueryMetadata) {
+            final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+            persistentQueryMd.start();
+          }
         }
       }
     } else {

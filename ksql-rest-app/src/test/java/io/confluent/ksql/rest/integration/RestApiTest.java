@@ -102,9 +102,8 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithV1ContentType() {
-    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;",
-                                                              PAGE_VIEW_STREAM),
-                                                Collections.emptyMap());
+    final KsqlRequest request = new KsqlRequest(
+        String.format("SELECT * from %s;", PAGE_VIEW_STREAM), Collections.emptyMap(), null);
     try (final Response response = restClient.target(serverAddress)
         .path("query")
         .request(Versions.KSQL_V1_JSON)
@@ -116,9 +115,8 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithJsonContentType() {
-    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;",
-                                                              PAGE_VIEW_STREAM),
-                                                Collections.emptyMap());
+    final KsqlRequest request = new KsqlRequest(
+        String.format("SELECT * from %s;", PAGE_VIEW_STREAM), Collections.emptyMap(), null);
     try (final Response response = restClient.target(serverAddress)
         .path("query")
         .request(MediaType.APPLICATION_JSON_TYPE)

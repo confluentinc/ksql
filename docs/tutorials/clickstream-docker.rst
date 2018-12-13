@@ -23,12 +23,12 @@ Docker images with the required networking and dependencies. The images
 are quite large and depending on your network connection may take 
 10-15 minutes to download.
 
-#. Clone the Confluent KSQL repository.
+#. Clone the Confluent examples repository.
 
    .. code:: bash
 
-       git clone https://github.com/confluentinc/ksql.git
-       cd ksql
+       git clone https://github.com/confluentinc/examples.git
+       cd examples
 
 #. Switch to the correct |cp| release branch:
 
@@ -36,12 +36,12 @@ are quite large and depending on your network connection may take
    
        git checkout |release_post_branch|
 
-#. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
+#. Navigate to the correct directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.
 
    .. code:: bash
 
-       cd ksql-clickstream-demo
+       cd clickstream
        docker-compose up -d
 
 
@@ -55,17 +55,18 @@ are quite large and depending on your network connection may take
 
    ::
    
-                        Name                                Command               State                Ports
-        -------------------------------------------------------------------------------------------------------------------
-        ksql-clickstream-demo_control-center_1    /etc/confluent/docker/run        Up      0.0.0.0:9021->9021/tcp
-        ksql-clickstream-demo_datagen-ratings_1   bash -c echo Waiting for K ...   Up
-        ksql-clickstream-demo_elasticsearch_1     /usr/local/bin/docker-entr ...   Up      0.0.0.0:9200->9200/tcp, 9300/tcp
-        ksql-clickstream-demo_grafana_1           /run.sh                          Up      0.0.0.0:3000->3000/tcp
-        ksql-clickstream-demo_kafka-connect_1     /etc/confluent/docker/run        Up      8083/tcp, 9092/tcp
-        ksql-clickstream-demo_kafka_1             /etc/confluent/docker/run        Up      9092/tcp
-        ksql-clickstream-demo_ksql-server_1       /etc/confluent/docker/run        Up      8088/tcp
-        ksql-clickstream-demo_schema-registry_1   /etc/confluent/docker/run        Up      8081/tcp
-        ksql-clickstream-demo_zookeeper_1         /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 3888/tcp
+                        Name                                 Command               State                Ports
+        ----------------------------------------------------------------------------------------------------------------------
+        clickstream_datagen_1_d3706de7f63f   bash -c echo Waiting for K ...   Up
+        clickstream_elasticsearch_1_3e4310b45877     /usr/local/bin/docker-entr ...   Up      0.0.0.0:9200->9200/tcp, 9300/tcp
+        clickstream_grafana_1_67e1357b5c72           /run.sh                          Up      0.0.0.0:3000->3000/tcp
+        clickstream_kafka-connect_1_7993a2b858ab     /etc/confluent/docker/run        Up      0.0.0.0:8083->8083/tcp, 9092/tcp
+        clickstream_kafka_1_ca1e2e8cf45f             /etc/confluent/docker/run        Up      9092/tcp
+        clickstream_kafkacat_1_fab15322129a          /bin/sh                          Up
+        clickstream_ksql-cli_1_4b23bf3647b7          /bin/sh                          Up
+        clickstream_ksql-server_1_700acc2f6ebd       /etc/confluent/docker/run        Up      0.0.0.0:8088->8088/tcp
+        clickstream_schema-registry_1_fcd02fa59965   /etc/confluent/docker/run        Up      8081/tcp
+        clickstream_zookeeper_1_16e1638d6f11         /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 3888/tcp                        Name                                 Command               State                Ports
 
 ---------------------------
 Create the Clickstream Data
@@ -76,11 +77,12 @@ using a console consumer such as ``kafkacat``:
 
 .. code:: bash
 
-    docker run --network ksql-clickstream-demo_default --tty --interactive --rm \
-            confluentinc/cp-kafkacat \
+    docker-compose exec kafkacat \
             kafkacat -b kafka:29092 -C -c 10 -K: \
             -f '\nKey  : %k\t\nValue: %s\n' \
             -t clickstream
+
+*If you get the message `Broker: Leader not available` then try again after a moment, as the demo is still starting up.*
 
 This will stop after ten messages, and your output should resemble: 
 
@@ -104,8 +106,7 @@ used to enrich the click data.
 
     .. code:: bash
 
-        docker run --network ksql-clickstream-demo_default --rm --name datagen-clickstream_codes \
-          confluentinc/ksql-examples:5.0.0 \
+        docker-compose exec datagen \
           ksql-datagen \
               bootstrap-server=kafka:29092 \
               quickstart=clickstream_codes \
@@ -128,9 +129,7 @@ used to enrich the click data.
 
     .. code:: bash
 
-        docker run --network ksql-clickstream-demo_default \
-                   --rm --name datagen-clickstream_codes \
-          confluentinc/ksql-examples:5.0.0 \
+        docker-compose exec datagen \
           ksql-datagen \
               bootstrap-server=kafka:29092 \
               quickstart=clickstream_users \
@@ -156,25 +155,13 @@ Load the Streaming Data to KSQL
 
     .. code:: bash
 
-        docker run --network ksql-clickstream-demo_default \
-                  --interactive --tty --rm \
-                  --volume $PWD/demo:/usr/share/doc/ksql-clickstream-demo \
-          confluentinc/cp-ksql-cli:latest \
-          http://ksql-server:8088
+        docker-compose exec ksql-cli ksql http://ksql-server:8088
 
     You should now be in the KSQL CLI.
 
     .. include:: ../includes/ksql-includes.rst
         :start-after: CLI_welcome_start
         :end-before: CLI_welcome_end
-
-#.  Set up the environment for the demo to run: 
-
-    .. code:: sql
-
-        ksql> set 'commit.interval.ms'='2000';
-        ksql> set 'cache.max.bytes.buffering'='10000000';
-        ksql> set 'auto.offset.reset'='earliest';
 
 #.  Load the ``clickstream.sql`` schema file that runs the tutorial app.
 
@@ -184,7 +171,7 @@ Load the Streaming Data to KSQL
 
     .. code:: sql
 
-        RUN SCRIPT '/usr/share/doc/ksql-clickstream-demo/clickstream-schema.sql';
+        RUN SCRIPT '/usr/share/doc/clickstream/clickstream-schema.sql';
 
     The output will show either a blank message, or ``Executing statement``, similar to this: 
 
@@ -220,7 +207,6 @@ Verify the data
          PAGES_PER_MIN              | PAGES_PER_MIN              | JSON   | true
          CLICK_USER_SESSIONS        | CLICK_USER_SESSIONS        | JSON   | true
          ENRICHED_ERROR_CODES_COUNT | ENRICHED_ERROR_CODES_COUNT | JSON   | true
-         EVENTS_PER_MIN_MAX_AVG     | EVENTS_PER_MIN_MAX_AVG     | JSON   | true
          ERRORS_PER_MIN             | ERRORS_PER_MIN             | JSON   | true
          EVENTS_PER_MIN             | EVENTS_PER_MIN             | JSON   | true
 
@@ -238,7 +224,6 @@ Verify the data
         ----------------------------------------------------------------
          USER_CLICKSTREAM          | USER_CLICKSTREAM          | JSON
          ENRICHED_ERROR_CODES      | ENRICHED_ERROR_CODES      | JSON
-         CUSTOMER_CLICKSTREAM      | CUSTOMER_CLICKSTREAM      | JSON
          CLICKSTREAM               | clickstream               | JSON
 
 #.  Verify that data is being streamed through

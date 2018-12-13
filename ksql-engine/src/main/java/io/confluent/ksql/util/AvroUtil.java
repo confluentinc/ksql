@@ -43,7 +43,7 @@ public final class AvroUtil {
   private AvroUtil() {
   }
 
-  public static AbstractStreamCreateStatement checkAndSetAvroSchema(
+  static AbstractStreamCreateStatement checkAndSetAvroSchema(
       final AbstractStreamCreateStatement abstractStreamCreateStatement,
       final SchemaRegistryClient schemaRegistryClient
   ) {
@@ -207,7 +207,7 @@ public final class AvroUtil {
         persistentQueryMetadata.getResultTopic().getName()
     );
 
-    final String topicName = persistentQueryMetadata.getResultTopic().getTopicName();
+    final String topicName = persistentQueryMetadata.getResultTopic().getKafkaTopicName();
 
     return isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient);
   }
@@ -225,13 +225,18 @@ public final class AvroUtil {
           "Could not check Schema compatibility: %s", e.getMessage()
       ));
     } catch (final RestClientException e) {
+      if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+        // Assume the subject is unknown.
+        // See https://github.com/confluentinc/schema-registry/issues/951
+        return true;
+      }
       throw new KsqlException(String.format(
           "Could not connect to Schema Registry service: %s", e.getMessage()
       ));
     }
   }
 
-  public static Schema toKsqlSchema(final String avroSchemaString) {
+  static Schema toKsqlSchema(final String avroSchemaString) {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
     final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));

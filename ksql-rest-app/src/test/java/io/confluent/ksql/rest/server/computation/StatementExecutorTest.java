@@ -47,6 +47,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
@@ -61,6 +62,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -525,6 +527,17 @@ public class StatementExecutorTest extends EasyMockSupport {
     return mockQuery;
   }
 
+  private PersistentQueryMetadata mockReplayRunScript(
+      final String runScriptStatement, final String queryStatement) {
+    final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
+    final Statement mockRunScript = mock(RunScript.class);
+    expect(mockParser.parseSingleStatement(runScriptStatement)).andReturn(mockRunScript);
+    expect(mockEngine.execute(eq(queryStatement), anyObject(), anyObject()))
+        .andReturn(Collections.singletonList(mockQuery));
+    expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
+    return mockQuery;
+  }
+
   @Test
   public void shouldSkipStartWhenReplayingLog() {
     // Given:
@@ -640,6 +653,55 @@ public class StatementExecutorTest extends EasyMockSupport {
         commandStatus.getMessage(),
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
+  }
+
+  @Test
+  public void shouldHandleRunScriptCommand() {
+    // Given:
+    final String runScriptStatement = "run script";
+    final String queryStatement = "a query";
+    final PersistentQueryMetadata mockQuery = mockReplayRunScript(runScriptStatement, queryStatement);
+    mockQuery.start();
+    expectLastCall().once();
+    replayAll();
+
+    // When:
+    statementExecutorWithMocks.handleStatement(
+        new QueuedCommand(
+            new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
+            new Command(
+                runScriptStatement,
+                Collections
+                    .singletonMap(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, queryStatement),
+                Collections.emptyMap())
+        )
+    );
+
+    // Then:
+    verify(mockParser, mockEngine, mockQuery);
+  }
+
+  @Test
+  public void shouldRestoreRunScriptCommand() {
+    // Given:
+    final String runScriptStatement = "run script";
+    final String queryStatement = "a persistent query";
+    final PersistentQueryMetadata mockQuery = mockReplayRunScript(runScriptStatement, queryStatement);
+    replayAll();
+
+    // When:
+    statementExecutorWithMocks.handleRestore(
+        new QueuedCommand(
+            new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
+            new Command(
+                runScriptStatement,
+                Collections.singletonMap(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, queryStatement),
+                Collections.emptyMap())
+        )
+    );
+
+    // Then:
+    verify(mockParser, mockEngine, mockQuery);
   }
 
   private void createStreamsAndStartTwoPersistentQueries() {

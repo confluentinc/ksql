@@ -37,6 +37,9 @@ public class CountKudaf
 
   @Override
   public Long aggregate(final Object currentValue, final Long aggregateValue) {
+    if (currentValue == null) {
+      return aggregateValue;
+    }
     return aggregateValue + 1;
   }
 
@@ -47,6 +50,9 @@ public class CountKudaf
 
   @Override
   public Long undo(final Object valueToUndo, final Long aggregateValue) {
+    if (valueToUndo == null) {
+      return aggregateValue;
+    }
     return aggregateValue - 1;
   }
 

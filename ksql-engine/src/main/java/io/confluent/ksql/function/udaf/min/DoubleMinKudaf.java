@@ -34,20 +34,15 @@ public class DoubleMinKudaf extends BaseAggregateFunction<Double, Double> {
 
   @Override
   public Double aggregate(final Double currentValue, final Double aggregateValue) {
-    if (currentValue < aggregateValue) {
-      return currentValue;
+    if (currentValue == null) {
+      return aggregateValue;
     }
-    return aggregateValue;
+    return Math.min(currentValue, aggregateValue);
   }
 
   @Override
   public Merger<String, Double> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> {
-      if (aggOne < aggTwo) {
-        return aggOne;
-      }
-      return aggTwo;
-    };
+    return (aggKey, aggOne, aggTwo) -> Math.min(aggOne, aggTwo);
   }
 
   @Override

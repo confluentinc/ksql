@@ -40,6 +40,27 @@ public class IntegerMaxKudafTest {
   }
 
   @Test
+  public void shouldHandleNull() {
+    final IntegerMaxKudaf integerMaxKudaf = getIntegerMaxKudaf();
+    final int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
+    int currentMax = Integer.MIN_VALUE;
+
+    // null before any aggregation
+    currentMax = integerMaxKudaf.aggregate(null, currentMax);
+    assertThat(Integer.MIN_VALUE, equalTo(currentMax));
+
+    // now send each value to aggregation and verify
+    for (final int i: values) {
+      currentMax = integerMaxKudaf.aggregate(i, currentMax);
+    }
+    assertThat(8, equalTo(currentMax));
+
+    // null should not impact result
+    currentMax = integerMaxKudaf.aggregate(null, currentMax);
+    assertThat(8, equalTo(currentMax));
+  }
+
+  @Test
   public void shouldFindCorrectMaxForMerge() {
     final IntegerMaxKudaf integerMaxKudaf = getIntegerMaxKudaf();
     final Merger<String, Integer> merger = integerMaxKudaf.getMerger();

@@ -16,7 +16,7 @@
 
 package io.confluent.ksql.function;
 
-import static io.confluent.ksql.util.KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
@@ -287,8 +287,8 @@ public class UdfLoaderTest {
     // Given:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG, "should not be passed",
-        KSQ_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting", "foo-bar",
-        KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param", "expected-value"
+        KSQL_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting", "foo-bar",
+        KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param", "expected-value"
     ));
 
     final KsqlFunction udf = metaStore.getUdfFactory("ConfigurableUdf")
@@ -300,9 +300,9 @@ public class UdfLoaderTest {
     // Then:
     assertThat(PASSED_CONFIG, is(notNullValue()));
     assertThat(PASSED_CONFIG.keySet(), not(hasItem(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
-    assertThat(PASSED_CONFIG.get(KSQ_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting"),
+    assertThat(PASSED_CONFIG.get(KSQL_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting"),
         is("foo-bar"));
-    assertThat(PASSED_CONFIG.get(KSQ_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param"),
+    assertThat(PASSED_CONFIG.get(KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param"),
         is("expected-value"));
   }
 

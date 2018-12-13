@@ -188,7 +188,6 @@ public class KsqlResource {
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
     activenessRegistrar.updateLastRequestTime();
-
     try {
       final List<PreparedStatement<?>> statements = parseStatements(request.getKsql());
 

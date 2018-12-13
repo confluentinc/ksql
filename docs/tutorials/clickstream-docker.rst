@@ -36,7 +36,7 @@ are quite large and depending on your network connection may take
    
        git checkout |release_post_branch|
 
-#. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
+#. Navigate to the KSQL repository ``ksql-clickstream-demo/`` directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.
 
    .. code:: bash
@@ -118,10 +118,10 @@ used to enrich the click data.
 
     ::
 
-        200 --> ([ 200 | 'Successful' ])
-        302 --> ([ 302 | 'Redirect' ])
-        200 --> ([ 200 | 'Successful' ])
-        406 --> ([ 406 | 'Not acceptable' ])
+        200 --> ([ 200 | 'Successful' ]) ts:1544581859775
+        302 --> ([ 302 | 'Redirect' ]) ts:1544581859792
+        200 --> ([ 200 | 'Successful' ]) ts:1544581859807
+        406 --> ([ 406 | 'Not acceptable' ]) ts:1544581859826
         ...
 
 #.  Create a set of users using ksql-datagen utility. This stream runs once to populate the table.
@@ -143,9 +143,9 @@ used to enrich the click data.
 
     ::
 
-        1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ])
-        2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ])
-        3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
+        1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ]) ts:1544581880932
+        2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ]) ts:1544581880941
+        3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ]) ts:1544581880951
         ...
 
 -------------------------------
@@ -216,11 +216,10 @@ Verify the data
          WEB_USERS                  | clickstream_users          | JSON   | false
          ERRORS_PER_MIN_ALERT       | ERRORS_PER_MIN_ALERT       | JSON   | true
          USER_IP_ACTIVITY           | USER_IP_ACTIVITY           | JSON   | true
-         CLICKSTREAM_CODES          | clickstream_codes          | JSON   | false
-         PAGES_PER_MIN              | PAGES_PER_MIN              | JSON   | true
          CLICK_USER_SESSIONS        | CLICK_USER_SESSIONS        | JSON   | true
+         PAGES_PER_MIN              | PAGES_PER_MIN              | JSON   | true
+         CLICKSTREAM_CODES          | clickstream_codes          | JSON   | false
          ENRICHED_ERROR_CODES_COUNT | ENRICHED_ERROR_CODES_COUNT | JSON   | true
-         EVENTS_PER_MIN_MAX_AVG     | EVENTS_PER_MIN_MAX_AVG     | JSON   | true
          ERRORS_PER_MIN             | ERRORS_PER_MIN             | JSON   | true
          EVENTS_PER_MIN             | EVENTS_PER_MIN             | JSON   | true
 

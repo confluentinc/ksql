@@ -529,10 +529,15 @@ public class StatementExecutorTest extends EasyMockSupport {
     return mockQuery;
   }
 
-  private PersistentQueryMetadata mockReplayRunScript(final String statement) {
+  private PersistentQueryMetadata mockReplayRunScript(
+      final String runScriptStatement, final String queryStatement) {
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
-    expect(mockEngine.buildMultipleQueries(eq(statement), anyObject(), anyObject()))
+    final Statement mockRunScript = mock(RunScript.class);
+    expect(mockParser.parseSingleStatement(runScriptStatement)).andReturn(mockRunScript);
+    expect(mockEngine.buildMultipleQueries(eq(queryStatement), anyObject(), anyObject()))
         .andReturn(Collections.singletonList(mockQuery));
+    mockQuery.start();
+    expectLastCall().once();
     return mockQuery;
   }
 
@@ -651,15 +656,35 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
+  public void shouldHandleRunScriptCommand() {
+    // Given:
+    final String runScriptStatement = "run script";
+    final String queryStatement = "a query";
+    final PersistentQueryMetadata mockQuery = mockReplayRunScript(runScriptStatement, queryStatement);
+    replayAll();
+
+    // When:
+    statementExecutorWithMocks.handleStatement(
+        new QueuedCommand(
+            new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
+            new Command(
+                runScriptStatement,
+                Collections
+                    .singletonMap(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, queryStatement),
+                Collections.emptyMap())
+        )
+    );
+
+    // Then:
+    verify(mockParser, mockEngine, mockQuery);
+  }
+
+  @Test
   public void shouldRestoreRunScriptCommand() {
     // Given:
     final String runScriptStatement = "run script";
-    final String statement = "a persistent query";
-    final PersistentQueryMetadata mockQuery = mockReplayRunScript(statement);
-    mockQuery.start();
-    expectLastCall().once();
-    final Statement mockRunScript = mock(RunScript.class);
-    expect(mockParser.parseSingleStatement(runScriptStatement)).andReturn(mockRunScript);
+    final String queryStatement = "a persistent query";
+    final PersistentQueryMetadata mockQuery = mockReplayRunScript(runScriptStatement, queryStatement);
     expect(mockEngine.getPersistentQueries()).andReturn(Collections.singletonList(mockQuery));
     replayAll();
 
@@ -670,7 +695,7 @@ public class StatementExecutorTest extends EasyMockSupport {
                 new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
                 new Command(
                     runScriptStatement,
-                    Collections.singletonMap(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, statement),
+                    Collections.singletonMap(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, queryStatement),
                     Collections.emptyMap())
             )
         )

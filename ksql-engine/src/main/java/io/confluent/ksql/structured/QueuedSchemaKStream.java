@@ -85,7 +85,8 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
       final Field joinKey,
-      final Serde<GenericRow> joinSerde
+      final Serde<GenericRow> joinSerde,
+      final String opName
   ) {
     throw new UnsupportedOperationException();
   }
@@ -98,7 +99,8 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   @Override
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
-      final List<Expression> groupByExpressions) {
+      final List<Expression> groupByExpressions,
+      final String opName) {
     throw new UnsupportedOperationException();
   }
 

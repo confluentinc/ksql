@@ -414,12 +414,10 @@ public class PhysicalPlanBuilderTest {
     assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(0))));
   }
 
-  @Test
-  public void shouldTurnOptimizationsOff() {
+  private void shouldUseProvidedOptimizationConfig(Object value) throws Exception {
     // Given:
     final Map<String, Object> properties =
-        Collections.singletonMap(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE);
+        Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION, value);
     physicalPlanBuilder = buildPhysicalPlanBuilder(properties);
 
     // When:
@@ -431,7 +429,17 @@ public class PhysicalPlanBuilderTest {
     final Properties props = calls.get(0).props;
     assertThat(
         props.get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
-        equalTo(StreamsConfig.NO_OPTIMIZATION));
+        equalTo(value));
+  }
+
+  @Test
+  public void shouldUseOptimizationConfigProvidedWhenOn() throws Exception {
+    shouldUseProvidedOptimizationConfig(StreamsConfig.OPTIMIZE);
+  }
+
+  @Test
+  public void shouldUseOptimizationConfigProvidedWhenOff() throws Exception {
+    shouldUseProvidedOptimizationConfig(StreamsConfig.NO_OPTIMIZATION);
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {

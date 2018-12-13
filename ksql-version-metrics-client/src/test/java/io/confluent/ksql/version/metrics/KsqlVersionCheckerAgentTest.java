@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent.VersionCheckerFactory;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
@@ -69,10 +68,8 @@ public class KsqlVersionCheckerAgentTest {
   public void setup() {
     properties = new Properties();
     properties.put("foo", "bar");
-
     when(versionCheckerFactory.create(any(), any(), anyBoolean(), any()))
         .thenReturn(ksqlVersionChecker);
-
     ksqlVersionCheckerAgent = new KsqlVersionCheckerAgent(
         activeQuerySupplier,
         true,

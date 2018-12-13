@@ -27,6 +27,7 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -40,10 +41,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -57,6 +61,7 @@ import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.processor.TimestampExtractor;
+import org.apache.kafka.streams.state.KeyValueStore;
 
 @Immutable
 public class StructuredDataSourceNode
@@ -84,7 +89,7 @@ public class StructuredDataSourceNode
 
   private final StructuredDataSource structuredDataSource;
   private final Schema schema;
-
+  final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
   // TODO: pass in the "assignments" and the "outputs" separately
   // TODO: (i.e., get rid if the symbol := symbol idiom)
@@ -94,11 +99,21 @@ public class StructuredDataSourceNode
       @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
       @JsonProperty("schema") final Schema schema
   ) {
+    this(id, structuredDataSource, schema, MaterializedFactory::create);
+  }
+
+  public StructuredDataSourceNode(
+      final PlanNodeId id,
+      final StructuredDataSource structuredDataSource,
+      final Schema schema,
+      final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier) {
     super(id, structuredDataSource.getDataSourceType());
     Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
     Objects.requireNonNull(schema, "schema can't be null");
+    Objects.requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
     this.schema = schema;
     this.structuredDataSource = structuredDataSource;
+    this.materializedFactorySupplier = materializedFactorySupplier;
   }
 
   public String getTopicName() {
@@ -169,7 +184,8 @@ public class StructuredDataSourceNode
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
               getSchema(), ksqlConfig, true, serviceContext.getSchemaRegistryClientFactory()),
-          timestampExtractor
+          timestampExtractor,
+          ksqlConfig
       );
       return new SchemaKTable<>(
           getSchema(),
@@ -288,13 +304,18 @@ public class StructuredDataSourceNode
         .transformValues(new AddTimestampColumn());
   }
 
+  private String getReduceOpName() {
+    return getId().toString() + "-REDUCE";
+  }
+
   @SuppressWarnings("unchecked")
   private KTable<?, GenericRow> createKTable(
       final StreamsBuilder builder, 
       final Topology.AutoOffsetReset autoOffsetReset,
       final Serde<GenericRow> genericRowSerde,
       final Serde<GenericRow> genericRowSerdeAfterRead,
-      final TimestampExtractor timestampExtractor) {
+      final TimestampExtractor timestampExtractor,
+      final KsqlConfig ksqlConfig) {
     // to build a table we apply the following transformations:
     // 1. Create a KStream on the changelog topic.
     // 2. mapValues to add the ROWKEY column
@@ -314,13 +335,13 @@ public class StructuredDataSourceNode
       return table(
           builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(), windowedMapper,
           (Serde<Windowed<String>>)ksqlTable.getKeySerde(),
-          genericRowSerde, genericRowSerdeAfterRead);
+          genericRowSerde, genericRowSerdeAfterRead, ksqlConfig);
     }
 
     return table(
         builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(),
         nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerde(),
-        genericRowSerde, genericRowSerdeAfterRead);
+        genericRowSerde, genericRowSerdeAfterRead, ksqlConfig);
   }
 
   private static <K> KTable<?, GenericRow> table(
@@ -331,13 +352,19 @@ public class StructuredDataSourceNode
       final ValueMapperWithKey<K, GenericRow, GenericRow> valueMapper,
       final Serde<K> keySerde,
       final Serde<GenericRow> genericRowSerde,
-      final Serde<GenericRow> genericRowSerdeAfterRead
+      final Serde<GenericRow> genericRowSerdeAfterRead,
+      final KsqlConfig ksqlConfig
   ) {
     final Consumed<K, GenericRow> consumed = Consumed
         .with(keySerde, genericRowSerde)
         .withOffsetResetPolicy(autoOffsetReset)
         .withTimestampExtractor(timestampExtractor);
 
+    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+        materializedFactorySupplier.apply(ksqlConfig).create(
+            keySerde,
+            genericRowSerdeAfterRead,
+            getReduceOpName());
     return builder
         .stream(ksqlTopic.getKafkaTopicName(), consumed)
         .mapValues(valueMapper)
@@ -347,7 +374,7 @@ public class StructuredDataSourceNode
         .aggregate(
             () -> null,
             (k, value, oldValue) -> value.orElse(null),
-            Materialized.with(keySerde, genericRowSerdeAfterRead));
+            materialized);
   }
 
   public StructuredDataSource.DataSourceType getDataSourceType() {

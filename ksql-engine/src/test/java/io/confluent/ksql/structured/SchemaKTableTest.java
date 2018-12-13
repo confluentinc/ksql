@@ -22,7 +22,9 @@ import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -43,8 +45,11 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.streams.JoinedFactory;
+import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,14 +72,20 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import io.confluent.ksql.streams.GroupedFactory;
 
 @SuppressWarnings("unchecked")
 public class SchemaKTableTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private SchemaKTable initialSchemaKTable;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
+  private final String GROUP_OP_NAME = "GROUP";
+  private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
+  private final Grouped grouped = Grouped.with(
+      GROUP_OP_NAME, Serdes.String(), Serdes.String());
+
+  private SchemaKTable initialSchemaKTable;
   private KTable kTable;
   private KsqlTable ksqlTable;
   private KTable secondKTable;
@@ -103,30 +114,43 @@ public class SchemaKTableTest {
                                                            secondKsqlTable.getSchema())));
 
     mockKTable = EasyMock.niceMock(KTable.class);
-    firstSchemaKTable = new SchemaKTable<>(
-        ksqlTable.getSchema(),
-        mockKTable,
+    firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
+    secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
+    joinSchema = getJoinSchema(ksqlTable.getSchema(), secondKsqlTable.getSchema());
+  }
+
+  private SchemaKTable buildSchemaKTable(
+      final KsqlTable ksqlTable,
+      final Schema schema,
+      final KTable kTable,
+      final GroupedFactory groupedFactory) {
+    return new SchemaKTable(
+        schema,
+        kTable,
         ksqlTable.getKeyField(),
         new ArrayList<>(),
         Serdes.String(),
-        SchemaKStream.Type.SOURCE,
+        Type.SOURCE,
         ksqlConfig,
-        functionRegistry);
+        functionRegistry,
+        groupedFactory,
+        JoinedFactory.create(ksqlConfig));
+  }
 
-    secondSchemaKTable = new SchemaKTable<>(
-        secondKsqlTable.getSchema(),
-        secondKTable,
-        secondKsqlTable.getKeyField(),
-        new ArrayList<>(),
-        Serdes.String(),
-        SchemaKStream.Type.SOURCE,
-        ksqlConfig,
-        functionRegistry);
+  private SchemaKTable buildSchemaKTable(
+      final KsqlTable ksqlTable,
+      final KTable kTable,
+      final GroupedFactory groupedFactory) {
+    return buildSchemaKTable(
+        ksqlTable,
+        SchemaUtil.buildSchemaWithAlias(ksqlTable.getSchema(), ksqlTable.getName()),
+        kTable,
+        groupedFactory);
+  }
 
-
-    joinSchema = getJoinSchema(ksqlTable.getSchema(), secondKsqlTable.getSchema());
-
-
+  private SchemaKTable buildSchemaKTableForJoin(final KsqlTable ksqlTable, final KTable kTable) {
+    return buildSchemaKTable(
+        ksqlTable, ksqlTable.getSchema(), kTable, GroupedFactory.create(ksqlConfig));
   }
 
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
@@ -173,7 +197,7 @@ public class SchemaKTableTest {
 
 
   @Test
-  public void testSelectWithExpression() throws Exception {
+  public void testSelectWithExpression() {
     final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100;";
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
@@ -210,7 +234,7 @@ public class SchemaKTableTest {
   }
 
   @Test
-  public void testFilter() throws Exception {
+  public void testFilter() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
     final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
@@ -272,10 +296,32 @@ public class SchemaKTableTest {
         initialSchemaKTable.getSchema(), null, false, () -> null);
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
-        rowSerde, groupByExpressions);
+        rowSerde, groupByExpressions, GROUP_OP_NAME);
 
     assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     assertThat(groupedSchemaKTable.getKeyField().name(), equalTo("TEST2.COL2|+|TEST2.COL1"));
+  }
+
+  @Test
+  public void shouldUseOpNameForGrouped() {
+    // Given:
+    final Serde<GenericRow> valSerde = getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema());
+    expect(groupedFactory.create(eq(GROUP_OP_NAME), anyObject(Serdes.String().getClass()), same(valSerde)))
+        .andReturn(grouped);
+    expect(mockKTable.filter(anyObject(Predicate.class))).andReturn(mockKTable);
+    final KGroupedTable groupedTable = mock(KGroupedTable.class);
+    expect(mockKTable.groupBy(anyObject(), same(grouped))).andReturn(groupedTable);
+    replay(groupedFactory, mockKTable);
+    final Expression col1Expression = new DereferenceExpression(
+        new QualifiedNameReference(QualifiedName.of(ksqlTable.getName())), "COL1");
+    final List<Expression> groupByExpressions = Collections.singletonList(col1Expression);
+    final SchemaKTable schemaKTable = buildSchemaKTable(ksqlTable, mockKTable, groupedFactory);
+
+    // When:
+    schemaKTable.groupBy(valSerde, groupByExpressions, GROUP_OP_NAME);
+
+    // Then:
+    verify(mockKTable, groupedFactory);
   }
 
   @SuppressWarnings("unchecked")
@@ -314,7 +360,7 @@ public class SchemaKTableTest {
         initialSchemaKTable.getSchema(), null, false, () -> null);
 
     // Call groupBy and extract the captured mapper
-    initialSchemaKTable.groupBy(rowSerde, groupByExpressions);
+    initialSchemaKTable.groupBy(rowSerde, groupByExpressions, GROUP_OP_NAME);
     verify(mockKTable, mockKGroupedTable);
     final KeyValueMapper keySelector = capturedKeySelector.getValue();
     final GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));
@@ -325,7 +371,6 @@ public class SchemaKTableTest {
     assertThat(keyValue.key, equalTo("bar|+|foo"));
     assertThat(keyValue.value, equalTo(value));
   }
-
 
   @SuppressWarnings("unchecked")
   @Test

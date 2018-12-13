@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.streams.GroupedFactory;
+import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
@@ -31,7 +33,6 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -52,6 +53,32 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
+    this(
+        schema,
+        ktable,
+        keyField,
+        sourceSchemaKStreams,
+        keySerde,
+        type,
+        ksqlConfig,
+        functionRegistry,
+        GroupedFactory.create(ksqlConfig),
+        JoinedFactory.create(ksqlConfig)
+    );
+  }
+
+  SchemaKTable(
+      final Schema schema,
+      final KTable<K, GenericRow> ktable,
+      final Field keyField,
+      final List<SchemaKStream> sourceSchemaKStreams,
+      final Serde<K> keySerde,
+      final Type type,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry,
+      final GroupedFactory groupedFactory,
+      final JoinedFactory joinedFactory
+  ) {
     super(
         schema,
         null,
@@ -60,7 +87,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         type,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        groupedFactory,
+        joinedFactory
     );
     this.ktable = ktable;
   }
@@ -147,14 +176,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
-      final List<Expression> groupByExpressions) {
+      final List<Expression> groupByExpressions,
+      final String opName) {
 
     final GroupBy groupBy = new GroupBy(groupByExpressions);
 
     final KGroupedTable kgroupedTable = ktable
         .filter((key, value) -> value != null)
         .groupBy((key, value) -> new KeyValue<>(groupBy.mapper.apply(key, value), value),
-            Grouped.with(Serdes.String(), valSerde));
+            groupedFactory.create(opName, Serdes.String(), valSerde));
 
     final Field newKeyField = new Field(
         groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);

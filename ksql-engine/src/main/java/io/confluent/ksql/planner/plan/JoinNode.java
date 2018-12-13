@@ -276,6 +276,10 @@ public class JoinNode extends PlanNode {
       this.joinNode = Objects.requireNonNull(joinNode, "joinNode");
     }
 
+    protected String joinOpName() {
+      return joinNode.getId() + "-JOIN";
+    }
+
     public abstract SchemaKStream join();
 
     protected SchemaKStream buildStream(final PlanNode node, final String keyFieldName) {
@@ -392,7 +396,8 @@ public class JoinNode extends PlanNode {
                                                 leftStream.getKeyField().name()),
                                      joinNode.withinExpression.joinWindow(),
                                      getSerDeForNode(joinNode.left),
-                                     getSerDeForNode(joinNode.right));
+                                     getSerDeForNode(joinNode.right),
+                                     joinOpName());
         case OUTER:
           return leftStream.outerJoin(rightStream,
                                       joinNode.schema,
@@ -400,7 +405,8 @@ public class JoinNode extends PlanNode {
                                                  leftStream.getKeyField().name()),
                                       joinNode.withinExpression.joinWindow(),
                                       getSerDeForNode(joinNode.left),
-                                      getSerDeForNode(joinNode.right));
+                                      getSerDeForNode(joinNode.right),
+                                      joinOpName());
         case INNER:
           return leftStream.join(rightStream,
                                  joinNode.schema,
@@ -408,7 +414,8 @@ public class JoinNode extends PlanNode {
                                             leftStream.getKeyField().name()),
                                  joinNode.withinExpression.joinWindow(),
                                  getSerDeForNode(joinNode.left),
-                                 getSerDeForNode(joinNode.right));
+                                 getSerDeForNode(joinNode.right),
+                                 joinOpName());
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
       }
@@ -449,14 +456,16 @@ public class JoinNode extends PlanNode {
                                      joinNode.schema,
                                      getJoinKey(joinNode.leftAlias,
                                                 leftStream.getKeyField().name()),
-                                     getSerDeForNode(joinNode.left));
+                                     getSerDeForNode(joinNode.left),
+                                     joinOpName());
 
         case INNER:
           return leftStream.join(rightTable,
                                  joinNode.schema,
                                  getJoinKey(joinNode.leftAlias,
                                             leftStream.getKeyField().name()),
-                                 getSerDeForNode(joinNode.left));
+                                 getSerDeForNode(joinNode.left),
+                                 joinOpName());
         case OUTER:
           throw new KsqlException("Full outer joins between streams and tables (stream: left, "
                                   + "table: right) are not supported.");

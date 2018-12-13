@@ -107,7 +107,6 @@ public class StreamedQueryResourceTest {
     testResource = new StreamedQueryResource(
         ksqlConfig, mockKsqlEngine, serviceContext, mockStatementParser, DISCONNECT_CHECK_INTERVAL,
         activenessRegistrar);
-
   }
 
   @Test

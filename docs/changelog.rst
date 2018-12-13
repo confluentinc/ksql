@@ -12,6 +12,7 @@ KSQL 5.1 includes new features, including:
 Detailed Changlog
 +++++++++++++++++
 
+* `PR-2265 <https://github.com/confluentinc/ksql/pull/2265>`_ - MINOR: Fix bug encountered when restoring RUN SCRIPT
 * `PR-2240 <https://github.com/confluentinc/ksql/pull/2240>`_ - Bring version checker improvements to 5.1.x
 * `PR-2242 <https://github.com/confluentinc/ksql/pull/2242>`_ - KSQL-1795: First draft of STRUCT topic
 * `PR-2235 <https://github.com/confluentinc/ksql/pull/2235>`_ - KSQL-1794: First draft of query with arrays and maps topic

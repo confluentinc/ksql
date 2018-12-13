@@ -316,7 +316,7 @@ public class WSQueryEndpointTest {
     verifyClosedWithReason("topic does not exist: bob");
   }
 
-  private PrintTopic printTopic(final String name, final boolean fromBeginning) {
+  private static PrintTopic printTopic(final String name, final boolean fromBeginning) {
     return new PrintTopic(
         new NodeLocation(0, 1),
         QualifiedName.of(name),

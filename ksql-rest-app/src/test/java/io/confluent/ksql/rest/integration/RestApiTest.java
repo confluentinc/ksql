@@ -135,7 +135,7 @@ public class RestApiTest {
   }
 
   @AfterClass
-  public static void cleanUpClass() throws Exception {
+  public static void cleanUpClass() {
     restApplication.stop();
     testHarness.stop();
   }

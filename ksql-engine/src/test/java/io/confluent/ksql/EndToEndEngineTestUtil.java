@@ -140,6 +140,7 @@ final class EndToEndEngineTestUtil {
       }
     }
 
+    @SuppressFBWarnings("HE_EQUALS_USE_HASHCODE")
     @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass", "Contract"}) // Hack to make work with OutputVerifier.
     @Override
     public boolean equals(final Object o) {

@@ -25,10 +25,8 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -40,7 +38,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
@@ -68,16 +65,9 @@ public class AggregateNodeTest {
   }
 
   @Mock
-  private KafkaTopicClient topicClient;
-  @Mock
   private ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private final StreamsBuilder builder = new StreamsBuilder();
-
-  @Test
-  public void name() {
-    when(serviceContext.getTopicClient()).thenReturn(topicClient);
-  }
 
   @Test
   public void shouldBuildSourceNode() {
@@ -234,7 +224,7 @@ public class AggregateNodeTest {
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
     final SchemaKStream stream = build();
-    assertThat(((SchemaKTable)stream).getKeySerde(), is(not(Optional.empty())));
+    assertThat(stream.getKeySerde(), is(not(Optional.empty())));
   }
 
   private SchemaKStream build() {

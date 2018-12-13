@@ -267,10 +267,8 @@ public class CodeGenRunner {
         final String arrayBaseName = node.getBase().toString();
         final Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName)
             .orElseThrow(
-                () -> {
-                  return new RuntimeException("Cannot find the select "
-                      + "field in the available fields: " + arrayBaseName);
-                });
+                () -> new RuntimeException("Cannot find the select "
+                    + "field in the available fields: " + arrayBaseName));
         addParameter(schemaField);
       } else {
         process(node.getBase(), context);

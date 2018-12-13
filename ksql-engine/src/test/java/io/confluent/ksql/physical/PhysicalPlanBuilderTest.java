@@ -414,7 +414,7 @@ public class PhysicalPlanBuilderTest {
     assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(0))));
   }
 
-  private void shouldUseProvidedOptimizationConfig(Object value) throws Exception {
+  private void shouldUseProvidedOptimizationConfig(Object value) {
     // Given:
     final Map<String, Object> properties =
         Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION, value);
@@ -604,7 +604,7 @@ public class PhysicalPlanBuilderTest {
         ksqlConfig,
         Collections.emptyMap());
     final Schema resultSchema = queryMetadataList.get(0).getOutputNode().getSchema();
-    resultSchema.fields().stream().forEach(
+    resultSchema.fields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );
     closeQueries(queryMetadataList);
@@ -631,7 +631,7 @@ public class PhysicalPlanBuilderTest {
   }
 
 
-  private void closeQueries(final List<QueryMetadata> queryMetadataList) {
+  private static void closeQueries(final List<QueryMetadata> queryMetadataList) {
     queryMetadataList.forEach(QueryMetadata::close);
   }
 }

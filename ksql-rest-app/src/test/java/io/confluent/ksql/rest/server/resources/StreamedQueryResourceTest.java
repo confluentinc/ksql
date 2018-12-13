@@ -145,21 +145,18 @@ public class StreamedQueryResourceTest {
 
     final LinkedList<GenericRow> writtenRows = new LinkedList<>();
 
-    final Thread rowQueuePopulatorThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          for (int i = 0; i != NUM_ROWS; i++) {
-            final String key = Integer.toString(i);
-            final GenericRow value = new GenericRow(Collections.singletonList(i));
-            synchronized (writtenRows) {
-              writtenRows.add(value);
-            }
-            rowQueue.put(new KeyValue<>(key, value));
+    final Thread rowQueuePopulatorThread = new Thread(() -> {
+      try {
+        for (int i = 0; i != NUM_ROWS; i++) {
+          final String key = Integer.toString(i);
+          final GenericRow value = new GenericRow(Collections.singletonList(i));
+          synchronized (writtenRows) {
+            writtenRows.add(value);
           }
-        } catch (final InterruptedException exception) {
-          // This should happen during the test, so it's fine
+          rowQueue.put(new KeyValue<>(key, value));
         }
+      } catch (final InterruptedException exception) {
+        // This should happen during the test, so it's fine
       }
     }, "Row Queue Populator");
     rowQueuePopulatorThread.setUncaughtExceptionHandler(threadExceptionHandler);
@@ -213,16 +210,13 @@ public class StreamedQueryResourceTest {
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     final StreamingOutput responseStream = (StreamingOutput) response.getEntity();
 
-    final Thread queryWriterThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          responseStream.write(responseOutputStream);
-        } catch (final EOFException exception) {
-          // It's fine
-        } catch (final IOException exception) {
-          throw new RuntimeException(exception);
-        }
+    final Thread queryWriterThread = new Thread(() -> {
+      try {
+        responseStream.write(responseOutputStream);
+      } catch (final EOFException exception) {
+        // It's fine
+      } catch (final IOException exception) {
+        throw new RuntimeException(exception);
       }
     }, "Query Writer");
     queryWriterThread.setUncaughtExceptionHandler(threadExceptionHandler);
@@ -270,7 +264,7 @@ public class StreamedQueryResourceTest {
 
     private boolean closed;
 
-    public EOFPipedOutputStream() {
+    private EOFPipedOutputStream() {
       super();
       closed = false;
     }

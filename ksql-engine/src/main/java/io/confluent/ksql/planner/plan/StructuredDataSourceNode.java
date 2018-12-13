@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -89,7 +88,7 @@ public class StructuredDataSourceNode
 
   private final StructuredDataSource structuredDataSource;
   private final Schema schema;
-  final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
+  private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
   // TODO: pass in the "assignments" and the "outputs" separately
   // TODO: (i.e., get rid if the symbol := symbol idiom)
@@ -108,12 +107,12 @@ public class StructuredDataSourceNode
       final Schema schema,
       final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier) {
     super(id, structuredDataSource.getDataSourceType());
-    Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
-    Objects.requireNonNull(schema, "schema can't be null");
-    Objects.requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
-    this.schema = schema;
-    this.structuredDataSource = structuredDataSource;
-    this.materializedFactorySupplier = materializedFactorySupplier;
+    this.schema =
+        Objects.requireNonNull(schema, "schema");
+    this.structuredDataSource =
+        Objects.requireNonNull(structuredDataSource, "structuredDataSource");
+    this.materializedFactorySupplier =
+        Objects.requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
   }
 
   public String getTopicName() {
@@ -344,7 +343,7 @@ public class StructuredDataSourceNode
         genericRowSerde, genericRowSerdeAfterRead, ksqlConfig);
   }
 
-  private static <K> KTable<?, GenericRow> table(
+  private <K> KTable<?, GenericRow> table(
       final StreamsBuilder builder,
       final Topology.AutoOffsetReset autoOffsetReset,
       final TimestampExtractor timestampExtractor,

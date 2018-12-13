@@ -276,7 +276,7 @@ public class JoinNode extends PlanNode {
       this.joinNode = Objects.requireNonNull(joinNode, "joinNode");
     }
 
-    protected String joinOpName() {
+    String joinOpName() {
       return joinNode.getId() + "-JOIN";
     }
 

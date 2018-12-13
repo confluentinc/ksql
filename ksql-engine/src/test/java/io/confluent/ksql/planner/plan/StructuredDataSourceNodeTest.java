@@ -96,6 +96,7 @@ public class StructuredDataSourceNodeTest {
       .field(TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
+
   private final StructuredDataSourceNode node = new StructuredDataSourceNode(
       new PlanNodeId("0"),
       new KsqlStream<>("sqlExpression", "datasource",
@@ -184,24 +185,6 @@ public class StructuredDataSourceNodeTest {
     serviceContext.close();
   }
 
-  private StructuredDataSourceNode nodeWithMockTableSource() {
-    return new StructuredDataSourceNode(
-        realNodeId,
-        tableSource,
-        realSchema,
-        materializedFactorySupplier);
-  }
-
-  private SchemaKStream buildStreamWithMocks(final StructuredDataSourceNode node) {
-    return node.buildStream(
-        streamsBuilder,
-        realConfig,
-        serviceContext,
-        functionRegistry,
-        Collections.emptyMap()
-    );
-  }
-
   @Test
   @SuppressWarnings("unchecked")
   public void shouldMaterializeTableCorrectly() {
@@ -209,25 +192,18 @@ public class StructuredDataSourceNodeTest {
     final StructuredDataSourceNode node = nodeWithMockTableSource();
 
     // When:
-    buildStreamWithMocks(node);
+    node.buildStream(
+        streamsBuilder,
+        realConfig,
+        serviceContext,
+        functionRegistry,
+        Collections.emptyMap()
+    );
 
     // Then:
     verify(materializedFactorySupplier).apply(realConfig);
     verify(materializedFactory).create(keySerde, rowSerde, "source-REDUCE");
     verify(kGroupedStream).aggregate(any(), any(), same(materialized));
-  }
-
-  @After
-  public void tearDown() {
-    serviceContext.close();
-  }
-
-  private SchemaKStream build(final StructuredDataSourceNode node) {
-    return node.buildStream(realBuilder,
-        realConfig,
-        serviceContext,
-        new InternalFunctionRegistry(),
-        new HashMap<>());
   }
 
   @Test
@@ -326,5 +302,22 @@ public class StructuredDataSourceNodeTest {
       assertThat(streamsNode.successors().size(), equalTo(1));
       streamsNode = streamsNode.successors().iterator().next();
     }
+  }
+
+  private SchemaKStream build(final StructuredDataSourceNode node) {
+    return node.buildStream(
+        realBuilder,
+        realConfig,
+        serviceContext,
+        new InternalFunctionRegistry(),
+        new HashMap<>());
+  }
+
+  private StructuredDataSourceNode nodeWithMockTableSource() {
+    return new StructuredDataSourceNode(
+        realNodeId,
+        tableSource,
+        realSchema,
+        materializedFactorySupplier);
   }
 }

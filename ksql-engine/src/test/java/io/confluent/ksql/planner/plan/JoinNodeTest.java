@@ -149,11 +149,11 @@ public class JoinNodeTest {
 
   }
 
-  public void buildJoin() {
+  private void buildJoin() {
     buildJoin(ksqlConfig);
   }
 
-  public void buildJoin(final KsqlConfig ksqlConfig) {
+  private void buildJoin(final KsqlConfig ksqlConfig) {
     buildJoin(
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
             + "FROM test1 t1 LEFT JOIN test2 t2 "
@@ -161,7 +161,7 @@ public class JoinNodeTest {
         ksqlConfig);
   }
 
-  public void buildJoin(final String queryString, final KsqlConfig ksqlConfig) {
+  private void buildJoin(final String queryString, final KsqlConfig ksqlConfig) {
     buildJoinNode(queryString);
     stream = buildStream(ksqlConfig);
   }

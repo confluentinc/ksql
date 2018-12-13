@@ -75,7 +75,7 @@ public class SchemaKGroupedStreamTest {
   private KsqlConfig config;
   @Mock
   private FunctionRegistry funcRegistry;
-  @Mock(MockType.NICE)
+  @Mock
   private Initializer initializer;
   @Mock
   private Serde<GenericRow> topicValueSerDe;

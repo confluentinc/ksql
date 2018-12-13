@@ -448,7 +448,7 @@ public class SchemaKStream<K> {
         .get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()));
   }
 
-  private String fieldNameFromExpression(final Expression expression) {
+  private static String fieldNameFromExpression(final Expression expression) {
     if (expression instanceof DereferenceExpression) {
       final DereferenceExpression dereferenceExpression =
           (DereferenceExpression) expression;
@@ -602,7 +602,7 @@ public class SchemaKStream<K> {
       return new GenericRow(columns);
     }
 
-    private void fillWithNulls(final List<Object> columns, final int numToFill) {
+    private static void fillWithNulls(final List<Object> columns, final int numToFill) {
       for (int i = 0; i < numToFill; ++i) {
         columns.add(null);
       }

@@ -17,11 +17,11 @@ package io.confluent.ksql.streams;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 
-public final class StreamsUtil {
+final class StreamsUtil {
   private StreamsUtil() {
   }
 
-  public static boolean useProvidedName(final KsqlConfig ksqlConfig) {
+  static boolean useProvidedName(final KsqlConfig ksqlConfig) {
     return Objects.equals(
         ksqlConfig.getString(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS),
         KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON

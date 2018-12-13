@@ -43,7 +43,7 @@ public class BasicCollectorTest {
   private Supplier<Boolean> activenessStatusSupplier;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     when(clock.millis()).thenReturn(12345L);
     when(activenessStatusSupplier.get()).thenReturn(true);
     basicCollector = new BasicCollector(MODULE_TYPE, activenessStatusSupplier, clock);

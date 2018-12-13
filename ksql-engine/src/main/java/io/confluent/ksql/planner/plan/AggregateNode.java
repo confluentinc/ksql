@@ -165,7 +165,7 @@ public class AggregateNode extends PlanNode {
     return finalSelectExpressionList;
   }
 
-  public Expression getHavingExpressions() {
+  private Expression getHavingExpressions() {
     return havingExpressions;
   }
 

@@ -194,7 +194,7 @@ public class JLineReaderTest {
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("select * from foo;"));
+    assertThat(commands, contains("select *\nfrom foo;"));
   }
 
   @Test
@@ -209,22 +209,50 @@ public class JLineReaderTest {
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("select * 'string that ends in termination char; ' from foo;"));
+    assertThat(commands, contains("select * 'string that ends in termination char;\n' from foo;"));
   }
 
   @Test
   public void shouldHandleMultiLineWithComments() throws Exception {
     // Given:
     final JLineReader reader = createReaderForInput(
-        "select * '-- not a comment\n"
-            + "' from foo; -- some comment\n"
+        "-- first inline comment\n"
+            + "select * '-- not comment\n"
+            + "' -- second inline comment\n"
+            + "from foo; -- third inline comment\n"
+            + "-- forth inline comment\n"
     );
 
     // When:
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("select * '-- not a comment ' from foo; -- some comment"));
+    assertThat(commands, contains(
+        "-- first inline comment",
+        "select * '-- not comment\n' -- second inline comment\nfrom foo; -- third inline comment",
+        "-- forth inline comment"
+    ));
+  }
+
+  @Test
+  public void shouldHandleCliCommandsWithInlineComments() throws Exception {
+    // Given:
+    when(cliLinePredicate.test("Exit")).thenReturn(true);
+    final JLineReader reader = createReaderForInput(
+        "-- first inline comment\n"
+            + "Exit -- second inline comment\n"
+            + " -- third inline comment\n"
+    );
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains(
+        "-- first inline comment",
+        "Exit -- second inline comment",
+        "-- third inline comment"
+    ));
   }
 
   @SuppressWarnings("InfiniteLoopStatement")

@@ -68,9 +68,7 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
   @Override
   public String readLine() {
-    final String line = lineReader
-        .readLine(prompt)
-        .replace("\n", " ");
+    final String line = lineReader.readLine(prompt);
 
     addToHistory(line);
     return line;

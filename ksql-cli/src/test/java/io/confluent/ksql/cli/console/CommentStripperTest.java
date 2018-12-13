@@ -106,6 +106,7 @@ public class CommentStripperTest {
     assertThat(CommentStripper.strip(line), is("'this isn''t a comment -- the first quote isn''t closed'"));
     assertThat(CommentStripper.strip(line2), is("'''this isn''t a comment -- the first quote isn''t closed'"));
   }
+
   @Test
   public void shouldCorrectHandleEscapedDoubleQuotes() {
     // Given:
@@ -115,5 +116,25 @@ public class CommentStripperTest {
     // Then:
     assertThat(CommentStripper.strip(line), is("\"this isn''t a comment -- the first quote isn''t closed\""));
     assertThat(CommentStripper.strip(line2), is("\"\"\"this isn''t a comment -- the first quote isn''t closed\""));
+  }
+
+  @Test
+  public void shouldHandleMultiLine() {
+    // Given:
+    final String line = "some multi-line\n"
+        + "statement";
+
+    // Then:
+    assertThat(CommentStripper.strip(line), is("some multi-line\nstatement"));
+  }
+
+  @Test
+  public void shouldTerminateCommentAtNewLine() {
+    // Given:
+    final String line = "some multi-line -- this is a comment\n"
+        + "statement";
+
+    // Then:
+    assertThat(CommentStripper.strip(line), is("some multi-line\nstatement"));
   }
 }

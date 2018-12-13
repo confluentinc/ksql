@@ -45,6 +45,7 @@ import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -105,6 +106,7 @@ public class RecoveryTest {
         final KsqlConfig ksqlConfig,
         final Map<String, Object> overwriteProperties) {
       final CommandId commandId = commandIdAssigner.getCommandId(statement);
+      final long commandSequenceNumber = commandLog.size();
       commandLog.add(
           new QueuedCommand(
               commandId,
@@ -113,7 +115,7 @@ public class RecoveryTest {
                   Collections.emptyMap(),
                   ksqlConfig.getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));
-      return new QueuedCommandStatus(commandId);
+      return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
 
     @Override
@@ -128,6 +130,10 @@ public class RecoveryTest {
       final List<QueuedCommand> restoreCommands = ImmutableList.copyOf(commandLog);
       this.offset = commandLog.size();
       return restoreCommands;
+    }
+
+    @Override
+    public void ensureConsumedPast(final long seqNum, final Duration timeout) {
     }
 
     @Override
@@ -178,7 +184,7 @@ public class RecoveryTest {
     void submitCommands(final String ...statements) {
       for (final String statement : statements) {
         final Response response = ksqlResource.handleKsqlStatements(
-            new KsqlRequest(statement, Collections.emptyMap()));
+            new KsqlRequest(statement, Collections.emptyMap(), null));
         assertThat(response.getStatus(), equalTo(200));
         executeCommands();
       }

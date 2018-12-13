@@ -19,13 +19,16 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -41,21 +44,25 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -70,14 +77,20 @@ public class WSQueryEndpointTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private static final KsqlRequest VALID_REQUEST = new KsqlRequest("test-sql",
-      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"));
+      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), null);
 
   private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest("other-sql",
-      ImmutableMap.of());
+      ImmutableMap.of(), null);
+
+  private static final long SEQUENCE_NUMBER = 2L;
+  private static final KsqlRequest REQUEST_WITHOUT_SEQUENCE_NUMBER = VALID_REQUEST;
+  private static final KsqlRequest REQUEST_WITH_SEQUENCE_NUMBER = new KsqlRequest("test-sql",
+      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), SEQUENCE_NUMBER);
 
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;
   private static final KsqlRequest[] NO_REQUEST_PROPERTY = (KsqlRequest[]) null;
+  private static final Duration COMMAND_QUEUE_CATCHUP_TIMEOUT = Duration.ofMillis(5000L);
 
   @Mock
   private KsqlConfig ksqlConfig;
@@ -96,17 +109,23 @@ public class WSQueryEndpointTest {
   @Mock
   private QueryBody queryBody;
   @Mock
+  private ReplayableCommandQueue replayableCommandQueue;
+  @Mock
   private QueryPublisher queryPublisher;
   @Mock
   private PrintTopicPublisher topicPublisher;
+  @Mock
+  private ActivenessRegistrar activenessRegistrar;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
 
   private Query query;
   private WSQueryEndpoint wsQueryEndpoint;
 
-  @Mock
-  private ActivenessRegistrar activenessRegistrar;
+  @BeforeClass
+  public static void setUpClass() {
+    OBJECT_MAPPER.registerModule(new Jdk8Module());
+  }
 
   @Before
   public void setUp() {
@@ -119,8 +138,8 @@ public class WSQueryEndpointTest {
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, exec,
-        queryPublisher, topicPublisher, activenessRegistrar);
+        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, replayableCommandQueue, exec,
+        queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT);
   }
 
   @Test
@@ -132,7 +151,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Received invalid api version: [bad-version]");
+    verifyClosedWithReason("Received invalid api version: [bad-version]", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -144,7 +163,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Received multiple api versions: [1, 2]");
+    verifyClosedWithReason("Received multiple api versions: [1, 2]", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -192,7 +211,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Error parsing request: missing request parameter");
+    verifyClosedWithReason(
+        "Error parsing request: missing request parameter", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -204,7 +224,8 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Error parsing request: missing request parameter");
+    verifyClosedWithReason(
+        "Error parsing request: missing request parameter", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -241,7 +262,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Error parsing query: Boom!");
+    verifyClosedWithReason("Error parsing query: Boom!", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -259,7 +280,9 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("Error parsing request: Failed to set 'unknown-property' to 'true'");
+    verifyClosedWithReason(
+        "Error parsing request: Failed to set 'unknown-property' to 'true'",
+        CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -310,7 +333,46 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("topic does not exist: bob");
+    verifyClosedWithReason("topic does not exist: bob", CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldNotWaitIfNoSequenceNumberSpecified() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITHOUT_SEQUENCE_NUMBER);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(replayableCommandQueue, never()).ensureConsumedPast(anyLong(), any());
+  }
+
+  @Test
+  public void shouldWaitIfSequenceNumberSpecified() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(replayableCommandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
+  }
+
+  @Test
+  public void shouldReturnErrorIfCommandQueueCatchupTimeout() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
+    doThrow(new TimeoutException("yikes"))
+        .when(replayableCommandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("yikes", CloseCodes.TRY_AGAIN_LATER);
+    verify(statementParser, never()).parseSingleStatement(any());
   }
 
   private PrintTopic printTopic(final String name, final boolean fromBeginning) {
@@ -378,11 +440,11 @@ public class WSQueryEndpointTest {
     }
   }
 
-  private void verifyClosedWithReason(final String reason) throws Exception {
+  private void verifyClosedWithReason(final String reason, final CloseCodes code) throws Exception {
     verify(session).close(closeReasonCaptor.capture());
     final CloseReason closeReason = closeReasonCaptor.getValue();
     assertThat(closeReason.getReasonPhrase(), is(reason));
-    assertThat(closeReason.getCloseCode(), is(CloseCodes.CANNOT_ACCEPT));
+    assertThat(closeReason.getCloseCode(), is(code));
   }
 
   @Test

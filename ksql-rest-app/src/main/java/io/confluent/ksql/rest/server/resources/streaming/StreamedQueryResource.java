@@ -24,8 +24,10 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -51,6 +53,7 @@ public class StreamedQueryResource {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
+  private final ReplayableCommandQueue replayableCommandQueue;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
@@ -59,12 +62,15 @@ public class StreamedQueryResource {
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
+      final ReplayableCommandQueue replayableCommandQueue,
       final Duration disconnectCheckInterval,
       final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
+    this.replayableCommandQueue =
+        Objects.requireNonNull(replayableCommandQueue, "replayableCommandQueue");
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
@@ -80,6 +86,9 @@ public class StreamedQueryResource {
       return Errors.badRequest("\"ksql\" field must be populated");
     }
     activenessRegistrar.updateLastRequestTime();
+
+    CommandStoreUtil.httpWaitForCommandSequenceNumber(
+        replayableCommandQueue, request, disconnectCheckInterval);
     try {
       statement = statementParser.parseSingleStatement(ksql);
     } catch (IllegalArgumentException | KsqlException e) {

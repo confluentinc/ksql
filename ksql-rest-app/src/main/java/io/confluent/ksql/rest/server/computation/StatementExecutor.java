@@ -247,7 +247,8 @@ public class StatementExecutor {
       if (mode == Mode.EXECUTE) {
         for (final QueryMetadata queryMetadata : queryMetadataList) {
           if (queryMetadata instanceof PersistentQueryMetadata) {
-            final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
+            final PersistentQueryMetadata persistentQueryMd =
+                (PersistentQueryMetadata) queryMetadata;
             persistentQueryMd.start();
           }
         }

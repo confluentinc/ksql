@@ -21,7 +21,10 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,17 +35,17 @@ public class SequenceNumberFutureStoreTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private SequenceNumberFutureStore sequenceNumberFutureStore;
+  private SequenceNumberFutureStore futureStore;
 
   @Before
   public void setUp() {
-    sequenceNumberFutureStore = new SequenceNumberFutureStore();
+    futureStore = new SequenceNumberFutureStore();
   }
 
   @Test
   public void shouldReturnFutureForNewSequenceNumber() {
     // When:
-    final CompletableFuture<Void> future = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
+    final CompletableFuture<Void> future = futureStore.getFutureForSequenceNumber(2);
 
     // Then:
     assertFutureIsNotCompleted(future);
@@ -51,10 +54,10 @@ public class SequenceNumberFutureStoreTest {
   @Test
   public void shouldReturnFutureForExistingSequenceNumber() {
     // Given:
-    final CompletableFuture<Void> existingFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
+    final CompletableFuture<Void> existingFuture = futureStore.getFutureForSequenceNumber(2);
 
     // When:
-    final CompletableFuture<Void> newFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
+    final CompletableFuture<Void> newFuture = futureStore.getFutureForSequenceNumber(2);
 
     // Then:
     assertThat(newFuture, is(sameInstance(existingFuture)));
@@ -63,10 +66,10 @@ public class SequenceNumberFutureStoreTest {
   @Test
   public void shouldReturnFutureForCompletedSequenceNumber() {
     // Given:
-    sequenceNumberFutureStore.completeFuturesUpToAndIncludingSequenceNumber(2);
+    futureStore.completeFuturesUpToAndIncludingSequenceNumber(2);
 
     // When:
-    final CompletableFuture<Void> future = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
+    final CompletableFuture<Void> future = futureStore.getFutureForSequenceNumber(2);
 
     // Then:
     assertFutureIsCompleted(future);
@@ -75,15 +78,32 @@ public class SequenceNumberFutureStoreTest {
   @Test
   public void shouldCompleteFutures() {
     // Given:
-    final CompletableFuture<Void> firstFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(2);
-    final CompletableFuture<Void> secondFuture = sequenceNumberFutureStore.getFutureForSequenceNumber(3);
+    final CompletableFuture<Void> firstFuture = futureStore.getFutureForSequenceNumber(2);
+    final CompletableFuture<Void> secondFuture = futureStore.getFutureForSequenceNumber(3);
 
     // When:
-    sequenceNumberFutureStore.completeFuturesUpToAndIncludingSequenceNumber(2);
+    futureStore.completeFuturesUpToAndIncludingSequenceNumber(2);
 
     // Then:
     assertFutureIsCompleted(firstFuture);
     assertFutureIsNotCompleted(secondFuture);
+  }
+
+  @Test
+  public void shouldBeThreadSafe() {
+    // When:
+    final List<CompletableFuture<Void>> futures = IntStream.range(1, 11).parallel()
+        .mapToObj(idx -> {
+          final CompletableFuture<Void> f = futureStore.getFutureForSequenceNumber(idx);
+          if (idx % 10 == 0) {
+            futureStore.completeFuturesUpToAndIncludingSequenceNumber(idx);
+          }
+          return f;
+        })
+        .collect(Collectors.toList());
+
+    // Then:
+    assertThat(futures.stream().allMatch(CompletableFuture::isDone), is(true));
   }
 
   private static void assertFutureIsCompleted(CompletableFuture<Void> future) {

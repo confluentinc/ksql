@@ -50,6 +50,9 @@ public class CommandStatusFuture {
     try {
       return finalStatusFuture.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     } catch (final ExecutionException e) {
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException)e.getCause();
+      }
       throw new RuntimeException("Error executing command " + commandId, e.getCause());
     } catch (final TimeoutException e) {
       return currentStatus;

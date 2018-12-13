@@ -38,6 +38,14 @@ public class CommandStatusEntityTest {
       + "},"
       + "\"commandSequenceNumber\":2"
       + "}";
+  private static final String OLD_JSON_ENTITY = "{"
+      + "\"@type\":\"currentStatus\","
+      + "\"statementText\":\"sql\","
+      + "\"commandId\":\"topic/1/create\","
+      + "\"commandStatus\":{"
+      + "\"status\":\"SUCCESS\","
+      + "\"message\":\"some success message\""
+      + "}}";
 
   private static final String STATEMENT_TEXT = "sql";
   private static final CommandId COMMAND_ID = CommandId.fromString("topic/1/create");
@@ -46,6 +54,8 @@ public class CommandStatusEntityTest {
   private static final long COMMAND_SEQUENCE_NUMBER = 2L;
   private static final CommandStatusEntity ENTITY =
       new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS, COMMAND_SEQUENCE_NUMBER);
+  private static final CommandStatusEntity ENTITY_WITHOUT_SEQUENCE_NUMBER =
+      new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS, null);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -67,6 +77,16 @@ public class CommandStatusEntityTest {
 
     // Then:
     assertThat(entity, is(ENTITY));
+  }
+
+  @Test
+  public void shouldBeAbleToDeserializeOlderServerMessage() throws Exception {
+    // When:
+    final CommandStatusEntity entity =
+        OBJECT_MAPPER.readValue(OLD_JSON_ENTITY, CommandStatusEntity.class);
+
+    // Then:
+    assertThat(entity, is(ENTITY_WITHOUT_SEQUENCE_NUMBER));
   }
 
   @Test

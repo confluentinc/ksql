@@ -20,50 +20,31 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class QueuedCommandStatus {
-  private static final CommandStatus INITIAL_STATUS = new CommandStatus(
-      CommandStatus.Status.QUEUED, "Statement written to command topic");
+  private final CommandStatusFuture commandStatusFuture;
+  private final long commandSequenceNumber;
 
-  private final CommandId commandId;
-  private volatile CommandStatus commandStatus;
-  private final CompletableFuture<CommandStatus> future;
-
-  public QueuedCommandStatus(final CommandId commandId) {
-    this.commandId = Objects.requireNonNull(commandId);
-    this.commandStatus = INITIAL_STATUS;
-    this.future = new CompletableFuture<>();
-  }
-
-  public CommandId getCommandId() {
-    return commandId;
+  public QueuedCommandStatus(
+      final long commandSequenceNumber, final CommandStatusFuture commandStatusFuture) {
+    this.commandSequenceNumber =
+        Objects.requireNonNull(commandSequenceNumber, "commandSequenceNumber");
+    this.commandStatusFuture = Objects.requireNonNull(commandStatusFuture, "commandStatusFuture");
   }
 
   public CommandStatus getStatus() {
-    return commandStatus;
+    return commandStatusFuture.getStatus();
   }
 
-  public CommandStatus tryWaitForFinalStatus(final Duration timeout)
-      throws InterruptedException {
-    try {
-      return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-    } catch (final ExecutionException e) {
-      throw new RuntimeException("Error executing command " + commandId, e.getCause());
-    } catch (final TimeoutException e) {
-      return commandStatus;
-    }
+  public CommandId getCommandId() {
+    return commandStatusFuture.getCommandId();
   }
 
-  public void setStatus(final CommandStatus status) {
-    this.commandStatus = Objects.requireNonNull(status);
+  public long getCommandSequenceNumber() {
+    return commandSequenceNumber;
   }
 
-  public void setFinalStatus(final CommandStatus status) {
-    setStatus(status);
-    future.complete(status);
+  public CommandStatus tryWaitForFinalStatus(final Duration timeout) throws InterruptedException {
+    return commandStatusFuture.tryWaitForFinalStatus(timeout);
   }
 }

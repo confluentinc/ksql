@@ -44,8 +44,10 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -112,6 +114,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
+  private final ReplayableCommandQueue replayableCommandQueue;
   private final RootDocument rootDocument;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
@@ -121,7 +124,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
-
+  private final CommandQueue commandQueue;
+  
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
@@ -132,6 +136,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final KsqlConfig ksqlConfig,
       final KsqlRestConfig config,
       final CommandRunner commandRunner,
+      final CommandQueue commandQueue,
       final RootDocument rootDocument,
       final StatusResource statusResource,
       final StreamedQueryResource streamedQueryResource,
@@ -148,6 +153,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.streamedQueryResource =
         Objects.requireNonNull(streamedQueryResource, "streamedQueryResource");
     this.ksqlResource = Objects.requireNonNull(ksqlResource, "ksqlResource");
+    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue")
 
     this.versionCheckerAgent =
         Objects.requireNonNull(versionCheckerAgent, "versionCheckerAgent");
@@ -278,8 +284,11 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       statementParser,
                       ksqlEngine,
                       serviceContext,
+                      commandQueue,
                       exec,
-                      versionCheckerAgent::updateLastRequestTime
+                      versionCheckerAgent::updateLastRequestTime,
+                      Duration.ofMillis(config.getLong(
+                          KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG))
                   );
                 }
 
@@ -390,6 +399,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlEngine,
         serviceContext,
         statementParser,
+        commandStore,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
         versionChecker::updateLastRequestTime
@@ -412,6 +422,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlConfig,
         restConfig,
         commandRunner,
+        commandStore,
         rootDocument,
         statusResource,
         streamedQueryResource,

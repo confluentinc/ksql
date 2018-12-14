@@ -24,8 +24,11 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -53,6 +56,7 @@ public class StreamedQueryResource {
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
   private final StatementParser statementParser;
+  private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
@@ -62,6 +66,7 @@ public class StreamedQueryResource {
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final StatementParser statementParser,
+      final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
       final ActivenessRegistrar activenessRegistrar
   ) {
@@ -69,6 +74,7 @@ public class StreamedQueryResource {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
+    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
@@ -84,6 +90,9 @@ public class StreamedQueryResource {
       return Errors.badRequest("\"ksql\" field must be populated");
     }
     activenessRegistrar.updateLastRequestTime();
+
+    CommandStoreUtil.httpWaitForCommandSequenceNumber(
+        commandQueue, request, disconnectCheckInterval);
     try {
       statement = statementParser.parseSingleStatement(ksql);
     } catch (IllegalArgumentException | KsqlException e) {

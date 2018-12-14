@@ -40,6 +40,27 @@ public class IntegerMinKudafTest {
   }
 
   @Test
+  public void shouldHandleNull() {
+    final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
+    final int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
+    int currentMin = Integer.MAX_VALUE;
+
+    // aggregate null before any aggregation
+    currentMin = integerMinKudaf.aggregate(null, currentMin);
+    assertThat(Integer.MAX_VALUE, equalTo(currentMin));
+
+    // now send each value to aggregation and verify
+    for (final int i: values) {
+      currentMin = integerMinKudaf.aggregate(i, currentMin);
+    }
+    assertThat(2, equalTo(currentMin));
+
+    // null should not impact result
+    currentMin = integerMinKudaf.aggregate(null, currentMin);
+    assertThat(2, equalTo(currentMin));
+  }
+
+  @Test
   public void shouldFindCorrectMinForMerge() {
     final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
     final Merger<String, Integer> merger = integerMinKudaf.getMerger();

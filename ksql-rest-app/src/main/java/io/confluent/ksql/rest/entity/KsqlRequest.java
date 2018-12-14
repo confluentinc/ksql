@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
@@ -35,16 +36,19 @@ public class KsqlRequest {
 
   private final String ksql;
   private final Map<String, Object> streamsProperties;
+  private final Optional<Long> commandSequenceNumber;
 
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
-      @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties
+      @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties,
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     this.ksql = ksql == null ? "" : ksql;
     this.streamsProperties = streamsProperties == null
         ? Collections.emptyMap()
         : Collections.unmodifiableMap(new HashMap<>(streamsProperties));
+    this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
   public String getKsql() {
@@ -53,6 +57,10 @@ public class KsqlRequest {
 
   public Map<String, Object> getStreamsProperties() {
     return coerceTypes(streamsProperties);
+  }
+
+  public Optional<Long> getCommandSequenceNumber() {
+    return commandSequenceNumber;
   }
 
   @Override
@@ -66,13 +74,14 @@ public class KsqlRequest {
     }
 
     final KsqlRequest that = (KsqlRequest) o;
-    return Objects.equals(getKsql(), that.getKsql())
-        && Objects.equals(getStreamsProperties(), that.getStreamsProperties());
+    return Objects.equals(ksql, that.ksql)
+        && Objects.equals(streamsProperties, that.streamsProperties)
+        && Objects.equals(commandSequenceNumber, that.commandSequenceNumber);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getKsql(), getStreamsProperties());
+    return Objects.hash(ksql, streamsProperties, commandSequenceNumber);
   }
 
   private static Map<String, Object> coerceTypes(final Map<String, Object> streamsProperties) {

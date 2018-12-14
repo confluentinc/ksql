@@ -82,6 +82,7 @@ import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.ServiceContext;
@@ -195,11 +196,14 @@ public class KsqlResource {
   public Response handleKsqlStatements(final KsqlRequest request) {
     activenessRegistrar.updateLastRequestTime();
     try {
+      CommandStoreUtil.httpWaitForCommandSequenceNumber(
+          commandQueue, request, distributedCmdResponseTimeout);
+
       final List<PreparedStatement<?>> statements = parseStatements(request.getKsql());
 
       return executeStatements(statements, request.getStreamsProperties());
     } catch (final KsqlRestException e) {
-      return e.getResponse();
+      throw e;
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
@@ -594,7 +598,8 @@ public class KsqlResource {
       return new CommandStatusEntity(
           withSchema.getStatementText(),
           queuedCommandStatus.getCommandId(),
-          commandStatus
+          commandStatus,
+          queuedCommandStatus.getCommandSequenceNumber()
       );
     } catch (final Exception e) {
       throw new KsqlException(String.format(

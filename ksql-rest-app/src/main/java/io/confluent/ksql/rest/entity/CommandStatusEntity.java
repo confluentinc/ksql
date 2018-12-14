@@ -18,48 +18,28 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CommandStatusEntity extends KsqlEntity {
   private final CommandId commandId;
   private final CommandStatus commandStatus;
+  private final long commandSequenceNumber;
 
+  @JsonCreator
   public CommandStatusEntity(
-      final String statementText,
-      final CommandId commandId,
-      final CommandStatus commandStatus
+      @JsonProperty("statementText") final String statementText,
+      @JsonProperty("commandId") final CommandId commandId,
+      @JsonProperty("commandStatus") final CommandStatus commandStatus,
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     super(statementText);
-    this.commandId = commandId;
-    this.commandStatus = commandStatus;
-  }
-
-  public CommandStatusEntity(
-      final String statementText,
-      final String commandId,
-      final String status,
-      final String message
-  ) {
-    this(
-        statementText,
-        CommandId.fromString(commandId),
-        new CommandStatus(CommandStatus.Status.valueOf(status), message)
-    );
-  }
-
-  @SuppressWarnings("unchecked") // needs investigating
-  @JsonCreator
-  public CommandStatusEntity(final Map<String, Object> properties) {
-    this(
-        (String) properties.get("statementText"),
-        (String) properties.get("commandId"),
-        (String) ((Map<String, Object>) properties.get("commandStatus")).get("status"),
-        (String) ((Map<String, Object>) properties.get("commandStatus")).get("message")
-    );
+    this.commandId = Objects.requireNonNull(commandId, "commandId");
+    this.commandStatus = Objects.requireNonNull(commandStatus, "commandStatus");
+    this.commandSequenceNumber = commandSequenceNumber == null ? -1 : commandSequenceNumber;
   }
 
   public CommandId getCommandId() {
@@ -71,6 +51,10 @@ public class CommandStatusEntity extends KsqlEntity {
     return commandStatus;
   }
 
+  public Long getCommandSequenceNumber() {
+    return commandSequenceNumber;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -80,13 +64,14 @@ public class CommandStatusEntity extends KsqlEntity {
       return false;
     }
     final CommandStatusEntity that = (CommandStatusEntity) o;
-    return Objects.equals(getCommandId(), that.getCommandId())
-        && Objects.equals(getCommandStatus(), that.getCommandStatus());
+    return Objects.equals(commandId, that.commandId)
+        && Objects.equals(commandStatus, that.commandStatus)
+        && (commandSequenceNumber == that.commandSequenceNumber);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getCommandId(), getCommandStatus());
+    return Objects.hash(commandId, commandStatus, commandSequenceNumber);
   }
 
   @Override
@@ -94,6 +79,7 @@ public class CommandStatusEntity extends KsqlEntity {
     return "CommandStatusEntity{"
         + "commandId=" + commandId
         + ", commandStatus=" + commandStatus
+        + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';
   }
 }

@@ -29,37 +29,84 @@ final class CommentStripper {
   }
 
   static String strip(final String line) {
+    return new Parser(line).parse();
+  }
 
-    char lastChar = NONE;
-    char lastQuote = NONE;
-    for (int i = 0; i != line.length(); ++i) {
-      final char c = line.charAt(i);
-      switch (c) {
-        case '`':
-        case '\'':
-        case '"':
-          if (lastQuote == c) {
-            // Matching pair:
-            lastQuote = NONE;
-          } else if (lastQuote == NONE) {
-            lastQuote = c;
-          }
-          break;
+  private static final class Parser {
+    private final String line;
+    private int pos;
 
-        case '-':
-          if (lastChar == '-' && lastQuote == NONE) {
-            // Found unquoted comment marker:
-            return line.substring(0, i - 1).trim();
-          }
-          break;
-
-        default:
-          break;
-      }
-
-      lastChar = c;
+    private Parser(final String line) {
+      this.line = line;
+      this.pos = 0;
     }
 
-    return line;
+    private String parse() {
+      final String firstPart = strip();
+      if (done()) {
+        // Early out if contains no comments part way through:
+        return firstPart;
+      }
+
+      final StringBuilder builder = new StringBuilder(line.length());
+      builder.append(firstPart);
+      while (!done()) {
+        builder.append(strip());
+      }
+      return builder.toString();
+    }
+
+    private boolean done() {
+      return pos == line.length();
+    }
+
+    private String strip() {
+      final int start = pos;
+      char lastChar = NONE;
+      char lastQuote = NONE;
+      for (; pos != line.length(); ++pos) {
+        final char c = line.charAt(pos);
+
+        switch (c) {
+          case '`':
+          case '\'':
+          case '"':
+            if (lastQuote == c) {
+              // Matching pair:
+              lastQuote = NONE;
+            } else if (lastQuote == NONE) {
+              lastQuote = c;
+            }
+            break;
+
+          case '-':
+            if (lastChar == '-' && lastQuote == NONE) {
+              // Found unquoted comment marker:
+              return trimComment(start);
+            }
+            break;
+
+          default:
+            break;
+        }
+
+        lastChar = c;
+      }
+
+      return line.substring(start);
+    }
+
+    private String trimComment(final int partStart) {
+      final String part = line.substring(partStart, pos - 1).trim();
+
+      final int newLine = line.indexOf(System.lineSeparator(), pos + 1);
+      if (newLine == -1) {
+        pos = line.length();
+      } else {
+        pos = newLine;
+      }
+
+      return part;
+    }
   }
 }

@@ -33,9 +33,11 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -81,6 +83,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandId;
+import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
@@ -104,6 +107,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
@@ -133,7 +137,8 @@ public class KsqlResourceTest {
   private static final Duration DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = Duration.ofMillis(1000);
   private static final KsqlRequest VALID_EXECUTABLE_REQUEST = new KsqlRequest(
       "CREATE STREAM S AS SELECT * FROM test_stream;",
-      ImmutableMap.of(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG, true));
+      ImmutableMap.of(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG, true),
+      0L);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -155,8 +160,8 @@ public class KsqlResourceTest {
 
   @Before
   public void setUp() throws IOException, RestClientException {
-    commandStatus
-        = new QueuedCommandStatus(new CommandId(TOPIC, "whateva", CREATE));
+    commandStatus = new QueuedCommandStatus(
+        0, new CommandStatusFuture(new CommandId(TOPIC, "whateva", CREATE)));
     serviceContext = TestServiceContext.create();
     kafkaTopicClient = serviceContext.getTopicClient();
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
@@ -196,7 +201,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(new CommandStatusEntity(
         "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');",
-        commandStatus.getCommandId(), commandStatus.getStatus())));
+        commandStatus.getCommandId(), commandStatus.getStatus(), 0L)));
   }
 
   @Test
@@ -483,7 +488,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(new CommandStatusEntity(
         "CREATE STREAM S AS SELECT * FROM test_stream;",
-        commandStatus.getCommandId(), commandStatus.getStatus())));
+        commandStatus.getCommandId(), commandStatus.getStatus(), 0L)));
   }
 
   @Test
@@ -819,7 +824,7 @@ public class KsqlResourceTest {
 
     // When:
     final PropertiesList props = makeSingleRequest(
-        new KsqlRequest("list properties;", overrides), PropertiesList.class);
+        new KsqlRequest("list properties;", overrides, null), PropertiesList.class);
 
     // Then:
     assertThat(props.getProperties().get("ksql.streams.auto.offset.reset"), is("latest"));
@@ -972,9 +977,43 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldNotWaitIfNoCommandSequenceNumberSpecified() throws Exception {
+    // When:
+    makeSingleRequestWithSequenceNumber("list properties;", null, PropertiesList.class);
+
+    // Then:
+    verify(commandStore, never()).ensureConsumedPast(anyLong(), any());
+  }
+
+  @Test
+  public void shouldWaitIfCommandSequenceNumberSpecified() throws Exception {
+    // When:
+    makeSingleRequestWithSequenceNumber("list properties;", 2L, PropertiesList.class);
+
+    // Then:
+    verify(commandStore).ensureConsumedPast(eq(2L), any());
+  }
+
+  @Test
+  public void shouldReturnServiceUnavailableIfTimeoutWaitingForCommandSequenceNumber()
+      throws Exception {
+    // Given:
+    doThrow(new TimeoutException("timed out!"))
+        .when(commandStore).ensureConsumedPast(anyLong(), any());
+
+    // When:
+    final KsqlErrorMessage result =
+        makeFailingRequestWithSequenceNumber("list properties;", 2L, Code.SERVICE_UNAVAILABLE);
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT));
+    assertThat(result.getMessage(), is("timed out!"));
+  }
+
+  @Test
   public void shouldUpdateTheLastRequestTime() {
     // When:
-    ksqlResource.handleKsqlStatements(new KsqlRequest("foo", Collections.emptyMap()));
+    ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
 
     // Then:
     verify(activenessRegistrar).updateLastRequestTime();
@@ -1030,18 +1069,39 @@ public class KsqlResourceTest {
   }
 
   private KsqlErrorMessage makeFailingRequest(final String ksql, final Code errorCode) {
-    final Response response = ksqlResource.handleKsqlStatements(
-          new KsqlRequest(ksql, Collections.emptyMap()));
+    return makeFailingRequestWithSequenceNumber(ksql, null, errorCode);
+  }
+
+  private KsqlErrorMessage makeFailingRequestWithSequenceNumber(
+      final String ksql,
+      final Long seqNum,
+      final Code errorCode) {
+    return makeFailingRequest(new KsqlRequest(ksql, Collections.emptyMap(), seqNum), errorCode);
+  }
+
+  private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
+    try {
+      final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
       assertThat(response.getStatus(), is(errorCode.getCode()));
       assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
       return (KsqlErrorMessage) response.getEntity();
-
+    } catch (KsqlRestException e) {
+      return (KsqlErrorMessage) e.getResponse().getEntity();
+    }
   }
 
   private <T extends KsqlEntity> T makeSingleRequest(
       final String sql,
       final Class<T> expectedEntityType) {
-    return makeSingleRequest(new KsqlRequest(sql, Collections.emptyMap()), expectedEntityType);
+    return makeSingleRequestWithSequenceNumber(sql, null, expectedEntityType);
+  }
+
+  private <T extends KsqlEntity> T makeSingleRequestWithSequenceNumber(
+      final String sql,
+      final Long seqNum,
+      final Class<T> expectedEntityType) {
+    return makeSingleRequest(
+        new KsqlRequest(sql, Collections.emptyMap(), seqNum), expectedEntityType);
   }
 
   private <T extends KsqlEntity> T makeSingleRequest(

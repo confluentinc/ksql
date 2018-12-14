@@ -30,6 +30,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -45,7 +46,10 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
   public KsqlAvroTopicSerDe(final String fullSchemaName) {
     super(DataSource.DataSourceSerDe.AVRO);
-    this.fullSchemaName = fullSchemaName;
+    this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
+    if (this.fullSchemaName.isEmpty()) {
+      throw new IllegalArgumentException("the schema name cannot be empty");
+    }
   }
 
   private static AvroConverter getAvroConverter(

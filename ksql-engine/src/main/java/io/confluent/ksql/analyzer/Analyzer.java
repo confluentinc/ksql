@@ -153,7 +153,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             final String schemaFullName =
                 StringUtil.cleanQuotes(
                  analysis.getIntoProperties().getOrDefault(
-                   KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME,
+                   DdlConfig.AVRO_SCHEMA_FULL_NAME,
                    KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).toString());
             intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
             break;
@@ -172,7 +172,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           final String schemaFullName =
               StringUtil.cleanQuotes(
                 analysis.getIntoProperties().getOrDefault(
-                  KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME,
+                  DdlConfig.AVRO_SCHEMA_FULL_NAME,
                   KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).toString());
           intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
         }
@@ -645,10 +645,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
 
       final Expression avroSchemaFullName =
-              node.getProperties().get(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME);
+              node.getProperties().get(DdlConfig.AVRO_SCHEMA_FULL_NAME);
       if (avroSchemaFullName != null) {
         analysis.getIntoProperties()
-            .put(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME, avroSchemaFullName);
+            .put(DdlConfig.AVRO_SCHEMA_FULL_NAME, avroSchemaFullName);
       }
     }
   }
@@ -689,7 +689,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
     validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
-    validSet.add(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME.toUpperCase());
+    validSet.add(DdlConfig.AVRO_SCHEMA_FULL_NAME.toUpperCase());
 
     for (final String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

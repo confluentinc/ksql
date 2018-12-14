@@ -65,14 +65,14 @@ public class RegisterTopicCommand implements DdlCommand {
     // TODO: Find a way to avoid calling toUpperCase() here;
     // if the property can be an unquoted identifier, then capitalization will have already happened
     if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)
-        && properties.containsKey(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME)) {
+        && properties.containsKey(DdlConfig.AVRO_SCHEMA_FULL_NAME)) {
       throw new KsqlException(
-              KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
+              DdlConfig.AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
         final Expression schemaFullNameExp =
-                properties.get(KsqlAvroTopicSerDe.AVRO_SCHEMA_FULL_NAME);
+                properties.get(DdlConfig.AVRO_SCHEMA_FULL_NAME);
         final String schemaFullName = schemaFullNameExp == null
                 ? KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
                   StringUtil.cleanQuotes(schemaFullNameExp.toString());

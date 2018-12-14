@@ -15,6 +15,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.easymock.EasyMock.anyString;
+import static org.easymock.EasyMock.expect;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -35,6 +36,7 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
@@ -46,20 +48,28 @@ import org.junit.Test;
 public class CommandFactoriesTest {
 
   private static final java.util.Map<String, Object> NO_PROPS = Collections.emptyMap();
+  private static final String sqlExpression = "sqlExpression";
 
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
-  private final CommandFactories commandFactories = new CommandFactories(
-      topicClient,
-      EasyMock.createMock(SchemaRegistryClient.class));
+  private final ServiceContext serviceContext = EasyMock.createNiceMock(ServiceContext.class);
+  private final CommandFactories commandFactories = new CommandFactories(serviceContext);
   private final HashMap<String, Expression> properties = new HashMap<>();
-  private String sqlExpression = "sqlExpression";
+
 
   @Before
   public void before() {
+    expect(serviceContext.getTopicClient())
+        .andReturn(topicClient)
+        .anyTimes();
+
+    expect(serviceContext.getSchemaRegistryClient())
+        .andReturn(EasyMock.createMock(SchemaRegistryClient.class))
+        .anyTimes();
+
     properties.put(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"));
     properties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"));
     EasyMock.expect(topicClient.isTopicExists(anyString())).andReturn(true);
-    EasyMock.replay(topicClient);
+    EasyMock.replay(topicClient, serviceContext);
   }
 
   @Test
@@ -200,7 +210,7 @@ public class CommandFactoriesTest {
     return tableProperties;
   }
 
-  private CreateTable createTable(final HashMap<String, Expression> tableProperties) {
+  private static CreateTable createTable(final HashMap<String, Expression> tableProperties) {
     return new CreateTable(QualifiedName.of("foo"),
         ImmutableList.of(
             new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)),

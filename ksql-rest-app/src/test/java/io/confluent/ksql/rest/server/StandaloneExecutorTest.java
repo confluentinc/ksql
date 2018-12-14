@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -80,6 +81,8 @@ public class StandaloneExecutorTest {
   private QueryMetadata nonPeristentQueryMd;
   @Mock
   private VersionCheckerAgent versionCheckerAgent;
+  @Mock
+  private ServiceContext serviceContext;
 
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
@@ -91,7 +94,8 @@ public class StandaloneExecutorTest {
     when(engine.execute(any(), any(), any())).thenReturn(ImmutableList.of(queryMd));
 
     standaloneExecutor = new StandaloneExecutor(
-        ksqlConfig, engine, queriesFile.toString(), udfLoader, false, versionCheckerAgent);
+        serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader,
+        false, versionCheckerAgent);
   }
 
   @Test
@@ -352,9 +356,18 @@ public class StandaloneExecutorTest {
     verify(engine).close();
   }
 
+  @Test
+  public void shouldCloseServiceContextOnStop() {
+    // When:
+    standaloneExecutor.stop();
+
+    // Then:
+    verify(serviceContext).close();
+  }
+
   private void givenExecutorWillFailOnNoQueries() {
     standaloneExecutor = new StandaloneExecutor(
-        ksqlConfig, engine, queriesFile.toString(), udfLoader, true, versionCheckerAgent);
+        serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader, true, versionCheckerAgent);
   }
 
   private void givenFileContainsAPersistentQuery() {

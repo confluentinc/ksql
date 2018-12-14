@@ -16,12 +16,12 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -63,19 +64,20 @@ public class JoinNode extends PlanNode {
   private final DataSource.DataSourceType rightType;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  public JoinNode(@JsonProperty("id") final PlanNodeId id,
-                  @JsonProperty("type") final JoinType joinType,
-                  @JsonProperty("left") final PlanNode left,
-                  @JsonProperty("right") final PlanNode right,
-                  @JsonProperty("leftKeyFieldName") final String leftKeyFieldName,
-                  @JsonProperty("rightKeyFieldName") final String rightKeyFieldName,
-                  @JsonProperty("leftAlias") final String leftAlias,
-                  @JsonProperty("rightAlias") final String rightAlias,
-                  @JsonProperty("within") final WithinExpression withinExpression,
-                  @JsonProperty("leftType") final DataSource.DataSourceType leftType,
-                  @JsonProperty("rightType") final DataSource.DataSourceType rightType) {
+  public JoinNode(
+      @JsonProperty("id") final PlanNodeId id,
+      @JsonProperty("type") final JoinType joinType,
+      @JsonProperty("left") final PlanNode left,
+      @JsonProperty("right") final PlanNode right,
+      @JsonProperty("leftKeyFieldName") final String leftKeyFieldName,
+      @JsonProperty("rightKeyFieldName") final String rightKeyFieldName,
+      @JsonProperty("leftAlias") final String leftAlias,
+      @JsonProperty("rightAlias") final String rightAlias,
+      @JsonProperty("within") final WithinExpression withinExpression,
+      @JsonProperty("leftType") final DataSource.DataSourceType leftType,
+      @JsonProperty("rightType") final DataSource.DataSourceType rightType
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    // TODO: Type should be derived.
     super(id, (leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE)
         ? DataSourceType.KTABLE
         : DataSourceType.KSTREAM);
@@ -156,7 +158,7 @@ public class JoinNode extends PlanNode {
     return rightAlias;
   }
 
-  public JoinType getJoinType() {
+  JoinType getJoinType() {
     return joinType;
   }
 
@@ -168,20 +170,19 @@ public class JoinNode extends PlanNode {
   public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+      final Map<String, Object> props) {
 
-    ensureMatchingPartitionCounts(kafkaTopicClient);
+    ensureMatchingPartitionCounts(serviceContext.getTopicClient());
 
-    final JoinerFactory joinerFactory = new JoinerFactory(builder,
-                                                    ksqlConfig,
-                                                    kafkaTopicClient,
-                                                    functionRegistry,
-                                                    props,
-                                                    schemaRegistryClientFactory,
-                                                    this);
+    final JoinerFactory joinerFactory = new JoinerFactory(
+        builder,
+        ksqlConfig,
+        serviceContext,
+        functionRegistry,
+        props,
+        this);
 
     return joinerFactory.getJoiner(leftType, rightType).join();
   }
@@ -205,7 +206,7 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  private String getSourceName(final PlanNode node) {
+  private static String getSourceName(final PlanNode node) {
     if (!(node instanceof StructuredDataSourceNode)) {
       throw new RuntimeException("The source for a join must be a Stream or a Table.");
     }
@@ -218,28 +219,29 @@ public class JoinNode extends PlanNode {
         Pair<DataSource.DataSourceType, DataSource.DataSourceType>,
         Supplier<Joiner>> joinerMap;
 
-    JoinerFactory(final StreamsBuilder builder,
-                  final KsqlConfig ksqlConfig,
-                  final KafkaTopicClient kafkaTopicClient,
-                  final FunctionRegistry functionRegistry,
-                  final Map<String, Object> props,
-                  final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                  final JoinNode joinNode) {
+    JoinerFactory(
+        final StreamsBuilder builder,
+        final KsqlConfig ksqlConfig,
+        final ServiceContext serviceContext,
+        final FunctionRegistry functionRegistry,
+        final Map<String, Object> props,
+        final JoinNode joinNode
+    ) {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KSTREAM),
-          () -> new StreamToStreamJoiner(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
-                                         props, schemaRegistryClientFactory, joinNode),
+          () -> new StreamToStreamJoiner(
+              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode),
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KTABLE),
-          () -> new StreamToTableJoiner(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
-                                        props, schemaRegistryClientFactory, joinNode),
+          () -> new StreamToTableJoiner(
+              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode),
           new Pair<>(DataSource.DataSourceType.KTABLE, DataSource.DataSourceType.KTABLE),
-          () -> new TableToTableJoiner(builder, ksqlConfig, kafkaTopicClient, functionRegistry,
-                                       props, schemaRegistryClientFactory, joinNode)
+          () -> new TableToTableJoiner(
+              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode)
       );
     }
 
-    public Joiner getJoiner(final DataSource.DataSourceType leftType,
-                            final DataSource.DataSourceType rightType) {
+    Joiner getJoiner(final DataSource.DataSourceType leftType,
+        final DataSource.DataSourceType rightType) {
 
       return joinerMap.getOrDefault(new Pair<>(leftType, rightType), () -> {
         throw new KsqlException("Join between invalid operands requested: left type: "
@@ -251,30 +253,28 @@ public class JoinNode extends PlanNode {
   private abstract static class Joiner {
     protected final StreamsBuilder builder;
     protected final KsqlConfig ksqlConfig;
-    protected final KafkaTopicClient kafkaTopicClient;
+    private final ServiceContext serviceContext;
     protected final FunctionRegistry functionRegistry;
     protected final Map<String, Object> props;
-    protected final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
-    protected final JoinNode joinNode;
+    final JoinNode joinNode;
 
-    protected Joiner(final StreamsBuilder builder,
-               final KsqlConfig ksqlConfig,
-               final KafkaTopicClient kafkaTopicClient,
-               final FunctionRegistry functionRegistry,
-               final Map<String, Object> props,
-               final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-               final JoinNode joinNode) {
-
-      this.builder = builder;
-      this.ksqlConfig = ksqlConfig;
-      this.kafkaTopicClient = kafkaTopicClient;
-      this.functionRegistry = functionRegistry;
-      this.props = props;
-      this.schemaRegistryClientFactory = schemaRegistryClientFactory;
-      this.joinNode = joinNode;
+    Joiner(
+        final StreamsBuilder builder,
+        final KsqlConfig ksqlConfig,
+        final ServiceContext serviceContext,
+        final FunctionRegistry functionRegistry,
+        final Map<String, Object> props,
+        final JoinNode joinNode
+    ) {
+      this.builder = Objects.requireNonNull(builder, "builder");
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+      this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+      this.props = Objects.requireNonNull(props, "props");
+      this.joinNode = Objects.requireNonNull(joinNode, "joinNode");
     }
 
-    protected String joinOpName() {
+    String joinOpName() {
       return joinNode.getId() + "-JOIN";
     }
 
@@ -282,10 +282,9 @@ public class JoinNode extends PlanNode {
 
     protected SchemaKStream buildStream(final PlanNode node, final String keyFieldName) {
 
-      return maybeRePartitionByKey(node.buildStream(builder, ksqlConfig, kafkaTopicClient,
-                                                    functionRegistry, props,
-                                                    schemaRegistryClientFactory),
-                                   keyFieldName);
+      return maybeRePartitionByKey(
+          node.buildStream(builder, ksqlConfig, serviceContext, functionRegistry, props),
+          keyFieldName);
     }
 
 
@@ -299,9 +298,9 @@ public class JoinNode extends PlanNode {
       final SchemaKStream schemaKStream = node.buildStream(
           builder,
           ksqlConfig,
-          kafkaTopicClient,
+          serviceContext,
           functionRegistry,
-          joinTableProps, schemaRegistryClientFactory);
+          joinTableProps);
 
       if (!(schemaKStream instanceof SchemaKTable)) {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
@@ -324,8 +323,8 @@ public class JoinNode extends PlanNode {
       return (SchemaKTable) schemaKStream;
     }
 
-    protected SchemaKStream maybeRePartitionByKey(final SchemaKStream stream,
-                                                  final String targetKey) {
+    static SchemaKStream maybeRePartitionByKey(final SchemaKStream stream,
+        final String targetKey) {
       final Schema schema = stream.getSchema();
       final Field field =
           SchemaUtil
@@ -338,7 +337,7 @@ public class JoinNode extends PlanNode {
       return stream.selectKey(field, true);
     }
 
-    protected Serde<GenericRow> getSerDeForNode(final PlanNode node) {
+    Serde<GenericRow> getSerDeForNode(final PlanNode node) {
       if (!(node instanceof StructuredDataSourceNode)) {
         throw new KsqlException("The source for Join must be a primitive data source (Stream or "
                                 + "Table).");
@@ -349,26 +348,26 @@ public class JoinNode extends PlanNode {
           .getKsqlTopic()
           .getKsqlTopicSerDe()
           .getGenericRowSerde(
-              dataSourceNode.getSchema(), ksqlConfig, false, schemaRegistryClientFactory);
+              dataSourceNode.getSchema(), ksqlConfig, false,
+              serviceContext.getSchemaRegistryClientFactory());
     }
 
-    protected Field getJoinKey(final String alias, final String keyFieldName) {
+    Field getJoinKey(final String alias, final String keyFieldName) {
       return joinNode.schema.field(alias + "." + keyFieldName);
     }
-
   }
 
-  private static class StreamToStreamJoiner extends Joiner {
+  private static final class StreamToStreamJoiner extends Joiner {
 
-    StreamToStreamJoiner(final StreamsBuilder builder,
-                         final KsqlConfig ksqlConfig,
-                         final KafkaTopicClient kafkaTopicClient,
-                         final FunctionRegistry functionRegistry,
-                         final Map<String, Object> props,
-                         final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                         final JoinNode joinNode) {
-      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props,
-            schemaRegistryClientFactory, joinNode);
+    private StreamToStreamJoiner(
+        final StreamsBuilder builder,
+        final KsqlConfig ksqlConfig,
+        final ServiceContext serviceContext,
+        final FunctionRegistry functionRegistry,
+        final Map<String, Object> props,
+        final JoinNode joinNode
+    ) {
+      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode);
     }
 
     @SuppressWarnings("unchecked")
@@ -421,17 +420,17 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  private static class StreamToTableJoiner extends Joiner {
+  private static final class StreamToTableJoiner extends Joiner {
 
-    StreamToTableJoiner(final StreamsBuilder builder,
-                        final KsqlConfig ksqlConfig,
-                        final KafkaTopicClient kafkaTopicClient,
-                        final FunctionRegistry functionRegistry,
-                        final Map<String, Object> props,
-                        final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                        final JoinNode joinNode) {
-      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props,
-            schemaRegistryClientFactory, joinNode);
+    private StreamToTableJoiner(
+        final StreamsBuilder builder,
+        final KsqlConfig ksqlConfig,
+        final ServiceContext serviceContext,
+        final FunctionRegistry functionRegistry,
+        final Map<String, Object> props,
+        final JoinNode joinNode
+    ) {
+      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode);
     }
 
     @SuppressWarnings("unchecked")
@@ -475,17 +474,17 @@ public class JoinNode extends PlanNode {
     }
   }
 
-  private static class TableToTableJoiner extends Joiner {
+  private static final class TableToTableJoiner extends Joiner {
 
-    TableToTableJoiner(final StreamsBuilder builder,
-                        final KsqlConfig ksqlConfig,
-                        final KafkaTopicClient kafkaTopicClient,
-                        final FunctionRegistry functionRegistry,
-                        final Map<String, Object> props,
-                        final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-                        final JoinNode joinNode) {
-      super(builder, ksqlConfig, kafkaTopicClient, functionRegistry, props,
-            schemaRegistryClientFactory, joinNode);
+    TableToTableJoiner(
+        final StreamsBuilder builder,
+        final KsqlConfig ksqlConfig,
+        final ServiceContext serviceContext,
+        final FunctionRegistry functionRegistry,
+        final Map<String, Object> props,
+        final JoinNode joinNode
+    ) {
+      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode);
     }
 
     @SuppressWarnings("unchecked")

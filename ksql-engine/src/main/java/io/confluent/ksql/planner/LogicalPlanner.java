@@ -46,8 +46,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 public class LogicalPlanner {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private Analysis analysis;
-  private AggregateAnalysis aggregateAnalysis;
+  private final Analysis analysis;
+  private final AggregateAnalysis aggregateAnalysis;
   private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(
@@ -115,7 +115,7 @@ public class LogicalPlanner {
     throw new RuntimeException("INTO clause is not supported in SELECT.");
   }
 
-  private TimestampExtractionPolicy getTimestampExtractionPolicy(
+  private static TimestampExtractionPolicy getTimestampExtractionPolicy(
       final Schema inputSchema,
       final Map<String, Object> intoProperties) {
 

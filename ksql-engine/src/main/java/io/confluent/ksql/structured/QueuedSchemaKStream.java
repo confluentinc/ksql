@@ -47,8 +47,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
         schemaKStream.keySerde,
         Type.SINK,
         schemaKStream.ksqlConfig,
-        schemaKStream.functionRegistry,
-        schemaKStream.schemaRegistryClient
+        schemaKStream.functionRegistry
     );
 
     final OutputNode output = schemaKStream.outputNode();

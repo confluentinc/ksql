@@ -16,16 +16,13 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -56,15 +53,14 @@ public class KsqlBareOutputNode extends OutputNode {
   public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+      final Map<String, Object> props) {
     final SchemaKStream schemaKStream = getSource().buildStream(builder,
         ksqlConfig,
-        kafkaTopicClient,
+        serviceContext,
         functionRegistry,
-        props, schemaRegistryClientFactory);
+        props);
 
     schemaKStream.setOutputNode(this);
     return schemaKStream.toQueue();

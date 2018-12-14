@@ -37,9 +37,9 @@ import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.util.FakeKafkaClientSupplier;
+import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -60,6 +60,7 @@ import org.easymock.EasyMock;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.junit.After;
 import org.junit.Test;
 
 public class RecoveryTest {
@@ -69,23 +70,28 @@ public class RecoveryTest {
       )
   );
   private final List<QueuedCommand> commands = new LinkedList<>();
+  private final ServiceContext serviceContext =
+      TestServiceContext.create(new MockKafkaTopicClient());
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
+
+  @After
+  public void tearDown() {
+    server1.close();
+    server2.close();
+    serviceContext.close();
+  }
 
   private KsqlEngine createKsqlEngine() {
     final KsqlEngineMetrics engineMetrics = EasyMock.niceMock(KsqlEngineMetrics.class);
     EasyMock.replay(engineMetrics);
     return KsqlEngineTestUtil.createKsqlEngine(
-        new MockKafkaTopicClient(),
-        new MockSchemaRegistryClientFactory()::get,
-        new FakeKafkaClientSupplier(),
+        serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig,
-        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps()),
         engineMetrics);
   }
 
-  private static class FakeCommandQueue implements ReplayableCommandQueue {
+  private static class FakeCommandQueue implements CommandQueue {
     private final List<QueuedCommand> commandLog;
     private final CommandIdAssigner commandIdAssigner;
     private int offset;
@@ -156,8 +162,9 @@ public class RecoveryTest {
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,
+          serviceContext,
           fakeCommandQueue,
-          0,
+          Duration.ofMillis(0),
           ()->{}
       );
       this.statementExecutor = new StatementExecutor(
@@ -186,6 +193,10 @@ public class RecoveryTest {
         assertThat(response.getStatus(), equalTo(200));
         executeCommands();
       }
+    }
+
+    void close() {
+      ksqlEngine.close();
     }
   }
 
@@ -456,7 +467,7 @@ public class RecoveryTest {
     return new PersistentQueryMetadataMatcher(metadata);
   }
 
-  private Map<QueryId, PersistentQueryMetadata> queriesById(
+  private static Map<QueryId, PersistentQueryMetadata> queriesById(
       final Collection<PersistentQueryMetadata> queries) {
     return queries.stream().collect(
         Collectors.toMap(PersistentQueryMetadata::getQueryId, q -> q)

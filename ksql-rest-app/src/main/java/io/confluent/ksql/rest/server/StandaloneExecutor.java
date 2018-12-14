@@ -27,13 +27,13 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
-import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.Console;
@@ -73,6 +73,7 @@ public class StandaloneExecutor implements Executable {
               castHandler(StandaloneExecutor::handlePersistentQuery, InsertInto.class))
           .build();
 
+  private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final String queriesFile;
@@ -82,29 +83,8 @@ public class StandaloneExecutor implements Executable {
   private final boolean failOnNoQueries;
   private final VersionCheckerAgent versionCheckerAgent;
 
-  public static StandaloneExecutor create(
-      final Properties properties,
-      final String queriesFile,
-      final String installDir
-  ) {
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-
-    final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
-
-    final UdfLoader udfLoader =
-        UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), installDir);
-
-    return new StandaloneExecutor(
-        ksqlConfig,
-        ksqlEngine,
-        queriesFile,
-        udfLoader,
-        true,
-        new KsqlVersionCheckerAgent(ksqlEngine::hasActiveQueries)
-    );
-  }
-
   StandaloneExecutor(
+      final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final String queriesFile,
@@ -112,13 +92,14 @@ public class StandaloneExecutor implements Executable {
       final boolean failOnNoQueries,
       final VersionCheckerAgent versionCheckerAgent
   ) {
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
-    this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
-    this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile");
+    this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader");
     this.failOnNoQueries = failOnNoQueries;
     this.versionCheckerAgent =
-        Objects.requireNonNull(versionCheckerAgent, "VersionCheckerAgenr cannot be null.");
+        Objects.requireNonNull(versionCheckerAgent, "VersionCheckerAgent");
   }
 
   public void start() {
@@ -141,6 +122,11 @@ public class StandaloneExecutor implements Executable {
       ksqlEngine.close();
     } catch (final Exception e) {
       log.warn("Failed to cleanly shutdown the KSQL Engine", e);
+    }
+    try {
+      serviceContext.close();
+    } catch (final Exception e) {
+      log.warn("Failed to cleanly shutdown services", e);
     }
     shutdownLatch.countDown();
   }
@@ -217,6 +203,7 @@ public class StandaloneExecutor implements Executable {
     queries.get(0).start();
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Won't compile if static.
   private void defaultHandler(final PreparedStatement<?> statement) {
     throw new KsqlException(String.format(
         "Ignoring statements: %s"

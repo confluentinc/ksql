@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -77,11 +78,12 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
-import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -165,21 +167,25 @@ public class KsqlResource {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final ReplayableCommandQueue replayableCommandQueue;
-  private final long distributedCommandResponseTimeout;
+  private final ServiceContext serviceContext;
+  private final CommandQueue commandQueue;
+  private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ReplayableCommandQueue replayableCommandQueue,
-      final long distributedCommandResponseTimeout,
+      final ServiceContext serviceContext,
+      final CommandQueue commandQueue,
+      final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar
   ) {
-    this.ksqlConfig = ksqlConfig;
-    this.ksqlEngine = ksqlEngine;
-    this.replayableCommandQueue = replayableCommandQueue;
-    this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
+    this.distributedCmdResponseTimeout =
+        Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar cannot be null.");
   }
@@ -189,7 +195,7 @@ public class KsqlResource {
     activenessRegistrar.updateLastRequestTime();
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
-          replayableCommandQueue, request, Duration.ofMillis(distributedCommandResponseTimeout));
+          commandQueue, request, distributedCmdResponseTimeout);
 
       final List<PreparedStatement<?>> statements = parseStatements(request.getKsql());
 
@@ -303,9 +309,9 @@ public class KsqlResource {
   }
 
   private KafkaTopicsList listTopics(final PreparedStatement<ListTopics> statement) {
-    final KafkaTopicClient client = ksqlEngine.getTopicClient();
+    final KafkaTopicClient client = serviceContext.getTopicClient();
     final KafkaConsumerGroupClient kafkaConsumerGroupClient
-        = new KafkaConsumerGroupClientImpl(ksqlEngine.getAdminClient());
+        = new KafkaConsumerGroupClientImpl(serviceContext.getAdminClient());
 
     return KafkaTopicsList.build(
         statement.getStatementText(),
@@ -359,14 +365,16 @@ public class KsqlResource {
   }
 
   private KsqlEntity listFunctions(final PreparedStatement<ListFunctions> statement) {
-    final List<SimpleFunctionInfo> all = ksqlEngine.listScalarFunctions().stream()
+    final FunctionRegistry functionRegistry = ksqlEngine.getFunctionRegistry();
+
+    final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
         .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
             FunctionType.scalar))
         .collect(Collectors.toList());
 
-    all.addAll(ksqlEngine.listAggregateFunctions().stream()
+    all.addAll(functionRegistry.listAggregateFunctions().stream()
         .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
@@ -576,14 +584,14 @@ public class KsqlResource {
     try {
       final PreparedStatement<?> withSchema = addInferredSchema(statement);
 
-      final QueuedCommandStatus queuedCommandStatus = replayableCommandQueue.enqueueCommand(
+      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(
           withSchema.getStatementText(),
           withSchema.getStatement(),
           ksqlConfig,
           propertyOverrides);
 
       final CommandStatus commandStatus = queuedCommandStatus
-          .tryWaitForFinalStatus(Duration.ofMillis(distributedCommandResponseTimeout));
+          .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return new CommandStatusEntity(
           withSchema.getStatementText(),
@@ -640,7 +648,7 @@ public class KsqlResource {
         dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
         getQueries(q -> q.getSourceNames().contains(dataSource.getName())),
         getQueries(q -> q.getSinkNames().contains(dataSource.getName())),
-        ksqlEngine.getTopicClient()
+        serviceContext.getTopicClient()
     );
   }
 
@@ -666,7 +674,7 @@ public class KsqlResource {
   @SuppressWarnings("unchecked")
   private PreparedStatement<?> addInferredSchema(final PreparedStatement<?> stmt) {
     return StatementWithSchema
-        .forStatement((PreparedStatement) stmt, ksqlEngine.getSchemaRegistryClient());
+        .forStatement((PreparedStatement) stmt, serviceContext.getSchemaRegistryClient());
   }
 
   private static FunctionInfo getFunctionInfo(

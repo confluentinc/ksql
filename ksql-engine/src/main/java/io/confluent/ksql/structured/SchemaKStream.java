@@ -15,7 +15,6 @@
 package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -64,38 +63,9 @@ public class SchemaKStream<K> {
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
   private OutputNode output;
-  final SchemaRegistryClient schemaRegistryClient;
   final Serde<K> keySerde;
   final GroupedFactory groupedFactory;
   final JoinedFactory joinedFactory;
-
-  // CHECKSTYLE_RULES.OFF: ParameterNumber
-  SchemaKStream(
-      final Schema schema,
-      final KStream<K, GenericRow> kstream,
-      final Field keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
-      final Serde<K> keySerde,
-      final Type type,
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient,
-      final GroupedFactory groupedFactory,
-      final JoinedFactory joinedFactory
-  ) {
-    this.schema = schema;
-    this.kstream = kstream;
-    this.keyField = keyField;
-    this.sourceSchemaKStreams = sourceSchemaKStreams;
-    this.type = type;
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.functionRegistry = functionRegistry;
-    this.schemaRegistryClient = schemaRegistryClient;
-    this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
-    this.groupedFactory = Objects.requireNonNull(groupedFactory);
-    this.joinedFactory = Objects.requireNonNull(joinedFactory);
-  }
-  // CHECKSTYLE_RULES.ON: ParameterNumber
 
   public SchemaKStream(
       final Schema schema,
@@ -105,8 +75,7 @@ public class SchemaKStream<K> {
       final Serde<K> keySerde,
       final Type type,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient
+      final FunctionRegistry functionRegistry
   ) {
     this(
         schema,
@@ -117,9 +86,32 @@ public class SchemaKStream<K> {
         type,
         ksqlConfig,
         functionRegistry,
-        schemaRegistryClient,
         GroupedFactory.create(ksqlConfig),
         JoinedFactory.create(ksqlConfig));
+  }
+
+  SchemaKStream(
+      final Schema schema,
+      final KStream<K, GenericRow> kstream,
+      final Field keyField,
+      final List<SchemaKStream> sourceSchemaKStreams,
+      final Serde<K> keySerde,
+      final Type type,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry,
+      final GroupedFactory groupedFactory,
+      final JoinedFactory joinedFactory
+  ) {
+    this.schema = schema;
+    this.kstream = kstream;
+    this.keyField = keyField;
+    this.sourceSchemaKStreams = sourceSchemaKStreams;
+    this.type = type;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.functionRegistry = functionRegistry;
+    this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
+    this.groupedFactory = Objects.requireNonNull(groupedFactory);
+    this.joinedFactory = Objects.requireNonNull(joinedFactory);
   }
 
   public QueuedSchemaKStream toQueue() {
@@ -170,8 +162,7 @@ public class SchemaKStream<K> {
         keySerde,
         Type.FILTER,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 
@@ -185,8 +176,7 @@ public class SchemaKStream<K> {
         keySerde,
         Type.PROJECT,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 
@@ -300,8 +290,7 @@ public class SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 
@@ -332,8 +321,8 @@ public class SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient);
+        functionRegistry
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -359,8 +348,7 @@ public class SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 
@@ -390,8 +378,8 @@ public class SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient);
+        functionRegistry
+    );
   }
 
   public SchemaKStream<K> outerJoin(
@@ -418,8 +406,8 @@ public class SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient);
+        functionRegistry
+    );
   }
 
 
@@ -448,8 +436,8 @@ public class SchemaKStream<K> {
         Serdes.String(),
         Type.REKEY,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient);
+        functionRegistry
+    );
   }
 
   private Object extractColumn(final Field newKeyField, final GenericRow value) {
@@ -458,7 +446,7 @@ public class SchemaKStream<K> {
         .get(SchemaUtil.getFieldIndexByName(schema, newKeyField.name()));
   }
 
-  private String fieldNameFromExpression(final Expression expression) {
+  private static String fieldNameFromExpression(final Expression expression) {
     if (expression instanceof DereferenceExpression) {
       final DereferenceExpression dereferenceExpression =
           (DereferenceExpression) expression;
@@ -495,8 +483,7 @@ public class SchemaKStream<K> {
           keyField,
           Collections.singletonList(this),
           ksqlConfig,
-          functionRegistry,
-          schemaRegistryClient
+          functionRegistry
       );
     }
 
@@ -519,8 +506,8 @@ public class SchemaKStream<K> {
         newKeyField,
         Collections.singletonList(this),
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient);
+        functionRegistry
+    );
   }
 
   public Field getKeyField() {
@@ -571,10 +558,6 @@ public class SchemaKStream<K> {
     return functionRegistry;
   }
 
-  public SchemaRegistryClient getSchemaRegistryClient() {
-    return schemaRegistryClient;
-  }
-
   class GroupBy {
 
     final String aggregateKeyName;
@@ -617,7 +600,7 @@ public class SchemaKStream<K> {
       return new GenericRow(columns);
     }
 
-    private void fillWithNulls(final List<Object> columns, final int numToFill) {
+    private static void fillWithNulls(final List<Object> columns, final int numToFill) {
       for (int i = 0; i < numToFill; ++i) {
         columns.add(null);
       }

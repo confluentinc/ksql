@@ -194,17 +194,6 @@ public class UdfLoaderTest {
     assertThat(getActualUdfClassLoader(kudf), equalTo(parentClassLoader));
   }
 
-  private ClassLoader getActualUdfClassLoader(final Kudf udf)
-      throws NoSuchFieldException, IllegalAccessException {
-    final Field actualUdf = PluggableUdf.class.getDeclaredField("actualUdf");
-    actualUdf.setAccessible(true);
-    try {
-      return actualUdf.get(udf).getClass().getClassLoader();
-    } finally{
-      actualUdf.setAccessible(false);
-    }
-  }
-
   @Test
   public void shouldLoadUdfsInKSQLIfLoadCustomerUdfsFalse() {
     final MetaStore metaStore = loadKsqlUdfsOnly();
@@ -319,7 +308,18 @@ public class UdfLoaderTest {
         loadCustomerUdfs);
   }
 
-  @SuppressWarnings("unused") // Invoked via reflection.
+  private static ClassLoader getActualUdfClassLoader(final Kudf udf)
+      throws NoSuchFieldException, IllegalAccessException {
+    final Field actualUdf = PluggableUdf.class.getDeclaredField("actualUdf");
+    actualUdf.setAccessible(true);
+    try {
+      return actualUdf.get(udf).getClass().getClassLoader();
+    } finally{
+      actualUdf.setAccessible(false);
+    }
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
   public static class UdfWithMissingDescriptionAnnotation {
     @Udf(description = "This invalid UDF is here to test that the loader does not blow up if badly"
         + " formed UDFs are in the class path.")
@@ -330,7 +330,7 @@ public class UdfLoaderTest {
 
   private static Map<String, ?> PASSED_CONFIG = null;
 
-  @SuppressWarnings("unused") // Invoked via reflection in test.
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
   @UdfDescription(
       name = "ConfigurableUdf",
       description = "A test-only UDF for testing configure() is called")
@@ -346,7 +346,7 @@ public class UdfLoaderTest {
     }
   }
 
-  @SuppressWarnings("unused") // Invoked via reflection in test.
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
   @UdfDescription(
       name = "SomeFunction",
       description = "A test-only UDF for testing configure() is called")

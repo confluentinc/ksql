@@ -31,8 +31,9 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -56,6 +57,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.easymock.EasyMock;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -88,7 +90,7 @@ public class KsqlStructuredDataOutputNodeTest {
   private KsqlStructuredDataOutputNode outputNode;
 
   private SchemaKStream stream;
-
+  private ServiceContext serviceContext;
 
   @Before
   public void before() {
@@ -99,7 +101,13 @@ public class KsqlStructuredDataOutputNodeTest {
     topicClient.createTopic(eq("output"), eq(4), eq((short)3), eq(Collections.emptyMap()));
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
+    serviceContext = TestServiceContext.create(topicClient);
     stream = buildStream();
+  }
+
+  @After
+  public void tearDown() {
+    serviceContext.close();
   }
 
   private void createOutputNode(final Map<String, Object> props) {
@@ -176,65 +184,51 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private SchemaKStream buildStream() {
     builder = new StreamsBuilder();
+
     return outputNode.buildStream(builder,
         ksqlConfig,
-        topicClient,
+        serviceContext,
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
+        new HashMap<>());
   }
 
   @Test
   public void shouldCreateSinkWithCorrectCleanupPolicyNonWindowedTable() {
+    outputNode = getKsqlStructuredDataOutputNode(Serdes.String());
+
     final KafkaTopicClient topicClientForNonWindowTable = EasyMock.mock(KafkaTopicClient.class);
-    final KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(Serdes.String());
-    final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final Map<String, String> topicConfig = ImmutableMap.of(
         TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
     topicClientForNonWindowTable.createTopic("output", 4, (short) 3, topicConfig);
     EasyMock.replay(topicClientForNonWindowTable);
-    final SchemaKStream schemaKStream = outputNode.buildStream(
-        streamsBuilder,
-        ksqlConfig,
-        topicClientForNonWindowTable,
-        new InternalFunctionRegistry(),
-        new HashMap<>(),
-        new MockSchemaRegistryClientFactory()::get);
+
+    final SchemaKStream schemaKStream = buildStream();
+
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
   }
 
   @Test
   public void shouldCreateSinkWithCorrectCleanupPolicyWindowedTable() {
-    final KafkaTopicClient topicClientForWindowTable = EasyMock.mock(KafkaTopicClient.class);
-    final KsqlStructuredDataOutputNode outputNode = getKsqlStructuredDataOutputNode(
+    outputNode = getKsqlStructuredDataOutputNode(
         WindowedSerdes.timeWindowedSerdeFrom(String.class));
 
-    final StreamsBuilder streamsBuilder = new StreamsBuilder();
+    final KafkaTopicClient topicClientForWindowTable = EasyMock.mock(KafkaTopicClient.class);
     topicClientForWindowTable.createTopic("output", 4, (short) 3, Collections.emptyMap());
     EasyMock.replay(topicClientForWindowTable);
-    final SchemaKStream schemaKStream = outputNode.buildStream(
-        streamsBuilder,
-        ksqlConfig,
-        topicClientForWindowTable,
-        new InternalFunctionRegistry(),
-        new HashMap<>(),
-        new MockSchemaRegistryClientFactory()::get);
+
+    final SchemaKStream schemaKStream = buildStream();
+
     assertThat(schemaKStream, instanceOf(SchemaKTable.class));
   }
 
   @Test
   public void shouldCreateSinkWithCorrectCleanupPolicyStream() {
     final KafkaTopicClient topicClientForWindowTable = EasyMock.mock(KafkaTopicClient.class);
-
-    final StreamsBuilder streamsBuilder = new StreamsBuilder();
     topicClientForWindowTable.createTopic("output", 4, (short) 3, Collections.emptyMap());
     EasyMock.replay(topicClientForWindowTable);
-    final SchemaKStream schemaKStream = outputNode.buildStream(
-        streamsBuilder,
-        ksqlConfig,
-        topicClientForWindowTable,
-        new InternalFunctionRegistry(),
-        new HashMap<>(),
-        new MockSchemaRegistryClientFactory()::get);
+
+    final SchemaKStream schemaKStream = buildStream();
+
     assertThat(schemaKStream, instanceOf(SchemaKStream.class));
   }
 

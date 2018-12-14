@@ -27,14 +27,16 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.processor.StateStore;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class MaterializedFactoryTest {
-  final String opName = "kdot";
+
+  private static final String OP_NAME = "kdot";
+
   @Mock
   private Serde<String> keySerde;
   @Mock
@@ -43,9 +45,6 @@ public class MaterializedFactoryTest {
   private MaterializedFactory.Materializer materializer;
   @Mock
   private Materialized<String, GenericRow, StateStore> materialized;
-
-  @Rule
-  public MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Test
   public void shouldCreateMaterializedCorrectlyWhenOptimizationsDisabled() {
@@ -62,7 +61,7 @@ public class MaterializedFactoryTest {
     // When:
     final Materialized<String, GenericRow, StateStore> returned
         = MaterializedFactory.create(ksqlConfig, materializer).create(
-            keySerde, rowSerde, opName);
+        keySerde, rowSerde, OP_NAME);
 
     // Then:
     assertThat(returned, is(materialized));
@@ -79,7 +78,7 @@ public class MaterializedFactoryTest {
             KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
     );
     final Materialized asName = mock(Materialized.class);
-    when(materializer.materializedAs(opName)).thenReturn(asName);
+    when(materializer.materializedAs(OP_NAME)).thenReturn(asName);
     final Materialized withKeySerde = mock(Materialized.class);
     when(asName.withKeySerde(keySerde)).thenReturn(withKeySerde);
     final Materialized withRowSerde = mock(Materialized.class);
@@ -88,11 +87,11 @@ public class MaterializedFactoryTest {
     // When:
     final Materialized<String, GenericRow, StateStore> returned
         = MaterializedFactory.create(ksqlConfig, materializer).create(
-            keySerde, rowSerde, opName);
+        keySerde, rowSerde, OP_NAME);
 
     // Then:
     assertThat(returned, is(withRowSerde));
-    verify(materializer).materializedAs(opName);
+    verify(materializer).materializedAs(OP_NAME);
     verify(asName).withKeySerde(keySerde);
     verify(withKeySerde).withValueSerde(rowSerde);
   }

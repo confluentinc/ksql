@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -47,14 +46,16 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient,
-      final MaterializedFactory materializedFactory
+      final FunctionRegistry functionRegistry
   ) {
-    super(schema, null, keyField, sourceSchemaKStreams,
-        ksqlConfig, functionRegistry, schemaRegistryClient, materializedFactory);
-
-    this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
+    this(
+        schema,
+        kgroupedTable,
+        keyField,
+        sourceSchemaKStreams,
+        ksqlConfig,
+        functionRegistry,
+        MaterializedFactory.create(ksqlConfig));
   }
 
   SchemaKGroupedTable(
@@ -64,16 +65,12 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient) {
-    this(
-        schema,
-        kgroupedTable,
-        keyField,
-        sourceSchemaKStreams,
-        ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient,
-        MaterializedFactory.create(ksqlConfig));
+      final MaterializedFactory materializedFactory
+  ) {
+    super(schema, null, keyField, sourceSchemaKStreams,
+        ksqlConfig, functionRegistry, materializedFactory);
+
+    this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
   }
 
   @SuppressWarnings("unchecked")
@@ -127,8 +124,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         Serdes.String(),
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 }

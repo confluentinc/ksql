@@ -20,15 +20,10 @@ import java.util.Properties;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
 
   private final KafkaClientSupplier clientSupplier;
-
-  public KafkaStreamsBuilderImpl() {
-    this(new DefaultKafkaClientSupplier());
-  }
 
   public KafkaStreamsBuilderImpl(final KafkaClientSupplier clientSupplier) {
     Objects.requireNonNull(clientSupplier, "clientSupplier can't be null");

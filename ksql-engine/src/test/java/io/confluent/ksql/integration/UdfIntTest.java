@@ -129,7 +129,7 @@ public class UdfIntTest {
     resultStreamName = "OUTPUT-" + COUNTER.getAndIncrement();
 
     ksqlContext = KsqlTestContext.create(
-        TEST_HARNESS.ksqlConfig, () -> TEST_HARNESS.schemaRegistryClient);
+        TEST_HARNESS.ksqlConfig, TEST_HARNESS.schemaRegistryClientFactory);
 
     UdfLoaderUtil.load(ksqlContext.getMetaStore());
 

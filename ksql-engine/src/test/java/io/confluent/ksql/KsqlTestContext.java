@@ -15,14 +15,11 @@
 package io.confluent.ksql;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -37,29 +34,25 @@ public final class KsqlTestContext {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
-    Objects.requireNonNull(schemaRegistryClientFactory, "schemaRegistryClient cannot be null.");
-
     final KafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
 
     final AdminClient adminClient = clientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
 
-    final KafkaTopicClient kafkaTopicClient = new
-        KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
 
-    final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-
-    final KsqlEngine engine = new KsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
+    final ServiceContext serviceContext = TestServiceContext.create(
         clientSupplier,
-        metaStore,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
         adminClient,
-        KsqlEngineMetrics::new
+        kafkaTopicClient,
+        schemaRegistryClientFactory
     );
 
-    return new KsqlContext(ksqlConfig, engine);
+    final KsqlEngine engine = new KsqlEngine(
+        serviceContext,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+    );
+
+    return new KsqlContext(serviceContext, ksqlConfig, engine);
   }
 }

@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -47,6 +48,7 @@ import java.util.function.Supplier;
  * }
  * </pre>
  */
+@SuppressWarnings("WeakerAccess")
 public final class HandlerMaps {
 
   private HandlerMaps() {
@@ -70,15 +72,33 @@ public final class HandlerMaps {
   }
 
   @FunctionalInterface
+  public interface HandlerR0<K, R> {
+
+    R handle(K key);
+  }
+
+  @FunctionalInterface
   public interface Handler1<K, A0> {
 
     void handle(A0 arg0, K key);
   }
 
   @FunctionalInterface
+  public interface HandlerR1<K, A0, R> {
+
+    R handle(A0 arg0, K key);
+  }
+
+  @FunctionalInterface
   public interface Handler2<K, A0, A1> {
 
     void handle(A0 arg0, A1 arg1, K key);
+  }
+
+  @FunctionalInterface
+  public interface HandlerR2<K, A0, A1, R> {
+
+    R handle(A0 arg0, A1 arg1, K key);
   }
 
   public static class Builder0<K> {
@@ -217,6 +237,10 @@ public final class HandlerMaps {
         final Class<? extends K> type,
         final Handler0<? super K> defaultHandler) {
       return handlers.getOrDefault(type, (Handler0<K>) defaultHandler);
+    }
+
+    public Set<Class<? extends K>> keySet() {
+      return handlers.keySet();
     }
   }
 
@@ -377,11 +401,30 @@ public final class HandlerMaps {
         final Handler1<? super K, ? super A0> defaultHandler) {
       return handlers.getOrDefault(type, (Handler1<K, A0>) defaultHandler);
     }
+
+    public Set<Class<? extends K>> keySet() {
+      return handlers.keySet();
+    }
   }
 
   public static class Builder2<K, A0, A1> {
 
     private final Map<Class<? extends K>, Handler2<K, A0, A1>> handlers = Maps.newHashMap();
+
+    /**
+     * Call if the handler methods need to return a value.
+     *
+     * @param returnType the type of the return value.
+     * @param <R>  The type of the return value
+     * @return the builder.
+     */
+    @SuppressWarnings("unused")
+    public <R> BuilderR2<K, A0, A1, R> withReturnType(final Class<R> returnType) {
+      if (!handlers.isEmpty()) {
+        throw new IllegalStateException("handlers already defined");
+      }
+      return new BuilderR2<>();
+    }
 
     /**
      * Add a new no-arg handler to the map.
@@ -595,6 +638,234 @@ public final class HandlerMaps {
         final Class<? extends K> type,
         final Handler2<? super K, ? super A0, ? super A1> defaultHandler) {
       return handlers.getOrDefault(type, (Handler2<K, A0, A1>) defaultHandler);
+    }
+
+    public Set<Class<? extends K>> keySet() {
+      return handlers.keySet();
+    }
+  }
+
+  public static final class BuilderR2<K, A0, A1, R> {
+
+    private final Map<Class<? extends K>, HandlerR2<K, A0, A1, R>> handlers = Maps.newHashMap();
+
+    /**
+     * Add a new no-arg handler to the map.
+     *
+     * <p>Allows the passing of handlers via lambdas.
+     *
+     * <p>e.g. put0(Some.class, SomeHandler::new)
+     *
+     * <p>Where {@code SomeHandler} implements {@code Handler0}. This means {@code SomeHandler}
+     * does not count towards the classes data abstraction coupling
+     *
+     * @param type the key type to register the handler against
+     * @param supplier the supplier of the handler. The supplier will be called immediately.
+     * @param <KT> the derived key type.
+     * @return set.
+     */
+    public <KT extends K> BuilderR2<K, A0, A1, R> put0(
+        final Class<KT> type,
+        final Supplier<? extends HandlerR0<? super KT, ? extends R>> supplier) {
+
+      final HandlerR0<? super KT, ? extends R> handler;
+
+      try {
+        handler = supplier.get();
+      } catch (final Exception e) {
+        throw new IllegalArgumentException("Failed to get handler for type: " + type, e);
+      }
+
+      if (handler == null) {
+        throw new IllegalArgumentException("Null handler returned by supplier for type: " + type);
+      }
+
+      return put(type, handler);
+    }
+
+    /**
+     * Add a new one-arg handler to the map.
+     *
+     * <p>Allows the passing of handlers via lambdas.
+     *
+     * <p>e.g. put1(Some.class, SomeHandler::new)
+     *
+     * <p>Where {@code SomeHandler} implements {@code Handler1}. This means {@code SomeHandler}
+     * does not count towards the classes data abstraction coupling
+     *
+     * @param type the key type to register the handler against
+     * @param supplier the supplier of the handler. The supplier will be called immediately.
+     * @param <KT> the derived key type.
+     * @return set.
+     */
+    public <KT extends K> BuilderR2<K, A0, A1, R> put1(
+        final Class<KT> type,
+        final Supplier<? extends HandlerR1<? super KT, ? super A0, ? extends R>> supplier) {
+
+      final HandlerR1<? super KT, ? super A0, ? extends R> handler;
+
+      try {
+        handler = supplier.get();
+      } catch (final Exception e) {
+        throw new IllegalArgumentException("Failed to get handler for type: " + type, e);
+      }
+
+      if (handler == null) {
+        throw new IllegalArgumentException("Null handler returned by supplier for type: " + type);
+      }
+
+      return put(type, handler);
+    }
+
+    /**
+     * Add a new two-arg handler to the map.
+     *
+     * <p>Allows the passing of handlers via lambdas.
+     *
+     * <p>e.g. put(Some.class, SomeHandler::new)
+     *
+     * <p>Where {@code SomeHandler} implements {@code Handler1}. This means {@code SomeHandler}
+     * does not count towards the classes data abstraction coupling
+     *
+     * @param type the key type to register the handler against
+     * @param supplier the supplier of the handler. The supplier will be called immediately.
+     * @param <KT> the derived key type.
+     * @return set.
+     */
+    public <KT extends K> BuilderR2<K, A0, A1, R> put(
+        final Class<KT> type,
+        final Supplier<? extends HandlerR2<? super KT, ? super A0, ? super A1, ? extends R>>
+            supplier) {
+
+      final HandlerR2<? super KT, ? super A0, ? super A1, ? extends R> handler;
+
+      try {
+        handler = supplier.get();
+      } catch (final Exception e) {
+        throw new IllegalArgumentException("Failed to get handler for type: " + type, e);
+      }
+
+      if (handler == null) {
+        throw new IllegalArgumentException("Null handler returned by supplier for type: " + type);
+      }
+
+      return put(type, handler);
+    }
+
+    /**
+     * Add a new no-arg handler to the map.
+     *
+     * <p>This can be useful for calling static methods
+     *
+     * @param type the key type to register the handler against
+     * @param handler the handler to the supplied {@code type}
+     * @param <KT> the derived type the handler handles
+     * @return set.
+     */
+    public <KT extends K> BuilderR2<K, A0, A1, R> put(
+        final Class<KT> type,
+        final HandlerR0<? super KT, ? extends R> handler) {
+
+      if (handlers.containsKey(type)) {
+        throw new IllegalArgumentException("Duplicate key: " + type);
+      }
+      handlers.put(type, castHandler0(type, handler));
+      return this;
+    }
+
+    /**
+     * Add a new single-arg handler to the map.
+     *
+     * @param type the key type to register the handler against
+     * @param handler the handler to the supplied {@code type}
+     * @param <KT> the derived type the handler handles
+     * @return set.
+     */
+    public <KT extends K> BuilderR2<K, A0, A1, R> put(
+        final Class<KT> type,
+        final HandlerR1<? super KT, ? super A0, ? extends R> handler) {
+
+      if (handlers.containsKey(type)) {
+        throw new IllegalArgumentException("Duplicate key: " + type);
+      }
+      handlers.put(type, castHandler1(type, handler));
+      return this;
+    }
+
+    /**
+     * Add a new two-arg handler to the map.
+     *
+     * @param type the key type to register the handler against
+     * @param handler the handler to the supplied {@code type}
+     * @param <KT> the derived type the handler handles
+     * @return set.
+     */
+    public <KT extends K> BuilderR2<K, A0, A1, R> put(
+        final Class<KT> type,
+        final HandlerR2<? super KT, ? super A0, ? super A1, ? extends R> handler) {
+
+      if (handlers.containsKey(type)) {
+        throw new IllegalArgumentException("Duplicate key: " + type);
+      }
+      handlers.put(type, castHandler2(type, handler));
+      return this;
+    }
+
+    /**
+     * @return the built handler map.
+     */
+    public ClassHandlerMapR2<K, A0, A1, R> build() {
+      return new ClassHandlerMapR2<>(handlers);
+    }
+
+    private <KT extends K> HandlerR2<K, A0, A1, R> castHandler0(
+        final Class<KT> keyType,
+        final HandlerR0<? super KT, ? extends R> handler) {
+
+      return (a0, a1, k) -> handler.handle(keyType.cast(k));
+    }
+
+    private <KT extends K> HandlerR2<K, A0, A1, R> castHandler1(
+        final Class<KT> keyType,
+        final HandlerR1<? super KT, ? super A0, ? extends R> handler) {
+
+      return (a0, a1, k) -> handler.handle(a0, keyType.cast(k));
+    }
+
+    private <KT extends K> HandlerR2<K, A0, A1, R> castHandler2(
+        final Class<KT> keyType,
+        final HandlerR2<? super KT, ? super A0, ? super A1, ? extends R> handler) {
+
+      return (a0, a1, k) -> handler.handle(a0, a1, keyType.cast(k));
+    }
+  }
+
+  public static final class ClassHandlerMapR2<K, A0, A1, R> {
+
+    private final Map<Class<? extends K>, HandlerR2<K, A0, A1, R>> handlers;
+
+    private ClassHandlerMapR2(final Map<Class<? extends K>, HandlerR2<K, A0, A1, R>> handlers) {
+      this.handlers = ImmutableMap.copyOf(handlers);
+    }
+
+    public HandlerR2<K, A0, A1, R> get(final Class<? extends K> type) {
+      return handlers.get(type);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <KT extends K> HandlerR2<KT, A0, A1, R> getTyped(final Class<KT> type) {
+      return (HandlerR2<KT, A0, A1, R>) handlers.get(type);
+    }
+
+    @SuppressWarnings("unchecked")
+    public HandlerR2<K, A0, A1, R> getOrDefault(
+        final Class<? extends K> type,
+        final HandlerR2<? super K, ? super A0, ? super A1, ? extends R> defaultHandler) {
+      return handlers.getOrDefault(type, (HandlerR2<K, A0, A1, R>) defaultHandler);
+    }
+
+    public Set<Class<? extends K>> keySet() {
+      return handlers.keySet();
     }
   }
 }

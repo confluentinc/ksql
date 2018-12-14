@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -40,6 +41,7 @@ import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ThreadSafe
 public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private static final Logger log = LoggerFactory.getLogger(KafkaTopicClient.class);
@@ -50,7 +52,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   /**
    * Construct a topic client from an existing admin client.
    *
-   * @param adminClient the admin client. Note: Will be closed on {@link #close()}.
+   * @param adminClient the admin client.
    */
   public KafkaTopicClientImpl(final AdminClient adminClient) {
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");

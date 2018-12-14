@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.physical;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -28,10 +27,10 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -47,8 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Supplier;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.connect.data.Field;
@@ -62,37 +59,35 @@ public class PhysicalPlanBuilder {
 
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
-  private final KafkaTopicClient kafkaTopicClient;
+  private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenStreamsProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
-  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
 
   public PhysicalPlanBuilder(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenStreamsProperties,
       final boolean updateMetastore,
       final MetaStore metaStore,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final QueryIdGenerator queryIdGenerator,
       final KafkaStreamsBuilder kafkaStreamsBuilder
   ) {
-    this.builder = builder;
-    this.ksqlConfig = ksqlConfig;
-    this.kafkaTopicClient = kafkaTopicClient;
-    this.functionRegistry = functionRegistry;
-    this.overriddenStreamsProperties = overriddenStreamsProperties;
-    this.metaStore = metaStore;
+    this.builder = Objects.requireNonNull(builder, "builder");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.overriddenStreamsProperties =
+        Objects.requireNonNull(overriddenStreamsProperties, "overriddenStreamsProperties");
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.updateMetastore = updateMetastore;
-    this.schemaRegistryClientFactory = schemaRegistryClientFactory;
-    this.queryIdGenerator = queryIdGenerator;
-    this.kafkaStreamsBuilder = kafkaStreamsBuilder;
+    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
+    this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
   }
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
@@ -101,10 +96,9 @@ public class PhysicalPlanBuilder {
         .buildStream(
             builder,
             ksqlConfig,
-            kafkaTopicClient,
+            serviceContext,
             functionRegistry,
-            overriddenStreamsProperties,
-            schemaRegistryClientFactory
+            overriddenStreamsProperties
         );
     final OutputNode outputNode = resultStream.outputNode();
     final boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
@@ -190,7 +184,7 @@ public class PhysicalPlanBuilder {
         (sourceSchemaKstream instanceof SchemaKTable)
             ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
-        kafkaTopicClient,
+        serviceContext.getTopicClient(),
         builder.build(),
         overriddenStreamsProperties
     );
@@ -267,7 +261,7 @@ public class PhysicalPlanBuilder {
         (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
                                                 : DataSource.DataSourceType.KSTREAM,
         applicationId,
-        kafkaTopicClient,
+        serviceContext.getTopicClient(),
         sinkDataSource.getKsqlTopic(),
         topology,
         overriddenStreamsProperties
@@ -308,19 +302,23 @@ public class PhysicalPlanBuilder {
     }
   }
 
-  private String getBareQueryApplicationId(
+  private static String getBareQueryApplicationId(
       final String serviceId,
-      final String transientQueryPrefix) {
+      final String transientQueryPrefix
+  ) {
     return serviceId + transientQueryPrefix + Math.abs(ThreadLocalRandom.current().nextLong());
   }
 
-  private String addTimeSuffix(final String original) {
+  private static String addTimeSuffix(final String original) {
     return String.format("%s_%d", original, System.currentTimeMillis());
   }
 
   @SuppressWarnings("unchecked")
-  private void updateListProperty(
-      final Map<String, Object> properties, final String key, final Object value) {
+  private static void updateListProperty(
+      final Map<String, Object> properties,
+      final String key,
+      final Object value
+  ) {
     final Object obj = properties.getOrDefault(key, new LinkedList<String>());
     final List valueList;
     // The property value is either a comma-separated string of class names, or a list of class
@@ -365,23 +363,29 @@ public class PhysicalPlanBuilder {
     return kafkaStreamsBuilder.buildKafkaStreams(builder, newStreamsProperties);
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private void enforceKeyEquivalence(final Field sinkKeyField, final Field resultKeyField) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+  private static void enforceKeyEquivalence(final Field sinkKeyField, final Field resultKeyField) {
     if (sinkKeyField == null && resultKeyField == null) {
       return;
-    } else if (sinkKeyField != null && resultKeyField != null) {
-      if (sinkKeyField.name().equalsIgnoreCase(
-          resultKeyField.name())
-          && Objects.equals(sinkKeyField.schema(), resultKeyField.schema())) {
-        return;
-      }
     }
 
+    if (sinkKeyField != null
+        && resultKeyField != null
+        && sinkKeyField.name().equalsIgnoreCase(resultKeyField.name())
+        && Objects.equals(sinkKeyField.schema(), resultKeyField.schema())) {
+      return;
+    }
+
+    throwIncompatibleKeysException(sinkKeyField, resultKeyField);
+  }
+
+  private static void throwIncompatibleKeysException(
+      final Field sinkKeyField,
+      final Field resultKeyField
+  ) {
     throw new KsqlException(String.format(
         "Incompatible key fields for sink and results. Sink"
-        + " key field is %s (type: %s) while result key "
-        + "field is %s (type: %s)",
+            + " key field is %s (type: %s) while result key "
+            + "field is %s (type: %s)",
         sinkKeyField == null ? null : sinkKeyField.name(),
         sinkKeyField == null ? null : sinkKeyField.schema().toString(),
         resultKeyField == null ? null : resultKeyField.name(),

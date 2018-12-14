@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import java.time.Duration;
 import java.util.Optional;
@@ -50,7 +50,7 @@ public class CommandStoreUtilTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private ReplayableCommandQueue replayableCommandQueue;
+  private CommandQueue commandQueue;
   @Mock
   private KsqlRequest request;
 
@@ -60,10 +60,10 @@ public class CommandStoreUtilTest {
     when(request.getCommandSequenceNumber()).thenReturn(Optional.empty());
 
     // When:
-    CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request, TIMEOUT);
+    CommandStoreUtil.waitForCommandSequenceNumber(commandQueue, request, TIMEOUT);
 
     // Then:
-    verify(replayableCommandQueue, never()).ensureConsumedPast(anyLong(), any());
+    verify(commandQueue, never()).ensureConsumedPast(anyLong(), any());
   }
 
   @Test
@@ -72,10 +72,10 @@ public class CommandStoreUtilTest {
     when(request.getCommandSequenceNumber()).thenReturn(Optional.of(SEQUENCE_NUMBER));
 
     // When:
-    CommandStoreUtil.waitForCommandSequenceNumber(replayableCommandQueue, request, TIMEOUT);
+    CommandStoreUtil.waitForCommandSequenceNumber(commandQueue, request, TIMEOUT);
 
     // Then:
-    verify(replayableCommandQueue).ensureConsumedPast(SEQUENCE_NUMBER, TIMEOUT);
+    verify(commandQueue).ensureConsumedPast(SEQUENCE_NUMBER, TIMEOUT);
   }
 
   @Test
@@ -83,7 +83,7 @@ public class CommandStoreUtilTest {
     // Given:
     when(request.getCommandSequenceNumber()).thenReturn(Optional.of(SEQUENCE_NUMBER));
     doThrow(new TimeoutException("uh oh"))
-        .when(replayableCommandQueue).ensureConsumedPast(SEQUENCE_NUMBER, TIMEOUT);
+        .when(commandQueue).ensureConsumedPast(SEQUENCE_NUMBER, TIMEOUT);
 
     // Expect:
     expectedException.expect(KsqlRestException.class);
@@ -91,6 +91,6 @@ public class CommandStoreUtilTest {
     expectedException.expect(exceptionKsqlErrorMessage(errorMessage(is("uh oh"))));
 
     // When:
-    CommandStoreUtil.httpWaitForCommandSequenceNumber(replayableCommandQueue, request, TIMEOUT);
+    CommandStoreUtil.httpWaitForCommandSequenceNumber(commandQueue, request, TIMEOUT);
   }
 }

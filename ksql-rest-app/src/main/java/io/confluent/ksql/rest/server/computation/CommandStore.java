@@ -47,9 +47,8 @@ import org.slf4j.LoggerFactory;
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
  * the beginning until now, or any new messages since then), and writing to it.
  */
-
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class CommandStore implements ReplayableCommandQueue, Closeable {
+public class CommandStore implements CommandQueue, Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(CommandStore.class);

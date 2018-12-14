@@ -20,10 +20,12 @@ import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -65,6 +67,7 @@ public class JsonFormatTest {
   private MetaStore metaStore;
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
+  private ServiceContext serviceContext;
   private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
   private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
 
@@ -83,8 +86,9 @@ public class JsonFormatTest {
     configMap.put("auto.offset.reset", "earliest");
 
     ksqlConfig = new KsqlConfig(configMap);
-    ksqlEngine = KsqlEngine.create(ksqlConfig);
-    topicClient = ksqlEngine.getTopicClient();
+    serviceContext = ServiceContext.create(ksqlConfig);
+    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
 
     createInitTopics();
@@ -140,6 +144,7 @@ public class JsonFormatTest {
   public void after() {
     terminateQuery();
     ksqlEngine.close();
+    serviceContext.close();
   }
 
   //@Test

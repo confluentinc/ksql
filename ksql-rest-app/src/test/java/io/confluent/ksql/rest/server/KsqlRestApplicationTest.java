@@ -15,20 +15,36 @@
 package io.confluent.ksql.rest.server;
 
 import static org.easymock.EasyMock.anyObject;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.resources.KsqlResource;
+import io.confluent.ksql.rest.server.resources.RootDocument;
+import io.confluent.ksql.rest.server.resources.StatusResource;
+import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.config.TopicConfig;
 import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlRestApplicationTest {
 
   private static final String COMMAND_TOPIC = "command_topic";
@@ -39,6 +55,59 @@ public class KsqlRestApplicationTest {
       new KsqlRestConfig(
           Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
           "http://localhost:8088"));
+
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private KsqlEngine ksqlEngine;
+  @Mock
+  private KsqlConfig ksqlConfig;
+  @Mock
+  private CommandRunner commandRunner;
+  @Mock
+  private RootDocument rootDocument;
+  @Mock
+  private StatusResource statusResource;
+  @Mock
+  private StreamedQueryResource streamedQueryResource;
+  @Mock
+  private KsqlResource ksqlResource;
+  @Mock
+  private VersionCheckerAgent versionCheckerAgent;
+  @Mock
+  private CommandQueue commandQueue;
+  private KsqlRestApplication app;
+
+  @Before
+  public void setUp() {
+    when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("default_id_");
+
+    when(serviceContext.getAdminClient())
+        .thenReturn(new FakeKafkaClientSupplier().getAdminClient(Collections.emptyMap()));
+
+    app = new KsqlRestApplication(
+        serviceContext,
+        ksqlEngine,
+        ksqlConfig,
+        restConfig,
+        commandRunner,
+        commandQueue,
+        rootDocument,
+        statusResource,
+        streamedQueryResource,
+        ksqlResource,
+        versionCheckerAgent
+    );
+  }
+
+  @Test
+  public void shouldCloseServiceContextOnClose() {
+    // When:
+    app.stop();
+
+    // Then:
+    verify(serviceContext).close();
+  }
 
   @Test
   public void shouldCreateCommandTopicIfItDoesNotExist() {

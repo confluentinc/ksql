@@ -38,13 +38,13 @@ public class CommandRunner implements Runnable, Closeable {
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
 
   private final StatementExecutor statementExecutor;
-  private final ReplayableCommandQueue commandStore;
+  private final CommandQueue commandStore;
   private volatile boolean closed;
   private final int maxRetries;
 
   public CommandRunner(
       final StatementExecutor statementExecutor,
-      final ReplayableCommandQueue commandStore,
+      final CommandQueue commandStore,
       final int maxRetries
   ) {
     this.statementExecutor = statementExecutor;

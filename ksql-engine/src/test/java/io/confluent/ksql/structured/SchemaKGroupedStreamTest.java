@@ -28,7 +28,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -75,8 +74,6 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private FunctionRegistry funcRegistry;
   @Mock
-  private SchemaRegistryClient srClient;
-  @Mock
   private Initializer initializer;
   @Mock
   private Serde<GenericRow> topicValueSerDe;
@@ -108,8 +105,7 @@ public class SchemaKGroupedStreamTest {
   @Before
   public void setUp() {
     schemaGroupedStream = new SchemaKGroupedStream(
-        schema, groupedStream, keyField, sourceStreams, config, funcRegistry, srClient,
-        materializedFactory);
+        schema, groupedStream, keyField, sourceStreams, config, funcRegistry, materializedFactory);
 
     when(windowStartFunc.getFunctionName()).thenReturn("WindowStart");
     when(windowEndFunc.getFunctionName()).thenReturn("WindowEnd");

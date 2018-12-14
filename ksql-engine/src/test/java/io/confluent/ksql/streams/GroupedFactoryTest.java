@@ -25,14 +25,16 @@ import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Grouped;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class GroupedFactoryTest {
-  final String opName = "kdot";
+
+  private static final String OP_NAME = "kdot";
+
   @Mock
   private Serde<String> keySerde;
   @Mock
@@ -41,9 +43,6 @@ public class GroupedFactoryTest {
   private GroupedFactory.Grouper grouper;
   @Mock
   private Grouped<String, GenericRow> grouped;
-
-  @Rule
-  public MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Test
   public void shouldCreateGroupedCorrectlyWhenOptimizationsDisabled() {
@@ -59,7 +58,7 @@ public class GroupedFactoryTest {
 
     // When:
     final Grouped returned = GroupedFactory.create(ksqlConfig, grouper).create(
-        opName,
+        OP_NAME,
         keySerde,
         rowSerde
     );
@@ -77,17 +76,17 @@ public class GroupedFactoryTest {
             KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
             KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
     );
-    when(grouper.groupedWith(opName, keySerde, rowSerde)).thenReturn(grouped);
+    when(grouper.groupedWith(OP_NAME, keySerde, rowSerde)).thenReturn(grouped);
 
     // When:
     final Grouped returned = GroupedFactory.create(ksqlConfig, grouper).create(
-        opName,
+        OP_NAME,
         keySerde,
         rowSerde
     );
 
     // Then:
     assertThat(returned, is(grouped));
-    verify(grouper).groupedWith(opName, keySerde, rowSerde);
+    verify(grouper).groupedWith(OP_NAME, keySerde, rowSerde);
   }
 }

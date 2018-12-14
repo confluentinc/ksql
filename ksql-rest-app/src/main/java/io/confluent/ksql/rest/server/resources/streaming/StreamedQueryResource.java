@@ -22,11 +22,12 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -50,8 +51,9 @@ public class StreamedQueryResource {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
+  private final ServiceContext serviceContext;
   private final StatementParser statementParser;
-  private final ReplayableCommandQueue replayableCommandQueue;
+  private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
@@ -59,16 +61,17 @@ public class StreamedQueryResource {
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
       final StatementParser statementParser,
-      final ReplayableCommandQueue replayableCommandQueue,
+      final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
       final ActivenessRegistrar activenessRegistrar
   ) {
-    this.ksqlConfig = ksqlConfig;
-    this.ksqlEngine = ksqlEngine;
-    this.statementParser = statementParser;
-    this.replayableCommandQueue =
-        Objects.requireNonNull(replayableCommandQueue, "replayableCommandQueue");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
+    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
@@ -86,7 +89,7 @@ public class StreamedQueryResource {
     activenessRegistrar.updateLastRequestTime();
 
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
-        replayableCommandQueue, request, disconnectCheckInterval);
+        commandQueue, request, disconnectCheckInterval);
     try {
       statement = statementParser.parseSingleStatement(ksql);
     } catch (IllegalArgumentException | KsqlException e) {
@@ -99,6 +102,7 @@ public class StreamedQueryResource {
         queryStreamWriter = new QueryStreamWriter(
             ksqlConfig,
             ksqlEngine,
+            serviceContext,
             disconnectCheckInterval.toMillis(),
             ksql,
             request.getStreamsProperties(),
@@ -123,7 +127,7 @@ public class StreamedQueryResource {
   private TopicStreamWriter getTopicStreamWriter(final PrintTopic printTopic) {
     final String topicName = printTopic.getTopic().toString();
 
-    if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
+    if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
       throw new KsqlRestException(
           Errors.badRequest(String.format(
               "Could not find topic '%s', KSQL uses uppercase.%n"
@@ -131,7 +135,7 @@ public class StreamedQueryResource {
               topicName)));
     }
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
-        ksqlEngine.getSchemaRegistryClient(),
+        serviceContext.getSchemaRegistryClient(),
         ksqlConfig.getKsqlStreamConfigProps(),
         topicName,
         printTopic.getIntervalValue(),

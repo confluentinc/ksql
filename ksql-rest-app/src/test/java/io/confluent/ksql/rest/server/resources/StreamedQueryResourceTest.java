@@ -16,6 +16,10 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
+import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionKsqlErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
@@ -77,14 +81,20 @@ import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
+import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
 public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock(MockType.NICE)
   private KsqlConfig ksqlConfig;
@@ -177,21 +187,15 @@ public class StreamedQueryResourceTest {
 
     replay(replayableCommandQueue);
 
-    try {
-      // When:
-      testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    // Expect
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    expectedException.expect(exceptionKsqlErrorMessage(errorMessage(is("whoops"))));
+    expectedException.expect(
+        exceptionKsqlErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
 
-      // Then:
-      fail("Should throw KsqlRestException in response to timeout.");
-    } catch (KsqlRestException e) {
-      final Response response = e.getResponse();
-      assertThat(response.getStatus(), is(Response.Status.SERVICE_UNAVAILABLE.getStatusCode()));
-      assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
-      final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
-      assertThat(
-          errorMessage.getErrorCode(), is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT));
-      assertThat(errorMessage.getMessage(), equalTo("whoops"));
-    }
+    // When:
+    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
   }
 
   @SuppressWarnings("unchecked")

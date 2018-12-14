@@ -17,8 +17,7 @@ Click here to watch a screencast of the KSQL demo on YouTube.
 
 Stable releases are published every four months and are officially supported by [Confluent](http://www.confluent.io/).
 
-1. [Download latest stable KSQL](https://www.confluent.io/download/), which is included in the Enterprise and
-   Open Source editions of Confluent Platform.
+1. [Download latest stable KSQL](https://www.confluent.io/download/), which is included in Confluent Platform.
 2. Follow the [Quick Start](https://docs.confluent.io/current/quickstart.html).
 3. Read the [KSQL Documentation](https://docs.confluent.io/current/ksql/docs/), notably the
    [KSQL Tutorials and Examples](https://docs.confluent.io/current/ksql/docs/tutorials/), which include Docker-based
@@ -138,6 +137,6 @@ Contributions to the code, examples, documentation, etc. are very much appreciat
 
 # License
 
-The project is [licensed](LICENSE) under the Apache License, version 2.0.
+The project is licensed under the [Confluent Community License](LICENSE).
 
 *Apache, Apache Kafka, Kafka, and associated open source project names are trademarks of the [Apache Software Foundation](https://www.apache.org/).*

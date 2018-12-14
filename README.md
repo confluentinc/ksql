@@ -2,8 +2,6 @@
 
 > **KSQL is now GA and officially supported by Confluent Inc. [Get started with KSQL today](#getting-started).**
 
-KSQL is the streaming SQL engine for Apache Kafka.
-
 KSQL is the streaming SQL engine for Apache Kafka. It provides a simple and completely interactive SQL interface for stream processing on Kafka; no need to write code in a programming language such as Java or Python. KSQL is distributed, scalable, reliable, and real-time. It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
 
 Click here to watch a screencast of the KSQL demo on YouTube.

@@ -54,19 +54,19 @@ are quite large and depending on your network connection may take
    Your output should resemble:
 
    ::
-   
-                        Name                                 Command               State                Ports
-        ----------------------------------------------------------------------------------------------------------------------
-        clickstream_datagen_1_d3706de7f63f   bash -c echo Waiting for K ...   Up
-        clickstream_elasticsearch_1_3e4310b45877     /usr/local/bin/docker-entr ...   Up      0.0.0.0:9200->9200/tcp, 9300/tcp
-        clickstream_grafana_1_67e1357b5c72           /run.sh                          Up      0.0.0.0:3000->3000/tcp
-        clickstream_kafka-connect_1_7993a2b858ab     /etc/confluent/docker/run        Up      0.0.0.0:8083->8083/tcp, 9092/tcp
-        clickstream_kafka_1_ca1e2e8cf45f             /etc/confluent/docker/run        Up      9092/tcp
-        clickstream_kafkacat_1_fab15322129a          /bin/sh                          Up
-        clickstream_ksql-cli_1_4b23bf3647b7          /bin/sh                          Up
-        clickstream_ksql-server_1_700acc2f6ebd       /etc/confluent/docker/run        Up      0.0.0.0:8088->8088/tcp
-        clickstream_schema-registry_1_fcd02fa59965   /etc/confluent/docker/run        Up      8081/tcp
-        clickstream_zookeeper_1_16e1638d6f11         /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 3888/tcp                        Name                                 Command               State                Ports
+
+            Name                    Command               State                Ports
+        -------------------------------------------------------------------------------------------
+        datagen           bash -c echo Waiting for K ...   Up
+        elasticsearch     /usr/local/bin/docker-entr ...   Up      0.0.0.0:9200->9200/tcp, 9300/tcp
+        grafana           /run.sh                          Up      0.0.0.0:3000->3000/tcp
+        kafka             /etc/confluent/docker/run        Up      9092/tcp
+        kafka-connect     /etc/confluent/docker/run        Up      0.0.0.0:8083->8083/tcp, 9092/tcp
+        kafkacat          /bin/sh                          Up
+        ksql-cli          /bin/sh                          Up
+        ksql-server       /etc/confluent/docker/run        Up      0.0.0.0:8088->8088/tcp
+        schema-registry   /etc/confluent/docker/run        Up      8081/tcp
+        zookeeper         /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 3888/tcp
 
 ---------------------------
 Create the Clickstream Data
@@ -99,52 +99,45 @@ If you remove the ``-c 10`` argument from the previous command you can run it an
 stream of all messages on the topic. If you do run this, press Ctrl-C to cancel it and 
 return to the command prompt.
 
-You now need to run two more to create fixed sets of data that will be 
-used to enrich the click data.
+There are two other sets of data in Kafka topics that have been automatically
+populated. They hold information about the HTTP status codes, and users. 
 
-#.  Create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
+#.  View the status codes data
 
     .. code:: bash
 
-        docker-compose exec datagen \
-          ksql-datagen \
-              bootstrap-server=kafka:29092 \
-              quickstart=clickstream_codes \
-              format=json \
-              topic=clickstream_codes \
-              maxInterval=20 \
-              iterations=100
+    docker-compose exec kafkacat \
+            kafkacat -b kafka:29092 -C -c 3 -K: \
+            -f '\nKey  : %k\tValue: %s' \
+            -t clickstream_codes
 
     Your output should resemble:
 
     ::
 
-        200 --> ([ 200 | 'Successful' ]) ts:1544781127847
-        200 --> ([ 200 | 'Successful' ]) ts:1544781127890
-        406 --> ([ 406 | 'Not acceptable' ]) ts:1544781127906
-        405 --> ([ 405 | 'Method not allowed' ]) ts:1544781127913
+        Key  : 405      Value: {"code":405,"definition":"Method not allowed"}
+        Key  : 407      Value: {"code":407,"definition":"Proxy authentication required"}
+        Key  : 302      Value: {"code":302,"definition":"Redirect"}⏎
+
         ...
 
-#.  Create a set of users using ksql-datagen utility. This stream runs once to populate the table.
+#.  View the user data
 
     .. code:: bash
 
-        docker-compose exec datagen \
-          ksql-datagen \
-              bootstrap-server=kafka:29092 \
-              quickstart=clickstream_users \
-              format=json \
-              topic=clickstream_users \
-              maxInterval=10 \
-              iterations=1000
+        docker-compose exec kafkacat \
+          kafkacat -b kafka:29092 -C -c 3 -K: \
+              -f '\nKey  : %k\tValue: %s' \
+              -t clickstream_users
 
     Your output should resemble:
 
     ::
 
-        1 --> ([ 1 | 'BenSteins_235' | 1413476342202 | 'Woodrow' | 'Lalonde' | 'Frankfurt' | 'Gold' ]) ts:1544780951888
-        2 --> ([ 2 | 'k_robertz_88' | 1474898691262 | 'Reeva' | 'Romagosa' | 'San Francisco' | 'Gold' ]) ts:1544780951915
-        3 --> ([ 3 | 'ArlyneW8ter' | 1473250124760 | 'Arlyne' | 'Romagosa' | 'Frankfurt' | 'Silver' ]) ts:1544780951923
+        Key  : 1        Value: {"user_id":1,"username":"DimitriSchenz88","registered_at":1432700187062,"first_name":"Arlyne","last_name":"Garrity","city":"Frankfurt","level":"Gold"}
+        Key  : 2        Value: {"user_id":2,"username":"AbdelKable_86","registered_at":1454795231290,"first_name":"Reeva","last_name":"Pask","city":"San Francisco","level":"Silver"}
+        Key  : 3        Value: {"user_id":3,"username":"Antonio_0966","registered_at":1464740725409,"first_name":"Woodrow","last_name":"Vanyard","city":"Frankfurt","level":"Platinum"}
+
         ...
 
 -------------------------------

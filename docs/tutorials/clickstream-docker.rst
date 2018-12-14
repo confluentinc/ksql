@@ -119,10 +119,10 @@ used to enrich the click data.
 
     ::
 
-        200 --> ([ 200 | 'Successful' ])
-        302 --> ([ 302 | 'Redirect' ])
-        200 --> ([ 200 | 'Successful' ])
-        406 --> ([ 406 | 'Not acceptable' ])
+        200 --> ([ 200 | 'Successful' ]) ts:1544781127847
+        200 --> ([ 200 | 'Successful' ]) ts:1544781127890
+        406 --> ([ 406 | 'Not acceptable' ]) ts:1544781127906
+        405 --> ([ 405 | 'Method not allowed' ]) ts:1544781127913
         ...
 
 #.  Create a set of users using ksql-datagen utility. This stream runs once to populate the table.
@@ -142,9 +142,9 @@ used to enrich the click data.
 
     ::
 
-        1 --> ([ 1 | 'GlenAlan_23344' | 1424796387808 | 'Curran' | 'Lalonde' | 'Palo Alto' | 'Gold' ])
-        2 --> ([ 2 | 'ArlyneW8ter' | 1433932319457 | 'Oriana' | 'Vanyard' | 'London' | 'Platinum' ])
-        3 --> ([ 3 | 'akatz1022' | 1478233258664 | 'Ferd' | 'Trice' | 'Palo Alto' | 'Platinum' ])
+        1 --> ([ 1 | 'BenSteins_235' | 1413476342202 | 'Woodrow' | 'Lalonde' | 'Frankfurt' | 'Gold' ]) ts:1544780951888
+        2 --> ([ 2 | 'k_robertz_88' | 1474898691262 | 'Reeva' | 'Romagosa' | 'San Francisco' | 'Gold' ]) ts:1544780951915
+        3 --> ([ 3 | 'ArlyneW8ter' | 1473250124760 | 'Arlyne' | 'Romagosa' | 'Frankfurt' | 'Silver' ]) ts:1544780951923
         ...
 
 -------------------------------

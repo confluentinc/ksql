@@ -55,7 +55,7 @@ Detailed Changlog
 * `PR-2051 <https://github.com/confluentinc/ksql/pull/2051>`_ - Preserve originals when merging configs
 * `PR-2080 <https://github.com/confluentinc/ksql/pull/2080>`_ - Fixed the test.
 * `PR-2079 <https://github.com/confluentinc/ksql/pull/2079>`_ - Fix deprication issues.
-* `PR-2031 <https://github.com/confluentinc/ksql/pull/2031>`_ - fix deprecated issues in the build
+* `PR-2031 <https://github.com/confluentinc/ksql/pull/2031>`_ - Fix deprecated issues in the build
 * `PR-2066 <https://github.com/confluentinc/ksql/pull/2066>`_ - Minor: Fix bug involving filters with NOT keyword.
 * `PR-2056 <https://github.com/confluentinc/ksql/pull/2056>`_ - Added stringtodate and datetostring UDFs for 5.1.x
 * `PR-2048 <https://github.com/confluentinc/ksql/pull/2048>`_ - Minor: Fix bug involving LIKE patterns without wildcards.

@@ -28,7 +28,6 @@ import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.SchemaUtil;
 
 import java.util.function.Supplier;
@@ -43,12 +42,6 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
   private final String fullSchemaName;
-
-  public static final String AVRO_SCHEMA_FULL_NAME = "AVRO_SCHEMA_FULL_NAME";
-
-  public KsqlAvroTopicSerDe() {
-    this(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-  }
 
   public KsqlAvroTopicSerDe(final String fullSchemaName) {
     super(DataSource.DataSourceSerDe.AVRO);

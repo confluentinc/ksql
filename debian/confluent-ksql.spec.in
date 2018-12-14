@@ -3,7 +3,7 @@ Name: confluent-ksql
 Version: ##RPMVERSION##
 Release: ##RPMRELEASE##
 Group: Applications/Internet
-License: Apache (v2)
+License: Confluent Community License
 Source0: confluent-ksql-%{version}.tar.gz
 URL: http://confluent.io
 BuildRoot: %{_tmppath}/%{name}-%{version}-root

@@ -2,7 +2,7 @@
 
 > **Important:** We recently [announced the General Availability](https://www.confluent.io/press-release/confluent-makes-ksql-available-confluent-platform-announces-general-availability/) of KSQL. It will be available for download in early April at http://confluent.io/ksql. Until then you can download the latest KSQL Developer Preview release at https://github.com/confluentinc/ksql/releases.
 
-KSQL is a streaming SQL engine for Apache Kafka. It provides a simple and completely interactive SQL interface for stream processing on Kafka; no need to write code in a programming language such as Java or Python. KSQL is open-source (Apache 2.0 licensed), distributed, scalable, reliable, and real-time. It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
+KSQL is the streaming SQL engine for Apache Kafka. It provides a simple and completely interactive SQL interface for stream processing on Kafka; no need to write code in a programming language such as Java or Python. KSQL is distributed, scalable, reliable, and real-time. It supports a wide range of powerful stream processing operations including aggregations, joins, windowing, sessionization, and much more.
 
 Click here to watch a screencast of the KSQL demo on YouTube.
 <a href="https://www.youtube.com/watch?v=illEpCOcCVg" target="_blank"><img src="screencast.jpg" alt="KSQL screencast"></a></p>

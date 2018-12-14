@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import java.time.Duration;
@@ -26,15 +26,17 @@ import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 public final class CommandStoreUtil {
+
   private CommandStoreUtil() {
   }
 
   public static void httpWaitForCommandSequenceNumber(
-      final ReplayableCommandQueue replayableCommandQueue,
+      final CommandQueue commandQueue,
       final KsqlRequest request,
-      final Duration timeout) {
+      final Duration timeout
+  ) {
     try {
-      waitForCommandSequenceNumber(replayableCommandQueue, request, timeout);
+      waitForCommandSequenceNumber(commandQueue, request, timeout);
     } catch (final InterruptedException e) {
       final String errorMsg = "Interrupted while waiting for command queue to reach "
           + "specified command sequence number in request: " + request.getKsql();
@@ -46,13 +48,14 @@ public final class CommandStoreUtil {
   }
 
   public static void waitForCommandSequenceNumber(
-      final ReplayableCommandQueue replayableCommandQueue,
+      final CommandQueue commandQueue,
       final KsqlRequest request,
-      final Duration timeout) throws InterruptedException, TimeoutException {
+      final Duration timeout
+  ) throws InterruptedException, TimeoutException {
     final Optional<Long> commandSequenceNumber = request.getCommandSequenceNumber();
     if (commandSequenceNumber.isPresent()) {
       final long seqNum = commandSequenceNumber.get();
-      replayableCommandQueue.ensureConsumedPast(seqNum, timeout);
+      commandQueue.ensureConsumedPast(seqNum, timeout);
     }
   }
 }

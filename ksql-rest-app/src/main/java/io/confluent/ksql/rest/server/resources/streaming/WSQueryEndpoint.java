@@ -103,7 +103,9 @@ public class WSQueryEndpoint {
         commandQueueCatchupTimeout);
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   WSQueryEndpoint(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final KsqlConfig ksqlConfig,
       final ObjectMapper mapper,
       final StatementParser statementParser,

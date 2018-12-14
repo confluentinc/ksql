@@ -47,7 +47,6 @@ import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -114,23 +113,23 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
-  private final ReplayableCommandQueue replayableCommandQueue;
+  private final CommandQueue commandQueue;
   private final RootDocument rootDocument;
   private final StatusResource statusResource;
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
   private final ServerInfo serverInfo;
-
   private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
-  private final CommandQueue commandQueue;
-  
+
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   KsqlRestApplication(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
@@ -153,7 +152,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.streamedQueryResource =
         Objects.requireNonNull(streamedQueryResource, "streamedQueryResource");
     this.ksqlResource = Objects.requireNonNull(ksqlResource, "ksqlResource");
-    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue")
+    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
 
     this.versionCheckerAgent =
         Objects.requireNonNull(versionCheckerAgent, "versionCheckerAgent");

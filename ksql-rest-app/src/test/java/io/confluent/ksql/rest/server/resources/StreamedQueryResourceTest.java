@@ -37,7 +37,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
@@ -248,10 +247,7 @@ public class StreamedQueryResourceTest {
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
-    final KsqlConfig mockKsqlConfig = mock(KsqlConfig.class);
-    final KsqlEngine mockKsqlEngine = mock(KsqlEngine.class);
-    expect(serviceContext.getTopicClient()).andReturn(mockKafkaTopicClient);
-    expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
+    reset(mockKsqlEngine);
 
     final QueuedQueryMetadata queuedQueryMetadata =
         new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
@@ -268,10 +264,6 @@ public class StreamedQueryResourceTest {
     reset(mockStatementParser);
     expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
-
-    final StreamedQueryResource testResource = new StreamedQueryResource(
-        mockKsqlConfig, mockKsqlEngine, serviceContext, mockStatementParser, DISCONNECT_CHECK_INTERVAL, () -> {
-    });
 
     final Response response =
         testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties, null));

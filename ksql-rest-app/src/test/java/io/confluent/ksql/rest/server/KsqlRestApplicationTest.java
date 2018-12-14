@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -76,6 +77,8 @@ public class KsqlRestApplicationTest {
   private KsqlResource ksqlResource;
   @Mock
   private VersionCheckerAgent versionCheckerAgent;
+  @Mock
+  private CommandQueue commandQueue;
   private KsqlRestApplication app;
 
   @Before
@@ -91,6 +94,7 @@ public class KsqlRestApplicationTest {
         ksqlConfig,
         restConfig,
         commandRunner,
+        commandQueue,
         rootDocument,
         statusResource,
         streamedQueryResource,

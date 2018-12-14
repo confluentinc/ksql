@@ -82,7 +82,7 @@ using a console consumer such as ``kafkacat``:
             -f '\nKey  : %k\t\nValue: %s\n' \
             -t clickstream
 
-*If you get the message `Broker: Leader not available` then try again after a moment, as the demo is still starting up.*
+*If you get the message `Broker: Leader not available`, try again after a moment, as the demo is still starting up.*
 
 This will stop after ten messages, and your output should resemble: 
 

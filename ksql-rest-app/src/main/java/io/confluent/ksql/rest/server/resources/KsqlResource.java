@@ -193,11 +193,9 @@ public class KsqlResource {
   @Path("/terminate")
   public Response terminateCluster(final ClusterTerminateRequest request) {
     final KsqlEntityList result = new KsqlEntityList();
-    try {
-      ensureValidPatterns(request.getDeleteTopicList());
-    } catch (final Exception e) {
-      return Errors.badRequest(e);
-    }
+
+    ensureValidPatterns(request.getDeleteTopicList());
+
     try {
       result.add(distributeStatement(
           new PreparedStatement<>(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
@@ -822,7 +820,7 @@ public class KsqlResource {
           try {
             Pattern.compile(pattern);
           } catch (final PatternSyntaxException patternSyntaxException) {
-            throw new KsqlException("Invalid pattern: " + pattern);
+            throw new KsqlRestException(Errors.badRequest("Invalid pattern: " + pattern));
           }
         });
   }

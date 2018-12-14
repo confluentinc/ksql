@@ -44,6 +44,11 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
 
   private final CommandTopic commandTopic;
   private final CommandIdAssigner commandIdAssigner;
+
+  Map<CommandId, QueuedCommandStatus> getCommandStatusMap() {
+    return commandStatusMap;
+  }
+
   private final Map<CommandId, QueuedCommandStatus> commandStatusMap;
 
   public CommandStore(

@@ -102,7 +102,6 @@ public class CommandTopic {
   }
 
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
-    Objects.requireNonNull(duration, "duration");
     final List<QueuedCommand> restoreCommands = Lists.newArrayList();
 
     commandConsumer.seekToBeginning(

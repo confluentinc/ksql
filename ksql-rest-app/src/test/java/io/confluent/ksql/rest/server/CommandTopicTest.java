@@ -91,7 +91,7 @@ public class CommandTopicTest {
   private Node node;
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public ExpectedException expectedException = ExpectedException.none();
 
   private final static TopicPartition TOPIC_PARTITION = new TopicPartition("topic", 0);
 
@@ -122,8 +122,8 @@ public class CommandTopicTest {
   public void shouldThrowExceptionIfSendIsNotSuccessfull() throws Exception {
     // Given:
     when(future.get()).thenThrow(new ExecutionException(new RuntimeException("Send was unsuccessful!")));
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage("Send was unsuccessful!");
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("Send was unsuccessful!");
 
     // When
     commandTopic.send(commandId1, command1);
@@ -133,8 +133,8 @@ public class CommandTopicTest {
   public void shouldThrowRuntimeExceptionIfSendCausesRunTimeException() throws Exception {
     // Given:
     when(future.get()).thenThrow(new ExecutionException(new Exception("Send was unsuccessful because of non RunTime exception!")));
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage("java.lang.Exception: Send was unsuccessful because of non RunTime exception!");
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("java.lang.Exception: Send was unsuccessful because of non RunTime exception!");
 
     // When
     commandTopic.send(commandId1, command1);
@@ -144,8 +144,8 @@ public class CommandTopicTest {
   public void shouldThrowRuntimeExceptionIfSendThrowsInterruptedException() throws Exception {
     // Given:
     when(future.get()).thenThrow(new InterruptedException("InterruptedException"));
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage("InterruptedException");
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("InterruptedException");
 
     // When
     commandTopic.send(commandId1, command1);

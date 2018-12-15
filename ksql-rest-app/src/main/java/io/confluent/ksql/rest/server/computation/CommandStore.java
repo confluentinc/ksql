@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
@@ -62,6 +63,7 @@ public class CommandStore implements CommandQueue, Closeable {
   private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, CommandStatusFuture> commandStatusMap;
   private final SequenceNumberFutureStore sequenceNumberFutureStore;
+  private long lastCommandSequenceNumber;
 
   public CommandStore(
       final String commandTopic,
@@ -92,6 +94,7 @@ public class CommandStore implements CommandQueue, Closeable {
     this.commandStatusMap = Maps.newConcurrentMap();
     this.sequenceNumberFutureStore =
         Objects.requireNonNull(sequenceNumberFutureStore, "sequenceNumberFutureStore");
+    updateLastCommandSequenceNumber();
 
     commandConsumer.assign(Collections.singleton(topicPartition));
   }
@@ -165,6 +168,7 @@ public class CommandStore implements CommandQueue, Closeable {
    */
   public List<QueuedCommand> getNewCommands() {
     completeSatisfiedSequenceNumberFutures();
+    updateLastCommandSequenceNumber();
 
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
     commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
@@ -216,7 +220,7 @@ public class CommandStore implements CommandQueue, Closeable {
   public void ensureConsumedPast(final long seqNum, final Duration timeout)
       throws InterruptedException, TimeoutException {
     final CompletableFuture<Void> future =
-        sequenceNumberFutureStore.getFutureForSequenceNumber(seqNum);
+        sequenceNumberFutureStore.getFutureForSequenceNumber(getSequenceNumberToWaitFor(seqNum));
     try {
       future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     } catch (final ExecutionException e) {
@@ -224,12 +228,14 @@ public class CommandStore implements CommandQueue, Closeable {
         throw (RuntimeException)e.getCause();
       }
       throw new RuntimeException(
-          "Error waiting for command sequence number of " + seqNum, e.getCause());
+          "Error waiting for command sequence number of "
+              + CommandStoreUtil.getSequenceNumberString(seqNum),
+          e.getCause());
     } catch (final TimeoutException e) {
       throw new TimeoutException(
           String.format(
-              "Timeout reached while waiting for command sequence number of %d. (Timeout: %d ms)",
-              seqNum,
+              "Timeout reached while waiting for command sequence number of %s. (Timeout: %d ms)",
+              CommandStoreUtil.getSequenceNumberString(seqNum),
               timeout.toMillis()));
     }
   }
@@ -244,8 +250,18 @@ public class CommandStore implements CommandQueue, Closeable {
     return result;
   }
 
+  private long getSequenceNumberToWaitFor(final long seqNum) {
+    return seqNum == CommandStoreUtil.LAST_SEQUENCE_NUMBER ? lastCommandSequenceNumber : seqNum;
+  }
+
+  private void updateLastCommandSequenceNumber() {
+    final long lastOffsetPlusOne =
+        commandConsumer.endOffsets(Collections.singleton(topicPartition)).get(topicPartition);
+    lastCommandSequenceNumber = lastOffsetPlusOne - 1;
+  }
+
   private void completeSatisfiedSequenceNumberFutures() {
-    final long consumerPosition = commandConsumer.position(topicPartition);;
+    final long consumerPosition = commandConsumer.position(topicPartition);
     sequenceNumberFutureStore.completeFuturesUpToAndIncludingSequenceNumber(consumerPosition - 1);
   }
 }

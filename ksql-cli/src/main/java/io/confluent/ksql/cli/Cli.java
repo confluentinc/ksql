@@ -34,6 +34,8 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -57,6 +59,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiFunction;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
@@ -66,6 +69,8 @@ import org.slf4j.LoggerFactory;
 public class Cli implements Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
+
+  static final int COMMAND_QUEUE_CATCHUP_TIMEOUT_RETRIES = 1;
 
   private final ExecutorService queryStreamExecutorService;
 
@@ -239,8 +244,7 @@ public class Cli implements Closeable {
     }
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
+          makeKsqlRequest(consecutiveStatements.toString(), restClient::makeKsqlRequest));
     }
   }
 
@@ -275,7 +279,7 @@ public class Cli implements Closeable {
     }
     setProperty(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
     printKsqlResponse(
-        restClient.makeKsqlRequest(statementText)
+        makeKsqlRequest(statementText, restClient::makeKsqlRequest)
     );
   }
 
@@ -285,7 +289,8 @@ public class Cli implements Closeable {
       final String statementText
   ) throws InterruptedException, IOException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+      printKsqlResponse(
+          makeKsqlRequest(consecutiveStatements.toString(), restClient::makeKsqlRequest));
       consecutiveStatements.setLength(0);
     }
     if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
@@ -297,7 +302,8 @@ public class Cli implements Closeable {
   }
 
   private void listProperties(final String statementText) throws IOException {
-    final KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
+    final KsqlEntityList ksqlEntityList =
+        makeKsqlRequest(statementText, restClient::makeKsqlRequest).getResponse();
     terminal.printKsqlEntityList(ksqlEntityList);
   }
 
@@ -327,7 +333,7 @@ public class Cli implements Closeable {
   private void handleStreamedQuery(final String query) throws IOException {
 
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
-        restClient.makeQueryRequest(query);
+        makeKsqlRequest(query, restClient::makeQueryRequest);
 
     LOGGER.debug("Handling streamed query");
 
@@ -392,7 +398,7 @@ public class Cli implements Closeable {
   private void handlePrintedTopic(final String printTopic)
       throws InterruptedException, ExecutionException, IOException {
     final RestResponse<InputStream> topicResponse =
-        restClient.makePrintTopicRequest(printTopic);
+        makeKsqlRequest(printTopic, restClient::makePrintTopicRequest);
 
     if (topicResponse.isSuccessful()) {
       try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse(), UTF_8.name());
@@ -461,8 +467,7 @@ public class Cli implements Closeable {
   ) throws IOException {
     if (consecutiveStatements.length() != 0) {
       printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
+          makeKsqlRequest(consecutiveStatements.toString(), restClient::makeKsqlRequest));
       consecutiveStatements.setLength(0);
     }
     final SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
@@ -481,5 +486,32 @@ public class Cli implements Closeable {
 
     terminal.writer()
         .printf("Successfully unset local property '%s' (value was '%s').%n", property, oldValue);
+  }
+
+  private <R> RestResponse<R> makeKsqlRequest(
+      final String ksql, final BiFunction<String, Long, RestResponse<R>> requestIssuer) {
+    return makeKsqlRequest(ksql, requestIssuer, COMMAND_QUEUE_CATCHUP_TIMEOUT_RETRIES);
+  }
+
+  private <R> RestResponse<R> makeKsqlRequest(
+      final String ksql,
+      final BiFunction<String, Long, RestResponse<R>> requestIssuer,
+      final int remainingRetries) {
+    final RestResponse<R> response =
+        requestIssuer.apply(ksql, CommandStoreUtil.LAST_SEQUENCE_NUMBER);
+    if (isSequenceNumberTimeout(response)) {
+      if (remainingRetries > 0) {
+        return makeKsqlRequest(ksql, requestIssuer, remainingRetries - 1);
+      } else {
+        return requestIssuer.apply(ksql, null);
+      }
+    }
+    return response;
+  }
+
+  private static boolean isSequenceNumberTimeout(final RestResponse<?> response) {
+    return response.isErroneous()
+        && (response.getErrorMessage().getErrorCode()
+            == Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT);
   }
 }

@@ -16,7 +16,6 @@ package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
-import static org.easymock.EasyMock.niceMock;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -25,6 +24,13 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
@@ -47,6 +53,7 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
@@ -69,7 +76,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.easymock.EasyMock;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
@@ -86,10 +92,15 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Most tests in CliTest are end-to-end integration tests, so it may expect a long running time.
  */
+@RunWith(MockitoJUnitRunner.class)
 @Category({IntegrationTest.class})
 public class CliTest {
 
@@ -133,6 +144,7 @@ public class CliTest {
   private Console console;
   private TestTerminal terminal;
   private TestRowCaptor rowCaptor;
+  @Mock
   private Supplier<String> lineSupplier;
   private Cli localCli;
 
@@ -158,7 +170,6 @@ public class CliTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    lineSupplier = niceMock(Supplier.class);
     terminal = new TestTerminal(lineSupplier);
     rowCaptor = new TestRowCaptor();
     console = new Console(CLI_OUTPUT_FORMAT, () -> "v1.2.3", terminal, rowCaptor);
@@ -317,7 +328,7 @@ public class CliTest {
   }
 
   private static void runStatement(final String statement, final KsqlRestClient restClient) {
-    final RestResponse response = restClient.makeKsqlRequest(statement);
+    final RestResponse response = restClient.makeKsqlRequest(statement, null);
     Assert.assertThat(response.isSuccessful(), is(true));
     final KsqlEntityList entityList = ((KsqlEntityList) response.get());
     Assert.assertThat(entityList.size(), equalTo(1));
@@ -353,7 +364,7 @@ public class CliTest {
   private static void dropStream(final String name) {
     final String dropStatement = String.format("drop stream %s;", name);
 
-    final RestResponse response = restClient.makeKsqlRequest(dropStatement);
+    final RestResponse response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()) {
       return;
     }
@@ -641,17 +652,14 @@ public class CliTest {
   public void shouldPrintErrorIfCantConnectToRestServer() throws Exception {
     givenRunInteractivelyWillExit();
 
-    final KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
-    EasyMock.expect(mockRestClient.makeRootRequest()).andThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
-    EasyMock.expect(mockRestClient.getServerInfo()).andReturn(
-        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
-    EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008")).anyTimes();
-    EasyMock.replay(mockRestClient);
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeRootRequest())
+        .thenThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
-    assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
+    assertThat(terminal.getOutputString(),containsString("Remote server address may not be valid"));
   }
 
   @Test
@@ -665,16 +673,12 @@ public class CliTest {
   public void shouldPrintErrorOnUnsupportedAPI() throws Exception {
     givenRunInteractivelyWillExit();
 
-    final KsqlRestClient mockRestClient = EasyMock.mock(KsqlRestClient.class);
-    EasyMock.expect(mockRestClient.makeRootRequest()).andReturn(
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeRootRequest()).thenReturn(
         RestResponse.erroneous(
             new KsqlErrorMessage(
                 Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
                 "Minimum supported client version: 1.0")));
-    EasyMock.expect(mockRestClient.getServerInfo()).andReturn(
-        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
-    EasyMock.expect(mockRestClient.getServerAddress()).andReturn(new URI("http://someserver:8008"));
-    EasyMock.replay(mockRestClient);
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
@@ -792,9 +796,74 @@ public class CliTest {
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
   }
 
+  @Test
+  public void shouldRetryOnCommandQueueCatchupTimeoutUntilLimitReached() throws Exception {
+    // Given:
+    final String statementText = "list streams;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeKsqlRequest(statementText, CommandStoreUtil.LAST_SEQUENCE_NUMBER))
+        .thenReturn(RestResponse.erroneous(
+            new KsqlErrorMessage(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT, "timed out!")));
+    when(mockRestClient.makeKsqlRequest(statementText, null))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    final InOrder inOrder = inOrder(mockRestClient);
+    inOrder.verify(mockRestClient, times(Cli.COMMAND_QUEUE_CATCHUP_TIMEOUT_RETRIES + 1))
+        .makeKsqlRequest(statementText, CommandStoreUtil.LAST_SEQUENCE_NUMBER);
+    inOrder.verify(mockRestClient).makeKsqlRequest(statementText, null);
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldNotRetryOnSuccess() throws Exception {
+    // Given:
+    final String statementText = "list streams;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeKsqlRequest(statementText, CommandStoreUtil.LAST_SEQUENCE_NUMBER))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    verify(mockRestClient, times(1)).makeKsqlRequest(anyString(), anyLong());
+  }
+
+  @Test
+  public void shouldNotRetryOnErrorThatIsNotCommandQueueCatchupTimeout() throws Exception {
+    // Given:
+    final String statementText = "list streams;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeKsqlRequest(statementText, CommandStoreUtil.LAST_SEQUENCE_NUMBER))
+        .thenReturn(RestResponse.erroneous(
+            new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, "uh oh")));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    verify(mockRestClient, times(1)).makeKsqlRequest(anyString(), anyLong());
+  }
+
   private void givenRunInteractivelyWillExit() {
-    EasyMock.expect(lineSupplier.get()).andReturn("eXiT");
-    EasyMock.replay(lineSupplier);
+    when(lineSupplier.get()).thenReturn("eXiT");
+  }
+
+  private KsqlRestClient givenMockRestClient() throws Exception {
+    final KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
+
+    when(mockRestClient.getServerInfo()).thenReturn(
+        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
+    when(mockRestClient.getServerAddress()).thenReturn(new URI("http://someserver:8008"));
+
+    localCli = new Cli(
+        STREAMED_QUERY_ROW_LIMIT, STREAMED_QUERY_TIMEOUT_MS, mockRestClient, console);
+
+    return mockRestClient;
   }
 
   private static class TestRowCaptor implements RowCaptor {

@@ -80,7 +80,7 @@ public class KsqlRestClient implements Closeable {
 
   private final Client client;
 
-  private URI serverAddress;
+  private URI[] serverAddress;
 
   private final LocalProperties localProperties;
 
@@ -114,7 +114,10 @@ public class KsqlRestClient implements Closeable {
   }
 
   public URI getServerAddress() {
-    return serverAddress;
+    // KSQL-1840: It should return the entry using a more dynamic/sophisticated
+    // algorithm. Implemented this way to enforce the encapsulation currently
+    // implemented, so builds up to 5.1.0-post branch don't break.
+    return serverAddress[0]; 
   }
 
   public void setServerAddress(final String serverAddress) {
@@ -163,7 +166,7 @@ public class KsqlRestClient implements Closeable {
 
   private <T> RestResponse<T> getRequest(final String path, final Class<T> type) {
 
-    try (Response response = client.target(serverAddress)
+    try (Response response = client.target(getServerAddress())
         .path(path)
         .request(MediaType.APPLICATION_JSON_TYPE)
         .get()) {
@@ -187,7 +190,7 @@ public class KsqlRestClient implements Closeable {
     Response response = null;
 
     try {
-      final WebTarget target = client.target(serverAddress)
+      final WebTarget target = client.target(getServerAddress())
           .path(path);
 
       readTimeoutMs.ifPresent(timeout -> target.property(ClientProperties.READ_TIMEOUT, timeout));
@@ -373,14 +376,19 @@ public class KsqlRestClient implements Closeable {
     return propertiesMap;
   }
 
-  private static URI parseServerAddress(final String serverAddress) {
+  private static URI[] parseServerAddress(final String serverAddress) {
     Objects.requireNonNull(serverAddress, "serverAddress");
-    try {
-      return new URL(serverAddress).toURI();
-    } catch (final Exception e) {
-      throw new KsqlRestClientException(
-          "The supplied serverAddress is invalid: " + serverAddress, e);
+    final String[] _serverAddresses = serverAddress.split(",");
+    final URI[] serverAddresses = new URI[_serverAddresses.length];
+    for (int i = 0; i < _serverAddresses.length; i++) {
+      try {
+        serverAddresses[i] = new URL(_serverAddresses[i]).toURI();
+      } catch (final Exception ex) {
+        throw new KsqlRestClientException(
+          "The supplied serverAddress is invalid: " + _serverAddresses[i], ex);
+      }
     }
+    return serverAddresses;
   }
 
   private static Client buildClient() {

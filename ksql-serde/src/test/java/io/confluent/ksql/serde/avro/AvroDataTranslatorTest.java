@@ -178,4 +178,20 @@ public class AvroDataTranslatorTest {
     final GenericRow translatedRow = dataTranslator.toKsqlRow(struct.schema(), struct);
     assertThat(translatedRow, equalTo(ksqlRow));
   }
+
+  @Test
+  public void shouldUseExplicitSchemaName() {
+    final Schema schema = SchemaBuilder.struct()
+            .field("COLUMN_NAME", Schema.OPTIONAL_INT64_SCHEMA)
+            .optional()
+            .build();
+
+    String schemaFullName = "com.custom.schema";
+
+    final AvroDataTranslator dataTranslator = new AvroDataTranslator(schema, schemaFullName);
+    final GenericRow ksqlRow = new GenericRow(Collections.singletonList(123L));
+    final Struct struct = dataTranslator.toConnectRow(ksqlRow);
+
+    assertThat(struct.schema().name(), equalTo(schemaFullName));
+  }
 }

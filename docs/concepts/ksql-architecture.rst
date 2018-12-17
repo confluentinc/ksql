@@ -190,6 +190,9 @@ You embed the KSQL engine in your application, and you scale the application and
 its stream processing the same way that you scale a Kafka Streams application or
 KSQL cluster, by using a consumer group.
 
+For an example that shows how to use embeded KSQL, see
+`EmbeddedKsql.java <https://github.com/confluentinc/ksql/tree/master/ksql-examples/src/main/java/io/confluent/ksql/embedded>`__.
+
 Dedicating Resources
 ====================
 

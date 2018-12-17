@@ -28,16 +28,12 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RegisterTopicCommand implements DdlCommand {
   private final String topicName;
   private final String kafkaTopicName;
   private final KsqlTopicSerDe topicSerDe;
   private final boolean notExists;
-
-  private static final Logger log = LoggerFactory.getLogger(RegisterTopicCommand.class);
 
   public RegisterTopicCommand(final RegisterTopic registerTopic) {
     // TODO: find a way to merge overriddenProperties

@@ -26,7 +26,6 @@ import io.confluent.ksql.util.KsqlException;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
 
-
 public class AvroProducer extends DataGenProducer {
 
   private final KsqlConfig ksqlConfig;

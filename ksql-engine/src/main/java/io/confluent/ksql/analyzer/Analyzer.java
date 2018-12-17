@@ -553,9 +553,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     validateWithClause(node.getProperties().keySet());
 
-    if (node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) != null) {
-      setIntoTopicFormat(into, node);
-    }
+    setIntoTopicFormat(into, node);
 
     if (node.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) != null) {
       setIntoTopicName(node);
@@ -621,12 +619,20 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private void setIntoTopicFormat(final StructuredDataSource into, final Table node) {
-    String serde = node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString();
+    final Object serdeProperty = node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY);
+
+    String serde;
+    if (serdeProperty != null) {
+      serde = node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString();
+    } else {
+      final StructuredDataSource leftSource = analysis.getFromDataSource(0).left;
+      serde = "'" + leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString() + "'";
+    }
     if (!serde.startsWith("'") && !serde.endsWith("'")) {
       throw new KsqlException(
           serde + " value is string and should be enclosed between " + "\"'\".");
     }
-    serde = serde.substring(1, serde.length() - 1);
+    serde = serde.substring(1, serde.length() - 1).toUpperCase();
     analysis.setIntoFormat(serde);
     analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
     if ("AVRO".equals(serde)) {

@@ -152,9 +152,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           case DataSource.AVRO_SERDE_NAME:
             final String schemaFullName =
                 StringUtil.cleanQuotes(
-                 analysis.getIntoProperties().getOrDefault(
-                   DdlConfig.AVRO_SCHEMA_FULL_NAME,
-                   KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).toString());
+                 analysis.getIntoProperties().get(
+                   DdlConfig.AVRO_SCHEMA_FULL_NAME).toString());
             intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
             break;
           case DataSource.JSON_SERDE_NAME:
@@ -171,9 +170,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
           final String schemaFullName =
               StringUtil.cleanQuotes(
-                analysis.getIntoProperties().getOrDefault(
-                  DdlConfig.AVRO_SCHEMA_FULL_NAME,
-                  KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).toString());
+                analysis.getIntoProperties().get(
+                  DdlConfig.AVRO_SCHEMA_FULL_NAME).toString());
           intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
         }
       }
@@ -646,10 +644,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
       final Expression avroSchemaFullName =
               node.getProperties().get(DdlConfig.AVRO_SCHEMA_FULL_NAME);
-      if (avroSchemaFullName != null) {
-        analysis.getIntoProperties()
-            .put(DdlConfig.AVRO_SCHEMA_FULL_NAME, avroSchemaFullName);
-      }
+      analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
+              ? avroSchemaFullName : KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+    } else if (node.getProperties().containsKey(DdlConfig.AVRO_SCHEMA_FULL_NAME)) {
+      throw new KsqlException(DdlConfig.AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
   }
 

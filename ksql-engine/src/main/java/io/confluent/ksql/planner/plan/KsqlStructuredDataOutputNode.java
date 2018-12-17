@@ -27,7 +27,6 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
@@ -199,9 +198,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private void addAvroSchemaToResultTopic(final Builder builder) {
     final String schemaFullName = StringUtil.cleanQuotes(
-        outputProperties.getOrDefault(
-                DdlConfig.AVRO_SCHEMA_FULL_NAME,
-                KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).toString());
+        outputProperties.get(DdlConfig.AVRO_SCHEMA_FULL_NAME).toString());
     final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
         new KsqlAvroTopicSerDe(schemaFullName);
     builder.withKsqlTopic(new KsqlTopic(

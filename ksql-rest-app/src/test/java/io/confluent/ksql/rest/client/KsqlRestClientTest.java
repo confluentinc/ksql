@@ -194,6 +194,33 @@ public class KsqlRestClientTest {
   }
 
   @Test
+  public void shouldParseSingleServerAddress() {
+    final String singleServerAddress = "http://singleServer:8088";
+    URI singleServerUri = null;
+    try {
+      singleServerUri = new URI(singleServerAddress);
+    } catch (Exception ex) {}
+    try (KsqlRestClient client = new KsqlRestClient(singleServerAddress)) {
+      assertThat(client.getServerAddress(), is(notNullValue()));
+      Assert.assertEquals(singleServerUri, client.getServerAddress());
+    }
+  }
+
+  @Test
+  public void shouldParseMultipleServerAddresses() {
+    final String firstServerAddress = "http://firstServer:8088";
+    final String multipleServerAddresses = firstServerAddress + ",http://secondServer:8088";
+    URI firstServerUri = null;
+    try {
+      firstServerUri = new URI(firstServerAddress);
+    } catch (Exception ex) {}
+    try (KsqlRestClient client = new KsqlRestClient(multipleServerAddresses)) {
+      assertThat(client.getServerAddress(), is(notNullValue()));
+      Assert.assertEquals(firstServerUri, client.getServerAddress());
+    }
+  }
+
+  @Test
   public void shouldHandleNotFoundOnGetRequests() {
     // Given:
     givenServerWillReturn(Status.NOT_FOUND);

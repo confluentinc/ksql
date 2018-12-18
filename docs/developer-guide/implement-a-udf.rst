@@ -5,7 +5,6 @@ Implement a User-defined Function (UDF)
 
 Prerequisites
      - `Apache Maven <https://maven.apache.org/download.cgi>`__
-     - `Git <https://git-scm.com/downloads>`__
      - |cp| installed locally
      - Internet connectivity for downloading Confluent POM files
 
@@ -15,7 +14,7 @@ Create the KSQL Extensions Directory
 When you create a custom user-defined function (UDF), you implement it in Java
 and deploy it as a JAR to the KSQL extensions directory. By default, this 
 directory doesn't exist, so you need to create it and assign it in the KSQL
-Server confuguration properties.
+Server configuration properties.
 
 Create the KSQL extensions directory, ``<path-to-confluent>/etc/ksql/ext``:
 
@@ -41,13 +40,13 @@ Create the Source and Project Files
 ***********************************
 
 The following steps shows how to implement your UDF in a Java class and build
-it by using a Maven POM file.
+it by defining a Maven POM file.
 
 #. Create a root directory for your UDF's source code and project files.
 #. Create the source code directory, which has a path that corresponds with
    the package name.
 #. Create the Java source code file in the source code directory. 
-#. Create a Project Object Model (POM) file that describes how Maven builds the
+#. Create a Project Object Model (POM) file that defines how Maven builds the
    source code.
 
 Create the Source Code Directory
@@ -101,8 +100,8 @@ Copy the following code into a new file, named "Multiply.java":
       }
     }
 
-Save the file to the source code directory, ``src/main/java/io/confluent/ksql/udfdemo``
-that you created in the previous step.
+Save the file to the source code directory that you created in the previous
+step, ``src/main/java/io/confluent/ksql/udfdemo``.
 
 Create the POM File
 ===================
@@ -110,7 +109,7 @@ Create the POM File
 In the root directory for your custom UDF implementation, create the Project
 Object Model (POM) file for the Maven build, and name it ``pom.xml``:
 
-.. code:: xml
+.. codewithvars:: xml
 
     <?xml version="1.0" encoding="UTF-8"?>
 
@@ -149,7 +148,7 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-udf</artifactId>
-                <version>5.1.0</version>
+                <version>|release|</version>
             </dependency>
         </dependencies>
 
@@ -202,7 +201,7 @@ Build the UDF Package
 Use Maven to build the package and create a JAR. Copy the JAR to the KSQL 
 extensions directory.
 
-In the root folder, run Maven to build the package:
+In the root folder for your UDF, run Maven to build the package:
 
 .. code:: bash
 
@@ -242,6 +241,11 @@ When your custom UDF is deployed in the KSQL extensions directory, it's loaded
 automatically when you start KSQL Server, and you can use it like you use the
 other KSQL functions.
 
+.. note::
+
+    When you make changes to your UDF code and re-deloy the JAR, you must 
+    restart KSQL Server to get the latest version of your UDF. 
+
 Start |cp| and KSQL Server:
 
 .. code:: bash
@@ -269,13 +273,65 @@ Your output should resemble:
     -------------------------------
      ABS               | SCALAR
      ARRAYCONTAINS     | SCALAR
-     CEIL              | SCALAR
      ...               |
      MULTIPLY          | SCALAR
-     RANDOM            | SCALAR
-     ROUND             | SCALAR
+     ...               |
+     SUBSTRING         | SCALAR    
+     SUM               | AGGREGATE 
      ...               |
     -------------------------------
+
+Inspect the details of the MULTIPLY function:
+
+::
+
+    DESCRIBE FUNCTION MULTIPLY;
+
+Your output should resemble:
+
+.. codewithvars:: text
+
+    Name        : MULTIPLY
+    Overview    : multiplies 2 numbers
+    Type        : scalar
+    Jar         : /home/my-home-dir/confluent-|release||/etc/ksql/ext/ksql-udf-demo-1.0-jar-with-dependencies.jar
+    Variations  : 
+
+    	Variation   : MULTIPLY(BIGINT, BIGINT)
+    	Returns     : BIGINT
+    	Description : multiply two nullable BIGINTs. If either param is null, null is 
+                    returned.
+
+    	Variation   : MULTIPLY(DOUBLE, DOUBLE)
+    	Returns     : DOUBLE
+    	Description : multiply two non-nullable DOUBLEs.
+
+    	Variation   : MULTIPLY(INT, INT)
+    	Returns     : BIGINT
+    	Description : multiply two non-nullable INTs.
+
+Use the MULTIPLY function in a query. If you follow the steps in
+:ref:`ksql_quickstart-local`, you can multiply the two BIGINT fields in the
+``pageviews_original`` stream:
+
+::
+
+    SELECT MULTIPLY(rowtime,viewtime) FROM pageviews_original;
+
+Your output should resemble:
+
+::
+
+    2027398056717155428
+    2028560009956135428
+    2029465468198408945
+    2030608879630876785
+    2031171314443704673
+    2032147849613387385
+    2032926605508340785
+    ^CQuery terminated
+
+Press Ctrl+C to terminate the query.
 
 Custom Aggregation Function (UDAF)
 **********************************
@@ -289,5 +345,5 @@ Next Steps
 **********
 
 * `How to Build a UDF and/or UDAF in KSQL 5.0 <https://www.confluent.io/blog/build-udf-udaf-ksql-5-0>`__
-
-
+* :ref:`aggregate-streaming-data-with-ksql`
+* :ref:`join-streams-and-tables`

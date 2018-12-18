@@ -1,64 +1,41 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.cli.console.Console;
-import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.cli.console.KsqlTerminal;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import org.jline.terminal.Terminal;
 
-public class TestTerminal extends Console {
+public class TestTerminal implements KsqlTerminal {
 
   private final PrintWriter printWriter;
   private final StringWriter writer;
-  private TestResult output;
+  private final Supplier<String> lineSupplier;
 
-  public TestTerminal(final OutputFormat outputFormat, final KsqlRestClient restClient) {
-    super(outputFormat, restClient);
-
+  public TestTerminal(final Supplier<String> lineSupplier) {
+    this.lineSupplier = lineSupplier;
     this.writer = new StringWriter();
     this.printWriter = new PrintWriter(writer);
-
-    resetTestResult(true);
-  }
-
-  public void resetTestResult(final boolean requireOrder) {
-    output = TestResult.init(requireOrder);
-  }
-
-  public synchronized TestResult getTestResult() {
-    return output.copy();
   }
 
   public String getOutputString() {
     return writer.toString();
-  }
-
-  @Override
-  public synchronized void addResult(final GenericRow row) {
-    output.addRow(row);
-  }
-
-  @Override
-  public void addResult(final List<String> columnHeaders, final List<List<String>> rows) {
-    output.addRows(rows);
   }
 
   @Override
@@ -82,8 +59,13 @@ public class TestTerminal extends Console {
   }
 
   @Override
-  protected TestLineReader buildLineReader() {
-    return new TestLineReader();
+  public String readLine() {
+    return lineSupplier.get();
+  }
+
+  @Override
+  public List<HistoryEntry> getHistory() {
+    return new ArrayList<>();
   }
 
   @Override
@@ -94,5 +76,10 @@ public class TestTerminal extends Console {
   @Override
   public void handle(final Terminal.Signal signal, final Terminal.SignalHandler signalHandler) {
     // Ignore
+  }
+
+  @Override
+  public StatusClosable setStatusMessage(final String message) {
+    return () -> {};
   }
 }

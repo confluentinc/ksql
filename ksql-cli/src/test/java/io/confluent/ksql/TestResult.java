@@ -1,166 +1,109 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.util.StringUtil;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.TreeMap;
+import java.util.Spliterator;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-public abstract class TestResult {
+public class TestResult implements Iterable<List<String>>{
 
-  private static final String LINE_SEPARATOR = ", ";
+  final List<List<String>> data;
 
-  Collection<List<String>> data;
-  private boolean sealed = false;
-
-  protected TestResult() {}
-
-  protected TestResult(final TestResult model) {
-    sealed = model.sealed;
+  public TestResult() {
+    this.data = Collections.emptyList();
   }
 
-  @SuppressWarnings("unchecked")
-  public List<String>[] toDataArray() {
-    return data.toArray((List<String>[]) new List[0]);
+  public TestResult(final Object... fields) {
+    this.data = ImmutableList.of(
+        ImmutableList.copyOf(
+            Arrays.stream(fields)
+                .map(String::valueOf)
+                .collect(Collectors.toList())
+        )
+    );
   }
 
-  static class OrderedResult extends TestResult {
-    private OrderedResult() {
-      data = new ArrayList<>();
-    }
-
-    private OrderedResult(final OrderedResult model) {
-      super(model);
-      data = new ArrayList<>();
-      data.addAll(model.data);
-    }
-
-    private OrderedResult(final String singleRow) {
-      this();
-      if (singleRow.length() > 0) {
-        data.add(Arrays.asList(singleRow.split(LINE_SEPARATOR)));
-      }
-      seal();
-    }
-
-    private OrderedResult(final List<List<String>> rows) {
-      this();
-      data.addAll(rows);
-    }
-
-    @Override
-    public String toString() {
-      return data.toString();
-    }
-
-    @Override
-    public OrderedResult copy() {
-      return new OrderedResult(this);
-    }
+  private TestResult(List<List<String>> data) {
+    this.data = ImmutableList.copyOf(data);
   }
 
-  static class UnorderedResult extends TestResult {
-    private UnorderedResult() {
-      data = new HashSet<>();
+  public static class Builder {
+    private final List<List<String>> data = new ArrayList<>();
+
+    public Builder() {
     }
 
-    private UnorderedResult(final UnorderedResult model) {
-      super(model);
-      data = new HashSet<>();
-      data.addAll(model.data);
+    public TestResult.Builder addRow(final GenericRow row) {
+      data.add(
+          ImmutableList.copyOf(
+              row.getColumns().stream()
+                  .map(String::valueOf)
+                  .collect(Collectors.toList())
+          )
+      );
+      return this;
     }
 
-    private UnorderedResult(final Map<String, Object> map) {
-      this();
-      for (final Map.Entry<String, Object> kv : map.entrySet()) {
-        data.add(Arrays.asList(kv.getKey(), String.valueOf(kv.getValue())));
-      }
-      seal();
+    public TestResult.Builder addRow(final Object... fields) {
+      data.add(
+          ImmutableList.copyOf(
+              Arrays.stream(fields)
+                  .map(String::valueOf)
+                  .collect(Collectors.toList())
+          )
+      );
+      return this;
     }
 
-    @Override
-    public String toString() {
-      // for convenience, we show content ordered by first column (key) alphabetically
-      final TreeMap<String, Object> map = new TreeMap<>();
-      for (final List<String> entry: data) {
-        map.put(entry.get(0), entry);
-      }
-      return map.values().toString();
+    public TestResult.Builder addRows(final List<List<String>> rows) {
+      rows.forEach(
+          r -> data.add(ImmutableList.copyOf(r))
+      );
+      return this;
     }
 
-    @Override
-    public UnorderedResult copy() {
-      return new UnorderedResult(this);
+    public TestResult build() {
+      return new TestResult(data);
     }
   }
 
-  static UnorderedResult build(final Map<String, Object> map) {
-    return new UnorderedResult(map);
+  public List<List<String>> rows() {
+    return data;
   }
 
-  static OrderedResult build(final String singleRow) {
-    return new OrderedResult(singleRow);
+  @Override
+  public Iterator<List<String>> iterator() {
+    return data.iterator();
   }
 
-  static OrderedResult build(final Object... cols) {
-    return new OrderedResult(StringUtil.join(", ", Arrays.asList(cols)));
+  @Override
+  public Spliterator<List<String>> spliterator() {
+    return data.spliterator();
   }
 
-  static OrderedResult build(final List<List<String>> rows) {
-    return new OrderedResult(rows);
-  }
-
-  static OrderedResult build() { return new OrderedResult(); }
-
-  static TestResult init(final boolean requireOrder) {
-    return requireOrder ? new OrderedResult() : new UnorderedResult();
-  }
-
-  public abstract TestResult copy();
-
-  void addRow(final GenericRow row) {
-    if (sealed) {
-      throw new RuntimeException("TestResult already sealed, cannot add more rows to it.");
-    }
-
-    final List<String> newRow = new ArrayList<>();
-    for (final Object column : row.getColumns()) {
-      newRow.add(String.valueOf(column));
-    }
-
-    data.add(newRow);
-  }
-
-  void addRows(final List<List<String>> rows) {
-    if (sealed) {
-      throw new RuntimeException("TestResult already sealed, cannot add more rows to it.");
-    }
-
-    data.addAll(rows);
-  }
-
-  void seal() {
-    this.sealed = true;
+  @Override
+  public void forEach(final Consumer<? super List<String>> action) {
+    data.forEach(action);
   }
 
   @Override
@@ -169,6 +112,11 @@ public abstract class TestResult {
     if (o == null || getClass() != o.getClass()) return false;
     final TestResult that = (TestResult) o;
     return Objects.equals(data, that.data);
+  }
+
+  @Override
+  public String toString() {
+    return data.toString();
   }
 
   @Override

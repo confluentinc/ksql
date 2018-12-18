@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.parser;
 
@@ -52,6 +50,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -117,23 +116,24 @@ public class SqlFormatterTest {
 
     final KsqlTopic
         ksqlTopicOrders =
-        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe());
+        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonTopicSerDe(), false);
 
-    final KsqlStream ksqlStreamOrders = new KsqlStream(
+    final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
         schemaBuilderOrders,
         schemaBuilderOrders.field("ORDERTIME"),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicOrders);
+        ksqlTopicOrders,
+        Serdes.String());
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
     final KsqlTopic
         ksqlTopicItems =
-        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe());
-    final KsqlTable ksqlTableOrders = new KsqlTable(
+        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonTopicSerDe(), false);
+    final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
         itemInfoSchema,
@@ -141,7 +141,7 @@ public class SqlFormatterTest {
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         "items",
-        false);
+        Serdes.String());
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }
@@ -166,7 +166,7 @@ public class SqlFormatterTest {
     assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
     assertThat("not literal escaping failure", sql, containsString("NOLIT STRING"));
     assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
-    final List<PreparedStatement> statements = new KsqlParser().buildAst(sql,
+    final List<PreparedStatement<?>> statements = new KsqlParser().buildAst(sql,
         MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry()));
     assertFalse("formatted sql parsing error", statements.isEmpty());
   }

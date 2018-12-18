@@ -1,8 +1,23 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.integration;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.KsqlTestContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
@@ -29,19 +44,19 @@ public class JoinIntTest {
   private KsqlContext ksqlContext;
 
 
-  private String orderStreamTopicJson = "OrderTopicJson";
-  private String orderStreamNameJson = "Orders_json";
+  private static final String orderStreamTopicJson = "OrderTopicJson";
+  private static final String orderStreamNameJson = "Orders_json";
   private OrderDataProvider orderDataProvider;
 
-  private String orderStreamTopicAvro = "OrderTopicAvro";
-  private String orderStreamNameAvro = "Orders_avro";
+  private static final String orderStreamTopicAvro = "OrderTopicAvro";
+  private static final String orderStreamNameAvro = "Orders_avro";
 
-  private String itemTableTopicJson = "ItemTopicJson";
-  private String itemTableNameJson = "Item_json";
+  private static final String itemTableTopicJson = "ItemTopicJson";
+  private static final String itemTableNameJson = "Item_json";
   private ItemDataProvider itemDataProvider;
 
-  private String itemTableTopicAvro = "ItemTopicAvro";
-  private String itemTableNameAvro = "Item_avro";
+  private static final String itemTableTopicAvro = "ItemTopicAvro";
+  private static final String itemTableNameAvro = "Item_avro";
 
   private final long now = System.currentTimeMillis();
 
@@ -49,15 +64,15 @@ public class JoinIntTest {
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
     testHarness.start(Collections.emptyMap());
-    final Map<String, Object> ksqlStreamConfigProps = new HashMap<>();
-    ksqlStreamConfigProps.putAll(testHarness.ksqlConfig.getKsqlStreamConfigProps());
+    final Map<String, Object> ksqlStreamConfigProps = new HashMap<>(
+        testHarness.ksqlConfig.getKsqlStreamConfigProps());
     // turn caching off to improve join consistency
     ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
     ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-    ksqlContext = KsqlContext.create(new KsqlConfig(ksqlStreamConfigProps),
+    ksqlContext = KsqlTestContext.create(new KsqlConfig(ksqlStreamConfigProps),
                                      testHarness.schemaRegistryClientFactory);
 
-    /**
+    /*
      * Setup test data
      */
     testHarness.createTopic(itemTableTopicJson);
@@ -87,7 +102,7 @@ public class JoinIntTest {
   }
 
   @After
-  public void after() throws Exception {
+  public void after() {
     ksqlContext.close();
     testHarness.stop();
   }
@@ -270,7 +285,7 @@ public class JoinIntTest {
 
   }
 
-  private void createStreams() throws Exception {
+  private void createStreams() {
     ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
                                   + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, "
                                   + "KEYVALUEMAP map<varchar, double>) "

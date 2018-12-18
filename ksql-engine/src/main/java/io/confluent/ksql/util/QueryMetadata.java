@@ -1,26 +1,26 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.internal.QueryStateListener;
+import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -73,6 +73,7 @@ public class QueryMetadata {
 
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
     this.queryStateListener = Optional.of(queryStateListener);
+    queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -83,8 +84,12 @@ public class QueryMetadata {
     return statementString;
   }
 
-  public KafkaStreams getKafkaStreams() {
-    return kafkaStreams;
+  public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
+    kafkaStreams.setUncaughtExceptionHandler(handler);
+  }
+
+  public String getState() {
+    return kafkaStreams.state().toString();
   }
 
   public OutputNode getOutputNode() {
@@ -116,7 +121,6 @@ public class QueryMetadata {
   }
 
   public void close() {
-
     kafkaStreams.close();
     if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
       kafkaStreams.cleanUp();
@@ -126,6 +130,7 @@ public class QueryMetadata {
                 queryApplicationId, kafkaStreams.state());
     }
     queryStateListener.ifPresent(QueryStateListener::close);
+    StreamsErrorCollector.notifyApplicationClose(queryApplicationId);
   }
 
   private Set<String> getInternalSubjectNameSet(final SchemaRegistryClient schemaRegistryClient) {

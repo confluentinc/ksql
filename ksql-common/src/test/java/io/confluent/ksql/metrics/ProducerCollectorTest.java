@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.metrics;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -13,7 +27,7 @@ public class ProducerCollectorTest {
 
   private static final String TEST_TOPIC = "test-topic".toLowerCase();
   @Test
-  public void shouldDisplayRateThroughput() throws Exception {
+  public void shouldDisplayRateThroughput() {
 
     final ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
 
@@ -25,21 +39,4 @@ public class ProducerCollectorTest {
 
     assertThat( stats.toString(), containsString("name=messages-per-sec,"));
   }
-
-  @Test
-  public void shouldRecordErrors() throws Exception {
-
-    final ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
-
-    for (int i = 0; i < 1000; i++){
-      collector.recordError(TEST_TOPIC);
-    }
-
-    final Collection<TopicSensors.Stat> stats = collector.stats("test-topic", true);
-
-    assertThat( stats.toString(), containsString("failed-messages"));
-    assertThat( stats.toString(), containsString("value=1000"));
-  }
-
-
 }

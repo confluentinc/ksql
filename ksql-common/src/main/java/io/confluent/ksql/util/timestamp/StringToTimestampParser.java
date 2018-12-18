@@ -1,18 +1,16 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util.timestamp;
 
@@ -40,6 +38,10 @@ public class StringToTimestampParser {
   }
 
   public long parse(final String text) {
+    return parse(text, ZoneId.systemDefault());
+  }
+
+  public long parse(final String text, final ZoneId zoneId) {
     TemporalAccessor parsed = formatter.parseBest(
         text,
         ZonedDateTime::from,
@@ -51,13 +53,13 @@ public class StringToTimestampParser {
           +  "cannot be parsed into a timestamp");
     }
 
-    if (parsed instanceof ZonedDateTime) {
-      parsed = ((ZonedDateTime) parsed)
-          .withZoneSameInstant(ZoneId.systemDefault())
-          .toLocalDateTime();
+    if (parsed instanceof LocalDateTime) {
+      parsed = ((LocalDateTime) parsed).atZone(zoneId);
     }
 
-    final LocalDateTime dateTime = (LocalDateTime) parsed;
+    final LocalDateTime dateTime = ((ZonedDateTime) parsed)
+        .withZoneSameInstant(ZoneId.systemDefault())
+        .toLocalDateTime();
     return Timestamp.valueOf(dateTime).getTime();
   }
 

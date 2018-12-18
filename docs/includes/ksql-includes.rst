@@ -1,15 +1,15 @@
-.. _offsetreset_start
+.. offsetreset_start
 
 .. tip:: Run the following to tell KSQL to read from the `beginning` of the topic: 
 
-    .. code:: bash
+    .. code:: sql
 
-        ksql> SET 'auto.offset.reset' = 'earliest';
+        SET 'auto.offset.reset' = 'earliest';
 
     `You can skip this if you have already run it within your current`
     `KSQL CLI session.`
 
-.. _offsetreset_end
+.. offsetreset_end
 
 .. Avro_note_start
 
@@ -35,7 +35,7 @@ Learn More
 
 .. CLI_welcome_start
 
-.. codewithvars:: bash
+.. codewithvars:: text
 
                           ===========================================
                           =        _  __ _____  ____  _             =
@@ -105,9 +105,79 @@ After KSQL is started, your terminal should resemble this.
 
 .. basics_tutorial_02_end
 
-.. basics_tutorial_03_start
+.. inspect_topics_start
 
-.. _create-a-stream-and-table:
+-------------------------------------------------------
+Inspect Kafka Topics By Using SHOW and PRINT Statements
+------------------------------------------------------- 
+
+KSQL enables inspecting Kafka topics and messages in real time.
+
+* Use the SHOW TOPICS statement to list the available topics in the Kafka cluster.
+* Use the PRINT statement to see a topic's messages as they arrive.
+
+In the KSQL CLI, run the following statement:
+
+.. code:: sql
+
+    SHOW TOPICS;
+
+Your output should resemble:
+
+::
+
+     Kafka Topic        | Registered | Partitions | Partition Replicas | Consumers | ConsumerGroups
+    ------------------------------------------------------------------------------------------------
+     _confluent-metrics | false      | 12         | 1                  | 0         | 0
+     _schemas           | false      | 1          | 1                  | 0         | 0
+     pageviews          | false      | 1          | 1                  | 0         | 0
+     users              | false      | 1          | 1                  | 0         | 0
+    ------------------------------------------------------------------------------------------------
+
+Inspect the ``users`` topic by using the PRINT statement:
+
+.. code:: sql
+
+    PRINT 'users';
+
+Your output should resemble:
+
+::
+
+    Format:JSON
+    {"ROWTIME":1540254230041,"ROWKEY":"User_1","registertime":1516754966866,"userid":"User_1","regionid":"Region_9","gender":"MALE"}
+    {"ROWTIME":1540254230081,"ROWKEY":"User_3","registertime":1491558386780,"userid":"User_3","regionid":"Region_2","gender":"MALE"}
+    {"ROWTIME":1540254230091,"ROWKEY":"User_7","registertime":1514374073235,"userid":"User_7","regionid":"Region_2","gender":"OTHER"}
+    ^C{"ROWTIME":1540254232442,"ROWKEY":"User_4","registertime":1510034151376,"userid":"User_4","regionid":"Region_8","gender":"FEMALE"}
+    Topic printing ceased
+
+Press CTRL+C to stop printing messages.
+
+Inspect the ``pageviews`` topic by using the PRINT statement:
+
+.. code:: sql
+
+    PRINT 'pageviews';
+
+Your output should resemble:
+
+::
+
+    Format:STRING
+    10/23/18 12:24:03 AM UTC , 9461 , 1540254243183,User_9,Page_20
+    10/23/18 12:24:03 AM UTC , 9471 , 1540254243617,User_7,Page_47
+    10/23/18 12:24:03 AM UTC , 9481 , 1540254243888,User_4,Page_27
+    ^C10/23/18 12:24:05 AM UTC , 9521 , 1540254245161,User_9,Page_62
+    Topic printing ceased
+    ksql>
+
+Press CTRL+C to stop printing messages.
+
+For more information, see :ref:`ksql_syntax_reference`.
+
+.. inspect_topics_end
+
+.. basics_tutorial_03_start
 
 -------------------------
 Create a Stream and Table
@@ -123,14 +193,14 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
    Describe the new STREAM. Notice that KSQL created additional columns called ``ROWTIME``, which corresponds to the Kafka message timestamp,
    and ``ROWKEY``, which corresponds to the Kafka message key.
 
-   .. code:: bash
+   .. code:: sql
 
-        ksql> CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH \
+        CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH
         (kafka_topic='pageviews', value_format='DELIMITED');
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------
@@ -141,14 +211,14 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
 #. Create a table ``users_original`` from the Kafka topic ``users``, specifying the ``value_format`` of ``JSON``.
 
-   .. code:: bash
+   .. code:: sql
 
-    ksql> CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH \
+    CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH
     (kafka_topic='users', value_format='JSON', key = 'userid');
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------
@@ -159,7 +229,7 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
 
 #. Optional: Show all streams and tables.
 
-   .. code:: bash
+   ::
 
        ksql> SHOW STREAMS;
 
@@ -187,11 +257,11 @@ the latest offset.
 
    .. code:: sql
 
-       ksql> SELECT pageid FROM pageviews_original LIMIT 3;
+       SELECT pageid FROM pageviews_original LIMIT 3;
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        Page_24
        Page_73
@@ -203,15 +273,15 @@ the latest offset.
 
    .. code:: sql
 
-    ksql> CREATE STREAM pageviews_enriched AS \
-          SELECT users_original.userid AS userid, pageid, regionid, gender \
-          FROM pageviews_original \
-          LEFT JOIN users_original \
-            ON pageviews_original.userid = users_original.userid;
+       CREATE STREAM pageviews_enriched AS
+       SELECT users_original.userid AS userid, pageid, regionid, gender
+       FROM pageviews_original
+       LEFT JOIN users_original
+         ON pageviews_original.userid = users_original.userid;
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -225,11 +295,11 @@ the latest offset.
 
    .. code:: sql
 
-       ksql> SELECT * FROM pageviews_enriched;
+       SELECT * FROM pageviews_enriched;
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        1519746861328 | User_4 | User_4 | Page_58 | Region_5 | OTHER
        1519746861794 | User_9 | User_9 | Page_94 | Region_9 | MALE
@@ -241,13 +311,13 @@ the latest offset.
 
    .. code:: sql
 
-    ksql> CREATE STREAM pageviews_female AS \
-          SELECT * FROM pageviews_enriched \
-          WHERE gender = 'FEMALE';
+    CREATE STREAM pageviews_female AS
+    SELECT * FROM pageviews_enriched
+    WHERE gender = 'FEMALE';
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -261,14 +331,14 @@ the latest offset.
 
    .. code:: sql
 
-       ksql> CREATE STREAM pageviews_female_like_89 \
-               WITH (kafka_topic='pageviews_enriched_r8_r9') AS \
-             SELECT * FROM pageviews_female \
-             WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+       CREATE STREAM pageviews_female_like_89
+         WITH (kafka_topic='pageviews_enriched_r8_r9') AS
+       SELECT * FROM pageviews_female
+       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ----------------------------
@@ -278,21 +348,21 @@ the latest offset.
 #. Create a new persistent query that counts the pageviews for each region and gender combination in a
    :ref:`tumbling window <windowing-tumbling>` of 30 seconds when the count is greater than one. Results from this query
    are written to the ``PAGEVIEWS_REGIONS`` Kafka topic in the Avro format. KSQL will register the Avro schema with the
-   configured schema registry when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
+   configured |sr| when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
 
    .. code:: sql
 
-    ksql> CREATE TABLE pageviews_regions \
-            WITH (VALUE_FORMAT='avro') AS \
-          SELECT gender, regionid , COUNT(*) AS numusers \
-          FROM pageviews_enriched \
-            WINDOW TUMBLING (size 30 second) \
-          GROUP BY gender, regionid \
-          HAVING COUNT(*) > 1;
+    CREATE TABLE pageviews_regions
+      WITH (VALUE_FORMAT='avro') AS
+    SELECT gender, regionid , COUNT(*) AS numusers
+    FROM pageviews_enriched
+      WINDOW TUMBLING (size 30 second)
+    GROUP BY gender, regionid
+    HAVING COUNT(*) > 1;
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
          Message
         ---------------------------
@@ -305,11 +375,11 @@ the latest offset.
 
    .. code:: sql
 
-       ksql> SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
+       SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
 
    Your output should resemble:
 
-   .. code:: bash
+   ::
 
        FEMALE | Region_6 | 3
        FEMALE | Region_1 | 4
@@ -324,11 +394,11 @@ the latest offset.
 
     .. code:: sql
 
-        ksql> SHOW QUERIES;
+        SHOW QUERIES;
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         Query ID                        | Kafka Topic              | Query String
         --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -344,11 +414,11 @@ the latest offset.
 
     .. code:: sql
 
-        ksql> DESCRIBE EXTENDED PAGEVIEWS_REGIONS;
+        DESCRIBE EXTENDED PAGEVIEWS_REGIONS;
 
     Your output should resemble:
 
-    .. code:: bash
+    ::
 
         Name                 : PAGEVIEWS_REGIONS
         Type                 : TABLE
@@ -399,17 +469,18 @@ queries.
    like to terminate. For example, if you wish to terminate query ID
    ``CTAS_PAGEVIEWS_REGIONS``:
 
-   .. code:: bash
+   .. code:: text
 
-       ksql> TERMINATE CTAS_PAGEVIEWS_REGIONS;
+       TERMINATE CTAS_PAGEVIEWS_REGIONS;
 
    .. tip:: The actual name of the query running may vary; refer to the output of ``SHOW QUERIES;``.
 
-#. Run this command to exit the KSQL CLI.
+#. Run the ``exit`` command to leave the KSQL CLI.
 
-   .. code:: bash
+   ::
 
        ksql> exit
+       Exiting KSQL.
 
 .. terminate_and_exit__end
 
@@ -440,7 +511,7 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
 
 .. log_limitations_end
 
-.. __struct_support_01_start
+.. struct_support_01_start
 
 Using Nested Schemas (STRUCT) in KSQL
 -------------------------------------
@@ -452,19 +523,19 @@ Here we’ll use the ``ksql-datagen`` tool to create some sample data
 which includes a nested ``address`` field. Run this in a new window, and 
 leave it running. 
 
-.. __struct_support_01_end
+.. struct_support_01_end
 
-.. __struct_support_02_start
+.. struct_support_02_start
 
 From the KSQL command prompt, register the topic in KSQL:
 
 .. code:: sql
 
-    ksql> CREATE STREAM ORDERS WITH (KAFKA_TOPIC='orders', VALUE_FORMAT='AVRO');
+    CREATE STREAM ORDERS WITH (KAFKA_TOPIC='orders', VALUE_FORMAT='AVRO');
 
 Your output should resemble:
 
-.. code:: bash
+::
 
      Message
     ----------------
@@ -476,11 +547,11 @@ Use the ``DESCRIBE`` function to observe the schema, which includes a
 
 .. code:: sql
 
-    ksql> DESCRIBE ORDERS;
+    DESCRIBE ORDERS;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     Name                 : ORDERS
      Field      | Type
@@ -500,11 +571,11 @@ Query the data, using ``->`` notation to access the Struct contents:
 
 .. code:: sql
 
-    ksql> SELECT ORDERID, ADDRESS->CITY FROM ORDERS;
+    SELECT ORDERID, ADDRESS->CITY FROM ORDERS;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     0 | City_35
     1 | City_21
@@ -512,14 +583,14 @@ Your output should resemble:
     3 | City_57
     4 | City_17
 
-Press Ctrl-C to cancel the ``SELECT`` query. 
+Press Ctrl+C to cancel the ``SELECT`` query. 
 
 
-.. __struct_support_02_end
+.. struct_support_02_end
 
-.. __stream_stream_join:
+.. stream_stream_join:
 
-.. __ss-join_01_start
+.. ss-join_01_start
 
 Stream-Stream join
 ------------------
@@ -529,46 +600,47 @@ events on a common key. An example of this could be a stream of order
 events, and a stream of shipment events. By joining these on the order
 key, it is possible to see shipment information alongside the order.
 
-First, populate the ``orders`` and ``shipments`` topics:
+In a separate console window, populate the ``orders`` and ``shipments``
+topics by using the kafkacat utility:
 
-.. __ss-join_01_end
+.. ss-join_01_end
 
-.. __ss-join_02_start
+.. ss-join_02_start
 
-Register both topics with KSQL:
+In the KSQL CLI, register both topics as KSQL streams:
 
 .. code:: sql
 
-    ksql> CREATE STREAM NEW_ORDERS (ORDER_ID INT, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR) \
-          WITH (KAFKA_TOPIC='new_orders', VALUE_FORMAT='JSON');
+    CREATE STREAM NEW_ORDERS (ORDER_ID INT, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR)
+    WITH (KAFKA_TOPIC='new_orders', VALUE_FORMAT='JSON');
 
-    ksql> CREATE STREAM SHIPMENTS (ORDER_ID INT, SHIPMENT_ID INT, WAREHOUSE VARCHAR) \
-          WITH (KAFKA_TOPIC='shipments', VALUE_FORMAT='JSON');
+    CREATE STREAM SHIPMENTS (ORDER_ID INT, SHIPMENT_ID INT, WAREHOUSE VARCHAR)
+    WITH (KAFKA_TOPIC='shipments', VALUE_FORMAT='JSON');
 
-After each ``CREATE STREAM`` statement you should get the message: 
+After both ``CREATE STREAM`` statements, your output should resemble: 
 
-.. code:: bash
+::
 
      Message
     ----------------
      Stream created
     ----------------
 
-Query the data to confirm that it is present in the topics. 
+Query the data to confirm that it's present in the topics. 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: _offsetreset_start
-    :end-before: _offsetreset_end
+    :start-after: offsetreset_start
+    :end-before: offsetreset_end
 
 For the ``NEW_ORDERS`` topic, run: 
 
 .. code:: sql
 
-    ksql> SELECT ORDER_ID, TOTAL_AMOUNT, CUSTOMER_NAME FROM NEW_ORDERS LIMIT 3;
+    SELECT ORDER_ID, TOTAL_AMOUNT, CUSTOMER_NAME FROM NEW_ORDERS LIMIT 3;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 10.5 | Bob Smith
     2 | 3.32 | Sarah Black
@@ -578,30 +650,30 @@ For the ``SHIPMENTS`` topic, run:
 
 .. code:: sql
 
-    ksql> SELECT ORDER_ID, SHIPMENT_ID, WAREHOUSE FROM SHIPMENTS LIMIT 2;
+    SELECT ORDER_ID, SHIPMENT_ID, WAREHOUSE FROM SHIPMENTS LIMIT 2;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 42 | Nashville
     3 | 43 | Palo Alto
 
 Run the following query, which will show orders with associated shipments, 
-based on a join window of 1 hours. 
+based on a join window of 1 hour. 
 
 .. code:: sql
 
-    ksql> SELECT O.ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME, \
-          S.SHIPMENT_ID, S.WAREHOUSE \
-          FROM NEW_ORDERS O \
-          INNER JOIN SHIPMENTS S \
-            WITHIN 1 HOURS \
-            ON O.ORDER_ID = S.ORDER_ID;
+    SELECT O.ORDER_ID, O.TOTAL_AMOUNT, O.CUSTOMER_NAME,
+    S.SHIPMENT_ID, S.WAREHOUSE
+    FROM NEW_ORDERS O
+    INNER JOIN SHIPMENTS S
+      WITHIN 1 HOURS
+      ON O.ORDER_ID = S.ORDER_ID;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 10.5 | Bob Smith | 42 | Nashville
     3 | 21.0 | Emma Turner | 43 | Palo Alto
@@ -611,14 +683,14 @@ Note that message with ``ORDER_ID=2`` has no corresponding
 corresponding row on the shipments stream within the time window
 specified. 
 
-Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
+Press Ctrl+C to cancel the ``SELECT`` query and return to the KSQL prompt.
 
 
-.. __ss-join_02_end
+.. ss-join_02_end
 
-.. __table_table_join:
+.. table_table_join:
 
-.. __tt-join_01_start
+.. tt-join_01_start
 
 Table-Table join
 ----------------
@@ -631,30 +703,30 @@ not supported in the current semantic model.
 In this example we have location data about a warehouse from one system,
 being enriched with data about the size of the warehouse from another.
 
-First, populate the two topics:
+In a separate console window, populate the two topics by using the kafkacat
+utility:
 
-.. __tt-join_01_end
+.. tt-join_01_end
 
-.. __tt-join_02_start
+.. tt-join_02_start
 
-Register both as KSQL tables:
+In the KSQL CLI, register both topics as KSQL tables:
 
 .. code:: sql
 
-    ksql> CREATE TABLE WAREHOUSE_LOCATION (WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR) \
-          WITH (KAFKA_TOPIC='warehouse_location', \
-                VALUE_FORMAT='JSON', \
-                KEY='WAREHOUSE_ID');
+    CREATE TABLE WAREHOUSE_LOCATION (WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
+    WITH (KAFKA_TOPIC='warehouse_location',
+          VALUE_FORMAT='JSON',
+          KEY='WAREHOUSE_ID');
 
-    ksql> CREATE TABLE WAREHOUSE_SIZE (WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE) \
-          WITH (KAFKA_TOPIC='warehouse_size', \
-                VALUE_FORMAT='JSON', \
-                KEY='WAREHOUSE_ID');
+    CREATE TABLE WAREHOUSE_SIZE (WAREHOUSE_ID INT, SQUARE_FOOTAGE DOUBLE)
+    WITH (KAFKA_TOPIC='warehouse_size',
+          VALUE_FORMAT='JSON',
+          KEY='WAREHOUSE_ID');
 
-For each ``CREATE TABLE`` statement, you should get the message: 
+After both ``CREATE TABLE`` statements, your output should resemble: 
 
-.. code:: bash
-
+::
 
      Message
     ---------------
@@ -666,16 +738,18 @@ key (``WAREHOUSE_ID``) - the output should show that they are equal. If
 they are not, the join will not succeed or behave as expected.
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: _offsetreset_start
-    :end-before: _offsetreset_end
+    :start-after: offsetreset_start
+    :end-before: offsetreset_end
+
+Inspect the WAREHOUSE_LOCATION table:
 
 .. code:: sql
 
-    ksql> SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION LIMIT 3;
+    SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION LIMIT 3;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 1
     2 | 2
@@ -683,13 +757,15 @@ Your output should resemble:
     Limit Reached
     Query terminated
 
+Inspect the WAREHOUSE_SIZE table:
+
 .. code:: sql
 
-    ksql> SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_SIZE LIMIT 3;
+    SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_SIZE LIMIT 3;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | 1
     2 | 2
@@ -701,15 +777,15 @@ Now join the two tables:
 
 .. code:: sql
 
-    ksql> SELECT WL.WAREHOUSE_ID, WL.CITY, WL.COUNTRY, WS.SQUARE_FOOTAGE \
-          FROM WAREHOUSE_LOCATION WL \
-            LEFT JOIN WAREHOUSE_SIZE WS \
-              ON WL.WAREHOUSE_ID=WS.WAREHOUSE_ID \
-          LIMIT 3;
+    SELECT WL.WAREHOUSE_ID, WL.CITY, WL.COUNTRY, WS.SQUARE_FOOTAGE
+    FROM WAREHOUSE_LOCATION WL
+      LEFT JOIN WAREHOUSE_SIZE WS
+        ON WL.WAREHOUSE_ID=WS.WAREHOUSE_ID
+    LIMIT 3;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     1 | Leeds | UK | 16000.0
     2 | Sheffield | UK | 42000.0
@@ -717,11 +793,9 @@ Your output should resemble:
     Limit Reached
     Query terminated
 
-.. __tt-join_02_end
+.. tt-join_02_end
 
-.. __insert_into:
-
-.. __insert-into_01_start
+.. insert-into-01-start
 
 INSERT INTO
 -----------
@@ -733,23 +807,23 @@ from different sources.
 Run two datagen processes, each writing to a different topic, simulating
 order data arriving from a local installation vs from a third-party:
 
-.. __insert-into_01_end
+.. insert-into-01-end
 
-.. __insert-into_02_start
+.. insert-into_02_start
 
 In KSQL, register the source topic for each:
 
 .. code:: sql
 
-    ksql> CREATE STREAM ORDERS_SRC_LOCAL \
-            WITH (KAFKA_TOPIC='orders_local', VALUE_FORMAT='AVRO');
+    CREATE STREAM ORDERS_SRC_LOCAL
+      WITH (KAFKA_TOPIC='orders_local', VALUE_FORMAT='AVRO');
     
-    ksql> CREATE STREAM ORDERS_SRC_3RDPARTY \
-            WITH (KAFKA_TOPIC='orders_3rdparty', VALUE_FORMAT='AVRO');
+    CREATE STREAM ORDERS_SRC_3RDPARTY
+      WITH (KAFKA_TOPIC='orders_3rdparty', VALUE_FORMAT='AVRO');
 
 After each ``CREATE STREAM`` statement you should get the message: 
 
-.. code:: bash
+::
 
      Message
     ----------------
@@ -763,11 +837,11 @@ as part of the ``SELECT``:
 
 .. code:: sql
 
-    ksql> CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL;
+    CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL;
 
 Your output should resemble:
 
-.. code:: bash
+::
 
      Message
     ----------------------------
@@ -778,12 +852,12 @@ Use the ``DESCRIBE`` command to observe the schema of the target stream.
 
 .. code:: sql
 
-    ksql> DESCRIBE ALL_ORDERS;
+    DESCRIBE ALL_ORDERS;
 
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     Name                 : ALL_ORDERS
      Field      | Type
@@ -803,12 +877,12 @@ Add stream of 3rd party orders into the existing output stream:
 
 .. code:: sql
 
-    ksql> INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
+    INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
 
 
 Your output should resemble:
 
-.. code:: bash
+::
 
      Message
     -------------------------------
@@ -820,12 +894,12 @@ written to it:
 
 .. code:: sql
 
-    ksql> SELECT * FROM ALL_ORDERS;
+    SELECT * FROM ALL_ORDERS;
 
 Your output should resemble the following. Note that there are messages from both source 
 topics (denoted by ``LOCAL`` and ``3RD PARTY`` respectively). 
 
-.. code:: bash
+::
 
     1531736084879 | 1802 | 3RD PARTY | 1508543844870 | 1802 | Item_427 | 5.003326679575532 | {CITY=City_27, STATE=State_63, ZIPCODE=12589}
     1531736085016 | 1836 | LOCAL | 1489112050820 | 1836 | Item_224 | 9.561788841477156 | {CITY=City_67, STATE=State_99, ZIPCODE=28638}
@@ -835,18 +909,18 @@ topics (denoted by ``LOCAL`` and ``3RD PARTY`` respectively).
     1531736085531 | 1838 | LOCAL | 1497601536360 | 1838 | Item_945 | 4.825111590185673 | {CITY=City_78, STATE=State_13, ZIPCODE=59763}
     …
 
-Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
+Press Ctrl+C to cancel the ``SELECT`` query and return to the KSQL prompt.
 
 You can view the two queries that are running using ``SHOW QUERIES``: 
 
 .. code:: sql
 
-    ksql> SHOW QUERIES;
+    SHOW QUERIES;
 
 
 Your output should resemble:
 
-.. code:: bash
+::
 
     Query ID          | Kafka Topic | Query String
     -------------------------------------------------------------------------------------------------------------------
@@ -854,5 +928,5 @@ Your output should resemble:
     InsertQuery_1     | ALL_ORDERS  | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
     -------------------------------------------------------------------------------------------------------------------
 
-.. __insert-into_02_end
+.. insert-into_02_end
 

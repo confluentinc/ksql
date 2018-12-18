@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.schema.registry;
@@ -19,6 +17,14 @@ package io.confluent.ksql.schema.registry;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
@@ -28,23 +34,21 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.network.Mode;
 import org.apache.kafka.common.security.ssl.SslFactory;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * @author andy
  * created 3/26/18
  */
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlSchemaRegistryClientFactoryTest {
 
   private static final SSLContext SSL_CONTEXT = getTestSslContext();
@@ -59,18 +63,20 @@ public class KsqlSchemaRegistryClientFactoryTest {
   private SslFactory sslFactory;
 
   @Mock
-  private KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory schemaRegistryClientFactory;
+  private KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory srClientFactory;
 
   @Before
   public void setUp() {
-    EasyMock.expect(schemaRegistryClientFactory.create(EasyMock.anyObject(),
-                                                       EasyMock.anyInt(),
-                                                       EasyMock.anyObject()))
-        .andReturn(EasyMock.niceMock(CachedSchemaRegistryClient.class));
-    EasyMock.expect(restServiceSupplier.get()).andReturn(restService);
-    EasyMock.replay(restServiceSupplier, schemaRegistryClientFactory);
+    when(srClientFactory.create(any(), anyInt(), any()))
+        .thenReturn(mock(CachedSchemaRegistryClient.class));
 
-    EasyMock.expect(sslFactory.sslContext()).andReturn(SSL_CONTEXT);
+    when(restServiceSupplier.get()).thenReturn(restService);
+
+    when(sslFactory.sslContext()).thenReturn(SSL_CONTEXT);
+  }
+
+  @Test
+  public void should() {
   }
 
   @Test
@@ -79,16 +85,16 @@ public class KsqlSchemaRegistryClientFactoryTest {
     final KsqlConfig config = config();
 
     final Map<String, Object> expectedConfigs = defaultConfigs();
-    setUpMocksWithExpectedConfig(expectedConfigs);
 
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            schemaRegistryClientFactory).get();
+            srClientFactory).get();
 
     // Then:
     assertThat(client, is(notNullValue()));
-    EasyMock.verify(restService);
+    verify(sslFactory).configure(expectedConfigs);
+    verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
   }
 
   @Test
@@ -100,16 +106,16 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     final Map<String, Object> expectedConfigs = defaultConfigs();
     expectedConfigs.put(SslConfigs.SSL_PROTOCOL_CONFIG, "SSLv3");
-    setUpMocksWithExpectedConfig(expectedConfigs);
 
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            schemaRegistryClientFactory).get();
+            srClientFactory).get();
 
     // Then:
     assertThat(client, is(notNullValue()));
-    EasyMock.verify(restService);
+    verify(sslFactory).configure(expectedConfigs);
+    verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
   }
 
   @Test
@@ -121,19 +127,18 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     final Map<String, Object> expectedConfigs = defaultConfigs();
     expectedConfigs.put(SslConfigs.SSL_PROTOCOL_CONFIG, "SSLv3");
-    setUpMocksWithExpectedConfig(expectedConfigs);
 
     // When:
     final SchemaRegistryClient client =
         new KsqlSchemaRegistryClientFactory(config, restServiceSupplier, sslFactory,
-                                            schemaRegistryClientFactory).get();
+            srClientFactory).get();
 
 
     // Then:
     assertThat(client, is(notNullValue()));
-    EasyMock.verify(restService);
+    verify(sslFactory).configure(expectedConfigs);
+    verify(restService).setSslSocketFactory(isA(SSL_CONTEXT.getSocketFactory().getClass()));
   }
-
 
   @Test
   public void shouldPassBasicAuthCredentialsToSchemaRegistryClient() {
@@ -145,43 +150,16 @@ public class KsqlSchemaRegistryClientFactoryTest {
 
     final KsqlConfig config = new KsqlConfig(schemaRegistryClientConfigs);
 
-    final Map<String, Object> expectedConfigs = schemaRegistryClientConfigs.entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            e -> e.getKey().replaceFirst(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX, ""),
-            Map.Entry::getValue
-        ));
-
-    final KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory clientFactory =
-        EasyMock.niceMock(KsqlSchemaRegistryClientFactory.SchemaRegistryClientFactory.class);
-
-    EasyMock.expect(clientFactory.create(EasyMock.same(restService),
-                                         EasyMock.anyInt(),
-                                         EasyMock.eq(expectedConfigs)))
-        .andReturn(EasyMock.niceMock(CachedSchemaRegistryClient.class));
-
-    EasyMock.replay(clientFactory);
+    final Map<String, Object> expectedConfigs = defaultConfigs();
+    expectedConfigs.put("basic.auth.credentials.source", "USER_INFO");
+    expectedConfigs.put("basic.auth.user.info", "username:password");
 
     // When:
-    final SchemaRegistryClient schemaRegistryClient =
-        new KsqlSchemaRegistryClientFactory(config,
-                                            restServiceSupplier,
-                                            sslFactory,
-                                            clientFactory).get();
+    new KsqlSchemaRegistryClientFactory(
+        config, restServiceSupplier, sslFactory, srClientFactory).get();
 
     // Then:
-    EasyMock.verify(clientFactory);
-  }
-
-
-  private void setUpMocksWithExpectedConfig(final Map<String, Object> expectedConfigs) {
-    sslFactory.configure(expectedConfigs);
-    EasyMock.expectLastCall();
-
-    restService.setSslSocketFactory(EasyMock.anyObject(SSL_CONTEXT.getSocketFactory().getClass()));
-    EasyMock.expectLastCall();
-
-    EasyMock.replay(restService, sslFactory);
+    srClientFactory.create(same(restService), anyInt(), eq(expectedConfigs));
   }
 
   private static Map<String, Object> defaultConfigs() {

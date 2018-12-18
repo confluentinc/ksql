@@ -1,28 +1,28 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.either;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.stream.IntStream;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,14 +36,15 @@ public class TimestampToStringTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
-  public void setUp(){
+  public void setUp() {
     udf = new TimestampToString();
   }
 
   @Test
-  public void shouldCovertTimestampToString() {
+  public void shouldConvertTimestampToString() {
     // When:
-    final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS");
+    final String result = udf.timestampToString(1638360611123L,
+        "yyyy-MM-dd HH:mm:ss.SSS");
 
     // Then:
     final String expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
@@ -54,7 +55,8 @@ public class TimestampToStringTest {
   @Test
   public void testUTCTimeZone() {
     // When:
-    final Object result = udf.evaluate(1534353043000L, "yyyy-MM-dd HH:mm:ss", "UTC");
+    final String result = udf.timestampToString(1534353043000L,
+        "yyyy-MM-dd HH:mm:ss", "UTC");
 
     // Then:
     assertThat(result, is("2018-08-15 17:10:43"));
@@ -63,7 +65,7 @@ public class TimestampToStringTest {
   @Test
   public void testPSTTimeZone() {
     // When:
-    final Object result = udf.evaluate(1534353043000L,
+    final String result = udf.timestampToString(1534353043000L,
         "yyyy-MM-dd HH:mm:ss", "America/Los_Angeles");
 
     // Then:
@@ -71,22 +73,45 @@ public class TimestampToStringTest {
   }
 
   @Test
-  public void testTimeZoneInFormat() {
-    // When:
+  public void testTimeZoneInLocalTime() {
+    // Given:
     final long timestamp = 1534353043000L;
-    final Object localTime = udf.evaluate(timestamp,
-        "yyyy-MM-dd HH:mm:ss zz");
-    final Object pacificTime = udf.evaluate(timestamp,
-        "yyyy-MM-dd HH:mm:ss zz", "America/Los_Angeles");
-    final Object universalTime = udf.evaluate(timestamp,
-        "yyyy-MM-dd HH:mm:ss zz", "UTC");
+
+    // When:
+    final String localTime = udf.timestampToString(timestamp, "yyyy-MM-dd HH:mm:ss zz");
 
     // Then:
     final String expected = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss zz")
         .format(new Date(timestamp));
 
     assertThat(localTime, is(expected));
-    assertThat(pacificTime, is("2018-08-15 10:10:43 PDT"));
+  }
+
+  @Test
+  public void testTimeZoneInPacificTime() {
+    // Given:
+    final long timestamp = 1534353043000L;
+
+    // When:
+    final String pacificTime = udf.timestampToString(timestamp,
+        "yyyy-MM-dd HH:mm:ss zz", "America/Los_Angeles");
+
+    // Then:
+    assertThat(pacificTime,
+        either(is("2018-08-15 10:10:43 PDT"))           // Java 8 and below.
+            .or(is("2018-08-15 10:10:43 GMT-07:00")));  // Java 9 and above.
+  }
+
+  @Test
+  public void testTimeZoneInUniversalTime() {
+    // Given:
+    final long timestamp = 1534353043000L;
+
+    // When:
+    final String universalTime = udf.timestampToString(timestamp,
+        "yyyy-MM-dd HH:mm:ss zz", "UTC");
+
+    // Then:
     assertThat(universalTime, is("2018-08-15 17:10:43 UTC"));
   }
 
@@ -94,13 +119,15 @@ public class TimestampToStringTest {
   public void shouldThrowIfInvalidTimeZone() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("Unknown time-zone ID: PST");
-    udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "PST");
+    udf.timestampToString(1638360611123L,
+        "yyyy-MM-dd HH:mm:ss.SSS", "PST");
   }
 
   @Test
   public void shouldSupportEmbeddedChars() {
     // When:
-    final Object result = udf.evaluate(1638360611123L, "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
+    final Object result = udf.timestampToString(1638360611123L,
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
     // Then:
     final String expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
@@ -109,33 +136,10 @@ public class TimestampToStringTest {
   }
 
   @Test
-  public void shouldThrowIfTooFewParameters() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage(
-        "should have at least two input arguments: date value and format.");
-    udf.evaluate(1638360611123L);
-  }
-
-  @Test
-  public void shouldThrowIfTooManyParameters() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage(
-        "should have at most three input arguments: date value, format and zone.");
-    udf.evaluate(1638360611123L, "yyyy-MM-dd HH:mm:ss.SSS", "UTC", "extra");
-  }
-
-  @Test
   public void shouldThrowIfFormatInvalid() {
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("Unknown pattern letter: i");
-    udf.evaluate("2021-12-01 12:10:11.123", "invalid");
-  }
-
-  @Test
-  public void shouldThrowIfNotTimestamp() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("java.lang.String cannot be cast to java.lang.Long");
-    udf.evaluate("invalid", "2021-12-01 12:10:11.123");
+    udf.timestampToString(1638360611123L, "invalid");
   }
 
   @Test
@@ -143,8 +147,42 @@ public class TimestampToStringTest {
     IntStream.range(0, 10_000)
         .parallel()
         .forEach(idx -> {
-          shouldCovertTimestampToString();
-          udf.evaluate(1538361611123L, "yyyy-MM-dd HH:mm:ss.SSS");
+          shouldConvertTimestampToString();
+          udf.timestampToString(1538361611123L, "yyyy-MM-dd HH:mm:ss.SSS");
+        });
+  }
+
+  @Test
+  public void shouldWorkWithManyDifferentFormatters() {
+    IntStream.range(0, 10_000)
+        .parallel()
+        .forEach(idx -> {
+          try {
+            final String pattern = "yyyy-MM-dd HH:mm:ss.SSS'X" + idx + "'";
+            final long millis = 1538361611123L + idx;
+            final String result = udf.timestampToString(millis, pattern);
+            final String expectedResult = new SimpleDateFormat(pattern).format(new Date(millis));
+            assertThat(result, is(expectedResult));
+          } catch (final Exception e) {
+            Assert.fail(e.getMessage());
+          }
+        });
+  }
+
+  @Test
+  public void shouldRoundTripWithStringToTimestamp() {
+    final String pattern = "yyyy-MM-dd HH:mm:ss.SSS'Freya'";
+    final StringToTimestamp stringToTimestamp = new StringToTimestamp();
+    IntStream.range(-10_000, 20_000)
+        .parallel()
+        .forEach(idx -> {
+          final long millis = 1538361611123L + idx;
+          final String result = udf.timestampToString(millis, pattern);
+          final String expectedResult = new SimpleDateFormat(pattern).format(new Date(millis));
+          assertThat(result, is(expectedResult));
+
+          final long roundtripMillis = stringToTimestamp.stringToTimestamp(result, pattern);
+          assertThat(roundtripMillis, is(millis));
         });
   }
 
@@ -179,7 +217,8 @@ public class TimestampToStringTest {
 
   private void assertLikeSimpleDateFormat(final String format) {
     final String expected = new SimpleDateFormat(format).format(1538361611123L);
-    final Object result = new TimestampToString().evaluate(1538361611123L, format);
+    final Object result = new TimestampToString()
+        .timestampToString(1538361611123L, format);
     assertThat(result, is(expected));
   }
 }

@@ -1,18 +1,16 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.analyzer;
 
@@ -21,6 +19,7 @@ import static java.lang.String.format;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -63,6 +62,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -168,28 +169,40 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       }
 
       newIntoKsqlTopic = new KsqlTopic(
+          intoStructuredDataSource.getName(),
           intoKafkaTopicName,
-          intoKafkaTopicName,
-          intoTopicSerde
+          intoTopicSerde,
+          true
       );
     } else {
-      newIntoKsqlTopic = metaStore.getTopic(intoKafkaTopicName);
+      newIntoKsqlTopic = metaStore.getTopic(intoStructuredDataSource.getName());
       if (newIntoKsqlTopic == null) {
         throw new KsqlException(
-            "Sink topic " + intoKafkaTopicName + " does not exist in th e metastore.");
+            "Sink topic " + intoKafkaTopicName + " does not exist in the metastore.");
       }
     }
 
-    final KsqlStream intoKsqlStream = new KsqlStream(
+    final KsqlStream intoKsqlStream = new KsqlStream<>(
         sqlExpression,
         intoStructuredDataSource.getName(),
         null,
         null,
         null,
-        newIntoKsqlTopic
+        newIntoKsqlTopic,
+        getKeySerde(intoStructuredDataSource)
     );
     analysis.setInto(intoKsqlStream, doCreateInto);
 
+  }
+
+  private static Serde<?> getKeySerde(final StructuredDataSource intoStructuredDataSource) {
+    if (intoStructuredDataSource instanceof KsqlStream) {
+      return ((KsqlStream<?>) intoStructuredDataSource).getKeySerde();
+    } else if (intoStructuredDataSource instanceof KsqlTable) {
+      return ((KsqlTable<?>) intoStructuredDataSource).getKeySerde();
+    } else {
+      throw new KsqlException("source is not a stream or table");
+    }
   }
 
   private void analyzeExpressions() {
@@ -514,13 +527,14 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private StructuredDataSource analyzeNonStdOutTable(final Table node) {
-    final StructuredDataSource into = new KsqlStream(
+    final StructuredDataSource into = new KsqlStream<>(
         sqlExpression,
         node.getName().getSuffix(),
         null,
         null,
         null,
-        null
+        null,
+        Serdes.String()
     );
 
     setIntoProperties(into, node);

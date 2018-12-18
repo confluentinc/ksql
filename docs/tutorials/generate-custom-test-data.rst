@@ -14,7 +14,7 @@ provide.
 
 - :ref:`Confluent Platform <installation>` is installed and running.
   This installation includes a Kafka broker, KSQL, |c3-short|, |zk|,
-  Schema Registry, REST Proxy, and Kafka Connect.
+  |sr|, REST Proxy, and Kafka Connect.
 - If you installed |cp| via TAR or ZIP, navigate to the installation
   directory. The paths and commands used throughout this tutorial assume
   that you're in this installation directory.

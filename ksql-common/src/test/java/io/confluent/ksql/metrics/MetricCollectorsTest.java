@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.metrics;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -38,16 +52,15 @@ public class MetricCollectorsTest {
   }
 
   @Test
-  public void shouldAggregateStats() throws Exception {
+  public void shouldAggregateStats() {
     final List<TopicSensors.Stat> stats = Arrays.asList(new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l));
     final Map<String, TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
     assertThat(aggregateMetrics.size(), equalTo(1));
     assertThat(aggregateMetrics.values().iterator().next().getValue(), equalTo(3.0));
   }
 
-
   @Test
-  public void shouldKeepWorkingWhenDuplicateTopicConsumerIsRemoved() throws Exception {
+  public void shouldKeepWorkingWhenDuplicateTopicConsumerIsRemoved() {
 
     final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "stream-thread-1") );
@@ -66,7 +79,7 @@ public class MetricCollectorsTest {
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
-    final String firstPassStats = MetricCollectors.getStatsFor(TEST_TOPIC, false);
+    final String firstPassStats = MetricCollectors.getAndFormatStatsFor(TEST_TOPIC, false);
 
     assertTrue("Missed stats, got:" + firstPassStats, firstPassStats.contains("total-messages:         2"));
 
@@ -74,14 +87,14 @@ public class MetricCollectorsTest {
 
     collector1.onConsume(consumerRecords);
 
-    final String statsForTopic2 =  MetricCollectors.getStatsFor(TEST_TOPIC, false);
+    final String statsForTopic2 =  MetricCollectors.getAndFormatStatsFor(TEST_TOPIC, false);
 
     assertTrue("Missed stats, got:" + statsForTopic2, statsForTopic2.contains("total-messages:         2"));
   }
 
 
   @Test
-  public void shouldAggregateStatsAcrossAllProducers() throws Exception {
+  public void shouldAggregateStatsAcrossAllProducers() {
     final ProducerCollector collector1 = new ProducerCollector();
     collector1.configure(ImmutableMap.of(ProducerConfig.CLIENT_ID_CONFIG, "client1"));
 
@@ -104,7 +117,7 @@ public class MetricCollectorsTest {
 
 
   @Test
-  public void shouldAggregateStatsAcrossAllConsumers() throws Exception {
+  public void shouldAggregateStatsAcrossAllConsumers() {
     final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client1"));
 
@@ -127,7 +140,7 @@ public class MetricCollectorsTest {
   }
 
   @Test
-  public void shouldAggregateTotalMessageConsumptionAcrossAllConsumers() throws Exception {
+  public void shouldAggregateTotalMessageConsumptionAcrossAllConsumers() {
     final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client1"));
 
@@ -148,7 +161,7 @@ public class MetricCollectorsTest {
   }
 
   @Test
-  public void shouldAggregateTotalBytesConsumptionAcrossAllConsumers() throws Exception {
+  public void shouldAggregateTotalBytesConsumptionAcrossAllConsumers() {
     final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.CLIENT_ID_CONFIG, "client1"));
 
@@ -171,7 +184,7 @@ public class MetricCollectorsTest {
   }
 
   @Test
-  public void shouldAggregateConsumptionStatsByQuery() throws Exception {
+  public void shouldAggregateConsumptionStatsByQuery() {
     final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
 
@@ -208,7 +221,7 @@ public class MetricCollectorsTest {
   }
 
   @Test
-  public void shouldNotIncludeRestoreConsumersWhenComputingPerQueryStats() throws Exception {
+  public void shouldNotIncludeRestoreConsumersWhenComputingPerQueryStats() {
     final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "group1"));
 
@@ -253,20 +266,13 @@ public class MetricCollectorsTest {
   }
 
   @Test
-  public void shouldAggregateErrorRatesAcrossProducersAndConsumers() {
-    final ConsumerCollector consumerCollector = new ConsumerCollector();
-    consumerCollector.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, "groupfoo1"));
-
-    final ProducerCollector producerCollector = new ProducerCollector();
-    producerCollector.configure(ImmutableMap.of(ProducerConfig.CLIENT_ID_CONFIG, "clientfoo2"));
-
-    for (int i = 0; i < 1000; i++) {
-      consumerCollector.recordError(TEST_TOPIC);
-      producerCollector.recordError(TEST_TOPIC);
+  public void shouldAggregateDeserializationErrors() {
+    for (int i = 0; i < 2000; i++) {
+      StreamsErrorCollector.recordError("test-application", TEST_TOPIC);
     }
-
     // we have 2000 errors in one sample out of a 100. So the effective error rate computed
     // should be 20 for this run.
     assertEquals(20.0, Math.floor(MetricCollectors.currentErrorRate()), 0.1);
+    StreamsErrorCollector.notifyApplicationClose("test-application");
   }
 }

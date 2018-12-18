@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.codegen;
 
@@ -490,35 +488,45 @@ public class SqlToJavaVisitor {
     ) {
 
       // For now we just support simple prefix/suffix cases only.
-      String paternString = process(node.getPattern(), true).getLeft().substring(1);
-      paternString = paternString.substring(0, paternString.length() - 1);
+      final String patternString = trimQuotes(process(node.getPattern(), true).getLeft());
       final String valueString = process(node.getValue(), true).getLeft();
-      if (paternString.startsWith("%")) {
-        if (paternString.endsWith("%")) {
+      if (patternString.startsWith("%")) {
+        if (patternString.endsWith("%")) {
           return new Pair<>(
               "(" + valueString + ").contains(\""
-                  + paternString.substring(1, paternString.length() - 1)
+                  + patternString.substring(1, patternString.length() - 1)
                   + "\")",
               Schema.OPTIONAL_STRING_SCHEMA
           );
         } else {
           return new Pair<>(
-              "(" + valueString + ").endsWith(\"" + paternString.substring(1) + "\")",
+              "(" + valueString + ").endsWith(\"" + patternString.substring(1) + "\")",
               Schema.OPTIONAL_STRING_SCHEMA
           );
         }
       }
 
-      if (paternString.endsWith("%")) {
+      if (patternString.endsWith("%")) {
         return new Pair<>(
             "(" + valueString + ")"
                 + ".startsWith(\""
-                + paternString.substring(0, paternString.length() - 1) + "\")",
+                + patternString.substring(0, patternString.length() - 1) + "\")",
             Schema.OPTIONAL_STRING_SCHEMA
         );
       }
 
-      throw new UnsupportedOperationException();
+      if (!patternString.contains("%")) {
+        return new Pair<>(
+            "(" + valueString + ")"
+                + ".equals(\""
+                + patternString + "\")",
+            Schema.OPTIONAL_STRING_SCHEMA
+        );
+      }
+
+      throw new UnsupportedOperationException(
+          "KSQL only supports leading and trailing wildcards in LIKE expressions."
+      );
     }
 
     @Override
@@ -580,6 +588,10 @@ public class SqlToJavaVisitor {
     private String formatIdentifier(final String s) {
       // TODO: handle escaping properly
       return s;
+    }
+
+    private String trimQuotes(final String s) {
+      return s.substring(1, s.length() - 1);
     }
 
     private String getCastToBooleanString(final Schema schema, final String exprStr) {

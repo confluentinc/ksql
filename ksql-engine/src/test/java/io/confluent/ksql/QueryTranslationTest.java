@@ -1,23 +1,38 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
 import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Window;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.io.Files;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.EndToEndEngineTestUtil.JsonTestCase;
+import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
+import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -31,6 +46,8 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,10 +55,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -85,25 +106,25 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final String QUERY_VALIDATION_TEST_DIR = "query-validation-tests";
+  private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
   private static final String CURRENT_TOPOLOGY_VERSION = "5_0";
   private static final String TOPOLOGY_VERSION_PROP = "topology.version";
 
-  private final Query query;
+  private final TestCase testCase;
 
   /**
    * @param name  - unused. Is just so the tests get named.
-   * @param query - query to run.
+   * @param testCase - testCase to run.
    */
   @SuppressWarnings("unused")
-  public QueryTranslationTest(final String name, final Query query) {
-    this.query = Objects.requireNonNull(query, "query");
+  public QueryTranslationTest(final String name, final TestCase testCase) {
+    this.testCase = Objects.requireNonNull(testCase, "testCase");
   }
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query);
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(testCase);
   }
 
   @Parameterized.Parameters(name = "{0}")
@@ -111,49 +132,41 @@ public class QueryTranslationTest {
     final String topologyVersion = System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSION);
     final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
     final Map<String, TopologyAndConfigs> expectedTopologies = loadExpectedTopologies(topologyDirectory);
-    return buildQueryList().stream()
+    return buildTestCases()
           .peek(q -> {
             final TopologyAndConfigs topologyAndConfigs = expectedTopologies.get(formatQueryName(q.getName()));
-            // could be null if the query has expected errors, no topology or configs saved
+            // could be null if the testCase has expected errors, no topology or configs saved
             if (topologyAndConfigs !=null) {
               q.setExpectedTopology(topologyAndConfigs.topology);
               q.setPersistedProperties(topologyAndConfigs.configs);
             }
           })
-          .map(query -> new Object[]{query.getName(), query})
+          .map(testCase -> new Object[]{testCase.getName(), testCase})
           .collect(Collectors.toCollection(ArrayList::new));
   }
 
-  static List<Query> buildQueryList()  throws IOException {
-    final List<String> testFiles = findTests(QUERY_VALIDATION_TEST_DIR);
+  static Stream<TestCase> buildTestCases() {
+    return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR)
+        .flatMap(test -> {
+          final JsonNode formatsNode = test.getNode().get("format");
+          if (formatsNode == null) {
+            return Stream.of(createTest(test, ""));
+          }
 
-    return testFiles.stream().flatMap(test -> {
-      final String testPath = QUERY_VALIDATION_TEST_DIR + "/" + test;
-      final JsonNode tests;
-      try {
-        tests = objectMapper.readTree(
-            EndToEndEngineTestUtil.class.getClassLoader().
-                getResourceAsStream(testPath));
-      } catch (IOException e) {
-        throw new RuntimeException("Unable to load test at path " + testPath, e);
-      }
-      final List<Query> queries = new ArrayList<>();
-      tests.findValue("tests").elements().forEachRemaining(query -> {
-        final JsonNode formats = query.get("format");
-        if (formats == null) {
-          queries.add(createTest(testPath, query, ""));
-        } else {
-          formats.iterator().forEachRemaining(
-              format -> queries.add(createTest(testPath, query, format.asText())));
-        }
-      });
-      return queries.stream();
-    }).collect(Collectors.toList());
+          final Spliterator<JsonNode> formats = Spliterators.spliteratorUnknownSize(
+              formatsNode.iterator(), Spliterator.ORDERED);
+
+          return StreamSupport.stream(formats, false)
+              .map(format -> createTest(test, format.asText()));
+        });
   }
 
-  private static Query createTest(final String testPath, final JsonNode query, final String format) {
+  private static TestCase createTest(final JsonTestCase test, final String format) {
     try {
+      final JsonNode query = test.getNode();
       final StringBuilder nameBuilder = new StringBuilder();
+      nameBuilder.append(Files.getNameWithoutExtension(test.getTestPath().toString()));
+      nameBuilder.append(" - ");
       nameBuilder.append(getRequiredQueryField("Unknown", query, "name").asText());
       if (!format.equals("")) {
         nameBuilder.append(" - ").append(format);
@@ -214,10 +227,10 @@ public class QueryTranslationTest {
         }
       }
 
-      return new Query(testPath, name, properties, topics, inputs, outputs, statements,
+      return new TestCase(test.getTestPath(), name, properties, topics, inputs, outputs, statements,
           expectedException);
     } catch (final Exception e) {
-      throw new RuntimeException("Failed to build a query in " + testPath, e);
+      throw new RuntimeException("Failed to build a testCase in " + test.getTestPath(), e);
     }
   }
 
@@ -269,7 +282,7 @@ public class QueryTranslationTest {
         stmt.getStatement().statement() instanceof SqlBaseParser.CreateStreamContext
             || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
 
-    final Function<PreparedStatement, Topic> mapper = stmt -> {
+    final Function<PreparedStatement<?>, Topic> mapper = stmt -> {
       final AbstractStreamCreateStatement statement = (AbstractStreamCreateStatement) stmt
           .getStatement();
 
@@ -339,24 +352,27 @@ public class QueryTranslationTest {
       }
     }
 
+    final WindowData window = createWindowIfExists(node);
+
     return new Record(
         topic,
         node.findValue("key").asText(),
         topicValue,
         node.findValue("timestamp").asLong(),
-        createWindowIfExists(node)
+        window
     );
   }
 
-  private static Window createWindowIfExists(final JsonNode node) {
+  private static WindowData createWindowIfExists(final JsonNode node) {
     final JsonNode windowNode = node.findValue("window");
     if (windowNode == null) {
       return null;
     }
 
-    return new Window(
+    return new WindowData(
         windowNode.findValue("start").asLong(),
-        windowNode.findValue("end").asLong());
+        windowNode.findValue("end").asLong(),
+        windowNode.findValue("type").asText());
   }
 
   @SuppressWarnings("unchecked")

@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.cli;
@@ -141,7 +139,7 @@ public class BasicAuthFunctionalTest {
   }
 
   private int canMakeCliRequest(final String username, final String password) {
-    try (KsqlRestClient restClient = new KsqlRestClient(findHttpListener().toString())) {
+    try (KsqlRestClient restClient = new KsqlRestClient(REST_APP.getHttpListener().toString())) {
 
       if (!username.isEmpty()) {
         restClient.setupAuthenticationCredentials(username, password);
@@ -168,7 +166,7 @@ public class BasicAuthFunctionalTest {
       }
 
       final WebSocketListener listener = new WebSocketListener();
-      final URI wsUri = WSURI.toWebsocket(findHttpListener()).resolve("/ws/query");
+      final URI wsUri = REST_APP.getWsListener().resolve("/ws/query");
 
       wsClient.connect(listener, wsUri, request);
 
@@ -185,19 +183,6 @@ public class BasicAuthFunctionalTest {
   private static Code extractStatusCode(final Throwable message) {
     assertThat(message, is(instanceOf(UpgradeException.class)));
     return HttpStatus.getCode(((UpgradeException) message).getResponseStatusCode());
-  }
-
-  private URI findHttpListener() {
-    final URL url = REST_APP.getListeners().stream()
-        .filter(l -> l.getProtocol().equals("http"))
-        .findFirst()
-        .orElseThrow(() -> new RuntimeException("No HTTP Listener found: "));
-
-    try {
-      return url.toURI();
-    } catch (final Exception e) {
-      throw new RuntimeException(e);
-    }
   }
 
   private static String buildBasicAuthHeader(final String userName, final String password) {
@@ -230,7 +215,7 @@ public class BasicAuthFunctionalTest {
 
   @SuppressWarnings("unused")
   @WebSocket
-  public class WebSocketListener {
+  public static class WebSocketListener {
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Throwable> error = new AtomicReference<>();

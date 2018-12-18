@@ -1,18 +1,15 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2018 Confluent Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.parser.tree;
@@ -21,6 +18,7 @@ import static org.easymock.EasyMock.same;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.Initializer;
@@ -44,7 +42,7 @@ public class HoppingWindowExpressionTest {
     final Initializer initializer = () -> 0;
     final Materialized<String, GenericRow, WindowStore<Bytes, byte[]>> store = Materialized.as("store");
 
-    EasyMock.expect(stream.windowedBy(TimeWindows.of(10000L).advanceBy(4L))).andReturn(windowedKStream);
+    EasyMock.expect(stream.windowedBy(TimeWindows.of(Duration.ofMillis(10000L)).advanceBy(Duration.ofMillis(4L)))).andReturn(windowedKStream);
     EasyMock.expect(windowedKStream.aggregate(same(initializer), same(aggregator), same(store))).andReturn(null);
     EasyMock.replay(stream, windowedKStream);
 

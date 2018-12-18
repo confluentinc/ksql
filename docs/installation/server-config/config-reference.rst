@@ -5,9 +5,6 @@ KSQL Configuration Parameter Reference
 
 Here are some common configuration properties that you can customize.
 
-.. contents::
-    :local:
-
 Kafka Streams and Kafka Client Settings
 ---------------------------------------
 
@@ -27,9 +24,9 @@ Determines what to do when there is no initial offset in Kafka or if the current
 default value in KSQL is ``latest``, which means all Kafka topics are read from the latest available offset. For example,
 to change it to earliest by using the KSQL command line:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> SET 'auto.offset.reset'='earliest';
+    SET 'auto.offset.reset'='earliest';
 
 For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
 
@@ -43,9 +40,9 @@ A list of host and port pairs that is used for establishing the initial connecti
 in the form ``host1:port1,host2:port2,...`` The default value in KSQL is ``localhost:9092``. For example, to change it to ``9095``
 by using the KSQL command line:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> SET 'bootstrap.servers'='localhost:9095';
+    SET 'bootstrap.servers'='localhost:9095';
 
 For more information, see :ref:`Streams parameter reference <streams_developer-guide_required-configs>` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`.
 
@@ -58,9 +55,9 @@ ksql.streams.commit.interval.ms
 The frequency to save the position of the processor. The default value in KSQL is ``2000``. Here is an example to change
 the value to ``5000`` by using the KSQL command line:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> SET 'commit.interval.ms'='5000';
+    SET 'commit.interval.ms'='5000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG`,
 
@@ -73,9 +70,9 @@ ksql.streams.cache.max.bytes.buffering
 The maximum number of memory bytes to be used for buffering across all threads. The default value in KSQL is ``10000000`` (~ 10 MB).
 Here is an example to change the value to ``20000000`` by using the KSQL command line:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> SET 'cache.max.bytes.buffering'='20000000';
+    SET 'cache.max.bytes.buffering'='20000000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
 
@@ -109,7 +106,7 @@ corrupt. For example, a message is corrupt if KSQL expects message values to be 
 DELIMITED format. The default value in KSQL is ``true``. For example, to ignore corrupt messages, add this to your
 properties file:
 
-.. code:: java
+::
 
     fail.on.deserialization.error=false
 
@@ -119,7 +116,7 @@ properties file:
 ksql.schema.registry.url
 ------------------------
 
-The Schema Registry URL path to connect KSQL to.
+The |sr| URL path to connect KSQL to.
 
 .. _ksql-service-id:
 
@@ -150,6 +147,16 @@ ksql.sink.replicas
 
 The default number of replicas for the topics created by KSQL. The default is one.
 
+------------------------------------
+ksql.functions.substring.legacy.args
+------------------------------------
+
+Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details.
+
+When upgrading headless mode KSQL applications from versions 5.0.x or earlier without updating your queries that use SUBSTRING to match 
+the new 5.1 behavior, you must set this config to ``true`` to enforce the previous SUBSTRING behavior. If possible, however, we recommend
+that you update your queries accordingly instead of enabling this configuration setting.
+
 KSQL Server Settings
 --------------------
 
@@ -158,6 +165,22 @@ These configurations control the general behavior of the KSQL server. These conf
 
 .. important:: KSQL server configuration settings take precedence over those set in the KSQL CLI. For example, if a value
                for ``ksql.streams.replication.factor`` is set in both the KSQL server and KSQL CLI, the KSQL server value is used.
+
+.. _ksql.query.persistent.active.limit:
+
+----------------------------------
+ksql.query.persistent.active.limit
+----------------------------------
+
+The maximum number of persistent queries that may be running at any given time. Applies to interactive mode only.
+Once the limit is reached, commands that try to start additional persistent queries will be rejected.
+Users may terminate existing queries before attempting to start new ones to avoid hitting the limit.
+The default is no limit.
+
+When setting up KSQL servers, it may be desirable to configure this limit to prevent users from overloading the server
+with too many queries, since throughput suffers as more queries are run simultaneously,
+and also because there is some small CPU overhead associated with starting each new query.
+See :ref:`KSQL Sizing Recommendations <important-sizing-factors>` for more details.
 
 .. _ksql-queries-file:
 
@@ -180,7 +203,7 @@ For more info, see :ref:`ksql-rest-api`.
 Specify hostname as ``0.0.0.0`` to bind to all interfaces or leave it empty to
 bind to the default interface. For example:
 
-.. code:: bash
+::
 
     # Bind to all interfaces.
     listeners=http://0.0.0.0:8088
@@ -195,7 +218,7 @@ Recommended KSQL Production Settings
 
 When deploying KSQL to production, the following settings are recommended in your ``/etc/ksql/ksql-server.properties`` file:
 
-.. code:: bash
+::
 
     # Set the retries to Integer.MAX_VALUE to ensure that transient failures
     # will not result in data loss.

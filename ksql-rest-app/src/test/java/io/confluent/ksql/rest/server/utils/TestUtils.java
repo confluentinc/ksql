@@ -1,36 +1,27 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.utils;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
 
 public class TestUtils {
 
@@ -72,22 +63,19 @@ public class TestUtils {
     return priorCommands;
   }
 
-  public static KsqlEngine createKsqlEngine(final KsqlConfig ksqlConfig,
-                                            final KafkaTopicClient topicClient,
-                                            final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
-    class TestKsqlEngine extends KsqlEngine {
-      private TestKsqlEngine() {
-        super(
-            topicClient,
-            schemaRegistryClientFactory,
-            new MetaStoreImpl(new InternalFunctionRegistry()),
-            ksqlConfig);
-      }
-    };
-
-    return new TestKsqlEngine();
-  }
-
+  /**
+   * Find a free port.
+   *
+   * <p>Note: Has a inherent race condition:
+   * after finding the free port it releases it so the caller can use it. This opens up a window in
+   * which another application can grab the free port, causing the test to fail.
+   *
+   * <p>Use only where there is no alternative. Jetty, for example, can allocate its own free
+   * port. Where you do use it, ensure you do so in a loop that will retry if the port is no longer
+   * free by the time the test comes to using it.
+   *
+   * @return a port that was just free and hopefully still is.
+   */
   public static int randomFreeLocalPort() throws IOException {
     final ServerSocket s = new ServerSocket(0);
     final int port = s.getLocalPort();

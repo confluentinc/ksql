@@ -1,18 +1,16 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util;
 
@@ -36,7 +34,7 @@ import org.apache.kafka.common.TopicPartitionInfo;
  */
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
-  class FakeTopic {
+  static class FakeTopic {
     private final String topicName;
     private final int numPartitions;
     private final short replicatonFactor;
@@ -78,18 +76,30 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     }
   }
 
-  private Map<String, FakeTopic> topicMap = new HashMap<>();
+  private final Map<String, FakeTopic> topicMap = new HashMap<>();
+  private final Map<String, FakeTopic> createdTopics = new HashMap<>();
+
+  public void preconditionTopicExists(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor,
+      final Map<String, ?> configs) {
+    topicMap.put(topic, createFakeTopic(topic, numPartitions, replicationFactor, configs));
+  }
 
   @Override
   public void createTopic(final String topic, final int numPartitions, final short replicationFactor, final boolean checkTopicProperties, final Map<String, ?> configs) {
-    if (!topicMap.containsKey(topic)) {
-      final TopicCleanupPolicy cleanUpPolicy =
-          CLEANUP_POLICY_COMPACT.equals(configs.get(COMPRESSION_TYPE_CONFIG))
-          ? TopicCleanupPolicy.COMPACT
-          : TopicCleanupPolicy.DELETE;
-
-      topicMap.put(topic, new FakeTopic(topic, numPartitions, replicationFactor, cleanUpPolicy));
+    if (topicMap.containsKey(topic)) {
+      return;
     }
+
+    final FakeTopic info = createFakeTopic(topic, numPartitions, replicationFactor, configs);
+    topicMap.put(topic, info);
+    createdTopics.put(topic, info);
+  }
+
+  public Map<String, FakeTopic> createdTopics() {
+    return createdTopics;
   }
 
   @Override
@@ -114,7 +124,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     return listTopicNames()
         .stream()
-        .filter(n -> topicNames.contains(n))
+        .filter(topicNames::contains)
         .collect(
             Collectors.toMap(n -> n, n -> topicMap.get(n).getDescription()));
   }
@@ -143,5 +153,15 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
+  }
+
+  private static FakeTopic createFakeTopic(final String topic, final int numPartitions,
+      final short replicationFactor, final Map<String, ?> configs) {
+    final TopicCleanupPolicy cleanUpPolicy =
+        CLEANUP_POLICY_COMPACT.equals(configs.get(COMPRESSION_TYPE_CONFIG))
+            ? TopicCleanupPolicy.COMPACT
+            : TopicCleanupPolicy.DELETE;
+
+    return new FakeTopic(topic, numPartitions, replicationFactor, cleanUpPolicy);
   }
 }

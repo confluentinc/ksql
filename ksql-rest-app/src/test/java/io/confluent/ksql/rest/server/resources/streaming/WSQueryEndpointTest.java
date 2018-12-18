@@ -1,220 +1,462 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.util.concurrent.ListenableScheduledFuture;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import io.confluent.ksql.GenericRow;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.tree.NodeLocation;
+import io.confluent.ksql.parser.tree.PrintTopic;
+import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QueryBody;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
+import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetricsTestUtil;
-import io.confluent.ksql.util.QueuedQueryMetadata;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Optional;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
-import javax.websocket.RemoteEndpoint;
+import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.KeyValue;
-import org.easymock.Capture;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "SameParameterValue"})
+@RunWith(MockitoJUnitRunner.class)
 public class WSQueryEndpointTest {
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  private static final KsqlRequest VALID_REQUEST = new KsqlRequest("test-sql",
+      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), null);
+
+  private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest("other-sql",
+      ImmutableMap.of(), null);
+
+  private static final long SEQUENCE_NUMBER = 2L;
+  private static final KsqlRequest REQUEST_WITHOUT_SEQUENCE_NUMBER = VALID_REQUEST;
+  private static final KsqlRequest REQUEST_WITH_SEQUENCE_NUMBER = new KsqlRequest("test-sql",
+      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), SEQUENCE_NUMBER);
+
+  private static final String VALID_VERSION = Versions.KSQL_V1_WS;
+  private static final String[] NO_VERSION_PROPERTY = null;
+  private static final KsqlRequest[] NO_REQUEST_PROPERTY = (KsqlRequest[]) null;
+  private static final Duration COMMAND_QUEUE_CATCHUP_TIMEOUT = Duration.ofMillis(5000L);
+
+  @Mock
   private KsqlConfig ksqlConfig;
+  @Mock
   private KsqlEngine ksqlEngine;
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private SchemaRegistryClient schemaRegistryClient;
+  @Mock
+  private KafkaTopicClient topicClient;
+  @Mock
   private StatementParser statementParser;
+  @Mock
   private ListeningScheduledExecutorService exec;
-  private ObjectMapper objectMapper;
+  @Mock
   private Session session;
+  @Mock
+  private QueryBody queryBody;
+  @Mock
+  private CommandQueue commandQueue;
+  @Mock
+  private QueryPublisher queryPublisher;
+  @Mock
+  private PrintTopicPublisher topicPublisher;
+  @Mock
+  private ActivenessRegistrar activenessRegistrar;
+  @Captor
+  private ArgumentCaptor<CloseReason> closeReasonCaptor;
+
+  private Query query;
   private WSQueryEndpoint wsQueryEndpoint;
-  private List mocks;
+
+  @BeforeClass
+  public static void setUpClass() {
+    OBJECT_MAPPER.registerModule(new Jdk8Module());
+  }
 
   @Before
   public void setUp() {
-    mocks = new LinkedList();
-    ksqlConfig = addMock(KsqlConfig.class);
-    ksqlEngine = addMock(KsqlEngine.class);
-    statementParser = addMock(StatementParser.class);
-    exec = addMock(ListeningScheduledExecutorService.class);
-    objectMapper = new ObjectMapper();
+    query = new Query(queryBody, Optional.empty());
+
+    when(session.getId()).thenReturn("session-id");
+    when(statementParser.parseSingleStatement(anyString())).thenReturn(query);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    givenRequest(VALID_REQUEST);
+
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, objectMapper, statementParser, ksqlEngine, exec);
-    session = addMock(Session.class);
-  }
-
-  private <T> T addMock(final Class<T> clazz) {
-    final T mockObject = mock(clazz);
-    mocks.add(mockObject);
-    return mockObject;
-  }
-
-  private void replayMocks() {
-    mocks.forEach(m -> replay(m));
-  }
-
-  private void verifyVersionCheckFailure(
-      final CloseReason expectedCloseReason, final Capture<CloseReason> captured) {
-    verify(session);
-    final CloseReason closeReason = captured.getValue();
-    assertThat(closeReason.getReasonPhrase(), equalTo(expectedCloseReason.getReasonPhrase()));
-    assertThat(closeReason.getCloseCode(), equalTo(expectedCloseReason.getCloseCode()));
+        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, serviceContext, commandQueue, exec,
+        queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT);
   }
 
   @Test
-  public void shouldReturnErrorOnBadVersion() throws IOException {
-    final Map<String, List<String>> parameters =
-        Collections.singletonMap(
-            Versions.KSQL_V1_WS_PARAM, Collections.singletonList("bad-version"));
-    final CloseReason expectedCloseReason = new CloseReason(
-        CloseReason.CloseCodes.CANNOT_ACCEPT,"Invalid version in request");
-    final Capture<CloseReason> captured = Capture.newInstance();
+  public void shouldReturnErrorOnBadVersion() throws Exception {
+    // Given:
+    givenVersions("bad-version");
 
-    expect(session.getRequestParameterMap()).andReturn(parameters).anyTimes();
-    expect(session.getId()).andReturn("session-id").anyTimes();
-    session.close(capture(captured));
-    expectLastCall().once();
-
-    replayMocks();
-
+    // When:
     wsQueryEndpoint.onOpen(session, null);
 
-    verifyVersionCheckFailure(expectedCloseReason, captured);
+    // Then:
+    verifyClosedWithReason("Received invalid api version: [bad-version]", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
-  public void shouldReturnErrorOnMultipleVersions() throws IOException {
-    final Map<String, List<String>> parameters =
-        Collections.singletonMap(
-            Versions.KSQL_V1_WS_PARAM, Arrays.asList(
-                Versions.KSQL_V1_WS, "2"));
-    final CloseReason expectedCloseReason = new CloseReason(
-        CloseReason.CloseCodes.CANNOT_ACCEPT,"Invalid version in request");
-    final Capture<CloseReason> captured = Capture.newInstance();
+  public void shouldReturnErrorOnMultipleVersions() throws Exception {
+    // Given:
+    givenVersions(Versions.KSQL_V1_WS, "2");
 
-    expect(session.getRequestParameterMap()).andReturn(parameters).anyTimes();
-    expect(session.getId()).andReturn("session-id").anyTimes();
-    session.close(capture(captured));
-    expectLastCall().once();
-
-    replayMocks();
-
+    // When:
     wsQueryEndpoint.onOpen(session, null);
 
-    verifyVersionCheckFailure(expectedCloseReason, captured);
+    // Then:
+    verifyClosedWithReason("Received multiple api versions: [1, 2]", CloseCodes.CANNOT_ACCEPT);
   }
 
-  private void shouldReturnAllRows(final Map<String, List<String>> testParameters) throws IOException {
-    final String statement = "ksql-query-statement";
-    final Map<String, Object> properties = Collections.singletonMap("foo", "bar");
-    final KsqlRequest request = new KsqlRequest(statement, properties);
-    final Map<String, List<String>> parameters = new HashMap<>(testParameters);
-    parameters.put(
-        "request",
-        Collections.singletonList(objectMapper.writeValueAsString(request)));
-    final Schema schema = SchemaBuilder.struct()
-        .field("f1", SchemaBuilder.int32())
-        .field("f2", SchemaBuilder.string())
-        .build();
-    final List<KeyValue<String, GenericRow>> rows = new LinkedList<>();
-    rows.add(new KeyValue<>("k1", new GenericRow("k1c1", "k2c2")));
-    rows.add(new KeyValue<>("k2", new GenericRow("k2c1", "k2c2")));
-    final BlockingQueue<KeyValue<String, GenericRow>> rowQ = new LinkedBlockingQueue<>(rows);
+  @Test
+  public void shouldAcceptNoVersion() throws IOException {
+    // Given:
+    givenVersions(NO_VERSION_PROPERTY);
 
-    final Query query = addMock(Query.class);
-    final QueuedQueryMetadata queryMetadata = addMock(QueuedQueryMetadata.class);
-    final KafkaStreams kafkaStreams = addMock(KafkaStreams.class);
-    final  RemoteEndpoint.Async async = addMock(RemoteEndpoint.Async.class);
-    final RemoteEndpoint.Basic basic = addMock(RemoteEndpoint.Basic.class);
-    final ListenableScheduledFuture future = addMock(ListenableScheduledFuture.class);
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
 
-    expect(session.getRequestParameterMap()).andReturn(parameters).anyTimes();
-    expect(session.getBasicRemote()).andReturn(basic).anyTimes();
-    expect(session.getAsyncRemote()).andReturn(async).anyTimes();
-    expect(session.getId()).andReturn("session-id").anyTimes();
+    // Then:
+    verify(session, never()).close(any());
+  }
 
-    expect(statementParser.parseSingleStatement(statement)).andReturn(query).anyTimes();
+  @Test
+  public void shouldAcceptEmptyVersions() throws IOException {
+    // Given:
+    givenVersions(/* empty version*/);
 
-    expect(ksqlEngine.buildMultipleQueries(statement, ksqlConfig, properties))
-        .andReturn(Collections.singletonList(queryMetadata))
-        .anyTimes();
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
 
-    expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
-    queryMetadata.setLimitHandler(anyObject());
-    expectLastCall().once();
-    queryMetadata.registerQueryStateListener(anyObject());
-    expectLastCall();
-    expect(kafkaStreams.state()).andReturn(State.RUNNING).anyTimes();
-    expect(queryMetadata.getKafkaStreams()).andReturn(kafkaStreams).anyTimes();
-    expect(queryMetadata.getQueryApplicationId()).andReturn("foo").anyTimes();
-    expect(queryMetadata.getRowQueue()).andReturn(rowQ).anyTimes();
-    queryMetadata.start();
-    expectLastCall();
+    // Then:
+    verify(session, never()).close(any());
+  }
 
-    kafkaStreams.setUncaughtExceptionHandler(anyObject());
-    expectLastCall().once();
-    kafkaStreams.start();
-    expectLastCall().once();
+  @Test
+  public void shouldAcceptExplicitVersion() throws IOException {
+    // Given:
+    givenVersions(Versions.KSQL_V1_WS);
 
-    final Capture<Runnable> captured = Capture.newInstance();
-    expect(exec.submit(capture(captured))).andReturn(future).anyTimes();
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
 
-    // result expectations
-    basic.sendText(objectMapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema)));
-    expectLastCall().once();
-    for (final KeyValue<String, GenericRow> row : rows) {
-      async.sendText(
-          eq(objectMapper.writeValueAsString(StreamedRow.row(row.value))),
-          anyObject());
-      expectLastCall().once();
+    // Then:
+    verify(session, never()).close(any());
+  }
+
+  @Test
+  public void shouldReturnErrorOnNoRequest() throws Exception {
+    // Given:
+    givenRequests(NO_REQUEST_PROPERTY);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason(
+        "Error parsing request: missing request parameter", CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldReturnErrorOnEmptyRequests() throws Exception {
+    // Given:
+    givenRequests(/*None*/);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason(
+        "Error parsing request: missing request parameter", CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldParseStatementText() {
+    // Given:
+    givenVersions(VALID_VERSION);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(statementParser).parseSingleStatement(VALID_REQUEST.getKsql());
+  }
+
+  @Test
+  public void shouldWeirdlyIgnoreAllButTheLastRequest() {
+    // Given:
+    givenRequests(ANOTHER_REQUEST, VALID_REQUEST);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(statementParser).parseSingleStatement(VALID_REQUEST.getKsql());
+  }
+
+  @Test
+  public void shouldReturnErrorOnBadStatement() throws Exception {
+    // Given:
+    when(statementParser.parseSingleStatement(anyString()))
+        .thenThrow(new RuntimeException("Boom!"));
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("Error parsing query: Boom!", CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldReturnErrorOnInvalidStreamProperty() throws Exception {
+    // Given:
+    final String jsonRequest = "{"
+        + "\"ksql\":\"sql\","
+        + "\"streamsProperties\":{"
+        + "\"unknown-property\":true"
+        + "}}";
+
+    givenRequest(jsonRequest);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason(
+        "Error parsing request: Failed to set 'unknown-property' to 'true'",
+        CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldHandleQuery() {
+    // Given:
+    givenRequestIs(query);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(queryPublisher).start(
+        eq(ksqlConfig),
+        eq(ksqlEngine),
+        eq(exec),
+        eq(VALID_REQUEST.getKsql()),
+        eq(VALID_REQUEST.getStreamsProperties()),
+        any());
+  }
+
+  @Test
+  public void shouldHandlePrintTopic() {
+    // Given:
+    givenRequestIs(printTopic("bob", true));
+    when(topicClient.isTopicExists("bob")).thenReturn(true);
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("this", "that"));
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(topicPublisher).start(
+        eq(exec),
+        eq(schemaRegistryClient),
+        eq(ImmutableMap.of("this", "that")),
+        eq("bob"),
+        eq(true),
+        any());
+  }
+
+  @Test
+  public void shouldReturnErrorIfTopicDoesNotExist() throws Exception {
+    // Given:
+    givenRequestIs(printTopic("bob", true));
+    when(topicClient.isTopicExists("bob")).thenReturn(false);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("topic does not exist: bob", CloseCodes.CANNOT_ACCEPT);
+  }
+
+  @Test
+  public void shouldNotWaitIfNoSequenceNumberSpecified() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITHOUT_SEQUENCE_NUMBER);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(commandQueue, never()).ensureConsumedPast(anyLong(), any());
+  }
+
+  @Test
+  public void shouldWaitIfSequenceNumberSpecified() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(commandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
+  }
+
+  @Test
+  public void shouldReturnErrorIfCommandQueueCatchupTimeout() throws Exception {
+    // Given:
+    givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
+    doThrow(new TimeoutException("yikes"))
+        .when(commandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("yikes", CloseCodes.TRY_AGAIN_LATER);
+    verify(statementParser, never()).parseSingleStatement(any());
+  }
+
+  private static PrintTopic printTopic(final String name, final boolean fromBeginning) {
+    return new PrintTopic(
+        new NodeLocation(0, 1),
+        QualifiedName.of(name),
+        fromBeginning,
+        Optional.empty()
+    );
+  }
+
+  private void givenVersions(final String... versions) {
+
+    givenRequestAndVersions(
+        Collections.singletonList(serialize(VALID_REQUEST)),
+        versions == null ? null : Arrays.asList(versions));
+  }
+
+  private void givenRequest(final KsqlRequest request) {
+    givenRequestAndVersions(
+        Collections.singletonList(serialize(request)),
+        ImmutableList.of(VALID_VERSION));
+  }
+
+  private void givenRequest(final String request) {
+    givenRequestAndVersions(Collections.singletonList(request), ImmutableList.of(VALID_VERSION));
+  }
+
+  private void givenRequests(final KsqlRequest... requests) {
+    if (requests == null) {
+      givenRequestAndVersions(null, ImmutableList.of(VALID_VERSION));
+      return;
     }
 
-    replayMocks();
+    givenRequestAndVersions(
+        Arrays.stream(requests).map(WSQueryEndpointTest::serialize).collect(Collectors.toList()),
+        ImmutableList.of(VALID_VERSION));
+  }
 
+  private void givenRequestAndVersions(final List<String> jsonRequest,
+      final List<String> versions) {
+    final Builder<String, List<String>> builder = ImmutableMap.builder();
+    if (versions != null) {
+      builder.put(Versions.KSQL_V1_WS_PARAM, versions);
+    }
+    if (jsonRequest != null) {
+      builder.put("request", jsonRequest);
+    }
+
+    when(session.getRequestParameterMap()).thenReturn(builder.build());
+  }
+
+  private void givenRequestIs(final Statement stmt) {
+    when(statementParser.parseSingleStatement(anyString())).thenReturn(stmt);
+  }
+
+  private static String serialize(final KsqlRequest request) {
+    try {
+      if (request == null) {
+        return null;
+      }
+      return OBJECT_MAPPER.writeValueAsString(request);
+    } catch (final Exception e) {
+      throw new AssertionError("Invalid test", e);
+    }
+  }
+
+  private void verifyClosedWithReason(final String reason, final CloseCodes code) throws Exception {
+    verify(session).close(closeReasonCaptor.capture());
+    final CloseReason closeReason = closeReasonCaptor.getValue();
+    assertThat(closeReason.getReasonPhrase(), is(reason));
+    assertThat(closeReason.getCloseCode(), is(code));
+  }
+
+  @Test
+  public void shouldUpdateTheLastRequestTime() {
+    // Given:
+
+    // When:
     wsQueryEndpoint.onOpen(session, null);
-    final Runnable queueHandler = captured.getValue();
-    queueHandler.run();
 
-    verify(ksqlEngine, statementParser, basic, async);
+    // Then:
+    verify(activenessRegistrar).updateLastRequestTime();
   }
 
-  @Test
-  public void shouldReturnAllRowsForNoVersion() throws IOException {
-    shouldReturnAllRows(Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldReturnAllRowsExplicitVersion() throws IOException {
-    shouldReturnAllRows(
-        Collections.singletonMap(
-            Versions.KSQL_V1_WS_PARAM, Collections.singletonList(Versions.KSQL_V1_WS)));
-  }
 }

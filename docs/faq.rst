@@ -3,10 +3,6 @@
 Frequently Asked Questions
 ==========================
 
-.. contents:: Contents
-    :local:
-    :depth: 1
-
 ==============================
 What are the benefits of KSQL?
 ==============================
@@ -38,9 +34,9 @@ Is KSQL owned by the Apache Software Foundation?
 ================================================
 
 No, KSQL is owned and maintained by `Confluent
-Inc. <https://www.confluent.io/>`__ as part of its free `Confluent Open
-Source <https://www.confluent.io/product/confluent-open-source/>`__
-product. However, KSQL is licensed under the Apache 2.0 license.
+Inc. <https://www.confluent.io/>`__ as part of its `Confluent Platform
+<https://www.confluent.io/product/confluent-platform/>`__
+product. However, KSQL is licensed under the Confluent Community License.
 
 ====================================================
 How does KSQL compare to Apache Kafka’s Streams API?
@@ -78,6 +74,7 @@ KSQL currently supports formats:
 -  JSON
 -  Avro message values are supported. Avro keys are not yet supported. Requires |sr| and ``ksql.schema.registry.url`` in the
    KSQL server configuration file. For more information, see :ref:`install_ksql-avro-schema`.
+
 ====================================
 Is KSQL fully compliant to ANSI SQL?
 ====================================
@@ -92,14 +89,23 @@ functionality in the streaming world.
 How do I shutdown a KSQL environment?
 =====================================
 
--  To stop DataGen tasks that were started with the ``-daemon`` flag
-   (cf. :ref:`ksql_clickstream-local`).
+-  To stop DataGen tasks that were started with the ``-daemon`` flag:
 
    .. code:: bash
 
-       $ jps | grep DataGen
+       jps | grep DataGen
+
+   Your output should resemble:
+
+   .. code:: text
+
        25379 DataGen
-       $ kill 25379
+       
+   Stop the DataGen JVM by using the specified process ID:   
+       
+   .. code:: bash
+
+       kill 25379
 
 -  Exit KSQL.
 
@@ -112,13 +118,13 @@ How do I shutdown a KSQL environment?
 
    .. code:: bash
 
-       $ confluent stop
+       confluent stop
 
 -  To remove all data, topics, and streams:
 
    .. code:: bash
 
-       $ confluent destroy
+       confluent destroy
 
 ============================================
 How do I configure the target Kafka cluster?
@@ -145,15 +151,15 @@ How can I lock-down KSQL servers for production and prevent interactive client a
 You can configure your servers to run a set of predefined queries by using ``ksql.queries.file`` or the
 ``--queries-file`` command line flag. For more information, see :ref:`ksql-server-config`.
 
-====================================================================
-How do I use Avro data and integrate with Confluent Schema Registry?
-====================================================================
+====================================================
+How do I use Avro data and integrate with |sr-long|?
+====================================================
 
-Configure the ``ksql.schema.registry.url`` property in the KSQL server configuration to point to Schema Registry
+Configure the ``ksql.schema.registry.url`` property in the KSQL server configuration to point to |sr|
 (see :ref:`install_ksql-avro-schema`).
 
 .. important::
-    - To use Avro data with KSQL you must have Schema Registry installed. This is included by default with |cp|.
+    - To use Avro data with KSQL you must have |sr| installed. This is included by default with |cp|.
     - Avro message values are supported. Avro keys are not yet supported.
 
 =========================
@@ -200,11 +206,11 @@ Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
 
 Yes. For more information, see :ref:`config-security-ksql-acl`.
 
-======================================================
-Will KSQL work with a HTTPS Confluent Schema Registry?
-======================================================
+======================================
+Will KSQL work with a HTTPS |sr-long|?
+======================================
 
-Yes. KSQL can be configured to communicate with the Confluent Schema Registry over HTTPS. For more information, see
+Yes. KSQL can be configured to communicate with |sr-long| over HTTPS. For more information, see
 :ref:`config-security-ksql-sr`.
 
 ================================================
@@ -287,7 +293,7 @@ In the KSQL CLI, use the SET statement to assign a value to ``ksql.streams.reten
 
 .. code:: bash
 
-    ksql> SET 'ksql.streams.retention.ms' = '86400000';
+    SET 'ksql.streams.retention.ms' = '86400000';
 
 Make the setting global by assigning ``ksql.streams.retention.ms`` in the KSQL
 server configuration file.
@@ -298,3 +304,11 @@ server configuration file.
           to 7 days, the sink topic retention is 7 days. If you set ``windowstore.changelog.additional.retention.ms``
           to 2 days, the retention for the internal changelog topic for
           statestore is the sum of these values: 7 + 2 = 9 days.
+
+===============================================
+What if automatic topic creation is turned off?
+===============================================
+
+If automatic topic creation is disabled, KSQL and Kafka Streams applications
+continue to work. KSQL and Kafka Streams applications use the Admin Client,
+so topics are still created.

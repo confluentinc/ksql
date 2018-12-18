@@ -1,18 +1,16 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.integration;
 
@@ -20,6 +18,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -33,7 +32,6 @@ import java.net.BindException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -54,7 +52,6 @@ import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 
@@ -70,10 +67,10 @@ public class RestApiTest {
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
 
   private static final int NUM_RETRIES = 5;
+  private static final int COMMAND_RETRY_LIMIT = 3;
   private static KsqlRestApplication restApplication;
 
   private static String serverAddress;
-
 
   private Client restClient;
 
@@ -82,6 +79,7 @@ public class RestApiTest {
     final Map<String, Object> config = new HashMap<>();
     config.put(KsqlRestConfig.INSTALL_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     config.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "rest_api_test_service");
+
 
     testHarness.start(config);
 
@@ -102,9 +100,8 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithV1ContentType() {
-    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;",
-                                                              PAGE_VIEW_STREAM),
-                                                Collections.emptyMap());
+    final KsqlRequest request = new KsqlRequest(
+        String.format("SELECT * from %s;", PAGE_VIEW_STREAM), Collections.emptyMap(), null);
     try (final Response response = restClient.target(serverAddress)
         .path("query")
         .request(Versions.KSQL_V1_JSON)
@@ -116,9 +113,8 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithJsonContentType() {
-    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;",
-                                                              PAGE_VIEW_STREAM),
-                                                Collections.emptyMap());
+    final KsqlRequest request = new KsqlRequest(
+        String.format("SELECT * from %s;", PAGE_VIEW_STREAM), Collections.emptyMap(), null);
     try (final Response response = restClient.target(serverAddress)
         .path("query")
         .request(MediaType.APPLICATION_JSON_TYPE)
@@ -135,16 +131,9 @@ public class RestApiTest {
   }
 
   @AfterClass
-  public static void cleanUpClass() throws Exception {
+  public static void cleanUpClass() {
     restApplication.stop();
     testHarness.stop();
-  }
-
-  private static class DummyVersionCheckerAgent implements VersionCheckerAgent {
-    @Override
-    public void start(final KsqlModuleType moduleType, final Properties ksqlProperties) {
-      // do nothing;
-    }
   }
 
   private static Client buildClient() {
@@ -175,8 +164,10 @@ public class RestApiTest {
         final int port = randomFreeLocalPort();
         serverAddress = "http://localhost:" + port;
         configs.put(RestConfig.LISTENERS_CONFIG, serverAddress);
-        restApplication = KsqlRestApplication.buildApplication(new KsqlRestConfig(configs),
-                                                               new DummyVersionCheckerAgent());
+        restApplication = KsqlRestApplication.buildApplication(
+            new KsqlRestConfig(configs),
+            (booleanSupplier) -> EasyMock.niceMock(VersionCheckerAgent.class),
+            3);
         restApplication.start();
         return;
       } catch (BindException e) {

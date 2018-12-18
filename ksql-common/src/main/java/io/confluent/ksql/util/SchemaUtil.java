@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util;
 
@@ -31,12 +29,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 public final class SchemaUtil {
+
+  private static final String DEFAULT_NAMESPACE = "ksql";
 
   public static final String ARRAY = "ARRAY";
   public static final String MAP = "MAP";
@@ -323,27 +324,47 @@ public final class SchemaUtil {
   private static String getStructString(final Schema schema) {
     return schema.fields().stream()
         .map(field -> field.name() + " " + getSqlTypeName(field.schema()))
-        .collect(Collectors.joining(", ", "STRUCT <", ">"));
+        .collect(Collectors.joining(", ", "STRUCT<", ">"));
   }
 
-  public static String buildAvroSchema(final Schema schema, final String name) {
+  static org.apache.avro.Schema buildAvroSchema(final Schema schema, final String name) {
+    return buildAvroSchema(DEFAULT_NAMESPACE, name, schema);
+  }
 
-    final org.apache.avro.SchemaBuilder.FieldAssembler fieldAssembler =
-        org.apache.avro.SchemaBuilder
-        .record(name).namespace("ksql")
+  private static org.apache.avro.Schema buildAvroSchema(
+      final String namespace,
+      final String name,
+      final Schema schema
+  ) {
+    final String avroName = avroify(name);
+    final FieldAssembler<org.apache.avro.Schema> fieldAssembler = org.apache.avro.SchemaBuilder
+        .record(avroName).namespace(namespace)
         .fields();
 
     for (final Field field : schema.fields()) {
+      final String fieldName = avroify(field.name());
+      final String fieldNamespace = namespace + "." + avroName;
+
       fieldAssembler
-          .name(field.name().replace(".", "_"))
-          .type(getAvroSchemaForField(field.schema()))
+          .name(fieldName)
+          .type(getAvroSchemaForField(fieldNamespace, fieldName, field.schema()))
           .withDefault(null);
     }
 
-    return fieldAssembler.endRecord().toString();
+    return fieldAssembler.endRecord();
   }
 
-  private static org.apache.avro.Schema getAvroSchemaForField(final Schema fieldSchema) {
+  private static String avroify(final String name) {
+    return name
+        .replace(".", "_")
+        .replace("-", "_");
+  }
+
+  private static org.apache.avro.Schema getAvroSchemaForField(
+      final String namespace,
+      final String fieldName,
+      final Schema fieldSchema
+  ) {
     switch (fieldSchema.type()) {
       case STRING:
         return unionWithNull(create(org.apache.avro.Schema.Type.STRING));
@@ -355,14 +376,15 @@ public final class SchemaUtil {
         return unionWithNull(create(org.apache.avro.Schema.Type.LONG));
       case FLOAT64:
         return unionWithNull(create(org.apache.avro.Schema.Type.DOUBLE));
+      case ARRAY:
+        return unionWithNull(createArray(
+            getAvroSchemaForField(namespace, fieldName, fieldSchema.valueSchema())));
+      case MAP:
+        return unionWithNull(createMap(
+            getAvroSchemaForField(namespace, fieldName, fieldSchema.valueSchema())));
+      case STRUCT:
+        return unionWithNull(buildAvroSchema(namespace, fieldName, fieldSchema));
       default:
-        if (fieldSchema.type() == Schema.Type.ARRAY) {
-          return unionWithNull(
-              createArray(getAvroSchemaForField(fieldSchema.valueSchema())));
-        } else if (fieldSchema.type() == Schema.Type.MAP) {
-          return unionWithNull(
-              createMap(getAvroSchemaForField(fieldSchema.valueSchema())));
-        }
         throw new KsqlException("Unsupported AVRO type: " + fieldSchema.type().name());
     }
   }
@@ -441,7 +463,6 @@ public final class SchemaUtil {
     }
     return schema;
   }
-
 
   private static SchemaBuilder handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {

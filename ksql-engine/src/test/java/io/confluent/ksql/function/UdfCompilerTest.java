@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.function;
@@ -128,8 +126,7 @@ public class UdfCompilerTest {
         "desc"
     );
     assertThat(function.getInstance(
-        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
-            Collections.singletonList("udfIndex"))),
+        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex"))),
         not(nullValue()));
   }
 
@@ -154,8 +151,7 @@ public class UdfCompilerTest {
         "desc"
     );
     final KsqlAggregateFunction instance = function.getInstance(
-        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
-            Arrays.asList("udfIndex", "some string")));
+        new AggregateFunctionArguments(0, Arrays.asList("udfIndex", "some string")));
     assertThat(instance,
         not(nullValue()));
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
@@ -174,8 +170,7 @@ public class UdfCompilerTest {
     );
 
     final KsqlAggregateFunction<Long, Long> executable = function.getInstance(
-        new AggregateFunctionArguments(Collections.singletonMap("udfIndex", 0),
-            Collections.singletonList("udfIndex")));
+        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
 
     executable.aggregate(1L, 1L);
     executable.aggregate(1L, 1L);

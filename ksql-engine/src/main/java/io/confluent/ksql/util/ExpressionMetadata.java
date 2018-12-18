@@ -1,60 +1,82 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Kudf;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class ExpressionMetadata {
 
   private final IExpressionEvaluator expressionEvaluator;
-  private final int[] indexes;
-  private final Kudf[] udfs;
+  private final List<Integer> indexes;
+  private final List<Kudf> udfs;
   private final Schema expressionType;
+  private final GenericRowValueTypeEnforcer typeEnforcer;
+  private final ThreadLocal<Object[]> threadLocalParameters;
 
   public ExpressionMetadata(
       final IExpressionEvaluator expressionEvaluator,
-      final int[] indexes,
-      final Kudf[] udfs,
-      final Schema expressionType) {
-    this.expressionEvaluator = expressionEvaluator;
-    this.indexes = indexes;
-    this.udfs = udfs;
-    this.expressionType = expressionType;
+      final List<Integer> indexes,
+      final List<Kudf> udfs,
+      final Schema expressionType,
+      final GenericRowValueTypeEnforcer typeEnforcer) {
+    this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
+    this.indexes = Collections.unmodifiableList(Objects.requireNonNull(indexes, "indexes"));
+    this.udfs = Collections.unmodifiableList(Objects.requireNonNull(udfs, "udfs"));
+    this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
+    this.typeEnforcer = Objects.requireNonNull(typeEnforcer, "typeEnforcer");
+    this.threadLocalParameters = ThreadLocal.withInitial(() -> new Object[indexes.size()]);
   }
 
-  public IExpressionEvaluator getExpressionEvaluator() {
-    return expressionEvaluator;
+  public List<Integer> getIndexes() {
+    return indexes;
   }
 
-  public int[] getIndexes() {
-    final int [] result = new int[indexes.length];
-    System.arraycopy(indexes, 0, result, 0, indexes.length);
-    return result;
-  }
-
-  public Kudf[] getUdfs() {
-    final Kudf[] result = new Kudf[udfs.length];
-    System.arraycopy(udfs, 0, result, 0, udfs.length);
-    return result;
+  public List<Kudf> getUdfs() {
+    return udfs;
   }
 
   public Schema getExpressionType() {
     return expressionType;
+  }
+
+  public Object evaluate(final GenericRow row) {
+    try {
+      return expressionEvaluator.evaluate(getParameters(row));
+    } catch (InvocationTargetException e) {
+      throw new KsqlException(e.getMessage(), e);
+    }
+  }
+
+  private Object[] getParameters(final GenericRow row) {
+    final Object[] parameters = this.threadLocalParameters.get();
+    for (int idx = 0; idx < indexes.size(); idx++) {
+      final int paramIndex = indexes.get(idx);
+      if (paramIndex < 0) {
+        parameters[idx] = udfs.get(idx);
+      } else {
+        parameters[idx] = typeEnforcer
+            .enforceFieldType(paramIndex, row.getColumns().get(paramIndex));
+      }
+    }
+    return parameters;
   }
 }

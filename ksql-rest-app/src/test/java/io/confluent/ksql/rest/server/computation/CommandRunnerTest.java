@@ -1,81 +1,193 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.same;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.util.Pair;
-import java.util.ArrayList;
-import java.util.HashMap;
+
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.TopicPartition;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import org.junit.Before;
 import org.junit.Test;
 
 public class CommandRunnerTest {
+  final StatementExecutor statementExecutor = mock(StatementExecutor.class);
+  final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
+  final CommandStore commandStore = mock(CommandStore.class);
 
-  private Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> getRecordMap() {
+  private List<QueuedCommand> getQueuedCommands() {
     final List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
-    final List<ConsumerRecord<CommandId, Command>> recordList = new ArrayList<>();
-    for (final Pair commandPair: commandList) {
-      recordList.add(new ConsumerRecord<>("T", 1, 1, (CommandId) commandPair
-          .getLeft(), (Command) commandPair.getRight()));
-    }
-    final Map<TopicPartition, List<ConsumerRecord<CommandId, Command>>> recordMap = new HashMap<>();
-    recordMap.put(new TopicPartition("T", 1), recordList);
-    return recordMap;
+    return commandList.stream()
+        .map(
+            c -> new QueuedCommand(
+                c.getLeft(), c.getRight(), Optional.empty()))
+        .collect(Collectors.toList());
+  }
+
+  private List<QueuedCommand> getRestoreCommands(final List<Pair<CommandId, Command>> commandList) {
+    return commandList.stream()
+        .map(p -> new QueuedCommand(p.getLeft(), p.getRight(), Optional.empty()))
+        .collect(Collectors.toList());
+  }
+
+  private List<QueuedCommand> getRestoreCommands() {
+    return getRestoreCommands(new TestUtils().getAllPriorCommandRecords());
+  }
+
+  @Before
+  public void setUp() {
+    expect(statementExecutor.getKsqlEngine()).andStubReturn(ksqlEngine);
   }
 
   @Test
-  public void shouldFetchAndRunNewCommandsFromCommandTopic() throws Exception {
+  public void shouldFetchAndRunNewCommandsFromCommandTopic() {
+    // Given:
     final StatementExecutor statementExecutor = mock(StatementExecutor.class);
-    statementExecutor.handleStatement(anyObject(), anyObject());
-    expectLastCall().times(4);
-    replay(statementExecutor);
+    final List<QueuedCommand> commands = getQueuedCommands();
+    commands.forEach(
+        c -> {
+          statementExecutor.handleStatement(same(c));
+          expectLastCall();
+        }
+    );
+    expect(commandStore.getNewCommands()).andReturn(commands);
+    replay(statementExecutor, commandStore);
+    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 1);
 
-    final CommandStore commandStore = mock(CommandStore.class);
-    expect(commandStore.getNewCommands()).andReturn(new ConsumerRecords<>(getRecordMap()));
-    replay(commandStore);
-    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
+    // When:
     commandRunner.fetchAndRunCommands();
+
+    // Then:
     verify(statementExecutor);
   }
 
   @Test
-  public void shouldFetchAndRunPriorCommandsFromCommandTopic() throws Exception {
-    final StatementExecutor statementExecutor = mock(StatementExecutor.class);
-    statementExecutor.handleRestoration(anyObject());
+  public void shouldRetryCommands() {
+    // Given:
+    final List<QueuedCommand> commands = Collections.singletonList(getQueuedCommands().get(0));
+    final QueuedCommand command = commands.get(0);
+    statementExecutor.handleStatement(command);
+    expectLastCall().andThrow(new RuntimeException("Something bad happened"));
+    statementExecutor.handleStatement(command);
     expectLastCall();
-    replay(statementExecutor);
-    final CommandStore commandStore = mock(CommandStore.class);
-    expect(commandStore.getRestoreCommands()).andReturn(new RestoreCommands());
-    replay(commandStore);
-    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore);
+    expect(commandStore.getNewCommands()).andReturn(commands);
+    replay(statementExecutor, commandStore);
+    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 3);
+
+    // When:
+    commandRunner.fetchAndRunCommands();
+
+    // Then:
+    verify(statementExecutor);
+  }
+
+  @Test
+  public void shouldGiveUpAfterRetryLimit() {
+    // Given:
+    final List<QueuedCommand> commands = Collections.singletonList(getQueuedCommands().get(0));
+    final QueuedCommand command = commands.get(0);
+    statementExecutor.handleStatement(command);
+    final RuntimeException exception = new RuntimeException("something bad happened");
+    expectLastCall().andThrow(exception).times(4);
+    expect(commandStore.getNewCommands()).andReturn(commands);
+    replay(statementExecutor, commandStore);
+    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 3);
+
+    // When:
+    try {
+      commandRunner.fetchAndRunCommands();
+
+      // Then:
+      fail("Should have thrown exception");
+    } catch (final RuntimeException caught) {
+      assertThat(caught, equalTo(exception));
+    }
+    verify(statementExecutor);
+  }
+
+  @Test
+  public void shouldFetchAndRunPriorCommandsFromCommandTopic() {
+    // Given:
+    final List<QueuedCommand> restoreCommands = getRestoreCommands();
+    restoreCommands.forEach(
+        command -> {
+          statementExecutor.handleRestore(command);
+          expectLastCall();
+        }
+    );
+    expect(commandStore.getRestoreCommands()).andReturn(restoreCommands);
+    final Collection<PersistentQueryMetadata> persistentQueries
+        = ImmutableList.of(mock(PersistentQueryMetadata.class), mock(PersistentQueryMetadata.class));
+    expect(ksqlEngine.getPersistentQueries()).andReturn(persistentQueries);
+    persistentQueries.forEach(
+        q -> {
+          q.start();
+          expectLastCall();
+        }
+    );
+    replay(persistentQueries.toArray());
+    replay(statementExecutor, ksqlEngine, commandStore);
+    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 1);
+
+    // When:
     commandRunner.processPriorCommands();
 
+    // Then:
     verify(statementExecutor);
+    verify(persistentQueries.toArray());
   }
 
+  @Test
+  public void shouldRetryCommandsWhenRestoring() {
+    // Given:
+    final List<QueuedCommand> restoreCommands = getRestoreCommands();
+    final QueuedCommand failedCommand = restoreCommands.get(0);
+    statementExecutor.handleRestore(failedCommand);
+    expectLastCall().andThrow(new RuntimeException("something bad happened"));
+    restoreCommands.forEach(
+        command -> {
+          statementExecutor.handleRestore(command);
+          expectLastCall();
+        }
+    );
+    expect(commandStore.getRestoreCommands()).andReturn(restoreCommands);
+    expect(ksqlEngine.getPersistentQueries()).andReturn(Collections.emptySet());
+    replay(statementExecutor, ksqlEngine, commandStore);
+    final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 3);
+
+    // When:
+    commandRunner.processPriorCommands();
+
+    // Then:
+    verify(statementExecutor);
+  }
 }

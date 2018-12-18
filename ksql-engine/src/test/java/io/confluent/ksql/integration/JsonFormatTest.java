@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.integration;
 
@@ -22,10 +20,12 @@ import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -58,6 +59,7 @@ public class JsonFormatTest {
   private static final String usersTable = "USERS";
   private static final String messageLogTopic = "log_topic";
   private static final String messageLogStream = "message_log";
+  private static final AtomicInteger COUNTER = new AtomicInteger();
 
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
@@ -65,14 +67,18 @@ public class JsonFormatTest {
   private MetaStore metaStore;
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
+  private ServiceContext serviceContext;
   private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
   private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
 
   private QueryId queryId;
   private KafkaTopicClient topicClient;
+  private String streamName;
 
   @Before
   public void before() throws Exception {
+    streamName = "STREAM_" + COUNTER.getAndIncrement();
+
     final Map<String, Object> configMap = new HashMap<>();
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
     configMap.put("commit.interval.ms", 0);
@@ -80,8 +86,9 @@ public class JsonFormatTest {
     configMap.put("auto.offset.reset", "earliest");
 
     ksqlConfig = new KsqlConfig(configMap);
-    ksqlEngine = KsqlEngine.create(ksqlConfig);
-    topicClient = ksqlEngine.getTopicClient();
+    serviceContext = ServiceContext.create(ksqlConfig);
+    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
 
     createInitTopics();
@@ -113,7 +120,7 @@ public class JsonFormatTest {
     topicProducer.produceInputData(messageLogTopic, records, messageSchema);
   }
 
-  private void execInitCreateStreamQueries() throws Exception {
+  private void execInitCreateStreamQueries() {
     final String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
         + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
         + "map<varchar, double>) WITH (value_format = 'json', "
@@ -128,15 +135,16 @@ public class JsonFormatTest {
     final String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
-    ksqlEngine.buildMultipleQueries(ordersStreamStr, ksqlConfig, Collections.emptyMap());
-    ksqlEngine.buildMultipleQueries(usersTableStr, ksqlConfig, Collections.emptyMap());
-    ksqlEngine.buildMultipleQueries(messageStreamStr, ksqlConfig, Collections.emptyMap());
+    ksqlEngine.execute(ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    ksqlEngine.execute(usersTableStr, ksqlConfig, Collections.emptyMap());
+    ksqlEngine.execute(messageStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   @After
   public void after() {
     terminateQuery();
     ksqlEngine.close();
+    serviceContext.close();
   }
 
   //@Test
@@ -176,7 +184,6 @@ public class JsonFormatTest {
 
   @Test
   public void testSinkProperties() throws Exception {
-    final String streamName = "SinkPropertiesStream".toUpperCase();
     final int resultPartitionCount = 3;
     final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
             + "FROM %s;",
@@ -198,26 +205,22 @@ public class JsonFormatTest {
 
   @Test
   public void testTableSinkCleanupProperty() throws Exception {
-    final String tableName = "SinkCleanupTable".toUpperCase();
-    final int resultPartitionCount = 3;
     final String queryString = String.format("CREATE TABLE %s AS SELECT * "
                                              + "FROM %s;",
-                                             tableName, usersTable);
+        streamName, usersTable);
     executePersistentQuery(queryString);
 
     TestUtils.waitForCondition(
-        () -> topicClient.isTopicExists(tableName),
+        () -> topicClient.isTopicExists(streamName),
         "Wait for async topic creation"
     );
 
-    assertThat(topicClient.getTopicCleanupPolicy(tableName), equalTo(
+    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.COMPACT));
   }
 
   @Test
-  public void testJsonStreamExtractor() throws Exception {
-
-    final String streamName = "JSONSTREAM";
+  public void testJsonStreamExtractor() {
     final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
             + "(message, '$.log.cloud') "
             + "FROM %s;",
@@ -237,9 +240,7 @@ public class JsonFormatTest {
   }
 
   @Test
-  public void testJsonStreamExtractorNested() throws Exception {
-
-    final String streamName = "JSONSTREAM";
+  public void testJsonStreamExtractorNested() {
     final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
                     + "(message, '$.log.logs[0].entry') "
                     + "FROM %s;",
@@ -258,9 +259,9 @@ public class JsonFormatTest {
     assertThat(results, equalTo(expectedResults));
   }
 
-  private void executePersistentQuery(final String queryString) throws Exception {
+  private void executePersistentQuery(final String queryString) {
     final QueryMetadata queryMetadata = ksqlEngine
-        .buildMultipleQueries(queryString, ksqlConfig, Collections.emptyMap()).get(0);
+        .execute(queryString, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();

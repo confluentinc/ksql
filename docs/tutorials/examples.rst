@@ -5,12 +5,8 @@ KSQL Examples
 
 These examples use a ``pageviews`` stream and a ``users`` table.
 
-.. contents:: Contents
-    :local:
-    :depth: 2
-
-.. tip:: For in-depth tutorials and recommended deployment scenarios, see the
-   `KSQL Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__.
+.. tip:: The `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__
+         contains KSQL recipes that provide in-depth tutorials and recommended deployment scenarios.
 
 Creating streams
 ----------------
@@ -18,8 +14,11 @@ Creating streams
 Prerequisite:
     The corresponding Kafka topics must already exist in your Kafka cluster.
 
-Create a stream with three columns on the Kafka topic that is named ``pageviews``. It is important to instruct KSQL the format
-of the values that are stored in the topic. In this example, the values format is ``DELIMITED``.
+Create a stream with three columns on the Kafka topic that is named ``pageviews``.
+
+KSQL can’t infer the topic’s data format, so you must provide the format of
+the values that are stored in the topic. In this example, the values format
+is ``DELIMITED``.
 
 .. code:: sql
 
@@ -174,7 +173,7 @@ When joining objects the number of partitions in each must be the same. You can 
         WITH (PARTITIONS=5) AS \
         SELECT * FROM USERS;
 
-Now you can use the following query creates a new stream by joining the
+Now you can use the following query to create a new stream by joining the
 ``pageviews_transformed`` stream with the ``users_5part`` table. 
 
 .. code:: sql
@@ -213,7 +212,7 @@ Here is the query that would perform this count:
 
 The above query counts the pageviews from the time you start the query
 until you terminate the query. Note that we used CREATE TABLE AS SELECT
-statement here since the result of the query is a KSQL _table_. The
+statement here since the result of the query is a KSQL *table*. The
 results of aggregate queries in KSQL are always a table because it
 computes the aggregate for each key (and possibly for each window per
 key) and *updates* these results as it processes new input data.
@@ -276,6 +275,21 @@ counting/aggregation step per region.
       WINDOW SESSION (60 SECONDS) \
       GROUP BY regionid;
 
+Sometimes, you may want to include the bounds of the current window in the result so that it is
+more easily accessible to consumers of the data. The following statement extracts the start and
+end time of the current session window into fields within output rows.
+
+.. code:: sql
+
+    CREATE TABLE pageviews_per_region_per_session AS
+      SELECT regionid,
+             windowStart(),
+             windowEnd(),
+             count(*)
+      FROM pageviews_enriched
+      WINDOW SESSION (60 SECONDS)
+      GROUP BY regionid;
+
 Working with arrays and maps
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -304,3 +318,58 @@ zipcode for each user:
              regionid \
       FROM pageviews_enriched;
 
+.. _running-ksql-command-line:
+
+Running KSQL Statements From the Command Line
+---------------------------------------------
+
+In addition to using the KSQL CLI or launching KSQL servers with the
+``--queries-file`` configuration, you can also execute KSQL statements directly
+from your terminal. This can be useful for scripting.
+
+The following examples show common usage:
+
+-   This example uses pipelines to run KSQL CLI commands.
+
+    .. code:: bash
+
+        echo -e "SHOW TOPICS;\nexit" | ksql
+
+-   This example uses the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) to run KSQL CLI commands.
+
+    .. code:: bash
+
+        ksql <<EOF
+        > SHOW TOPICS;
+        > SHOW STREAMS;
+        > exit
+        > EOF
+
+-   This example uses a Bash `here string <http://tldp.org/LDP/abs/html/x17837.html>`__ (``<<<``) to run KSQL CLI commands on
+    an explicitly defined KSQL server endpoint.
+
+    .. code:: bash
+
+        ksql http://localhost:8088 <<< "SHOW TOPICS;
+        SHOW STREAMS;
+        exit"
+
+-   This example creates a stream from a predefined script (``application.sql``) using the ``RUN SCRIPT`` command and
+    then runs a query by using the Bash `here document <http://tldp.org/LDP/abs/html/here-docs.html>`__ (``<<``) feature.
+
+    .. code:: bash
+
+        cat /path/to/local/application.sql
+        CREATE STREAM pageviews_copy AS SELECT * FROM pageviews;
+
+    .. code:: bash
+
+        ksql http://localhost:8088 <<EOF
+        > RUN SCRIPT '/path/to/local/application.sql';
+        > exit
+        > EOF
+
+    .. note:: The ``RUN SCRIPT`` command only supports a subset of KSQL CLI commands, including running DDL statements
+              (CREATE STREAM, CREATE TABLE), persistent queries (CREATE STREAM AS SELECT, CREATE TABLE AS SELECT), and
+              setting configuration options (SET statement). Other statements and commands such as ``SHOW TOPICS`` and
+              ``SHOW STREAMS`` will be ignored.

@@ -1,18 +1,16 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.analyzer;
 
@@ -20,12 +18,17 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
@@ -66,6 +69,11 @@ public class QueryAnalyzer {
       throw new KsqlException("Aggregate query needs GROUP BY clause. query:" + query);
     }
 
+    processGroupByExpression(
+        analysis,
+        aggregateAnalyzer
+    );
+
     // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
     if (analysis.getHavingExpression() != null) {
       processHavingExpression(
@@ -86,19 +94,21 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
-    aggregateAnalyzer.process(
-        analysis.getHavingExpression(),
-        new AnalysisContext()
-    );
-    if (!aggregateAnalyzer.isHasAggregateFunction()) {
-      aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
+    final Expression exp = analysis.getHavingExpression();
+
+    processExpression(exp, aggregateAnalysis, aggregateAnalyzer);
+
+    aggregateAnalysis.setHavingExpression(
+        ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,exp));
+  }
+
+  private void processGroupByExpression(
+      final Analysis analysis,
+      final AggregateAnalyzer aggregateAnalyzer
+  ) {
+    for (final Expression exp : analysis.getGroupByExpressions()) {
+      aggregateAnalyzer.process(exp, new AnalysisContext());
     }
-    aggregateAnalysis
-        .setHavingExpression(ExpressionTreeRewriter.rewriteWith(
-            aggregateExpressionRewriter,
-            analysis.getHavingExpression()
-        ));
-    aggregateAnalyzer.setHasAggregateFunction(false);
   }
 
   private void processSelectExpressions(
@@ -107,28 +117,45 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
-    for (final Expression expression : analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext());
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.addNonAggResultColumns(expression);
-      }
-      aggregateAnalysis.addFinalSelectExpression(ExpressionTreeRewriter.rewriteWith(
-          aggregateExpressionRewriter,
-          expression
-      ));
-      aggregateAnalyzer.setHasAggregateFunction(false);
+    for (final Expression exp : analysis.getSelectExpressions()) {
+      processExpression(exp, aggregateAnalysis, aggregateAnalyzer);
+
+      aggregateAnalysis.addFinalSelectExpression(
+          ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, exp));
     }
   }
 
+  private static void processExpression(
+      final Expression expression,
+      final AggregateAnalysis aggregateAnalysis,
+      final AggregateAnalyzer aggregateAnalyzer) {
+    aggregateAnalyzer.process(expression, new AnalysisContext());
+    if (!aggregateAnalyzer.isHasAggregateFunction()) {
+      aggregateAnalysis.addNonAggResultColumns(expression);
+    }
+    aggregateAnalyzer.setHasAggregateFunction(false);
+  }
+
   private void enforceAggregateRules(final Query query, final AggregateAnalysis aggregateAnalysis) {
-    if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
+    final Optional<GroupBy> groupBy = ((QuerySpecification) query.getQueryBody()).getGroupBy();
+    if (!groupBy.isPresent()) {
       return;
     }
-    final int numberOfNonAggProjections = aggregateAnalysis.getNonAggResultColumns().size();
-    final int groupBySize = ((QuerySpecification) query.getQueryBody()).getGroupBy().get()
-        .getGroupingElements().size();
-    if (numberOfNonAggProjections != groupBySize) {
-      throw new KsqlException("Group by elements should match the SELECT expressions.");
+
+    final Set<Expression> groups = groupBy.get()
+        .getGroupingElements()
+        .stream()
+        .flatMap(group -> group.enumerateGroupingSets().stream())
+        .flatMap(Set::stream)
+        .collect(Collectors.toSet());
+
+    final List<Expression> selectOnly = aggregateAnalysis.getNonAggResultColumns().stream()
+        .filter(exp -> !groups.contains(exp))
+        .collect(Collectors.toList());
+
+    if (!selectOnly.isEmpty()) {
+      throw new KsqlException(
+          "Non-aggregate SELECT expression must be part of GROUP BY: " + selectOnly);
     }
   }
 

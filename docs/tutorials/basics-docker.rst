@@ -19,98 +19,102 @@ Download the Tutorial and Start KSQL
 
    .. code:: bash
 
-       $ git clone https://github.com/confluentinc/ksql.git
-       $ cd ksql
+       git clone https://github.com/confluentinc/ksql.git
+       cd ksql
 
 #. Switch to the correct |cp| release branch:
 
    .. codewithvars:: bash
    
-       $ git checkout |release_post_branch|
+       git checkout |release_post_branch|
 
 #. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.
 
    .. code:: bash
 
-       $ cd docs/tutorials/
-       $ docker-compose up -d
+       cd docs/tutorials/
+       docker-compose up -d
 
 #. From two separate terminal windows, run the data generator tool to simulate "user" and "pageview" data: 
 
-    .. code:: bash
+   .. code:: bash
 
-        $ docker run --network tutorials_default --rm --name datagen-pageviews \
-            confluentinc/ksql-examples:5.0.0 \
-            ksql-datagen \
-                bootstrap-server=kafka:39092 \
-                quickstart=pageviews \
-                format=delimited \
-                topic=pageviews \
-                maxInterval=500 
+      docker run --network tutorials_default --rm --name datagen-pageviews \
+        confluentinc/ksql-examples:5.0.0 \
+        ksql-datagen \
+            bootstrap-server=kafka:39092 \
+            quickstart=pageviews \
+            format=delimited \
+            topic=pageviews \
+            maxInterval=500 
 
-    .. code:: bash
+   .. code:: bash
 
-        $ docker run --network tutorials_default --rm --name datagen-users \
-            confluentinc/ksql-examples:5.0.0 \
-            ksql-datagen \
-                bootstrap-server=kafka:39092 \
-                quickstart=users \
-                format=json \
-                topic=users \
-                maxInterval=100 
+      docker run --network tutorials_default --rm --name datagen-users \
+        confluentinc/ksql-examples:5.0.0 \
+        ksql-datagen \
+            bootstrap-server=kafka:39092 \
+            quickstart=users \
+            format=json \
+            topic=users \
+            maxInterval=100 
 
 #. From the host machine, start KSQL CLI
 
    .. code:: bash
 
-       $ docker run --network tutorials_default --rm --interactive --tty \
-            confluentinc/cp-ksql-cli:5.0.0 \
-            http://ksql-server:8088
+       docker run --network tutorials_default --rm --interactive --tty \
+          confluentinc/cp-ksql-cli:5.0.0 \
+          http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst
         :start-after: CLI_welcome_start
         :end-before: CLI_welcome_end
 
 .. include:: ../includes/ksql-includes.rst
+    :start-after: inspect_topics_start
+    :end-before: inspect_topics_end
+
+.. include:: ../includes/ksql-includes.rst
     :start-after: basics_tutorial_03_start
     :end-before: basics_tutorial_03_end
 
-.. _struct_support: 
+.. _struct-support-docker: 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __struct_support_01_start
-    :end-before: __struct_support_01_end
+    :start-after: struct_support_01_start
+    :end-before: struct_support_01_end
 
 .. code:: bash
 
-    $ docker run --network tutorials_default --rm  \
-        confluentinc/ksql-examples:5.0.0 \
-        ksql-datagen \
-            quickstart=orders \
-            format=avro \
-            topic=orders \
-            bootstrap-server=kafka:39092 \
-            schemaRegistryUrl=http://schema-registry:8081
+    docker run --network tutorials_default --rm  \
+      confluentinc/ksql-examples:5.0.0 \
+      ksql-datagen \
+          quickstart=orders \
+          format=avro \
+          topic=orders \
+          bootstrap-server=kafka:39092 \
+          schemaRegistryUrl=http://schema-registry:8081
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __struct_support_02_start
-    :end-before: __struct_support_02_end
+    :start-after: struct_support_02_start
+    :end-before: struct_support_02_end
 
-.. _ss-joins: 
+.. _ss-joins-docker:
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __ss-join_01_start
-    :end-before: __ss-join_01_end
+    :start-after: ss-join_01_start
+    :end-before: ss-join_01_end
 
 .. code:: bash
 
-    $ docker run --interactive --rm --network tutorials_default \
-        confluentinc/cp-kafkacat \
-        kafkacat -b kafka:39092 \
-                -t new_orders \
-                -K: \
-                -P <<EOF
+    docker run --interactive --rm --network tutorials_default \
+      confluentinc/cp-kafkacat \
+      kafkacat -b kafka:39092 \
+              -t new_orders \
+              -K: \
+              -P <<EOF
     1:{"order_id":1,"total_amount":10.50,"customer_name":"Bob Smith"}
     2:{"order_id":2,"total_amount":3.32,"customer_name":"Sarah Black"}
     3:{"order_id":3,"total_amount":21.00,"customer_name":"Emma Turner"}
@@ -118,34 +122,34 @@ Download the Tutorial and Start KSQL
 
 .. code:: bash
 
-    $ docker run --interactive --rm --network tutorials_default \
-        confluentinc/cp-kafkacat \
-        kafkacat -b kafka:39092 \
-                -t shipments \
-                -K: \
-                -P <<EOF
+    docker run --interactive --rm --network tutorials_default \
+      confluentinc/cp-kafkacat \
+      kafkacat -b kafka:39092 \
+              -t shipments \
+              -K: \
+              -P <<EOF
     1:{"order_id":1,"shipment_id":42,"warehouse":"Nashville"}
     3:{"order_id":3,"shipment_id":43,"warehouse":"Palo Alto"}
     EOF
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __ss-join_02_start
-    :end-before: __ss-join_02_end
+    :start-after: ss-join_02_start
+    :end-before: ss-join_02_end
 
-.. _tt-joins: 
+.. _tt-joins-docker: 
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __tt-join_01_start
-    :end-before: __tt-join_01_end
+    :start-after: tt-join_01_start
+    :end-before: tt-join_01_end
 
 .. code:: bash
 
-    $ docker run --interactive --rm --network tutorials_default \
-        confluentinc/cp-kafkacat \
-        kafkacat -b kafka:39092 \
-                -t warehouse_location \
-                -K: \
-                -P <<EOF
+    docker run --interactive --rm --network tutorials_default \
+      confluentinc/cp-kafkacat \
+      kafkacat -b kafka:39092 \
+              -t warehouse_location \
+              -K: \
+              -P <<EOF
     1:{"warehouse_id":1,"city":"Leeds","country":"UK"}
     2:{"warehouse_id":2,"city":"Sheffield","country":"UK"}
     3:{"warehouse_id":3,"city":"Berlin","country":"Germany"}
@@ -153,54 +157,54 @@ Download the Tutorial and Start KSQL
 
 .. code:: bash
 
-    $ docker run --interactive --rm --network tutorials_default \
-        confluentinc/cp-kafkacat \
-        kafkacat -b kafka:39092 \
-                -t warehouse_size \
-                -K: \
-                -P <<EOF
+    docker run --interactive --rm --network tutorials_default \
+      confluentinc/cp-kafkacat \
+      kafkacat -b kafka:39092 \
+              -t warehouse_size \
+              -K: \
+              -P <<EOF
     1:{"warehouse_id":1,"square_footage":16000}
     2:{"warehouse_id":2,"square_footage":42000}
     3:{"warehouse_id":3,"square_footage":94000}
     EOF
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __tt-join_02_start
-    :end-before: __tt-join_02_end
+    :start-after: tt-join_02_start
+    :end-before: tt-join_02_end
 
-.. _insert-into: 
+.. _insert-into-docker:
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __insert-into_01_start
-    :end-before: __insert-into_01_end
+    :start-after: insert-into-01-start
+    :end-before: insert-into-01-end
 
 .. code:: bash
 
-    $ docker run --network tutorials_default --rm  --name datagen-orders-local \
-        confluentinc/ksql-examples:5.0.0 \
-        ksql-datagen \
-            quickstart=orders \
-            format=avro \
-            topic=orders_local \
-            bootstrap-server=kafka:39092 \
-            schemaRegistryUrl=http://schema-registry:8081
+    docker run --network tutorials_default --rm  --name datagen-orders-local \
+      confluentinc/ksql-examples:5.0.0 \
+      ksql-datagen \
+          quickstart=orders \
+          format=avro \
+          topic=orders_local \
+          bootstrap-server=kafka:39092 \
+          schemaRegistryUrl=http://schema-registry:8081
 
 .. code:: bash
 
-    $ docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-        confluentinc/ksql-examples:5.0.0 \
-        ksql-datagen \
-            quickstart=orders \
-            format=avro \
-            topic=orders_3rdparty \
-            bootstrap-server=kafka:39092 \
-            schemaRegistryUrl=http://schema-registry:8081
+    docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
+      confluentinc/ksql-examples:5.0.0 \
+      ksql-datagen \
+          quickstart=orders \
+          format=avro \
+          topic=orders_3rdparty \
+          bootstrap-server=kafka:39092 \
+          schemaRegistryUrl=http://schema-registry:8081
 
 .. include:: ../includes/ksql-includes.rst
-    :start-after: __insert-into_02_start
-    :end-before: __insert-into_02_end
+    :start-after: insert-into_02_start
+    :end-before: insert-into_02_end
 
-.. _terminate: 
+.. _terminate-docker: 
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: terminate_and_exit__start
@@ -211,17 +215,17 @@ Docker
 
 To stop all Data Generator containers, run the following: 
 
-    .. code:: bash
+.. code:: bash
 
-        docker ps|grep ksql-datagen|awk '{print $1}'|xargs -Ifoo docker stop foo
+    docker ps|grep ksql-datagen|awk '{print $1}'|xargs -Ifoo docker stop foo
 
 If you are running |cp| using Docker Compose, you can stop it and remove 
 the containers and their data with this command.
 
-   .. code:: bash
+.. code:: bash
 
-       $ cd docs/tutorials/
-       $ docker-compose down
+    cd docs/tutorials/
+    docker-compose down
 
 
 Appendix
@@ -250,15 +254,15 @@ following methods.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-console-producer \
-                                   --topic t1 \
-                                   --broker-list kafka:39092  \
-                                   --property parse.key=true \
-                                   --property key.separator=:
+       docker-compose exec kafka kafka-console-producer \
+                                 --topic t1 \
+                                 --broker-list kafka:39092  \
+                                 --property parse.key=true \
+                                 --property key.separator=:
 
-   Your data input should resemble this.
+   Your data input should resemble this:
 
-   .. code:: bash
+   ::
 
        key1:v1,v2,v3
        key2:v4,v5,v6
@@ -271,15 +275,15 @@ following methods.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-console-producer \
-                                   --topic t2 \
-                                   --broker-list kafka:39092  \
-                                   --property parse.key=true \
-                                   --property key.separator=:
+       docker-compose exec kafka kafka-console-producer \
+                                 --topic t2 \
+                                 --broker-list kafka:39092  \
+                                 --property parse.key=true \
+                                 --property key.separator=:
 
-   Your data input should resemble this.
+   Your data input should resemble this:
 
-   .. code:: bash
+   ::
 
        key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
        key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
@@ -298,11 +302,11 @@ environment is properly setup.
 
    .. code:: bash
 
-       $ docker-compose ps
+       docker-compose ps
 
    Your output should resemble this. Take note of the ``Up`` state.
 
-   .. code:: bash
+   ::
 
                 Name                        Command            State                 Ports
         ----------------------------------------------------------------------------------------------------
@@ -317,11 +321,11 @@ environment is properly setup.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
+       docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
 
    Your output should resemble this.
 
-   .. code:: bash
+   ::
 
        _confluent-metrics
        _schemas
@@ -335,16 +339,16 @@ environment is properly setup.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-console-consumer \
-                                   --topic pageviews \
-                                   --bootstrap-server kafka:39092 \
-                                   --from-beginning \
-                                   --max-messages 3 \
-                                   --property print.key=true
+       docker-compose exec kafka kafka-console-consumer \
+                                 --topic pageviews \
+                                 --bootstrap-server kafka:39092 \
+                                 --from-beginning \
+                                 --max-messages 3 \
+                                 --property print.key=true
 
    Your output should resemble this.
 
-   .. code:: bash
+   ::
 
        1491040409254    1491040409254,User_5,Page_70
        1488611895904    1488611895904,User_8,Page_76
@@ -352,16 +356,16 @@ environment is properly setup.
 
    .. code:: bash
 
-       $ docker-compose exec kafka kafka-console-consumer \
-                                   --topic users \
-                                   --bootstrap-server kafka:39092 \
-                                   --from-beginning \
-                                   --max-messages 3 \
-                                   --property print.key=true
+       docker-compose exec kafka kafka-console-consumer \
+                                 --topic users \
+                                 --bootstrap-server kafka:39092 \
+                                 --from-beginning \
+                                 --max-messages 3 \
+                                 --property print.key=true
 
-   Your output should resemble this.
+   Your output should resemble this:
 
-   .. code:: bash
+   ::
 
        User_2   {"registertime":1509789307038,"gender":"FEMALE","regionid":"Region_1","userid":"User_2"}
        User_6   {"registertime":1498248577697,"gender":"OTHER","regionid":"Region_8","userid":"User_6"}

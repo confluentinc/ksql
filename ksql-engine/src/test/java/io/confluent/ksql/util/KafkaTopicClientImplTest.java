@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util;
 
@@ -76,20 +74,20 @@ import org.junit.runner.RunWith;
 @RunWith(EasyMockRunner.class)
 public class KafkaTopicClientImplTest {
 
-  private final String topicName1 = "topic1";
-  private final String topicName2 = "topic2";
-  private final String topicName3 = "topic3";
-  private final String internalTopic1 = String.format("%s%s_%s",
+  private static final String topicName1 = "topic1";
+  private static final String topicName2 = "topic2";
+  private static final String topicName3 = "topic3";
+  private static final String internalTopic1 = String.format("%s%s_%s",
                                                       KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
                                                       "default",
                                                       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
                                                       + "-STATE-STORE-0000000006-repartition");
-  private final String internalTopic2 = String.format("%s%s_%s",
+  private static final String internalTopic2 = String.format("%s%s_%s",
                                                       KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
                                                       "default",
                                                       "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
                                                       + "-STATE-STORE-0000000006-changelog");
-  private final String confluentInternalTopic =
+  private static final String confluentInternalTopic =
       String.format("%s-%s", KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX,
                     "confluent-control-center");
   private Node node;
@@ -284,8 +282,7 @@ public class KafkaTopicClientImplTest {
 
 
   @Test
-  public void shouldSetTopicCleanupPolicyToCompact() throws InterruptedException,
-                                                            ExecutionException {
+  public void shouldSetTopicCleanupPolicyToCompact() {
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
 
     // Verify that the new topic configuration being passed to the admin client is what we expect.

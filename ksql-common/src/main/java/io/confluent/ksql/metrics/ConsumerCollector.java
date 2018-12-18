@@ -1,18 +1,16 @@
-/**
- * Copyright 2017 Confluent Inc.
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.metrics;
 
@@ -27,6 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.MetricName;
@@ -37,7 +36,10 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
-public class ConsumerCollector implements MetricCollector {
+public class ConsumerCollector implements MetricCollector, ConsumerInterceptor {
+  public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
+  public static final String CONSUMER_TOTAL_MESSAGES = "consumer-total-messages";
+  public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
 
   private final Map<String, TopicSensors<ConsumerRecord>> topicSensors = new HashMap<>();
   private Metrics metrics;
@@ -70,13 +72,12 @@ public class ConsumerCollector implements MetricCollector {
   }
 
   @Override
-  public String getGroupId() {
-    return this.groupId;
+  public void onCommit(final Map map) {
   }
 
   @Override
-  public String getId() {
-    return id;
+  public String getGroupId() {
+    return this.groupId;
   }
 
   @Override
@@ -90,10 +91,6 @@ public class ConsumerCollector implements MetricCollector {
     final Stream<ConsumerRecord> stream =
         StreamSupport.stream(consumerRecords.spliterator(), false);
     stream.forEach(record -> record(record.topic().toLowerCase(), false, record));
-  }
-
-  public void recordError(final String topic) {
-    record(topic, true, null);
   }
 
   private void record(final String topic, final boolean isError, final ConsumerRecord record) {
@@ -113,10 +110,9 @@ public class ConsumerCollector implements MetricCollector {
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists
     // activity in a reliable way
     synchronized (this.metrics) {
-      addSensor(key, "consumer-messages-per-sec", new Rate(), sensors, false);
-      addSensor(key, "consumer-total-messages", new Total(), sensors, false);
-      addSensor(key, "consumer-failed-messages", new Total(), sensors, true);
-      addSensor(key, "consumer-total-message-bytes", new Total(), sensors, false,
+      addSensor(key, CONSUMER_MESSAGES_PER_SEC, new Rate(), sensors, false);
+      addSensor(key, CONSUMER_TOTAL_MESSAGES, new Total(), sensors, false);
+      addSensor(key, CONSUMER_TOTAL_BYTES, new Total(), sensors, false,
           (r) -> {
             if (r == null) {
               return 0.0;
@@ -124,7 +120,6 @@ public class ConsumerCollector implements MetricCollector {
               return ((double) r.serializedValueSize() + r.serializedKeySize());
             }
           });
-      addSensor(key, "failed-messages-per-sec", new Rate(), sensors, true);
     }
     return sensors;
   }
@@ -173,7 +168,6 @@ public class ConsumerCollector implements MetricCollector {
     });
   }
 
-
   public void close() {
     MetricCollectors.remove(this.id);
     topicSensors.values().forEach(v -> v.close(metrics));
@@ -181,61 +175,12 @@ public class ConsumerCollector implements MetricCollector {
 
   @Override
   public Collection<TopicSensors.Stat> stats(final String topic, final boolean isError) {
-    final List<TopicSensors.Stat> list = new ArrayList<>();
-    topicSensors
-        .values()
-        .stream()
-        .filter(counter -> counter.isTopic(topic))
-        .forEach(record -> list.addAll(record.stats(isError)));
-    return list;
-  }
-
-
-  @Override
-  public double currentMessageConsumptionRate() {
-    final List<TopicSensors.Stat> allStats = new ArrayList<>();
-    topicSensors.values().forEach(record -> allStats.addAll(record.stats(false)));
-
-    return allStats
-        .stream()
-        .filter(stat -> stat.name().contains("consumer-messages-per-sec"))
-        .mapToDouble(TopicSensors.Stat::getValue)
-        .sum();
+    return MetricUtils.stats(topic, isError, topicSensors.values());
   }
 
   @Override
-  public double totalMessageConsumption() {
-    final List<TopicSensors.Stat> allStats = new ArrayList<>();
-    topicSensors.values().forEach(record -> allStats.addAll(record.stats(false)));
-
-    return allStats
-        .stream()
-        .filter(stat -> stat.name().contains("consumer-total-messages"))
-        .mapToDouble(TopicSensors.Stat::getValue)
-        .sum();
-  }
-
-  @Override
-  public double totalBytesConsumption() {
-    final List<TopicSensors.Stat> allStats = new ArrayList<>();
-    topicSensors.values().forEach(record -> allStats.addAll(record.stats(false)));
-
-    return allStats
-        .stream()
-        .filter(stat -> stat.name().contains("consumer-total-message-bytes"))
-        .mapToDouble(TopicSensors.Stat::getValue)
-        .sum();
-  }
-
-  @Override
-  public double errorRate() {
-    final List<TopicSensors.Stat> allStats = new ArrayList<>();
-    topicSensors.values().forEach(record -> allStats.addAll(record.errorRateStats()));
-
-    return allStats
-        .stream()
-        .mapToDouble(TopicSensors.Stat::getValue)
-        .sum();
+  public double aggregateStat(final String name, final boolean isError) {
+    return MetricUtils.aggregateStat(name, isError, topicSensors.values());
   }
 
   @Override

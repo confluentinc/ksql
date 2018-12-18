@@ -1,19 +1,15 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * This file is an adaptation of Presto's presto-parser/src/main/antlr4/com/facebook/presto/sql/parser/SqlBase.g4 grammar.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 grammar SqlBase;
@@ -158,11 +154,6 @@ groupingExpressions
     | expression
     ;
 
-groupingSet
-    : '(' (qualifiedName (',' qualifiedName)*)? ')'
-    | qualifiedName
-    ;
-
 namedQuery
     : name=identifier (columnAliases)? AS '(' query ')'
     ;
@@ -172,7 +163,6 @@ selectItem
     | qualifiedName '.' ASTERISK    #selectAll
     | ASTERISK                      #selectAll
     ;
-
 
 relation
     : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria
@@ -308,29 +298,16 @@ whenClause
     : WHEN condition=expression THEN result=expression
     ;
 
-callArgument
-    : expression                    #positionalArgument
-    | identifier '=>' expression    #namedArgument
-    ;
-
-privilege
-    : SELECT | DELETE | INSERT | identifier
-    ;
-
 qualifiedName
     : identifier ('.' identifier)*
     ;
 
 identifier
     : IDENTIFIER             #unquotedIdentifier
-    | quotedIdentifier       #quotedIdentifierAlternative
+    | QUOTED_IDENTIFIER      #quotedIdentifierAlternative
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
-    ;
-
-quotedIdentifier
-    : QUOTED_IDENTIFIER
     ;
 
 number
@@ -339,15 +316,13 @@ number
     ;
 
 nonReserved
-    : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | FUNCTION | SCHEMAS | SESSION
+    : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | FUNCTION | SESSION
     | STRUCT | MAP | ARRAY | PARTITION
     | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
-    | EXPLAIN | ANALYZE | FORMAT | TYPE | TEXT
+    | EXPLAIN | ANALYZE | TYPE
     | SET | RESET
-    | REPLACE
-    | IF  
-    | NO | DATA
+    | IF
     ;
 
 SELECT: 'SELECT';
@@ -360,7 +335,6 @@ WITHIN: 'WITHIN';
 WINDOW: 'WINDOW';
 GROUP: 'GROUP';
 BY: 'BY';
-ORDER: 'ORDER';
 HAVING: 'HAVING';
 LIMIT: 'LIMIT';
 AT: 'AT';
@@ -368,7 +342,6 @@ OR: 'OR';
 AND: 'AND';
 IN: 'IN';
 NOT: 'NOT';
-NO: 'NO';
 EXISTS: 'EXISTS';
 BETWEEN: 'BETWEEN';
 LIKE: 'LIKE';
@@ -376,10 +349,6 @@ IS: 'IS';
 NULL: 'NULL';
 TRUE: 'TRUE';
 FALSE: 'FALSE';
-FIRST: 'FIRST';
-LAST: 'LAST';
-ASC: 'ASC';
-DESC: 'DESC';
 INTEGER: 'INTEGER';
 DATE: 'DATE';
 TIME: 'TIME';
@@ -400,7 +369,6 @@ MINUTES: 'MINUTES';
 SECONDS: 'SECONDS';
 MILLISECONDS: 'MILLISECONDS';
 ZONE: 'ZONE';
-EXTRACT: 'EXTRACT';
 TUMBLING: 'TUMBLING';
 HOPPING: 'HOPPING';
 SIZE: 'SIZE';
@@ -416,7 +384,6 @@ OUTER: 'OUTER';
 INNER: 'INNER';
 LEFT: 'LEFT';
 RIGHT: 'RIGHT';
-USING: 'USING';
 ON: 'ON';
 PARTITION: 'PARTITION';
 STRUCT: 'STRUCT';
@@ -428,7 +395,6 @@ TABLE: 'TABLE';
 TOPIC: 'TOPIC';
 STREAM: 'STREAM';
 STREAMS: 'STREAMS';
-REPLACE: 'REPLACE';
 INSERT: 'INSERT';
 DELETE: 'DELETE';
 INTO: 'INTO';
@@ -437,9 +403,7 @@ EXTENDED: 'EXTENDED';
 PRINT: 'PRINT';
 EXPLAIN: 'EXPLAIN';
 ANALYZE: 'ANALYZE';
-FORMAT: 'FORMAT';
 TYPE: 'TYPE';
-TEXT: 'TEXT';
 CAST: 'CAST';
 SHOW: 'SHOW';
 LIST: 'LIST';
@@ -450,23 +414,19 @@ QUERY: 'QUERY';
 QUERIES: 'QUERIES';
 TERMINATE: 'TERMINATE';
 LOAD: 'LOAD';
-SCHEMAS: 'SCHEMAS';
 COLUMNS: 'COLUMNS';
 COLUMN: 'COLUMN';
 PARTITIONS: 'PARTITIONS';
 FUNCTIONS: 'FUNCTIONS';
 FUNCTION: 'FUNCTION';
 DROP: 'DROP';
-UNION: 'UNION';
 TO: 'TO';
-ALTER: 'ALTER';
 RENAME: 'RENAME';
 ARRAY: 'ARRAY';
 MAP: 'MAP';
 SET: 'SET';
 RESET: 'RESET';
 SESSION: 'SESSION';
-DATA: 'DATA';
 SAMPLE: 'SAMPLE';
 EXPORT: 'EXPORT';
 CATALOG: 'CATALOG';

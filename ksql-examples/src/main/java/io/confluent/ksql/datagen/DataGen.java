@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.datagen;
 
@@ -29,9 +27,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.function.BiConsumer;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class DataGen {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private DataGen() {
   }
@@ -277,7 +273,7 @@ public final class DataGen {
       // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
       private Builder parseArg(final String arg) throws IOException {
         // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-        if ("help".equals(arg)) {
+        if ("help".equals(arg) || "--help".equals(arg)) {
           help = true;
           return this;
         }

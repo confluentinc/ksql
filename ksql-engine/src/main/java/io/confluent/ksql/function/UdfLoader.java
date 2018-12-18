@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.function;
@@ -26,7 +24,6 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
@@ -68,7 +65,7 @@ public class UdfLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfLoader.class);
   private static final String UDF_METRIC_GROUP = "ksql-udf";
 
-  private final MetaStore metaStore;
+  private final FunctionRegistry functionRegistry;
   private final File pluginDir;
   private final ClassLoader parentClassLoader;
   private final Predicate<String> blacklist;
@@ -79,14 +76,15 @@ public class UdfLoader {
 
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public UdfLoader(final MetaStore metaStore,
+  public UdfLoader(final FunctionRegistry functionRegistry,
                    final File pluginDir,
                    final ClassLoader parentClassLoader,
                    final Predicate<String> blacklist,
                    final UdfCompiler compiler,
                    final Optional<Metrics> metrics,
                    final boolean loadCustomerUdfs) {
-    this.metaStore = Objects.requireNonNull(metaStore, "metaStore can't be null");
+    this.functionRegistry = Objects
+        .requireNonNull(functionRegistry, "functionRegistry can't be null");
     this.pluginDir = Objects.requireNonNull(pluginDir, "pluginDir can't be null");
     this.parentClassLoader = Objects.requireNonNull(parentClassLoader,
         "parentClassLoader can't be null");
@@ -186,7 +184,7 @@ public class UdfLoader {
           .map(Optional::get)
           .collect(Collectors.toList());
 
-      metaStore.addAggregateFunctionFactory(new UdafAggregateFunctionFactory(
+      functionRegistry.addAggregateFunctionFactory(new UdafAggregateFunctionFactory(
           new UdfMetadata(udafAnnotation.name(),
               udafAnnotation.description(),
               udafAnnotation.author(),
@@ -243,7 +241,7 @@ public class UdfLoader {
     addSensor(sensorName, functionName);
 
     LOGGER.info("Adding function " + functionName + " for method " + method);
-    metaStore.addFunctionFactory(new UdfFactory(udfClass,
+    functionRegistry.addFunctionFactory(new UdfFactory(udfClass,
         new UdfMetadata(functionName,
             classLevelAnnotaion.description(),
             classLevelAnnotaion.author(),
@@ -263,8 +261,8 @@ public class UdfLoader {
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
-    metaStore.addFunction(new KsqlFunction(
-        SchemaUtil.getSchemaFromType(method.getReturnType()),
+    functionRegistry.addFunction(new KsqlFunction(
+        SchemaUtil.getSchemaFromType(method.getGenericReturnType()),
         parameters,
         functionName,
         udfClass,
@@ -316,7 +314,7 @@ public class UdfLoader {
   }
 
   public static UdfLoader newInstance(final KsqlConfig config,
-                                      final MetaStore metaStore,
+                                      final FunctionRegistry metaStore,
                                       final String ksqlInstallDir
   ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);

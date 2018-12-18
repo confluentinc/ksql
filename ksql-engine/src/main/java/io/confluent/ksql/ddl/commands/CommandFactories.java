@@ -1,22 +1,19 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -27,89 +24,138 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.HandlerMaps;
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
 import io.confluent.ksql.util.KsqlException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandFactories implements DdlCommandFactory {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private final Map<Class<? extends DdlStatement>, DdlCommandFactory> factories = new HashMap<>();
+  private static final ClassHandlerMapR2<DdlStatement, CommandFactories, CallInfo, DdlCommand>
+      FACTORIES = HandlerMaps
+      .forClass(DdlStatement.class)
+      .withArgTypes(CommandFactories.class, CallInfo.class)
+      .withReturnType(DdlCommand.class)
+      .put(RegisterTopic.class, CommandFactories::handleRegisterTopic)
+      .put(CreateStream.class, CommandFactories::handleCreateStream)
+      .put(CreateTable.class, CommandFactories::handleCreateTable)
+      .put(DropStream.class, CommandFactories::handleDropStream)
+      .put(DropTable.class, CommandFactories::handleDropTable)
+      .put(DropTopic.class, CommandFactories::handleDropTopic)
+      .put(SetProperty.class, CommandFactories::handleSetProperty)
+      .put(UnsetProperty.class, CommandFactories::handleUnsetProperty)
+      .build();
 
-  public CommandFactories(
-      final KafkaTopicClient topicClient,
-      final SchemaRegistryClient schemaRegistryClient,
-      final boolean enforceTopicExistence
-  ) {
-    factories.put(
-        RegisterTopic.class,
-        (sqlExpression, ddlStatement, properties) ->
-            new RegisterTopicCommand((RegisterTopic)ddlStatement));
-    factories.put(
-        CreateStream.class,
-        (sqlExpression, ddlStatement, properties) -> new CreateStreamCommand(
-            sqlExpression,
-            (CreateStream) ddlStatement,
-            topicClient,
-            enforceTopicExistence
-        )
-    );
-    factories.put(
-        CreateTable.class,
-        (sqlExpression, ddlStatement, properties) -> new CreateTableCommand(
-            sqlExpression,
-            (CreateTable) ddlStatement,
-            topicClient,
-            enforceTopicExistence
-        )
-    );
-    factories.put(
-        DropStream.class,
-        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-            (DropStream) ddlStatement,
-            DataSource.DataSourceType.KSTREAM,
-            topicClient,
-            schemaRegistryClient,
-            ((DropStream) ddlStatement).isDeleteTopic()
-        )
-    );
-    factories.put(
-        DropTable.class,
-        (sqlExpression, ddlStatement, properties) -> new DropSourceCommand(
-            (DropTable) ddlStatement,
-            DataSource.DataSourceType.KTABLE,
-            topicClient,
-            schemaRegistryClient,
-            ((DropTable) ddlStatement).isDeleteTopic()
-        )
-    );
-    factories.put(
-        DropTopic.class, (sqlExpression, ddlStatement, properties) ->
-            new DropTopicCommand(((DropTopic) ddlStatement)));
-    factories.put(
-        SetProperty.class, (sqlExpression, ddlStatement, properties) ->
-            new SetPropertyCommand(((SetProperty) ddlStatement), properties));
-    factories.put(
-        UnsetProperty.class, (sqlExpression, ddlStatement, properties) ->
-            new UnsetPropertyCommand(((UnsetProperty) ddlStatement), properties));
+  private final ServiceContext serviceContext;
+
+  public CommandFactories(final ServiceContext serviceContext) {
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
   }
 
   @Override
   public DdlCommand create(
       final String sqlExpression,
       final DdlStatement ddlStatement,
-      final Map<String, Object> properties
+      final Map<String, Object> properties,
+      final boolean enforceTopicExistence
   ) {
-    if (!factories.containsKey(ddlStatement.getClass())) {
-      throw new KsqlException(
-          "Unable to find ddl command factory for statement:"
-          + ddlStatement.getClass()
-          + " valid statements:"
-          + factories.keySet()
-      );
+    return FACTORIES
+        .getOrDefault(ddlStatement.getClass(), (statement, cf, ci) -> {
+          throw new KsqlException(
+              "Unable to find ddl command factory for statement:"
+                  + statement.getClass()
+                  + " valid statements:"
+                  + FACTORIES.keySet()
+          );
+        })
+        .handle(
+            this,
+            new CallInfo(sqlExpression, properties, enforceTopicExistence),
+            ddlStatement);
+  }
+
+  private static RegisterTopicCommand handleRegisterTopic(final RegisterTopic statement) {
+    return new RegisterTopicCommand(statement);
+  }
+
+  private CreateStreamCommand handleCreateStream(
+      final CallInfo callInfo,
+      final CreateStream statement
+  ) {
+    return new CreateStreamCommand(
+        callInfo.sqlExpression,
+        statement,
+        serviceContext.getTopicClient(),
+        callInfo.enforceTopicExistence);
+  }
+
+  private CreateTableCommand handleCreateTable(
+      final CallInfo callInfo,
+      final CreateTable statement
+  ) {
+    return new CreateTableCommand(
+        callInfo.sqlExpression,
+        statement,
+        serviceContext.getTopicClient(),
+        callInfo.enforceTopicExistence);
+  }
+
+  private DropSourceCommand handleDropStream(final DropStream statement) {
+    return new DropSourceCommand(
+        statement,
+        DataSource.DataSourceType.KSTREAM,
+        serviceContext.getTopicClient(),
+        serviceContext.getSchemaRegistryClient(),
+        statement.isDeleteTopic());
+  }
+
+  private DropSourceCommand handleDropTable(final DropTable statement) {
+    return new DropSourceCommand(
+        statement,
+        DataSource.DataSourceType.KTABLE,
+        serviceContext.getTopicClient(),
+        serviceContext.getSchemaRegistryClient(),
+        statement.isDeleteTopic());
+  }
+
+  private static DropTopicCommand handleDropTopic(final DropTopic statement) {
+    return new DropTopicCommand(statement);
+  }
+
+  @SuppressWarnings("MethodMayBeStatic")
+  private SetPropertyCommand handleSetProperty(
+      final CallInfo callInfo,
+      final SetProperty statement
+  ) {
+    return new SetPropertyCommand(statement, callInfo.properties);
+  }
+
+  @SuppressWarnings("MethodMayBeStatic")
+  private UnsetPropertyCommand handleUnsetProperty(
+      final CallInfo callInfo,
+      final UnsetProperty statement
+  ) {
+    return new UnsetPropertyCommand(statement, callInfo.properties);
+  }
+
+  private static final class CallInfo {
+
+    final String sqlExpression;
+    final Map<String, Object> properties;
+    final boolean enforceTopicExistence;
+
+    private CallInfo(
+        final String sqlExpression,
+        final Map<String, Object> properties,
+        final boolean enforceTopicExistence
+    ) {
+      this.sqlExpression = sqlExpression;
+      this.properties = properties;
+      this.enforceTopicExistence = enforceTopicExistence;
     }
-    return factories.get(ddlStatement.getClass()).create(sqlExpression, ddlStatement, properties);
   }
 }

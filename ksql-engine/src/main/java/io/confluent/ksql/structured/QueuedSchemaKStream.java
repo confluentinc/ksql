@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.structured;
 
@@ -20,7 +18,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -34,22 +32,22 @@ import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Windowed;
 
-public class QueuedSchemaKStream extends SchemaKStream {
+public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
       new LinkedBlockingQueue<>(100);
 
   @SuppressWarnings("unchecked") // needs investigating
-  QueuedSchemaKStream(final SchemaKStream schemaKStream) {
+  QueuedSchemaKStream(final SchemaKStream<K> schemaKStream) {
     super(
         schemaKStream.schema,
         schemaKStream.getKstream(),
         schemaKStream.keyField,
         schemaKStream.sourceSchemaKStreams,
+        schemaKStream.keySerde,
         Type.SINK,
         schemaKStream.ksqlConfig,
-        schemaKStream.functionRegistry,
-        schemaKStream.schemaRegistryClient
+        schemaKStream.functionRegistry
     );
 
     final OutputNode output = schemaKStream.outputNode();
@@ -62,7 +60,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream into(
+  public SchemaKStream<K> into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
       final Set<Integer> rowkeyIndexes
@@ -71,34 +69,36 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public SchemaKStream filter(final Expression filterExpression) {
+  public SchemaKStream<K> filter(final Expression filterExpression) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream select(final List<Pair<String, Expression>> expressions) {
+  public SchemaKStream<K> select(final List<SelectExpression> expressions) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream leftJoin(
-      final SchemaKTable schemaKTable,
+  public SchemaKStream<K> leftJoin(
+      final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
       final Field joinKey,
-      final Serde<GenericRow> joinSerde
+      final Serde<GenericRow> joinSerde,
+      final String opName
   ) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream selectKey(final Field newKeyField, final boolean updateRowKey) {
+  public SchemaKStream<K> selectKey(final Field newKeyField, final boolean updateRowKey) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public SchemaKGroupedStream groupBy(
-      final Serde<String> keySerde, final Serde<GenericRow> valSerde,
-      final List<Expression> groupByExpressions) {
+      final Serde<GenericRow> valSerde,
+      final List<Expression> groupByExpressions,
+      final String opName) {
     throw new UnsupportedOperationException();
   }
 
@@ -113,7 +113,7 @@ public class QueuedSchemaKStream extends SchemaKStream {
   }
 
   @Override
-  public KStream<String, GenericRow> getKstream() {
+  public KStream<K, GenericRow> getKstream() {
     return super.getKstream();
   }
 

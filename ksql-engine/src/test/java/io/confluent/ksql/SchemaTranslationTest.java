@@ -1,20 +1,37 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
-import static io.confluent.ksql.EndToEndEngineTestUtil.findTests;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findTestCases;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
 import io.confluent.avro.random.generator.Generator;
+import io.confluent.ksql.EndToEndEngineTestUtil.JsonTestCase;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,60 +50,35 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class SchemaTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final String SCHEMA_VALIDATION_TEST_DIR = "schema-validation-tests";
+  private static final Path SCHEMA_VALIDATION_TEST_DIR = Paths.get("schema-validation-tests");
   private static final String TOPIC_NAME = "TEST_INPUT";
   private static final String OUTPUT_TOPIC_NAME = "TEST_OUTPUT";
 
-  private final String name;
-  private final Query query;
+  private final TestCase testCase;
 
-  public SchemaTranslationTest(final String name, final Query query) {
-    this.name = name;
-    this.query = query;
+  @SuppressWarnings("unused")
+  public SchemaTranslationTest(final String name, final TestCase testCase) {
+    this.testCase = testCase;
   }
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query);
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(testCase);
   }
 
   @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> data() throws IOException {
-    final List<String> testFiles = findTests(SCHEMA_VALIDATION_TEST_DIR);
-    final List<Object[]> testParams = new LinkedList<>();
-    for (final String filename : testFiles) {
-      final JsonNode tests;
-      try {
-        tests = objectMapper.readTree(
-            EndToEndEngineTestUtil.class.getClassLoader().getResourceAsStream(
-                SCHEMA_VALIDATION_TEST_DIR + "/" + filename));
-      } catch (final IOException e) {
-        throw new RuntimeException("Unable to load test at path " + filename);
-      }
-      final List<Query> query = loadTests(tests);
-      testParams.addAll(
-          query
-              .stream()
-              .map(q -> new Object[]{q.getName(), q})
-              .collect(Collectors.toList())
-      );
-    }
-    return testParams;
-  }
-
-  private static List<Query> loadTests(final JsonNode node) {
-    final List<Query> tests = new ArrayList<>();
-    node.get("tests").forEach(
-        testNode -> tests.add(loadTest(testNode))
-    );
-    return tests;
+  public static Collection<Object[]> data() {
+    return findTestCases(SCHEMA_VALIDATION_TEST_DIR)
+        .map(SchemaTranslationTest::loadTest)
+        .map(q -> new Object[]{q.getName(), q})
+        .collect(Collectors.toList());
   }
 
   @SuppressWarnings("unchecked")
   private static List<Record> generateInputRecords(
       final Topic topic, final org.apache.avro.Schema avroSchema) {
     final Generator generator = new Generator(avroSchema, new Random());
-    return IntStream.range(0, 3).mapToObj(
+    return IntStream.range(0, 100).mapToObj(
         i -> new Record(
             topic,
             "test-key",
@@ -140,7 +132,13 @@ public class SchemaTranslationTest {
     return records;
   }
 
-  private static Query loadTest(final JsonNode node) {
+  private static TestCase loadTest(final JsonTestCase testCase) {
+    final JsonNode node = testCase.getNode();
+
+    final String name = Files.getNameWithoutExtension(testCase.getTestPath().toString())
+        + " - "
+        + node.get("name").asText();
+
     final JsonNode schemaNode = node.get("schema");
     final String schemaString;
     try {
@@ -181,9 +179,9 @@ public class SchemaTranslationTest {
                 " FROM " + TOPIC_NAME + ";")
         );
 
-    return new Query(
-        "",
-        node.get("name").asText(),
+    return new TestCase(
+        testCase.getTestPath(),
+        name,
         Collections.emptyMap(),
         ImmutableList.of(srcTopic, outputTopic),
         inputRecords,

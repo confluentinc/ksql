@@ -1,18 +1,16 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.function;
 
@@ -33,24 +31,17 @@ import org.junit.Test;
 public class KudafUndoAggregatorTest {
   @Test
   public void shouldApplyUndoableAggregateFunctions() {
-    final Schema schema = SchemaBuilder
-        .struct()
-        .field("foo", SchemaBuilder.string().build())
-        .field("bar", SchemaBuilder.string().build())
-        .field("baz", SchemaBuilder.int32().build())
-        .build();
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     aggValToValColumnMap.put(0, 1);
     aggValToValColumnMap.put(1, 0);
     final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
-    final Map<String, Integer> expressionNames = Collections.singletonMap("baz", 2);
     final KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
         "SUM", Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(functionInfo, instanceOf(TableAggregationFunction.class));
     aggValToAggFunctionMap.put(
         2, (TableAggregationFunction)functionInfo.getInstance(
-            new AggregateFunctionArguments(expressionNames, Collections.singletonList("baz"))
+            new AggregateFunctionArguments(2, Collections.singletonList("baz"))
         ));
 
     final GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));

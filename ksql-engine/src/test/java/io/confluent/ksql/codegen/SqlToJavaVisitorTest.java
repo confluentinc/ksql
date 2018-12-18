@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.codegen;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
@@ -127,4 +141,43 @@ public class SqlToJavaVisitorTest {
     assertThat(javaExpression, equalTo("((((Object)(TEST1_COL3)) == null || ((Object)(-10.0)) == null) ? false : (TEST1_COL3 > -10.0))"));
   }
 
+  @Test
+  public void shouldGenerateCorrectCodeForLikePatternWithLeadingWildcard() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT * FROM test1 WHERE col1 LIKE '%foo';", metaStore);
+
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getWhereExpression());
+    assertThat(javaExpression, equalTo("(TEST1_COL1).endsWith(\"foo\")"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForLikePatternWithTrailingWildcard() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT * FROM test1 WHERE col1 LIKE 'foo%';", metaStore);
+
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getWhereExpression());
+    assertThat(javaExpression, equalTo("(TEST1_COL1).startsWith(\"foo\")"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForLikePatternWithLeadingAndTrailingWildcards() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT * FROM test1 WHERE col1 LIKE '%foo%';", metaStore);
+
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getWhereExpression());
+    assertThat(javaExpression, equalTo("(TEST1_COL1).contains(\"foo\")"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForLikePatternWithoutWildcards() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT * FROM test1 WHERE col1 LIKE 'foo';", metaStore);
+
+    final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
+        .process(analysis.getWhereExpression());
+    assertThat(javaExpression, equalTo("(TEST1_COL1).equals(\"foo\")"));
+  }
 }

@@ -27,6 +27,7 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.EndToEndEngineTestUtil.JsonTestCase;
@@ -43,6 +44,7 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
 import java.io.IOException;
@@ -66,6 +68,7 @@ import java.util.stream.StreamSupport;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -101,6 +104,8 @@ import org.junit.runners.Parameterized;
  *
  *   Note that for both options above the version must exist
  *   under the src/test/resources/expected_topology directory.
+ *
+ *  For instructions on how to generate new topologies, see TopologyFileGenerator.java.
  */
 
 @RunWith(Parameterized.class)
@@ -108,7 +113,7 @@ public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
-  private static final String CURRENT_TOPOLOGY_VERSION = "5_0";
+  private static final String CURRENT_TOPOLOGY_VERSION = "5_1";
   private static final String TOPOLOGY_VERSION_PROP = "topology.version";
 
   private final TestCase testCase;
@@ -150,18 +155,18 @@ public class QueryTranslationTest {
         .flatMap(test -> {
           final JsonNode formatsNode = test.getNode().get("format");
           if (formatsNode == null) {
-            return Stream.of(createTest(test, ""));
+            return createTests(test, "");
           }
 
           final Spliterator<JsonNode> formats = Spliterators.spliteratorUnknownSize(
               formatsNode.iterator(), Spliterator.ORDERED);
 
           return StreamSupport.stream(formats, false)
-              .map(format -> createTest(test, format.asText()));
+              .flatMap(format -> createTests(test, format.asText()));
         });
   }
 
-  private static TestCase createTest(final JsonTestCase test, final String format) {
+  private static Stream<TestCase> createTests(final JsonTestCase test, final String format) {
     try {
       final JsonNode query = test.getNode();
       final StringBuilder nameBuilder = new StringBuilder();
@@ -227,8 +232,29 @@ public class QueryTranslationTest {
         }
       }
 
-      return new TestCase(test.getTestPath(), name, properties, topics, inputs, outputs, statements,
-          expectedException);
+      final ImmutableMap<String, Object> propertiesWithOptimizations =
+          new ImmutableMap.Builder<String, Object>().putAll(properties)
+              .put(
+                  KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+                  KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
+              .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE)
+              .build();
+      final TestCase testWithOptimizations = new TestCase(
+          test.getTestPath(), name + " - with_opt", propertiesWithOptimizations,
+          topics, inputs, outputs, statements, expectedException);
+
+      final ImmutableMap<String, Object> propertiesWithoutOptimizations =
+          new ImmutableMap.Builder<String, Object>().putAll(properties)
+              .put(
+                  KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+                  KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
+              .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION)
+              .build();
+      final TestCase testWithoutOptimizations = new TestCase(
+          test.getTestPath(), name + " - no_opt", propertiesWithoutOptimizations,
+          topics, inputs, outputs, statements, expectedException);
+
+      return Stream.of(testWithOptimizations, testWithoutOptimizations);
     } catch (final Exception e) {
       throw new RuntimeException("Failed to build a testCase in " + test.getTestPath(), e);
     }

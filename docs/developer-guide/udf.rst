@@ -179,6 +179,7 @@ of the UDF does, for example:
         + " extends to the character at endIndex -1.")
     public String substring(final String value, final int startIndex, final int endIndex)
 
+.. _ksql-udafs:
 
 UDAFs
 -----

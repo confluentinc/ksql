@@ -12,21 +12,20 @@ Prerequisites
 Create the KSQL Extensions Directory
 ************************************
 
-When you create a custom User-defined Function (UDF), you implement it in Java
+When you create a custom user-defined function (UDF), you implement it in Java
 and deploy it as a JAR to the KSQL extensions directory. By default, this 
 directory doesn't exist, so you need to create it and assign it in the KSQL
 Server confuguration properties.
 
-Create the KSQL extensions directory, <path-to-confluent>/etc/ksql/ext:
+Create the KSQL extensions directory, ``<path-to-confluent>/etc/ksql/ext``:
 
 .. codewithvars:: bash
 
     mkdir confluent-|release|/etc/ksql/ext
 
-Edit the ``ksql-server.properties`` file in ``<path-to-confluent>/etc/ksql``
-to add the fully qualified path to the ``ext`` directory:
-
-Assign the ksql.extension.dir setting in etc/ksql/ksql-server.properties:
+Edit the ``ksql-server.properties`` configuration file in
+``<path-to-confluent>/etc/ksql`` to add the fully qualified path to the
+``ext`` directory:
 
 .. codewithvars:: text
 
@@ -41,7 +40,8 @@ Assign the ksql.extension.dir setting in etc/ksql/ksql-server.properties:
 Create the Source and Project Files
 ***********************************
 
-
+The following steps shows how to implement your UDF in a Java class and build
+it by using a Maven POM file.
 
 #. Create a root directory for your UDF's source code and project files.
 #. Create the source code directory, which has a path that corresponds with
@@ -54,7 +54,7 @@ Create the Source Code Directory
 ================================
 
 From the root directory for your UDF, create the source code directory. In this
-example, the package name is ``io.confluent.ksql.udfdemo``. 
+example, the package name is ``io.confluent.ksql.udfdemo``.
 
 .. code:: bash
 
@@ -66,7 +66,7 @@ Create the Java Source Code File
 The following Java code defines four overloads for a ``multiply`` function.
 The ``UdfDescription`` and ``Udf`` annotations tell KSQL Server to load the
 ``Multiply`` class and look for methods to add to its list of available
-functions.
+functions. For more information, see :ref:`ksql-udfs`.
 
 Copy the following code into a new file, named "Multiply.java":
 
@@ -101,7 +101,8 @@ Copy the following code into a new file, named "Multiply.java":
       }
     }
 
-Save the file to the source code directory, ``src/main/java/io/confluent/ksql/udfdemo``.
+Save the file to the source code directory, ``src/main/java/io/confluent/ksql/udfdemo``
+that you created in the previous step.
 
 Create the POM File
 ===================
@@ -276,6 +277,17 @@ Your output should resemble:
      ...               |
     -------------------------------
 
+Custom Aggregation Function (UDAF)
+**********************************
 
+Implementing a user-defined aggration function (UDAF) is similar to the way
+that you implement a UDF. You use the ``UdafDescription`` and ``UdafFactory``
+annotations in your Java code, and you deploy a JAR to the KSQL extensions
+directory. For more information, see :ref:`ksql-udafs`.   
+
+Next Steps
+**********
+
+* :ref:`ksql-udfs`
 
 

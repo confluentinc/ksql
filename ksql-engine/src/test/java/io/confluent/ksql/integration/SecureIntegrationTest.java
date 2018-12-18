@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.integration;
@@ -19,6 +17,7 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DELETE;
@@ -33,6 +32,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -101,6 +101,7 @@ public class SecureIntegrationTest {
   private KafkaTopicClient topicClient;
   private String outputTopic;
   private AdminClient adminClient;
+  private ServiceContext serviceContext;
 
   @Before
   public void before() throws Exception {
@@ -130,6 +131,9 @@ public class SecureIntegrationTest {
         e.printStackTrace(System.err);
       }
       adminClient.close();
+    }
+    if (serviceContext != null) {
+      serviceContext.close();
     }
   }
 
@@ -186,7 +190,7 @@ public class SecureIntegrationTest {
     final String serviceId = "my-service-id_";  // Defaults to "default_"
 
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, serviceId);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
 
     givenAllowAcl(NORMAL_USER,
                   resource(CLUSTER, "kafka-cluster"),
@@ -261,7 +265,8 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    ksqlEngine = KsqlEngine.create(ksqlConfig);
+    serviceContext = ServiceContext.create(ksqlConfig);
+    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
 
     execInitCreateStreamQueries();
   }

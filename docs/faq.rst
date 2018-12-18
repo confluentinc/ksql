@@ -34,9 +34,9 @@ Is KSQL owned by the Apache Software Foundation?
 ================================================
 
 No, KSQL is owned and maintained by `Confluent
-Inc. <https://www.confluent.io/>`__ as part of its free `Confluent Open
-Source <https://www.confluent.io/product/confluent-open-source/>`__
-product. However, KSQL is licensed under the Apache 2.0 license.
+Inc. <https://www.confluent.io/>`__ as part of its `Confluent Platform
+<https://www.confluent.io/product/confluent-platform/>`__
+product. However, KSQL is licensed under the Confluent Community License.
 
 ====================================================
 How does KSQL compare to Apache Kafka’s Streams API?

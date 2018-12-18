@@ -1,18 +1,16 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
@@ -28,14 +26,19 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.EndpointConfig;
@@ -64,10 +67,13 @@ public class WSQueryEndpoint {
   private final ObjectMapper mapper;
   private final StatementParser statementParser;
   private final KsqlEngine ksqlEngine;
+  private final ServiceContext serviceContext;
+  private final CommandQueue commandQueue;
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher queryPublisher;
   private final PrintTopicPublisher topicPublisher;
+  private final Duration commandQueueCatchupTimeout;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -76,37 +82,54 @@ public class WSQueryEndpoint {
       final ObjectMapper mapper,
       final StatementParser statementParser,
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
-      final ActivenessRegistrar activenessRegistrar
+      final ActivenessRegistrar activenessRegistrar,
+      final Duration commandQueueCatchupTimeout
   ) {
     this(ksqlConfig,
         mapper,
         statementParser,
-        ksqlEngine, exec,
+        ksqlEngine,
+        serviceContext,
+        commandQueue,
+        exec,
         WSQueryEndpoint::startQueryPublisher,
         WSQueryEndpoint::startPrintPublisher,
-        activenessRegistrar);
+        activenessRegistrar,
+        commandQueueCatchupTimeout);
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   WSQueryEndpoint(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final KsqlConfig ksqlConfig,
       final ObjectMapper mapper,
       final StatementParser statementParser,
       final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher queryPublisher,
       final PrintTopicPublisher topicPublisher,
-      final ActivenessRegistrar activenessRegistrar
+      final ActivenessRegistrar activenessRegistrar,
+      final Duration commandQueueCatchupTimeout
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.commandQueue =
+        Objects.requireNonNull(commandQueue, "commandQueue");
     this.exec = Objects.requireNonNull(exec, "exec");
     this.queryPublisher = Objects.requireNonNull(queryPublisher, "queryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
+    this.commandQueueCatchupTimeout =
+        Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
   }
 
   @SuppressWarnings("unused")
@@ -118,12 +141,27 @@ public class WSQueryEndpoint {
       validateVersion(session);
 
       final KsqlRequest request = parseRequest(session);
+
+      try {
+        CommandStoreUtil.waitForCommandSequenceNumber(commandQueue, request,
+            commandQueueCatchupTimeout);
+      } catch (final InterruptedException e) {
+        log.debug("Interrupted while waiting for command queue "
+            + "to reach specified command sequence number",
+            e);
+        SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, e.getMessage());
+        return;
+      } catch (final TimeoutException e) {
+        log.debug("Timeout while processing request", e);
+        SessionUtil.closeSilently(session, CloseCodes.TRY_AGAIN_LATER, e.getMessage());
+        return;
+      }
+
       final Statement statement = parseStatement(request);
 
       HANDLER_MAP
           .getOrDefault(statement.getClass(), WSQueryEndpoint::handleUnsupportedStatement)
           .handle(this, new SessionAndRequest(session, request), statement);
-
     } catch (final Exception e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(session, CloseCodes.CANNOT_ACCEPT, e.getMessage());
@@ -216,7 +254,7 @@ public class WSQueryEndpoint {
   private void handlePrintTopic(final SessionAndRequest info, final PrintTopic printTopic) {
     final String topicName = printTopic.getTopic().toString();
 
-    if (!ksqlEngine.getTopicClient().isTopicExists(topicName)) {
+    if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
       throw new IllegalArgumentException("topic does not exist: " + topicName);
     }
 
@@ -224,7 +262,7 @@ public class WSQueryEndpoint {
         new WebSocketSubscriber<>(info.session, mapper);
     this.subscriber = topicSubscriber;
 
-    topicPublisher.start(exec, ksqlEngine.getSchemaRegistryClient(),
+    topicPublisher.start(exec, serviceContext.getSchemaRegistryClient(),
         ksqlConfig.getKsqlStreamConfigProps(), topicName, printTopic.getFromBeginning(),
         topicSubscriber
     );

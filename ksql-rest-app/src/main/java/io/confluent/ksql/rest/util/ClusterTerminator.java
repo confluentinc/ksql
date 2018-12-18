@@ -1,18 +1,16 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.util;
 
@@ -20,6 +18,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -31,20 +30,24 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 public class ClusterTerminator {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
+  private final ServiceContext serviceContext;
 
   public ClusterTerminator(
       final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig is null.");
     Objects.requireNonNull(ksqlEngine, "ksqlEngine is null.");
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
+    this.serviceContext = Objects.requireNonNull(serviceContext);
   }
 
   @SuppressWarnings("unchecked")
@@ -66,18 +69,16 @@ public class ClusterTerminator {
     if (deleteTopicPatterns.isEmpty()) {
       return;
     }
-    ksqlEngine.getMetaStore().getAllKsqlTopics().values().stream()
-        .forEach(ksqlTopic -> {
-          deleteTopicPatterns.forEach(
-              deleteTopicPattern -> {
-                if (ksqlTopic.getKafkaTopicName().equals(deleteTopicPattern)
-                    && !ksqlTopic.isKsqlSink()) {
-                  throw new KsqlException("Invalid request: " + deleteTopicPattern
-                      + " is not a KSQL sink topic.");
-                }
+    ksqlEngine.getMetaStore().getAllKsqlTopics().values()
+        .forEach(ksqlTopic -> deleteTopicPatterns.forEach(
+            deleteTopicPattern -> {
+              if (ksqlTopic.getKafkaTopicName().equals(deleteTopicPattern)
+                  && !ksqlTopic.isKsqlSink()) {
+                throw new KsqlException("Invalid request: " + deleteTopicPattern
+                    + " is not a KSQL sink topic.");
               }
-          );
-        });
+            }
+        ));
   }
 
   private void deleteSinkTopics(final List<String> deleteTopicPatterns) {
@@ -96,7 +97,14 @@ public class ClusterTerminator {
         .filter(topicName -> topicShouldBeDeleted(topicName, patterns))
         .collect(Collectors.toList());
 
-    ksqlEngine.getTopicClient().deleteTopics(toDelete);
+    try {
+      ExecutorUtil.executeWithRetries(
+          () -> serviceContext.getTopicClient().deleteTopics(toDelete),
+          ExecutorUtil.RetryBehaviour.ALWAYS);
+    } catch (final Exception e) {
+      throw new KsqlException(
+          "Exception while deleting topics: " + StringUtils.join(toDelete, ","));
+    }
   }
 
   private static boolean topicShouldBeDeleted(
@@ -109,7 +117,7 @@ public class ClusterTerminator {
   private void deleteCommandTopic() {
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
-    final KafkaTopicClient kafkaTopicClient = ksqlEngine.getTopicClient();
+    final KafkaTopicClient kafkaTopicClient = serviceContext.getTopicClient();
     try {
       ExecutorUtil.executeWithRetries(
           () -> kafkaTopicClient.deleteTopics(

@@ -1,25 +1,24 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.cli.console;
 
-import static org.easymock.EasyMock.anyString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,10 +31,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
@@ -44,20 +39,21 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class JLineReaderTest {
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder();
 
-  @Mock(MockType.NICE)
+  @Mock
   private Predicate<String> cliLinePredicate;
 
   @Before
   public void setUp() {
-    EasyMock.expect(cliLinePredicate.test(anyString())).andReturn(false).anyTimes();
-    EasyMock.replay(cliLinePredicate);
+    when(cliLinePredicate.test(any())).thenReturn(false);
   }
 
   @Test
@@ -188,7 +184,7 @@ public class JLineReaderTest {
   public void shouldHandleMultiLineWithoutContinuationChar() throws Exception {
     // Given:
     final JLineReader reader = createReaderForInput(
-        "select * \n\t"
+        "select *\n\t"
             + "from foo;\n"
     );
 
@@ -196,7 +192,7 @@ public class JLineReaderTest {
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("select * from foo;"));
+    assertThat(commands, contains("select *\nfrom foo;"));
   }
 
   @Test
@@ -211,11 +207,54 @@ public class JLineReaderTest {
     final List<String> commands = readAllLines(reader);
 
     // Then:
-    assertThat(commands, contains("select * 'string that ends in termination char;' from foo;"));
+    assertThat(commands, contains("select * 'string that ends in termination char;\n' from foo;"));
+  }
+
+  @Test
+  public void shouldHandleMultiLineWithComments() throws Exception {
+    // Given:
+    final JLineReader reader = createReaderForInput(
+        "-- first inline comment\n"
+            + "select * '-- not comment\n"
+            + "' -- second inline comment\n"
+            + "from foo; -- third inline comment\n"
+            + "-- forth inline comment\n"
+    );
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains(
+        "-- first inline comment",
+        "select * '-- not comment\n' -- second inline comment\nfrom foo; -- third inline comment",
+        "-- forth inline comment"
+    ));
+  }
+
+  @Test
+  public void shouldHandleCliCommandsWithInlineComments() throws Exception {
+    // Given:
+    when(cliLinePredicate.test("Exit")).thenReturn(true);
+    final JLineReader reader = createReaderForInput(
+        "-- first inline comment\n"
+            + "Exit -- second inline comment\n"
+            + " -- third inline comment\n"
+    );
+
+    // When:
+    final List<String> commands = readAllLines(reader);
+
+    // Then:
+    assertThat(commands, contains(
+        "-- first inline comment",
+        "Exit -- second inline comment",
+        "-- third inline comment"
+    ));
   }
 
   @SuppressWarnings("InfiniteLoopStatement")
-  private List<String> readAllLines(final JLineReader reader) throws IOException {
+  private static List<String> readAllLines(final JLineReader reader) {
     final List<String> commands = new ArrayList<>();
     try {
       while (true) {
@@ -228,7 +267,7 @@ public class JLineReaderTest {
     return commands;
   }
 
-  private List<String> getHistory(final JLineReader reader) {
+  private static List<String> getHistory(final JLineReader reader) {
     final List<String> commands = new ArrayList<>();
     reader.getHistory().forEach(entry -> commands.add(entry.line()));
     return commands;

@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -22,26 +20,22 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.util.QueryMetadata;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -72,10 +66,6 @@ public class CommandRunnerTest {
   @Mock
   private CommandId commandId3;
 
-  @Captor
-  private ArgumentCaptor<Command> commandCaptor;
-  @Captor
-  private ArgumentCaptor<CommandId> commandIdCaptor;
   private CommandRunner commandRunner;
   private List<QueuedCommand> queuedCommandList;
 
@@ -93,7 +83,8 @@ public class CommandRunnerTest {
         commandId3, command3);
     when(commandStore.getRestoreCommands()).thenReturn(queuedCommandList);
     when(commandStore.getNewCommands()).thenReturn(queuedCommandList);
-    commandRunner = new CommandRunner(statementExecutor, commandStore, ksqlEngine, 1, clusterTerminator);
+    commandRunner = new CommandRunner(statementExecutor, commandStore, ksqlEngine, 1,
+        clusterTerminator);
   }
 
   @Test
@@ -114,7 +105,6 @@ public class CommandRunnerTest {
   public void shouldRunThePriorCommandsWithTerminateCorrectly() {
     // Given:
     when(command3.getStatement()).thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
-    when(command3.getOverwriteProperties()).thenReturn(ImmutableMap.of("deleteTopicList", ImmutableList.of("foo", "bar*")));
 
     // When:
     commandRunner.processPriorCommands();
@@ -122,71 +112,27 @@ public class CommandRunnerTest {
     // Then:
     verify(ksqlEngine).stopAcceptingStatements();
     verify(commandStore).close();
-    verify(clusterTerminator).terminateCluster(eq(ImmutableList.of("foo", "bar*")));
-  }
-
-  @Test
-  public void shouldRunThePriorCommandsWithTerminateAndIgnoreRemaining() {
-    // Given:
-    when(command2.getStatement()).thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
-    when(command2.getOverwriteProperties()).thenReturn(ImmutableMap.of("deleteTopicList", ImmutableList.of("foo", "bar*")));
-
-    // When:
-    commandRunner.processPriorCommands();
-
-    // Then:
-    verify(ksqlEngine).stopAcceptingStatements();
-    verify(commandStore).close();
-    verify(clusterTerminator).terminateCluster(eq(ImmutableList.of("foo", "bar*")));
+    verify(clusterTerminator).terminateCluster(anyList());
+    verify(statementExecutor, never()).handleRestore(any());
   }
 
   @Test
   public void shouldPullAndRunStatements() {
-    // Given:
 
     // When:
     commandRunner.fetchAndRunCommands();
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommandList.get(0)));
-    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommandList.get(1)));
-    inOrder.verify(statementExecutor).handleStatement(eq(queuedCommandList.get(2)));
+    inOrder.verify(statementExecutor).handleStatement(queuedCommandList.get(0));
+    inOrder.verify(statementExecutor).handleStatement(queuedCommandList.get(1));
+    inOrder.verify(statementExecutor).handleStatement(queuedCommandList.get(2));
 
   }
 
-  @Test
-  public void shouldTerminateIfThereIsTerminateStatement() {
-    // Given:
-    when(command3.getStatement()).thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
-    when(command3.getOverwriteProperties()).thenReturn(ImmutableMap.of("deleteTopicList", ImmutableList.of("foo", "bar*")));
-
-    // When:
-    commandRunner.fetchAndRunCommands();
-
-    // Then:
-    verify(ksqlEngine).stopAcceptingStatements();
-    verify(commandStore).close();
-    verify(clusterTerminator).terminateCluster(eq(ImmutableList.of("foo", "bar*")));
-  }
 
   @Test
-  public void shouldPullAndRunCommandsWithTerminateAndIgnoreRemaining() {
-    // Given:
-    when(command2.getStatement()).thenReturn(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
-    when(command2.getOverwriteProperties()).thenReturn(ImmutableMap.of("deleteTopicList", ImmutableList.of("foo", "bar*")));
-
-    // When:
-    commandRunner.fetchAndRunCommands();
-
-    // Then:
-    verify(ksqlEngine).stopAcceptingStatements();
-    verify(commandStore).close();
-    verify(clusterTerminator).terminateCluster(eq(ImmutableList.of("foo", "bar*")));
-  }
-
-  @Test
-  public void shouldClodeTheCommandRunnerCorrectly() {
+  public void shouldCloseTheCommandRunnerCorrectly() {
     // When:
     commandRunner.close();
 
@@ -194,16 +140,16 @@ public class CommandRunnerTest {
     verify(commandStore).close();
   }
 
-  @Test (expected = RuntimeException.class)
+  @Test(expected = RuntimeException.class)
   public void shouldThrowExceptionIfCannotCloseCommandStore() {
     // Given:
-    doThrow(IOException.class).when(commandStore).close();
+    doThrow(RuntimeException.class).when(commandStore).close();
 
     // When:
     commandRunner.close();
   }
 
-  private static List<QueuedCommand> getQueuedCommands(final Object ...args) {
+  private static List<QueuedCommand> getQueuedCommands(final Object... args) {
     assertThat(args.length % 2, equalTo(0));
     final List<QueuedCommand> queuedCommandList = new ArrayList<>();
     for (int i = 0; i < args.length; i += 2) {

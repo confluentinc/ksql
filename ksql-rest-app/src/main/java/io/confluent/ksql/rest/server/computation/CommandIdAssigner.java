@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -107,12 +105,12 @@ public class CommandIdAssigner {
     return getTableCommandId(createTableAsSelect.getName().toString());
   }
 
-  private CommandId getInsertIntoCommandId(final InsertInto insertInto) {
+  private static CommandId getInsertIntoCommandId(final InsertInto insertInto) {
     return  new CommandId(CommandId.Type.STREAM, insertInto.getTarget().toString(), CommandId.Action
         .CREATE);
   }
 
-  private CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {
+  private static CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {
     return new CommandId(
         CommandId.Type.TERMINATE,
         terminateQuery.getQueryId().toString(),
@@ -120,7 +118,7 @@ public class CommandIdAssigner {
     );
   }
 
-  private CommandId getDropTopicCommandId(final DropTopic dropTopicQuery) {
+  private static CommandId getDropTopicCommandId(final DropTopic dropTopicQuery) {
     return new CommandId(
         CommandId.Type.TOPIC,
         dropTopicQuery.getTopicName().getSuffix(),
@@ -128,7 +126,7 @@ public class CommandIdAssigner {
     );
   }
 
-  private CommandId getDropStreamCommandId(final DropStream dropStreamQuery) {
+  private static CommandId getDropStreamCommandId(final DropStream dropStreamQuery) {
     return new CommandId(
         CommandId.Type.STREAM,
         dropStreamQuery.getName().getSuffix(),
@@ -136,7 +134,7 @@ public class CommandIdAssigner {
     );
   }
 
-  private CommandId getDropTableCommandId(final DropTable dropTableQuery) {
+  private static CommandId getDropTableCommandId(final DropTable dropTableQuery) {
     return new CommandId(
         CommandId.Type.TABLE,
         dropTableQuery.getName().getSuffix(),

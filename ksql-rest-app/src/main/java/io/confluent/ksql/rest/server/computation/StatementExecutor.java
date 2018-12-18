@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -126,17 +124,17 @@ public class StatementExecutor {
   }
 
   public void putStatus(final CommandId commandId,
-                        final Optional<QueuedCommandStatus> queuedCommandStatus,
+                        final Optional<CommandStatusFuture> commandStatusFuture,
                         final CommandStatus status) {
     statusStore.put(commandId, status);
-    queuedCommandStatus.ifPresent(s -> s.setStatus(status));
+    commandStatusFuture.ifPresent(s -> s.setStatus(status));
   }
 
   public void putFinalStatus(final CommandId commandId,
-                             final Optional<QueuedCommandStatus> queuedCommandStatus,
+                             final Optional<CommandStatusFuture> commandStatusFuture,
                              final CommandStatus status) {
     statusStore.put(commandId, status);
-    queuedCommandStatus.ifPresent(s -> s.setFinalStatus(status));
+    commandStatusFuture.ifPresent(s -> s.setFinalStatus(status));
   }
 
   /**
@@ -149,7 +147,7 @@ public class StatementExecutor {
   void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
-      final Optional<QueuedCommandStatus> queuedCommandStatus,
+      final Optional<CommandStatusFuture> commandStatusFuture,
       final Mode mode
   ) {
     try {
@@ -157,23 +155,23 @@ public class StatementExecutor {
       maybeTerminateQueryForLegacyDropCommand(commandId, command);
       putStatus(
           commandId,
-          queuedCommandStatus,
+          commandStatusFuture,
           new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement"));
       final Statement statement = statementParser.parseSingleStatement(statementString);
       putStatus(
           commandId,
-          queuedCommandStatus,
+          commandStatusFuture,
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
       executeStatement(
-          statement, command, commandId, queuedCommandStatus, mode);
+          statement, command, commandId, commandStatusFuture, mode);
     } catch (final KsqlException exception) {
       log.error("Failed to handle: " + command, exception);
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)
       );
-      putFinalStatus(commandId, queuedCommandStatus, errorStatus);
+      putFinalStatus(commandId, commandStatusFuture, errorStatus);
     }
   }
 
@@ -181,7 +179,7 @@ public class StatementExecutor {
       final Statement statement,
       final Command command,
       final CommandId commandId,
-      final Optional<QueuedCommandStatus> queuedCommandStatus,
+      final Optional<CommandStatusFuture> commandStatusFuture,
       final Mode mode
   ) { 
     final String statementStr = command.getStatement();
@@ -209,7 +207,7 @@ public class StatementExecutor {
       terminateQuery((TerminateQuery) statement, mode);
       successMessage = "Query terminated.";
     } else if (statement instanceof RunScript) {
-      handleRunScript(command);
+      handleRunScript(command, mode);
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",
@@ -221,10 +219,10 @@ public class StatementExecutor {
         CommandStatus.Status.SUCCESS,
         result != null ? result.getMessage() : successMessage
     );
-    putFinalStatus(commandId, queuedCommandStatus, successStatus);
+    putFinalStatus(commandId, commandStatusFuture, successStatus);
   }
 
-  private void handleRunScript(final Command command) {
+  private void handleRunScript(final Command command, final Mode mode) {
 
     if (command.getOverwriteProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       final String queries =
@@ -248,10 +246,13 @@ public class StatementExecutor {
             ksqlEngine, mergedConfig, command.getStatement());
       }
 
-      for (final QueryMetadata queryMetadata : queryMetadataList) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-          persistentQueryMd.start();
+      if (mode == Mode.EXECUTE) {
+        for (final QueryMetadata queryMetadata : queryMetadataList) {
+          if (queryMetadata instanceof PersistentQueryMetadata) {
+            final PersistentQueryMetadata persistentQueryMd =
+                (PersistentQueryMetadata) queryMetadata;
+            persistentQueryMd.start();
+          }
         }
       }
     } else {

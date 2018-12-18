@@ -28,17 +28,22 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -57,38 +62,52 @@ public class ClusterTerminatorTest {
   @Mock
   private MetaStore metaStore;
   @Mock
-  private KsqlTopic ksqlTopic;
+  private ServiceContext serviceContext;
 
   @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  public ExpectedException expectedException = ExpectedException.none();
 
   private ClusterTerminator clusterTerminator;
 
   @Before
   public void setup() {
-    clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine);
-    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(persistentQueryMetadata));
-    when(persistentQueryMetadata.getQueryId()).thenReturn(queryId);
+    when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
+    clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext);
+
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("command_topic");
-    when(ksqlEngine.getTopicClient()).thenReturn(kafkaTopicClient);
-    when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
-    when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of("FOO", getKsqlTopic("FOO", "K_FOO", true),
-        "BAR", getKsqlTopic("BAR", "bar", false)));
+
   }
 
   @Test
   public void shouldTerminatePersistetQueries() throws Exception {
+    // Given:
+    givenPersistentQueries(queryId);
+
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());
 
     // Then:
     verify(ksqlEngine).terminateQuery(same(queryId), eq(true));
+  }
+
+  @Test
+  public void shouldCloseTheEngineAfterTerminatingPersistetQueries() throws Exception {
+    // Given:
+    givenPersistentQueries(queryId);
+
+    // When:
+    clusterTerminator.terminateCluster(Collections.emptyList());
+
+    // Then:
     verify(ksqlEngine).close();
   }
 
 
   @Test
   public void shouldDeleteTopicListWithExplicitTopicName() {
+    //Given:
+    givenSinkTopicExists("FOO", "K_FOO");
+
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("K_FOO"));
 
@@ -96,9 +115,10 @@ public class ClusterTerminatorTest {
     verify(kafkaTopicClient).deleteTopics(Collections.singletonList("K_FOO"));
   }
 
-  @Test (expected = KsqlException.class)
+  @Test(expected = KsqlException.class)
   public void shouldNotDeleteTopicNonSinkTopic() {
     // Given:
+    givenNonSinkTopicExits("BAR", "bar");
 
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("bar"));
@@ -107,6 +127,7 @@ public class ClusterTerminatorTest {
   @Test
   public void shouldNotDeleteNonMatchingCaseSensitiveTopics() {
     // Given:
+    givenSinkTopicExists("FOO", "K_FOO");
 
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("K_Foo"));
@@ -118,11 +139,43 @@ public class ClusterTerminatorTest {
 
   @Test
   public void shouldDeleteTopicListWithPattern() {
+    //Given:
+    givenSinkTopicsExist("K_FO", "K_FOO", "K_FOOO", "NotMatched");
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("K_FO.*"));
+
+    // Then:
+    verify(kafkaTopicClient).deleteTopics(ImmutableList.of("K_FOOO", "K_FO", "K_FOO"));
+  }
+
+  @Test
+  public void shouldThrowIfCouldNotDeleteTopicListWithPattern() {
+    // Given:
+    givenSinkTopicExists("FOO", "K_FOO");
+    doThrow(KsqlException.class)
+        .doThrow(KsqlException.class)
+        .doThrow(KsqlException.class)
+        .doThrow(KsqlException.class)
+        .doThrow(KsqlException.class)
+        .when(kafkaTopicClient).deleteTopics(Collections.singletonList("K_FOO"));
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Exception while deleting topics: K_FOO");
+
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("K_FO*"));
 
-    // Then:
-    verify(kafkaTopicClient).deleteTopics(Collections.singletonList("K_FOO"));
+  }
+
+  @Test
+  public void shouldThrowIfDeleteTopicListMatchesNonSink() {
+    // Given:
+    givenNonSinkTopicExits("BAR", "BAR");
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid request: BAR is not a KSQL sink topic.");
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("BAR"));
   }
 
   @Test
@@ -131,29 +184,62 @@ public class ClusterTerminatorTest {
     clusterTerminator.terminateCluster(Collections.emptyList());
 
     // Then:
-    verify(kafkaTopicClient).deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
+    final InOrder inOrder = Mockito.inOrder(kafkaTopicClient, ksqlEngine);
+    inOrder.verify(ksqlEngine).getPersistentQueries();
+    inOrder.verify(kafkaTopicClient)
+        .deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
+    inOrder.verify(ksqlEngine).close();
   }
 
   @Test
   public void shouldThrowIfCannotDeleteCommandTopic() {
     // Given:
+
     doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
-        .when(kafkaTopicClient).deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
-    thrown.expect(KsqlException.class);
-    thrown.expectMessage("Could not delete the command topic: _confluent-ksql-command_topic_command_topic");
+        .when(kafkaTopicClient)
+        .deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Could not delete the command topic: _confluent-ksql-command_topic_command_topic");
 
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());
 
     // Then:
-    verify(kafkaTopicClient).deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
+    verify(kafkaTopicClient)
+        .deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
   }
 
-  private static KsqlTopic getKsqlTopic(final String topicName, final String kafkaTopicName, final boolean isSink) {
+  private static KsqlTopic getKsqlTopic(final String topicName, final String kafkaTopicName,
+      final boolean isSink) {
     return new KsqlTopic(topicName, kafkaTopicName, null, isSink);
+  }
+
+  private void givenPersistentQueries(final QueryId queryId) {
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(persistentQueryMetadata));
+    when(persistentQueryMetadata.getQueryId()).thenReturn(queryId);
+  }
+
+  private void givenSinkTopicExists(final String topicName, final String kafkaTopicName) {
+    when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of(
+        topicName, getKsqlTopic(topicName, kafkaTopicName, true)));
+    when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
+  }
+
+  private void givenNonSinkTopicExits(final String topicName, final String kafkaTopicName) {
+    when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of(
+        topicName, getKsqlTopic(topicName, kafkaTopicName, false)));
+    when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
+  }
+
+  private void givenSinkTopicsExist(final String... topicNames) {
+    when(metaStore.getAllKsqlTopics()).thenReturn(Stream.of(topicNames)
+        .map(topicName -> getKsqlTopic(topicName, topicName, true))
+        .collect(Collectors.toMap(KsqlTopic::getTopicName, topic -> topic)));
+    when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
   }
 }

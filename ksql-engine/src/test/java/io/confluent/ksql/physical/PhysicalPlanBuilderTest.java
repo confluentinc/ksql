@@ -1,16 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- **/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.physical;
 
@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -34,8 +33,9 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -52,7 +52,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -64,7 +63,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -78,9 +76,6 @@ public class PhysicalPlanBuilderTest {
   private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private LogicalPlanBuilder planBuilder;
-  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-      = new MockSchemaRegistryClientFactory()::get;
   private final KsqlConfig ksqlConfig = new KsqlConfig(
       ImmutableMap.of(
           ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
@@ -93,8 +88,17 @@ public class PhysicalPlanBuilderTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  private ServiceContext serviceContext;
+  private LogicalPlanBuilder planBuilder;
+
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
   private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
+
+    private final ServiceContext serviceContext;
+
+    private TestKafkaStreamsBuilder(final ServiceContext serviceContext) {
+      this.serviceContext = serviceContext;
+    }
 
     private static class Call {
       private final Properties props;
@@ -110,7 +114,7 @@ public class PhysicalPlanBuilderTest {
     public KafkaStreams buildKafkaStreams(final StreamsBuilder builder, final Map<String, Object> conf) {
       final Properties props = new Properties();
       props.putAll(conf);
-      final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props);
+      final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), props, serviceContext.getKafkaClientSupplier());
       calls.add(new Call(props));
       return kafkaStreams;
     }
@@ -124,23 +128,21 @@ public class PhysicalPlanBuilderTest {
 
   @Before
   public void before() {
-    testKafkaStreamsBuilder = new TestKafkaStreamsBuilder();
+    serviceContext = TestServiceContext.create(kafkaTopicClient);
+
+    testKafkaStreamsBuilder = new TestKafkaStreamsBuilder(serviceContext);
     physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
     planBuilder = new LogicalPlanBuilder(metaStore);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        kafkaTopicClient,
-        schemaRegistryClientFactory,
-        new DefaultKafkaClientSupplier(),
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        ksqlConfig,
-        new DefaultKafkaClientSupplier().getAdminClient(
-            ksqlConfig.getKsqlAdminClientConfigProps())
+        serviceContext,
+        new MetaStoreImpl(new InternalFunctionRegistry())
     );
   }
 
   @After
   public void after() {
     ksqlEngine.close();
+    serviceContext.close();
   }
 
   private PhysicalPlanBuilder buildPhysicalPlanBuilder(final Map<String, Object> overrideProperties) {
@@ -149,12 +151,11 @@ public class PhysicalPlanBuilderTest {
     return new PhysicalPlanBuilder(
         streamsBuilder,
         ksqlConfig,
-        new FakeKafkaTopicClient(),
+        serviceContext,
         functionRegistry,
         overrideProperties,
         false,
         metaStore,
-        schemaRegistryClientFactory,
         new QueryIdGenerator(""),
         testKafkaStreamsBuilder
     );
@@ -413,12 +414,10 @@ public class PhysicalPlanBuilderTest {
     assertThat(ProducerCollector.class, equalTo(Class.forName(producerInterceptors.get(0))));
   }
 
-  @Test
-  public void shouldTurnOptimizationsOff() {
+  private void shouldUseProvidedOptimizationConfig(Object value) {
     // Given:
     final Map<String, Object> properties =
-        Collections.singletonMap(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE);
+        Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION, value);
     physicalPlanBuilder = buildPhysicalPlanBuilder(properties);
 
     // When:
@@ -430,7 +429,17 @@ public class PhysicalPlanBuilderTest {
     final Properties props = calls.get(0).props;
     assertThat(
         props.get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
-        equalTo(StreamsConfig.NO_OPTIMIZATION));
+        equalTo(value));
+  }
+
+  @Test
+  public void shouldUseOptimizationConfigProvidedWhenOn() throws Exception {
+    shouldUseProvidedOptimizationConfig(StreamsConfig.OPTIMIZE);
+  }
+
+  @Test
+  public void shouldUseOptimizationConfigProvidedWhenOff() throws Exception {
+    shouldUseProvidedOptimizationConfig(StreamsConfig.NO_OPTIMIZATION);
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {
@@ -595,7 +604,7 @@ public class PhysicalPlanBuilderTest {
         ksqlConfig,
         Collections.emptyMap());
     final Schema resultSchema = queryMetadataList.get(0).getOutputNode().getSchema();
-    resultSchema.fields().stream().forEach(
+    resultSchema.fields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );
     closeQueries(queryMetadataList);
@@ -622,7 +631,7 @@ public class PhysicalPlanBuilderTest {
   }
 
 
-  private void closeQueries(final List<QueryMetadata> queryMetadataList) {
+  private static void closeQueries(final List<QueryMetadata> queryMetadataList) {
     queryMetadataList.forEach(QueryMetadata::close);
   }
 }

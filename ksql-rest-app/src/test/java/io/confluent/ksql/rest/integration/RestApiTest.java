@@ -1,18 +1,16 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.integration;
 
@@ -82,6 +80,7 @@ public class RestApiTest {
     config.put(KsqlRestConfig.INSTALL_DIR_CONFIG, TestUtils.tempDirectory().getPath());
     config.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "rest_api_test_service");
 
+
     testHarness.start(config);
 
     startRestServer(testHarness.allConfigs());
@@ -101,9 +100,8 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithV1ContentType() {
-    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;",
-                                                              PAGE_VIEW_STREAM),
-                                                Collections.emptyMap());
+    final KsqlRequest request = new KsqlRequest(
+        String.format("SELECT * from %s;", PAGE_VIEW_STREAM), Collections.emptyMap(), null);
     try (final Response response = restClient.target(serverAddress)
         .path("query")
         .request(Versions.KSQL_V1_JSON)
@@ -115,9 +113,8 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithJsonContentType() {
-    final KsqlRequest request = new KsqlRequest(String.format("SELECT * from %s;",
-                                                              PAGE_VIEW_STREAM),
-                                                Collections.emptyMap());
+    final KsqlRequest request = new KsqlRequest(
+        String.format("SELECT * from %s;", PAGE_VIEW_STREAM), Collections.emptyMap(), null);
     try (final Response response = restClient.target(serverAddress)
         .path("query")
         .request(MediaType.APPLICATION_JSON_TYPE)
@@ -134,7 +131,7 @@ public class RestApiTest {
   }
 
   @AfterClass
-  public static void cleanUpClass() throws Exception {
+  public static void cleanUpClass() {
     restApplication.stop();
     testHarness.stop();
   }

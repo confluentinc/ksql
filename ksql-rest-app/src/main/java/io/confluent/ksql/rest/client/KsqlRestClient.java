@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.client;
 
@@ -132,7 +130,7 @@ public class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
     return postRequest("ksql", jsonRequest, Optional.empty(), true,
         r -> r.readEntity(KsqlEntityList.class));
   }
@@ -146,13 +144,13 @@ public class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<QueryStream> makeQueryRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
     final Optional<Integer> readTimeoutMs = Optional.of(QueryStream.READ_TIMEOUT_MS);
     return postRequest("query", jsonRequest, readTimeoutMs, false, QueryStream::new);
   }
 
   public RestResponse<InputStream> makePrintTopicRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
     return postRequest("query", jsonRequest, Optional.empty(), false,
         r -> (InputStream) r.getEntity());
   }

@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util;
 
@@ -33,12 +31,17 @@ import java.util.Map;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.core.IsEqual;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class KsqlConfigTest {
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldSetInitialValuesCorrectly() {
@@ -265,7 +268,7 @@ public class KsqlConfigTest {
     final String functionName = "bob";
 
     final String udfConfigName =
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-setting";
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-setting";
 
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         udfConfigName, "should-be-visible"
@@ -284,10 +287,10 @@ public class KsqlConfigTest {
     final String functionName = "BOB";
 
     final String correctConfigName =
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
 
     final String invalidConfigName =
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-other-setting";
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName + ".some-other-setting";
 
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         invalidConfigName, "should-not-be-visible",
@@ -306,7 +309,7 @@ public class KsqlConfigTest {
     final String functionName = "BOB";
 
     final String correctConfigName =
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName.toLowerCase() + ".some-setting";
 
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         correctConfigName, "should-be-visible"
@@ -343,7 +346,7 @@ public class KsqlConfigTest {
     final String functionName = "bob";
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG, "not a udf property",
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "different_udf.some-setting", "different udf property"
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "different_udf.some-setting", "different udf property"
     ));
 
     // When:
@@ -386,14 +389,14 @@ public class KsqlConfigTest {
   public void shouldListUnknownKsqlFunctionConfigObfuscated() {
     // Given:
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "maybe sensitive"
+        KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", "maybe sensitive"
     ));
 
     // When:
     final Map<String, String> result = config.getAllConfigPropsWithSecretsObfuscated();
 
     // Then:
-    assertThat(result.get(KsqlConfig.KSQ_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop"),
+    assertThat(result.get(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop"),
         is("[hidden]"));
   }
 
@@ -433,5 +436,73 @@ public class KsqlConfigTest {
 
     // Then:
     assertThat(result.get("some.random.property"), is(nullValue()));
+  }
+
+  @Test
+  public void shouldDefaultOptimizationsToOn() {
+    // When:
+    final KsqlConfig config = new KsqlConfig(Collections.emptyMap());
+
+    // Then:
+    assertThat(
+        config.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
+        equalTo(StreamsConfig.OPTIMIZE));
+  }
+
+  @Test
+  public void shouldDefaultOptimizationsToOffForOldConfigs() {
+    // When:
+    final KsqlConfig config = new KsqlConfig(Collections.emptyMap())
+        .overrideBreakingConfigsWithOriginalValues(Collections.emptyMap());
+
+    // Then:
+    assertThat(
+        config.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
+        equalTo(StreamsConfig.NO_OPTIMIZATION));
+  }
+
+  @Test
+  public void shouldPreserveOriginalOptimizationConfig() {
+    // Given:
+    final KsqlConfig config = new KsqlConfig(
+        Collections.singletonMap(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.OPTIMIZE));
+    final KsqlConfig saved = new KsqlConfig(
+        Collections.singletonMap(
+            StreamsConfig.TOPOLOGY_OPTIMIZATION, StreamsConfig.NO_OPTIMIZATION));
+
+    // When:
+    final KsqlConfig merged = config.overrideBreakingConfigsWithOriginalValues(
+        saved.getAllConfigPropsWithSecretsObfuscated());
+
+    // Then:
+    assertThat(
+        merged.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
+        equalTo(StreamsConfig.NO_OPTIMIZATION));
+  }
+
+  @Test
+  public void shouldRaiseIfInternalTopicNamingOffAndStreamsOptimizationsOn() {
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage(
+        "Internal topic naming must be enabled if streams optimizations enabled");
+    new KsqlConfig(
+        ImmutableMap.of(
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
+            StreamsConfig.TOPOLOGY_OPTIMIZATION,
+            StreamsConfig.OPTIMIZE)
+    );
+  }
+
+  @Test
+  public void shouldRaiseOnInvalidInternalTopicNamingValue() {
+    expectedException.expect(ConfigException.class);
+    new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            "foobar"
+        )
+    );
   }
 }

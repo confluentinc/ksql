@@ -1,40 +1,46 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap0;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
 import io.confluent.ksql.util.HandlerMaps.Handler0;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
+import io.confluent.ksql.util.HandlerMaps.HandlerR0;
+import io.confluent.ksql.util.HandlerMaps.HandlerR1;
+import io.confluent.ksql.util.HandlerMaps.HandlerR2;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class HandlerMapsTest {
 
@@ -73,6 +79,22 @@ public class HandlerMapsTest {
           .put(LeafTypeG.class, HandlerBase2::new)                  // <-- super type lambda
           .build();
 
+  @SuppressWarnings("unused") // This field is a compile time test.
+  private static final ClassHandlerMapR2<BaseType, TwoArgsWithReturnValue, String, Number>
+      STATIC_TEST_R2 = HandlerMaps
+      .forClass(BaseType.class)
+      .withArgTypes(TwoArgsWithReturnValue.class, String.class)
+      .withReturnType(Number.class)
+      .put(BaseType.class, TwoArgsWithReturnValue::baseHandler2)       // <-- member function
+      .put(LeafTypeA.class, TwoArgsWithReturnValue::leafAHandler1)     // <-- one-arg function
+      .put(LeafTypeB.class, TwoArgsWithReturnValue::baseHandler2)      // <-- super type handler
+      .put(LeafTypeC.class, TwoArgsWithReturnValue::staticHandlerC)    // <-- static function
+      .put0(LeafTypeD.class, HandlerRD0::new)                    // <-- no-arg lambda
+      .put1(LeafTypeE.class, HandlerRE1::new)                    // <-- one-arg lambda
+      .put(LeafTypeF.class, HandlerRF2::new)                     // <-- two-arg lambda
+      .put(LeafTypeG.class, HandlerBaseR2::new)                  // <-- super type lambda
+      .build();
+
   private static final BaseType BASE = new BaseType();
   private static final LeafTypeA LEAF_A = new LeafTypeA();
 
@@ -97,9 +119,17 @@ public class HandlerMapsTest {
   @Mock(name = "2_3")
   private Handler2<BaseType, String, Object> handler2_3;
 
+  @Mock(name = "R2_1")
+  private HandlerR2<BaseType, String, Integer, Long> handlerR2_1;
+  @Mock(name = "R2_2")
+  private HandlerR2<BaseType, String, Number, Double> handlerR2_2;
+  @Mock(name = "R2_3")
+  private HandlerR2<BaseType, String, Object, Number> handlerR2_3;
+
   private ClassHandlerMap0<BaseType> handlerMap0;
   private ClassHandlerMap1<BaseType, String> handlerMap1;
   private ClassHandlerMap2<BaseType, String, Integer> handlerMap2;
+  private ClassHandlerMapR2<BaseType, String, Integer, Number> handlerMapR2;
 
   @Before
   public void setUp() {
@@ -117,6 +147,17 @@ public class HandlerMapsTest {
         .put(LeafTypeA.class, handler2_1)
         .put(BaseType.class, handler2_2)
         .build();
+
+    handlerMapR2 = HandlerMaps
+        .forClass(BaseType.class)
+        .withArgTypes(String.class, Integer.class)
+        .withReturnType(Number.class)
+        .put(LeafTypeA.class, handlerR2_1)
+        .put(BaseType.class, handlerR2_2)
+        .build();
+
+    when(handlerR2_1.handle(any(), any(), any())).thenReturn(1L);
+    when(handlerR2_2.handle(any(), any(), any())).thenReturn(2.2d);
   }
 
   @Test
@@ -152,6 +193,21 @@ public class HandlerMapsTest {
     verify(handler2_2).handle("b", 2, BASE);
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @Test
+  public void shouldGetHandlerByTypeR2() {
+    // When:
+    final Number r1 = handlerMapR2.get(LeafTypeA.class).handle("a", 1, LEAF_A);
+    final Number r2 = handlerMapR2.get(BaseType.class).handle("b", 2, BASE);
+
+    // Then:
+    verify(handlerR2_1).handle("a", 1, LEAF_A);
+    verify(handlerR2_2).handle("b", 2, BASE);
+
+    assertThat(r1, is(1L));
+    assertThat(r2, is(2.2d));
+  }
+
   @Test
   public void shouldReturnNullIfTypeNotFound0() {
     assertThat(handlerMap0.get(MissingType.class), is(nullValue()));
@@ -165,6 +221,11 @@ public class HandlerMapsTest {
   @Test
   public void shouldReturnNullIfTypeNotFound2() {
     assertThat(handlerMap2.get(MissingType.class), is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnNullIfTypeNotFoundR2() {
+    assertThat(handlerMapR2.get(MissingType.class), is(nullValue()));
   }
 
   @Test
@@ -183,6 +244,12 @@ public class HandlerMapsTest {
   public void shouldReturnDefaultIfTypeNotFound2() {
     assertThat(handlerMap2.getOrDefault(MissingType.class, handler2_3),
         is(sameInstance(handler2_3)));
+  }
+
+  @Test
+  public void shouldReturnDefaultIfTypeNotFoundR2() {
+    assertThat(handlerMapR2.getOrDefault(MissingType.class, handlerR2_3),
+        is(sameInstance(handlerR2_3)));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -206,6 +273,15 @@ public class HandlerMapsTest {
         .put(LeafTypeA.class, handler2_2);
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnDuplicateKeyR2() {
+    HandlerMaps.forClass(BaseType.class)
+        .withArgTypes(String.class, Integer.class)
+        .withReturnType(Number.class)
+        .put(LeafTypeA.class, handlerR2_1)
+        .put(LeafTypeA.class, handlerR2_2);
+  }
+
   @Test
   public void shouldNotThrowOnDuplicateHandler0() {
     HandlerMaps.forClass(BaseType.class)
@@ -227,31 +303,33 @@ public class HandlerMapsTest {
         .put(LeafTypeB.class, handler2_1);
   }
 
+  @Test
+  public void shouldNotThrowOnDuplicateHandlerR2() {
+    HandlerMaps.forClass(BaseType.class)
+        .withArgTypes(String.class, Integer.class)
+        .withReturnType(Number.class)
+        .put(LeafTypeA.class, handlerR2_1)
+        .put(LeafTypeB.class, handlerR2_1);
+  }
+
   @Test(expected = ClassCastException.class)
   public void shouldThrowIfHandlerPassedWrongSubType0() {
-    // Given:
-    final Handler0<BaseType> handler = handlerMap0.get(LeafTypeA.class);
-
-    // When:
-    handler.handle(BASE);
+    handlerMap0.get(LeafTypeA.class).handle(BASE);
   }
 
   @Test(expected = ClassCastException.class)
   public void shouldThrowIfHandlerPassedWrongSubType1() {
-    // Given:
-    final Handler1<BaseType, String> handler = handlerMap1.get(LeafTypeA.class);
-
-    // When:
-    handler.handle("a", BASE);
+    handlerMap1.get(LeafTypeA.class).handle("a", BASE);
   }
 
   @Test(expected = ClassCastException.class)
   public void shouldThrowIfHandlerPassedWrongSubType2() {
-    // Given:
-    final Handler2<BaseType, String, Integer> handler = handlerMap2.get(LeafTypeA.class);
+    handlerMap2.get(LeafTypeA.class).handle("a", 1, BASE);
+  }
 
-    // When:
-    handler.handle("a", 1, BASE);
+  @Test(expected = ClassCastException.class)
+  public void shouldThrowIfHandlerPassedWrongSubTypeR2() {
+    handlerMap2.get(LeafTypeA.class).handle("a", 1, BASE);
   }
 
   @Test
@@ -296,6 +374,22 @@ public class HandlerMapsTest {
     verify(handler2_1).handle("A", 2, LEAF_A);
   }
 
+  @Test
+  public void shouldWorkWithSuppliersR2() {
+    // Given:
+    handlerMapR2 = HandlerMaps.forClass(BaseType.class)
+        .withArgTypes(String.class, Integer.class)
+        .withReturnType(Number.class)
+        .put(LeafTypeA.class, () -> handlerR2_1)
+        .build();
+
+    // When:
+    handlerMapR2.get(LeafTypeA.class).handle("A", 2, LEAF_A);
+
+    // Then:
+    verify(handlerR2_1).handle("A", 2, LEAF_A);
+  }
+
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfHandlerSupplierThrows0() {
     HandlerMaps.forClass(BaseType.class)
@@ -324,6 +418,17 @@ public class HandlerMapsTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfHandlerSupplierThrowsR2() {
+    HandlerMaps.forClass(BaseType.class)
+        .withArgTypes(String.class, Integer.class)
+        .withReturnType(Number.class)
+        .put(LeafTypeA.class, () -> {
+          throw new RuntimeException("Boom");
+        })
+        .build();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfHandlerSupplierReturnsNullHandler0() {
     HandlerMaps.forClass(BaseType.class)
         .put(LeafTypeA.class, () -> null)
@@ -344,6 +449,15 @@ public class HandlerMapsTest {
         .build();
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfHandlerSupplierReturnsNullHandlerR2() {
+    HandlerMaps.forClass(BaseType.class)
+        .withArgTypes(String.class, Integer.class)
+        .withReturnType(Number.class)
+        .put(LeafTypeA.class, () -> null)
+        .build();
+  }
+
   @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE", "UC_USELESS_VOID_METHOD"}) // Compile-time check
   @SuppressWarnings("unused")
   @Test
@@ -351,10 +465,65 @@ public class HandlerMapsTest {
     // When:
     final Handler0<LeafTypeA> typedHandler0 = handlerMap0.getTyped(LeafTypeA.class);
     final Handler1<LeafTypeA, String> typedHandler1 = handlerMap1.getTyped(LeafTypeA.class);
-    final Handler2<LeafTypeA, String, Integer> typedHandler2 = handlerMap2.getTyped(LeafTypeA.class);
+    final Handler2<LeafTypeA, String, Integer> typedHandler2 =
+        handlerMap2.getTyped(LeafTypeA.class);
+    final HandlerR2<LeafTypeA, String, Integer, Number> typedHandlerR2 =
+        handlerMapR2.getTyped(LeafTypeA.class);
 
     // Then:
     // Return value is typed to accept derived type, not base, and no cast exception was thrown.
+  }
+
+  @Test
+  public void shouldGetKeySetFrom0() {
+    assertThat(STATIC_TEST_0.keySet(), containsInAnyOrder(
+        BaseType.class,
+        LeafTypeB.class,
+        LeafTypeC.class,
+        LeafTypeD.class,
+        LeafTypeF.class
+    ));
+  }
+
+  @Test
+  public void shouldGetKeySetFrom1() {
+    assertThat(STATIC_TEST_1.keySet(), containsInAnyOrder(
+        BaseType.class,
+        LeafTypeA.class,
+        LeafTypeB.class,
+        LeafTypeC.class,
+        LeafTypeD.class,
+        LeafTypeE.class,
+        LeafTypeF.class
+    ));
+  }
+
+  @Test
+  public void shouldGetKeySetFrom2() {
+    assertThat(STATIC_TEST_2.keySet(), containsInAnyOrder(
+        BaseType.class,
+        LeafTypeA.class,
+        LeafTypeB.class,
+        LeafTypeC.class,
+        LeafTypeD.class,
+        LeafTypeE.class,
+        LeafTypeF.class,
+        LeafTypeG.class
+    ));
+  }
+
+  @Test
+  public void shouldGetKeySetFromR2() {
+    assertThat(STATIC_TEST_R2.keySet(), containsInAnyOrder(
+        BaseType.class,
+        LeafTypeA.class,
+        LeafTypeB.class,
+        LeafTypeC.class,
+        LeafTypeD.class,
+        LeafTypeE.class,
+        LeafTypeF.class,
+        LeafTypeG.class
+    ));
   }
 
   @SuppressWarnings("unused")
@@ -417,6 +586,23 @@ public class HandlerMapsTest {
 
   }
 
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private static final class TwoArgsWithReturnValue {
+
+    private Integer baseHandler2(final String arg, final BaseType type) {
+      return null;
+    }
+
+    private Number leafAHandler1(final LeafTypeA type) {
+      return null;
+    }
+
+    private static Long staticHandlerC(final LeafTypeC type) {
+      return null;
+    }
+  }
+
+
   @SuppressWarnings("unused")
   private static final class HandlerBase0 implements Handler0<BaseType> {
 
@@ -468,6 +654,46 @@ public class HandlerMapsTest {
     @Override
     public void handle(final HandlerMapsTest arg0, final String arg1, final LeafTypeF key) {
 
+    }
+  }
+
+  @SuppressWarnings("unused")
+  private static final class HandlerRD0 implements HandlerR0<LeafTypeD, Number> {
+
+    @Override
+    public Number handle(final LeafTypeD key) {
+      return null;
+    }
+  }
+
+  @SuppressWarnings("unused")
+  private static final class HandlerRE1 implements
+      HandlerR1<LeafTypeE, TwoArgsWithReturnValue, Long> {
+
+    @Override
+    public Long handle(final TwoArgsWithReturnValue arg0, final LeafTypeE key) {
+      return null;
+    }
+  }
+
+  @SuppressWarnings("unused")
+  private static final class HandlerRF2
+      implements HandlerR2<LeafTypeF, TwoArgsWithReturnValue, String, Integer> {
+
+    @Override
+    public Integer handle(final TwoArgsWithReturnValue arg0, final String arg1,
+        final LeafTypeF key) {
+      return null;
+    }
+  }
+
+  @SuppressWarnings("unused")
+  private static final class HandlerBaseR2
+      implements HandlerR2<BaseType, TwoArgsWithReturnValue, String, Double> {
+
+    @Override
+    public Double handle(final TwoArgsWithReturnValue arg0, final String arg1, final BaseType key) {
+      return null;
     }
   }
 }

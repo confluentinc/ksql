@@ -1,180 +1,273 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.record.RecordBatch;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
-@RunWith(MockitoJUnitRunner.class)
+
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class CommandStoreTest {
 
+  private static final String COMMAND_TOPIC = "command";
+  private static final TopicPartition COMMAND_TOPIC_PARTITION =
+      new TopicPartition(COMMAND_TOPIC, 0);
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(
+      Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
+  private static final Map<String, Object> OVERRIDE_PROPERTIES =
+      Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+  private static final Duration TIMEOUT = Duration.ofMillis(1000);
+  private static final AtomicInteger COUNTER = new AtomicInteger();
+  private static final String statementText = "test-statement";
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+
   @Mock
-  private KsqlConfig ksqlConfig;
+  private SequenceNumberFutureStore sequenceNumberFutureStore;
   @Mock
-  private CommandIdAssigner commandIdAssigner;
+  private CompletableFuture<Void> future;
   @Mock
   private CommandTopic commandTopic;
   @Mock
   private Statement statement;
+  @Mock
+  private CommandIdAssigner commandIdAssigner;
 
-  @Mock
-  private CommandId commandId1;
-  @Mock
-  private Command command1;
-  @Mock
-  private CommandId commandId2;
+  private final CommandId commandId =
+      new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
+  private final Command command =
+      new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
+  private final RecordMetadata recordMetadata = new RecordMetadata(
+      COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
 
   private CommandStore commandStore;
 
   @Before
-  public void setup() {
-    commandStore = new CommandStore(commandIdAssigner, commandTopic);
+  public void setUp() throws Exception {
+    when(commandIdAssigner.getCommandId(any()))
+        .thenAnswer(invocation -> new CommandId(
+            CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
+
+    when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
+
+    when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
+
+    when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
+
+    commandStore = new CommandStore(
+        commandTopic,
+        commandIdAssigner,
+        sequenceNumberFutureStore
+    );
   }
 
-  @Test(expected = IllegalStateException.class)
+
+  @Test
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId1)
-        .thenReturn(commandId1);
-    commandStore.enqueueCommand("foo", statement, ksqlConfig, Collections.emptyMap());
+    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
+
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
+    expectedException.expect(IllegalStateException.class);
 
     // When:
-    commandStore.enqueueCommand("foo", statement, ksqlConfig, Collections.emptyMap());
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
   public void shouldCleanupCommandStatusOnProduceError() {
     // Given:
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId1)
-        .thenReturn(commandId1);
-    doThrow(new RuntimeException("oops!")).doNothing().when(commandTopic).send(any(), any());
-    try {
-      commandStore.enqueueCommand("foo", statement, ksqlConfig, Collections.emptyMap());
-      fail();
-    } catch (final RuntimeException r) {
-      // Do nothing.
-    }
+    when(commandTopic.send(any(), any()))
+        .thenThrow(new RuntimeException("oops"))
+        .thenReturn(recordMetadata);
 
     // When:
-    commandStore.enqueueCommand("foo", statement, ksqlConfig, Collections.emptyMap());
+    try {
+      commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+      fail("enqueueCommand should have raised an exception");
+    } catch (final KsqlException ignored) {
+    }
 
     // Then:
-    verify(commandTopic, times(2)).send(any(), any());
-
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId1)
-        .thenReturn(commandId1);
+    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.getNewCommands();
 
-    // When:
-    commandStore.enqueueCommand("foo", statement, ksqlConfig, Collections.emptyMap());
-
-    // Then:
-    verify(commandTopic).send(same(commandId1), any());
-
+    // Should:
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
     // Given:
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId1)
-        .thenReturn(commandId1);
-    // ensure that the command was registered and the status was set.
-    doAnswer(
-        (Answer) invocation -> {
-          assertThat(commandStore.getCommandStatusMap().size(), equalTo(1));
-          assertThat(commandStore.getCommandStatusMap().get(commandId1).getStatus().getStatus(),
-              equalTo(Status.QUEUED));
-          return null;
-
+    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
+    when(commandTopic.send(any(), any())).thenAnswer(
+        invocation -> {
+          assertThat(commandStore.getCommandStatus(commandId), equalTo(Status.QUEUED));
+          return recordMetadata;
         }
-    ).when(commandTopic).send(any(), any());
+    );
 
     // When:
-    commandStore.enqueueCommand("foo", statement, ksqlConfig, Collections.emptyMap());
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    verify(commandTopic).send(same(commandId1), any(Command.class));
+    // verifying the commandProducer also verifies the assertions in its Answer were run
+    verify(commandTopic).send(any(), any());
   }
 
   @Test
   public void shouldFilterNullCommands() {
     // Given:
-    when(commandTopic.getNewCommands(any()))
-        .thenReturn((Iterable) ImmutableList.of(
-            new ConsumerRecord<>("", 1, 1, commandId1, command1),
-            new ConsumerRecord<>("", 1, 1, commandId2, null)
-        ));
+    final ConsumerRecords<CommandId, Command> records = buildRecords(
+        commandId, null,
+        commandId, command);
+    when(commandTopic.getNewCommands(any())).thenReturn(records);
 
     // When:
     final List<QueuedCommand> commands = commandStore.getNewCommands();
 
     // Then:
-    assertThat(commands, equalTo(ImmutableList.of(new QueuedCommand(commandId1, command1))));
+    assertThat(commands, hasSize(1));
+    assertThat(commands.get(0).getCommandId(), equalTo(commandId));
+    assertThat(commands.get(0).getCommand(), equalTo(command));
   }
 
 
   @Test
   public void shouldDistributeCommand() {
-    // Given:
-    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId1)
-        .thenReturn(commandId1);
+    when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
+    when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
 
     // When:
-    commandStore.enqueueCommand("foo", statement, ksqlConfig, Collections.emptyMap());
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    verify(commandTopic).send(same(commandId1), any());
+    verify(commandTopic).send(same(commandId), any());
   }
 
   @Test
-  public void shouldCloseCommandTopicOnClose() {
+  public void shouldIncludeCommandSequenceNumberInSuccessfulQueuedCommandStatus() {
     // When:
-    commandStore.close();
+    final QueuedCommandStatus commandStatus =
+        commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    verify(commandTopic).close();
+    assertThat(commandStatus.getCommandSequenceNumber(), equalTo(recordMetadata.offset()));
   }
 
+  @Test
+  public void shouldWaitOnSequenceNumberFuture() throws Exception {
+    // When:
+    commandStore.ensureConsumedPast(2, TIMEOUT);
+
+    // Then:
+    verify(future).get(eq(TIMEOUT.toMillis()), eq(TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void shouldThrowExceptionOnTimeout() throws Exception {
+    // Given:
+    when(future.get(anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException());
+
+    expectedException.expect(TimeoutException.class);
+    expectedException.expectMessage(String.format(
+        "Timeout reached while waiting for command sequence number of 2. (Timeout: %d ms)",
+        TIMEOUT.toMillis()));
+
+    // When:
+    commandStore.ensureConsumedPast(2, TIMEOUT);
+  }
+
+  @Test
+  public void shouldCompleteFuturesWhenGettingNewCommands() {
+    // Given:
+    when(commandTopic.getCommandTopicConsumerPosition()).thenReturn(22L);
+
+    // When:
+    commandStore.getNewCommands();
+
+    // Then:
+    final InOrder inOrder = inOrder(sequenceNumberFutureStore, commandTopic);
+    inOrder.verify(sequenceNumberFutureStore)
+        .completeFuturesUpToAndIncludingSequenceNumber(eq(21L));
+    inOrder.verify(commandTopic).getNewCommands(any());
+  }
+
+
+  private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {
+    assertThat(args.length % 2, equalTo(0));
+    final List<ConsumerRecord<CommandId, Command>> records = new ArrayList<>();
+    for (int i = 0; i < args.length; i += 2) {
+      assertThat(args[i], instanceOf(CommandId.class));
+      assertThat(args[i + 1], anyOf(is(nullValue()), instanceOf(Command.class)));
+      records.add(
+          new ConsumerRecord<>(COMMAND_TOPIC, 0, 0, (CommandId) args[i], (Command) args[i + 1]));
+    }
+    return new ConsumerRecords<>(Collections.singletonMap(COMMAND_TOPIC_PARTITION, records));
+  }
 }

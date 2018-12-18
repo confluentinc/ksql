@@ -242,7 +242,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                  |
+|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
@@ -345,7 +345,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                  |
+|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -395,7 +395,8 @@ continuously write the result of the SELECT query into the stream and
 its corresponding topic.
 
 If the PARTITION BY clause is present, then the resulting stream will
-have the specified column as its key.
+have the specified column as its key. For more information, see
+:ref:`partition-data-to-enable-joins`.
 
 For joins, the key of the resulting stream will be the value from the column
 from the left stream that was used in the join criteria. This column will be
@@ -404,6 +405,8 @@ columns.
 
 For stream-table joins, the column used in the join criteria for the table
 must be the table key.
+
+For more information, see :ref:`join-streams-and-tables`.
 
 The WITH clause for the result supports the following properties:
 
@@ -481,8 +484,10 @@ from the left table that was used in the join criteria. This column will be
 registered as the key of the resulting table if included in the selected
 columns.
 
-For joins, the columns used in the join criteria must be the keys of the
-tables being joined.
+For joins, the columns used in the join criteria must be the keys of the tables
+being joined.
+
+For more information, see :ref:`join-streams-and-tables`.
 
 The WITH clause supports the following properties:
 
@@ -903,6 +908,8 @@ the following WINDOW types:
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
 
+For more information, see :ref:`windows_in_ksql_queries`.
+
 CAST
 ~~~~
 
@@ -1112,7 +1119,6 @@ The explanation for each operator includes a supporting example based on the fol
 
    SELECT orders.address->street, o.address->zip FROM orders o;
 
-
 .. _functions:
 
 ================
@@ -1160,6 +1166,11 @@ Scalar functions
 |                        |                                                                           | points, both specified in decimal degrees. An     |
 |                        |                                                                           | optional final parameter specifies ``KM``         |
 |                        |                                                                           | (the default) or ``miles``.                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| IFNULL                 |  ``IFNULL(col1, retval)``                                                 | If the provided VARCHAR is NULL, return           |
+|                        |                                                                           | ``retval``, otherwise, return the value. Only     |
+|                        |                                                                           | VARCHAR values are supported for the input. The   |
+|                        |                                                                           | return value must be a VARCHAR.                   |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                                          | Convert a string to lowercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1267,7 +1278,7 @@ Scalar functions
 Aggregate functions
 ===================
 
-+------------------------+---------------------------+----------------------------------------------------------------------------------+
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | Function               | Example                   | Input Type | Description                                                         |
 +========================+===========================+============+=====================================================================+
 | COLLECT_LIST           | ``COLLECT_LIST(col1)``    | Stream,    | Return an array containing all the values of ``col1`` from each     |
@@ -1296,8 +1307,10 @@ Aggregate functions
 |                        |                           |            | late-arriving record, then the records from the second window in    |
 |                        |                           |            | the order they were originally processed.                           |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| COUNT                  | ``COUNT(col1)``           | Stream,    | Count the number of rows                                            |
-|                        |                           | Table      |                                                                     |
+| COUNT                  | ``COUNT(col1)``,          | Stream,    | Count the number of rows. When ``col1`` is specified, the count     |
+|                        | ``COUNT(*)``              | Table      | returned will be the number of rows where ``col1`` is non-null.     |
+|                        |                           |            | When ``*`` is specified, the count returned will be the total       |
+|                        |                           |            | number of rows.                                                     |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | HISTOGRAM              | ``HISTOGRAM(col1)``       | Stream,    | Return a map containing the distinct String values of ``col1``      |
 |                        |                           | Table      | mapped to the number of times each one occurs for the given window. |
@@ -1311,16 +1324,20 @@ Aggregate functions
 |                        |                           |            | late-arriving record, then the records from the second window in    |
 |                        |                           |            | the order they were originally processed.                           |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window              |
+| MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window.             |
+|                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
-| MIN                    | ``MIN(col1)``             | Stream     | Return the minimum value for a given column and window              |
+| MIN                    | ``MIN(col1)``             | Stream     | Return the minimum value for a given column and window.             |
+|                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | SUM                    | ``SUM(col1)``             | Stream,    | Sums the column values                                              |
-|                        |                           | Table      |                                                                     |
+|                        |                           | Table      | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | TOPK                   | ``TOPK(col1, k)``         | Stream     | Return the Top *K* values for the given column and window           |
+|                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | TOPKDISTINCT           | ``TOPKDISTINCT(col1, k)`` | Stream     | Return the distinct Top *K* values for the given column and window  |
+|                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | WindowStart            | ``WindowStart()``         | Stream     | Extract the start time of the current window, in milliseconds.      |
 |                        |                           | Table      | If the query is not windowed the function will return null.         |
@@ -1328,6 +1345,8 @@ Aggregate functions
 | WindowEnd              | ``WindowEnd()``           | Stream     | Extract the end time of the current window, in milliseconds.        |
 |                        |                           | Table      | If the query is not windowed the function will return null.         |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
+
+For more information, see :ref:`aggregate-streaming-data-with-ksql`.
 
 .. _ksql_key_requirements:
 
@@ -1352,6 +1371,11 @@ The ``KEY`` property is:
 
 - Required for tables.
 - Optional for streams. Here, KSQL uses it as an optimization hint to determine if repartitioning can be avoided when performing aggregations and joins.
+  
+  .. important::
+     Don't set the KEY property, unless you have validated that your stream doesn't need to be re-partitioned for future joins.
+     If you set the KEY property, you will need to re-partition explicitly if your record key doesn't meet partitioning requirements.
+     For more information, see :ref:`partition-data-to-enable-joins`.
 
 In either case, when setting ``KEY`` you must be sure that *both* of the following conditions are true:
 
@@ -1437,3 +1461,5 @@ Example:
       WITH (KAFKA_TOPIC='users-with-proper-key',
             VALUE_FORMAT='JSON',
             KEY='userid_string');
+
+For more information, see :ref:`partition-data-to-enable-joins`.

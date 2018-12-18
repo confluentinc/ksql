@@ -283,11 +283,11 @@ Custom Aggregation Function (UDAF)
 Implementing a user-defined aggration function (UDAF) is similar to the way
 that you implement a UDF. You use the ``UdafDescription`` and ``UdafFactory``
 annotations in your Java code, and you deploy a JAR to the KSQL extensions
-directory. For more information, see :ref:`ksql-udafs`.   
+directory. For more information, see :ref:`ksql-udafs`.
 
 Next Steps
 **********
 
-* :ref:`ksql-udfs`
+* `How to Build a UDF and/or UDAF in KSQL 5.0 <https://www.confluent.io/blog/build-udf-udaf-ksql-5-0>`__
 
 

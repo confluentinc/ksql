@@ -14,12 +14,11 @@
 
 package io.confluent.ksql.integration;
 
-import static org.hamcrest.Matchers.is;
-
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
@@ -28,12 +27,13 @@ import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.ConsumerTestUtil;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TestDataProvider;
+import java.io.Closeable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,51 +67,27 @@ import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("WeakerAccess")
-public class IntegrationTestHarness extends ExternalResource {
+@SuppressWarnings("ALL")
+public class IntegrationTestHelper extends ExternalResource implements Closeable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestHarness.class);
+  private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestHelper.class);
   private static final int DEFAULT_PARTITION_COUNT = 1;
   private static final short DEFAULT_REPLICATION_FACTOR = (short) 1;
   private static final long PRODUCE_TIMEOUT_MS = 30_000;
 
-  private final LazyServiceContext serviceContext;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
+  private final LazyServiceContext serviceContext;
 
-  public static Builder builder() {
-    return new Builder();
+  public IntegrationTestHelper(final EmbeddedSingleNodeKafkaCluster kafkaCluster) {
+    this(kafkaCluster, new MockSchemaRegistryClient());
   }
 
-  public static IntegrationTestHarness build() {
-    return builder().build();
-  }
-
-  private IntegrationTestHarness(
+  public IntegrationTestHelper(
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     this.kafkaCluster = Objects.requireNonNull(kafkaCluster, "kafkaCluster");
-    this.serviceContext = new LazyServiceContext(schemaRegistryClient);
-  }
-
-  public EmbeddedSingleNodeKafkaCluster getKafkaCluster() {
-    return kafkaCluster;
-  }
-
-  public String kafkaBootstrapServers() {
-    return kafkaCluster.bootstrapServers();
-  }
-
-  public SchemaRegistryClient schemaRegistryClient() {
-    return serviceContext.get().getSchemaRegistryClient();
-  }
-
-  public TestKsqlContext buildKsqlContext() {
-    return ksqlContextBuilder().build();
-  }
-
-  public ContextBuilder ksqlContextBuilder() {
-    return new ContextBuilder();
+    this.serviceContext = new LazyServiceContext(kafkaCluster, schemaRegistryClient);
   }
 
   /**
@@ -171,7 +147,7 @@ public class IntegrationTestHarness extends ExternalResource {
   public Map<String, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider dataProvider,
-      final DataSourceSerDe valueFormat
+      final DataSource.DataSourceSerDe valueFormat
   ) {
     return produceRows(
         topic,
@@ -192,7 +168,7 @@ public class IntegrationTestHarness extends ExternalResource {
   public Map<String, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider dataProvider,
-      final DataSourceSerDe valueFormat,
+      final DataSource.DataSourceSerDe valueFormat,
       final Supplier<Long> timestampSupplier
   ) {
     return produceRows(
@@ -293,7 +269,7 @@ public class IntegrationTestHarness extends ExternalResource {
   public List<ConsumerRecord<String, GenericRow>> verifyAvailableRows(
       final String topic,
       final int expectedCount,
-      final DataSourceSerDe valueFormat,
+      final DataSource.DataSourceSerDe valueFormat,
       final Schema schema
   ) {
     final Deserializer<GenericRow> valueDeserializer = getDeserializer(valueFormat, schema);
@@ -319,7 +295,7 @@ public class IntegrationTestHarness extends ExternalResource {
   public Map<String, GenericRow> verifyAvailableUniqueRows(
       final String topic,
       final int expectedCount,
-      final DataSourceSerDe valueFormat,
+      final DataSource.DataSourceSerDe valueFormat,
       final Schema schema
   ) {
     return verifyAvailableUniqueRows(
@@ -340,29 +316,7 @@ public class IntegrationTestHarness extends ExternalResource {
   public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
       final String topic,
       final int expectedCount,
-      final DataSourceSerDe valueFormat,
-      final Schema schema,
-      final Deserializer<K> keyDeserializer
-  ) {
-    return verifyAvailableUniqueRows(topic, is(expectedCount), valueFormat, schema,
-        keyDeserializer);
-  }
-
-  /**
-   * Verify there are {@code expectedCount} unique rows available on the supplied {@code topic}.
-   *
-   * @param topic the name of the topic to check.
-   * @param expectedCount the expected number of records.
-   * @param valueFormat the format of the value.
-   * @param schema the schema of the value.
-   * @param keyDeserializer the keyDeserilizer to use.
-   * @param <K> the type of the key.
-   * @return the list of consumed records.
-   */
-  public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
-      final String topic,
-      final Matcher<Integer> expectedCount,
-      final DataSourceSerDe valueFormat,
+      final DataSource.DataSourceSerDe valueFormat,
       final Schema schema,
       final Deserializer<K> keyDeserializer
   ) {
@@ -380,14 +334,14 @@ public class IntegrationTestHarness extends ExternalResource {
     }
   }
 
-  protected void before() throws Exception {
-    kafkaCluster.start();
+  @Override
+  public void close() {
+    serviceContext.get().close();
   }
 
   @Override
   protected void after() {
-    serviceContext.close();
-    kafkaCluster.stop();
+    close();
   }
 
   private Map<String, Object> clientConfig() {
@@ -437,7 +391,7 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   private Deserializer<GenericRow> getDeserializer(
-      final DataSourceSerDe format,
+      final DataSource.DataSourceSerDe format,
       final Schema schema
   ) {
     switch (format) {
@@ -462,7 +416,7 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   private static <K> Matcher<List<ConsumerRecord<K, GenericRow>>> hasUniqueRowCount(
-      final Matcher<Integer> expectedCount
+      final int expectedCount
   ) {
     return new TypeSafeDiagnosingMatcher<List<ConsumerRecord<K, GenericRow>>>() {
       @Override
@@ -472,9 +426,8 @@ public class IntegrationTestHarness extends ExternalResource {
       ) {
         final Map<K, ?> uniqueRows = toUniqueRows(actual);
 
-        if (!expectedCount.matches(uniqueRows.size())) {
-          mismatchDescription.appendText("unique row count was ");
-          expectedCount.describeMismatch(uniqueRows.size(), mismatchDescription);
+        if (uniqueRows.size() != expectedCount) {
+          mismatchDescription.appendText("unique row count was ").appendValue(uniqueRows.size());
           return false;
         }
         return true;
@@ -482,7 +435,7 @@ public class IntegrationTestHarness extends ExternalResource {
 
       @Override
       public void describeTo(final Description description) {
-        description.appendText("unique row count ").appendDescriptionOf(expectedCount);
+        description.appendText("unique row count ").appendValue(expectedCount);
       }
     };
   }
@@ -496,52 +449,21 @@ public class IntegrationTestHarness extends ExternalResource {
     return unique;
   }
 
-  public static final class Builder {
-
-    private SchemaRegistryClient schemaRegistry = new MockSchemaRegistryClient();
-    private EmbeddedSingleNodeKafkaCluster.Builder kafkaCluster
-        = EmbeddedSingleNodeKafkaCluster.newBuilder();
-
-    public Builder withKafkaCluster(final EmbeddedSingleNodeKafkaCluster.Builder kafkaCluster) {
-      this.kafkaCluster = Objects.requireNonNull(kafkaCluster, "kafkaCluster");
-      return this;
-    }
-
-    public Builder withSchemaRegistryClient(final SchemaRegistryClient client) {
-      this.schemaRegistry = Objects.requireNonNull(client, "client");
-      return this;
-    }
-
-    public IntegrationTestHarness build() {
-      return new IntegrationTestHarness(kafkaCluster.build(), schemaRegistry);
-    }
-  }
-
-  public final class ContextBuilder {
-
-    private final Map<String, Object> additionalConfig = new HashMap<>();
-
-    public ContextBuilder withAdditionalConfig(final String name, final Object value) {
-      additionalConfig.put(name, value);
-      return this;
-    }
-
-    public TestKsqlContext build() {
-      return new TestKsqlContext(IntegrationTestHarness.this, additionalConfig);
-    }
-  }
-
-  private final class LazyServiceContext {
+  private static final class LazyServiceContext {
 
     private final SchemaRegistryClient schemaRegistryClient;
+    private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
     private final AtomicReference<ServiceContext> serviceContext = new AtomicReference<>();
 
-    private LazyServiceContext(final SchemaRegistryClient schemaRegistryClient) {
-      this.schemaRegistryClient = Objects
-          .requireNonNull(schemaRegistryClient, "schemaRegistryClient");
+    private LazyServiceContext(
+        final EmbeddedSingleNodeKafkaCluster kafkaCluster,
+        final SchemaRegistryClient schemaRegistryClient
+    ) {
+      this.schemaRegistryClient = schemaRegistryClient;
+      this.kafkaCluster = kafkaCluster;
     }
 
-    private ServiceContext get() {
+    ServiceContext get() {
       if (serviceContext.get() == null) {
         final ServiceContext created = TestServiceContext.create(
             KsqlContextTestUtil.createKsqlConfig(kafkaCluster),
@@ -553,13 +475,6 @@ public class IntegrationTestHarness extends ExternalResource {
       }
 
       return serviceContext.get();
-    }
-
-    private void close() {
-      final ServiceContext toClose = serviceContext.getAndSet(null);
-      if (toClose != null) {
-        toClose.close();
-      }
     }
   }
 }

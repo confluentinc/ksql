@@ -153,7 +153,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             final String schemaFullName =
                 StringUtil.cleanQuotes(
                  analysis.getIntoProperties().get(
-                   DdlConfig.AVRO_SCHEMA_FULL_NAME).toString());
+                   DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
             intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
             break;
           case DataSource.JSON_SERDE_NAME:
@@ -171,7 +171,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           final String schemaFullName =
               StringUtil.cleanQuotes(
                 analysis.getIntoProperties().get(
-                  DdlConfig.AVRO_SCHEMA_FULL_NAME).toString());
+                  DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
           intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
         }
       }
@@ -623,16 +623,18 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     String serde;
     if (serdeProperty != null) {
-      serde = node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString();
+      serde = serdeProperty.toString();
+
+      if (!serde.startsWith("'") && !serde.endsWith("'")) {
+        throw new KsqlException(
+                serde + " value is string and should be enclosed between " + "\"'\".");
+      }
+      serde = serde.substring(1, serde.length() - 1).toUpperCase();
     } else {
       final StructuredDataSource leftSource = analysis.getFromDataSource(0).left;
-      serde = "'" + leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString() + "'";
+      serde = leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString();
     }
-    if (!serde.startsWith("'") && !serde.endsWith("'")) {
-      throw new KsqlException(
-          serde + " value is string and should be enclosed between " + "\"'\".");
-    }
-    serde = serde.substring(1, serde.length() - 1).toUpperCase();
+
     analysis.setIntoFormat(serde);
     analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
     if ("AVRO".equals(serde)) {
@@ -649,11 +651,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
 
       final Expression avroSchemaFullName =
-              node.getProperties().get(DdlConfig.AVRO_SCHEMA_FULL_NAME);
-      analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
+              node.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
+      analysis.getIntoProperties().put(
+              DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
               ? avroSchemaFullName : KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-    } else if (node.getProperties().containsKey(DdlConfig.AVRO_SCHEMA_FULL_NAME)) {
-      throw new KsqlException(DdlConfig.AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
+    } else if (node.getProperties().containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)) {
+      throw new KsqlException(
+              DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
   }
 
@@ -693,7 +697,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
     validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
-    validSet.add(DdlConfig.AVRO_SCHEMA_FULL_NAME.toUpperCase());
+    validSet.add(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME.toUpperCase());
 
     for (final String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

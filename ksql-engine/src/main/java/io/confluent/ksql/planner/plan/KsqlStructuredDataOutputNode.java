@@ -198,7 +198,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private void addAvroSchemaToResultTopic(final Builder builder) {
     final String schemaFullName = StringUtil.cleanQuotes(
-        outputProperties.get(DdlConfig.AVRO_SCHEMA_FULL_NAME).toString());
+        outputProperties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
     final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
         new KsqlAvroTopicSerDe(schemaFullName);
     builder.withKsqlTopic(new KsqlTopic(

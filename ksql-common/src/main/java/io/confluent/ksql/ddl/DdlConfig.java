@@ -19,7 +19,7 @@ public final class DdlConfig {
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
   public static final String AVRO_SCHEMA_FILE = "AVROSCHEMAFILE";
   public static final String AVRO_SCHEMA = "AVROSCHEMA";
-  public static final String AVRO_SCHEMA_FULL_NAME = "AVRO_SCHEMA_FULL_NAME";
+  public static final String VALUE_AVRO_SCHEMA_FULL_NAME = "VALUE_AVRO_SCHEMA_FULL_NAME";
   public static final String KAFKA_TOPIC_NAME_PROPERTY = "KAFKA_TOPIC";
   public static final String TOPIC_NAME_PROPERTY = "REGISTERED_TOPIC";
   public static final String STATE_STORE_NAME_PROPERTY = "STATESTORE";

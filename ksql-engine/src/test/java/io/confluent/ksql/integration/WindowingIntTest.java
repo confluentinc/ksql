@@ -241,7 +241,7 @@ public class WindowingIntTest {
 
     assertThat("Initial topics", topicClient.listTopicNames(), hasSize(7));
 
-    ksqlContext.getRunningQueries().forEach(QueryMetadata::close);
+    ksqlContext.getPersistentQueries().forEach(QueryMetadata::close);
 
     assertThatEventually("After cleanup", topicClient::listTopicNames, hasSize(4));
 

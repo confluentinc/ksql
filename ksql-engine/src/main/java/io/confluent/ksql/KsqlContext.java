@@ -20,6 +20,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -84,8 +85,16 @@ public class KsqlContext {
     }
   }
 
+  /**
+   * @deprecated use {@link #getPersistentQueries}.
+   */
+  @Deprecated
   public Set<QueryMetadata> getRunningQueries() {
-    return ksqlEngine.getLivePersistentQueries();
+    return new HashSet<>(ksqlEngine.getPersistentQueries());
+  }
+
+  public List<PersistentQueryMetadata> getPersistentQueries() {
+    return ksqlEngine.getPersistentQueries();
   }
 
   public void close() {

@@ -28,23 +28,20 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.util.Pair;
-
-import java.util.Collection;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.junit.Before;
 import org.junit.Test;
 
 public class CommandRunnerTest {
-  final StatementExecutor statementExecutor = mock(StatementExecutor.class);
-  final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
-  final CommandStore commandStore = mock(CommandStore.class);
+  private final StatementExecutor statementExecutor = mock(StatementExecutor.class);
+  private final KsqlEngine ksqlEngine = mock(KsqlEngine.class);
+  private final CommandStore commandStore = mock(CommandStore.class);
 
-  private List<QueuedCommand> getQueuedCommands() {
+  private static List<QueuedCommand> getQueuedCommands() {
     final List<Pair<CommandId, Command>> commandList = new TestUtils().getAllPriorCommandRecords();
     return commandList.stream()
         .map(
@@ -53,13 +50,13 @@ public class CommandRunnerTest {
         .collect(Collectors.toList());
   }
 
-  private List<QueuedCommand> getRestoreCommands(final List<Pair<CommandId, Command>> commandList) {
+  private static List<QueuedCommand> getRestoreCommands(final List<Pair<CommandId, Command>> commandList) {
     return commandList.stream()
         .map(p -> new QueuedCommand(p.getLeft(), p.getRight(), Optional.empty()))
         .collect(Collectors.toList());
   }
 
-  private List<QueuedCommand> getRestoreCommands() {
+  private static List<QueuedCommand> getRestoreCommands() {
     return getRestoreCommands(new TestUtils().getAllPriorCommandRecords());
   }
 
@@ -145,7 +142,7 @@ public class CommandRunnerTest {
         }
     );
     expect(commandStore.getRestoreCommands()).andReturn(restoreCommands);
-    final Collection<PersistentQueryMetadata> persistentQueries
+    final List<PersistentQueryMetadata> persistentQueries
         = ImmutableList.of(mock(PersistentQueryMetadata.class), mock(PersistentQueryMetadata.class));
     expect(ksqlEngine.getPersistentQueries()).andReturn(persistentQueries);
     persistentQueries.forEach(
@@ -180,7 +177,7 @@ public class CommandRunnerTest {
         }
     );
     expect(commandStore.getRestoreCommands()).andReturn(restoreCommands);
-    expect(ksqlEngine.getPersistentQueries()).andReturn(Collections.emptySet());
+    expect(ksqlEngine.getPersistentQueries()).andReturn(Collections.emptyList());
     replay(statementExecutor, ksqlEngine, commandStore);
     final CommandRunner commandRunner = new CommandRunner(statementExecutor, commandStore, 3);
 

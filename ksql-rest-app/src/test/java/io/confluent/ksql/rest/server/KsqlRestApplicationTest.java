@@ -54,7 +54,7 @@ public class KsqlRestApplicationTest {
   private final KsqlRestConfig restConfig =
       new KsqlRestConfig(
           Collections.singletonMap(RestConfig.LISTENERS_CONFIG,
-          "http://localhost:8088"));
+              "http://localhost:8088"));
 
   @Mock
   private ServiceContext serviceContext;
@@ -114,14 +114,13 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 1,
-        true,
         commandTopicConfig);
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
 
     KsqlRestApplication.ensureCommandTopic(restConfig,
-                                           topicClient,
-                                           COMMAND_TOPIC);
+        topicClient,
+        COMMAND_TOPIC);
 
     EasyMock.verify(topicClient);
   }
@@ -135,8 +134,8 @@ public class KsqlRestApplicationTest {
     EasyMock.replay(topicClient);
 
     KsqlRestApplication.ensureCommandTopic(restConfig,
-                                           topicClient,
-                                           COMMAND_TOPIC);
+        topicClient,
+        COMMAND_TOPIC);
 
     EasyMock.verify(topicClient);
   }
@@ -152,8 +151,8 @@ public class KsqlRestApplicationTest {
     EasyMock.replay(topicClient);
 
     KsqlRestApplication.ensureCommandTopic(restConfig,
-                                           topicClient,
-                                           COMMAND_TOPIC);
+        topicClient,
+        COMMAND_TOPIC);
 
     EasyMock.verify(topicClient);
   }
@@ -164,7 +163,6 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 3,
-        true,
         commandTopicConfig);
     EasyMock.expectLastCall();
     EasyMock.replay(topicClient);
@@ -186,15 +184,14 @@ public class KsqlRestApplicationTest {
     topicClient.createTopic(COMMAND_TOPIC,
         1,
         (short) 1,
-        true,
         commandTopicConfig);
 
     EasyMock.expectLastCall().andThrow(new KafkaTopicException("blah"));
     EasyMock.replay(topicClient);
 
     KsqlRestApplication.ensureCommandTopic(restConfig,
-                                           topicClient,
-                                           COMMAND_TOPIC);
+        topicClient,
+        COMMAND_TOPIC);
 
     EasyMock.verify(topicClient);
   }

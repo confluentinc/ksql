@@ -39,10 +39,8 @@ public interface KafkaTopicClient  {
   default void createTopic(
       final String topic,
       final int numPartitions,
-      final short replicationFactor,
-      final boolean checkTopicProperties) {
-    createTopic(topic, numPartitions, replicationFactor,
-        checkTopicProperties, Collections.emptyMap());
+      final short replicationFactor) {
+    createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
   /**
@@ -55,7 +53,6 @@ public interface KafkaTopicClient  {
       String topic,
       int numPartitions,
       short replicationFactor,
-      boolean checkTopicProperties,
       Map<String, ?> configs
   );
 

@@ -35,11 +35,11 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
-import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -61,6 +61,7 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class RecoveryTest {
@@ -70,10 +71,16 @@ public class RecoveryTest {
       )
   );
   private final List<QueuedCommand> commands = new LinkedList<>();
+  private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private final ServiceContext serviceContext =
-      TestServiceContext.create(new MockKafkaTopicClient());
+      TestServiceContext.create(topicClient);
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
+
+  @Before
+  public void setup() {
+    topicClient.preconditionTopicExists("A", 3, (short) 1, Collections.emptyMap());
+  }
 
   @After
   public void tearDown() {
@@ -498,6 +505,7 @@ public class RecoveryTest {
 
   @Test
   public void shouldRecoverCreates() {
+    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;"
@@ -569,6 +577,7 @@ public class RecoveryTest {
 
   @Test
   public void shouldRecoverLogWithTerminateAfterDrop() {
+    topicClient.preconditionTopicExists("B", 3, (short) 1, Collections.emptyMap());
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');"

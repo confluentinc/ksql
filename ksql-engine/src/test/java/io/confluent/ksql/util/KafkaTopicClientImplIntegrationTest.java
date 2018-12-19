@@ -84,7 +84,7 @@ public class KafkaTopicClientImplIntegrationTest {
   public void shouldSetTopicConfig() {
     // When:
     final boolean changed = client
-            .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "1245678"));
+        .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "1245678"));
 
     // Then:
     assertThat(changed, is(true));
@@ -125,7 +125,7 @@ public class KafkaTopicClientImplIntegrationTest {
 
     // Then:
     assertThatEventually(() -> client.getTopicCleanupPolicy(testTopic),
-                         is(KafkaTopicClient.TopicCleanupPolicy.DELETE));
+        is(KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   @Test
@@ -158,7 +158,7 @@ public class KafkaTopicClientImplIntegrationTest {
     final String topicName = UUID.randomUUID().toString();
 
     // When:
-    client.createTopic(topicName, 3, (short) 1, false);
+    client.createTopic(topicName, 3, (short) 1);
 
     // Then:
     assertThatEventually(() -> topicExists(topicName), is(true));
@@ -175,7 +175,7 @@ public class KafkaTopicClientImplIntegrationTest {
         TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy");
 
     // When:
-    client.createTopic(topicName, 2, (short) 1, false, config);
+    client.createTopic(topicName, 2, (short) 1, config);
 
     // Then:
     assertThatEventually(() -> topicExists(topicName), is(true));

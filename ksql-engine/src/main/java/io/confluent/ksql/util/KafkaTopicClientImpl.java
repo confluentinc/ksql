@@ -64,7 +64,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final String topic,
       final int numPartitions,
       final short replicationFactor,
-      final boolean checkTopicProperties,
       final Map<String, ?> configs
   ) {
     if (isTopicExists(topic)) {
@@ -117,7 +116,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Set<String> listNonInternalTopicNames() {
     return listTopicNames().stream()
         .filter((topic) -> !(topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
-                             || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+            || topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
         .collect(Collectors.toSet());
   }
 
@@ -229,7 +228,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     } catch (final Exception e) {
       log.error("Exception while trying to clean up internal topics for application id: {}.",
-                applicationId, e
+          applicationId, e
       );
     }
   }
@@ -256,7 +255,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           .entries()
           .stream()
           .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable")
-                                   && configEntry.value().equalsIgnoreCase("true"));
+              && configEntry.value().equalsIgnoreCase("true"));
 
     } catch (final Exception e) {
       log.error("Failed to initialize TopicClient: {}", e.getMessage());
@@ -266,33 +265,33 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private boolean isInternalTopic(final String topicName, final String applicationId) {
     return topicName.startsWith(applicationId + "-")
-           && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
-               || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
+        && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
+        || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
   }
 
   private void validateTopicProperties(final String topic,
-                                       final int numPartitions,
-                                       final short replicationFactor) {
+      final int numPartitions,
+      final short replicationFactor) {
     final Map<String, TopicDescription> topicDescriptions =
         describeTopics(Collections.singletonList(topic));
     final TopicDescription topicDescription = topicDescriptions.get(topic);
     if (topicDescription.partitions().size() != numPartitions
         || topicDescription.partitions().get(0).replicas().size() < replicationFactor) {
       throw new KafkaTopicException(String.format(
-              "A Kafka topic with the name '%s' already exists, with different partition/replica "
+          "A Kafka topic with the name '%s' already exists, with different partition/replica "
               + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
               + "replication factor (topic has %d).",
-              topic,
-              numPartitions,
-              topicDescription.partitions().size(),
-              replicationFactor,
-              topicDescription.partitions().get(0).replicas().size()
+          topic,
+          numPartitions,
+          topicDescription.partitions().size(),
+          replicationFactor,
+          topicDescription.partitions().get(0).replicas().size()
       ));
     }
     // Topic with the partitions and replicas exists, reuse it!
     log.debug(
         "Did not create topic {} with {} partitions and replication-factor {} since it already "
-        + "exists",
+            + "exists",
         topic,
         numPartitions,
         replicationFactor
@@ -300,7 +299,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   private Map<String, String> topicConfig(final String topicName,
-                                          final boolean includeDefaults) {
+      final boolean includeDefaults) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
     final List<ConfigResource> request = Collections.singletonList(resource);
 
@@ -310,7 +309,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE).get(resource);
       return config.entries().stream()
           .filter(e -> includeDefaults
-                       || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
+              || e.source().equals(ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG))
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(

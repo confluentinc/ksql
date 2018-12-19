@@ -168,6 +168,7 @@ public class KsqlResourceTest {
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
 
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+
     realEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         metaStore
@@ -1252,6 +1253,6 @@ public class KsqlResourceTest {
   }
 
   private void givenTopicExists(final String name) {
-    kafkaTopicClient.createTopic(name, 1, (short) 1, false);
+    kafkaTopicClient.createTopic(name, 1, (short) 1);
   }
 }

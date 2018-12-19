@@ -11,7 +11,7 @@
   "ksql.sink.partitions" : "4",
   "ksql.statestore.suffix" : "_ksql_statestore",
   "ksql.service.id" : "some.ksql.service.id",
-  "ksql.streams.state.dir" : "/var/folders/y4/v3q4tgb559sb0x6kwpll19bm0000gn/T/kafka-4355650510864353613",
+  "ksql.streams.state.dir" : "/var/folders/y4/v3q4tgb559sb0x6kwpll19bm0000gn/T/kafka-8205268084832709551",
   "ksql.streams.bootstrap.servers" : "localhost:0",
   "ksql.streams.commit.interval.ms" : "2000",
   "ksql.streams.auto.commit.interval.ms" : "0",

@@ -38,7 +38,7 @@ in the KSQL properties file (defaults to ``http://localhost:8081``). |sr| is :re
 |cp|.
 
 .. important:: By default, KSQL registered avro schemas have the same name (``KsqlDataSourceSchema``) and the same namespace
-               (``io.confluent.ksql.avro_schemas``). You can override this behaviour by providing an ``AVRO_SCHEMA_FULL_NAME``
+               (``io.confluent.ksql.avro_schemas``). You can override this behaviour by providing an ``VALUE_AVRO_SCHEMA_FULL_NAME``
                property in the ``WITH`` clause where you set the ``VALUE_FORMAT`` to ``'AVRO'``. As the name suggests,
                this property will override the default name/namespace with the provided one.
                For Example, ``com.mycompany.MySchema`` registers a schema with the ``MySchema`` name and the ``com.mycompany`` namespace.

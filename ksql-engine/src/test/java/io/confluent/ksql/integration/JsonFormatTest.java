@@ -20,12 +20,12 @@ import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -40,7 +40,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -79,13 +78,7 @@ public class JsonFormatTest {
   public void before() throws Exception {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
-    final Map<String, Object> configMap = new HashMap<>();
-    configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, CLUSTER.bootstrapServers());
-    configMap.put("commit.interval.ms", 0);
-    configMap.put("cache.max.bytes.buffering", 0);
-    configMap.put("auto.offset.reset", "earliest");
-
-    ksqlConfig = new KsqlConfig(configMap);
+    ksqlConfig = KsqlContextTestUtil.createKsqlConfig(CLUSTER);
     serviceContext = ServiceContext.create(ksqlConfig);
     ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     topicClient = serviceContext.getTopicClient();

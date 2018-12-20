@@ -192,7 +192,6 @@ public class CommandStore implements CommandQueue, Closeable {
 
     log.debug("Reading prior command records");
 
-    final Map<CommandId, ConsumerRecord<CommandId, Command>> commands = Maps.newLinkedHashMap();
     ConsumerRecords<CommandId, Command> records =
         commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
     while (!records.isEmpty()) {
@@ -209,7 +208,7 @@ public class CommandStore implements CommandQueue, Closeable {
       }
       records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
     }
-    log.debug("Retrieved records:" + commands.size());
+    log.debug("Retrieved records:" + restoreCommands.size());
     return restoreCommands;
   }
 

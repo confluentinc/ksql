@@ -118,7 +118,6 @@ public class KsqlStructuredDataOutputNodeTest {
     final Map<String, TopicDescription> topicDescriptionMap = Collections.singletonMap(SOURCE_KAFKA_TOPIC_NAME, getTopicDescription());
     when(topicClient.describeTopics(any()))
         .thenReturn(topicDescriptionMap);
-//    stream = buildStream();
   }
 
   @After
@@ -320,7 +319,7 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
-  public void shouldCreateSinkWithTheSourceAndProvidedPartititionReplication() {
+  public void shouldCreateSinkWithTheSourceReplicationAndProvidedPartition() {
     // Given:
     final TopicDescription topicDescription = getTopicDescription();
     when(topicClient.describeTopics(any()))

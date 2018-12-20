@@ -26,7 +26,10 @@ public class StatementParser {
     this.ksqlEngine = ksqlEngine;
   }
 
-  public Statement parseSingleStatement(final String statementString) {
+  @SuppressWarnings("unchecked")
+  public <T extends Statement> PreparedStatement<T> parseSingleStatement(
+      final String statementString
+  ) {
     final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(statementString);
     if ((statements.size() != 1)) {
       throw new IllegalArgumentException(
@@ -34,6 +37,6 @@ public class StatementParser {
       );
     }
 
-    return statements.get(0).getStatement();
+    return (PreparedStatement<T>) statements.get(0);
   }
 }

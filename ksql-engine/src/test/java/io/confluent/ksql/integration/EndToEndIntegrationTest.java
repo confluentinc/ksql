@@ -23,10 +23,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
@@ -101,12 +102,14 @@ public class EndToEndIntegrationTest {
         usersTopic, new UserDataProvider(), System.currentTimeMillis() - 10000);
     testHarness.publishTestData(pageViewTopic, pageViewDataProvider, System.currentTimeMillis());
 
-    ksqlEngine.execute(
+    KsqlEngineTestUtil.execute(
+        ksqlEngine,
         format("CREATE TABLE %s (registertime bigint, gender varchar, regionid varchar, " +
                "userid varchar) WITH (kafka_topic='%s', value_format='JSON', key = 'userid');",
                userTable,
                usersTopic), ksqlConfig, Collections.emptyMap());
-    ksqlEngine.execute(
+    KsqlEngineTestUtil.execute(
+        ksqlEngine,
         format("CREATE STREAM %s (viewtime bigint, userid varchar, pageid varchar) " +
                "WITH (kafka_topic='%s', value_format='JSON');", pageViewStream,
                pageViewTopic), ksqlConfig, Collections.emptyMap());
@@ -301,7 +304,7 @@ public class EndToEndIntegrationTest {
     log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries =
-        ksqlEngine.execute(formatted, ksqlConfig, Collections.emptyMap());
+        KsqlEngineTestUtil.execute(ksqlEngine, formatted, ksqlConfig, Collections.emptyMap());
 
     queries.forEach(queryMetadata -> queryMetadata.start());
 

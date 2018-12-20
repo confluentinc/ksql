@@ -19,6 +19,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
@@ -157,10 +158,13 @@ public class WSQueryEndpoint {
         return;
       }
 
-      final Statement statement = parseStatement(request);
+      final PreparedStatement<?> preparedStatement = parseStatement(request);
+
+      final Statement statement = preparedStatement.getStatement();
+      final Class<? extends Statement> type = statement.getClass();
 
       HANDLER_MAP
-          .getOrDefault(statement.getClass(), WSQueryEndpoint::handleUnsupportedStatement)
+          .getOrDefault(type, WSQueryEndpoint::handleUnsupportedStatement)
           .handle(this, new SessionAndRequest(session, request), statement);
     } catch (final Exception e) {
       log.debug("Error processing request", e);
@@ -181,6 +185,7 @@ public class WSQueryEndpoint {
     );
   }
 
+  @SuppressWarnings("MethodMayBeStatic")
   @OnError
   public void onError(final Session session, final Throwable t) {
     log.error("websocket error in session {}", session.getId(), t);
@@ -232,7 +237,7 @@ public class WSQueryEndpoint {
     }
   }
 
-  private Statement parseStatement(final KsqlRequest request) {
+  private PreparedStatement<?> parseStatement(final KsqlRequest request) {
     try {
       return statementParser.parseSingleStatement(request.getKsql());
     } catch (final Exception e) {
@@ -240,14 +245,18 @@ public class WSQueryEndpoint {
     }
   }
 
-  private void handleQuery(final SessionAndRequest info, final Query ignored) {
+  @SuppressWarnings({"unused", "unchecked"})
+  private void handleQuery(final SessionAndRequest info, final Query query) {
     final Map<String, Object> clientLocalProperties = info.request.getStreamsProperties();
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
         new WebSocketSubscriber<>(info.session, mapper);
     this.subscriber = streamSubscriber;
 
-    queryPublisher.start(ksqlConfig, ksqlEngine, exec, info.request.getKsql(),
+    final PreparedStatement<Query> statement =
+        new PreparedStatement<>(info.request.getKsql(), query);
+
+    queryPublisher.start(ksqlConfig, ksqlEngine, exec, statement,
         clientLocalProperties, streamSubscriber);
   }
 
@@ -255,7 +264,8 @@ public class WSQueryEndpoint {
     final String topicName = printTopic.getTopic().toString();
 
     if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
-      throw new IllegalArgumentException("topic does not exist: " + topicName);
+      throw new IllegalArgumentException(
+          "Topic does not exist, or KSQL does not have permission to list the topic: " + topicName);
     }
 
     final WebSocketSubscriber<String> topicSubscriber =
@@ -268,7 +278,7 @@ public class WSQueryEndpoint {
     );
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
   private void handleUnsupportedStatement(
       final SessionAndRequest ignored,
       final Statement statement
@@ -283,11 +293,11 @@ public class WSQueryEndpoint {
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final ListeningScheduledExecutorService exec,
-      final String queryString,
+      final PreparedStatement<Query> query,
       final Map<String, Object> clientLocalProperties,
       final WebSocketSubscriber<StreamedRow> streamSubscriber
   ) {
-    new StreamPublisher(ksqlConfig, ksqlEngine, exec, queryString, clientLocalProperties)
+    new StreamPublisher(ksqlConfig, ksqlEngine, exec, query, clientLocalProperties)
         .subscribe(streamSubscriber);
   }
 
@@ -308,7 +318,7 @@ public class WSQueryEndpoint {
         KsqlConfig ksqlConfig,
         KsqlEngine ksqlEngine,
         ListeningScheduledExecutorService exec,
-        String queryString,
+        PreparedStatement<Query> query,
         Map<String, Object> clientLocalProperties,
         WebSocketSubscriber<StreamedRow> subscriber);
 

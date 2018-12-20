@@ -188,19 +188,16 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void handleExecutableDdl(final PreparedStatement<?> statement) {
-    ksqlEngine.execute(statement.getStatementText(), ksqlConfig, configProperties);
+    ksqlEngine.execute(statement, ksqlConfig, configProperties);
   }
 
   private void handlePersistentQuery(final PreparedStatement<?> statement) {
-    final List<QueryMetadata> queries =
-        ksqlEngine.execute(statement.getStatementText(), ksqlConfig, configProperties);
+    final QueryMetadata queries = ksqlEngine.execute(statement, ksqlConfig, configProperties)
+        .filter(q -> q instanceof PersistentQueryMetadata)
+        .orElseThrow((() -> new KsqlException("Could not build the query: "
+            + statement.getStatementText())));
 
-    if (queries.size() != 1
-        || !(queries.get(0) instanceof PersistentQueryMetadata)) {
-      throw new KsqlException("Could not build the query: " + statement.getStatementText());
-    }
-
-    queries.get(0).start();
+    queries.start();
   }
 
   @SuppressWarnings("MethodMayBeStatic") // Won't compile if static.

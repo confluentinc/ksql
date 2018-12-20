@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -133,7 +134,8 @@ public class WSQueryEndpointTest {
     query = new Query(queryBody, Optional.empty());
 
     when(session.getId()).thenReturn("session-id");
-    when(statementParser.parseSingleStatement(anyString())).thenReturn(query);
+    when(statementParser.parseSingleStatement(anyString()))
+        .thenAnswer(invocation -> new PreparedStatement<>(invocation.getArgument(0).toString(), query));
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     givenRequest(VALID_REQUEST);
@@ -299,7 +301,7 @@ public class WSQueryEndpointTest {
         eq(ksqlConfig),
         eq(ksqlEngine),
         eq(exec),
-        eq(VALID_REQUEST.getKsql()),
+        eq(new PreparedStatement<>(VALID_REQUEST.getKsql(), query)),
         eq(VALID_REQUEST.getStreamsProperties()),
         any());
   }
@@ -334,7 +336,9 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verifyClosedWithReason("topic does not exist: bob", CloseCodes.CANNOT_ACCEPT);
+    verifyClosedWithReason(
+        "Topic does not exist, or KSQL does not have permission to list the topic: bob",
+        CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -427,7 +431,8 @@ public class WSQueryEndpointTest {
   }
 
   private void givenRequestIs(final Statement stmt) {
-    when(statementParser.parseSingleStatement(anyString())).thenReturn(stmt);
+    when(statementParser.parseSingleStatement(anyString()))
+        .thenReturn(new PreparedStatement<>("statement", stmt));
   }
 
   private static String serialize(final KsqlRequest request) {

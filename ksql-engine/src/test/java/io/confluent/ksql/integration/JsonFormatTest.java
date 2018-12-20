@@ -20,12 +20,12 @@ import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -135,9 +135,9 @@ public class JsonFormatTest {
     final String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
-    ksqlEngine.execute(ordersStreamStr, ksqlConfig, Collections.emptyMap());
-    ksqlEngine.execute(usersTableStr, ksqlConfig, Collections.emptyMap());
-    ksqlEngine.execute(messageStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(ksqlEngine, usersTableStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(ksqlEngine, messageStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   @After
@@ -260,8 +260,8 @@ public class JsonFormatTest {
   }
 
   private void executePersistentQuery(final String queryString) {
-    final QueryMetadata queryMetadata = ksqlEngine
-        .execute(queryString, ksqlConfig, Collections.emptyMap()).get(0);
+    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+        .execute(ksqlEngine, queryString, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();

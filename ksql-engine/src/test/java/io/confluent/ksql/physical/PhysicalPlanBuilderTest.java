@@ -212,7 +212,8 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
+        ksqlEngine,
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -248,7 +249,8 @@ public class PhysicalPlanBuilderTest {
         .expect(rawMessage(is("Sink 'S1' does not exist for the INSERT INTO statement.")));
 
     try {
-      ksqlEngine.execute(
+      KsqlEngineTestUtil.execute(
+          ksqlEngine,
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -268,7 +270,8 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      ksqlEngine.execute(
+      KsqlEngineTestUtil.execute(
+          ksqlEngine,
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -293,7 +296,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(ksqlEngine,
         createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -329,7 +332,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      ksqlEngine.execute(
+      KsqlEngineTestUtil.execute(ksqlEngine,
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -351,7 +354,8 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
+        ksqlEngine,
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -378,7 +382,8 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      ksqlEngine.execute(
+      KsqlEngineTestUtil.execute(
+          ksqlEngine,
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -598,7 +603,8 @@ public class PhysicalPlanBuilderTest {
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(createStream + "\n " +
+    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
+        ksqlEngine, createStream + "\n " +
         csasQuery + "\n " +
         insertIntoQuery,
         ksqlConfig,
@@ -620,7 +626,8 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    ksqlEngine.execute(
+    KsqlEngineTestUtil.execute(
+        ksqlEngine,
         createStream + "\n " + csasQuery + "\n " + ctasQuery,
         ksqlConfig,
         Collections.emptyMap());

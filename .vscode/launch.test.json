@@ -1,0 +1,228 @@
+{
+    "run": {
+        "default": "",
+        "items": [
+            {
+                "name": "ksql-parser",
+                "projectName": "ksql-parser",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-parser",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-common",
+                "projectName": "ksql-common",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-common",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-serde",
+                "projectName": "ksql-serde",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-serde",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-udf",
+                "projectName": "ksql-udf",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-udf",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-metastore",
+                "projectName": "ksql-metastore",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-metastore",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-test-util",
+                "projectName": "ksql-test-util",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-test-util",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-examples",
+                "projectName": "ksql-examples",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-examples",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-rest-app",
+                "projectName": "ksql-rest-app",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-rest-app",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-version-metrics-client",
+                "projectName": "ksql-version-metrics-client",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-version-metrics-client",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-engine",
+                "projectName": "ksql-engine",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-engine",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-tools",
+                "projectName": "ksql-tools",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-tools",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-cli",
+                "projectName": "ksql-cli",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-cli",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            }
+        ]
+    },
+    "debug": {
+        "default": "",
+        "items": [
+            {
+                "name": "ksql-parser",
+                "projectName": "ksql-parser",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-parser",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-common",
+                "projectName": "ksql-common",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-common",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-serde",
+                "projectName": "ksql-serde",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-serde",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-udf",
+                "projectName": "ksql-udf",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-udf",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-metastore",
+                "projectName": "ksql-metastore",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-metastore",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-test-util",
+                "projectName": "ksql-test-util",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-test-util",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-examples",
+                "projectName": "ksql-examples",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-examples",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-rest-app",
+                "projectName": "ksql-rest-app",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-rest-app",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-version-metrics-client",
+                "projectName": "ksql-version-metrics-client",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-version-metrics-client",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-engine",
+                "projectName": "ksql-engine",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-engine",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-tools",
+                "projectName": "ksql-tools",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-tools",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            },
+            {
+                "name": "ksql-cli",
+                "projectName": "ksql-cli",
+                "workingDirectory": "/home/riferrei/Work/Repos/ksql/ksql-cli",
+                "args": [],
+                "vmargs": [],
+                "env": {},
+                "preLaunchTask": ""
+            }
+        ]
+    }
+}

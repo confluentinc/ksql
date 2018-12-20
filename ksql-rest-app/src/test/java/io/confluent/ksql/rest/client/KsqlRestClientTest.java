@@ -194,30 +194,27 @@ public class KsqlRestClientTest {
   }
 
   @Test
-  public void shouldParseSingleServerAddress() {
+  public void shouldParseSingleServerAddress() throws Exception {
     final String singleServerAddress = "http://singleServer:8088";
-    URI singleServerUri = null;
-    try {
-      singleServerUri = new URI(singleServerAddress);
-    } catch (Exception ex) {}
+    final URI singleServerURI = new URI (singleServerAddress);
     try (KsqlRestClient client = new KsqlRestClient(singleServerAddress)) {
-      assertThat(client.getServerAddress(), is(notNullValue()));
-      Assert.assertEquals(singleServerUri, client.getServerAddress());
+      assertThat(client.getServerAddress(), is(singleServerURI));
     }
   }
 
   @Test
-  public void shouldParseMultipleServerAddresses() {
+  public void shouldParseMultipleServerAddresses() throws Exception {
     final String firstServerAddress = "http://firstServer:8088";
     final String multipleServerAddresses = firstServerAddress + ",http://secondServer:8088";
-    URI firstServerUri = null;
-    try {
-      firstServerUri = new URI(firstServerAddress);
-    } catch (Exception ex) {}
+    final URI firstServerURI = new URI (firstServerAddress);
     try (KsqlRestClient client = new KsqlRestClient(multipleServerAddresses)) {
-      assertThat(client.getServerAddress(), is(notNullValue()));
-      Assert.assertEquals(firstServerUri, client.getServerAddress());
+      assertThat(client.getServerAddress(), is(firstServerURI));
     }
+  }
+
+  @Test(expected = KsqlRestClientException.class)
+  public void shouldThrowOnParsingMultipleServerAddresses() {
+    new KsqlRestClient("http://firstServer:8088,secondBuggyServer.8088");
   }
 
   @Test

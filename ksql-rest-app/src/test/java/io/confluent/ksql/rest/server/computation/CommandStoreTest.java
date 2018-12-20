@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.entity.CommandStatus.Status;
+import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -78,7 +78,6 @@ public class CommandStoreTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-
   @Mock
   private SequenceNumberFutureStore sequenceNumberFutureStore;
   @Mock
@@ -105,11 +104,11 @@ public class CommandStoreTest {
         .thenAnswer(invocation -> new CommandId(
             CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
 
+    when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
+
     when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
 
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
-
-    when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
     commandStore = new CommandStore(
         commandTopic,
@@ -117,7 +116,6 @@ public class CommandStoreTest {
         sequenceNumberFutureStore
     );
   }
-
 
   @Test
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
@@ -139,14 +137,14 @@ public class CommandStoreTest {
         .thenThrow(new RuntimeException("oops"))
         .thenReturn(recordMetadata);
 
-    // When:
     try {
       commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
       fail("enqueueCommand should have raised an exception");
-    } catch (final KsqlException ignored) {
+    } catch (final KsqlException e) {
+      // Do nothing!
     }
 
-    // Then:
+    // Should:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
@@ -167,7 +165,12 @@ public class CommandStoreTest {
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
     when(commandTopic.send(any(), any())).thenAnswer(
         invocation -> {
-          assertThat(commandStore.getCommandStatus(commandId), equalTo(Status.QUEUED));
+          final QueuedCommand queuedCommand = commandStore.getNewCommands().get(0);
+          assertThat(queuedCommand.getCommandId(), equalTo(commandId));
+          assertThat(queuedCommand.getStatus().isPresent(), equalTo(true));
+          assertThat(
+              queuedCommand.getStatus().get().getStatus().getStatus(),
+              equalTo(CommandStatus.Status.QUEUED));
           return recordMetadata;
         }
     );
@@ -176,7 +179,6 @@ public class CommandStoreTest {
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    // verifying the commandProducer also verifies the assertions in its Answer were run
     verify(commandTopic).send(any(), any());
   }
 

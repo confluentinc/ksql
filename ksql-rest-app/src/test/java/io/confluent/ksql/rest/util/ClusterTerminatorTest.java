@@ -16,9 +16,9 @@
 
 package io.confluent.ksql.rest.util;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +34,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Before;
@@ -87,7 +89,7 @@ public class ClusterTerminatorTest {
     clusterTerminator.terminateCluster(Collections.emptyList());
 
     // Then:
-    verify(ksqlEngine).terminateQuery(same(queryId), eq(true));
+    verify(ksqlEngine).terminateQuery(queryId, true);
   }
 
   @Test
@@ -106,7 +108,8 @@ public class ClusterTerminatorTest {
   @Test
   public void shouldDeleteTopicListWithExplicitTopicName() {
     //Given:
-    givenSinkTopicExists("FOO", "K_FOO");
+    givenExistingTopics("K_FOO");
+    givenSinkTopicExists(ImmutableList.of("K_FOO"));
 
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("K_FOO"));
@@ -115,31 +118,49 @@ public class ClusterTerminatorTest {
     verify(kafkaTopicClient).deleteTopics(Collections.singletonList("K_FOO"));
   }
 
-  @Test(expected = KsqlException.class)
-  public void shouldNotDeleteTopicNonSinkTopic() {
+  @Test
+  public void shouldOnlyDeleteExistingTopics() {
+    //Given:
+    givenExistingTopics("K_BAR");
+    givenSinkTopicExists(ImmutableList.of("K_FOO", "K_BAR"));
+
+    // When:
+    clusterTerminator.terminateCluster(ImmutableList.of("K_FOO", "K_BAR"));
+
+    // Then:
+    verify(kafkaTopicClient).deleteTopics(ImmutableList.of("K_BAR"));
+  }
+
+  @Test
+  public void shouldNotDeleteNonSinkTopic() {
     // Given:
-    givenNonSinkTopicExits("BAR", "bar");
+    givenNonSinkTopicExits("bar");
 
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("bar"));
+
+    // Then:
+    verify(kafkaTopicClient, never()).deleteTopics(Collections.singletonList("bar"));
   }
 
   @Test
   public void shouldNotDeleteNonMatchingCaseSensitiveTopics() {
     // Given:
-    givenSinkTopicExists("FOO", "K_FOO");
+    givenExistingTopics("K_FOO");
+    givenSinkTopicExists(ImmutableList.of("K_FOO"));
 
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("K_Foo"));
 
     // Then:
-    verify(kafkaTopicClient).deleteTopics(Collections.emptyList());
+    verify(kafkaTopicClient, times(2)).deleteTopics(Collections.emptyList());
   }
 
 
   @Test
   public void shouldDeleteTopicListWithPattern() {
     //Given:
+    givenExistingTopics("K_FO", "K_FOO", "K_FOOO", "NotMatched");
     givenSinkTopicsExist("K_FO", "K_FOO", "K_FOOO", "NotMatched");
 
     // When:
@@ -152,7 +173,8 @@ public class ClusterTerminatorTest {
   @Test
   public void shouldThrowIfCouldNotDeleteTopicListWithPattern() {
     // Given:
-    givenSinkTopicExists("FOO", "K_FOO");
+    givenExistingTopics("K_FOO");
+    givenSinkTopicExists(ImmutableList.of("K_FOO"));
     doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
@@ -168,24 +190,17 @@ public class ClusterTerminatorTest {
   }
 
   @Test
-  public void shouldThrowIfDeleteTopicListMatchesNonSink() {
-    // Given:
-    givenNonSinkTopicExits("BAR", "BAR");
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid request: BAR is not a KSQL sink topic.");
-
-    // When:
-    clusterTerminator.terminateCluster(ImmutableList.of("BAR"));
-  }
-
-  @Test
   public void shouldDeleteCommandTopic() {
+    // Given:
+    givenExistingTopics("_confluent-ksql-command_topic_command_topic", "topic1", "topic2");
+
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(kafkaTopicClient, ksqlEngine);
     inOrder.verify(ksqlEngine).getPersistentQueries();
+    inOrder.verify(kafkaTopicClient).listTopicNames();
     inOrder.verify(kafkaTopicClient)
         .deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
     inOrder.verify(ksqlEngine).close();
@@ -194,7 +209,7 @@ public class ClusterTerminatorTest {
   @Test
   public void shouldThrowIfCannotDeleteCommandTopic() {
     // Given:
-
+    givenExistingTopics("_confluent-ksql-command_topic_command_topic");
     doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
@@ -209,9 +224,6 @@ public class ClusterTerminatorTest {
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());
 
-    // Then:
-    verify(kafkaTopicClient)
-        .deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
   }
 
   private static KsqlTopic getKsqlTopic(final String topicName, final String kafkaTopicName,
@@ -224,15 +236,18 @@ public class ClusterTerminatorTest {
     when(persistentQueryMetadata.getQueryId()).thenReturn(queryId);
   }
 
-  private void givenSinkTopicExists(final String topicName, final String kafkaTopicName) {
-    when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of(
-        topicName, getKsqlTopic(topicName, kafkaTopicName, true)));
+  private void givenSinkTopicExists(final List<String> kafkaTopicNames) {
+    final Map<String, KsqlTopic> ksqlTopicMap = kafkaTopicNames.stream()
+        .collect(Collectors.toMap(
+            kafkaTopicName -> "KSQL_" + kafkaTopicName,
+            kafkaTopicName -> getKsqlTopic("KSQL_" + kafkaTopicName, kafkaTopicName, true)));
+    when(metaStore.getAllKsqlTopics()).thenReturn(ksqlTopicMap);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
   }
 
-  private void givenNonSinkTopicExits(final String topicName, final String kafkaTopicName) {
+  private void givenNonSinkTopicExits(final String kafkaTopicName) {
     when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of(
-        topicName, getKsqlTopic(topicName, kafkaTopicName, false)));
+        "KSQL_" + kafkaTopicName, getKsqlTopic("KSQL_" + kafkaTopicName, kafkaTopicName, false)));
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
   }
 
@@ -241,5 +256,10 @@ public class ClusterTerminatorTest {
         .map(topicName -> getKsqlTopic(topicName, topicName, true))
         .collect(Collectors.toMap(KsqlTopic::getTopicName, topic -> topic)));
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
+  }
+
+  private void givenExistingTopics(final String... topicNames) {
+    when(kafkaTopicClient.listTopicNames())
+        .thenReturn(Stream.of(topicNames).collect(Collectors.toSet()));
   }
 }

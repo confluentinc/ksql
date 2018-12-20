@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -52,7 +53,6 @@ public class ClusterTerminator {
 
   @SuppressWarnings("unchecked")
   public void terminateCluster(final List<String> deleteTopicPatterns) {
-    validateDeleteList(deleteTopicPatterns);
     terminatePersistentQueries();
     deleteSinkTopics(deleteTopicPatterns);
     deleteCommandTopic();
@@ -63,22 +63,6 @@ public class ClusterTerminator {
     new ArrayList<>(ksqlEngine.getPersistentQueries()).stream()
         .map(PersistentQueryMetadata::getQueryId)
         .forEach(queryId -> ksqlEngine.terminateQuery(queryId, true));
-  }
-
-  private void validateDeleteList(final List<String> deleteTopicPatterns) {
-    if (deleteTopicPatterns.isEmpty()) {
-      return;
-    }
-    ksqlEngine.getMetaStore().getAllKsqlTopics().values()
-        .forEach(ksqlTopic -> deleteTopicPatterns.forEach(
-            deleteTopicPattern -> {
-              if (ksqlTopic.getKafkaTopicName().equals(deleteTopicPattern)
-                  && !ksqlTopic.isKsqlSink()) {
-                throw new KsqlException("Invalid request: " + deleteTopicPattern
-                    + " is not a KSQL sink topic.");
-              }
-            }
-        ));
   }
 
   private void deleteSinkTopics(final List<String> deleteTopicPatterns) {
@@ -99,12 +83,17 @@ public class ClusterTerminator {
 
     try {
       ExecutorUtil.executeWithRetries(
-          () -> serviceContext.getTopicClient().deleteTopics(toDelete),
+          () -> serviceContext.getTopicClient().deleteTopics(getExistingTopics(toDelete)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final Exception e) {
       throw new KsqlException(
           "Exception while deleting topics: " + StringUtils.join(toDelete, ","));
     }
+  }
+
+  private List<String> getExistingTopics(final List<String> topicList) {
+    final Set<String> existingTopicNames = serviceContext.getTopicClient().listTopicNames();
+    return topicList.stream().filter(existingTopicNames::contains).collect(Collectors.toList());
   }
 
   private static boolean topicShouldBeDeleted(
@@ -121,7 +110,7 @@ public class ClusterTerminator {
     try {
       ExecutorUtil.executeWithRetries(
           () -> kafkaTopicClient.deleteTopics(
-              Collections.singletonList(commandTopic)),
+              getExistingTopics(Collections.singletonList(commandTopic))),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final Exception e) {
       throw new KsqlException("Could not delete the command topic: "

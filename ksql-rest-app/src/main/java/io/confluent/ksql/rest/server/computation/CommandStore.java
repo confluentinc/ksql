@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.computation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -181,12 +180,6 @@ public class CommandStore implements CommandQueue, Closeable {
               seqNum,
               timeout.toMillis()));
     }
-  }
-
-  Status getCommandStatus(final CommandId commandId) {
-    return commandStatusMap.containsKey(commandId)
-        ? commandStatusMap.get(commandId).getStatus().getStatus()
-        : null;
   }
 
   private void completeSatisfiedSequenceNumberFutures() {

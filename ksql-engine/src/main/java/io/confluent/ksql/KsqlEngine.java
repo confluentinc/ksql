@@ -454,7 +454,7 @@ public class KsqlEngine implements Closeable {
       metaStore.removePersistentQuery(persistentQuery.getQueryId().getId());
     }
 
-    if (query.hasEveryBeenStarted()) {
+    if (query.hasEverBeenStarted()) {
       SchemaRegistryUtil
           .cleanUpInternalTopicAvroSchemas(applicationId, serviceContext.getSchemaRegistryClient());
       serviceContext.getTopicClient().deleteInternalTopics(applicationId);

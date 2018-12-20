@@ -46,7 +46,7 @@ public class QueryMetadata {
   private final Set<String> sourceNames;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
-  private boolean everyStarted = false;
+  private boolean everStarted = false;
 
   protected QueryMetadata(
       final String statementString,
@@ -124,8 +124,8 @@ public class QueryMetadata {
     return sourceNames;
   }
 
-  public boolean hasEveryBeenStarted() {
-    return everyStarted;
+  public boolean hasEverBeenStarted() {
+    return everStarted;
   }
 
   public void close() {
@@ -140,7 +140,7 @@ public class QueryMetadata {
 
   public void start() {
     LOG.info("Starting query with application id: {}", queryApplicationId);
-    everyStarted = true;
+    everStarted = true;
     queryStateListener.ifPresent(kafkaStreams::setStateListener);
     kafkaStreams.start();
   }

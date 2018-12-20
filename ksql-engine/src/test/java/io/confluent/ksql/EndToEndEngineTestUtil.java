@@ -372,10 +372,10 @@ final class EndToEndEngineTestUtil {
     private final WindowData window;
 
     Record(final Topic topic,
-        final String key,
-        final Object value,
-        final long timestamp,
-        final WindowData window) {
+           final String key,
+           final Object value,
+           final long timestamp,
+           final WindowData window) {
       this.topic = topic;
       this.key = key;
       this.value = value;
@@ -515,7 +515,7 @@ final class EndToEndEngineTestUtil {
     }
 
     void setPersistedProperties(final Map<String, String> persistedProperties) {
-      this.persistedProperties = persistedProperties;
+       this.persistedProperties = persistedProperties;
     }
 
     Optional<Map<String, String>> persistedProperties() {
@@ -532,7 +532,7 @@ final class EndToEndEngineTestUtil {
 
     @SuppressWarnings("unchecked")
     void processInput(final TopologyTestDriver testDriver,
-        final SchemaRegistryClient schemaRegistryClient) {
+                      final SchemaRegistryClient schemaRegistryClient) {
       inputRecords.forEach(
           r -> testDriver.pipeInput(
               new ConsumerRecordFactory<>(
@@ -545,7 +545,7 @@ final class EndToEndEngineTestUtil {
 
     @SuppressWarnings("unchecked")
     void verifyOutput(final TopologyTestDriver testDriver,
-        final SchemaRegistryClient schemaRegistryClient) {
+                      final SchemaRegistryClient schemaRegistryClient) {
       if (isAnyExceptionExpected()) {
         failDueToMissingException();
       }
@@ -625,28 +625,28 @@ final class EndToEndEngineTestUtil {
 
       try(final ServiceContext serviceContext = getServiceContext();
           final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
-        final Topology topology = getStreamsTopology(testCase, serviceContext, ksqlEngine, ksqlConfig);
-        final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
-        writeExpectedTopologyFile(testCase.name, topology, configsToPersist, objectWriter, topologyDir);
+          final Topology topology = getStreamsTopology(testCase, serviceContext, ksqlEngine, ksqlConfig);
+          final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
+          writeExpectedTopologyFile(testCase.name, topology, configsToPersist, objectWriter, topologyDir);
       }
     });
   }
 
   private static Topology getStreamsTopology(final TestCase testCase,
-      final ServiceContext serviceContext,
-      final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig) {
+                                             final ServiceContext serviceContext,
+                                             final KsqlEngine ksqlEngine,
+                                             final KsqlConfig ksqlConfig) {
 
-    final List<QueryMetadata> queries = new ArrayList<>();
-    testCase.initializeTopics(serviceContext);
-    testCase.statements().forEach(
-        q -> queries.addAll(
-            ksqlEngine.execute(q, ksqlConfig, testCase.properties()))
-    );
+      final List<QueryMetadata> queries = new ArrayList<>();
+      testCase.initializeTopics(serviceContext);
+      testCase.statements().forEach(
+          q -> queries.addAll(
+              ksqlEngine.execute(q, ksqlConfig, testCase.properties()))
+      );
 
-    assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
+      assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
 
-    return queries.get(queries.size() - 1).getTopology();
+     return queries.get(queries.size() - 1).getTopology();
   }
 
   private static TopologyTestDriver buildStreamsTopologyTestDriver(
@@ -671,48 +671,48 @@ final class EndToEndEngineTestUtil {
         0);
   }
 
-  private static void writeExpectedTopologyFile(final String queryName,
-      final Topology topology,
-      final Map<String, String> configs,
-      final ObjectWriter objectWriter,
-      final String topologyDir) {
+    private static void writeExpectedTopologyFile(final String queryName,
+                                                  final Topology topology,
+                                                  final Map<String, String> configs,
+                                                  final ObjectWriter objectWriter,
+                                                  final String topologyDir) {
 
-    final Path newTopologyDataPath = Paths.get(topologyDir);
-    try {
-      final String updatedQueryName = formatQueryName(queryName);
-      final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
-      final String configString = objectWriter.writeValueAsString(configs);
-      final String topologyString = topology.describe().toString();
+        final Path newTopologyDataPath = Paths.get(topologyDir);
+        try {
+            final String updatedQueryName = formatQueryName(queryName);
+            final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
+            final String configString = objectWriter.writeValueAsString(configs);
+            final String topologyString = topology.describe().toString();
 
-      final byte[] topologyBytes =
-          (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
-              .getBytes(StandardCharsets.UTF_8);
+          final byte[] topologyBytes =
+              (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
+                  .getBytes(StandardCharsets.UTF_8);
 
-      Files.write(topologyFile,
-          topologyBytes,
-          StandardOpenOption.CREATE,
-          StandardOpenOption.WRITE,
-          StandardOpenOption.TRUNCATE_EXISTING);
+            Files.write(topologyFile,
+                        topologyBytes,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.WRITE,
+                        StandardOpenOption.TRUNCATE_EXISTING);
 
 
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
-  }
 
   static String formatQueryName(final String originalQueryName) {
     return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
   }
 
   static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) throws IOException {
-    final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
-    final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
-    final List<String> topologyFiles = findExpectedTopologyFiles(dir);
-    topologyFiles.forEach(fileName -> {
-      final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
-      expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
-    });
-    return expectedTopologyAndConfigs;
+         final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
+         final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
+         final List<String> topologyFiles = findExpectedTopologyFiles(dir);
+         topologyFiles.forEach(fileName -> {
+             final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
+             expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
+         });
+      return expectedTopologyAndConfigs;
   }
 
   private static TopologyAndConfigs readTopologyFile(final String file, final ObjectReader objectReader) {
@@ -726,12 +726,12 @@ final class EndToEndEngineTestUtil {
       Map<String, String> persistedConfigs = null;
 
       while ((topologyAndConfigLine = reader.readLine()) != null) {
-        if (topologyAndConfigLine.contains(CONFIG_END_MARKER)) {
-          persistedConfigs = objectReader.readValue(topologyFileBuilder.toString());
-          topologyFileBuilder.setLength(0);
-        } else {
-          topologyFileBuilder.append(topologyAndConfigLine).append("\n");
-        }
+           if (topologyAndConfigLine.contains(CONFIG_END_MARKER)) {
+               persistedConfigs = objectReader.readValue(topologyFileBuilder.toString());
+               topologyFileBuilder.setLength(0);
+           } else {
+             topologyFileBuilder.append(topologyAndConfigLine).append("\n");
+           }
       }
 
       return new TopologyAndConfigs(topologyFileBuilder.toString(), persistedConfigs);
@@ -742,7 +742,7 @@ final class EndToEndEngineTestUtil {
   }
 
   private static List<String> findExpectedTopologyFiles(final String dir) throws IOException {
-    final List<String> topologyFiles = new ArrayList<>();
+       final List<String> topologyFiles = new ArrayList<>();
     try (final BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
@@ -750,7 +750,7 @@ final class EndToEndEngineTestUtil {
 
       String topology;
       while ((topology = reader.readLine()) != null) {
-        topologyFiles.add(topology);
+          topologyFiles.add(topology);
       }
     }
     return topologyFiles;
@@ -823,10 +823,10 @@ final class EndToEndEngineTestUtil {
             KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
         .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
 
-    if(additionalConfigs != null){
-      mapBuilder.putAll(additionalConfigs);
-    }
-    return mapBuilder.build();
+      if(additionalConfigs != null){
+          mapBuilder.putAll(additionalConfigs);
+      }
+      return mapBuilder.build();
 
   }
 
@@ -907,8 +907,8 @@ final class EndToEndEngineTestUtil {
 
   @SuppressWarnings("unchecked")
   static Object avroToValueSpec(final Object avro,
-      final org.apache.avro.Schema schema,
-      final boolean toUpper) {
+                                final org.apache.avro.Schema schema,
+                                final boolean toUpper) {
     if (avro == null) {
       return null;
     }
@@ -944,11 +944,11 @@ final class EndToEndEngineTestUtil {
             .collect(Collectors.toList());
       case MAP:
         return ((Map<Object, Object>)avro).entrySet().stream().collect(
-            Collectors.toMap(
-                e -> e.getKey().toString(),
-                e -> avroToValueSpec(e.getValue(), schema.getValueType(), toUpper)
-            )
-        );
+                Collectors.toMap(
+                    e -> e.getKey().toString(),
+                    e -> avroToValueSpec(e.getValue(), schema.getValueType(), toUpper)
+                )
+            );
       case RECORD:
         final Map<String, Object> recordSpec = new HashMap<>();
         schema.getFields().forEach(
@@ -967,13 +967,13 @@ final class EndToEndEngineTestUtil {
             .anyMatch(s -> s.getType().equals(org.apache.avro.Schema.Type.NULL));
         final Object resolved = avroToValueSpec(avro, schema.getTypes().get(pos), toUpper);
         if (schema.getTypes().get(pos).getType().equals(org.apache.avro.Schema.Type.NULL)
-            || schema.getTypes().size() == 2 && hasNull) {
+          || schema.getTypes().size() == 2 && hasNull) {
           return resolved;
         }
         final Map<String, Object> ret = Maps.newHashMap();
         schema.getTypes()
             .forEach(
-                s -> ret.put(s.getName().toUpperCase(), null));
+              s -> ret.put(s.getName().toUpperCase(), null));
         ret.put(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
         return ret;
       default:
@@ -982,8 +982,8 @@ final class EndToEndEngineTestUtil {
   }
 
   static class TopologyAndConfigs {
-    public final String topology;
-    final Map<String, String> configs;
+      public final String topology;
+      final Map<String, String> configs;
 
     TopologyAndConfigs(final String topology, final Map<String, String> configs) {
       this.topology = topology;

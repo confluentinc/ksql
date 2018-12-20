@@ -141,20 +141,20 @@ public class SecureIntegrationTest {
   public void shouldRunQueryAgainstKafkaClusterOverSsl() throws Exception {
     // Given:
     givenAllowAcl(ALL_USERS,
-        resource(CLUSTER, "kafka-cluster"),
-        ops(DESCRIBE_CONFIGS, CREATE));
+                  resource(CLUSTER, "kafka-cluster"),
+                  ops(DESCRIBE_CONFIGS, CREATE));
 
     givenAllowAcl(ALL_USERS,
-        resource(TOPIC, Acl.WildCardResource()),
-        ops(DESCRIBE, READ, WRITE, DELETE));
+                  resource(TOPIC, Acl.WildCardResource()),
+                  ops(DESCRIBE, READ, WRITE, DELETE));
 
     givenAllowAcl(ALL_USERS,
-        resource(GROUP, Acl.WildCardResource()),
-        ops(DESCRIBE, READ));
+                  resource(GROUP, Acl.WildCardResource()),
+                  ops(DESCRIBE, READ));
 
     final Map<String, Object> configs = getBaseKsqlConfig();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-        SECURE_CLUSTER.bootstrapServers(SecurityProtocol.SSL));
+                SECURE_CLUSTER.bootstrapServers(SecurityProtocol.SSL));
 
     // Additional Properties required for KSQL to talk to cluster over SSL:
     configs.put("security.protocol", "SSL");
@@ -193,24 +193,24 @@ public class SecureIntegrationTest {
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
 
     givenAllowAcl(NORMAL_USER,
-        resource(CLUSTER, "kafka-cluster"),
-        ops(DESCRIBE_CONFIGS));
+                  resource(CLUSTER, "kafka-cluster"),
+                  ops(DESCRIBE_CONFIGS));
 
     givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, INPUT_TOPIC),
-        ops(READ));
+                  resource(TOPIC, INPUT_TOPIC),
+                  ops(READ));
 
     givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, outputTopic),
-        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
+                  resource(TOPIC, outputTopic),
+                  ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
 
     givenAllowAcl(NORMAL_USER,
-        prefixedResource(TOPIC, "_confluent-ksql-my-service-id_"),
-        ops(ALL));
+                  prefixedResource(TOPIC, "_confluent-ksql-my-service-id_"),
+                  ops(ALL));
 
     givenAllowAcl(NORMAL_USER,
-        prefixedResource(GROUP, "_confluent-ksql-my-service-id_"),
-        ops(ALL));
+                  prefixedResource(GROUP, "_confluent-ksql-my-service-id_"),
+                  ops(ALL));
 
     givenTestSetupWithConfig(ksqlConfig);
 
@@ -236,16 +236,16 @@ public class SecureIntegrationTest {
 
       // Then:
       assertCanRunKsqlQuery("CREATE STREAM %s WITH (VALUE_FORMAT='AVRO') AS "
-              + "SELECT * FROM %s;",
-          outputTopic, INPUT_STREAM);
+                            + "SELECT * FROM %s;",
+                            outputTopic, INPUT_STREAM);
     } finally {
       HttpsURLConnection.setDefaultHostnameVerifier(existing);
     }
   }
 
   private static void givenAllowAcl(final Credentials credentials,
-      final ResourcePattern resource,
-      final Set<AclOperation> ops) {
+                                    final ResourcePattern resource,
+                                    final Set<AclOperation> ops) {
     SECURE_CLUSTER.addUserAcl(credentials.username, AclPermissionType.ALLOW, resource, ops);
   }
 
@@ -254,12 +254,12 @@ public class SecureIntegrationTest {
   }
 
   private static ResourcePattern resource(final ResourceType resourceType,
-      final String resourceName) {
+                                          final String resourceName) {
     return new ResourcePattern(resourceType, resourceName, PatternType.LITERAL);
   }
 
   private static ResourcePattern prefixedResource(final ResourceType resourceType,
-      final String resourceName) {
+                                                  final String resourceName) {
     return new ResourcePattern(resourceType, resourceName, PatternType.PREFIXED);
   }
 
@@ -273,17 +273,17 @@ public class SecureIntegrationTest {
 
   private void assertCanRunSimpleKsqlQuery() throws Exception {
     assertCanRunKsqlQuery("CREATE STREAM %s AS SELECT * FROM %s;",
-        outputTopic, INPUT_STREAM);
+                          outputTopic, INPUT_STREAM);
   }
 
   private void assertCanRunRepartitioningKsqlQuery() throws Exception {
     assertCanRunKsqlQuery("CREATE TABLE %s AS SELECT itemid, count(*) "
-            + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
-        outputTopic, INPUT_STREAM);
+                          + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
+                          outputTopic, INPUT_STREAM);
   }
 
   private void assertCanRunKsqlQuery(final String queryString,
-      final Object... args) throws Exception {
+                                     final Object... args) throws Exception {
     executePersistentQuery(queryString, args);
 
     TestUtils.waitForCondition(
@@ -335,17 +335,17 @@ public class SecureIntegrationTest {
 
   private void execInitCreateStreamQueries() {
     final String ordersStreamStr = String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
-        + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
-        + "map<varchar, double>) WITH (value_format = 'json', "
-        + "kafka_topic='%s' , "
-        + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
+                                           + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, KEYVALUEMAP "
+                                           + "map<varchar, double>) WITH (value_format = 'json', "
+                                           + "kafka_topic='%s' , "
+                                           + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
 
     ksqlEngine.execute(
         ordersStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   private void executePersistentQuery(final String queryString,
-      final Object... params) {
+                                      final Object... params) {
     final String query = String.format(queryString, params);
 
     final QueryMetadata queryMetadata = ksqlEngine

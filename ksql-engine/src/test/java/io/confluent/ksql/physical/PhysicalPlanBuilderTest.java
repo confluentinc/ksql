@@ -599,8 +599,8 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
     final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(createStream + "\n " +
-            csasQuery + "\n " +
-            insertIntoQuery,
+        csasQuery + "\n " +
+        insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
     final Schema resultSchema = queryMetadataList.get(0).getOutputNode().getSchema();

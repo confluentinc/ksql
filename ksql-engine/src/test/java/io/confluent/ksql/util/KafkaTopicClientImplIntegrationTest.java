@@ -84,7 +84,7 @@ public class KafkaTopicClientImplIntegrationTest {
   public void shouldSetTopicConfig() {
     // When:
     final boolean changed = client
-        .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "1245678"));
+            .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "1245678"));
 
     // Then:
     assertThat(changed, is(true));
@@ -125,7 +125,7 @@ public class KafkaTopicClientImplIntegrationTest {
 
     // Then:
     assertThatEventually(() -> client.getTopicCleanupPolicy(testTopic),
-        is(KafkaTopicClient.TopicCleanupPolicy.DELETE));
+                         is(KafkaTopicClient.TopicCleanupPolicy.DELETE));
   }
 
   @Test

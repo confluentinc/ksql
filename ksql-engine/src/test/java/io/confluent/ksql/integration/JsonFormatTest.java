@@ -99,13 +99,13 @@ public class JsonFormatTest {
     final OrderDataProvider orderDataProvider = new OrderDataProvider();
 
     topicProducer
-        .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
+            .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
     final Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
 
     final GenericRow messageRow = new GenericRow(Collections.singletonList(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
-            + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
+        + "\"caasVersion\":\"0.0.2\",\"cloud\":\"aws\",\"logs\":[{\"entry\":\"first\"}],\"clusterId\":\"cp99\",\"clusterName\":\"kafka\",\"cpComponentId\":\"kafka\",\"host\":\"kafka-1-wwl0p\",\"k8sId\":\"k8s13\",\"k8sName\":\"perf\",\"level\":\"ERROR\",\"logger\":\"kafka.server.ReplicaFetcherThread\",\"message\":\"Found invalid messages during fetch for partition [foo512,172] offset 0 error Record is corrupt (stored crc = 1321230880, computed crc = 1139143803)\",\"networkId\":\"vpc-d8c7a9bf\",\"region\":\"us-west-2\",\"serverId\":\"1\",\"skuId\":\"sku5\",\"source\":\"kafka\",\"tenantId\":\"t47\",\"tenantName\":\"perf-test\",\"thread\":\"ReplicaFetcherThread-0-2\",\"zone\":\"us-west-2a\"},\"stream\":\"stdout\",\"time\":2017}"));
 
     final Map<String, GenericRow> records = new HashMap<>();
     records.put("1", messageRow);
@@ -121,9 +121,9 @@ public class JsonFormatTest {
         + "key='ordertime');", inputStream, inputTopic);
 
     final String usersTableStr = String.format("CREATE TABLE %s (userid varchar, age integer) WITH "
-            + "(value_format = 'json', kafka_topic='%s', "
-            + "KEY='userid');",
-        usersTable, usersTopic);
+                                         + "(value_format = 'json', kafka_topic='%s', "
+                                         + "KEY='userid');",
+                                         usersTable, usersTopic);
 
     final String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
@@ -146,8 +146,8 @@ public class JsonFormatTest {
 
     final String selectColumns =
         "(ORDERTIME+1500962514806) , TIMESTAMPTOSTRING(ORDERTIME+1500962514806, "
-            + "'yyyy-MM-dd HH:mm:ss.SSS'), "
-            + "STRINGTOTIMESTAMP"
+        + "'yyyy-MM-dd HH:mm:ss.SSS'), "
+        + "STRINGTOTIMESTAMP"
             + "(TIMESTAMPTOSTRING"
             + "(ORDERTIME+1500962514806, 'yyyy-MM-dd HH:mm:ss.SSS'), 'yyyy-MM-dd HH:mm:ss.SSS')";
     final String whereClause = "ORDERUNITS > 20 AND ITEMID LIKE '%_8'";
@@ -199,7 +199,7 @@ public class JsonFormatTest {
   @Test
   public void testTableSinkCleanupProperty() throws Exception {
     final String queryString = String.format("CREATE TABLE %s AS SELECT * "
-            + "FROM %s;",
+                                             + "FROM %s;",
         streamName, usersTable);
     executePersistentQuery(queryString);
 
@@ -222,7 +222,7 @@ public class JsonFormatTest {
     executePersistentQuery(queryString);
 
     final Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Collections.singletonList("aws")));
@@ -235,14 +235,14 @@ public class JsonFormatTest {
   @Test
   public void testJsonStreamExtractorNested() {
     final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
-            + "(message, '$.log.logs[0].entry') "
-            + "FROM %s;",
-        streamName, messageLogStream);
+                    + "(message, '$.log.logs[0].entry') "
+                    + "FROM %s;",
+            streamName, messageLogStream);
 
     executePersistentQuery(queryString);
 
     final Schema resultSchema = SchemaUtil
-        .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
+            .removeImplicitRowTimeRowKeyFromSchema(metaStore.getSource(streamName).getSchema());
 
     final Map<String, GenericRow> expectedResults = new HashMap<>();
     expectedResults.put("1", new GenericRow(Collections.singletonList("first")));

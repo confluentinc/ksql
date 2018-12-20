@@ -435,7 +435,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     } catch (final UnsupportedVersionException e) {
       throw new KsqlException(
           "The kafka brokers are incompatible with. "
-              + "KSQL requires broker versions >= 0.10.1.x"
+          + "KSQL requires broker versions >= 0.10.1.x"
       );
     } catch (final Exception e) {
       throw new KsqlException("Failed to get Kafka cluster information", e);
@@ -443,8 +443,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   static void ensureCommandTopic(final KsqlRestConfig restConfig,
-      final KafkaTopicClient topicClient,
-      final String commandTopic) {
+                                 final KafkaTopicClient topicClient,
+                                 final String commandTopic) {
     final long requiredTopicRetention = Long.MAX_VALUE;
     if (topicClient.isTopicExists(commandTopic)) {
       final ImmutableMap<String, Object> requiredConfig =
@@ -452,7 +452,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
       if (topicClient.addTopicConfig(commandTopic, requiredConfig)) {
         log.info("Corrected retention.ms on command topic. topic:{}, retention.ms:{}",
-            commandTopic, requiredTopicRetention);
+                 commandTopic, requiredTopicRetention);
       }
 
       return;
@@ -470,8 +470,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       }
       if (replicationFactor < 2) {
         log.warn("Creating topic {} with replication factor of {} which is less than 2. "
-                + "This is not advisable in a production environment. ",
-            commandTopic, replicationFactor);
+                 + "This is not advisable in a production environment. ",
+                commandTopic, replicationFactor);
       }
 
       // for now we create the command topic with infinite retention so that we
@@ -498,8 +498,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final boolean isKey) {
     final Deserializer<T> result = new KafkaJsonDeserializer<>();
     final String typeConfigProperty = isKey
-        ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-        : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
+                                ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
+                                : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
 
     final Map<String, ?> props = Collections.singletonMap(
         typeConfigProperty,

@@ -41,9 +41,9 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     private final TopicCleanupPolicy cleanupPolicy;
 
     public FakeTopic(final String topicName,
-        final int numPartitions,
-        final short replicatonFactor,
-        final TopicCleanupPolicy cleanupPolicy) {
+                     final int numPartitions,
+                     final short replicatonFactor,
+                     final TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
       this.replicatonFactor = replicatonFactor;
@@ -116,7 +116,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public Set<String> listNonInternalTopicNames() {
     return topicMap.keySet().stream()
         .filter((topic) -> (!topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
-            || !topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+                            || !topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
         .collect(Collectors.toSet());
   }
 

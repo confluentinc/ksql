@@ -16,6 +16,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -60,6 +61,10 @@ public class KsqlContext {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
   }
 
+  public ServiceContext getServiceContext() {
+    return serviceContext;
+  }
+
   public MetaStore getMetaStore() {
     return ksqlEngine.getMetaStore();
   }
@@ -67,11 +72,11 @@ public class KsqlContext {
   /**
    * Execute the ksql statement in this context.
    */
-  public void sql(final String sql) {
-    sql(sql, Collections.emptyMap());
+  public List<QueryMetadata> sql(final String sql) {
+    return sql(sql, Collections.emptyMap());
   }
 
-  public void sql(final String sql, final Map<String, Object> overriddenProperties) {
+  public List<QueryMetadata> sql(final String sql, final Map<String, Object> overriddenProperties) {
     final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(sql);
 
     ksqlEngine.tryExecute(statements, ksqlConfig, overriddenProperties);
@@ -84,14 +89,14 @@ public class KsqlContext {
 
     for (final QueryMetadata queryMetadata : queries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata persistentQueryMetadata
-            = (PersistentQueryMetadata) queryMetadata;
-        persistentQueryMetadata.start();
+        queryMetadata.start();
       } else {
         LOG.warn("Ignoring statemenst: {}", sql);
         LOG.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }
+
+    return queries;
   }
 
   public Set<QueryMetadata> getRunningQueries() {
@@ -101,5 +106,9 @@ public class KsqlContext {
   public void close() {
     ksqlEngine.close();
     serviceContext.close();
+  }
+
+  public void terminateQuery(final QueryId queryId) {
+    ksqlEngine.terminateQuery(queryId, true);
   }
 }

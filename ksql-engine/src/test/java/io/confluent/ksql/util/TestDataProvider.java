@@ -16,23 +16,30 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 
 public abstract class TestDataProvider {
-  final String topicName;
-  final String ksqlSchemaString;
-  final String key;
-  final Schema schema;
-  final Map<String, GenericRow> data;
-  final String kstreamName;
+  private final String topicName;
+  private final String ksqlSchemaString;
+  private final String key;
+  private final Schema schema;
+  private final Map<String, GenericRow> data;
+  private final String kstreamName;
 
-  public TestDataProvider(final String namePrefix, final String ksqlSchemaString, final String key, final Schema schema, final Map<String, GenericRow> data) {
-    this.topicName = namePrefix + "_TOPIC";
+  TestDataProvider(
+      final String namePrefix,
+      final String ksqlSchemaString,
+      final String key,
+      final Schema schema,
+      final Map<String, GenericRow> data
+  ) {
+    this.topicName = Objects.requireNonNull(namePrefix, "namePrefix") + "_TOPIC";
     this.kstreamName =  namePrefix + "_KSTREAM";
-    this.ksqlSchemaString = ksqlSchemaString;
-    this.key = key;
-    this.schema = schema;
-    this.data = data;
+    this.ksqlSchemaString = Objects.requireNonNull(ksqlSchemaString, "ksqlSchemaString");
+    this.key = Objects.requireNonNull(key, "key");
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.data = Objects.requireNonNull(data, "data");
   }
 
   public String topicName() {

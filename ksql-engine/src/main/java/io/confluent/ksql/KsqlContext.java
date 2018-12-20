@@ -108,6 +108,6 @@ public class KsqlContext {
   }
 
   public void terminateQuery(final QueryId queryId) {
-    ksqlEngine.terminateQuery(queryId, true);
+    ksqlEngine.terminateQuery(queryId);
   }
 }

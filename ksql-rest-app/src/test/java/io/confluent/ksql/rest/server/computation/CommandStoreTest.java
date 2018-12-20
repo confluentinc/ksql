@@ -104,11 +104,11 @@ public class CommandStoreTest {
         .thenAnswer(invocation -> new CommandId(
             CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
 
-    when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
-
     when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
 
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
+
+    when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
     commandStore = new CommandStore(
         commandTopic,
@@ -136,16 +136,12 @@ public class CommandStoreTest {
     when(commandTopic.send(any(), any()))
         .thenThrow(new RuntimeException("oops"))
         .thenReturn(recordMetadata);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
 
-    try {
-      commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
-      fail("enqueueCommand should have raised an exception");
-    } catch (final KsqlException e) {
-      // Do nothing!
-    }
-
-    // Should:
+    // When:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
   }
 
   @Test

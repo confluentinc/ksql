@@ -20,7 +20,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -80,18 +79,10 @@ public class ClusterTerminator {
         .map(KsqlTopic::getKafkaTopicName)
         .filter(topicName -> topicShouldBeDeleted(topicName, patterns))
         .collect(Collectors.toList());
-
-    try {
-      ExecutorUtil.executeWithRetries(
-          () -> serviceContext.getTopicClient().deleteTopics(getExistingTopics(toDelete)),
-          ExecutorUtil.RetryBehaviour.ALWAYS);
-    } catch (final Exception e) {
-      throw new KsqlException(
-          "Exception while deleting topics: " + StringUtils.join(toDelete, ","));
-    }
+    deleteTopics(toDelete);
   }
 
-  private List<String> getExistingTopics(final List<String> topicList) {
+  private List<String> removeDeletedTopics(final List<String> topicList) {
     final Set<String> existingTopicNames = serviceContext.getTopicClient().listTopicNames();
     return topicList.stream().filter(existingTopicNames::contains).collect(Collectors.toList());
   }
@@ -106,15 +97,18 @@ public class ClusterTerminator {
   private void deleteCommandTopic() {
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
-    final KafkaTopicClient kafkaTopicClient = serviceContext.getTopicClient();
+    deleteTopics(Collections.singletonList(commandTopic));
+  }
+
+  private void deleteTopics(final List<String> topicsToBeDeleted) {
     try {
       ExecutorUtil.executeWithRetries(
-          () -> kafkaTopicClient.deleteTopics(
-              getExistingTopics(Collections.singletonList(commandTopic))),
+          () -> serviceContext.getTopicClient().deleteTopics(
+              removeDeletedTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final Exception e) {
-      throw new KsqlException("Could not delete the command topic: "
-          + commandTopic, e);
+      throw new KsqlException(
+          "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ","));
     }
   }
 }

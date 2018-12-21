@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
+import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.cli.console.Console;
 import java.util.function.Supplier;
 
@@ -26,6 +27,7 @@ public final class CliCommandRegisterUtil {
   }
 
   public static void registerDefaultCommands(
+      final KsqlRequestExecutor requestExecutor,
       final Console console,
       final Supplier<String> versionSuppler) {
 
@@ -40,5 +42,7 @@ public final class CliCommandRegisterUtil {
     console.registerCliSpecificCommand(new Version(console, versionSuppler));
 
     console.registerCliSpecificCommand(new Exit(console));
+
+    console.registerCliSpecificCommand(new RunScript(console, requestExecutor));
   }
 }

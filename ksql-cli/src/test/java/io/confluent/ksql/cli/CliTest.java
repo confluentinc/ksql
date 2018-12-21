@@ -161,7 +161,7 @@ public class CliTest {
     lineSupplier = niceMock(Supplier.class);
     terminal = new TestTerminal(lineSupplier);
     rowCaptor = new TestRowCaptor();
-    console = new Console(CLI_OUTPUT_FORMAT, () -> "v1.2.3", terminal, rowCaptor);
+    console = new Console(CLI_OUTPUT_FORMAT, terminal, rowCaptor);
 
     localCli = new Cli(
         STREAMED_QUERY_ROW_LIMIT,

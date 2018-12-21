@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
@@ -57,13 +58,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Cli implements Closeable {
+public class Cli implements KsqlRequestExecutor, Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
@@ -100,8 +102,22 @@ public class Cli implements Closeable {
     this.terminal = terminal;
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
 
+    final Supplier<String> versionSuppler =
+        () -> restClient.getServerInfo().getResponse().getVersion();
+
+    CliCommandRegisterUtil.registerDefaultCommands(this, terminal, versionSuppler);
+
     terminal
         .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient, terminal.writer()));
+  }
+
+  @Override
+  public void makeKsqlRequest(final String requestBody) {
+    try {
+      printKsqlResponse(restClient.makeKsqlRequest(requestBody));
+    } catch (IOException e) {
+      throw new KsqlException(e);
+    }
   }
 
   public void runInteractively() {
@@ -222,7 +238,7 @@ public class Cli implements Closeable {
         );
 
       } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
-        listProperties(statementText);
+        makeKsqlRequest(statementText);
 
       } else if (statementContext.statement() instanceof SqlBaseParser.SetPropertyContext) {
         setProperty(statementContext);
@@ -238,9 +254,7 @@ public class Cli implements Closeable {
       }
     }
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
+      makeKsqlRequest(consecutiveStatements.toString());
     }
   }
 
@@ -259,7 +273,7 @@ public class Cli implements Closeable {
   private void runScript(
       final SqlBaseParser.SingleStatementContext statementContext,
       final String statementText
-  ) throws IOException {
+  ) {
     final SqlBaseParser.RunScriptContext runScriptContext =
         (SqlBaseParser.RunScriptContext) statementContext.statement();
     final String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
@@ -274,9 +288,7 @@ public class Cli implements Closeable {
       );
     }
     setProperty(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
-    printKsqlResponse(
-        restClient.makeKsqlRequest(statementText)
-    );
+    makeKsqlRequest(statementText);
   }
 
   private StringBuilder printOrDisplayQueryResults(
@@ -285,7 +297,7 @@ public class Cli implements Closeable {
       final String statementText
   ) throws InterruptedException, IOException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+      makeKsqlRequest(consecutiveStatements.toString());
       consecutiveStatements.setLength(0);
     }
     if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
@@ -294,11 +306,6 @@ public class Cli implements Closeable {
       handlePrintedTopic(statementText);
     }
     return consecutiveStatements;
-  }
-
-  private void listProperties(final String statementText) throws IOException {
-    final KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
-    terminal.printKsqlEntityList(ksqlEntityList);
   }
 
   private void printKsqlResponse(final RestResponse<KsqlEntityList> response) throws IOException {
@@ -458,11 +465,9 @@ public class Cli implements Closeable {
   private StringBuilder unsetProperty(
       final StringBuilder consecutiveStatements,
       final SqlBaseParser.SingleStatementContext statementContext
-  ) throws IOException {
+  ) {
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
+      makeKsqlRequest(consecutiveStatements.toString());
       consecutiveStatements.setLength(0);
     }
     final SqlBaseParser.UnsetPropertyContext unsetPropertyContext =

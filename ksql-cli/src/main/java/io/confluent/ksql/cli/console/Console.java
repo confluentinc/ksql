@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
-import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
@@ -85,7 +84,7 @@ import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class Console implements Closeable {
+public class Console implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
 
@@ -166,11 +165,8 @@ public final class Console implements Closeable {
 
     final KsqlTerminal terminal = new JLineTerminal(isCliCommand, historyFilePath);
 
-    final Supplier<String> versionSuppler =
-        () -> restClient.getServerInfo().getResponse().getVersion();
-
     final Console console = new Console(
-        outputFormat, versionSuppler, terminal, new NoOpRowCaptor());
+        outputFormat, terminal, new NoOpRowCaptor());
 
     consoleRef.set(console);
     return console;
@@ -178,7 +174,6 @@ public final class Console implements Closeable {
 
   public Console(
       final OutputFormat outputFormat,
-      final Supplier<String> versionSuppler,
       final KsqlTerminal terminal,
       final RowCaptor rowCaptor
   ) {
@@ -187,8 +182,6 @@ public final class Console implements Closeable {
     this.rowCaptor = Objects.requireNonNull(rowCaptor, "rowCaptor");
     this.cliSpecificCommands = Maps.newLinkedHashMap();
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-
-    CliCommandRegisterUtil.registerDefaultCommands(this, versionSuppler);
   }
 
   public PrintWriter writer() {
@@ -289,8 +282,12 @@ public final class Console implements Closeable {
         printAsJson(entityList);
         break;
       case TABULAR:
+        final boolean showStatements = entityList.size() > 1;
         for (final KsqlEntity ksqlEntity : entityList) {
           writer().println();
+          if (showStatements) {
+            writer().println(ksqlEntity.getStatementText());
+          }
           printAsTable(ksqlEntity);
         }
         break;
@@ -303,7 +300,7 @@ public final class Console implements Closeable {
   }
 
   public void registerCliSpecificCommand(final CliSpecificCommand cliSpecificCommand) {
-    cliSpecificCommands.put(cliSpecificCommand.getName(), cliSpecificCommand);
+    cliSpecificCommands.put(cliSpecificCommand.getName().toLowerCase(), cliSpecificCommand);
   }
 
   public void setOutputFormat(final String newFormat) {
@@ -677,7 +674,7 @@ public final class Console implements Closeable {
       return false;
     }
 
-    final String[] split = line.split("\\s+", 2);
+    final String[] split = line.trim().split("\\s+", 2);
     final String command = split[0].toLowerCase();
 
     final CliSpecificCommand cliSpecificCommand = cliSpecificCommands.get(command);

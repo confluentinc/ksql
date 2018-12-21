@@ -26,6 +26,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -52,8 +53,8 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
@@ -64,6 +65,7 @@ import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -801,7 +803,7 @@ public class CliTest {
     // Given:
     final String statementText = "list streams;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeKsqlRequest(statementText, CommandStoreUtil.LAST_SEQUENCE_NUMBER))
+    when(mockRestClient.makeKsqlRequest(statementText, -1L))
         .thenReturn(RestResponse.erroneous(
             new KsqlErrorMessage(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT, "timed out!")));
     when(mockRestClient.makeKsqlRequest(statementText, null))
@@ -813,7 +815,7 @@ public class CliTest {
     // Then:
     final InOrder inOrder = inOrder(mockRestClient);
     inOrder.verify(mockRestClient, times(Cli.COMMAND_QUEUE_CATCHUP_TIMEOUT_RETRIES + 1))
-        .makeKsqlRequest(statementText, CommandStoreUtil.LAST_SEQUENCE_NUMBER);
+        .makeKsqlRequest(statementText, -1L);
     inOrder.verify(mockRestClient).makeKsqlRequest(statementText, null);
     inOrder.verifyNoMoreInteractions();
   }
@@ -823,7 +825,7 @@ public class CliTest {
     // Given:
     final String statementText = "list streams;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeKsqlRequest(statementText, CommandStoreUtil.LAST_SEQUENCE_NUMBER))
+    when(mockRestClient.makeKsqlRequest(statementText, -1L))
         .thenReturn(RestResponse.successful(new KsqlEntityList()));
 
     // When:
@@ -838,7 +840,7 @@ public class CliTest {
     // Given:
     final String statementText = "list streams;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeKsqlRequest(statementText, CommandStoreUtil.LAST_SEQUENCE_NUMBER))
+    when(mockRestClient.makeKsqlRequest(statementText, -1L))
         .thenReturn(RestResponse.erroneous(
             new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, "uh oh")));
 
@@ -847,6 +849,65 @@ public class CliTest {
 
     // Then:
     verify(mockRestClient, times(1)).makeKsqlRequest(anyString(), anyLong());
+  }
+
+  @Test
+  public void shouldUpdateCommandSequenceNumber() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(12L);
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList(
+            Collections.singletonList(stubEntity))));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    final String secondStatement = "list streams;";
+    localCli.handleLine(secondStatement);
+
+    // Then:
+    verify(mockRestClient).makeKsqlRequest(secondStatement, 12L);
+  }
+
+  @Test
+  public void shouldUpdateCommandSequenceNumberOnMultipleCommandStatusEntities() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    final CommandStatusEntity firstEntity = stubCommandStatusEntityWithSeqNum(12L);
+    final CommandStatusEntity secondEntity = stubCommandStatusEntityWithSeqNum(14L);
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList(
+            ImmutableList.of(firstEntity, secondEntity))));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    final String secondStatement = "list streams;";
+    localCli.handleLine(secondStatement);
+
+    // Then:
+    verify(mockRestClient).makeKsqlRequest(secondStatement, 14L);
+  }
+
+  @Test
+  public void shouldNotUpdateCommandSequenceNumberIfNoCommandStatusEntities() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    final String secondStatement = "list streams;";
+    localCli.handleLine(secondStatement);
+
+    // Then:
+    verify(mockRestClient).makeKsqlRequest(secondStatement, -1L);
   }
 
   private void givenRunInteractivelyWillExit() {
@@ -864,6 +925,15 @@ public class CliTest {
         STREAMED_QUERY_ROW_LIMIT, STREAMED_QUERY_TIMEOUT_MS, mockRestClient, console);
 
     return mockRestClient;
+  }
+
+  private CommandStatusEntity stubCommandStatusEntityWithSeqNum(final long seqNum) {
+    return new CommandStatusEntity(
+        "stub",
+        new CommandId(CommandId.Type.STREAM, "stub", CommandId.Action.CREATE),
+        new CommandStatus(CommandStatus.Status.SUCCESS, "stub"),
+        seqNum
+    );
   }
 
   private static class TestRowCaptor implements RowCaptor {

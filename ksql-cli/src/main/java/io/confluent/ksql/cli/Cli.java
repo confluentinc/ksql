@@ -35,7 +35,6 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -80,6 +79,8 @@ public class Cli implements Closeable {
   private final KsqlRestClient restClient;
   private final Console terminal;
 
+  private long lastCommandSequenceNumber;
+
   public static Cli build(
       final Long streamedQueryRowLimit,
       final Long streamedQueryTimeoutMs,
@@ -104,6 +105,7 @@ public class Cli implements Closeable {
     this.restClient = restClient;
     this.terminal = terminal;
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
+    this.lastCommandSequenceNumber = -1;
 
     terminal
         .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient, terminal.writer()));
@@ -498,13 +500,15 @@ public class Cli implements Closeable {
       final BiFunction<String, Long, RestResponse<R>> requestIssuer,
       final int remainingRetries) {
     final RestResponse<R> response =
-        requestIssuer.apply(ksql, CommandStoreUtil.LAST_SEQUENCE_NUMBER);
+        requestIssuer.apply(ksql, lastCommandSequenceNumber);
     if (isSequenceNumberTimeout(response)) {
       if (remainingRetries > 0) {
         return makeKsqlRequest(ksql, requestIssuer, remainingRetries - 1);
       } else {
         return requestIssuer.apply(ksql, null);
       }
+    } else if (isKsqlEntityList(response)) {
+      updateLastCommandSequenceNumber((KsqlEntityList)response.getResponse());
     }
     return response;
   }
@@ -513,5 +517,18 @@ public class Cli implements Closeable {
     return response.isErroneous()
         && (response.getErrorMessage().getErrorCode()
             == Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT);
+  }
+
+  private static boolean isKsqlEntityList(final RestResponse<?> response) {
+    return response.isSuccessful() && response.getResponse() instanceof KsqlEntityList;
+  }
+
+  private void updateLastCommandSequenceNumber(final KsqlEntityList entities) {
+    final Optional<Long> lastSeqNum = entities.stream()
+        .filter(entity -> entity instanceof CommandStatusEntity)
+        .map(entity -> (CommandStatusEntity)entity)
+        .map(CommandStatusEntity::getCommandSequenceNumber)
+        .reduce(Long::max);
+    lastSeqNum.ifPresent(seqNum -> lastCommandSequenceNumber = seqNum);
   }
 }

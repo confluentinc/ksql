@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -133,11 +132,16 @@ public class CommandStoreTest {
         .thenReturn(ImmutableList.of(
             new PartitionInfo(COMMAND_TOPIC, 0, node, new Node[]{node}, new Node[]{node})
         ));
-    setUpLastSequenceNumber(-1);
 
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
-    setUpCommandStore();
+    commandStore = new CommandStore(
+        COMMAND_TOPIC,
+        commandConsumer,
+        commandProducer,
+        commandIdAssigner,
+        sequenceNumberFutureStore
+    );
   }
 
   @Test
@@ -341,49 +345,6 @@ public class CommandStoreTest {
     inOrder.verify(commandConsumer).poll(any());
   }
 
-  @Test
-  public void shouldUseLastSequenceNumber() throws Exception {
-    // Given:
-    givenLastSequenceNumber(10L);
-
-    // When:
-    commandStore.ensureConsumedPast(CommandStoreUtil.LAST_SEQUENCE_NUMBER, TIMEOUT);
-
-    // Then:
-    verify(sequenceNumberFutureStore).getFutureForSequenceNumber(10L);
-  }
-
-  @Test
-  public void shouldUseUpdatedLastSequenceNumber() throws Exception {
-    // Given:
-    setUpLastSequenceNumber(10L);
-    commandStore.getNewCommands();
-
-    // When:
-    commandStore.ensureConsumedPast(CommandStoreUtil.LAST_SEQUENCE_NUMBER, TIMEOUT);
-
-    // Then:
-    verify(sequenceNumberFutureStore).getFutureForSequenceNumber(10L);
-  }
-
-  @Test
-  public void shouldThrowExceptionWithMeaningfulMessageOnTimeoutWaitingForLastSequenceNumber()
-      throws Exception {
-    // Given:
-    givenLastSequenceNumber(10L);
-    when(future.get(anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException());
-
-    // Expect:
-    expectedException.expect(TimeoutException.class);
-    expectedException.expectMessage(String.format(
-        "Timeout reached while waiting for command sequence number of LAST_SEQUENCE_NUMBER. "
-            + "(Timeout: %d ms)",
-        TIMEOUT.toMillis()));
-
-    // When:
-    commandStore.ensureConsumedPast(CommandStoreUtil.LAST_SEQUENCE_NUMBER, TIMEOUT);
-  }
-
   private static List<Pair<CommandId, Command>> getPriorCommands(final CommandStore commandStore) {
     return commandStore.getRestoreCommands().stream()
         .map(
@@ -402,25 +363,5 @@ public class CommandStoreTest {
           new ConsumerRecord<>(COMMAND_TOPIC, 0, 0, (CommandId) args[i], (Command) args[i + 1]));
     }
     return new ConsumerRecords<>(Collections.singletonMap(COMMAND_TOPIC_PARTITION, records));
-  }
-
-  private void givenLastSequenceNumber(final long seqNum) {
-    setUpLastSequenceNumber(seqNum);
-    setUpCommandStore();
-  }
-
-  private void setUpLastSequenceNumber(final long seqNum) {
-    when(commandConsumer.endOffsets(Collections.singleton(COMMAND_TOPIC_PARTITION)))
-        .thenReturn(Collections.singletonMap(COMMAND_TOPIC_PARTITION, seqNum + 1));
-  }
-
-  private void setUpCommandStore() {
-    commandStore = new CommandStore(
-        COMMAND_TOPIC,
-        commandConsumer,
-        commandProducer,
-        commandIdAssigner,
-        sequenceNumberFutureStore
-    );
   }
 }

@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 public final class CommandStoreUtil {
-  public static final long LAST_SEQUENCE_NUMBER = Long.MAX_VALUE;
 
   private CommandStoreUtil() {
   }
@@ -56,9 +55,5 @@ public final class CommandStoreUtil {
       final long seqNum = commandSequenceNumber.get();
       commandQueue.ensureConsumedPast(seqNum, timeout);
     }
-  }
-
-  public static String getSequenceNumberString(final long seqNum) {
-    return seqNum == LAST_SEQUENCE_NUMBER ? "LAST_SEQUENCE_NUMBER" : String.valueOf(seqNum);
   }
 }

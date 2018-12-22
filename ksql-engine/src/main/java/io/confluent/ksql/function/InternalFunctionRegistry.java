@@ -27,9 +27,12 @@ import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.AbsKudf;
 import io.confluent.ksql.function.udf.math.CeilKudf;
+import io.confluent.ksql.function.udf.math.ExpKudf;
 import io.confluent.ksql.function.udf.math.FloorKudf;
+import io.confluent.ksql.function.udf.math.LogKudf;
 import io.confluent.ksql.function.udf.math.RandomKudf;
 import io.confluent.ksql.function.udf.math.RoundKudf;
+import io.confluent.ksql.function.udf.math.SqrtKudf;
 import io.confluent.ksql.function.udf.string.ConcatKudf;
 import io.confluent.ksql.function.udf.string.IfNullKudf;
 import io.confluent.ksql.function.udf.string.LCaseKudf;
@@ -225,10 +228,20 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         "CEIL", CeilKudf.class);
     addFunction(ceil);
 
+    final KsqlFunction exp = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "EXP", ExpKudf.class);
+    addFunction(exp);
+
     final KsqlFunction floor = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
         "FLOOR", FloorKudf.class);
     addFunction(floor);
+
+    final KsqlFunction log = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "LOG", LogKudf.class);
+    addFunction(log);
 
     final KsqlFunction
         round =
@@ -241,7 +254,10 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         "RANDOM", RandomKudf.class);
     addFunction(random);
 
-
+    final KsqlFunction sqrt = new KsqlFunction(Schema.OPTIONAL_FLOAT64_SCHEMA,
+        Arrays.asList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        "SQRT", SqrtKudf.class);
+    addFunction(sqrt);
   }
 
   private void addGeoFunctions() {

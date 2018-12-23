@@ -343,13 +343,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         true
     ), false);
 
-    final Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
-
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
     final CommandStore commandStore = new CommandStore(
         commandTopic,
-        commandConsumerProperties,
+        restConfig.getCommandConsumerProperties(),
+        restConfig.getCommandProducerProperties(),
         new CommandIdAssigner(ksqlEngine.getMetaStore()));
 
     final StatementExecutor statementExecutor = new StatementExecutor(

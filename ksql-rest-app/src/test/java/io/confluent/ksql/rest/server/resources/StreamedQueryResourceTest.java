@@ -121,7 +121,6 @@ public class StreamedQueryResourceTest {
     expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(mock(Statement.class));
-    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockStatementParser);
 
     testResource = new StreamedQueryResource(

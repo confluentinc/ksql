@@ -49,11 +49,12 @@ public class CommandStore implements CommandQueue, Closeable {
 
   public CommandStore(
       final String commandTopicName,
-      final Map<String, Object> kafkaClientProperties,
+      final Map<String, Object> kafkaConsumerProperties,
+      final Map<String, Object> kafkaProducerProperties,
       final CommandIdAssigner commandIdAssigner
   ) {
     this(
-        new CommandTopic(commandTopicName, kafkaClientProperties),
+        new CommandTopic(commandTopicName, kafkaConsumerProperties, kafkaProducerProperties),
         commandIdAssigner,
         new SequenceNumberFutureStore());
   }

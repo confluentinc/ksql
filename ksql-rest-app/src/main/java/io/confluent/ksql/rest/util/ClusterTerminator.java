@@ -23,7 +23,6 @@ import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -50,7 +49,6 @@ public class ClusterTerminator {
     this.serviceContext = Objects.requireNonNull(serviceContext);
   }
 
-  @SuppressWarnings("unchecked")
   public void terminateCluster(final List<String> deleteTopicPatterns) {
     terminatePersistentQueries();
     deleteSinkTopics(deleteTopicPatterns);
@@ -59,7 +57,7 @@ public class ClusterTerminator {
   }
 
   private void terminatePersistentQueries() {
-    new ArrayList<>(ksqlEngine.getPersistentQueries()).stream()
+    ksqlEngine.getPersistentQueries().stream()
         .map(PersistentQueryMetadata::getQueryId)
         .forEach(queryId -> ksqlEngine.terminateQuery(queryId, true));
   }
@@ -82,7 +80,7 @@ public class ClusterTerminator {
     deleteTopics(toDelete);
   }
 
-  private List<String> removeDeletedTopics(final List<String> topicList) {
+  private List<String> filterNonExistingTopics(final List<String> topicList) {
     final Set<String> existingTopicNames = serviceContext.getTopicClient().listTopicNames();
     return topicList.stream().filter(existingTopicNames::contains).collect(Collectors.toList());
   }
@@ -104,7 +102,7 @@ public class ClusterTerminator {
     try {
       ExecutorUtil.executeWithRetries(
           () -> serviceContext.getTopicClient().deleteTopics(
-              removeDeletedTopics(topicsToBeDeleted)),
+              filterNonExistingTopics(topicsToBeDeleted)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final Exception e) {
       throw new KsqlException(

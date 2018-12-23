@@ -138,6 +138,7 @@ public class CommandStoreTest {
         .thenReturn(recordMetadata);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // When:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);

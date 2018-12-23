@@ -100,7 +100,7 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldAssignCorrectAssignPartitionToConsumer() {
+  public void shouldAssignCorrectPartitionToConsumer() {
     verify(commandConsumer)
         .assign(eq(Collections.singleton(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
   }
@@ -116,7 +116,7 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldThrowExceptionIfSendIsNotSuccessfull() throws Exception {
+  public void shouldThrowExceptionIfSendIsNotSuccessful() throws Exception {
     // Given:
     when(future.get())
         .thenThrow(new ExecutionException(new RuntimeException("Send was unsuccessful!")));
@@ -128,7 +128,7 @@ public class CommandTopicTest {
   }
 
   @Test
-  public void shouldThrowRuntimeExceptionIfSendCausesRunTimeException() throws Exception {
+  public void shouldThrowRuntimeExceptionIfSendCausesNonRuntimeException() throws Exception {
     // Given:
     when(future.get()).thenThrow(new ExecutionException(
         new Exception("Send was unsuccessful because of non RunTime exception!")));

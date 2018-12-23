@@ -117,7 +117,7 @@ public interface KafkaTopicClient {
   TopicCleanupPolicy getTopicCleanupPolicy(String topicName);
 
   /**
-   * Delete the list of the topics in the given list.
+   * Delete the topics in the given collection.
    */
   void deleteTopics(Collection<String> topicsToDelete);
 

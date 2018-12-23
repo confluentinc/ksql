@@ -49,21 +49,21 @@ public class CommandTopic {
 
   public CommandTopic(
       final String commandTopicName,
-      final Map<String, Object> kafkaClientProperties
+      final Map<String, Object> kafkaConsumerProperties,
+      final Map<String, Object> kafkaProducerProperties
   ) {
     this(
         commandTopicName,
         new KafkaConsumer<>(
-            Objects.requireNonNull(kafkaClientProperties, "kafkaClientProperties"),
+            Objects.requireNonNull(kafkaConsumerProperties, "kafkaClientProperties"),
             CommandTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
             CommandTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
-    ),
-
-    new KafkaProducer<>(
-        Objects.requireNonNull(kafkaClientProperties, "kafkaClientProperties"),
-        CommandTopicJsonSerdeUtil.getJsonSerializer(true),
-        CommandTopicJsonSerdeUtil.getJsonSerializer(false)
-    ));
+        ),
+        new KafkaProducer<>(
+            Objects.requireNonNull(kafkaProducerProperties, "kafkaClientProperties"),
+            CommandTopicJsonSerdeUtil.getJsonSerializer(true),
+            CommandTopicJsonSerdeUtil.getJsonSerializer(false)
+        ));
   }
 
   CommandTopic(

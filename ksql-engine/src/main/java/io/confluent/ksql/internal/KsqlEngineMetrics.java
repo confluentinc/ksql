@@ -1,18 +1,16 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.internal;
 
@@ -41,6 +39,8 @@ import org.apache.kafka.streams.KafkaStreams.State;
 
 public class KsqlEngineMetrics implements Closeable {
 
+  private static final String METRIC_GROUP_PREFIX = "ksql-engine";
+
   private final List<Sensor> sensors;
   private final List<CountMetric> countMetrics;
   private final String metricGroupName;
@@ -58,8 +58,8 @@ public class KsqlEngineMetrics implements Closeable {
   private final KsqlEngine ksqlEngine;
   private final Metrics metrics;
 
-  public KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine) {
-    this(metricGroupPrefix, ksqlEngine, MetricCollectors.getMetrics());
+  public KsqlEngineMetrics(final KsqlEngine ksqlEngine) {
+    this(METRIC_GROUP_PREFIX, ksqlEngine, MetricCollectors.getMetrics());
   }
 
   KsqlEngineMetrics(final String metricGroupPrefix, final KsqlEngine ksqlEngine,
@@ -110,11 +110,7 @@ public class KsqlEngineMetrics implements Closeable {
 
   public void registerQueries(final List<QueryMetadata> queryMetadataList) {
     queryMetadataList.forEach(queryMetadata -> queryMetadata.registerQueryStateListener(
-        new QueryStateListener(
-            metrics,
-            queryMetadata.getKafkaStreams(),
-            queryMetadata.getQueryApplicationId()
-        )
+        new QueryStateListener(metrics, queryMetadata.getQueryApplicationId())
     ));
   }
 
@@ -265,7 +261,7 @@ public class KsqlEngineMetrics implements Closeable {
     final String gaugeName = ksqlServiceId + metricGroupName + "-" + state + "-queries";
     final Gauge<Long> gauge = (metricConfig, l) -> ksqlEngine.getPersistentQueries()
         .stream()
-        .filter(queryMetadata -> queryMetadata.getKafkaStreams().state() == state)
+        .filter(queryMetadata -> queryMetadata.getState().equals(state.toString()))
         .count();
 
     final MetricName metricName = metrics.metricName(gaugeName,

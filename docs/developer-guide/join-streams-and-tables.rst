@@ -1,7 +1,7 @@
 .. _join-streams-and-tables:
 
 Join Streams and Tables with KSQL
-=================================
+#################################
 
 You can use KSQL to merge streams of data in real time by using a SQL-like
 *join* syntax. A KSQL join and a relational database join are similar in that
@@ -64,6 +64,8 @@ Windows are tracked per record key. In join operations, KSQL uses a windowing
 *state store* to store all of the records received so far within the defined
 window boundary. Old records in the state store are purged after the specified
 window retention period.
+
+For more information on windows, see :ref:`windows_in_ksql_queries`.
 
 Join Requirements
 *****************
@@ -130,7 +132,7 @@ the result stream, which means that the join contains NULL values for fields
 coming from a stream where no match is made.
 
 Semantics of Stream-Stream Joins
---------------------------------
+================================
 
 The semantics of the various stream-stream join variants are shown in the
 following table. In the table, each row represents a new incoming record.
@@ -199,7 +201,7 @@ was marked for re-partitioning.
                or leftRecord-NULL results.
 
 Semantics of Stream-Table Joins
--------------------------------
+===============================
 
 The semantics of the various stream-table join variants are shown in the
 following table. In the table, each row represents a new incoming record.
@@ -279,7 +281,7 @@ Table-table joins are eventually consistent.
                or leftRecord-NULL results.
 
 Semantics of Table-Table Joins
-------------------------------
+==============================
 
 The semantics of the various table-table join variants are shown in the
 following table. In the table, each row represents a new incoming record.

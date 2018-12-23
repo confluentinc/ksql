@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.parser;
 
@@ -21,6 +19,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
@@ -68,6 +67,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -442,11 +442,21 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testReservedColumnAliases() {
-    assertQueryFails("SELECT C1 as ROWTIME FROM test1 t1;",
-            "ROWTIME is a reserved token for implicit column. You cannot use it as an alias for a column.");
-    assertQueryFails("SELECT C2 as ROWKEY FROM test1 t1;",
-            "ROWKEY is a reserved token for implicit column. You cannot use it as an alias for a column.");
+  public void testReservedRowTimeAlias() {
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage(containsString(
+        "ROWTIME is a reserved token for implicit column. You cannot use it as an alias for a column."));
+
+    KSQL_PARSER.buildAst("SELECT C1 as ROWTIME FROM test1 t1;", metaStore);
+  }
+
+  @Test
+  public void testReservedRowKeyAlias() {
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage(containsString(
+        "ROWKEY is a reserved token for implicit column. You cannot use it as an alias for a column."));
+
+    KSQL_PARSER.buildAst("SELECT C2 as ROWKEY FROM test1 t1;", metaStore);
   }
 
   @Test
@@ -525,7 +535,7 @@ public class KsqlParserTest {
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
         + "double, arraycol array<double>, mapcol map<varchar, double>, "
-        + "order_address STRUCT < number VARCHAR, street VARCHAR, zip INTEGER, city "
+        + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
         + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime');";
     final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
@@ -888,17 +898,6 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(Query.class));
   }
 
-  private void assertQueryFails(final String sql, final String exceptionMessage) {
-    try {
-      KSQL_PARSER.buildAst(sql, metaStore);
-      fail(format("Expected query: %s to fail with message: %s", sql, exceptionMessage));
-    } catch (final RuntimeException exp) {
-      if(!exp.getMessage().equals(exceptionMessage)) {
-        fail(format("Expected exception message to match %s for query: %s", exceptionMessage, sql));
-      }
-    }
-  }
-
   @Test
   public void shouldSetWithinExpressionWithSingleWithin() {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN "
@@ -1186,5 +1185,53 @@ public class KsqlParserTest {
 
     final String simpleQuery = "SELECT * FROM address, itemid;";
     KSQL_PARSER.buildAst(simpleQuery, metaStore);
+  }
+
+  @Test
+  public void shouldParseSimpleComment() {
+    final String statementString = "--this is a comment.\n"
+        + "SHOW STREAMS;";
+
+    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+
+    assertThat(statements, hasSize(1));
+    assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
+  }
+
+  @Test
+  public void shouldParseBracketedComment() {
+    final String statementString = "/* this is a bracketed comment. */\n"
+        + "SHOW STREAMS;"
+        + "/*another comment!*/";
+
+    final List<PreparedStatement<?>> statements = KSQL_PARSER.buildAst(statementString, metaStore);
+
+    assertThat(statements, hasSize(1));
+    assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
+  }
+
+  @Test
+  public void shouldParseMultiLineWithInlineComments() {
+    final String statementString =
+        "SHOW -- inline comment\n"
+        + "STREAMS;";
+
+    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+
+    assertThat(statements, hasSize(1));
+    assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
+  }
+
+  @Test
+  public void shouldParseMultiLineWithInlineBracketedComments() {
+    final String statementString =
+        "SHOW /* inline\n"
+            + "comment */\n"
+            + "STREAMS;";
+
+    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+
+    assertThat(statements, hasSize(1));
+    assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
   }
 }

@@ -1,7 +1,21 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Query;
+import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
@@ -14,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import io.confluent.avro.random.generator.Generator;
-import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
+import io.confluent.ksql.EndToEndEngineTestUtil.JsonTestCase;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,17 +54,16 @@ public class SchemaTranslationTest {
   private static final String TOPIC_NAME = "TEST_INPUT";
   private static final String OUTPUT_TOPIC_NAME = "TEST_OUTPUT";
 
-  private final String name;
-  private final Query query;
+  private final TestCase testCase;
 
-  public SchemaTranslationTest(final String name, final Query query) {
-    this.name = name;
-    this.query = query;
+  @SuppressWarnings("unused")
+  public SchemaTranslationTest(final String name, final TestCase testCase) {
+    this.testCase = testCase;
   }
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(this.query);
+    EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(testCase);
   }
 
   @Parameterized.Parameters(name = "{0}")
@@ -119,7 +132,7 @@ public class SchemaTranslationTest {
     return records;
   }
 
-  private static Query loadTest(final TestCase testCase) {
+  private static TestCase loadTest(final JsonTestCase testCase) {
     final JsonNode node = testCase.getNode();
 
     final String name = Files.getNameWithoutExtension(testCase.getTestPath().toString())
@@ -166,7 +179,7 @@ public class SchemaTranslationTest {
                 " FROM " + TOPIC_NAME + ";")
         );
 
-    return new Query(
+    return new TestCase(
         testCase.getTestPath(),
         name,
         Collections.emptyMap(),

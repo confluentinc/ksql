@@ -1,18 +1,16 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.parser.tree;
 
@@ -58,13 +56,17 @@ public class Explain
       final List<ExplainOption> options
   ) {
     super(location);
-    this.statement = statement;// requireNonNull(statement, "statement is null");
+    this.statement = statement;
     this.analyze = analyze;
     this.queryId = queryId;
     if (options == null) {
       this.options = ImmutableList.of();
     } else {
       this.options = ImmutableList.copyOf(options);
+    }
+
+    if (statement == null && queryId == null) {
+      throw new NullPointerException("Must supply either queryId or statement");
     }
   }
 

@@ -1,29 +1,24 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.resources.streaming;
-
-import static io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.closeSession;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.util.EntityUtil;
 import java.io.IOException;
 import java.util.Collection;
-import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 import org.apache.kafka.connect.data.Schema;
@@ -81,15 +76,12 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   @Override
   public void onError(final Throwable e) {
     log.error("error in session {}", session.getId(), e);
-    closeSession(session, new CloseReason(
-        CloseCodes.UNEXPECTED_CONDITION,
-        "streams exception"
-    ));
+    SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, "streams exception");
   }
 
   @Override
   public void onComplete() {
-    closeSession(session, new CloseReason(CloseCodes.NORMAL_CLOSURE, "done"));
+    SessionUtil.closeSilently(session, CloseCodes.NORMAL_CLOSURE, "done");
   }
 
   @Override
@@ -100,10 +92,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
       );
     } catch (final IOException e) {
       log.error("Error sending schema", e);
-      closeSession(session, new CloseReason(
-          CloseCodes.PROTOCOL_ERROR,
-          "Unable to send schema"
-      ));
+      SessionUtil.closeSilently(session, CloseCodes.PROTOCOL_ERROR, "Unable to send schema");
     }
   }
 

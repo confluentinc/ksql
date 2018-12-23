@@ -1,27 +1,39 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static io.confluent.ksql.testutils.AnalysisTestUtil.getPreparedStatements;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -188,4 +200,42 @@ public class AnalyzerTest {
     Assert.assertTrue("testFilterAnalysis failed.", analysis.getWhereExpression().toString().equalsIgnoreCase("(TEST1.COL0 > 20)"));
 
   }
+
+  @Test
+  public void shouldCreateCorrectSinkKsqlTopic() {
+    final String simpleQuery = "CREATE STREAM FOO WITH (KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+    // The following few lines are only needed for this test
+    final MetaStore testMetastore = metaStore.clone();
+    final KsqlTopic ksqlTopic = new KsqlTopic("FOO", "TEST_TOPIC1", new KsqlJsonTopicSerDe(), true);
+    testMetastore.putTopic(ksqlTopic);
+    final List<Statement> statements = getPreparedStatements(simpleQuery, testMetastore)
+        .stream()
+        .map(PreparedStatement::getStatement)
+        .collect(Collectors.toList());
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
+    final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
+    intoTable.setProperties(createStreamAsSelect.getProperties());
+    final QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
+    final QuerySpecification newQuerySpecification = new QuerySpecification(
+        querySpecification.getSelect(),
+        intoTable,
+        false,
+        querySpecification.getFrom(),
+        querySpecification.getWindowExpression(),
+        querySpecification.getWhere(),
+        querySpecification.getGroupBy(),
+        querySpecification.getHaving(),
+        querySpecification.getLimit()
+    );
+    final Analysis analysis = new Analysis();
+    final Analyzer analyzer = new Analyzer("sqlExpression", analysis, testMetastore, "");
+    analyzer.visitQuerySpecification(newQuerySpecification, new AnalysisContext(null));
+
+    Assert.assertNotNull("INTO is null", analysis.getInto());
+    final StructuredDataSource structuredDataSource = analysis.getInto();
+    final KsqlTopic createdKsqlTopic = structuredDataSource.getKsqlTopic();
+    assertThat(createdKsqlTopic.getTopicName(), equalTo("FOO"));
+    assertThat(createdKsqlTopic.getKafkaTopicName(), equalTo("TEST_TOPIC1"));
+  }
+
 }

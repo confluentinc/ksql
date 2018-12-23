@@ -12,7 +12,7 @@
       "name": "count",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE STREAM S2 as SELECT id, count(*) FROM test group by id;"
+        "CREATE TABLE S2 as SELECT id, count(*) FROM test group by id;"
       ],
       "inputs": [
         {

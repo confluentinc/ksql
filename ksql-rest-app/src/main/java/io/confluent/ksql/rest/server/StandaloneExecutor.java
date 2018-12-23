@@ -1,18 +1,16 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server;
 
@@ -25,18 +23,19 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.Console;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -52,35 +51,9 @@ import java.util.concurrent.CountDownLatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class StandaloneExecutor implements Executable {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
-
-  private final KsqlConfig ksqlConfig;
-  private final KsqlEngine ksqlEngine;
-  private final String queriesFile;
-  private final UdfLoader udfLoader;
-  private final CountDownLatch shutdownLatch = new CountDownLatch(1);
-  private final Map<String, Object> configProperties = new HashMap<>();
-  private final boolean failOnNoQueries;
-
-  StandaloneExecutor(final KsqlConfig ksqlConfig,
-                     final KsqlEngine ksqlEngine,
-                     final String queriesFile,
-                     final UdfLoader udfLoader,
-                     final boolean failOnNoQueries) {
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
-    this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
-    this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
-    this.failOnNoQueries = failOnNoQueries;
-  }
-
-  private interface Handler<T extends Statement> {
-    void handle(StandaloneExecutor executor, String queryString, T statement);
-  }
 
   private static final Map<Class<? extends Statement>, Handler<Statement>> HANDLERS =
       ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
@@ -89,102 +62,54 @@ public class StandaloneExecutor implements Executable {
           .put(UnsetProperty.class,
               castHandler(StandaloneExecutor::handleUnsetProperty, UnsetProperty.class))
           .put(CreateStream.class,
-              castHandler(StandaloneExecutor::handleCreateStream, CreateStream.class))
+              castHandler(StandaloneExecutor::handleExecutableDdl, CreateStream.class))
           .put(CreateTable.class,
-              castHandler(StandaloneExecutor::handleCreateTable, CreateTable.class))
+              castHandler(StandaloneExecutor::handleExecutableDdl, CreateTable.class))
           .put(CreateStreamAsSelect.class,
-              castHandler(StandaloneExecutor::handleCreateStreamAsSelect,
-                  CreateStreamAsSelect.class))
-          .put(CreateTableAsSelect.class, castHandler(StandaloneExecutor::handleCreateTableAsSelect,
-              CreateTableAsSelect.class))
+              castHandler(StandaloneExecutor::handlePersistentQuery, CreateStreamAsSelect.class))
+          .put(CreateTableAsSelect.class,
+              castHandler(StandaloneExecutor::handlePersistentQuery, CreateTableAsSelect.class))
           .put(InsertInto.class,
-              castHandler(StandaloneExecutor::handleInsertInto, InsertInto.class))
+              castHandler(StandaloneExecutor::handlePersistentQuery, InsertInto.class))
           .build();
 
-  // Each member function is passed its required arguments, (pre-cast to the right type).
-  @SuppressWarnings("unused")
-  private void handleSetProperty(final String ignored, final SetProperty statement) {
-    configProperties.put(statement.getPropertyName(), statement.getPropertyValue());
+  private final ServiceContext serviceContext;
+  private final KsqlConfig ksqlConfig;
+  private final KsqlEngine ksqlEngine;
+  private final String queriesFile;
+  private final UdfLoader udfLoader;
+  private final CountDownLatch shutdownLatch = new CountDownLatch(1);
+  private final Map<String, Object> configProperties = new HashMap<>();
+  private final boolean failOnNoQueries;
+  private final VersionCheckerAgent versionCheckerAgent;
+
+  StandaloneExecutor(
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
+      final String queriesFile,
+      final UdfLoader udfLoader,
+      final boolean failOnNoQueries,
+      final VersionCheckerAgent versionCheckerAgent
+  ) {
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile");
+    this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader");
+    this.failOnNoQueries = failOnNoQueries;
+    this.versionCheckerAgent =
+        Objects.requireNonNull(versionCheckerAgent, "VersionCheckerAgent");
   }
-
-  @SuppressWarnings("unused")
-  private void handleUnsetProperty(final String ignored, final UnsetProperty statement) {
-    configProperties.remove(statement.getPropertyName());
-  }
-
-  @SuppressWarnings("unused")
-  private void handleCreateStream(final String queryString, final CreateStream ignored) {
-    ksqlEngine.buildMultipleQueries(queryString, ksqlConfig, configProperties);
-  }
-
-  @SuppressWarnings("unused")
-  private void handleCreateTable(final String queryString, final CreateTable ignored) {
-    ksqlEngine.buildMultipleQueries(queryString, ksqlConfig, configProperties);
-  }
-
-  @SuppressWarnings("unused")
-  private void handleCreateStreamAsSelect(
-      final String queryString,
-      final CreateStreamAsSelect statement) {
-    final Query query = statement.getQuery();
-    final QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
-    if (queryMetadata.getDataSourceType() != DataSourceType.KSTREAM) {
-      throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
-          + "use CREATE STREAM AS SELECT statement instead. Query: " + queryString);
-    }
-
-    handlePersistentQuery(queryString, configProperties);
-  }
-
-  @SuppressWarnings("unused")
-  private void handleCreateTableAsSelect(
-      final String queryString,
-      final CreateTableAsSelect statement) {
-    final Query query = statement.getQuery();
-    final QueryMetadata queryMetadata = ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
-    if (queryMetadata.getDataSourceType() != DataSourceType.KTABLE) {
-      throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
-          + "use CREATE TABLE AS SELECT statement instead. Query: " + queryString);
-    }
-
-    handlePersistentQuery(queryString, configProperties);
-  }
-
-  @SuppressWarnings("unused")
-  private void handleInsertInto(final String queryString, final InsertInto statement) {
-    final Query query = statement.getQuery();
-    ksqlEngine.getQueryExecutionPlan(query, ksqlConfig);
-
-    handlePersistentQuery(queryString, configProperties);
-  }
-
-  // Define a default handler to call when no other handler registered.
-  @SuppressWarnings("unused")
-  private void defaultHandler(final String queryString, final Statement ignored) {
-    final String message = String.format(
-            "Ignoring statements: %s"
-                + "%nOnly DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
-                + "and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.",
-        queryString
-        );
-    System.err.println(message);
-    log.warn(message);
-    throw new KsqlException(message);
-  }
-
-  private static <T extends Statement> Handler<Statement> castHandler(
-      final Handler<? super T> handler,
-      final Class<T> type) {
-    return (executor, queryString, statement) ->
-        handler.handle(executor, queryString, type.cast(statement));
-  }
-
 
   public void start() {
     try {
       udfLoader.load();
       executeStatements(readQueriesFile(queriesFile));
       showWelcomeMessage();
+      final Properties properties = new Properties();
+      properties.putAll(configProperties);
+      versionCheckerAgent.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
       stop();
@@ -198,23 +123,17 @@ public class StandaloneExecutor implements Executable {
     } catch (final Exception e) {
       log.warn("Failed to cleanly shutdown the KSQL Engine", e);
     }
+    try {
+      serviceContext.close();
+    } catch (final Exception e) {
+      log.warn("Failed to cleanly shutdown services", e);
+    }
     shutdownLatch.countDown();
   }
 
   @Override
   public void join() throws InterruptedException {
     shutdownLatch.await();
-  }
-
-  public static StandaloneExecutor create(final Properties properties,
-                                          final String queriesFile,
-                                          final String installDir) {
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-    final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
-    final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
-        ksqlEngine.getMetaStore(),
-        installDir);
-    return new StandaloneExecutor(ksqlConfig, ksqlEngine, queriesFile, udfLoader, true);
   }
 
   private void showWelcomeMessage() {
@@ -234,7 +153,8 @@ public class StandaloneExecutor implements Executable {
   }
 
   private void executeStatements(final String queries) {
-    final List<PreparedStatement> preparedStatements = ksqlEngine.parseStatements(queries);
+    final List<PreparedStatement<?>> preparedStatements =
+        ksqlEngine.parseStatements(queries);
 
     if (failOnNoQueries) {
       final boolean noQueries = preparedStatements.stream()
@@ -245,25 +165,51 @@ public class StandaloneExecutor implements Executable {
       }
     }
 
-    for (final PreparedStatement preparedStatement: preparedStatements) {
-      final Statement statement = preparedStatement.getStatement();
-      HANDLERS
-          .getOrDefault(statement.getClass(), StandaloneExecutor::defaultHandler)
-          .handle(this, preparedStatement.getStatementText(), statement);
-    }
+    preparedStatements.forEach(this::executeStatement);
   }
 
-  private void handlePersistentQuery(
-      final String statementString,
-      final Map<String, Object> configProperties) {
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> void executeStatement(
+      final PreparedStatement<T> statement
+  ) {
+    final Class<? extends Statement> type = statement.getStatement().getClass();
+    HANDLERS
+        .getOrDefault(type, StandaloneExecutor::defaultHandler)
+        .handle(this, (PreparedStatement)statement);
+  }
 
-    final List<QueryMetadata> queryMetadataList =
-        ksqlEngine.buildMultipleQueries(statementString, ksqlConfig, configProperties);
-    if (queryMetadataList.size() != 1
-        || !(queryMetadataList.get(0) instanceof PersistentQueryMetadata)) {
-      throw new KsqlException("Could not build the query: " + statementString);
+  private void handleSetProperty(final PreparedStatement<SetProperty> statement) {
+    final SetProperty setProperty = statement.getStatement();
+    configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
+  }
+
+  private void handleUnsetProperty(final PreparedStatement<UnsetProperty> statement) {
+    configProperties.remove(statement.getStatement().getPropertyName());
+  }
+
+  private void handleExecutableDdl(final PreparedStatement<?> statement) {
+    ksqlEngine.execute(statement.getStatementText(), ksqlConfig, configProperties);
+  }
+
+  private void handlePersistentQuery(final PreparedStatement<?> statement) {
+    final List<QueryMetadata> queries =
+        ksqlEngine.execute(statement.getStatementText(), ksqlConfig, configProperties);
+
+    if (queries.size() != 1
+        || !(queries.get(0) instanceof PersistentQueryMetadata)) {
+      throw new KsqlException("Could not build the query: " + statement.getStatementText());
     }
-    queryMetadataList.get(0).start();
+
+    queries.get(0).start();
+  }
+
+  @SuppressWarnings("MethodMayBeStatic") // Won't compile if static.
+  private void defaultHandler(final PreparedStatement<?> statement) {
+    throw new KsqlException(String.format(
+        "Ignoring statements: %s"
+            + "%nOnly DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
+            + "and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.",
+        statement.getStatementText()));
   }
 
   private static String readQueriesFile(final String queryFilePath) {
@@ -279,7 +225,15 @@ public class StandaloneExecutor implements Executable {
     }
   }
 
-  public Map<String, ?> getConfigProperties() {
-    return configProperties;
+  @SuppressWarnings({"unchecked", "unused"})
+  private static <T extends Statement> Handler<Statement> castHandler(
+      final Handler<? super T> handler,
+      final Class<T> type) {
+    return ((Handler<Statement>) handler);
+  }
+
+  private interface Handler<T extends Statement> {
+
+    void handle(StandaloneExecutor executor, PreparedStatement<T> statement);
   }
 }

@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.cli.console.cmd;
@@ -38,13 +36,13 @@ class Output implements CliSpecificCommand {
     console.writer().println("output:");
     console.writer().println("\tView the current output format.");
     console.writer().println("");
-    console.writer().println("output <format>");
+    console.writer().println("output <format>;");
     console.writer().println("");
     console.writer().printf(
         "\tSet the output format to <format> (valid formats: %s)%n",
         OutputFormat.VALID_FORMATS
     );
-    console.writer().println("\tFor example: \"output JSON\"");
+    console.writer().println("\tFor example: \"output JSON;\"");
   }
 
   @Override

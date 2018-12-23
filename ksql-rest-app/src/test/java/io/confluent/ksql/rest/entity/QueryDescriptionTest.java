@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.rest.entity;
 
 import static org.easymock.EasyMock.expect;
@@ -7,7 +21,7 @@ import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -18,7 +32,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -29,7 +42,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Supplier;
 
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -42,12 +54,12 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Test;
 
 public class QueryDescriptionTest {
-  private static Schema SCHEMA =
+  private static final Schema SCHEMA =
       SchemaBuilder.struct()
           .field("field1", SchemaBuilder.int32().build())
           .field("field2", SchemaBuilder.string().build())
           .build();
-  private static String STATEMENT = "statement";
+  private static final String STATEMENT = "statement";
 
   private static class FakeSourceNode extends StructuredDataSourceNode {
     FakeSourceNode(final String name) {
@@ -64,7 +76,7 @@ public class QueryDescriptionTest {
   private static class FakeOutputNode extends OutputNode {
     FakeOutputNode(final FakeSourceNode sourceNode) {
       super(
-          new PlanNodeId("fake"), sourceNode, SCHEMA, Optional.of(new Integer(1)),
+          new PlanNodeId("fake"), sourceNode, SCHEMA, Optional.of(1),
           new MetadataTimestampExtractionPolicy());
     }
 
@@ -75,10 +87,12 @@ public class QueryDescriptionTest {
 
     @Override
     public SchemaKStream<?> buildStream(
-        final StreamsBuilder builder, final KsqlConfig ksqlConfig,
-        final KafkaTopicClient kafkaTopicClient,
-        final FunctionRegistry functionRegistry, final Map<String, Object> props,
-        final Supplier<SchemaRegistryClient> schemaRegistryClient) {
+        final StreamsBuilder builder,
+        final KsqlConfig ksqlConfig,
+        final ServiceContext serviceContext,
+        final FunctionRegistry functionRegistry,
+        final Map<String, Object> props
+    ) {
       return null;
     }
   }

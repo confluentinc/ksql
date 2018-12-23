@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.rest.server.resources.streaming;
@@ -33,9 +31,9 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +44,6 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -79,6 +76,8 @@ public class QueryStreamWriterTest {
   @Mock(MockType.NICE)
   private KsqlEngine ksqlEngine;
   @Mock(MockType.NICE)
+  private ServiceContext serviceContext;
+  @Mock(MockType.NICE)
   private QueuedQueryMetadata queryMetadata;
   @Mock(MockType.NICE)
   private BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
@@ -103,21 +102,21 @@ public class QueryStreamWriterTest {
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
 
-    kStreams.setUncaughtExceptionHandler(capture(ehCapture));
-    expectLastCall();
     kStreams.setStateListener(anyObject());
     expectLastCall();
     expect(kStreams.state()).andReturn(State.RUNNING);
 
-    expect(queryMetadata.getKafkaStreams()).andReturn(kStreams).anyTimes();
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
 
-    expect(ksqlEngine.buildMultipleQueries(anyObject(), anyObject(), anyObject()))
+    expect(ksqlEngine.execute(anyObject(), anyObject(), anyObject()))
         .andReturn(ImmutableList.of(queryMetadata));
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();
+
+    queryMetadata.setUncaughtExceptionHandler(capture(ehCapture));
+    expectLastCall();
 
     replay(kStreams);
   }
@@ -189,6 +188,7 @@ public class QueryStreamWriterTest {
     writer = new QueryStreamWriter(
         new KsqlConfig(Collections.emptyMap()),
         ksqlEngine,
+        serviceContext,
         1000,
         "a KSQL statement",
         Collections.emptyMap(),

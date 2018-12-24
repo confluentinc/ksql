@@ -22,14 +22,14 @@ import io.confluent.ksql.function.udf.UdfParameter;
 @UdfDescription(name = "log", author = "Confluent",
         description = "Applies natural logarithm function to a DOUBLE value.")
 public class Log {
-    @Udf(description = "Returns the natural logarithm (base e) of a DOUBLE value.")
-    public double log(
-            @UdfParameter(value = "a", description = "a value.") final double a) {
-        try {
-            return Math.log(a);
-        } catch (final ExecutionException | RuntimeException e) {
-            throw new KsqlFunctionException("Failed to apply logarithm on " + a
-                    + ": " + e.getMessage(), e);
-        }
+  @Udf(description = "Returns the natural logarithm (base e) of a DOUBLE value.")
+  public double log(
+        @UdfParameter(value = "a", description = "a value.") final double a) {
+    try {
+      return Math.log(a);
+    } catch (final ExecutionException | RuntimeException e) {
+      throw new KsqlFunctionException("Failed to apply logarithm on " + a
+          + ": " + e.getMessage(), e);
     }
+  }
 }

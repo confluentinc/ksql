@@ -15,25 +15,23 @@
 package io.confluent.ksql.function.udf.math;
 
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.function.udf.KudfTester;
 import org.junit.Before;
 import org.junit.Test;
 
 public class SqrtTest {
 
-    private Sqrt udf;
+  private Sqrt udf;
 
-    @Before
-    public void setUp() {
-        udf = new Sqrt();
-    }
+  @Before
+  public void setUp() {
+    udf = new Sqrt();
+  }
 
-    @Test
-    public void shouldSqrt() {
-        assertThat(udf.sqrt(4.0), is(2.0));
-        assertThat(udf.sqrt(1.0), is(1.0));
-    }
+  @Test
+  public void shouldSqrt() {
+    assertThat(udf.sqrt(4.0), is(2.0));
+    assertThat(udf.sqrt(1.0), is(1.0));
+  }
 }

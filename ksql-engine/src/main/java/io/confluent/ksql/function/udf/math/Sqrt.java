@@ -22,14 +22,14 @@ import io.confluent.ksql.function.udf.UdfParameter;
 @UdfDescription(name = "sqrt", author = "Confluent",
         description = "Applies square root function to a DOUBLE value.")
 public class Sqrt {
-    @Udf(description = "Returns the correctly rounded positive square root of a DOUBLE value")
-    public double sqrt(
-            @UdfParameter(value = "a", description = "a value.") final double a) {
-        try {
-            return Math.sqrt(a);
-        } catch (final ExecutionException | RuntimeException e) {
-            throw new KsqlFunctionException("Failed to apply square root on " + a
-                    + ": " + e.getMessage(), e);
-        }
+  @Udf(description = "Returns the correctly rounded positive square root of a DOUBLE value")
+  public double sqrt(
+      @UdfParameter(value = "a", description = "a value.") final double a) {
+    try {
+      return Math.sqrt(a);
+    } catch (final ExecutionException | RuntimeException e) {
+      throw new KsqlFunctionException("Failed to apply square root on " + a
+     + ": " + e.getMessage(), e);
     }
+  }
 }

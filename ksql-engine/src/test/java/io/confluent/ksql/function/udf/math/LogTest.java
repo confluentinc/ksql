@@ -15,24 +15,22 @@
 package io.confluent.ksql.function.udf.math;
 
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.function.udf.KudfTester;
 import org.junit.Before;
 import org.junit.Test;
 
 public class LogTest {
 
-    private Log udf;
+  private Log udf;
 
-    @Before
-    public void setUp() {
-        udf = new Log();
-    }
+  @Before
+  public void setUp() {
+    udf = new Log();
+  }
 
-    @Test
-    public void shouldLog() {
-        assertThat(udf.log(1.0), is(0.0));
-    }
+  @Test
+  public void shouldLog() {
+    assertThat(udf.log(1.0), is(0.0));
+  }
 }

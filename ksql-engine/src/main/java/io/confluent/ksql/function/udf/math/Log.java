@@ -18,6 +18,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import java.util.concurrent.ExecutionException;
 
 @UdfDescription(name = "log", author = "Confluent",
         description = "Applies natural logarithm function to a DOUBLE value.")

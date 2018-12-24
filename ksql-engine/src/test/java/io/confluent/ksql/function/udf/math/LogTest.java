@@ -24,15 +24,15 @@ import org.junit.Test;
 
 public class LogTest {
 
-  private Log udf;
+    private Log udf;
 
-  @Before
-  public void setUp() {
-    udf = new Log();
-  }
+    @Before
+    public void setUp() {
+        udf = new Log();
+    }
 
-  @Test
-  public void shouldLog() {
-    assertThat(udf.log(1.0), is(0.0));
-  }
+    @Test
+    public void shouldLog() {
+        assertThat(udf.log(1.0), is(0.0));
+    }
 }

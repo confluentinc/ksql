@@ -24,15 +24,15 @@ import org.junit.Test;
 
 public class ExpTest {
 
-  private Exp udf;
+    private Exp udf;
 
-  @Before
-  public void setUp() {
-    udf = new Exp();
-  }
+    @Before
+    public void setUp() {
+        udf = new Exp();
+    }
 
-  @Test
-  public void shouldExp() {
-    assertThat(udf.exp(0.0), is(1.0));
-  }
+    @Test
+    public void shouldExp() {
+        assertThat(udf.exp(0.0), is(1.0));
+    }
 }

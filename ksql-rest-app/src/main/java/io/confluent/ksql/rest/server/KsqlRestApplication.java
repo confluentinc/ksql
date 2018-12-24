@@ -21,9 +21,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
-import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
@@ -39,8 +36,6 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -87,12 +82,8 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.jersey.server.ServerProperties;
@@ -352,20 +343,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         true
     ), false);
 
-    final Map<String, Object> commandConsumerProperties = restConfig.getCommandConsumerProperties();
-    final KafkaConsumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
-        commandConsumerProperties,
-        getJsonDeserializer(CommandId.class, true),
-        getJsonDeserializer(Command.class, false)
-    );
-
-    final KafkaProducer<CommandId, Command> commandProducer = new KafkaProducer<>(
-        restConfig.getCommandProducerProperties(),
-        getJsonSerializer(true),
-        getJsonSerializer(false)
-    );
-
     final StatementParser statementParser = new StatementParser(ksqlEngine);
+
+    final CommandStore commandStore = new CommandStore(
+        commandTopic,
+        restConfig.getCommandConsumerProperties(),
+        restConfig.getCommandProducerProperties(),
+        new CommandIdAssigner(ksqlEngine.getMetaStore()));
 
     final StatementExecutor statementExecutor = new StatementExecutor(
         ksqlConfig,
@@ -373,16 +357,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statementParser
     );
 
-    final CommandStore commandStore = new CommandStore(
-        commandTopic,
-        commandConsumer,
-        commandProducer,
-        new CommandIdAssigner(ksqlEngine.getMetaStore()));
-
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,
-        maxStatementRetries
+        ksqlConfig,
+        ksqlEngine,
+        maxStatementRetries,
+        serviceContext
     );
 
     final RootDocument rootDocument = new RootDocument();
@@ -485,28 +466,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     } catch (final KafkaTopicException e) {
       log.info("Command Topic Exists: {}", e.getMessage());
     }
-  }
-
-  private static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
-    final Serializer<T> result = new KafkaJsonSerializer<>();
-    result.configure(Collections.emptyMap(), isKey);
-    return result;
-  }
-
-  private static <T> Deserializer<T> getJsonDeserializer(
-      final Class<T> classs,
-      final boolean isKey) {
-    final Deserializer<T> result = new KafkaJsonDeserializer<>();
-    final String typeConfigProperty = isKey
-                                ? KafkaJsonDeserializerConfig.JSON_KEY_TYPE
-                                : KafkaJsonDeserializerConfig.JSON_VALUE_TYPE;
-
-    final Map<String, ?> props = Collections.singletonMap(
-        typeConfigProperty,
-        classs
-    );
-    result.configure(props, isKey);
-    return result;
   }
 
   private void displayWelcomeMessage() {

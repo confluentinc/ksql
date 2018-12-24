@@ -22,18 +22,17 @@ import io.confluent.ksql.function.udf.KudfTester;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SqrtKudfTest {
+public class LogTest {
 
-  private SqrtKudf udf;
+  private Log udf;
 
   @Before
   public void setUp() {
-    udf = new SqrtKudf();
+    udf = new Log();
   }
 
   @Test
-  public void shouldSqrt() {
-    assertThat(udf.evaluate(4.0), is(2.0));
-    assertThat(udf.evaluate(1.0), is(1.0));
+  public void shouldLog() {
+    assertThat(udf.log(1.0), is(0.0));
   }
 }

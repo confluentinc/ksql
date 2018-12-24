@@ -14,17 +14,25 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
 
-public class LogKudf implements Kudf {
-  public static final String NAME = "ABS";
+import io.confluent.ksql.function.udf.KudfTester;
+import org.junit.Before;
+import org.junit.Test;
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Log udf should have one input argument.");
-    }
-    return Math.log((Double) args[0]);
+public class ExpTest {
+
+  private Exp udf;
+
+  @Before
+  public void setUp() {
+    udf = new Exp();
+  }
+
+  @Test
+  public void shouldExp() {
+    assertThat(udf.exp(0.0), is(1.0));
   }
 }

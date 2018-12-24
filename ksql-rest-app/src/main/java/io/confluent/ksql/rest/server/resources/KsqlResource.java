@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static java.util.regex.Pattern.compile;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
@@ -50,6 +52,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.EntityQueryId;
@@ -82,6 +85,7 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
@@ -103,6 +107,7 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -191,7 +196,37 @@ public class KsqlResource {
   }
 
   @POST
+  @Path("/terminate")
+  public Response terminateCluster(final ClusterTerminateRequest request) {
+    final KsqlEntityList result = new KsqlEntityList();
+
+    ensureValidPatterns(request.getDeleteTopicList());
+
+    try {
+      result.add(distributeStatement(
+          new PreparedStatement<>(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+              new TerminateCluster()),
+          request.getStreamsProperties()
+      ));
+
+      return Response.ok(result).build();
+    } catch (final Exception e) {
+      return Errors.serverErrorForStatement(
+          e,
+          TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+          result);
+    }
+  }
+
+  @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
+    if (!ksqlEngine.isAcceptingStatements()) {
+      return Errors.serverErrorForStatement(
+          new KsqlException("The cluster has been terminated. No new request will be accepted."),
+          request.getKsql(),
+          new KsqlEntityList()
+      );
+    }
     activenessRegistrar.updateLastRequestTime();
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
@@ -724,7 +759,7 @@ public class KsqlResource {
       final PreparedStatement<T> statement
   ) {
     final Class<? extends Statement> type = statement.getStatement().getClass();
-    return (Validator)CUSTOM_VALIDATORS.get(type);
+    return (Validator) CUSTOM_VALIDATORS.get(type);
   }
 
   @SuppressWarnings({"unchecked", "unused", "SameParameterValue"})
@@ -747,7 +782,7 @@ public class KsqlResource {
       final PreparedStatement<T> statement
   ) {
     final Class<? extends Statement> type = statement.getStatement().getClass();
-    return (Handler)CUSTOM_EXECUTORS.get(type);
+    return (Handler) CUSTOM_EXECUTORS.get(type);
   }
 
   @SuppressWarnings({"unchecked", "unused"})
@@ -788,5 +823,16 @@ public class KsqlResource {
     private ShouldUseQueryEndpointException(final String statementText) {
       super(statementText);
     }
+  }
+
+  private static void ensureValidPatterns(final List<String> deleteTopicList) {
+    deleteTopicList
+        .forEach(pattern -> {
+          try {
+            compile(pattern);
+          } catch (final PatternSyntaxException patternSyntaxException) {
+            throw new KsqlRestException(Errors.badRequest("Invalid pattern: " + pattern));
+          }
+        });
   }
 }

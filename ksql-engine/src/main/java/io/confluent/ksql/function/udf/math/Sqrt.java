@@ -14,11 +14,9 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import java.util.concurrent.ExecutionException;
 
 @UdfDescription(name = "sqrt", author = "Confluent",
         description = "Applies square root function to a DOUBLE value.")
@@ -26,11 +24,6 @@ public class Sqrt {
   @Udf(description = "Returns the correctly rounded positive square root of a DOUBLE value")
   public double sqrt(
       @UdfParameter(value = "a", description = "a value.") final double a) {
-    try {
-      return Math.sqrt(a);
-    } catch (final ExecutionException | RuntimeException e) {
-      throw new KsqlFunctionException("Failed to apply square root on " + a
-     + ": " + e.getMessage(), e);
-    }
+    return Math.sqrt(a);
   }
 }

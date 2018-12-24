@@ -14,11 +14,9 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import java.util.concurrent.ExecutionException;
 
 @UdfDescription(name = "exp", author = "Confluent",
         description = "Applies exponential function to a DOUBLE value.")
@@ -26,11 +24,6 @@ public class Exp {
   @Udf(description = "Returns Euler's number e raised to the power of a DOUBLE value.")
   public double exp(
       @UdfParameter(value = "a", description = "the exponent to raise e to.") final double a) {
-    try {
-      return Math.exp(a);
-    } catch (final ExecutionException | RuntimeException e) {
-      throw new KsqlFunctionException("Failed to apply exponential on " + a
-                    + ": " + e.getMessage(), e);
-    }
+    return Math.exp(a);
   }
 }

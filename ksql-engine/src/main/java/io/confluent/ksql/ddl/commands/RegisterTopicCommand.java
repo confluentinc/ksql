@@ -63,10 +63,9 @@ public class RegisterTopicCommand implements DdlCommand {
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe();
       case DataSource.DELIMITED_SERDE_NAME:
-        if (properties.containsKey(DdlConfig.DELIMITER_FORMAT_PROPERTY)) {
-          return new KsqlDelimitedTopicSerDe(
-            cleanQuotesAndUpperCase(properties.get(DdlConfig.DELIMITER_FORMAT_PROPERTY).toString())
-          );
+        if (properties.containsKey(DdlConfig.VALUE_DELIMITER_PROPERTY)) {
+          return new KsqlDelimitedTopicSerDe(StringUtil.cleanQuotes(
+                  properties.get(DdlConfig.VALUE_DELIMITER_PROPERTY).toString()));
         }
         return new KsqlDelimitedTopicSerDe();
       default:
@@ -87,12 +86,12 @@ public class RegisterTopicCommand implements DdlCommand {
       throw new KsqlException("Topic format(format) should be set in WITH clause.");
     }
 
-    if (properties.containsKey(DdlConfig.DELIMITER_FORMAT_PROPERTY) && (
+    if (properties.containsKey(DdlConfig.VALUE_DELIMITER_PROPERTY) && (
          !properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)
          || !cleanQuotesAndUpperCase(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString())
            .equals(DataSource.DELIMITED_SERDE_NAME))) {
       throw new KsqlException(
-          DdlConfig.DELIMITER_FORMAT_PROPERTY + " can only be used with "
+          DdlConfig.VALUE_DELIMITER_PROPERTY + " can only be used with "
            + DdlConfig.VALUE_FORMAT_PROPERTY + "='" + DataSource.DELIMITED_SERDE_NAME + "'"
       );
     }

@@ -189,7 +189,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     final Set<String> validSet = new HashSet<>();
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
-    validSet.add(DdlConfig.DELIMITER_FORMAT_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.VALUE_DELIMITER_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.WINDOW_TYPE_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());

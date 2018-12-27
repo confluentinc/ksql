@@ -42,9 +42,14 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
     this.csvFormat = CSVFormat.DEFAULT;
   }
 
-  public KsqlDelimitedTopicSerDe(final String csvFormat) {
+  public KsqlDelimitedTopicSerDe(final String delimiter) {
     super(DataSource.DataSourceSerDe.DELIMITED);
-    this.csvFormat = csvFormat == null ? CSVFormat.DEFAULT : CSVFormat.valueOf(csvFormat);
+
+    if (delimiter.length() == 1) {
+      this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.charAt(0));
+    } else {
+      this.csvFormat = CSVFormat.valueOf(delimiter);
+    }
   }
 
   @Override

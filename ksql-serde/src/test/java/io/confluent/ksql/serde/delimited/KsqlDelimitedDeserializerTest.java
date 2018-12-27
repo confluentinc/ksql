@@ -87,10 +87,11 @@ public class KsqlDelimitedDeserializerTest {
 
 
   @Test
-  public void shouldDeserializeDelimitedCorrectlyWithOtherDelimiters() {
-    final String rowString = "1511897796092\t1\titem_1\t10.0\r\n";
+  public void shouldDeserializeDelimitedCorrectlyWithCustomDelimiters() {
+    final String rowString = "1511897796092|1|item_1|10.0\r\n";
 
-    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema, CSVFormat.TDF);
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(
+            orderSchema, CSVFormat.DEFAULT.withDelimiter('|'));
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     assertThat(genericRow.getColumns().size(), equalTo(4));

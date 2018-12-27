@@ -667,7 +667,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     final Set<String> validSet = new HashSet<>();
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY.toUpperCase());
-    validSet.add(DdlConfig.DELIMITER_FORMAT_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.VALUE_DELIMITER_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.PARTITION_BY_PROPERTY.toUpperCase());
     validSet.add(KsqlConstants.SINK_TIMESTAMP_COLUMN_NAME.toUpperCase());
     validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());

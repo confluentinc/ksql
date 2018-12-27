@@ -5,7 +5,7 @@ Implement a User-defined Function (UDF)
 
 Prerequisites
      - `Apache Maven <https://maven.apache.org/download.cgi>`__
-     - |cp| installed locally
+     - |cp| :ref:`installed <installation>` locally
      - Internet connectivity for downloading Confluent POM files
 
 Create the KSQL Extensions Directory
@@ -42,22 +42,39 @@ Create the Source and Project Files
 The following steps shows how to implement your UDF in a Java class and build
 it by defining a Maven POM file.
 
-#. Create a root directory for your UDF's source code and project files.
-#. Create the source code directory, which has a path that corresponds with
-   the package name.
-#. Create the Java source code file in the source code directory. 
-#. Create a Project Object Model (POM) file that defines how Maven builds the
+#. :ref:`Create a root directory <create-root-source-dir>` for your UDF's
+   source code and project files.
+#. :ref:`Create the source code directory <create-source-code-dir>`, which has
+   a path that corresponds with the package name.
+#. :ref:`Create the Java source code file <create-java-source-code-file>` in
+   the source code directory. 
+#. :ref:`Create a Project Object Model (POM) file <create-pom-file>` that defines how Maven builds the
    source code.
+
+.. _create-root-source-dir:
+
+Create a Project Root Directory
+===============================
+
+Create the directory that holds your UDF or UDAF project:
+
+.. code:: bash
+
+    mkdir ksql-udf-demo && cd ksql-udf-demo
+
+.. _create-source-code-dir:
 
 Create the Source Code Directory
 ================================
 
 From the root directory for your UDF, create the source code directory. In this
-example, the package name is ``io.confluent.ksql.udfdemo``.
+example, the package name is ``my.company.ksql.udfdemo``.
 
 .. code:: bash
 
-    mkdir -p src/main/java/io/confluent/ksql/udfdemo
+    mkdir -p src/main/java/my/company/ksql/udfdemo
+
+.. _create-java-source-code-file:
 
 Create the Java Source Code File
 ================================
@@ -67,11 +84,11 @@ The ``UdfDescription`` and ``Udf`` annotations tell KSQL Server to load the
 ``Multiply`` class and look for methods to add to its list of available
 functions. For more information, see :ref:`ksql-udfs`.
 
-Copy the following code into a new file, named "Multiply.java":
+Copy the following code into a new file, named ``Multiply.java``:
 
 .. code:: java
 
-    package io.confluent.ksql.udfdemo;
+    package my.company.ksql.udfdemo;
 
     import io.confluent.ksql.function.udf.Udf;
     import io.confluent.ksql.function.udf.UdfDescription;
@@ -101,7 +118,9 @@ Copy the following code into a new file, named "Multiply.java":
     }
 
 Save the file to the source code directory that you created in the previous
-step, ``src/main/java/io/confluent/ksql/udfdemo``.
+step, ``src/main/java/my/company/ksql/udfdemo``.
+
+.. _create-pom-file:
 
 Create the POM File
 ===================
@@ -119,7 +138,7 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
         <modelVersion>4.0.0</modelVersion>
 
         <!-- Specify the package details for the custom UDF -->
-        <groupId>io.confluent.ksql.udfdemo</groupId>
+        <groupId>my.company.ksql.udfdemo</groupId>
         <artifactId>ksql-udf-demo</artifactId>
         <version>1.0</version>
 
@@ -133,7 +152,7 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
 
         <!-- Specify build properties -->
         <properties>
-            <exec.mainClass>io.confluent.ksql.udfdemo.thisisignored</exec.mainClass>
+            <exec.mainClass>my.company.ksql.udfdemo.thisisignored</exec.mainClass>
             <java.version>1.8</java.version>
             <kafka.version>2.0.0</kafka.version>
             <kafka.scala.version>2.11</kafka.scala.version>
@@ -195,8 +214,13 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
         </build>
     </project>
 
+.. important::
+
+    We strongly recommend that you write comprehensive tests to cover your
+    UDFs and UDAFs.
+
 Build the UDF Package
-=====================
+*********************
 
 Use Maven to build the package and create a JAR. Copy the JAR to the KSQL 
 extensions directory.
@@ -243,8 +267,9 @@ other KSQL functions.
 
 .. note::
 
-    When you make changes to your UDF code and re-deloy the JAR, you must 
-    restart KSQL Server to get the latest version of your UDF. 
+    KSQL loads UDFs and UDAFs only on startup, so when you make changes to your
+    UDF code and re-deloy the JAR, you must restart KSQL Server to get the
+    latest version of your UDF. 
 
 Start |cp| and KSQL Server:
 
@@ -316,7 +341,7 @@ Use the MULTIPLY function in a query. If you follow the steps in
 
 ::
 
-    SELECT MULTIPLY(rowtime,viewtime) FROM pageviews_original;
+    SELECT MULTIPLY(rowtime, viewtime) FROM pageviews_original;
 
 Your output should resemble:
 
@@ -336,7 +361,7 @@ Press Ctrl+C to terminate the query.
 Custom Aggregation Function (UDAF)
 **********************************
 
-Implementing a user-defined aggration function (UDAF) is similar to the way
+Implementing a user-defined aggregation function (UDAF) is similar to the way
 that you implement a UDF. You use the ``UdafDescription`` and ``UdafFactory``
 annotations in your Java code, and you deploy a JAR to the KSQL extensions
 directory. For more information, see :ref:`ksql-udafs`.

@@ -76,6 +76,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -96,6 +97,8 @@ public class KsqlEngine implements Closeable {
       .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
+
+  private final AtomicBoolean acceptingStatements = new AtomicBoolean(true);
 
   private final MetaStore metaStore;
   private final DdlCommandExec ddlCommandExec;
@@ -345,6 +348,14 @@ public class KsqlEngine implements Closeable {
 
   public static Set<String> getImmutableProperties() {
     return IMMUTABLE_PROPERTIES;
+  }
+
+  public void stopAcceptingStatements() {
+    acceptingStatements.set(false);
+  }
+
+  public boolean isAcceptingStatements() {
+    return acceptingStatements.get();
   }
 
   private List<QueryMetadata> doExecute(

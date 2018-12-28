@@ -30,13 +30,15 @@ public class CommandId {
     TOPIC,
     STREAM,
     TABLE,
+    CLUSTER,
     TERMINATE
   }
 
   public enum Action {
     CREATE,
     DROP,
-    EXECUTE
+    EXECUTE,
+    TERMINATE
   }
 
   public CommandId(

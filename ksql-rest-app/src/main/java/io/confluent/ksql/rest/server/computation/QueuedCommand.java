@@ -45,4 +45,23 @@ public class QueuedCommand {
   public Command getCommand() {
     return command;
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final QueuedCommand that = (QueuedCommand) o;
+    return Objects.equals(commandId, that.commandId)
+        && Objects.equals(command, that.command)
+        && Objects.equals(status, that.status);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(commandId, command, status);
+  }
 }

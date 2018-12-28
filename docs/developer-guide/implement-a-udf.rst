@@ -8,6 +8,21 @@ Prerequisites
      - |cp| :ref:`installed <installation>` locally
      - Internet connectivity for downloading Confluent POM files
 
+Create a user-defined function (UDF) or a user-defined aggregation function
+(UDAF) by following these steps:
+
+#. :ref:`Create the KSQL extensions directory <create-ksql-ext-dir>` that
+   contains your UDF and UDAF packages.
+#. :ref:`Create Java source and project files <create-source-and-project-files>`
+   for your implementation.
+#. :ref:`Build the package <build-udf-package>` for your UDF or UDAF.
+#. :ref:`Use your custom function <use-udf-in-ksql-query>` in a KSQL query or
+   statement.
+
+For more information on custom functions, see :ref:`ksql-udfs`.
+
+.. _create-ksql-ext-dir:
+
 Create the KSQL Extensions Directory
 ************************************
 
@@ -32,9 +47,11 @@ Edit the ``ksql-server.properties`` configuration file in
 
 .. note::
 
-    Use the fully qualified path. KSQL Server won't load extensions if the 
-    path begins with ``~``.
+    Use the fully qualified path or the relative path from
+    ``<path-to-confluent>/bin``, which is ``../etc/ksql/ext``.
+    KSQL Server won't load extensions if the path begins with ``~``.
 
+.. _create-source-and-project-files:
 
 Create the Source and Project Files
 ***********************************
@@ -216,8 +233,10 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
 
 .. important::
 
-    We strongly recommend that you write comprehensive tests to cover your
-    UDFs and UDAFs.
+    For production environments, we strongly recommend that you write
+    comprehensive tests to cover your custom functions.
+
+.. _build-udf-package:
 
 Build the UDF Package
 *********************
@@ -258,6 +277,8 @@ copy the JAR to :litwithvars:`/home/my-home-dir/confluent-|release|/etc/ksql/ext
 
 The custom UDF is deployed and ready to run.
 
+.. _use-udf-in-ksql-query:
+
 Use Your Custom UDF in a KSQL Query
 ***********************************
 
@@ -268,7 +289,7 @@ other KSQL functions.
 .. note::
 
     KSQL loads UDFs and UDAFs only on startup, so when you make changes to your
-    UDF code and re-deloy the JAR, you must restart KSQL Server to get the
+    UDF code and re-deploy the JAR, you must restart KSQL Server to get the
     latest version of your UDF. 
 
 Start |cp| and KSQL Server:
@@ -284,11 +305,11 @@ Start the KSQL CLI:
     LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql
 
 In the KSQL CLI, list the available functions to ensure that KSQL Server
-loaded the MULTIPLY custom UDF:
+loaded the MULTIPLY user-defined function:
 
 ::
 
-    list functions;
+    LIST FUNCTIONS;
 
 Your output should resemble:
 

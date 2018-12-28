@@ -48,6 +48,8 @@ Folow these steps to create your custom functions:
          KSQL server, including your custom UDF and UDAF functions. Use the
          DESCRIBE FUNCTION statement to display details about your custom functions.
 
+For a detailed walkthrough on creating a UDF, see :ref:`implement-a-udf`.
+
 ======================
 Creating UDF and UDAFs
 ======================

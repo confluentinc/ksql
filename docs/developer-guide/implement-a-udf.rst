@@ -1,7 +1,7 @@
 .. _implement-a-udf:
 
-Implement a User-defined Function (UDF)
-#######################################
+Implement a User-defined Function (UDF and UDAF)
+################################################
 
 Prerequisites
      - `Apache Maven <https://maven.apache.org/download.cgi>`__

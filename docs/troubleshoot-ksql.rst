@@ -9,8 +9,10 @@ SELECT query hangs and doesn’t stop
 ***********************************
 
 Queries in KSQL, including non-persistent queries, like ``SELECT * FROM myTable``,
-are continuous streaming queries. Streaming queries don't stop unless you end them
-explicitly. In the KSQL CLI, press CTRL+C to stop a non-persistent query. To stop a
+are continuous streaming queries. Streaming queries don’t stop unless you end them
+explicitly. 
+
+In the KSQL CLI, press CTRL+C to stop a continuous streaming query. To stop a
 persistent query created by CREATE STREAM AS SELECT or CREATE TABLE AS SELECT,
 use the TERMINATE statement. 
 
@@ -35,8 +37,9 @@ Check the stream's underlying Kafka topic
 =========================================
 
 Use the DESCRIBE EXTENDED statement to verify the source topic for the stream.
+
 For example, if you have a ``pageviews`` stream on a Kafka topic named
-``pageviews``, your output should resemble:
+``pageviews``, enter this in the KSQL CLI:
 
 .. code:: sql
 
@@ -53,7 +56,7 @@ Your output should resemble:
 Check the Kafka topic for data
 ==============================
 
-Your query results may be empty because the underlying Kafka toppic isn't 
+Your query results may be empty because the underlying Kafka topic isn’t 
 populated with data. Use the :ref:`kafkacat-usage` to consume messages and
 print a summary.
 
@@ -91,9 +94,11 @@ Your output should resemble:
     
     Successfully changed local property 'auto.offset.reset' from 'null' to 'earliest'
 
-Run your query again and verify that you're getting results from the beginning
-of the topic. If your query reaches the latest offset, and no new messages arrive,
-it will appear to hang, but it's just waiting for the next message. Press CTRL+C
+Run your query again. You should now be getting results from the beginning
+of the topic. 
+
+If your query reaches the latest offset, and no new messages arrive,
+it will appear to hang, but it’s just waiting for the next message. Press CTRL+C
 to stop the query.
 
 Check the query predicate
@@ -112,7 +117,7 @@ again.
 Check for deserialization errors
 ================================
 
-If KSQL can't deserialize message data, it won't write any SELECT results.
+If KSQL can't deserialize message data, it won't write any query results.
 Use the DESCRIBE EXTENDED statement to check that the VALUE_FORMAT of the
 stream matches the format of the records that |kcat| prints for your topic.
 

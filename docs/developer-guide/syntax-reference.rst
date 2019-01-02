@@ -210,35 +210,35 @@ timestamp and message key, respectively. The timestamp has milliseconds accuracy
 
 The WITH clause supports the following properties:
 
-+-------------------------+--------------------------------------------------------------------------------------------+
-| Property                | Description                                                                                |
-+=========================+============================================================================================+
-| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:   |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
-|                         | message value, you may set this property to associate the corresponding field/column with  |
-|                         | the implicit ``ROWKEY`` column (message key).                                              |
-|                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
-|                         | when performing aggregations and joins.                                                    |
-|                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use  |
-|                         | this hint if the message key format in kafka is AVRO or JSON.                              |
-|                         | See :ref:`ksql_key_requirements` for more information.                                     |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
-|                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
-|                         | specified field/column within the Kafka message value (similar to timestamp extractors     |
-|                         | in Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations,    |
-|                         | such as windowing, will process a record according to the timestamp in ``ROWTIME``.        |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
-|                         | characters requiring single quotes, you can escape them with '', for example:              |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
-+-------------------------+--------------------------------------------------------------------------------------------+
++-------------------------+-----------------------------------------------------------------------------------------------+
+| Property                | Description                                                                                   |
++=========================+===============================================================================================+
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka.    |
++-------------------------+-----------------------------------------------------------------------------------------------+
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:      |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                                |
++-------------------------+-----------------------------------------------------------------------------------------------+
+| KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka    |
+|                         | message value, you may set this property to associate the corresponding field/column with     |
+|                         | the implicit ``ROWKEY`` column (message key).                                                 |
+|                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided    |
+|                         | when performing aggregations and joins.                                                       |
+|                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use     |
+|                         | this hint if the message key format in kafka is AVRO or JSON.                                 |
+|                         | See :ref:`ksql_key_requirements` for more information.                                        |
++-------------------------+-----------------------------------------------------------------------------------------------+
+| TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka      |
+|                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the    |
+|                         | specified field/column within the Kafka message value (similar to timestamp extractors        |
+|                         | in Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations,       |
+|                         | such as windowing, will process a record according to the timestamp in ``ROWTIME``.           |
++-------------------------+-----------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a      |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format        |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has          |
+|                         | characters requiring single quotes, you can escape them with two single quotes in succession, |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                          |
++-------------------------+-----------------------------------------------------------------------------------------------+
 
 
 .. include:: ../includes/ksql-includes.rst
@@ -334,8 +334,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
-|                         | characters requiring single quotes, you can escape them with '', for example:              |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
+|                         | characters requiring single quotes, you can escape them with two single quotes in          |
+|                         | succession, ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                           |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -434,8 +434,8 @@ The WITH clause for the result supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with '', for example:                        |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
+|                         | characters requiring single quotes, you can escape them with two single quotes in succession,        | 
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -517,8 +517,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with '', for example:                        |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
+|                         | characters requiring single quotes, you can escape them with two single quotes in succession,        |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -1130,8 +1130,9 @@ Scalar functions
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |
 |                        |                                                                           | the given format. Single quotes in the            |
-|                        |                                                                           | timestamp format can be escaped with '', for      |
-|                        |                                                                           | example: 'yyyy-MM-dd''T'''.                       |
+|                        |                                                                           | timestamp format can be escaped with two          |
+|                        |                                                                           | successive single quotes, ``''``, for example:    |
+|                        |                                                                           | ``'yyyy-MM-dd''T'''``.                            |
 |                        |                                                                           | The integer represents days since epoch           |
 |                        |                                                                           | matching the encoding used by Kafka Connect dates.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1212,8 +1213,9 @@ Scalar functions
 | STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                                     | Converts a string representation of a date in the |
 |                        |                                                                           | given format into an integer representing days    |
 |                        |                                                                           | since epoch. Single quotes in the timestamp       |
-|                        |                                                                           | format can be escaped with '', for example:       |
-|                        |                                                                           | 'yyyy-MM-dd''T'''.                                |
+|                        |                                                                           | format can be escaped with two successive single  |
+|                        |                                                                           | quotes, ``''``, for example:                      |
+|                        |                                                                           | ``'yyyy-MM-dd''T'''``.                            |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``      | Converts a string value in the given              |
 |                        |                                                                           | format into the BIGINT value                      |
@@ -1250,8 +1252,9 @@ Scalar functions
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``   | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                                           | the string representation of the timestamp in     |
 |                        |                                                                           | the given format. Single quotes in the            |
-|                        |                                                                           | timestamp format can be escaped with '', for      |
-|                        |                                                                           | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
+|                        |                                                                           | timestamp format can be escaped with two          |
+|                        |                                                                           | successive single quotes, ``''``, for example:    |
+|                        |                                                                           | ``'yyyy-MM-dd''T''HH:mm:ssX'``.                   |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
 |                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |

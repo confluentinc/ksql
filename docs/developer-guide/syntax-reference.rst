@@ -236,7 +236,7 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a      |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format        |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has          |
-|                         | characters requiring single quotes, you can escape them with two single quotes in succession, |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes,    |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                          |
 +-------------------------+-----------------------------------------------------------------------------------------------+
 
@@ -334,8 +334,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
-|                         | characters requiring single quotes, you can escape them with two single quotes in          |
-|                         | succession, ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                           |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes, |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -434,7 +434,7 @@ The WITH clause for the result supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with two single quotes in succession,        | 
+|                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
@@ -517,7 +517,7 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with two single quotes in succession,        |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
@@ -1221,7 +1221,8 @@ Scalar functions
 |                        |                                                                           | format into the BIGINT value                      |
 |                        |                                                                           | that represents the millisecond timestamp. Single |
 |                        |                                                                           | quotes in the timestamp format can be escaped with|
-|                        |                                                                           | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
+|                        |                                                                           | two successive single quotes, ``''``, for         |
+|                        |                                                                           | example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
 |                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |

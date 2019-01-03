@@ -56,7 +56,13 @@ Use the following syntax to declare nested data:
 The ``STRUCT`` type requires you to specify a list of fields. For each field, you
 specify the field name and field type. The field type can be any of the
 supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and
-``STRUCT``. Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
+``STRUCT``.
+
+.. note::
+    
+    ``Properties`` is not a valid field name.
+
+Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
 encapsulate a street address and a postal code:
 
 .. code:: sql

@@ -179,6 +179,9 @@ KSQL statements
        -  In the CLI you must use a backslash (``\``) to indicate
           continuation of a statement on the next line.
        -  Do not use ``\`` for multi-line statements in ``.sql`` files.
+    - The hyphen character, ``-``, isn't supported in names for streams, tables,
+      topics, and columns.
+    - Don't use quotes around stream names or table names when you CREATE them.
 
 .. _create-stream:
 

@@ -72,7 +72,7 @@ public class AvroUtilTest {
   private static final Schema RESULT_SCHEMA = AvroUtil.toKsqlSchema(AVRO_SCHEMA_STRING);
 
   private static final KsqlTopic RESULT_TOPIC =
-      new KsqlTopic("registered-name", "actual-name", new KsqlAvroTopicSerDe(), false);
+      new KsqlTopic("registered-name", "actual-name", new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME), false);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

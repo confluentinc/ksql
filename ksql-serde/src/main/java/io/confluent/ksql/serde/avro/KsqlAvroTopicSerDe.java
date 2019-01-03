@@ -30,6 +30,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -41,8 +42,14 @@ import org.apache.kafka.connect.data.Schema;
 
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
-  public KsqlAvroTopicSerDe() {
+  private final String fullSchemaName;
+
+  public KsqlAvroTopicSerDe(final String fullSchemaName) {
     super(DataSource.DataSourceSerDe.AVRO);
+    this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
+    if (this.fullSchemaName.isEmpty()) {
+      throw new IllegalArgumentException("the schema name cannot be empty");
+    }
   }
 
   private static AvroConverter getAvroConverter(
@@ -69,12 +76,12 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
         ? schemaMaybeWithSource : SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource);
     final Serializer<GenericRow> genericRowSerializer = new ThreadLocalSerializer(
         () -> new KsqlConnectSerializer(
-            new AvroDataTranslator(schema),
+            new AvroDataTranslator(schema, this.fullSchemaName),
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig)));
     final Deserializer<GenericRow> genericRowDeserializer = new ThreadLocalDeserializer(
         () -> new KsqlConnectDeserializer(
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig),
-            new AvroDataTranslator(schema))
+            new AvroDataTranslator(schema, this.fullSchemaName))
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }

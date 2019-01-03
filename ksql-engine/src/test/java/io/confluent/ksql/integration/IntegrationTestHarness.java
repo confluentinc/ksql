@@ -32,6 +32,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.ConsumerTestUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TestDataProvider;
 import java.util.Arrays;
@@ -419,7 +420,8 @@ public class IntegrationTestHarness extends ExternalResource {
         return new KsqlJsonSerializer(schema);
 
       case AVRO:
-        final KsqlAvroTopicSerDe avroSerDe = new KsqlAvroTopicSerDe();
+        final KsqlAvroTopicSerDe avroSerDe = new KsqlAvroTopicSerDe(
+                KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
         final Serde<GenericRow> serde = avroSerDe.getGenericRowSerde(
             schema,
             new KsqlConfig(Collections.emptyMap()), false,
@@ -445,7 +447,8 @@ public class IntegrationTestHarness extends ExternalResource {
         return new KsqlJsonDeserializer(schema, false);
 
       case AVRO:
-        final KsqlAvroTopicSerDe avroSerDe = new KsqlAvroTopicSerDe();
+        final KsqlAvroTopicSerDe avroSerDe = new KsqlAvroTopicSerDe(
+                KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
         final Serde<GenericRow> serde = avroSerDe.getGenericRowSerde(
             schema,
             new KsqlConfig(Collections.emptyMap()), false,

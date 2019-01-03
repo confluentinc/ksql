@@ -72,7 +72,7 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public void deleteTopics(final List<String> topicsToDelete) {
+  public void deleteTopics(final Collection<String> topicsToDelete) {
   }
 
   @Override

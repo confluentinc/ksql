@@ -30,6 +30,7 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
@@ -196,8 +197,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   private void addAvroSchemaToResultTopic(final Builder builder) {
+    final String schemaFullName = StringUtil.cleanQuotes(
+        outputProperties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
     final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe();
+        new KsqlAvroTopicSerDe(schemaFullName);
     builder.withKsqlTopic(new KsqlTopic(
         getKsqlTopic().getName(),
         getKsqlTopic().getKafkaTopicName(),

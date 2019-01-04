@@ -1101,6 +1101,19 @@ The explanation for each operator includes a supporting example based on the fol
 
   SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
 
+- You can use the ``+`` operator for multi-part concatenation, for example:
+
+.. code:: sql
+
+    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') + \
+            ': :heavy_exclamation_mark: On ' + \
+            HOST + \
+            ' there were ' + \
+            CAST(INVALID_LOGIN_COUNT AS VARCHAR) + \
+            ' attempts in the last minute (threshold is >=4)' \
+    FROM INVALID_USERS_LOGINS_PER_HOST \
+    WHERE INVALID_LOGIN_COUNT>=4;
+
 - Source Dereference (``.``) The source dereference operator can be used to specify columns
   by dereferencing the source stream or table.
 

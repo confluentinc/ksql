@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -29,11 +30,9 @@ import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.SourceTopicProperties;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -238,32 +237,31 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           (Short) sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
       );
     }
-    final SourceTopicProperties sourceTopicPropertiesFromBroker = getSourceTopicPropertiesFromKafka(
+    final TopicDescription topicDescription = getSourceTopicPropertiesFromKafka(
         kafkaTopicName,
         kafkaTopicClient);
 
     final int partitions = (Integer) outputProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-        sourceTopicPropertiesFromBroker.getPartitions());
+        topicDescription.partitions().size());
     final short replicas = (Short) outputProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
-        sourceTopicPropertiesFromBroker.getReplicas());
+        (short) topicDescription.partitions().get(0).replicas().size());
 
     return new SourceTopicProperties(partitions, replicas);
   }
 
-  private static SourceTopicProperties getSourceTopicPropertiesFromKafka(
+  private static TopicDescription getSourceTopicPropertiesFromKafka(
       final String kafkaTopicName,
       final KafkaTopicClient kafkaTopicClient
   ) {
     final Map<String, TopicDescription> topicDescriptionMap = kafkaTopicClient
         .describeTopics(Collections.singletonList(kafkaTopicName));
     final TopicDescription topicDescription = topicDescriptionMap.get(kafkaTopicName);
-    Objects.requireNonNull(
-        topicDescription, "Could not fetch source topic description: " + kafkaTopicName);
-    final int partitionCount = topicDescription.partitions().size();
-    final short replicas = (short) topicDescription.partitions().get(0).replicas().size();
-    return new SourceTopicProperties(partitionCount, replicas);
+    if (topicDescription == null) {
+      throw new KafkaTopicException("Could not fetch source topic description: " + kafkaTopicName);
+    }
+    return topicDescription;
   }
 
   public KsqlTopic getKsqlTopic() {
@@ -287,6 +285,25 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getLimit(),
         newDoCreateInto
     );
+  }
+
+  private static class SourceTopicProperties {
+
+    private final int partitions;
+    private final short replicas;
+
+    SourceTopicProperties(final int partitions, final short replicas) {
+      this.partitions = partitions;
+      this.replicas = replicas;
+    }
+
+    public int getPartitions() {
+      return partitions;
+    }
+
+    public short getReplicas() {
+      return replicas;
+    }
   }
 
   public static class Builder {

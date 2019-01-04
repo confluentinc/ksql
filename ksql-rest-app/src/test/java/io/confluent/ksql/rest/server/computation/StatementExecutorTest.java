@@ -104,7 +104,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     topicClient.preconditionTopicExists("pageview_topic", 3, (short) 1, Collections.emptyMap());
     topicClient.preconditionTopicExists("foo", 3, (short) 1, Collections.emptyMap());
     serviceContext = TestServiceContext.create(topicClient);
-    serviceContext = TestServiceContext.create(new MockKafkaTopicClient());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry())

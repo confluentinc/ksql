@@ -126,6 +126,9 @@ public class KsqlEngineTest {
         serviceContext,
         metaStore
     );
+    topicClient.preconditionTopicExists("test1", 3, (short) 1, Collections.emptyMap());
+    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
+    topicClient.preconditionTopicExists("orders_topic", 3, (short) 1, Collections.emptyMap());
   }
 
   @After
@@ -136,9 +139,6 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldCreatePersistentQueries() {
-    // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
-
     // When:
     final List<QueryMetadata> queries
         = ksqlEngine.execute("create table bar as select * from test2;" +
@@ -155,7 +155,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowOnTerminate() {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     final PersistentQueryMetadata query = (PersistentQueryMetadata) ksqlEngine.execute(
         "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap()).get(0);
 
@@ -171,7 +170,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenParsingIfStreamAlreadyExists() {
     // Given:
-    topicClient.preconditionTopicExists("orders_topic", 3, (short) 1, Collections.emptyMap());
     ksqlEngine
         .execute("create stream bar as select * from orders;", KSQL_CONFIG, Collections.emptyMap());
 
@@ -188,7 +186,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenParsingIfTableAlreadyExists() {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     ksqlEngine
         .execute("create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
@@ -204,7 +201,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldTryExecuteInsertIntoStream() {
     // Given:
-    topicClient.preconditionTopicExists("orders_topic", 3, (short) 1, Collections.emptyMap());
     ksqlEngine
         .execute("create stream bar as select * from orders;", KSQL_CONFIG, Collections.emptyMap());
 
@@ -221,7 +217,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenParsingInsertIntoTable() {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     ksqlEngine
         .execute("create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
@@ -237,8 +232,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldExecuteInsertIntoStream() {
     // Given:
-    topicClient.preconditionTopicExists("orders_topic", 3, (short) 1, Collections.emptyMap());
-
     ksqlEngine
         .execute("create stream bar as select * from orders;", KSQL_CONFIG, Collections.emptyMap());
 
@@ -252,8 +245,6 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldMaintainOrderOfReturnedQueries() {
-    // Given:
-    topicClient.preconditionTopicExists("orders_topic", 3, (short) 1, Collections.emptyMap());
 
     // When:
     final List<QueryMetadata> queries = ksqlEngine.execute(
@@ -279,7 +270,6 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldUpdateReferentialIntegrityTableCorrectly() {
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     ksqlEngine.execute("create table bar as select * from test2;" +
         "create table foo as select * from test2;", KSQL_CONFIG, Collections
         .emptyMap());
@@ -293,7 +283,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailIfReferentialIntegrityIsViolated() {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     ksqlEngine.execute("create table bar as select * from test2;" +
             "create table foo as select * from test2;",
         KSQL_CONFIG, Collections.emptyMap());
@@ -324,9 +313,6 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldDropTableIfAllReferencedQueriesTerminated() {
-    // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
-
     // When:
     ksqlEngine.execute("create table bar as select * from test2;" +
         "create table foo as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
@@ -381,7 +367,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanupSchemaAndTopicForStream() throws Exception {
     // Given:
-    topicClient.preconditionTopicExists("test1", 3, (short) 1, Collections.emptyMap());
     ksqlEngine.execute(
         "create stream bar with (value_format = 'avro') as select * from test1;"
             + "create stream foo as select * from test1;",
@@ -404,8 +389,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanupSchemaAndTopicForTable() throws Exception {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
-
     ksqlEngine.execute(
         "create table bar with (value_format = 'avro') as select * from test2;"
             + "create table foo as select * from test2;",
@@ -428,7 +411,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotDeleteSchemaNorTopicForStream() throws Exception {
     // Given:
-    topicClient.preconditionTopicExists("test1", 3, (short) 1, Collections.emptyMap());
     ksqlEngine.execute(
         "create stream bar with (value_format = 'avro') as select * from test1;"
             + "create stream foo as select * from test1;",
@@ -474,7 +456,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailIfAvroSchemaNotEvolvable() {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     givenTopicWithSchema("T", Schema.create(Type.INT));
 
     expectedException.expect(KsqlStatementException.class);
@@ -494,7 +475,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotFailIfAvroSchemaEvolvable() {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     final Schema evolvableSchema = SchemaBuilder
         .record("Test").fields()
         .nullableInt("f1", 1)
@@ -515,7 +495,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotDeleteSchemaNorTopicForTable() throws Exception {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     ksqlEngine.execute(
         "create table bar with (value_format = 'avro') as select * from test2;"
             + "create table foo as select * from test2;",
@@ -538,7 +517,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicSchemasFromSchemaRegistry() throws Exception {
     // Given:
-    topicClient.preconditionTopicExists("test1", 3, (short) 1, Collections.emptyMap());
     ksqlEngine.execute(
         "create stream s1  with (value_format = 'avro') as select * from test1;"
             + "create table t1 as select col1, count(*) from s1 group by col1;",
@@ -569,7 +547,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldUseSerdeSupplierToBuildQueries() {
     // When:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     ksqlEngine.execute(
         "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
@@ -676,7 +653,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingQueriesIfCsasCreatesTable() {
     // Given:
-    topicClient.preconditionTopicExists("orders_topic", 3, (short) 1, Collections.emptyMap());
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(containsString(
         "Invalid result type. Your SELECT query produces a TABLE. "
@@ -693,7 +669,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingQueriesIfCtasCreatesStream() {
     // Given:
-    topicClient.preconditionTopicExists("orders_topic", 3, (short) 1, Collections.emptyMap());
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(containsString(
         "Invalid result type. Your SELECT query produces a STREAM. "
@@ -799,8 +774,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCreateAnyTopicsDuringTryExecute() {
     // Given:
-    topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, Collections.emptyMap());
-
     final List<PreparedStatement<?>> statements = parse(
         "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');"
             + "CREATE TABLE BAR AS SELECT * FROM TEST2;"
@@ -818,7 +791,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotIncrementQueryIdCounterDuringTryExecute() {
     // Given:
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     final String sql = "create table foo as select * from test2;";
     final List<PreparedStatement<?>> statements = parse(sql);
 

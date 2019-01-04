@@ -80,6 +80,7 @@ public class RecoveryTest {
   @Before
   public void setup() {
     topicClient.preconditionTopicExists("A", 3, (short) 1, Collections.emptyMap());
+    topicClient.preconditionTopicExists("B", 3, (short) 1, Collections.emptyMap());
   }
 
   @After
@@ -508,7 +509,6 @@ public class RecoveryTest {
 
   @Test
   public void shouldRecoverCreates() {
-    topicClient.preconditionTopicExists("test2", 3, (short) 1, Collections.emptyMap());
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;"
@@ -580,7 +580,6 @@ public class RecoveryTest {
 
   @Test
   public void shouldRecoverLogWithTerminateAfterDrop() {
-    topicClient.preconditionTopicExists("B", 3, (short) 1, Collections.emptyMap());
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');"

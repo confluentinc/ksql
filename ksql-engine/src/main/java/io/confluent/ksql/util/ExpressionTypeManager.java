@@ -35,11 +35,14 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.parser.tree.WhenClause;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -71,13 +74,6 @@ public class ExpressionTypeManager
       return schema;
     }
 
-    public Schema.Type getSchemaType() {
-      if (schema == null) {
-        return null;
-      }
-      return schema.type();
-    }
-
     public void setSchema(final Schema schema) {
       this.schema = schema;
     }
@@ -94,12 +90,14 @@ public class ExpressionTypeManager
     return null;
   }
 
+  @Override
   protected Expression visitNotExpression(
       final NotExpression node, final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
+  @Override
   protected Expression visitCast(final Cast node,
                                  final ExpressionTypeContext expressionTypeContext) {
 
@@ -140,18 +138,21 @@ public class ExpressionTypeManager
     return null;
   }
 
+  @Override
   protected Expression visitStringLiteral(final StringLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_STRING_SCHEMA);
     return null;
   }
 
+  @Override
   protected Expression visitBooleanLiteral(final BooleanLiteral node,
                                            final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
+  @Override
   protected Expression visitLongLiteral(final LongLiteral node,
                                         final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_INT64_SCHEMA);
@@ -165,6 +166,7 @@ public class ExpressionTypeManager
     return null;
   }
 
+  @Override
   protected Expression visitDoubleLiteral(final DoubleLiteral node,
                                           final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
@@ -178,24 +180,37 @@ public class ExpressionTypeManager
     return null;
   }
 
+  @Override
   protected Expression visitLikePredicate(final LikePredicate node,
                                           final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
+  @Override
   protected Expression visitIsNotNullPredicate(final IsNotNullPredicate node,
                                                final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
+  @Override
   protected Expression visitIsNullPredicate(final IsNullPredicate node,
                                             final ExpressionTypeContext expressionTypeContext) {
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 
+  @Override
+  protected Expression visitSearchedCaseExpression(
+      final SearchedCaseExpression node,
+      final ExpressionTypeContext expressionTypeContext) {
+    validateSearchedCaseExpression(node);
+    process(node.getWhenClauses().get(0).getResult(), expressionTypeContext);
+    return null;
+  }
+
+  @Override
   protected Expression visitSubscriptExpression(
       final SubscriptExpression node,
       final ExpressionTypeContext expressionTypeContext
@@ -206,6 +221,7 @@ public class ExpressionTypeManager
     return null;
   }
 
+  @Override
   protected Expression visitFunctionCall(
       final FunctionCall node,
       final ExpressionTypeContext expressionTypeContext) {
@@ -242,8 +258,42 @@ public class ExpressionTypeManager
     return null;
   }
 
-  private Schema resolveArithmeticType(final Schema leftSchema,
+  private static Schema resolveArithmeticType(final Schema leftSchema,
                                        final Schema rightSchema) {
     return SchemaUtil.resolveArithmeticType(leftSchema.type(), rightSchema.type());
+  }
+
+  private void validateSearchedCaseExpression(final SearchedCaseExpression searchedCaseExpression) {
+    final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
+    for (final Expression operand :
+        searchedCaseExpression.getWhenClauses().stream()
+            .map(WhenClause::getOperand).collect(Collectors.toList())) {
+      process(operand, expressionTypeContext);
+      if (!expressionTypeContext.getSchema().equals(Schema.OPTIONAL_BOOLEAN_SCHEMA)) {
+        throw new KsqlException("When operand schema should be boolean. Schema for ("
+            + operand.toString() + ") is " + expressionTypeContext.getSchema());
+      }
+    }
+
+    process(searchedCaseExpression.getWhenClauses().get(0).getResult(), expressionTypeContext);
+    final Schema resultSchema = expressionTypeContext.getSchema();
+    for (int i = 1; i < searchedCaseExpression.getWhenClauses().size(); i++) {
+      process(searchedCaseExpression.getWhenClauses().get(i).getResult(), expressionTypeContext);
+      if (!resultSchema.equals(expressionTypeContext.getSchema())) {
+        throw new KsqlException("Invalid Case expression."
+            + " Schema for 'THEN' caluses should be the same."
+            + " Result scheme: " + resultSchema + ". Schema for THEN expression in index " + i
+            + " is " + expressionTypeContext.getSchema());
+      }
+    }
+    if (searchedCaseExpression.getDefaultValue().isPresent()) {
+      process(searchedCaseExpression.getDefaultValue().get(), expressionTypeContext);
+      if (!resultSchema.equals(expressionTypeContext.getSchema())) {
+        throw new KsqlException("Invalid Case expression."
+            + " Schema for the default caluse should be the same as schema for THEN clauses."
+            + " Result scheme: " + resultSchema + ". Schema for default expression "
+            + " is " + expressionTypeContext.getSchema());
+      }
+    }
   }
 }

@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
@@ -57,10 +58,12 @@ public class CodeGenRunner {
 
   public static final List<String> CODEGEN_IMPORTS = ImmutableList.of(
       "org.apache.kafka.connect.data.Struct",
+      "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction",
       "java.util.HashMap",
       "java.util.Map",
       "java.util.List",
-      "java.util.ArrayList");
+      "java.util.ArrayList",
+      "com.google.common.collect.ImmutableList");
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
@@ -246,6 +249,22 @@ public class CodeGenRunner {
             "Cannot find the select field in the available fields: " + node.toString());
       }
       addParameter(schemaField.get());
+      return null;
+    }
+
+    @Override
+    protected Object visitSearchedCaseExpression(
+        final SearchedCaseExpression node,
+        final Object context) {
+      node.getWhenClauses().stream().forEach(
+          whenClause -> {
+            process(whenClause.getOperand(), context);
+            process(whenClause.getResult(), context);
+          }
+      );
+      if (node.getDefaultValue().isPresent()) {
+        process(node.getDefaultValue().get(), context);
+      }
       return null;
     }
 

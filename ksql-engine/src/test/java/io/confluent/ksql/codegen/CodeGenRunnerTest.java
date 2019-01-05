@@ -463,6 +463,41 @@ public class CodeGenRunnerTest {
     }
 
     @Test
+    public void shouldHandleCaseStatement() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT CASE WHEN col0 < 10 THEN 'small' WHEN col0 < 100 THEN 'medium' ELSE 'large' END FROM codegen_test;", metaStore)
+            .getSelectExpressions()
+            .get(0);
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Case")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is("small"));
+    }
+
+    @Test
+    public void shouldReturnDefaultForCaseCorrectly() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT CASE WHEN col0 > 10 THEN 'small' ELSE 'large' END FROM codegen_test;", metaStore)
+            .getSelectExpressions()
+            .get(0);
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Case")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is("large"));
+    }
+
+
+    @Test
     public void shouldHandleUdfsExtractingFromMaps() {
         // Given:
         final Expression expression = analyzeQuery(

@@ -34,7 +34,7 @@ public class ExpressionTypeManagerTest {
 
   private MetaStore metaStore;
   private Schema schema;
-  private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -195,6 +195,72 @@ public class ExpressionTypeManagerTest {
         equalTo(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1)),
         equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+
+  }
+
+  @Test
+  public void shouldGetCorrectSchemaForSearchedCase() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE 'large' END FROM orders;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(), functionRegistry);
+
+    // When:
+    final Schema caseSchema = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+    // Then:
+    assertThat(caseSchema, equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+
+  }
+
+  @Test
+  public void shouldGetCorrectSchemaForSearchedCaseWhenStruct() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN ADDRESS END FROM orders;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(), functionRegistry);
+
+    // When:
+    final Schema caseSchema = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+    // Then:
+    assertThat(caseSchema, equalTo(metaStore.getSource("ORDERS").getSchema().field("ADDRESS").schema()));
+  }
+
+  @Test
+  public void shouldFailIfWhenIsNotBoolean() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits + 100 THEN 'medium' ELSE 'large' END FROM orders;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(), functionRegistry);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("When operand schema should be boolean. Schema for ((ORDERS.ORDERUNITS + 100)) is Schema{INT32}");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+  }
+
+  @Test
+  public void shouldFailIfWhenIsInvalid() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 10 ELSE 'large' END FROM orders;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(), functionRegistry);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid Case expression. Schema for 'THEN' caluses should be the same. Result scheme: Schema{STRING}. Schema for THEN expression in index 1 is Schema{INT32}");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+  }
+
+  @Test
+  public void shouldFailIfDefaultIsInvalid() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE true END FROM orders;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(), functionRegistry);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid Case expression. Schema for the default caluse should be the same as schema for THEN clauses. Result scheme: Schema{STRING}. Schema for default expression  is Schema{BOOLEAN}");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
 
   }
 }

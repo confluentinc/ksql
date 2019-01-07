@@ -31,8 +31,8 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
+import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -66,7 +66,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.hamcrest.CoreMatchers;
@@ -108,7 +107,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
     statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser);
-
     statementExecutorWithMocks
         = new StatementExecutor(ksqlConfig, mockEngine, mockParser);
   }

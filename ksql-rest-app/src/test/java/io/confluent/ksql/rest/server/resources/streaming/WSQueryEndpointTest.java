@@ -136,11 +136,24 @@ public class WSQueryEndpointTest {
     when(statementParser.parseSingleStatement(anyString())).thenReturn(query);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, serviceContext, commandQueue, exec,
         queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT);
+  }
+
+  @Test
+  public void shouldReturnErrorIfClusterWasTerminated() throws Exception {
+    // Given:
+    when(ksqlEngine.isAcceptingStatements()).thenReturn(false);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("The cluster has been terminated. No new request will be accepted.", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test

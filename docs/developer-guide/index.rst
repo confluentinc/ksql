@@ -17,6 +17,7 @@ These topics show how to develop KSQL applications for |cp|.
     query-with-structured-data
     join-streams-and-tables
     transform-a-stream-with-ksql
+    implement-a-udf
     partition-data
     syntax-reference
     api

@@ -24,6 +24,7 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StringUtil;
 import java.util.Map;
@@ -51,16 +52,27 @@ public class RegisterTopicCommand implements DdlCommand {
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
     final String serde = StringUtil.cleanQuotes(
         properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
-    this.topicSerDe = extractTopicSerDe(serde);
+    this.topicSerDe = extractTopicSerDe(serde, properties);
     this.notExists = notExist;
   }
 
-  private KsqlTopicSerDe extractTopicSerDe(final String serde) {
+  private KsqlTopicSerDe extractTopicSerDe(
+      final String serde, final Map<String, Expression> properties) {
     // TODO: Find a way to avoid calling toUpperCase() here;
     // if the property can be an unquoted identifier, then capitalization will have already happened
+    if (!serde.equalsIgnoreCase(DataSource.AVRO_SERDE_NAME)
+        && properties.containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)) {
+      throw new KsqlException(
+              DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
+    }
     switch (serde.toUpperCase()) {
       case DataSource.AVRO_SERDE_NAME:
-        return new KsqlAvroTopicSerDe();
+        final Expression schemaFullNameExp =
+                properties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
+        final String schemaFullName = schemaFullNameExp == null
+                ? KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME :
+                  StringUtil.cleanQuotes(schemaFullNameExp.toString());
+        return new KsqlAvroTopicSerDe(schemaFullName);
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe();
       case DataSource.DELIMITED_SERDE_NAME:

@@ -37,4 +37,7 @@ public interface CommandQueue extends Closeable {
 
   void ensureConsumedPast(long seqNum, Duration timeout)
       throws InterruptedException, TimeoutException;
+
+  @Override
+  void close();
 }

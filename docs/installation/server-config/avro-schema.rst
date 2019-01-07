@@ -37,6 +37,12 @@ Before using Avro in KSQL, make sure that |sr| is up and running and that ``ksql
 in the KSQL properties file (defaults to ``http://localhost:8081``). |sr| is :ref:`included by default <quickstart>` with
 |cp|.
 
+.. important:: By default, KSQL registered avro schemas have the same name (``KsqlDataSourceSchema``) and the same namespace
+               (``io.confluent.ksql.avro_schemas``). You can override this behaviour by providing an ``VALUE_AVRO_SCHEMA_FULL_NAME``
+               property in the ``WITH`` clause where you set the ``VALUE_FORMAT`` to ``'AVRO'``. As the name suggests,
+               this property will override the default name/namespace with the provided one.
+               For Example, ``com.mycompany.MySchema`` registers a schema with the ``MySchema`` name and the ``com.mycompany`` namespace.
+
 Here's what you can do with Avro in KSQL:
 
 - Declare streams and tables on Kafka topics with Avro-formatted data by using ``CREATE STREAM`` and ``CREATE TABLE`` statements.

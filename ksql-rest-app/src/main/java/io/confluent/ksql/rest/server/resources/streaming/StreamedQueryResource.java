@@ -109,7 +109,6 @@ public class StreamedQueryResource {
         queryStreamWriter = new QueryStreamWriter(
             ksqlConfig,
             ksqlEngine,
-            serviceContext,
             disconnectCheckInterval.toMillis(),
             ksql,
             request.getStreamsProperties(),

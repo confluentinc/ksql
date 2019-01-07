@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.connect.data.Field;
@@ -66,6 +67,7 @@ public class PhysicalPlanBuilder {
   private final boolean updateMetastore;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
+  private final Consumer<QueryMetadata> queryCloseCallback;
 
   public PhysicalPlanBuilder(
       final StreamsBuilder builder,
@@ -76,7 +78,8 @@ public class PhysicalPlanBuilder {
       final boolean updateMetastore,
       final MetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final KafkaStreamsBuilder kafkaStreamsBuilder
+      final KafkaStreamsBuilder kafkaStreamsBuilder,
+      final Consumer<QueryMetadata> queryCloseCallback
   ) {
     this.builder = Objects.requireNonNull(builder, "builder");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -88,6 +91,7 @@ public class PhysicalPlanBuilder {
     this.updateMetastore = updateMetastore;
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
+    this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
   }
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
@@ -184,9 +188,9 @@ public class PhysicalPlanBuilder {
         (sourceSchemaKstream instanceof SchemaKTable)
             ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
-        serviceContext.getTopicClient(),
         builder.build(),
-        overriddenStreamsProperties
+        overriddenStreamsProperties,
+        queryCloseCallback
     );
   }
 
@@ -261,10 +265,10 @@ public class PhysicalPlanBuilder {
         (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
                                                 : DataSource.DataSourceType.KSTREAM,
         applicationId,
-        serviceContext.getTopicClient(),
         sinkDataSource.getKsqlTopic(),
         topology,
-        overriddenStreamsProperties
+        overriddenStreamsProperties,
+        queryCloseCallback
     );
   }
 

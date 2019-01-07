@@ -32,6 +32,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -52,7 +54,11 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class QueryDescriptionTest {
   private static final Schema SCHEMA =
       SchemaBuilder.struct()
@@ -60,6 +66,9 @@ public class QueryDescriptionTest {
           .field("field2", SchemaBuilder.string().build())
           .build();
   private static final String STATEMENT = "statement";
+
+  @Mock
+  private Consumer<QueryMetadata> queryCloseCallback;
 
   private static class FakeSourceNode extends StructuredDataSourceNode {
     FakeSourceNode(final String name) {
@@ -110,7 +119,7 @@ public class QueryDescriptionTest {
     final QueryMetadata queryMetadata = new QueuedQueryMetadata(
         "test statement", queryStreams, outputNode, "execution plan",
         new LinkedBlockingQueue<>(), DataSource.DataSourceType.KSTREAM, "app id",
-        null, topology, streamsProperties);
+        topology, streamsProperties, queryCloseCallback);
 
     final QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
 
@@ -144,8 +153,8 @@ public class QueryDescriptionTest {
 
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(
         "test statement", queryStreams, outputNode, fakeSink,"execution plan",
-        new QueryId("query_id"), DataSource.DataSourceType.KSTREAM, "app id", null,
-        sinkTopic, topology, streamsProperties);
+        new QueryId("query_id"), DataSource.DataSourceType.KSTREAM, "app id",
+        sinkTopic, topology, streamsProperties, queryCloseCallback);
     final QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
     assertThat(queryDescription.getId().getId(), equalTo("query_id"));
     assertThat(queryDescription.getSinks(), equalTo(Collections.singleton("fake_sink")));

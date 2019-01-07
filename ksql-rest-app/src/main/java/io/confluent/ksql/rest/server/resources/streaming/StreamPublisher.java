@@ -105,7 +105,6 @@ public class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> 
         closed = true;
         log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
         queryMetadata.close();
-        ksqlEngine.removeTemporaryQuery(queryMetadata);
       }
     }
   }

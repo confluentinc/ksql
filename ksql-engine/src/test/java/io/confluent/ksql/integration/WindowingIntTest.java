@@ -262,7 +262,7 @@ public class WindowingIntTest {
   private void assertTopicsCleanedUp(final TopicCleanupPolicy topicCleanupPolicy) {
     assertThat("Initial topics", getTopicNames(), hasSize(5));
 
-    ksqlContext.getRunningQueries().forEach(QueryMetadata::close);
+    ksqlContext.getPersistentQueries().forEach(QueryMetadata::close);
 
     assertThatEventually("After cleanup", this::getTopicNames,
         containsInAnyOrder(resultStream0, resultStream1));

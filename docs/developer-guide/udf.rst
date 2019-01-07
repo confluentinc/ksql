@@ -118,6 +118,9 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
 
 .. code:: java
 
+    import io.confluent.ksql.function.udf.Udf;
+    import io.confluent.ksql.function.udf.UdfDescription;
+
     @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
     public class Multiply {
 
@@ -145,6 +148,32 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
         return v1 * v2;
       }
     }
+
+If you're using Gradle to build your UDF or UDAF, specify the ``ksql-udf``
+dependency: 
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:|release|'
+
+To compile with the latest version of ``ksql-udf``:
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:+'
+
+If you're using Maven to build your UDF or UDAF, specify the ``ksql-udf``
+dependency in your POM file:
+
+.. codewithvars:: xml
+
+    <dependencies>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-udf</artifactId>
+            <version>|release|</version>
+        </dependency>
+    </dependencies>
 
 
 UdfDescription Annotation

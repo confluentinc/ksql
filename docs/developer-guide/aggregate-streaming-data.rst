@@ -33,12 +33,23 @@ because the result of the query is a KSQL table.
       FROM pageviews \
       GROUP BY regionid;
 
+Tombstone Records
+=================
+
+An important difference between tables and streams is that a record with a
+non-null key and a null value has a special semantic meaning: in a table, this
+kind of record is a *tombstone*, which tells KSQL to “DELETE this key from the
+table”. For a stream, null is a value like any other, with no special meaning.
+
 Aggregate Over Windows
 **********************
 
 KSQL supports aggregation using tumbling, hopping, and session windows.
 
-.. For more information see :ref:`time-and-windows`.
+In a windowed aggregation, the first seen message is written into the table for
+a particular key as a null. Downstream applications reading the data will see
+nulls, and if an application can't handle null values, it may need a separate
+stream that filters these null records with a WHERE clause.
 
 Aggregate Records Over a Tumbling Window
 ========================================
@@ -103,6 +114,8 @@ the input data and performs the counting step per region.
       FROM pageviews \
       WINDOW SESSION (60 SECONDS) \
       GROUP BY regionid;
+
+For more information, see :ref:`time-and-windows-in-ksql-queries`.
 
 Next Steps
 **********

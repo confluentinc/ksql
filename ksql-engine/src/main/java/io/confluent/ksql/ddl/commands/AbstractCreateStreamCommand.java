@@ -196,6 +196,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME.toUpperCase());
 
     for (final String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
@@ -38,12 +39,13 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
       final DataSource.DataSourceType dataSourceType,
       final String queryApplicationId,
-      final KafkaTopicClient kafkaTopicClient,
       final Topology topology,
-      final Map<String, Object> overriddenProperties) {
+      final Map<String, Object> overriddenProperties,
+      final Consumer<QueryMetadata> closeCallback
+  ) {
     super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
-    this.rowQueue = rowQueue;
+          queryApplicationId, topology, overriddenProperties, closeCallback);
+    this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
   }
 
   public boolean isRunning() {

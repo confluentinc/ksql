@@ -64,9 +64,9 @@ public class ClusterTerminatorTest {
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
-  private PersistentQueryMetadata persistentQueryMetadata;
+  private PersistentQueryMetadata persistentQuery0;
   @Mock
-  private QueryId queryId;
+  private PersistentQueryMetadata persistentQuery1;
   @Mock
   private MetaStore metaStore;
   @Mock
@@ -83,37 +83,34 @@ public class ClusterTerminatorTest {
     clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("command_topic");
-
+    when(ksqlEngine.getPersistentQueries())
+        .thenReturn(ImmutableList.of(persistentQuery0, persistentQuery1));
   }
 
   @Test
-  public void shouldTerminatePersistetQueries() {
-    // Given:
-    givenPersistentQueries(queryId);
-
+  public void shouldClosePersistentQueries() {
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());
 
     // Then:
-    verify(ksqlEngine).terminateQuery(queryId, true);
+    verify(persistentQuery0).close();
+    verify(persistentQuery1).close();
   }
 
   @Test
-  public void shouldCloseTheEngineAfterTerminatingPersistetQueries() {
-    // Given:
-    givenPersistentQueries(queryId);
-
+  public void shouldCloseTheEngineAfterTerminatingPersistentQueries() {
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());
 
     // Then:
-    verify(ksqlEngine).close();
+    final InOrder inOrder = Mockito.inOrder(persistentQuery0, ksqlEngine);
+    inOrder.verify(persistentQuery0).close();
+    inOrder.verify(ksqlEngine).close();
   }
 
   @Test
-  public void shouldTerminateQueriesBeforeDeletingTopics() {
+  public void shouldClosePersistentQueriesBeforeDeletingTopics() {
     // Given:
-    givenPersistentQueries(queryId);
     givenTopicsExistInKafka("topic1");
     givenSinkTopicsExistInMetastore("topic1");
 
@@ -121,11 +118,9 @@ public class ClusterTerminatorTest {
     clusterTerminator.terminateCluster(Collections.singletonList("topic1"));
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(kafkaTopicClient, ksqlEngine);
-    inOrder.verify(ksqlEngine).getPersistentQueries();
-    inOrder.verify(ksqlEngine).terminateQuery(queryId, true);
-    inOrder.verify(kafkaTopicClient)
-        .deleteTopics(Collections.singletonList("topic1"));
+    final InOrder inOrder = Mockito.inOrder(kafkaTopicClient, persistentQuery0);
+    inOrder.verify(persistentQuery0).close();
+    inOrder.verify(kafkaTopicClient).deleteTopics(Collections.singletonList("topic1"));
   }
 
   @Test
@@ -280,11 +275,6 @@ public class ClusterTerminatorTest {
     return new KsqlTopic(topicName, kafkaTopicName, null, isSink);
   }
 
-  private void givenPersistentQueries(final QueryId queryId) {
-    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(persistentQueryMetadata));
-    when(persistentQueryMetadata.getQueryId()).thenReturn(queryId);
-  }
-
   private void givenSinkTopicsExistInMetastore(final String... kafkaTopicNames) {
     final Map<String, KsqlTopic> ksqlTopicMap = Stream.of(kafkaTopicNames)
         .collect(Collectors.toMap(
@@ -293,6 +283,7 @@ public class ClusterTerminatorTest {
     when(metaStore.getAllKsqlTopics()).thenReturn(ksqlTopicMap);
   }
 
+  @SuppressWarnings("SameParameterValue")
   private void givenNoneSinkTopicsExistInMetastore(final String kafkaTopicName) {
     when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of(
         "KSQL_" + kafkaTopicName, getKsqlTopic("KSQL_" + kafkaTopicName, kafkaTopicName, false)));

@@ -52,6 +52,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -69,8 +70,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class PhysicalPlanBuilderTest {
 
   private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
@@ -90,6 +95,8 @@ public class PhysicalPlanBuilderTest {
 
   private ServiceContext serviceContext;
   private LogicalPlanBuilder planBuilder;
+  @Mock
+  private Consumer<QueryMetadata> queryCloseCallback;
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
   private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
@@ -157,7 +164,8 @@ public class PhysicalPlanBuilderTest {
         false,
         metaStore,
         new QueryIdGenerator(""),
-        testKafkaStreamsBuilder
+        testKafkaStreamsBuilder,
+        queryCloseCallback
     );
 
   }

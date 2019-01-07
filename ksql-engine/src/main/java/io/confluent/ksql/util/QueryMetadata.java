@@ -14,19 +14,16 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
@@ -34,38 +31,45 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryMetadata {
-  private static final Logger log = LoggerFactory.getLogger(QueryMetadata.class);
+
+  private static final Logger LOG = LoggerFactory.getLogger(QueryMetadata.class);
+
   private final String statementString;
   private final KafkaStreams kafkaStreams;
   private final OutputNode outputNode;
   private final String executionPlan;
   private final DataSource.DataSourceType dataSourceType;
   private final String queryApplicationId;
-  private final KafkaTopicClient kafkaTopicClient;
   private final Topology topoplogy;
   private final Map<String, Object> overriddenProperties;
+  private final Consumer<QueryMetadata> closeCallback;
   private final Set<String> sourceNames;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
+  private boolean everStarted = false;
 
-  protected QueryMetadata(final String statementString,
-                       final KafkaStreams kafkaStreams,
-                       final OutputNode outputNode,
-                       final String executionPlan,
-                       final DataSource.DataSourceType dataSourceType,
-                       final String queryApplicationId,
-                       final KafkaTopicClient kafkaTopicClient,
-                       final Topology topoplogy,
-                       final Map<String, Object> overriddenProperties) {
-    this.statementString = statementString;
-    this.kafkaStreams = kafkaStreams;
-    this.outputNode = outputNode;
-    this.executionPlan = executionPlan;
-    this.dataSourceType = dataSourceType;
-    this.queryApplicationId = queryApplicationId;
-    this.kafkaTopicClient = kafkaTopicClient;
-    this.topoplogy = topoplogy;
-    this.overriddenProperties = overriddenProperties;
+  protected QueryMetadata(
+      final String statementString,
+      final KafkaStreams kafkaStreams,
+      final OutputNode outputNode,
+      final String executionPlan,
+      final DataSource.DataSourceType dataSourceType,
+      final String queryApplicationId,
+      final Topology topoplogy,
+      final Map<String, Object> overriddenProperties,
+      final Consumer<QueryMetadata> closeCallback
+  ) {
+    this.statementString = Objects.requireNonNull(statementString, "statementString");
+    this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
+    this.outputNode = Objects.requireNonNull(outputNode, "outputNode");
+    this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
+    this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
+    this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
+    this.topoplogy = Objects.requireNonNull(topoplogy, "kafkaTopicClient");
+    this.overriddenProperties =
+        Objects.requireNonNull(overriddenProperties, "overriddenProperties");
+    this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
+
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
     visitor.process(outputNode, null);
     this.sourceNames = visitor.getSourceNames();
@@ -120,70 +124,23 @@ public class QueryMetadata {
     return sourceNames;
   }
 
+  public boolean hasEverBeenStarted() {
+    return everStarted;
+  }
+
   public void close() {
     kafkaStreams.close();
-    if (kafkaStreams.state() == KafkaStreams.State.NOT_RUNNING) {
-      kafkaStreams.cleanUp();
-      kafkaTopicClient.deleteInternalTopics(queryApplicationId);
-    } else {
-      log.error("Could not clean up the query with application id: {}. Query status is: {}",
-                queryApplicationId, kafkaStreams.state());
-    }
+
+    kafkaStreams.cleanUp();
+
     queryStateListener.ifPresent(QueryStateListener::close);
-    StreamsErrorCollector.notifyApplicationClose(queryApplicationId);
-  }
 
-  private Set<String> getInternalSubjectNameSet(final SchemaRegistryClient schemaRegistryClient) {
-    try {
-      final String suffix1 = KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX
-                             + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-      final String suffix2 = KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX
-                             + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-
-      return schemaRegistryClient.getAllSubjects().stream()
-          .filter(subjectName -> subjectName.startsWith(getQueryApplicationId()))
-          .filter(subjectName -> subjectName.endsWith(suffix1) || subjectName.endsWith(suffix2))
-          .collect(Collectors.toSet());
-    } catch (final Exception e) {
-      // Do nothing! Schema registry clean up is best effort!
-      log.warn("Could not clean up the schema registry for query: " + queryApplicationId, e);
-    }
-    return new HashSet<>();
-  }
-
-
-  public void cleanUpInternalTopicAvroSchemas(final SchemaRegistryClient schemaRegistryClient) {
-    getInternalSubjectNameSet(schemaRegistryClient).forEach(subjectName -> {
-      try {
-        schemaRegistryClient.deleteSubject(subjectName);
-      } catch (final Exception e) {
-        log.warn("Could not clean up the schema registry for query: " + queryApplicationId
-                 + ", topic: " + subjectName, e);
-      }
-    });
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (!(o instanceof QueryMetadata)) {
-      return false;
-    }
-
-    final QueryMetadata that = (QueryMetadata) o;
-
-    return Objects.equals(this.statementString, that.statementString)
-        && Objects.equals(this.kafkaStreams, that.kafkaStreams)
-        && Objects.equals(this.outputNode, that.outputNode)
-        && Objects.equals(this.queryApplicationId, that.queryApplicationId);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(statementString, kafkaStreams, outputNode, queryApplicationId);
+    closeCallback.accept(this);
   }
 
   public void start() {
-    log.info("Starting query with application id: {}", queryApplicationId);
+    LOG.info("Starting query with application id: {}", queryApplicationId);
+    everStarted = true;
     queryStateListener.ifPresent(kafkaStreams::setStateListener);
     kafkaStreams.start();
   }

@@ -183,7 +183,7 @@ public class StatementExecutor {
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
       final Mode mode
-  ) { 
+  ) {
     DdlCommandResult result = null;
     String successMessage = "";
     if (statement.getStatement() instanceof ExecutableDdlStatement) {
@@ -223,8 +223,8 @@ public class StatementExecutor {
       final String queries =
           (String) command.getOverwriteProperties().get(
               KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
-      final Map<String, Object> overriddenProperties = new HashMap<>();
-      overriddenProperties.putAll(command.getOverwriteProperties());
+      final Map<String, Object> overriddenProperties = new HashMap<>(
+          command.getOverwriteProperties());
 
       final KsqlConfig mergedConfig =
           ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
@@ -292,11 +292,15 @@ public class StatementExecutor {
 
   private void terminateQuery(
       final PreparedStatement<TerminateQuery> terminateQuery,
-      final Mode mode) { 
+      final Mode mode
+  ) {
     final QueryId queryId = terminateQuery.getStatement().getQueryId();
-    if (!ksqlEngine.terminateQuery(queryId, mode == Mode.EXECUTE)) {
+    final PersistentQueryMetadata query = ksqlEngine.getPersistentQuery(queryId);
+    if (query == null) {
       throw new KsqlException(String.format("No running query with id %s was found", queryId));
     }
+
+    query.close();
   }
 
   private void maybeTerminateQueryForLegacyDropCommand(
@@ -315,7 +319,7 @@ public class StatementExecutor {
         = Lists.newArrayList(metaStore.getQueriesWithSink(commandId.getEntity()));
     queriesWithSink.stream()
         .map(QueryId::new)
-        .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));
+        .forEach(ksqlEngine::terminateQuery);
   }
 
   private void terminateQueries(final List<QueryMetadata> queryMetadataList) {
@@ -323,6 +327,6 @@ public class StatementExecutor {
         .filter(q -> q instanceof PersistentQueryMetadata)
         .map(PersistentQueryMetadata.class::cast)
         .map(PersistentQueryMetadata::getQueryId)
-        .forEach(queryId -> ksqlEngine.terminateQuery(queryId, false));
+        .forEach(ksqlEngine::terminateQuery);
   }
 }

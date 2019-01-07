@@ -42,18 +42,15 @@ class QueryStreamWriter implements StreamingOutput {
   private final QueuedQueryMetadata queryMetadata;
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
-  private final KsqlEngine ksqlEngine;
-  private final ServiceContext serviceContext;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
 
   QueryStreamWriter(
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
       final long disconnectCheckInterval,
       final QueuedQueryMetadata queryMetadata,
       final ObjectMapper objectMapper
-  ) {
+  ) throws Exception {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
@@ -101,9 +98,7 @@ class QueryStreamWriter implements StreamingOutput {
       log.error("Exception occurred while writing to connection stream: ", exception);
       outputException(out, exception);
     } finally {
-      ksqlEngine.removeTemporaryQuery(queryMetadata);
       queryMetadata.close();
-      queryMetadata.cleanUpInternalTopicAvroSchemas(serviceContext.getSchemaRegistryClient());
     }
   }
 

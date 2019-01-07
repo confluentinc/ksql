@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -58,11 +59,16 @@ class QueryEngine {
   private static final Logger LOG = LoggerFactory.getLogger(QueryEngine.class);
 
   private final ServiceContext serviceContext;
+  private final Consumer<QueryMetadata> queryCloseCallback;
   private final QueryIdGenerator queryIdGenerator;
   private final QueryIdGenerator tryQueryIdGenerator;
 
-  QueryEngine(final ServiceContext serviceContext) {
+  QueryEngine(
+      final ServiceContext serviceContext,
+      final Consumer<QueryMetadata> queryCloseCallback
+  ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
     this.queryIdGenerator = new QueryIdGenerator("");
     this.tryQueryIdGenerator = new QueryIdGenerator("_TRY");
   }
@@ -113,7 +119,8 @@ class QueryEngine {
         updateMetastore,
         metaStore,
         updateMetastore ? queryIdGenerator : tryQueryIdGenerator,
-        new KafkaStreamsBuilderImpl(clientSupplier)
+        new KafkaStreamsBuilderImpl(clientSupplier),
+        queryCloseCallback
     );
 
     return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);

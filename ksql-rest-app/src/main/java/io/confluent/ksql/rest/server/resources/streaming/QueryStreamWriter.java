@@ -17,10 +17,8 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.EOFException;
@@ -46,18 +44,15 @@ class QueryStreamWriter implements StreamingOutput {
   private volatile boolean limitReached = false;
 
   QueryStreamWriter(
-      final KsqlEngine ksqlEngine,
-      final long disconnectCheckInterval,
       final QueuedQueryMetadata queryMetadata,
+      final long disconnectCheckInterval,
       final ObjectMapper objectMapper
-  ) throws Exception {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+  ) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
     this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
-    this.ksqlEngine = ksqlEngine;
     queryMetadata.start();
   }
 

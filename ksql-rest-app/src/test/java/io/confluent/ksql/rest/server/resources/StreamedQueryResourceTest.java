@@ -76,7 +76,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
 import org.easymock.EasyMock;
@@ -288,8 +287,6 @@ public class StreamedQueryResourceTest {
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
     expect(mockKsqlEngine.execute(statement, ksqlConfig, requestStreamsProperties))
         .andReturn(Optional.of(queuedQueryMetadata));
-    mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
-    expectLastCall();
 
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);

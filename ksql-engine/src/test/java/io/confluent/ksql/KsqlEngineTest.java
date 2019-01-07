@@ -565,7 +565,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
-    final QueryMetadata query = ksqlEngine.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
@@ -581,7 +581,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnCloseIfQueryNeverStarted() {
     // Given:
-    final QueryMetadata query = ksqlEngine.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
@@ -598,7 +598,7 @@ public class KsqlEngineTest {
     final long startingLiveQueries = ksqlEngine.numberOfLiveQueries();
     final long startingPersistentQueries = ksqlEngine.numberOfPersistentQueries();
 
-    final QueryMetadata query = ksqlEngine.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
@@ -617,7 +617,7 @@ public class KsqlEngineTest {
     final long startingLiveQueries = ksqlEngine.numberOfLiveQueries();
     final long startingPersistentQueries = ksqlEngine.numberOfPersistentQueries();
 
-    final QueryMetadata query = ksqlEngine.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
@@ -636,7 +636,7 @@ public class KsqlEngineTest {
     // Given:
     final long startingLiveQueries = ksqlEngine.numberOfLiveQueries();
 
-    final QueryMetadata query = ksqlEngine.execute(
+    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 

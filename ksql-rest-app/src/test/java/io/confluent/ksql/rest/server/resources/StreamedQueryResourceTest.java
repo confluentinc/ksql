@@ -30,6 +30,9 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +43,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -105,8 +109,6 @@ public class StreamedQueryResourceTest {
   private CommandQueue commandQueue;
   @Mock(MockType.NICE)
   private ActivenessRegistrar activenessRegistrar;
-  @Mock(MockType.NICE)
-  private KsqlConfig mockKsqlConfig;
   private StreamedQueryResource testResource;
 
   private final static String queryString = "SELECT * FROM test_stream;";
@@ -148,8 +150,7 @@ public class StreamedQueryResourceTest {
     assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
     assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
-    assertThat(
-        errorMessage.getMessage(), containsString("Cluster has been terminated."));
+    assertThat(errorMessage.getMessage(), containsString("Cluster has been terminated."));
   }
 
   @Test
@@ -286,8 +287,6 @@ public class StreamedQueryResourceTest {
     expectLastCall();
 
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
-    reset(mockStatementParser);
-    expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
     final Response response =

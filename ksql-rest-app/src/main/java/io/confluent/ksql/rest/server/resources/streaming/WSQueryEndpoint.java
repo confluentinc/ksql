@@ -137,7 +137,15 @@ public class WSQueryEndpoint {
   @OnOpen
   public void onOpen(final Session session, final EndpointConfig unused) {
     log.debug("Opening websocket session {}", session.getId());
-
+    if (!ksqlEngine.isAcceptingStatements()) {
+      log.info("The cluster has been terminated. No new request will be accepted.");
+      SessionUtil.closeSilently(
+          session,
+          CloseCodes.CANNOT_ACCEPT,
+          "The cluster has been terminated. No new request will be accepted."
+      );
+      return;
+    }
     try {
       validateVersion(session);
 

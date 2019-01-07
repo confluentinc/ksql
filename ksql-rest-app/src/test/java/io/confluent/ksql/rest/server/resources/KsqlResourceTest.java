@@ -14,20 +14,24 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.computation.CommandId.Action.CREATE;
 import static io.confluent.ksql.rest.server.computation.CommandId.Type.TOPIC;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionKsqlErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -41,6 +45,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -54,7 +59,10 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.FunctionNameList;
@@ -85,6 +93,7 @@ import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
@@ -92,6 +101,7 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -116,6 +126,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.http.HttpStatus.Code;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -137,6 +148,9 @@ public class KsqlResourceTest {
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG, true),
       0L);
+
+  private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
+      new ClusterTerminateRequest(ImmutableList.of("Foo"));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -1017,6 +1031,58 @@ public class KsqlResourceTest {
     verify(activenessRegistrar).updateLastRequestTime();
   }
 
+  @Test
+  public void shoudlHandleTerminateRequestCorrectly() throws InterruptedException {
+
+    // When:
+    final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(200));
+    assertThat(response.getEntity(), instanceOf(KsqlEntityList.class));
+    assertThat(((KsqlEntityList) response.getEntity()).size(), equalTo(1));
+    assertThat(((KsqlEntityList) response.getEntity()).get(0),
+        instanceOf(CommandStatusEntity.class));
+    final CommandStatusEntity commandStatusEntity =
+        (CommandStatusEntity) ((KsqlEntityList) response.getEntity()).get(0);
+    assertThat(commandStatusEntity.getCommandStatus().getStatus(),
+        equalTo(CommandStatus.Status.QUEUED));
+    verify(commandStore).enqueueCommand(
+        eq(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT), isA(Statement.class),
+        any(),
+        eq(Collections.singletonMap(
+            ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, ImmutableList.of("Foo"))));
+  }
+
+  @Test
+  public void shoudlFailIfCannotWriteTerminateCommand() throws InterruptedException {
+    // Given:
+    when(commandStore.enqueueCommand(any(), any(), any(), any())).thenThrow(new KsqlException(""));
+
+    // When:
+    final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(500));
+    assertThat(response.getEntity().toString(),
+        CoreMatchers
+            .startsWith("Could not write the statement 'TERMINATE CLUSTER;' into the command "));
+  }
+
+  @Test
+  public void shouldFailTerminateOnInvalidDeleteTopicPattern() throws InterruptedException {
+    // Given:
+    final ClusterTerminateRequest request = new ClusterTerminateRequest(
+        ImmutableList.of("[Invalid Regex"));
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException
+        .expect(exceptionKsqlErrorMessage(errorMessage(is("Invalid pattern: [Invalid Regex"))));
+
+    // When:
+    ksqlResource.terminateCluster(request);
+  }
+
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Table sourceTable(final String name) {
     final KsqlTable table = (KsqlTable) ksqlEngine.getMetaStore().getSource(name);
@@ -1031,6 +1097,7 @@ public class KsqlResourceTest {
 
   private void givenMockEngine() {
     ksqlEngine = mock(KsqlEngine.class);
+    when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
     when(ksqlEngine.parseStatements(any()))
         .thenAnswer(invocation -> realEngine.parseStatements(invocation.getArgument(0)));
     setUpKsqlResource();
@@ -1083,7 +1150,7 @@ public class KsqlResourceTest {
       assertThat(response.getStatus(), is(errorCode.getCode()));
       assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
       return (KsqlErrorMessage) response.getEntity();
-    } catch (KsqlRestException e) {
+    } catch (final KsqlRestException e) {
       return (KsqlErrorMessage) e.getResponse().getEntity();
     }
   }
@@ -1188,7 +1255,11 @@ public class KsqlResourceTest {
       return;
     }
 
-    final KsqlTopic ksqlTopic = new KsqlTopic(ksqlTopicName, topicName, new KsqlJsonTopicSerDe(), false);
+    final KsqlTopic ksqlTopic = new KsqlTopic(
+        ksqlTopicName,
+        topicName,
+        new KsqlJsonTopicSerDe(),
+        false);
     givenTopicExists(topicName);
     metaStore.putTopic(ksqlTopic);
     if (type == DataSource.DataSourceType.KSTREAM) {

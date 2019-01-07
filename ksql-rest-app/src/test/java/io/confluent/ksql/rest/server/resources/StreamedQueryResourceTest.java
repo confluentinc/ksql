@@ -66,6 +66,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -104,6 +105,8 @@ public class StreamedQueryResourceTest {
   private CommandQueue commandQueue;
   @Mock(MockType.NICE)
   private ActivenessRegistrar activenessRegistrar;
+  @Mock(MockType.NICE)
+  private KsqlConfig mockKsqlConfig;
   private StreamedQueryResource testResource;
 
   private final static String queryString = "SELECT * FROM test_stream;";
@@ -111,6 +114,7 @@ public class StreamedQueryResourceTest {
 
   @Before
   public void setup() {
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     expect(serviceContext.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
     statement = new PreparedStatement<>("s", mock(Statement.class));
@@ -126,6 +130,26 @@ public class StreamedQueryResourceTest {
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
         activenessRegistrar);
+  }
+
+  @Test
+  public void shouldFailIfIsNotAcceptingStatements() throws Exception {
+    // Given:
+    final String queryString = "SELECT * FROM test_stream;";
+    reset(mockKsqlEngine);
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(false);
+    replay(mockKsqlEngine);
+
+    // When:
+    final Response response =
+        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage)response.getEntity();
+    assertThat(errorMessage.getErrorCode(), equalTo(Errors.ERROR_CODE_SERVER_ERROR));
+    assertThat(
+        errorMessage.getMessage(), containsString("Cluster has been terminated."));
   }
 
   @Test
@@ -261,6 +285,9 @@ public class StreamedQueryResourceTest {
     mockKsqlEngine.removeTemporaryQuery(queuedQueryMetadata);
     expectLastCall();
 
+    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
+    reset(mockStatementParser);
+    expect(mockStatementParser.parseSingleStatement(queryString)).andReturn(mock(Query.class));
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
     final Response response =

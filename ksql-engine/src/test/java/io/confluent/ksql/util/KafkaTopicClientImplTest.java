@@ -219,6 +219,18 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldReturnIfDeleteTopicsIsEmpty() {
+    // Given:
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.emptyList());
+
+    verify(adminClient);
+  }
+
+  @Test
   public void shouldDeleteInternalTopics() {
     expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
     expect(adminClient.deleteTopics(Arrays.asList(internalTopic2, internalTopic1)))

@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -52,6 +53,7 @@ import org.slf4j.LoggerFactory;
  * as tracking their statuses as things move along.
  */
 public class StatementExecutor {
+
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
   private final KsqlConfig ksqlConfig;
@@ -69,10 +71,12 @@ public class StatementExecutor {
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser
   ) {
+    Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
+    Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
+
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
-
     this.statusStore = new ConcurrentHashMap<>();
   }
 

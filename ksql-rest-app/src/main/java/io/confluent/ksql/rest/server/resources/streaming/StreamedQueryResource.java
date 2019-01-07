@@ -19,6 +19,8 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -84,6 +86,13 @@ public class StreamedQueryResource {
 
   @POST
   public Response streamQuery(final KsqlRequest request) throws Exception {
+    if (!ksqlEngine.isAcceptingStatements()) {
+      return Errors.serverErrorForStatement(
+          new KsqlException("Cluster has been terminated."),
+          "The cluster has been terminated. No new request will be accepted.",
+          new KsqlEntityList());
+    }
+
     activenessRegistrar.updateLastRequestTime();
 
     final PreparedStatement<?> statement = parseStatement(request);

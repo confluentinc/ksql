@@ -145,7 +145,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public void deleteTopics(final List<String> topicsToDelete) {
+  public void deleteTopics(final Collection<String> topicsToDelete) {
     for (final String topicName: topicsToDelete) {
       topicMap.remove(topicName);
     }

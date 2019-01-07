@@ -20,6 +20,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +54,8 @@ public final class TestKsqlContext extends ExternalResource {
     return delegate.sql(sql);
   }
 
-  Set<QueryMetadata> getRunningQueries() {
-    return delegate.getRunningQueries();
+  List<PersistentQueryMetadata> getPersistentQueries() {
+    return delegate.getPersistentQueries();
   }
 
   void terminateQuery(final QueryId queryId) {

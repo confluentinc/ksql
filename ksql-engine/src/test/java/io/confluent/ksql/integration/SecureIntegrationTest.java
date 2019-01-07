@@ -119,7 +119,7 @@ public class SecureIntegrationTest {
   @After
   public void after() {
     if (queryId != null) {
-      ksqlEngine.terminateQuery(queryId, true);
+      ksqlEngine.terminateQuery(queryId);
     }
     if (ksqlEngine != null) {
       ksqlEngine.close();

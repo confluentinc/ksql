@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.planner.plan;
 
@@ -25,7 +23,6 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
@@ -35,11 +32,10 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
@@ -52,9 +48,12 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
-import org.easymock.EasyMock;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
   private static final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -63,7 +62,8 @@ public class AggregateNodeTest {
     UdfLoaderUtil.load(functionRegistry);
   }
 
-  private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
+  @Mock
+  private ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private final StreamsBuilder builder = new StreamsBuilder();
 
@@ -222,7 +222,7 @@ public class AggregateNodeTest {
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
     final SchemaKStream stream = build();
-    assertThat(((SchemaKTable)stream).getKeySerde(), is(not(Optional.empty())));
+    assertThat(stream.getKeySerde(), is(not(Optional.empty())));
   }
 
   private SchemaKStream build() {
@@ -258,11 +258,9 @@ public class AggregateNodeTest {
         .buildStream(
             builder,
             ksqlConfig,
-            topicClient,
+            serviceContext,
             new InternalFunctionRegistry(),
-            new HashMap<>(),
-            new MockSchemaRegistryClientFactory()::get);
-
+            new HashMap<>());
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {

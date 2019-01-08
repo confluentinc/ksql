@@ -1,22 +1,19 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.structured;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -49,14 +46,16 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient,
-      final MaterializedFactory materializedFactory
+      final FunctionRegistry functionRegistry
   ) {
-    super(schema, null, keyField, sourceSchemaKStreams,
-        ksqlConfig, functionRegistry, schemaRegistryClient, materializedFactory);
-
-    this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
+    this(
+        schema,
+        kgroupedTable,
+        keyField,
+        sourceSchemaKStreams,
+        ksqlConfig,
+        functionRegistry,
+        MaterializedFactory.create(ksqlConfig));
   }
 
   SchemaKGroupedTable(
@@ -66,16 +65,12 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient) {
-    this(
-        schema,
-        kgroupedTable,
-        keyField,
-        sourceSchemaKStreams,
-        ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient,
-        MaterializedFactory.create(ksqlConfig));
+      final MaterializedFactory materializedFactory
+  ) {
+    super(schema, null, keyField, sourceSchemaKStreams,
+        ksqlConfig, functionRegistry, materializedFactory);
+
+    this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
   }
 
   @SuppressWarnings("unchecked")
@@ -129,8 +124,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         Serdes.String(),
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 }

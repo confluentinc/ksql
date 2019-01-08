@@ -1,27 +1,32 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
-import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,19 +45,42 @@ public class CommandRunner implements Runnable, Closeable {
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
 
   private final StatementExecutor statementExecutor;
-  private final ReplayableCommandQueue commandStore;
+  private final KsqlEngine ksqlEngine;
+  private final CommandQueue commandStore;
   private volatile boolean closed;
   private final int maxRetries;
+  private final ClusterTerminator clusterTerminator;
 
   public CommandRunner(
       final StatementExecutor statementExecutor,
-      final ReplayableCommandQueue commandStore,
-      final int maxRetries
+      final CommandQueue commandStore,
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
+      final int maxRetries,
+      final ServiceContext serviceContext
   ) {
-    this.statementExecutor = statementExecutor;
-    this.commandStore = commandStore;
+    this(
+        statementExecutor,
+        commandStore,
+        ksqlEngine,
+        maxRetries,
+        new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext)
+    );
+  }
+
+  CommandRunner(
+      final StatementExecutor statementExecutor,
+      final CommandQueue commandStore,
+      final KsqlEngine ksqlEngine,
+      final int maxRetries,
+      final ClusterTerminator clusterTerminator
+  ) {
+    this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
+    this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.maxRetries = maxRetries;
     closed = false;
+    this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
   }
 
   /**
@@ -79,15 +107,16 @@ public class CommandRunner implements Runnable, Closeable {
   @Override
   public void close() {
     closed = true;
-    try {
-      commandStore.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    commandStore.close();
   }
 
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
+    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
+    if (terminateCmd.isPresent()) {
+      terminateCluster(terminateCmd.get().getCommand());
+      return;
+    }
     log.trace("Found {} new writes to command topic", commands.size());
     commands.forEach(this::executeStatement);
   }
@@ -97,16 +126,19 @@ public class CommandRunner implements Runnable, Closeable {
    */
   public void processPriorCommands() {
     final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
+    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(restoreCommands);
+    if (terminateCmd.isPresent()) {
+      terminateCluster(terminateCmd.get().getCommand());
+      return;
+    }
     restoreCommands.forEach(
-        command -> {
-          RetryUtil.retryWithBackoff(
-              maxRetries,
-              STATEMENT_RETRY_MS,
-              MAX_STATEMENT_RETRY_MS,
-              () -> statementExecutor.handleRestore(command),
-              WakeupException.class
-          );
-        }
+        command -> RetryUtil.retryWithBackoff(
+            maxRetries,
+            STATEMENT_RETRY_MS,
+            MAX_STATEMENT_RETRY_MS,
+            () -> statementExecutor.handleRestore(command),
+            WakeupException.class
+        )
     );
     final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
@@ -122,4 +154,26 @@ public class CommandRunner implements Runnable, Closeable {
         WakeupException.class
     );
   }
+
+  private static Optional<QueuedCommand> findTerminateCommand(
+      final List<QueuedCommand> restoreCommands
+  ) {
+    return restoreCommands.stream()
+        .filter(command -> command.getCommand().getStatement()
+            .equalsIgnoreCase(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))
+        .findFirst();
+  }
+
+  @SuppressWarnings("unchecked")
+  private void terminateCluster(final Command command) {
+    ksqlEngine.stopAcceptingStatements();
+    log.info("Terminating the KSQL server.");
+    this.close();
+    final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
+        .getOrDefault(ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, Collections.emptyList());
+
+    clusterTerminator.terminateCluster(deleteTopicList);
+    log.info("The KSQL server was terminated.");
+  }
+
 }

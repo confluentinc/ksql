@@ -1,52 +1,47 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -78,6 +73,7 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.TimestampExtractor;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -98,6 +94,7 @@ public class StructuredDataSourceNodeTest {
       .field(TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
+
   private final StructuredDataSourceNode node = new StructuredDataSourceNode(
       new PlanNodeId("0"),
       new KsqlStream<>("sqlExpression", "datasource",
@@ -132,8 +129,6 @@ public class StructuredDataSourceNodeTest {
   @Mock
   private KTable kTable;
   @Mock
-  private KafkaTopicClient topicClient;
-  @Mock
   private InternalFunctionRegistry functionRegistry;
   @Mock
   private Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
@@ -141,15 +136,16 @@ public class StructuredDataSourceNodeTest {
   private MaterializedFactory materializedFactory;
   @Mock
   private Materialized materialized;
-  private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-      = new MockSchemaRegistryClientFactory()::get;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+  private ServiceContext serviceContext;
+
   @Before
   @SuppressWarnings("unchecked")
   public void before() {
+    serviceContext = TestServiceContext.create();
     realBuilder = new StreamsBuilder();
     realStream = build(node);
 
@@ -182,23 +178,9 @@ public class StructuredDataSourceNodeTest {
         .thenReturn(materialized);
   }
 
-  private StructuredDataSourceNode nodeWithMockTableSource() {
-    return new StructuredDataSourceNode(
-        realNodeId,
-        tableSource,
-        realSchema,
-        materializedFactorySupplier);
-  }
-
-  private SchemaKStream buildStreamWithMocks(final StructuredDataSourceNode node) {
-    return node.buildStream(
-        streamsBuilder,
-        realConfig,
-        topicClient,
-        functionRegistry,
-        Collections.emptyMap(),
-        schemaRegistryClientFactory
-    );
+  @After
+  public void tearDown() {
+    serviceContext.close();
   }
 
   @Test
@@ -208,22 +190,19 @@ public class StructuredDataSourceNodeTest {
     final StructuredDataSourceNode node = nodeWithMockTableSource();
 
     // When:
-    buildStreamWithMocks(node);
+    node.buildStream(
+        streamsBuilder,
+        realConfig,
+        serviceContext,
+        functionRegistry,
+        Collections.emptyMap()
+    );
 
     // Then:
     verify(materializedFactorySupplier).apply(realConfig);
     verify(materializedFactory).create(keySerde, rowSerde, "source-REDUCE");
     verify(kGroupedStream).aggregate(any(), any(), same(materialized));
   }
-
-  private SchemaKStream build(final StructuredDataSourceNode node) {
-    return node.buildStream(realBuilder,
-        realConfig,
-        new FakeKafkaTopicClient(),
-        new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
-  }
-
 
   @Test
   public void shouldBuildSourceNode() {
@@ -321,5 +300,22 @@ public class StructuredDataSourceNodeTest {
       assertThat(streamsNode.successors().size(), equalTo(1));
       streamsNode = streamsNode.successors().iterator().next();
     }
+  }
+
+  private SchemaKStream build(final StructuredDataSourceNode node) {
+    return node.buildStream(
+        realBuilder,
+        realConfig,
+        serviceContext,
+        new InternalFunctionRegistry(),
+        new HashMap<>());
+  }
+
+  private StructuredDataSourceNode nodeWithMockTableSource() {
+    return new StructuredDataSourceNode(
+        realNodeId,
+        tableSource,
+        realSchema,
+        materializedFactorySupplier);
   }
 }

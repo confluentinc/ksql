@@ -1,23 +1,20 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
@@ -44,7 +41,30 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final KTable<K, GenericRow> ktable;
 
-  // CHECKSTYLE_RULES.OFF: ParameterNumber
+  public SchemaKTable(
+      final Schema schema,
+      final KTable<K, GenericRow> ktable,
+      final Field keyField,
+      final List<SchemaKStream> sourceSchemaKStreams,
+      final Serde<K> keySerde,
+      final Type type,
+      final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry
+  ) {
+    this(
+        schema,
+        ktable,
+        keyField,
+        sourceSchemaKStreams,
+        keySerde,
+        type,
+        ksqlConfig,
+        functionRegistry,
+        GroupedFactory.create(ksqlConfig),
+        JoinedFactory.create(ksqlConfig)
+    );
+  }
+
   SchemaKTable(
       final Schema schema,
       final KTable<K, GenericRow> ktable,
@@ -54,7 +74,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient,
       final GroupedFactory groupedFactory,
       final JoinedFactory joinedFactory
   ) {
@@ -67,37 +86,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         type,
         ksqlConfig,
         functionRegistry,
-        schemaRegistryClient,
         groupedFactory,
         joinedFactory
     );
     this.ktable = ktable;
-  }
-  // CHECKSTYLE_RULES.ON: ParameterNumber
-
-  public SchemaKTable(
-      final Schema schema,
-      final KTable<K, GenericRow> ktable,
-      final Field keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
-      final Serde<K> keySerde,
-      final Type type,
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient) {
-    this(
-        schema,
-        ktable,
-        keyField,
-        sourceSchemaKStreams,
-        keySerde,
-        type,
-        ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient,
-        GroupedFactory.create(ksqlConfig),
-        JoinedFactory.create(ksqlConfig)
-    );
   }
 
   @SuppressWarnings("unchecked")
@@ -150,8 +142,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.FILTER,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 
@@ -166,8 +157,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.PROJECT,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 
@@ -202,8 +192,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         newKeyField,
         Collections.singletonList(this),
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient);
+        functionRegistry);
   }
 
   @SuppressWarnings("unchecked")
@@ -225,8 +214,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 
@@ -250,8 +238,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 
@@ -275,8 +262,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient
+        functionRegistry
     );
   }
 }

@@ -1,22 +1,19 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.structured;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -52,7 +49,6 @@ public class SchemaKGroupedStream {
   final List<SchemaKStream> sourceSchemaKStreams;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
-  final SchemaRegistryClient schemaRegistryClient;
   final MaterializedFactory materializedFactory;
 
   SchemaKGroupedStream(
@@ -61,18 +57,17 @@ public class SchemaKGroupedStream {
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient,
-      final MaterializedFactory materializedFactory
+      final FunctionRegistry functionRegistry
   ) {
-    this.schema = schema;
-    this.kgroupedStream = kgroupedStream;
-    this.keyField = keyField;
-    this.sourceSchemaKStreams = sourceSchemaKStreams;
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.functionRegistry = functionRegistry;
-    this.schemaRegistryClient = schemaRegistryClient;
-    this.materializedFactory = materializedFactory;
+    this(
+        schema,
+        kgroupedStream,
+        keyField,
+        sourceSchemaKStreams,
+        ksqlConfig,
+        functionRegistry,
+        MaterializedFactory.create(ksqlConfig)
+    );
   }
 
   SchemaKGroupedStream(
@@ -82,17 +77,15 @@ public class SchemaKGroupedStream {
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient) {
-    this(
-        schema,
-        kgroupedStream,
-        keyField,
-        sourceSchemaKStreams,
-        ksqlConfig,
-        functionRegistry,
-        schemaRegistryClient,
-        MaterializedFactory.create(ksqlConfig)
-    );
+      final MaterializedFactory materializedFactory
+  ) {
+    this.schema = schema;
+    this.kgroupedStream = kgroupedStream;
+    this.keyField = keyField;
+    this.sourceSchemaKStreams = sourceSchemaKStreams;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.functionRegistry = functionRegistry;
+    this.materializedFactory = materializedFactory;
   }
 
   public Field getKeyField() {
@@ -124,7 +117,7 @@ public class SchemaKGroupedStream {
 
     return new SchemaKTable(
         schema, table, keyField, sourceSchemaKStreams, keySerde,
-        SchemaKStream.Type.AGGREGATE, ksqlConfig, functionRegistry, schemaRegistryClient);
+        SchemaKStream.Type.AGGREGATE, ksqlConfig, functionRegistry);
   }
 
   @SuppressWarnings("unchecked")
@@ -140,7 +133,7 @@ public class SchemaKGroupedStream {
 
     final Materialized<String, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
           = materializedFactory.create(Serdes.String(), topicValueSerDe, opName);
-    return kgroupedStream.aggregate(initializer, aggregator, materialized); 
+    return kgroupedStream.aggregate(initializer, aggregator, materialized);
   }
 
   @SuppressWarnings("unchecked")

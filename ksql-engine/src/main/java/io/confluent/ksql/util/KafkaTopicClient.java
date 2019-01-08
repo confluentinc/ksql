@@ -1,30 +1,27 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 
-public interface KafkaTopicClient  {
+public interface KafkaTopicClient {
 
   enum TopicCleanupPolicy {
     COMPACT,
@@ -48,7 +45,8 @@ public interface KafkaTopicClient  {
   /**
    * Create a new topic with the specified name, numPartitions and replicationFactor.
    * [warn] synchronous call to get the response
-   * @param topic   name of the topic to create
+   *
+   * @param topic name of the topic to create
    * @param configs any additional topic configs to use
    */
   void createTopic(
@@ -119,9 +117,9 @@ public interface KafkaTopicClient  {
   TopicCleanupPolicy getTopicCleanupPolicy(String topicName);
 
   /**
-   * Delete the list of the topics in the given list.
+   * Delete the topics in the given collection.
    */
-  void deleteTopics(List<String> topicsToDelete);
+  void deleteTopics(Collection<String> topicsToDelete);
 
   /**
    * Delete the internal topics of a given application.

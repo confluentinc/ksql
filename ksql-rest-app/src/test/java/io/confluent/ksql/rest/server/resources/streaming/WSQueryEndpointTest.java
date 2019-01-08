@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.rest.server.resources.streaming;
@@ -44,9 +42,10 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -97,6 +96,8 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
+  private ServiceContext serviceContext;
+  @Mock
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
   private KafkaTopicClient topicClient;
@@ -109,7 +110,7 @@ public class WSQueryEndpointTest {
   @Mock
   private QueryBody queryBody;
   @Mock
-  private ReplayableCommandQueue replayableCommandQueue;
+  private CommandQueue commandQueue;
   @Mock
   private QueryPublisher queryPublisher;
   @Mock
@@ -133,13 +134,26 @@ public class WSQueryEndpointTest {
 
     when(session.getId()).thenReturn("session-id");
     when(statementParser.parseSingleStatement(anyString())).thenReturn(query);
-    when(ksqlEngine.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
-    when(ksqlEngine.getTopicClient()).thenReturn(topicClient);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, replayableCommandQueue, exec,
+        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, serviceContext, commandQueue, exec,
         queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT);
+  }
+
+  @Test
+  public void shouldReturnErrorIfClusterWasTerminated() throws Exception {
+    // Given:
+    when(ksqlEngine.isAcceptingStatements()).thenReturn(false);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedWithReason("The cluster has been terminated. No new request will be accepted.", CloseCodes.CANNOT_ACCEPT);
   }
 
   @Test
@@ -345,7 +359,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(replayableCommandQueue, never()).ensureConsumedPast(anyLong(), any());
+    verify(commandQueue, never()).ensureConsumedPast(anyLong(), any());
   }
 
   @Test
@@ -357,7 +371,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(replayableCommandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
+    verify(commandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
   }
 
   @Test
@@ -365,7 +379,7 @@ public class WSQueryEndpointTest {
     // Given:
     givenRequest(REQUEST_WITH_SEQUENCE_NUMBER);
     doThrow(new TimeoutException("yikes"))
-        .when(replayableCommandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
+        .when(commandQueue).ensureConsumedPast(eq(SEQUENCE_NUMBER), any());
 
     // When:
     wsQueryEndpoint.onOpen(session, null);
@@ -375,7 +389,7 @@ public class WSQueryEndpointTest {
     verify(statementParser, never()).parseSingleStatement(any());
   }
 
-  private PrintTopic printTopic(final String name, final boolean fromBeginning) {
+  private static PrintTopic printTopic(final String name, final boolean fromBeginning) {
     return new PrintTopic(
         new NodeLocation(0, 1),
         QualifiedName.of(name),

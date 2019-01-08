@@ -1,114 +1,82 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
+import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlContext;
-import io.confluent.ksql.KsqlTestContext;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
 
 @Category({IntegrationTest.class})
 public class JoinIntTest {
 
-  private IntegrationTestHarness testHarness;
-  private KsqlContext ksqlContext;
+  private static final String ORDER_STREAM_NAME_JSON = "Orders_json";
+  private static final String ORDER_STREAM_NAME_AVRO = "Orders_avro";
+  private static final String ITEM_TABLE_NAME_JSON = "Item_json";
+  private static final String ITEM_TABLE_NAME_AVRO = "Item_avro";
+  private static final ItemDataProvider ITEM_DATA_PROVIDER = new ItemDataProvider();
+  private static final OrderDataProvider ORDER_DATA_PROVIDER = new OrderDataProvider();
+  private static final long MAX_WAIT_MS = TimeUnit.SECONDS.toMillis(150);
 
+  @ClassRule
+  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-  private String orderStreamTopicJson = "OrderTopicJson";
-  private String orderStreamNameJson = "Orders_json";
-  private OrderDataProvider orderDataProvider;
-
-  private String orderStreamTopicAvro = "OrderTopicAvro";
-  private String orderStreamNameAvro = "Orders_avro";
-
-  private String itemTableTopicJson = "ItemTopicJson";
-  private String itemTableNameJson = "Item_json";
-  private ItemDataProvider itemDataProvider;
-
-  private String itemTableTopicAvro = "ItemTopicAvro";
-  private String itemTableNameAvro = "Item_avro";
+  @Rule
+  public final TestKsqlContext ksqlContext = TEST_HARNESS.buildKsqlContext();
 
   private final long now = System.currentTimeMillis();
+  private String itemTableTopicJson = "ItemTopicJson";
+  private String orderStreamTopicJson = "OrderTopicJson";
+  private String orderStreamTopicAvro = "OrderTopicAvro";
+  private String itemTableTopicAvro = "ItemTopicAvro";
 
   @Before
-  public void before() throws Exception {
-    testHarness = new IntegrationTestHarness();
-    testHarness.start(Collections.emptyMap());
-    final Map<String, Object> ksqlStreamConfigProps = new HashMap<>();
-    ksqlStreamConfigProps.putAll(testHarness.ksqlConfig.getKsqlStreamConfigProps());
-    // turn caching off to improve join consistency
-    ksqlStreamConfigProps.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
-    ksqlStreamConfigProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-    ksqlContext = KsqlTestContext.create(new KsqlConfig(ksqlStreamConfigProps),
-                                     testHarness.schemaRegistryClientFactory);
+  public void before() {
+    itemTableTopicJson = TopicTestUtil.uniqueTopicName("ItemTopicJson");
+    itemTableTopicAvro = TopicTestUtil.uniqueTopicName("ItemTopicAvro");
+    orderStreamTopicJson = TopicTestUtil.uniqueTopicName("OrderTopicJson");
+    orderStreamTopicAvro = TopicTestUtil.uniqueTopicName("OrderTopicAvro");
 
-    /*
-     * Setup test data
-     */
-    testHarness.createTopic(itemTableTopicJson);
-    testHarness.createTopic(itemTableTopicAvro);
-    itemDataProvider = new ItemDataProvider();
+    TEST_HARNESS.ensureTopics(itemTableTopicJson, itemTableTopicAvro,
+        orderStreamTopicJson, orderStreamTopicAvro);
 
-    testHarness.publishTestData(itemTableTopicJson,
-                                itemDataProvider,
-                                now -500);
-    testHarness.publishTestData(itemTableTopicAvro,
-                                itemDataProvider,
-                                now -500,
-                                DataSource.DataSourceSerDe.AVRO);
+    TEST_HARNESS.produceRows(itemTableTopicJson, ITEM_DATA_PROVIDER, JSON, () -> now - 500);
+    TEST_HARNESS.produceRows(itemTableTopicAvro, ITEM_DATA_PROVIDER, AVRO, () -> now - 500);
 
+    TEST_HARNESS.produceRows(orderStreamTopicJson, ORDER_DATA_PROVIDER, JSON, () -> now);
+    TEST_HARNESS.produceRows(orderStreamTopicAvro, ORDER_DATA_PROVIDER, AVRO, () -> now);
 
-    testHarness.createTopic(orderStreamTopicJson);
-    testHarness.createTopic(orderStreamTopicAvro);
-    orderDataProvider = new OrderDataProvider();
-    testHarness.publishTestData(orderStreamTopicJson,
-                                orderDataProvider,
-                                now);
-    testHarness.publishTestData(orderStreamTopicAvro,
-                                orderDataProvider,
-                                now,
-                                DataSource.DataSourceSerDe.AVRO);
     createStreams();
   }
-
-  @After
-  public void after() {
-    ksqlContext.close();
-    testHarness.stop();
-  }
-
 
   private void shouldLeftJoinOrderAndItems(final String testStreamName,
                                           final String orderStreamTopic,
@@ -143,25 +111,26 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      results.putAll(testHarness.consumeData(testStreamName,
-                                             resultSchema,
-                                             1,
-                                             new StringDeserializer(),
-                                             IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
-                                             dataSourceSerDe));
+          results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
+              testStreamName,
+              1,
+              dataSourceSerDe,
+              resultSchema));
+
       final boolean success = results.equals(expectedResults);
       if (!success) {
         try {
           // The join may not be triggered fist time around due to order in which the
           // consumer pulls the records back. So we publish again to make the stream
           // trigger the join.
-          testHarness.publishTestData(orderStreamTopic, orderDataProvider, now, dataSourceSerDe);
+          TEST_HARNESS
+              .produceRows(orderStreamTopic, ORDER_DATA_PROVIDER, dataSourceSerDe, () -> now);
         } catch(final Exception e) {
           throw new RuntimeException(e);
         }
       }
       return success;
-    }, IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS * 2 + 30000,
+        }, MAX_WAIT_MS,
         "failed to complete join correctly");
   }
 
@@ -174,11 +143,11 @@ public class JoinIntTest {
         + "%s " +
         " on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'Hello' ;",
         testStreamName,
-        orderStreamNameJson,
-        itemTableNameJson,
-        orderStreamNameJson,
-        itemTableNameJson,
-        orderStreamNameJson
+        ORDER_STREAM_NAME_JSON,
+        ITEM_TABLE_NAME_JSON,
+        ORDER_STREAM_NAME_JSON,
+        ITEM_TABLE_NAME_JSON,
+        ORDER_STREAM_NAME_JSON
     );
 
     final String insertQueryString = String.format(
@@ -186,11 +155,11 @@ public class JoinIntTest {
         + "%s " +
         " on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1' ;",
         testStreamName,
-        orderStreamNameJson,
-        itemTableNameJson,
-        orderStreamNameJson,
-        itemTableNameJson,
-        orderStreamNameJson
+        ORDER_STREAM_NAME_JSON,
+        ITEM_TABLE_NAME_JSON,
+        ORDER_STREAM_NAME_JSON,
+        ITEM_TABLE_NAME_JSON,
+        ORDER_STREAM_NAME_JSON
     );
 
     ksqlContext.sql(csasQueryString);
@@ -202,39 +171,46 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      results.putAll(testHarness.consumeData(testStreamName, resultSchema, 1, new StringDeserializer(), IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS));
+      results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
+          testStreamName,
+          1,
+          JSON,
+          resultSchema));
+
       final boolean success = results.equals(expectedResults);
       if (!success) {
         try {
           // The join may not be triggered fist time around due to order in which the
           // consumer pulls the records back. So we publish again to make the stream
           // trigger the join.
-          testHarness.publishTestData(orderStreamTopicJson, orderDataProvider, now);
+          TEST_HARNESS.produceRows(orderStreamTopicJson, ORDER_DATA_PROVIDER, JSON, () -> now);
         } catch(final Exception e) {
           throw new RuntimeException(e);
         }
       }
       return success;
-    }, IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS * 2 + 30000, "failed to complete join correctly");
+    }, MAX_WAIT_MS, "failed to complete join correctly");
   }
 
   @Test
   public void shouldLeftJoinOrderAndItemsJson() throws Exception {
-    shouldLeftJoinOrderAndItems("ORDERWITHDESCRIPTIONJSON",
-                                orderStreamTopicJson,
-                                orderStreamNameJson,
-                                itemTableNameJson,
-                                DataSource.DataSourceSerDe.JSON);
+    shouldLeftJoinOrderAndItems(
+        "ORDERWITHDESCRIPTIONJSON",
+        orderStreamTopicJson,
+        ORDER_STREAM_NAME_JSON,
+        ITEM_TABLE_NAME_JSON,
+        DataSource.DataSourceSerDe.JSON);
 
   }
 
   @Test
   public void shouldLeftJoinOrderAndItemsAvro() throws Exception {
-    shouldLeftJoinOrderAndItems("ORDERWITHDESCRIPTIONAVRO",
-                                orderStreamTopicAvro,
-                                orderStreamNameAvro,
-                                itemTableNameAvro,
-                                DataSource.DataSourceSerDe.AVRO);
+    shouldLeftJoinOrderAndItems(
+        "ORDERWITHDESCRIPTIONAVRO",
+        orderStreamTopicAvro,
+        ORDER_STREAM_NAME_AVRO,
+        ITEM_TABLE_NAME_AVRO,
+        AVRO);
   }
 
   @Test
@@ -243,11 +219,11 @@ public class JoinIntTest {
         "CREATE STREAM JOINED AS SELECT ORDERID, ITEMID, ORDERUNITS, DESCRIPTION FROM %s LEFT JOIN"
             + " %s on %s.ITEMID = %s.ID WHERE %s.ITEMID = 'ITEM_1';"
             + "CREATE STREAM OUTPUT AS SELECT ORDERID, DESCRIPTION, ROWTIME AS RT FROM JOINED;",
-        orderStreamNameAvro,
-        itemTableNameAvro,
-        orderStreamNameAvro,
-        itemTableNameAvro,
-        orderStreamNameAvro);
+        ORDER_STREAM_NAME_AVRO,
+        ITEM_TABLE_NAME_AVRO,
+        ORDER_STREAM_NAME_AVRO,
+        ITEM_TABLE_NAME_AVRO,
+        ORDER_STREAM_NAME_AVRO);
 
     ksqlContext.sql(queryString);
 
@@ -265,51 +241,54 @@ public class JoinIntTest {
 
     final Map<String, GenericRow> results = new HashMap<>();
     TestUtils.waitForCondition(() -> {
-      results.putAll(testHarness.consumeData(outputStream,
-          resultSchema,
+      results.putAll(TEST_HARNESS.verifyAvailableUniqueRows(
+          outputStream,
           1,
-          new StringDeserializer(),
-          IntegrationTestHarness.RESULTS_POLL_MAX_TIME_MS,
-          DataSource.DataSourceSerDe.AVRO));
+          AVRO,
+          resultSchema));
+
       final boolean success = results.equals(expectedResults);
       if (!success) {
         try {
           // The join may not be triggered fist time around due to order in which the
           // consumer pulls the records back. So we publish again to make the stream
           // trigger the join.
-          testHarness.publishTestData(orderStreamTopicAvro, orderDataProvider, now, DataSource.DataSourceSerDe.AVRO);
+          TEST_HARNESS.produceRows(orderStreamTopicAvro, ORDER_DATA_PROVIDER, AVRO, () -> now);
         } catch(final Exception e) {
           throw new RuntimeException(e);
         }
       }
       return success;
     }, 120000, "failed to complete join correctly");
-
   }
 
   private void createStreams() {
-    ksqlContext.sql(String.format("CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
-                                  + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, "
-                                  + "KEYVALUEMAP map<varchar, double>) "
-                                  + "WITH (kafka_topic='%s', value_format='JSON');",
-                                  orderStreamNameJson,
-                                  orderStreamTopicJson));
-    ksqlContext.sql(String.format("CREATE TABLE %s (ID varchar, DESCRIPTION varchar) "
-                                  + "WITH (kafka_topic='%s', value_format='JSON', key='ID');",
-                                  itemTableNameJson,
-                                  itemTableTopicJson));
+    ksqlContext.sql(String.format(
+        "CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, "
+            + "ITEMID varchar, ORDERUNITS double, PRICEARRAY array<double>, "
+            + "KEYVALUEMAP map<varchar, double>) "
+            + "WITH (kafka_topic='%s', value_format='JSON');",
+        ORDER_STREAM_NAME_JSON,
+        orderStreamTopicJson));
+
+    ksqlContext.sql(String.format(
+        "CREATE TABLE %s (ID varchar, DESCRIPTION varchar) "
+            + "WITH (kafka_topic='%s', value_format='JSON', key='ID');",
+        ITEM_TABLE_NAME_JSON,
+        itemTableTopicJson));
 
     ksqlContext.sql(String.format(
         "CREATE STREAM %s (ORDERTIME bigint, ORDERID varchar, ITEMID varchar, "
-                                  + "ORDERUNITS double, PRICEARRAY array<double>, "
-                                  + "KEYVALUEMAP map<varchar, double>) "
+            + "ORDERUNITS double, PRICEARRAY array<double>, "
+            + "KEYVALUEMAP map<varchar, double>) "
         + "WITH (kafka_topic='%s', value_format='AVRO', timestamp='ORDERTIME');",
-                                  orderStreamNameAvro,
-                                  orderStreamTopicAvro));
-    ksqlContext.sql(String.format("CREATE TABLE %s (ID varchar, DESCRIPTION varchar)"
-                                  + " WITH (kafka_topic='%s', value_format='AVRO', key='ID');",
-                                  itemTableNameAvro,
-                                  itemTableTopicAvro));
-  }
+        ORDER_STREAM_NAME_AVRO,
+        orderStreamTopicAvro));
 
+    ksqlContext.sql(String.format(
+        "CREATE TABLE %s (ID varchar, DESCRIPTION varchar)"
+            + " WITH (kafka_topic='%s', value_format='AVRO', key='ID');",
+        ITEM_TABLE_NAME_AVRO,
+        itemTableTopicAvro));
+  }
 }

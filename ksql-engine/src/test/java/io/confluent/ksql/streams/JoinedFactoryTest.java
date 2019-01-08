@@ -1,15 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.streams;
@@ -25,14 +25,16 @@ import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Joined;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class JoinedFactoryTest {
-  final String opName = "kdot";
+
+  private static final String OP_NAME = "kdot";
+
   @Mock
   private Serde<String> keySerde;
   @Mock
@@ -43,9 +45,6 @@ public class JoinedFactoryTest {
   private JoinedFactory.Joiner joiner;
   @Mock
   private Joined<String, GenericRow, GenericRow> joined;
-
-  @Rule
-  public MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Test
   public void shouldCreateJoinedCorrectlyWhenOptimizationsDisabled() {
@@ -62,7 +61,7 @@ public class JoinedFactoryTest {
     // When:
     final Joined<String, GenericRow, GenericRow> returned
         = JoinedFactory.create(ksqlConfig, joiner).create(
-            keySerde, leftSerde, rightSerde, opName);
+        keySerde, leftSerde, rightSerde, OP_NAME);
 
     // Then:
     assertThat(returned, is(joined));
@@ -77,15 +76,15 @@ public class JoinedFactoryTest {
             KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
             KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
     );
-    when(joiner.joinedWith(keySerde, leftSerde, rightSerde, opName)).thenReturn(joined);
+    when(joiner.joinedWith(keySerde, leftSerde, rightSerde, OP_NAME)).thenReturn(joined);
 
     // When:
     final Joined<String, GenericRow, GenericRow> returned
         = JoinedFactory.create(ksqlConfig, joiner).create(
-        keySerde, leftSerde, rightSerde, opName);
+        keySerde, leftSerde, rightSerde, OP_NAME);
 
     // Then:
     assertThat(returned, is(joined));
-    verify(joiner).joinedWith(keySerde, leftSerde, rightSerde, opName);
+    verify(joiner).joinedWith(keySerde, leftSerde, rightSerde, OP_NAME);
   }
 }

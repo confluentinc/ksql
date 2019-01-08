@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -27,38 +25,29 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
-
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.Node;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.RecordBatch;
 import org.junit.Before;
@@ -66,8 +55,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -92,24 +79,15 @@ public class CommandStoreTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private Consumer<CommandId, Command> commandConsumer;
-  @Mock
-  private Producer<CommandId, Command> commandProducer;
-  @Mock
   private SequenceNumberFutureStore sequenceNumberFutureStore;
   @Mock
   private CompletableFuture<Void> future;
   @Mock
+  private CommandTopic commandTopic;
+  @Mock
   private Statement statement;
   @Mock
-  private Future<RecordMetadata> recordMetadataFuture;
-  @Mock
-  private Node node;
-  @Mock
   private CommandIdAssigner commandIdAssigner;
-
-  @Captor
-  private ArgumentCaptor<ProducerRecord<CommandId, Command>> recordCaptor;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -126,56 +104,17 @@ public class CommandStoreTest {
         .thenAnswer(invocation -> new CommandId(
             CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
 
-    when(commandProducer.send(any(ProducerRecord.class))).thenReturn(recordMetadataFuture);
-    when(recordMetadataFuture.get()).thenReturn(recordMetadata);
+    when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
 
-    when(commandConsumer.poll(any(Duration.class))).thenReturn(buildRecords(commandId, command));
-    when(commandConsumer.partitionsFor(COMMAND_TOPIC))
-        .thenReturn(ImmutableList.of(
-            new PartitionInfo(COMMAND_TOPIC, 0, node, new Node[]{node}, new Node[]{node})
-        ));
+    when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
 
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
     commandStore = new CommandStore(
-        COMMAND_TOPIC,
-        commandConsumer,
-        commandProducer,
+        commandTopic,
         commandIdAssigner,
         sequenceNumberFutureStore
     );
-  }
-
-  @Test
-  public void shouldHaveAllCreateCommandsInOrder() {
-    // Given:
-    final CommandId createId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
-    final CommandId dropId = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.DROP);
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    final Command originalCommand = new Command(
-        "some statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final Command dropCommand = new Command(
-        "drop", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final Command latestCommand = new Command(
-        "a new statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-
-    final ConsumerRecords<CommandId, Command> records = buildRecords(
-        createId, originalCommand,
-        dropId, dropCommand,
-        createId, latestCommand
-    );
-
-    when(commandConsumer.poll(any()))
-        .thenReturn(records)
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
-
-    // When:
-    final List<Pair<CommandId, Command>> commands = getPriorCommands(commandStore);
-
-    // Then:
-    assertThat(commands, equalTo(Arrays.asList(new Pair<>(createId, originalCommand),
-        new Pair<>(dropId, dropCommand),
-        new Pair<>(createId, latestCommand))));
   }
 
   @Test
@@ -194,17 +133,16 @@ public class CommandStoreTest {
   @Test
   public void shouldCleanupCommandStatusOnProduceError() {
     // Given:
-    when(commandProducer.send(any(ProducerRecord.class)))
+    when(commandTopic.send(any(), any()))
         .thenThrow(new RuntimeException("oops"))
-        .thenReturn(recordMetadataFuture);
-    try {
-      commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
-      fail("enqueueCommand should have raised an exception");
-    } catch (final KsqlException e) {
-    }
-
-    // Should:
+        .thenReturn(recordMetadata);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
+    // When:
+    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+
   }
 
   @Test
@@ -222,19 +160,15 @@ public class CommandStoreTest {
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    when(commandProducer.send(any(ProducerRecord.class))).thenAnswer(
+    when(commandTopic.send(any(), any())).thenAnswer(
         invocation -> {
-          // Set up consumer to return record with matching key, i.e. force a race condition:
-          final ProducerRecord<CommandId, Command> record = invocation.getArgument(0);
-          when(commandConsumer.poll(any())).thenReturn(buildRecords(record.key(), record.value()));
-
           final QueuedCommand queuedCommand = commandStore.getNewCommands().get(0);
           assertThat(queuedCommand.getCommandId(), equalTo(commandId));
           assertThat(queuedCommand.getStatus().isPresent(), equalTo(true));
           assertThat(
               queuedCommand.getStatus().get().getStatus().getStatus(),
               equalTo(CommandStatus.Status.QUEUED));
-          return recordMetadataFuture;
+          return recordMetadata;
         }
     );
 
@@ -242,8 +176,7 @@ public class CommandStoreTest {
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    // verifying the commandProducer also verifies the assertions in its Answer were run
-    verify(commandProducer).send(any(ProducerRecord.class));
+    verify(commandTopic).send(any(), any());
   }
 
   @Test
@@ -252,7 +185,7 @@ public class CommandStoreTest {
     final ConsumerRecords<CommandId, Command> records = buildRecords(
         commandId, null,
         commandId, command);
-    when(commandConsumer.poll(any())).thenReturn(records);
+    when(commandTopic.getNewCommands(any())).thenReturn(records);
 
     // When:
     final List<QueuedCommand> commands = commandStore.getNewCommands();
@@ -263,40 +196,17 @@ public class CommandStoreTest {
     assertThat(commands.get(0).getCommand(), equalTo(command));
   }
 
-  @Test
-  public void shouldFilterNullPriorCommand() {
-    // Given:
-    final ConsumerRecords<CommandId, Command> records = buildRecords(
-        commandId, null,
-        commandId, command);
-    when(commandConsumer.poll(any()))
-        .thenReturn(records)
-        .thenReturn(ConsumerRecords.empty());
-
-    // When:
-    final List<QueuedCommand> commands = commandStore.getRestoreCommands();
-
-    // Then:
-    assertThat(commands, hasSize(1));
-    assertThat(commands.get(0).getCommandId(), equalTo(commandId));
-    assertThat(commands.get(0).getCommand(), equalTo(command));
-  }
 
   @Test
   public void shouldDistributeCommand() {
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    when(commandProducer.send(recordCaptor.capture())).thenReturn(recordMetadataFuture);
+    when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
 
     // When:
     commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
-    final ProducerRecord<CommandId, Command> record = recordCaptor.getValue();
-    assertThat(record.key(), equalTo(commandId));
-    assertThat(record.value().getStatement(), equalTo(statementText));
-    assertThat(record.value().getOverwriteProperties(), equalTo(OVERRIDE_PROPERTIES));
-    assertThat(record.value().getOriginalProperties(),
-        equalTo(KSQL_CONFIG.getAllConfigPropsWithSecretsObfuscated()));
+    verify(commandTopic).send(same(commandId), any());
   }
 
   @Test
@@ -335,27 +245,20 @@ public class CommandStoreTest {
   @Test
   public void shouldCompleteFuturesWhenGettingNewCommands() {
     // Given:
-    when(commandConsumer.position(COMMAND_TOPIC_PARTITION)).thenReturn(22L);
+    when(commandTopic.getCommandTopicConsumerPosition()).thenReturn(22L);
 
     // When:
     commandStore.getNewCommands();
 
     // Then:
-    final InOrder inOrder = inOrder(sequenceNumberFutureStore, commandConsumer);
+    final InOrder inOrder = inOrder(sequenceNumberFutureStore, commandTopic);
     inOrder.verify(sequenceNumberFutureStore)
         .completeFuturesUpToAndIncludingSequenceNumber(eq(21L));
-    inOrder.verify(commandConsumer).poll(any());
+    inOrder.verify(commandTopic).getNewCommands(any());
   }
 
-  private static List<Pair<CommandId, Command>> getPriorCommands(final CommandStore commandStore) {
-    return commandStore.getRestoreCommands().stream()
-        .map(
-            queuedCommand -> new Pair<>(
-                queuedCommand.getCommandId(), queuedCommand.getCommand()))
-        .collect(Collectors.toList());
-  }
 
-  private static ConsumerRecords<CommandId, Command> buildRecords(final Object ...args) {
+  private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {
     assertThat(args.length % 2, equalTo(0));
     final List<ConsumerRecord<CommandId, Command>> records = new ArrayList<>();
     for (int i = 0; i < args.length; i += 2) {

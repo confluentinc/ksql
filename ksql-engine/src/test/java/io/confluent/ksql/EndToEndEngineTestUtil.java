@@ -474,7 +474,7 @@ final class EndToEndEngineTestUtil {
     private final Path testPath;
     private final String name;
     private final Map<String, Object> properties;
-    private final Collection<Topic> topics;
+    private final List<Topic> topics;
     private final List<Record> inputRecords;
     private final List<Record> outputRecords;
     private final List<String> statements;
@@ -504,6 +504,18 @@ final class EndToEndEngineTestUtil {
       this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
       this.expectedException = expectedException;
+    }
+
+    static TestCase copyWithName(TestCase t, String newName) {
+      return new TestCase(
+          t.testPath,
+          newName,
+          t.properties,
+          t.topics,
+          t.inputRecords,
+          t.outputRecords,
+          t.statements,
+          t.expectedException);
     }
 
     void setGeneratedTopology(final String generatedTopology) {
@@ -675,48 +687,48 @@ final class EndToEndEngineTestUtil {
         0);
   }
 
-    private static void writeExpectedTopologyFile(final String queryName,
-                                                  final Topology topology,
-                                                  final Map<String, String> configs,
-                                                  final ObjectWriter objectWriter,
-                                                  final String topologyDir) {
+  private static void writeExpectedTopologyFile(final String queryName,
+                                                final Topology topology,
+                                                final Map<String, String> configs,
+                                                final ObjectWriter objectWriter,
+                                                final String topologyDir) {
 
-        final Path newTopologyDataPath = Paths.get(topologyDir);
-        try {
-            final String updatedQueryName = formatQueryName(queryName);
-            final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
-            final String configString = objectWriter.writeValueAsString(configs);
-            final String topologyString = topology.describe().toString();
+      final Path newTopologyDataPath = Paths.get(topologyDir);
+      try {
+          final String updatedQueryName = formatQueryName(queryName);
+          final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
+          final String configString = objectWriter.writeValueAsString(configs);
+          final String topologyString = topology.describe().toString();
 
-          final byte[] topologyBytes =
-              (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
-                  .getBytes(StandardCharsets.UTF_8);
+        final byte[] topologyBytes =
+            (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
+                .getBytes(StandardCharsets.UTF_8);
 
-            Files.write(topologyFile,
-                        topologyBytes,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
+          Files.write(topologyFile,
+                      topologyBytes,
+                      StandardOpenOption.CREATE,
+                      StandardOpenOption.WRITE,
+                      StandardOpenOption.TRUNCATE_EXISTING);
 
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+      } catch (IOException e) {
+          throw new RuntimeException(e);
+      }
+  }
 
   static String formatQueryName(final String originalQueryName) {
     return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
   }
 
   static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) throws IOException {
-         final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
-         final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
-         final List<String> topologyFiles = findExpectedTopologyFiles(dir);
-         topologyFiles.forEach(fileName -> {
-             final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
-             expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
-         });
-      return expectedTopologyAndConfigs;
+    final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
+    final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
+    final List<String> topologyFiles = findExpectedTopologyFiles(dir);
+    topologyFiles.forEach(fileName -> {
+      final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
+      expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
+    });
+    return expectedTopologyAndConfigs;
   }
 
   private static TopologyAndConfigs readTopologyFile(final String file, final ObjectReader objectReader) {

@@ -110,7 +110,8 @@ public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
-  private static final String CURRENT_TOPOLOGY_VERSION = "5_1";
+  private static final String TOPOLOGY_VERSION_DELIMITER = ",";
+  private static final String CURRENT_TOPOLOGY_VERSIONS = "5_0,5_1";
   private static final String TOPOLOGY_VERSION_PROP = "topology.version";
 
   private final TestCase testCase;
@@ -130,21 +131,48 @@ public class QueryTranslationTest {
   }
 
   @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> data() throws IOException {
-    final String topologyVersion = System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSION);
-    final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
-    final Map<String, TopologyAndConfigs> expectedTopologies = loadExpectedTopologies(topologyDirectory);
+  public static Collection<Object[]> data() {
+    final String[] topologyVersions =
+        System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSIONS)
+            .split(TOPOLOGY_VERSION_DELIMITER);
+    final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions(topologyVersions);
     return buildTestCases()
-          .peek(q -> {
-            final TopologyAndConfigs topologyAndConfigs = expectedTopologies.get(formatQueryName(q.getName()));
-            // could be null if the testCase has expected errors, no topology or configs saved
-            if (topologyAndConfigs !=null) {
-              q.setExpectedTopology(topologyAndConfigs.topology);
-              q.setPersistedProperties(topologyAndConfigs.configs);
-            }
-          })
+          .flatMap(q -> buildVersionedTestCases(q, expectedTopologies))
           .map(testCase -> new Object[]{testCase.getName(), testCase})
           .collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  private static List<TopologiesAndVersion> loadTopologiesAndVersions(final String[] topologyVersions) {
+    return Stream.of(topologyVersions)
+        .map(topologyVersion -> {
+          final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
+          try {
+            return new TopologiesAndVersion(topologyVersion, loadExpectedTopologies(topologyDirectory));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        })
+        .collect(Collectors.toList());
+  }
+
+  private static Stream<TestCase> buildVersionedTestCases(
+      final TestCase testCase, final List<TopologiesAndVersion> expectedTopologies) {
+    Stream.Builder<TestCase> builder = Stream.builder();
+    builder = builder.add(testCase);
+
+    for (final TopologiesAndVersion topologies : expectedTopologies) {
+      final TopologyAndConfigs topologyAndConfigs =
+          topologies.getTopology(formatQueryName(testCase.getName()));
+      // could be null if the testCase has expected errors, no topology or configs saved
+      if (topologyAndConfigs != null) {
+        final TestCase versionedTestCase = TestCase.copyWithName(
+            testCase, testCase.getName() + "-" + topologies.getVersion());
+        versionedTestCase.setExpectedTopology(topologyAndConfigs.topology);
+        versionedTestCase.setPersistedProperties(topologyAndConfigs.configs);
+        builder = builder.add(versionedTestCase);
+      }
+    }
+    return builder.build();
   }
 
   static Stream<TestCase> buildTestCases() {
@@ -399,5 +427,23 @@ public class QueryTranslationTest {
           testName + ": Invalid test - it must define '" + fieldName + "' field");
     }
     return query.findValue(fieldName);
+  }
+
+  private static class TopologiesAndVersion {
+    private final String version;
+    private final Map<String, TopologyAndConfigs> topologies;
+
+    TopologiesAndVersion(final String version, final Map<String, TopologyAndConfigs> topologies) {
+      this.version = version;
+      this.topologies = topologies;
+    }
+
+    String getVersion() {
+      return version;
+    }
+
+    TopologyAndConfigs getTopology(final String name) {
+      return topologies.get(name);
+    }
   }
 }

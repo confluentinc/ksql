@@ -76,28 +76,28 @@ import org.junit.runners.Parameterized;
  *  used to generated them are found in src/test/resources/expected_topology/&lt;Version Number&gt;
  *
  *  By default this test will compare the
- *  current generated topology against the previous released version
- *  identified by the CURRENT_TOPOLOGY_VERSION variable.
+ *  current generated topology against the previously released versions
+ *  identified by the CURRENT_TOPOLOGY_VERSIONS variable.
  *
- *  To run this test against previously released versions there are three options
+ *  To run this test against specific previously released versions there are three options
  *
- *  1. Just manually change CURRENT_TOPOLOGY_VERSION to a valid version number found under
- *  the src/test/resources/expected_topology directory.
+ *  1. Just manually change CURRENT_TOPOLOGY_VERSIONS to a valid comma-delimited list of
+ *  version numbers found under the src/test/resources/expected_topology directory.
  *
- *  2. This test checks for a system property "topology.version" on test startup. If that
- *  property is set, that is the version used for the test.
+ *  2. This test checks for a system property "topology.versions" on test startup. If that
+ *  property is set, that is the comma-delimited list of versions used for the test.
  *
  *  3. There are two options for setting the system property.
  *     a. Within Intellij
  *        i. Click Run/Edit configurations
  *        ii. Select the QueryTranslationTest
- *        iii. Enter -Dtopology.version=X  in the "VM options:" form entry
+ *        iii. Enter -Dtopology.versions=X  in the "VM options:" form entry
  *             where X is the desired previously released version number.
  *
  *     b. From the command line
  *        i. run mvn clean package -DskipTests=true from the base of the KSQL project
- *        ii. Then run "mvn test -Dtopology.version=X -Dtest=QueryTranslationTest -pl ksql-engine"
- *            (without the quotes).  Again X is the version you want to run the tests against.
+ *        ii. Then run "mvn test -Dtopology.versions=X -Dtest=QueryTranslationTest -pl ksql-engine"
+ *            (without the quotes).  Again X is the version(s) you want to run the tests against.
  *
  *   Note that for both options above the version must exist
  *   under the src/test/resources/expected_topology directory.
@@ -110,9 +110,9 @@ public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
-  private static final String TOPOLOGY_VERSION_DELIMITER = ",";
+  private static final String TOPOLOGY_VERSIONS_DELIMITER = ",";
   private static final String CURRENT_TOPOLOGY_VERSIONS = "5_0,5_1";
-  private static final String TOPOLOGY_VERSION_PROP = "topology.version";
+  private static final String TOPOLOGY_VERSIONS_PROP = "topology.versions";
 
   private final TestCase testCase;
 
@@ -133,8 +133,8 @@ public class QueryTranslationTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     final String[] topologyVersions =
-        System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSIONS)
-            .split(TOPOLOGY_VERSION_DELIMITER);
+        System.getProperty(TOPOLOGY_VERSIONS_PROP, CURRENT_TOPOLOGY_VERSIONS)
+            .split(TOPOLOGY_VERSIONS_DELIMITER);
     final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions(topologyVersions);
     return buildTestCases()
           .flatMap(q -> buildVersionedTestCases(q, expectedTopologies))

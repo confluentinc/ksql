@@ -24,6 +24,50 @@ provide.
 Start a Kafka cluster, including |zk|, a Kafka broker, and |sr|. KSQL queries
 messages from this Kafka cluster. KSQL is installed in the |cp| by default.
 
+Usage
+-----
+
+.. sourcecode:: bash
+
+   ksql-datagen ...
+
+.. tip:: For usage information, enter ``ksql-datagen help``.
+
+
+Required Arguments
+------------------
+
+==========================================  =======  ==============================================
+Name, shorthand                             Default  Description
+==========================================  =======  ==============================================
+``bootstrap-server=<kafka-server>:<port>``                       
+``quickstart=<quickstart preset>``                   case-insensitive; one of ``orders``, ``users``, ``users_``, or ``pageviews``
+``format=<record format>``                           case-insensitive; one of ``avro``, ``json``, or ``delimited``
+``topic=<kafka topic name>``
+==========================================  =======  ==============================================
+
+
+Optional Arguments
+------------------
+
+Here are some common optional arguments. For a full list of optional arguments:
+
+.. sourcecode:: bash
+  
+   ksql-datagen --help
+
+=============================  ==================  =====================================================
+Name, shorthand                Default             Description
+=============================  ==================  =====================================================
+``schema=<avro schema file>``                                      
+``key=<name of key column>``        
+``maxInterval=<Max time in ms between rows>``         
+=============================  ==================  =====================================================
+
+
+
+
+
 Define a custom schema
 ----------------------
 

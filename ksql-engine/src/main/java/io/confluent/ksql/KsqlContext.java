@@ -15,6 +15,7 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -25,7 +26,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,8 +78,13 @@ public class KsqlContext {
   }
 
   public List<QueryMetadata> sql(final String sql, final Map<String, Object> overriddenProperties) {
-    final List<QueryMetadata> queries = ksqlEngine.execute(
-        sql, ksqlConfig, overriddenProperties);
+    final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(sql);
+
+    final List<QueryMetadata> queries = statements.stream()
+        .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toList());
 
     for (final QueryMetadata queryMetadata : queries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -108,6 +116,6 @@ public class KsqlContext {
   }
 
   public void terminateQuery(final QueryId queryId) {
-    ksqlEngine.terminateQuery(queryId);
+    ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::close);
   }
 }

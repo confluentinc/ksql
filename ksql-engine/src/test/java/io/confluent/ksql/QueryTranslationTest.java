@@ -101,6 +101,8 @@ import org.junit.runners.Parameterized;
  *
  *   Note that for both options above the version must exist
  *   under the src/test/resources/expected_topology directory.
+ *
+ *  For instructions on how to generate new topologies, see TopologyFileGenerator.java.
  */
 
 @RunWith(Parameterized.class)
@@ -108,7 +110,7 @@ public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
-  private static final String CURRENT_TOPOLOGY_VERSION = "5_0";
+  private static final String CURRENT_TOPOLOGY_VERSION = "5_1";
   private static final String TOPOLOGY_VERSION_PROP = "topology.version";
 
   private final TestCase testCase;

@@ -17,19 +17,16 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.streams.KeyValue;
@@ -47,28 +44,15 @@ class QueryStreamWriter implements StreamingOutput {
   private volatile boolean limitReached = false;
 
   QueryStreamWriter(
-      final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine,
+      final QueuedQueryMetadata queryMetadata,
       final long disconnectCheckInterval,
-      final String queryString,
-      final Map<String, Object> overriddenProperties,
       final ObjectMapper objectMapper
-  ) throws Exception {
-    final QueryMetadata queryMetadata = ksqlEngine.execute(
-            queryString, ksqlConfig, overriddenProperties).get(0);
-    this.objectMapper = objectMapper;
-    if (!(queryMetadata instanceof QueuedQueryMetadata)) {
-      throw new Exception(String.format(
-          "Unexpected metadata type: expected QueuedQueryMetadata, found %s instead",
-          queryMetadata.getClass()
-      ));
-    }
-
+  ) {
+    this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
-    this.queryMetadata = ((QueuedQueryMetadata) queryMetadata);
+    this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
     this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
-
     queryMetadata.start();
   }
 

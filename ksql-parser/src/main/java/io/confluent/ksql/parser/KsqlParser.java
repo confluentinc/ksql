@@ -81,6 +81,24 @@ public class KsqlParser {
     public String toString() {
       return statementText;
     }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final PreparedStatement<?> statement1 = (PreparedStatement<?>) o;
+      return Objects.equals(statementText, statement1.statementText)
+          && Objects.equals(statement, statement1.statement);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(statementText, statement);
+    }
   }
 
   public List<PreparedStatement<?>> buildAst(

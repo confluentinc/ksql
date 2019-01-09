@@ -613,7 +613,9 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static void writeExpectedTopologyFiles(final String topologyDir, List<TestCase> testCases) {
+  static void writeExpectedTopologyFiles(
+      final String topologyDir,
+      final List<TestCase> testCases) {
 
     final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
@@ -622,51 +624,53 @@ final class EndToEndEngineTestUtil {
       final Map<String, Object> updatedConfigs = new HashMap<>(originalConfigs);
 
       final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
-
       try(final ServiceContext serviceContext = getServiceContext();
           final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
-          final Topology topology = getStreamsTopology(testCase, serviceContext, ksqlEngine, ksqlConfig);
-          final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
-          writeExpectedTopologyFile(testCase.name, topology, configsToPersist, objectWriter, topologyDir);
+          final QueryMetadata queryMetadata = buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
+          final Map<String, String> configsToPersist
+              = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
+          writeExpectedTopologyFile(
+              testCase.name,
+              queryMetadata.getTopology(),
+              configsToPersist,
+              objectWriter,
+              topologyDir);
       }
     });
   }
 
-  private static Topology getStreamsTopology(final TestCase testCase,
-                                             final ServiceContext serviceContext,
-                                             final KsqlEngine ksqlEngine,
-                                             final KsqlConfig ksqlConfig) {
-
-      final List<QueryMetadata> queries = new ArrayList<>();
-      testCase.initializeTopics(serviceContext);
-      testCase.statements().forEach(
-          q -> queries.addAll(
-              KsqlEngineTestUtil.execute(ksqlEngine, q, ksqlConfig, testCase.properties()))
-      );
-
-      assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
-
-     return queries.get(queries.size() - 1).getTopology();
+  private static QueryMetadata buildQuery(
+      final TestCase testCase,
+      final ServiceContext serviceContext,
+      final KsqlEngine ksqlEngine,
+      final KsqlConfig ksqlConfig) {
+    final List<QueryMetadata> queries = new ArrayList<>();
+    testCase.initializeTopics(serviceContext);
+    testCase.statements().forEach(
+        q -> queries.addAll(
+            KsqlEngineTestUtil.execute(ksqlEngine, q, ksqlConfig, testCase.properties()))
+    );
+    assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
+    return queries.get(queries.size() - 1);
   }
 
   private static TopologyTestDriver buildStreamsTopologyTestDriver(
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig,
-      final Properties streamsProperties
-  ) {
+      final KsqlConfig ksqlConfig) {
     final Map<String, String> persistedConfigs = testCase.persistedProperties().orElse(new HashMap<>());
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-    final Topology topology =
-        getStreamsTopology(testCase, serviceContext, ksqlEngine, maybeUpdatedConfigs);
-
+    final QueryMetadata queryMetadata = buildQuery(testCase, serviceContext, ksqlEngine, maybeUpdatedConfigs);
     if (testCase.expectedTopology != null) {
-      testCase.setGeneratedTopology(topology.describe().toString());
+      testCase.setGeneratedTopology(queryMetadata.getTopologyDescription());
     }
-    return new TopologyTestDriver(topology,
+    final Properties streamsProperties = new Properties();
+    streamsProperties.putAll(queryMetadata.getStreamsProperties());
+    return new TopologyTestDriver(
+        queryMetadata.getTopology(),
         streamsProperties,
         0);
   }
@@ -833,11 +837,10 @@ final class EndToEndEngineTestUtil {
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
     final Map<String, Object> config = getConfigs(new HashMap<>());
-    final Properties streamsProperties = new Properties();
-    streamsProperties.putAll(config);
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 
-    final Map<String, String> persistedConfigs = testCase.persistedProperties().orElse(new HashMap<>());
+    final Map<String, String> persistedConfigs =
+        testCase.persistedProperties().orElse(new HashMap<>());
 
     final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
         currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
@@ -846,7 +849,10 @@ final class EndToEndEngineTestUtil {
         final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
       testCase.initializeTopics(serviceContext);
       final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(
-          testCase, serviceContext, ksqlEngine, ksqlConfig, streamsProperties);
+          testCase,
+          serviceContext,
+          ksqlEngine,
+          ksqlConfig);
       assertEquals(testCase.expectedTopology, testCase.generatedTopology);
       testCase.processInput(testDriver, serviceContext.getSchemaRegistryClient());
       testCase.verifyOutput(testDriver, serviceContext.getSchemaRegistryClient());

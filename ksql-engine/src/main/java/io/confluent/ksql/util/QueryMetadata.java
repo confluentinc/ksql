@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -41,6 +42,7 @@ public class QueryMetadata {
   private final DataSource.DataSourceType dataSourceType;
   private final String queryApplicationId;
   private final Topology topoplogy;
+  private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
   private final Consumer<QueryMetadata> closeCallback;
   private final Set<String> sourceNames;
@@ -56,6 +58,7 @@ public class QueryMetadata {
       final DataSource.DataSourceType dataSourceType,
       final String queryApplicationId,
       final Topology topoplogy,
+      final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback
   ) {
@@ -66,8 +69,12 @@ public class QueryMetadata {
     this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.topoplogy = Objects.requireNonNull(topoplogy, "kafkaTopicClient");
+    this.streamsProperties =
+        ImmutableMap.copyOf(
+            Objects.requireNonNull(streamsProperties, "streamsPropeties"));
     this.overriddenProperties =
-        Objects.requireNonNull(overriddenProperties, "overriddenProperties");
+        ImmutableMap.copyOf(
+            Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
 
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
@@ -114,6 +121,10 @@ public class QueryMetadata {
 
   public Topology getTopology() {
     return topoplogy;
+  }
+
+  public Map<String, Object> getStreamsProperties() {
+    return streamsProperties;
   }
 
   public Schema getResultSchema() {

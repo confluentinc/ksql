@@ -63,6 +63,7 @@ public class QueryMetadataTest {
         QUERY_APPLICATION_ID,
         topoplogy,
         Collections.emptyMap(),
+        Collections.emptyMap(),
         closeCallback
     );
   }

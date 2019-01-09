@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.connect.data.Field;
@@ -61,33 +62,36 @@ public class PhysicalPlanBuilder {
   private final KsqlConfig ksqlConfig;
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
-  private final Map<String, Object> overriddenStreamsProperties;
+  private final Map<String, Object> overriddenProperties;
   private final MetaStore metaStore;
   private final boolean updateMetastore;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
+  private final Consumer<QueryMetadata> queryCloseCallback;
 
   public PhysicalPlanBuilder(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> overriddenStreamsProperties,
+      final Map<String, Object> overriddenProperties,
       final boolean updateMetastore,
       final MetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final KafkaStreamsBuilder kafkaStreamsBuilder
+      final KafkaStreamsBuilder kafkaStreamsBuilder,
+      final Consumer<QueryMetadata> queryCloseCallback
   ) {
     this.builder = Objects.requireNonNull(builder, "builder");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.overriddenStreamsProperties =
-        Objects.requireNonNull(overriddenStreamsProperties, "overriddenStreamsProperties");
+    this.overriddenProperties =
+        Objects.requireNonNull(overriddenProperties, "overriddenProperties");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.updateMetastore = updateMetastore;
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
+    this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
   }
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
@@ -98,7 +102,7 @@ public class PhysicalPlanBuilder {
             ksqlConfig,
             serviceContext,
             functionRegistry,
-            overriddenStreamsProperties
+            overriddenProperties
         );
     final OutputNode outputNode = resultStream.outputNode();
     final boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
@@ -166,12 +170,12 @@ public class PhysicalPlanBuilder {
         transientQueryPrefix
     ));
 
-    final KafkaStreams streams = buildStreams(
-        builder,
+    final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         ksqlConfig,
-        overriddenStreamsProperties
+        overriddenProperties
     );
+    final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
     final SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
 
@@ -184,9 +188,10 @@ public class PhysicalPlanBuilder {
         (sourceSchemaKstream instanceof SchemaKTable)
             ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
-        serviceContext.getTopicClient(),
         builder.build(),
-        overriddenStreamsProperties
+        streamsProperties,
+        overriddenProperties,
+        queryCloseCallback
     );
   }
 
@@ -242,12 +247,12 @@ public class PhysicalPlanBuilder {
     }
     final String applicationId = serviceId + persistanceQueryPrefix + queryId;
 
-    final KafkaStreams streams = buildStreams(
-        builder,
+    final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         ksqlConfig,
-        overriddenStreamsProperties
+        overriddenProperties
     );
+    final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
     final Topology topology = builder.build();
 
@@ -261,10 +266,11 @@ public class PhysicalPlanBuilder {
         (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
                                                 : DataSource.DataSourceType.KSTREAM,
         applicationId,
-        serviceContext.getTopicClient(),
         sinkDataSource.getKsqlTopic(),
         topology,
-        overriddenStreamsProperties
+        streamsProperties,
+        overriddenProperties,
+        queryCloseCallback
     );
   }
 
@@ -339,8 +345,7 @@ public class PhysicalPlanBuilder {
     properties.put(key, valueList);
   }
 
-  private KafkaStreams buildStreams(
-      final StreamsBuilder builder,
+  private Map<String, Object> buildStreamsProperties(
       final String applicationId,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
@@ -360,7 +365,7 @@ public class PhysicalPlanBuilder {
         StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
         ProducerCollector.class.getCanonicalName()
     );
-    return kafkaStreamsBuilder.buildKafkaStreams(builder, newStreamsProperties);
+    return newStreamsProperties;
   }
 
   private static void enforceKeyEquivalence(final Field sinkKeyField, final Field resultKeyField) {

@@ -29,6 +29,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -50,6 +51,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.ServiceContext;
@@ -63,7 +65,6 @@ import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.util.StringUtil;
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,6 +77,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -97,11 +99,12 @@ public class KsqlEngine implements Closeable {
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 
+  private final AtomicBoolean acceptingStatements = new AtomicBoolean(true);
+
   private final MetaStore metaStore;
   private final DdlCommandExec ddlCommandExec;
   private final QueryEngine queryEngine;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-  private final Set<QueryMetadata> livePersistentQueries;
   private final Set<QueryMetadata> allLiveQueries;
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
@@ -132,9 +135,8 @@ public class KsqlEngine implements Closeable {
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.ddlCommandExec = new DdlCommandExec(metaStore);
     this.ddlCommandFactory = new CommandFactories(serviceContext);
-    this.queryEngine = new QueryEngine(serviceContext);
+    this.queryEngine = new QueryEngine(serviceContext, this::unregisterQuery);
     this.persistentQueries = new HashMap<>();
-    this.livePersistentQueries = new HashSet<>();
     this.allLiveQueries = new HashSet<>();
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
@@ -153,33 +155,25 @@ public class KsqlEngine implements Closeable {
   }
 
   public long numberOfLiveQueries() {
-    return this.allLiveQueries.size();
+    return allLiveQueries.size();
   }
 
   public long numberOfPersistentQueries() {
-    return this.livePersistentQueries.size();
+    return persistentQueries.size();
   }
 
   public PersistentQueryMetadata getPersistentQuery(final QueryId queryId) {
     return persistentQueries.get(queryId);
   }
 
-  public Collection<PersistentQueryMetadata> getPersistentQueries() {
+  public List<PersistentQueryMetadata> getPersistentQueries() {
     return Collections.unmodifiableList(
         new ArrayList<>(
             persistentQueries.values()));
   }
 
-  public void removeTemporaryQuery(final QueryMetadata queryMetadata) {
-    this.allLiveQueries.remove(queryMetadata);
-  }
-
-  Set<QueryMetadata> getLivePersistentQueries() {
-    return livePersistentQueries;
-  }
-
   public boolean hasActiveQueries() {
-    return !livePersistentQueries.isEmpty();
+    return !persistentQueries.isEmpty();
   }
 
   public MetaStore getMetaStore() {
@@ -198,20 +192,12 @@ public class KsqlEngine implements Closeable {
     return serviceId;
   }
 
-  public boolean terminateQuery(final QueryId queryId, final boolean closeStreams) {
+  public boolean terminateQuery(final QueryId queryId) {
     final PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
     if (persistentQueryMetadata == null) {
       return false;
     }
-    livePersistentQueries.remove(persistentQueryMetadata);
-    allLiveQueries.remove(persistentQueryMetadata);
-    metaStore.removePersistentQuery(persistentQueryMetadata.getQueryId().getId());
-    if (closeStreams) {
-      persistentQueryMetadata.close();
-      persistentQueryMetadata
-          .cleanUpInternalTopicAvroSchemas(serviceContext.getSchemaRegistryClient());
-    }
-
+    persistentQueryMetadata.close();
     return true;
   }
 
@@ -308,7 +294,7 @@ public class KsqlEngine implements Closeable {
 
   @Override
   public void close() {
-    for (final QueryMetadata queryMetadata : allLiveQueries) {
+    for (final QueryMetadata queryMetadata : new HashSet<>(allLiveQueries)) {
       queryMetadata.close();
     }
     engineMetrics.close();
@@ -345,6 +331,14 @@ public class KsqlEngine implements Closeable {
 
   public static Set<String> getImmutableProperties() {
     return IMMUTABLE_PROPERTIES;
+  }
+
+  public void stopAcceptingStatements() {
+    acceptingStatements.set(false);
+  }
+
+  public boolean isAcceptingStatements() {
+    return acceptingStatements.get();
   }
 
   private List<QueryMetadata> doExecute(
@@ -442,16 +436,42 @@ public class KsqlEngine implements Closeable {
   private void registerQueries(final List<QueryMetadata> queries) {
     for (final QueryMetadata queryMetadata : queries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
-        livePersistentQueries.add(queryMetadata);
-        final PersistentQueryMetadata persistentQueryMd = (PersistentQueryMetadata) queryMetadata;
-        persistentQueries.put(persistentQueryMd.getQueryId(), persistentQueryMd);
-        metaStore.updateForPersistentQuery(persistentQueryMd.getQueryId().getId(),
-            persistentQueryMd.getSourceNames(),
-            persistentQueryMd.getSinkNames());
+        final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
+        persistentQueries.put(persistentQuery.getQueryId(), persistentQuery);
+        metaStore.updateForPersistentQuery(persistentQuery.getQueryId().getId(),
+            persistentQuery.getSourceNames(),
+            persistentQuery.getSinkNames());
       }
       allLiveQueries.add(queryMetadata);
     }
     engineMetrics.registerQueries(queries);
+  }
+
+  private void unregisterQuery(final QueryMetadata query) {
+    final String applicationId = query.getQueryApplicationId();
+
+    if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {
+      throw new IllegalStateException("query not stopped."
+          + " id " + applicationId + ", state: " + query.getState());
+    }
+
+    if (!allLiveQueries.remove(query)) {
+      return;
+    }
+
+    if (query instanceof PersistentQueryMetadata) {
+      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
+      persistentQueries.remove(persistentQuery.getQueryId());
+      metaStore.removePersistentQuery(persistentQuery.getQueryId().getId());
+    }
+
+    if (query.hasEverBeenStarted()) {
+      SchemaRegistryUtil
+          .cleanUpInternalTopicAvroSchemas(applicationId, serviceContext.getSchemaRegistryClient());
+      serviceContext.getTopicClient().deleteInternalTopics(applicationId);
+    }
+
+    StreamsErrorCollector.notifyApplicationClose(applicationId);
   }
 
   @SuppressWarnings("unchecked")

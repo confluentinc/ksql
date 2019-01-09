@@ -84,7 +84,7 @@ If the previous solutions do not resolve the issue, your query may be filtering 
 Verify that there are no deserialization errors
 ===============================================
 
-If KSQL will not write query results if it is not able to deserialize message data. Use the ``DESCRIBE EXTENDED`` statement to check that the ``VALUE_FORMAT`` of the stream matches the format of the records that |kcat| prints for your topic. Enter the following statement in the CLI:
+KSQL will not write query results if it is not able to deserialize message data. Use the ``DESCRIBE EXTENDED`` statement to check that the ``VALUE_FORMAT`` of the stream matches the format of the records that |kcat| prints for your topic. Enter the following statement in the CLI:
 
 .. code:: sql
 
@@ -207,35 +207,6 @@ setting in the KSQL server configuration file and get the correct port. Start th
 
 See :ref:`Starting KSQL Server <start_ksql-server>` and :ref:`Starting the KSQL CLI <install_ksql-cli>` for more information.
 
-
-Check for message processing failures
-*************************************
-
-You can check the health of a KSQL query by viewing the number of messages that
-it has processed and counting how many processing failures have occurred.
-
-Use the ``DESCRIBE EXTENDED`` statement to see ``total-messages`` and
-``failed-messages-per-sec`` to get message processing metrics. Note that the metrics are local to the server where the DESCRIBE statement runs.
-
-.. code:: sql
-
-    DESCRIBE EXTENDED GOOD_RATINGS;
-
-Example output:
-
-::
-
-    [...]
-    Local runtime statistics
-    ------------------------
-    messages-per-sec:      1.10 total-messages:     2898 last-message: 9/17/18 1:48:47 PM UTC
-     failed-messages:         0 failed-messages-per-sec:         0 last-failed: n/a
-    (Statistics of the local KSQL server interaction with the Kafka topic GOOD_RATINGS)
-
-An increasing number of ``failed-messages`` may indicate problems with your query.
-See :ref:`deserialization errors <ksql-deserialization-errors>` for typical sources of processing failures.
-
-
 Cannot create a stream from the output of a windowed aggregate
 ***************************************************************
 
@@ -282,6 +253,34 @@ The solution is to register Avro schemas manually against the replicated subject
     curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" --data "{\"schema\": $(curl -s http://localhost:8081/subjects/pageviews-value/versions/latest | jq '.schema')}" http://localhost:8081/subjects/pageviews.replica-value/versions
 
 .. _ksql-check-server-logs:
+
+
+Check for message processing failures
+*************************************
+
+You can check the health of a KSQL query by viewing the number of messages that
+it has processed and counting how many processing failures have occurred.
+
+Use the ``DESCRIBE EXTENDED`` statement to see ``total-messages`` and
+``failed-messages-per-sec`` to get message processing metrics. Note that the metrics are local to the server where the DESCRIBE statement runs.
+
+.. code:: sql
+
+    DESCRIBE EXTENDED GOOD_RATINGS;
+
+Example output:
+
+::
+
+    [...]
+    Local runtime statistics
+    ------------------------
+    messages-per-sec:      1.10 total-messages:     2898 last-message: 9/17/18 1:48:47 PM UTC
+     failed-messages:         0 failed-messages-per-sec:         0 last-failed: n/a
+    (Statistics of the local KSQL server interaction with the Kafka topic GOOD_RATINGS)
+
+An increasing number of ``failed-messages`` may indicate problems with your query.
+See :ref:`deserialization errors <ksql-deserialization-errors>` for typical sources of processing failures.
 
 
 Check the KSQL server logs

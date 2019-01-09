@@ -17,9 +17,11 @@ package io.confluent.ksql.codegen;
 import static java.lang.String.format;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
@@ -65,6 +67,18 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public class SqlToJavaVisitor {
+
+  public static final List<String> JAVA_IMPORTS = ImmutableList.of(
+      "org.apache.kafka.connect.data.Struct",
+      "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction",
+      "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.LazyWhenClause",
+      "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.WhenBooleanSupplier",
+      "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.ThenObjectSupplier",
+      "java.util.HashMap",
+      "java.util.Map",
+      "java.util.List",
+      "java.util.ArrayList",
+      "com.google.common.collect.ImmutableList");
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
@@ -249,9 +263,9 @@ public class SqlToJavaVisitor {
       final String arguments = node.getArguments().stream()
           .map(arg -> process(arg, unmangleNames).getLeft())
           .collect(Collectors.joining(", "));
-      final String builder = "((" + javaReturnType + ") " + instanceName
+      final String codeString = "((" + javaReturnType + ") " + instanceName
           + ".evaluate(" + arguments + "))";
-      return new Pair<>(builder.toString(), functionReturnSchema);
+      return new Pair<>(codeString, functionReturnSchema);
     }
 
     private Schema getFunctionReturnSchema(
@@ -487,31 +501,32 @@ public class SqlToJavaVisitor {
     protected Pair<String, Schema> visitSearchedCaseExpression(
         final SearchedCaseExpression node,
         final Boolean unmangleNames) {
-      final List<String> whenList = node.getWhenClauses()
+      final String functionClassName = SearchedCaseFunction.class.getSimpleName();
+      final String whenBooleanSupplierMethod = functionClassName + ".whenBooleanSupplier";
+      final String thenObjectSupplierMethod = functionClassName + ".thenObjectSupplier";
+
+      final List<String> lazyWhenClause = node.getWhenClauses()
           .stream()
-          .map(whenClause -> process(whenClause.getOperand(), unmangleNames).getLeft())
+          .map(whenClause -> functionClassName + ".whenClause("
+              + whenBooleanSupplierMethod
+              + "(" + process(whenClause.getOperand(), unmangleNames).getLeft() + "), "
+              + thenObjectSupplierMethod
+              + "(" + process(whenClause.getResult(), unmangleNames).getLeft() + ")"
+              + ")")
           .collect(Collectors.toList());
-      final List<Pair<String, Schema>> thenList = node.getWhenClauses()
-          .stream()
-          .map(whenClause -> process(whenClause.getResult(), unmangleNames))
-          .collect(Collectors.toList());
+      final Schema resultSchema = process(node.getWhenClauses().get(0).getResult(), unmangleNames)
+          .getRight();
       final String defaultValue = node.getDefaultValue().isPresent()
           ? process(node.getDefaultValue().get(), unmangleNames).getLeft()
           : "null";
+
       final String resultSchemaString =
-          SchemaUtil.getJavaType(thenList.get(0).getRight()).getCanonicalName();
-      final StringBuilder stringBuilder =  new StringBuilder(
-          "(" + resultSchemaString + ")"
-              + "SearchedCasedStatementFunction.searchedCasedStatementFunction(");
-      stringBuilder.append(" ImmutableList.of( ")
-          .append(StringUtils.join(whenList, ","))
-          .append(")");
-      stringBuilder.append(", ImmutableList.of( ")
-          .append(StringUtils.join(
-              thenList.stream().map(Pair::getLeft).collect(Collectors.toList()), ","))
-          .append(")");
-      stringBuilder.append(", ").append(defaultValue).append(")");
-      return new Pair<>(stringBuilder.toString(), thenList.get(0).getRight());
+          SchemaUtil.getJavaType(resultSchema).getCanonicalName();
+      final String codeString = "(" + resultSchemaString + ")"
+          + functionClassName + ".searchedCaseFunction(ImmutableList.of( "
+          + StringUtils.join(lazyWhenClause, ",") + ")"
+          + ", " + thenObjectSupplierMethod + "(" + defaultValue + "))";
+      return new Pair<>(codeString, resultSchema);
     }
 
     @Override

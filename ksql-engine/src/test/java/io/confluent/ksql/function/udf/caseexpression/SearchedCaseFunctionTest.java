@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
 import org.junit.Rule;
@@ -34,15 +33,16 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForBooleanValues() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, false, true);
-    final List<Boolean> thenList = ImmutableList.of(Boolean.TRUE, Boolean.FALSE, Boolean.TRUE);
-
+    final List<SearchedCaseFunction.LazyWhenClause<Boolean>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> Boolean.TRUE),
+        SearchedCaseFunction.whenClause(() -> false, () -> Boolean.FALSE),
+        SearchedCaseFunction.whenClause(() -> true, () -> Boolean.TRUE)
+    );
 
     // When:
     final Boolean result = SearchedCaseFunction.searchedCaseFunction(
-        whenList,
-        thenList,
-        null
+        lazyWhenClauses,
+        () -> null
     );
 
     // Then:
@@ -52,15 +52,18 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForIntegerValues() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, false, true, true);
-    final List<Integer> thenList = ImmutableList.of(1, 2, 3, 4);
+    final List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> 1),
+        SearchedCaseFunction.whenClause(() -> false, () -> 2),
+        SearchedCaseFunction.whenClause(() -> true, () -> 3),
+        SearchedCaseFunction.whenClause(() -> true, () -> 4)
+    );
 
 
     // When:
     final Integer result = SearchedCaseFunction.searchedCaseFunction(
-        whenList,
-        thenList,
-        null
+        lazyWhenClauses,
+        () -> null
     );
 
     // Then:
@@ -70,15 +73,17 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForBigIntValues() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, false, false, true);
-    final List<Long> thenList = ImmutableList.of(1L, 2L, 3L, 4L);
-
+    final List<SearchedCaseFunction.LazyWhenClause<Long>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> 1L),
+        SearchedCaseFunction.whenClause(() -> false, () -> 2L),
+        SearchedCaseFunction.whenClause(() -> false, () -> 3L),
+        SearchedCaseFunction.whenClause(() -> true, () -> 4L)
+    );
 
     // When:
     final Long result = SearchedCaseFunction.searchedCaseFunction(
-        whenList,
-        thenList,
-        null
+        lazyWhenClauses,
+        () -> null
     );
 
     // Then:
@@ -88,15 +93,17 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForDoubleValues() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, false, false, true);
-    final List<Double> thenList = ImmutableList.of(1.0, 2.0, 3.0, 4.0);
-
+    final List<SearchedCaseFunction.LazyWhenClause<Double>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> 1.0),
+        SearchedCaseFunction.whenClause(() -> false, () -> 2.0),
+        SearchedCaseFunction.whenClause(() -> false, () -> 3.0),
+        SearchedCaseFunction.whenClause(() -> true, () -> 4.0)
+    );
 
     // When:
     final Double result = SearchedCaseFunction.searchedCaseFunction(
-        whenList,
-        thenList,
-        null
+        lazyWhenClauses,
+        () -> null
     );
 
     // Then:
@@ -106,15 +113,17 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForStringValues() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, false, false, true);
-    final List<String> thenList = ImmutableList.of("foo", "bar", "tab", "ksql");
-
+    final List<SearchedCaseFunction.LazyWhenClause<String>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> "foo"),
+        SearchedCaseFunction.whenClause(() -> false, () -> "bar"),
+        SearchedCaseFunction.whenClause(() -> false, () -> "tab"),
+        SearchedCaseFunction.whenClause(() -> true, () -> "ksql")
+    );
 
     // When:
     final String result = SearchedCaseFunction.searchedCaseFunction(
-        whenList,
-        thenList,
-        null
+        lazyWhenClauses,
+        () -> null
     );
 
     // Then:
@@ -124,16 +133,15 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForArrayValues() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, true);
-    final List<List<String>> thenList = ImmutableList.of(
-        ImmutableList.of("foo", "bar"), ImmutableList.of("tab", "ksql"));
-
+    final List<SearchedCaseFunction.LazyWhenClause<List<String>>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> ImmutableList.of("foo", "bar")),
+        SearchedCaseFunction.whenClause(() -> true, () -> ImmutableList.of("tab", "ksql"))
+    );
 
     // When:
     final List<String> result = SearchedCaseFunction.searchedCaseFunction(
-        whenList,
-        thenList,
-        null
+        lazyWhenClauses,
+        () -> null
     );
 
     // Then:
@@ -143,18 +151,16 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForMapValues() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, true);
-    final List<Map<String, Double>> thenList = ImmutableList.of(
-        ImmutableMap.of("foo", 1.0), ImmutableMap.of("tab", 2.0));
-
+    final List<SearchedCaseFunction.LazyWhenClause<Map<String, Double>>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> ImmutableMap.of("foo", 1.0)),
+        SearchedCaseFunction.whenClause(() -> true, () -> ImmutableMap.of("tab", 2.0))
+    );
 
     // When:
-    final Map<String, Double> result =
-        SearchedCaseFunction.searchedCaseFunction(
-            whenList,
-            thenList,
-            null
-        );
+    final Map<String, Double> result = SearchedCaseFunction.searchedCaseFunction(
+        lazyWhenClauses,
+        () -> null
+    );
 
     // Then:
     assertThat(result, equalTo(ImmutableMap.of("tab", 2.0)));
@@ -163,18 +169,16 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldWorkForStructValues() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, true);
-    final List<Map<String, Object>> thenList = ImmutableList.of(
-        ImmutableMap.of("foo", 1.0), ImmutableMap.of("tab", "ksql"));
-
+    final List<SearchedCaseFunction.LazyWhenClause<Map<String, Object>>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> ImmutableMap.of("foo", 1.0)),
+        SearchedCaseFunction.whenClause(() -> true, () -> ImmutableMap.of("tab", "ksql"))
+    );
 
     // When:
-    final Map<String, Object> result =
-        SearchedCaseFunction.searchedCaseFunction(
-            whenList,
-            thenList,
-            null
-        );
+    final Map<String, Object> result = SearchedCaseFunction.searchedCaseFunction(
+        lazyWhenClauses,
+        () -> null
+    );
 
     // Then:
     assertThat(result, equalTo(ImmutableMap.of("tab", "ksql")));
@@ -183,39 +187,21 @@ public class SearchedCaseFunctionTest {
   @Test
   public void shouldReturnDefaultIfNoMatch() {
     // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, false, false, false);
-    final List<Integer> thenList = ImmutableList.of(1, 2, 3, 4);
-
+    final List<SearchedCaseFunction.LazyWhenClause<Integer>> lazyWhenClauses = ImmutableList.of(
+        SearchedCaseFunction.whenClause(() -> false, () -> 1),
+        SearchedCaseFunction.whenClause(() -> false, () -> 2),
+        SearchedCaseFunction.whenClause(() -> false, () -> 3),
+        SearchedCaseFunction.whenClause(() -> false, () -> 4)
+    );
 
     // When:
     final Integer result = SearchedCaseFunction.searchedCaseFunction(
-        whenList,
-        thenList,
-        10
+        lazyWhenClauses,
+        () -> 10
     );
 
     // Then:
     assertThat(result, equalTo(10));
-  }
-
-  @Test
-  public void shouldFailIfWhenAndThenDontHaveSameSize() {
-    // Given:
-    final List<Boolean> whenList = ImmutableList.of(false, false, true, true);
-    final List<Integer> thenList = ImmutableList.of(1, 2, 3);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid arguments. "
-        + "When list and Then list should have the same size. "
-        + "When list size is 4, thenList size is 3");
-
-
-    // When:
-    SearchedCaseFunction.searchedCaseFunction(
-        whenList,
-        thenList,
-        null
-    );
-
   }
 
 }

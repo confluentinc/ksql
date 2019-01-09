@@ -33,6 +33,7 @@ public class SqlToJavaVisitorTest {
 
   private MetaStore metaStore;
   private Schema schema;
+  private Schema orderSchema;
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   @Before
@@ -58,6 +59,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL5", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("TEST1.COL6", addressSchema)
         .build();
+    orderSchema = metaStore.getSource("ORDERS").getSchema();
   }
 
   @Test
@@ -186,14 +188,14 @@ public class SqlToJavaVisitorTest {
     // Given:
     final Analysis analysis = analyzeQuery(
         "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE 'large' END FROM orders;", metaStore);
-    final Schema orderSchema = metaStore.getSource("ORDERS").getSchema();
+
 
     // When:
     final String javaExpression = new SqlToJavaVisitor(orderSchema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
 
     // ThenL
-    assertThat(javaExpression, equalTo("(java.lang.String)SearchedCasedStatementFunction.searchedCasedStatementFunction( ImmutableList.of( ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"10\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"10\"))),((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"100\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"100\")))), ImmutableList.of( \"small\",\"medium\"), \"large\")"));
+    assertThat(javaExpression, equalTo("(java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause(SearchedCaseFunction.whenBooleanSupplier(((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"10\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"10\")))), SearchedCaseFunction.thenObjectSupplier(\"small\")),SearchedCaseFunction.whenClause(SearchedCaseFunction.whenBooleanSupplier(((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"100\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"100\")))), SearchedCaseFunction.thenObjectSupplier(\"medium\"))), SearchedCaseFunction.thenObjectSupplier(\"large\"))"));
   }
 
   @Test
@@ -201,13 +203,12 @@ public class SqlToJavaVisitorTest {
     // Given:
     final Analysis analysis = analyzeQuery(
         "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' END FROM orders;", metaStore);
-    final Schema orderSchema = metaStore.getSource("ORDERS").getSchema();
 
     // When:
     final String javaExpression = new SqlToJavaVisitor(orderSchema, functionRegistry)
         .process(analysis.getSelectExpressions().get(0));
 
     // ThenL
-    assertThat(javaExpression, equalTo("(java.lang.String)SearchedCasedStatementFunction.searchedCasedStatementFunction( ImmutableList.of( ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"10\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"10\"))),((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"100\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"100\")))), ImmutableList.of( \"small\",\"medium\"), null)"));
+    assertThat(javaExpression, equalTo("(java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause(SearchedCaseFunction.whenBooleanSupplier(((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"10\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"10\")))), SearchedCaseFunction.thenObjectSupplier(\"small\")),SearchedCaseFunction.whenClause(SearchedCaseFunction.whenBooleanSupplier(((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"100\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"100\")))), SearchedCaseFunction.thenObjectSupplier(\"medium\"))), SearchedCaseFunction.thenObjectSupplier(null))"));
   }
 }

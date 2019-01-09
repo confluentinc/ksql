@@ -16,6 +16,8 @@ package io.confluent.ksql.function.udf.caseexpression;
 
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 public final class SearchedCaseFunction {
 
@@ -24,20 +26,71 @@ public final class SearchedCaseFunction {
   }
 
   public static <T> T searchedCaseFunction(
-      final List<Boolean> whenList,
-      final List<T> thenList,
-      final T defaultValue) {
-    if (whenList.size() != thenList.size()) {
-      throw new KsqlException("Invalid arguments."
-          + " When list and Then list should have the same size."
-          + " When list size is " + whenList.size() + ", thenList size is " + thenList.size());
+      final List<LazyWhenClause<T>> whenClauses,
+      final Supplier<T> defaultValue
+  ) {
+    if (whenClauses.isEmpty()) {
+      throw new KsqlException("When clause cannot be empty.");
     }
-    for (int i = 0; i < whenList.size(); i++) {
-      if (whenList.get(i)) {
-        return thenList.get(i);
-      }
+    return whenClauses.stream()
+        .filter(clause -> clause.operand.get())
+        .map(clause -> clause.result.get())
+        .findFirst()
+        .orElseGet(defaultValue);
+  }
+
+  public static <T> LazyWhenClause<T> whenClause(
+      final Supplier<Boolean> operand,
+      final Supplier<T> result
+  ) {
+    return new LazyWhenClause<>(operand, result);
+  }
+
+  public static WhenBooleanSupplier whenBooleanSupplier(final Boolean whenBoolean) {
+    return new WhenBooleanSupplier(whenBoolean);
+  }
+
+  public static <T> ThenObjectSupplier thenObjectSupplier(final T thenResultObject) {
+    return new ThenObjectSupplier<>(thenResultObject);
+  }
+
+  public static final class LazyWhenClause<T> {
+    private final Supplier<Boolean> operand;
+    private final Supplier<T> result;
+
+    private LazyWhenClause(
+        final Supplier<Boolean> operand,
+        final Supplier<T> result
+    ) {
+      this.operand = Objects.requireNonNull(operand, "operand");
+      this.result = Objects.requireNonNull(result, "result");
     }
-    return defaultValue;
+  }
+
+  public static final class WhenBooleanSupplier implements Supplier<Boolean> {
+    private final Boolean whenBoolean;
+
+    private WhenBooleanSupplier(final Boolean whenBoolean) {
+      this.whenBoolean = whenBoolean;
+    }
+
+    @Override
+    public Boolean get() {
+      return whenBoolean;
+    }
+  }
+
+  public static final class ThenObjectSupplier<T> implements Supplier<T> {
+    private final T thenResultObject;
+
+    private ThenObjectSupplier(final T thenResultObject) {
+      this.thenResultObject = thenResultObject;
+    }
+
+    @Override
+    public T get() {
+      return thenResultObject;
+    }
   }
 
 }

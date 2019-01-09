@@ -950,10 +950,10 @@ CASE
         WHEN condition THEN result
         [ WHEN ... ]
         [ ELSE result ]
-    END
+     END
 
- Currently, KSQL supports ``searched`` form of CASE expression. In this form, CASE evaluates
-each boolean ``conditition`` in WHEN caluses from left to right. If a condition is true then it returns the
+ Currently, KSQL supports a ``searched`` form of CASE expression. In this form, CASE evaluates
+each boolean ``condition`` in WHEN caluses, from left to right. If a condition is true, then it returns the
 corresponding result. If none of the conditions are true, it returns the result from the ELSE clause.
  The schema for all results should be the same, otherwise, KSQL will reject the statement.
  Here is an example of CASE expression:
@@ -966,7 +966,7 @@ corresponding result. If none of the conditions are true, it returns the result 
         WHEN orderunits < 4.0 THEN 'medium'
         ELSE 'large'
       END AS case_resault
-    FROM orders;
+     FROM orders;
 
 LIKE
 ~~~~

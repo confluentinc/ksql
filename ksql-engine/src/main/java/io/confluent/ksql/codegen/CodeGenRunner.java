@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.codegen;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -55,15 +54,6 @@ import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
-
-  public static final List<String> CODEGEN_IMPORTS = ImmutableList.of(
-      "org.apache.kafka.connect.data.Struct",
-      "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction",
-      "java.util.HashMap",
-      "java.util.Map",
-      "java.util.List",
-      "java.util.ArrayList",
-      "com.google.common.collect.ImmutableList");
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
@@ -127,7 +117,7 @@ public class CodeGenRunner {
 
       final IExpressionEvaluator ee =
           CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-      ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
+      ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
       ee.setParameters(parameterNames, parameterTypes);
 
       final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
@@ -256,15 +246,13 @@ public class CodeGenRunner {
     protected Object visitSearchedCaseExpression(
         final SearchedCaseExpression node,
         final Object context) {
-      node.getWhenClauses().stream().forEach(
+      node.getWhenClauses().forEach(
           whenClause -> {
             process(whenClause.getOperand(), context);
             process(whenClause.getResult(), context);
           }
       );
-      if (node.getDefaultValue().isPresent()) {
-        process(node.getDefaultValue().get(), context);
-      }
+      node.getDefaultValue().ifPresent(defaultVal -> process(defaultVal, context));
       return null;
     }
 
@@ -312,6 +300,7 @@ public class CodeGenRunner {
   }
 
   public static final class ParameterType {
+
     private final Class type;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<KsqlFunction> function;

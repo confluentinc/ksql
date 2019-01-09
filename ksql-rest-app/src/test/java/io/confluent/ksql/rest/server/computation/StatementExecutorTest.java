@@ -575,7 +575,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockMetaStore.getQueriesWithSink("foo"))
         .andStubReturn(ImmutableSet.of("query-id"));
     expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
-    expect(mockEngine.terminateQuery(new QueryId("query-id"))).andReturn(true);
+    expect(mockEngine.getPersistentQuery(new QueryId("query-id"))).andReturn(Optional.of(mockQueryMetadata));
+    mockQueryMetadata.close();
+    expectLastCall();
     expect(mockEngine.executeDdlStatement("DROP", mockDropStream, Collections.emptyMap()))
         .andReturn(new DdlCommandResult(true, "SUCCESS"));
     replayAll();

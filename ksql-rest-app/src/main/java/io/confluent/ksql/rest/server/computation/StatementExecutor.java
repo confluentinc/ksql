@@ -124,14 +124,14 @@ public class StatementExecutor {
     return Optional.ofNullable(statusStore.get(statementId));
   }
 
-  public void putStatus(final CommandId commandId,
+  private void putStatus(final CommandId commandId,
                         final Optional<CommandStatusFuture> commandStatusFuture,
                         final CommandStatus status) {
     statusStore.put(commandId, status);
     commandStatusFuture.ifPresent(s -> s.setStatus(status));
   }
 
-  public void putFinalStatus(final CommandId commandId,
+  private void putFinalStatus(final CommandId commandId,
                              final Optional<CommandStatusFuture> commandStatusFuture,
                              final CommandStatus status) {
     statusStore.put(commandId, status);
@@ -145,7 +145,7 @@ public class StatementExecutor {
    * @param commandId The ID to be used to track the status of the command
    * @param mode was this table/stream subsequently dropped
    */
-  void handleStatementWithTerminatedQueries(
+  private void handleStatementWithTerminatedQueries(
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
@@ -199,7 +199,7 @@ public class StatementExecutor {
       startQuery(statement, command, mode);
       successMessage = "Insert Into query is running.";
     } else if (statement.getStatement() instanceof TerminateQuery) {
-      terminateQuery((PreparedStatement<TerminateQuery>) statement, mode);
+      terminateQuery((PreparedStatement<TerminateQuery>) statement);
       successMessage = "Query terminated.";
     } else if (statement.getStatement() instanceof RunScript) {
       handleRunScript(command, mode);
@@ -238,7 +238,7 @@ public class StatementExecutor {
           .collect(Collectors.toList());
 
       if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
-        terminateQueries(queryMetadataList);
+        queryMetadataList.forEach(QueryMetadata::close);
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
             ksqlEngine, mergedConfig, command.getStatement());
       }
@@ -274,7 +274,7 @@ public class StatementExecutor {
         statement,
         mergedConfig,
         command.getOverwriteProperties()
-    ).orElseThrow(() -> new KsqlException("Statement did not return a query"));
+    ).orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
 
     if (!(queryMetadata instanceof PersistentQueryMetadata)) {
       throw new KsqlException(String.format(
@@ -290,17 +290,13 @@ public class StatementExecutor {
     }
   }
 
-  private void terminateQuery(
-      final PreparedStatement<TerminateQuery> terminateQuery,
-      final Mode mode
-  ) {
+  private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {
     final QueryId queryId = terminateQuery.getStatement().getQueryId();
-    final PersistentQueryMetadata query = ksqlEngine.getPersistentQuery(queryId);
-    if (query == null) {
-      throw new KsqlException(String.format("No running query with id %s was found", queryId));
-    }
 
-    query.close();
+    ksqlEngine.getPersistentQuery(queryId)
+        .orElseThrow(() ->
+            new KsqlException(String.format("No running query with id %s was found", queryId)))
+        .close();
   }
 
   private void maybeTerminateQueryForLegacyDropCommand(
@@ -319,14 +315,9 @@ public class StatementExecutor {
         = Lists.newArrayList(metaStore.getQueriesWithSink(commandId.getEntity()));
     queriesWithSink.stream()
         .map(QueryId::new)
-        .forEach(ksqlEngine::terminateQuery);
-  }
-
-  private void terminateQueries(final List<QueryMetadata> queryMetadataList) {
-    queryMetadataList.stream()
-        .filter(q -> q instanceof PersistentQueryMetadata)
-        .map(PersistentQueryMetadata.class::cast)
-        .map(PersistentQueryMetadata::getQueryId)
-        .forEach(ksqlEngine::terminateQuery);
+        .map(ksqlEngine::getPersistentQuery)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .forEach(QueryMetadata::close);
   }
 }

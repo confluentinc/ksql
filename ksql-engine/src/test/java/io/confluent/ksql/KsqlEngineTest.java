@@ -72,6 +72,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
@@ -89,6 +90,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("ConstantConditions")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
 
@@ -531,38 +533,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCleanUpInternalTopicSchemasOnTerminate() throws Exception {
-    // Given:
-    KsqlEngineTestUtil.execute(ksqlEngine,
-        "create stream s1  with (value_format = 'avro') as select * from test1;"
-        + "create table t1 as select col1, count(*) from s1 group by col1;",
-        KSQL_CONFIG, Collections.emptyMap())
-        .forEach(QueryMetadata::start);
-
-    final Schema schema = SchemaBuilder
-        .record("Test").fields()
-        .name("clientHash").type().fixed("MD5").size(16).noDefault()
-        .endRecord();
-    schemaRegistryClient.register
-        ("_confluent-ksql-default_query_CTAS_T1_1-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
-         + "-changelog-value", schema);
-    schemaRegistryClient.register
-        ("_confluent-ksql-default_query_CTAS_T1_1-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
-         + "-repartition-value", schema);
-
-    // When:
-    ksqlEngine.terminateQuery(new QueryId("CTAS_T1_1"));
-
-    // Then:
-    assertThat(schemaRegistryClient.getAllSubjects(), not(hasItems(
-        "_confluent-ksql-default_query_CTAS_T1_1-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
-            + "-changelog-value",
-        "_confluent-ksql-default_query_CTAS_T1_1-KSTREAM-AGGREGATE-STATE-STORE-0000000006"
-            + "-repartition-value"
-    )));
-  }
-
-  @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
@@ -593,25 +563,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldRemovePersistentQueryFromEngineWhenTerminated() {
-    // Given:
-    final long startingLiveQueries = ksqlEngine.numberOfLiveQueries();
-    final long startingPersistentQueries = ksqlEngine.numberOfPersistentQueries();
-
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
-        "create stream s1 with (value_format = 'avro') as select * from test1;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
-
-    // When:
-    ksqlEngine.terminateQuery(getQueryId(query));
-
-    // Then:
-    assertThat(ksqlEngine.getPersistentQuery(getQueryId(query)), is(nullValue()));
-    assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
-    assertThat(ksqlEngine.numberOfPersistentQueries(), is(startingPersistentQueries));
-  }
-
-  @Test
   public void shouldRemovePersistentQueryFromEngineWhenClosed() {
     // Given:
     final long startingLiveQueries = ksqlEngine.numberOfLiveQueries();
@@ -626,7 +577,7 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
-    assertThat(ksqlEngine.getPersistentQuery(getQueryId(query)), is(nullValue()));
+    assertThat(ksqlEngine.getPersistentQuery(getQueryId(query)), is(Optional.empty()));
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
     assertThat(ksqlEngine.numberOfPersistentQueries(), is(startingPersistentQueries));
   }

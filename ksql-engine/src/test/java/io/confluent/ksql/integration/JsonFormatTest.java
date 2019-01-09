@@ -266,7 +266,8 @@ public class JsonFormatTest {
   }
 
   private void terminateQuery() {
-    ksqlEngine.terminateQuery(queryId);
+    ksqlEngine.getPersistentQuery(queryId)
+        .ifPresent(QueryMetadata::close);
   }
 
 }

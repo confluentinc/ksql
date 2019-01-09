@@ -162,8 +162,8 @@ public class KsqlEngine implements Closeable {
     return persistentQueries.size();
   }
 
-  public PersistentQueryMetadata getPersistentQuery(final QueryId queryId) {
-    return persistentQueries.get(queryId);
+  public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
+    return Optional.ofNullable(persistentQueries.get(queryId));
   }
 
   public List<PersistentQueryMetadata> getPersistentQueries() {
@@ -190,15 +190,6 @@ public class KsqlEngine implements Closeable {
 
   public String getServiceId() {
     return serviceId;
-  }
-
-  public boolean terminateQuery(final QueryId queryId) {
-    final PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
-    if (persistentQueryMetadata == null) {
-      return false;
-    }
-    persistentQueryMetadata.close();
-    return true;
   }
 
   /**

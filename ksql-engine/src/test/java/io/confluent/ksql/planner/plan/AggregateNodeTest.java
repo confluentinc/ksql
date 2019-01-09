@@ -303,7 +303,6 @@ public class AggregateNodeTest {
             ksqlConfig,
             serviceContext,
             new InternalFunctionRegistry(),
-            new HashMap<>(),
             queryId);
   }
 

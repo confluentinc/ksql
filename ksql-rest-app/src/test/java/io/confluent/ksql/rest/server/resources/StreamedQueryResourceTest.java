@@ -275,9 +275,18 @@ public class StreamedQueryResourceTest {
     reset(mockKsqlEngine);
 
     final QueuedQueryMetadata queuedQueryMetadata =
-        new QueuedQueryMetadata(queryString, mockKafkaStreams, mockOutputNode, "",
-            rowQueue, DataSource.DataSourceType.KSTREAM, "",
-            new Topology(), Collections.emptyMap(), queryCloseCallback);
+        new QueuedQueryMetadata(
+            queryString,
+            mockKafkaStreams,
+            mockOutputNode,
+            "",
+            rowQueue,
+            DataSource.DataSourceType.KSTREAM,
+            "",
+            mock(Topology.class),
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            queryCloseCallback);
     reset(mockOutputNode);
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));

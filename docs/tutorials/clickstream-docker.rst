@@ -102,10 +102,10 @@ used to enrich the click data.
 
 #.  Create the status codes using the ksql-datagen utility. This stream runs once to populate the table.
 
-    .. code:: bash
+    .. codewithvars:: bash
 
         docker run --network ksql-clickstream-demo_default --rm --name datagen-clickstream_codes \
-          confluentinc/ksql-examples:5.0.0 \
+          confluentinc/ksql-examples:|release| \
           ksql-datagen \
               bootstrap-server=kafka:29092 \
               quickstart=clickstream_codes \
@@ -126,11 +126,11 @@ used to enrich the click data.
 
 #.  Create a set of users using ksql-datagen utility. This stream runs once to populate the table.
 
-    .. code:: bash
+    .. codewithvars:: bash
 
         docker run --network ksql-clickstream-demo_default \
                    --rm --name datagen-clickstream_codes \
-          confluentinc/ksql-examples:5.0.0 \
+          confluentinc/ksql-examples:|release| \
           ksql-datagen \
               bootstrap-server=kafka:29092 \
               quickstart=clickstream_users \

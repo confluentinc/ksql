@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -42,17 +43,32 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final QueryId id,
                                  final DataSource.DataSourceType dataSourceType,
                                  final String queryApplicationId,
-                                 final KafkaTopicClient kafkaTopicClient,
                                  final KsqlTopic resultTopic,
                                  final Topology topology,
-                                 final Map<String, Object> overriddenProperties) {
+                                 final Map<String, Object> streamsProperties,
+                                 final Map<String, Object> overriddenProperties,
+                                 final Consumer<QueryMetadata> closeCallback) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, kafkaTopicClient, topology, overriddenProperties);
-    this.id = id;
-    this.resultTopic = resultTopic;
+    super(
+        statementString,
+        kafkaStreams,
+        outputNode,
+        executionPlan,
+        dataSourceType,
+        queryApplicationId,
+        topology,
+        streamsProperties,
+        overriddenProperties,
+        closeCallback);
+    this.id = Objects.requireNonNull(id, "id");
+    this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = new HashSet<>();
     this.sinkNames.add(sinkDataSource.getName());
+
+    if (resultTopic.getKsqlTopicSerDe() == null) {
+      throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
+          resultTopic.getName()));
+    }
   }
 
   public QueryId getQueryId() {
@@ -72,26 +88,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   public DataSource.DataSourceSerDe getResultTopicSerde() {
-    if (resultTopic.getKsqlTopicSerDe() == null) {
-      throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
-                                            resultTopic.getName()));
-    }
     return resultTopic.getKsqlTopicSerDe().getSerDe();
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (!(o instanceof PersistentQueryMetadata)) {
-      return false;
-    }
-
-    final PersistentQueryMetadata that = (PersistentQueryMetadata) o;
-
-    return Objects.equals(this.id, that.id) && super.equals(o);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(id, super.hashCode());
   }
 }

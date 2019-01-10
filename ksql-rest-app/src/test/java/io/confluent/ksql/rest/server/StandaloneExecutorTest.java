@@ -91,7 +91,7 @@ public class StandaloneExecutorTest {
   public void before() throws IOException {
     queriesFile = Paths.get(TestUtils.tempFile().getPath());
 
-    when(engine.execute(any(), any(), any())).thenReturn(ImmutableList.of(queryMd));
+    when(engine.execute(any(), any(), any())).thenReturn(Optional.of(queryMd));
 
     standaloneExecutor = new StandaloneExecutor(
         serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader,
@@ -175,31 +175,31 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunCsStatement() {
     // Given:
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("CS",
-            new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
-    ));
+    final PreparedStatement<CreateStream> cs = new PreparedStatement<>("CS",
+        new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
+
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(cs));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute("CS", ksqlConfig, emptyMap());
+    verify(engine).execute(cs, ksqlConfig, emptyMap());
   }
 
   @Test
   public void shouldRunCtStatement() {
     // Given:
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("CT",
-            new CreateTable(SOME_NAME, emptyList(), false, emptyMap()))
-    ));
+    final PreparedStatement<CreateTable> ct = new PreparedStatement<>("CT",
+        new CreateTable(SOME_NAME, emptyList(), false, emptyMap()));
+
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(ct));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute("CT", ksqlConfig, emptyMap());
+    verify(engine).execute(ct, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -216,7 +216,8 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute(any(), any(), eq(ImmutableMap.of("name", "value")));
+    verify(engine)
+        .execute(any(), any(), eq(ImmutableMap.of("name", "value")));
   }
 
   @Test
@@ -241,48 +242,48 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunCsasStatements() {
     // Given:
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("CSAS1",
-            new CreateStreamAsSelect(SOME_NAME, query, false, emptyMap(), Optional.empty()))
-    ));
+    final PreparedStatement<CreateStreamAsSelect> csas = new PreparedStatement<>("CSAS1",
+        new CreateStreamAsSelect(SOME_NAME, query, false, emptyMap(), Optional.empty()));
+
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(csas));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute("CSAS1", ksqlConfig, emptyMap());
+    verify(engine).execute(csas, ksqlConfig, emptyMap());
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldRunCtasStatements() {
     // Given:
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("CTAS",
-            new CreateTableAsSelect(SOME_NAME, query, false, emptyMap()))
-    ));
+    final PreparedStatement<CreateTableAsSelect> ctas = new PreparedStatement<>("CTAS",
+        new CreateTableAsSelect(SOME_NAME, query, false, emptyMap()));
+
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(ctas));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute("CTAS", ksqlConfig, emptyMap());
+    verify(engine).execute(ctas, ksqlConfig, emptyMap());
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldRunInsertIntoStatements() {
     // Given:
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("InsertInto",
-            new InsertInto(SOME_NAME, query, Optional.empty()))
-    ));
+    final PreparedStatement<InsertInto> insertInto = new PreparedStatement<>("InsertInto",
+        new InsertInto(SOME_NAME, query, Optional.empty()));
+
+    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(insertInto));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute("InsertInto", ksqlConfig, emptyMap());
+    verify(engine).execute(insertInto, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -290,21 +291,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(engine.execute(any(), any(), any())).thenReturn(emptyList());
-
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not build the query");
-
-    // When:
-    standaloneExecutor.start();
-  }
-
-  @Test
-  public void shouldThrowIfExecutingPersistentQueryReturnsMultiple() {
-    // Given:
-    givenFileContainsAPersistentQuery();
-
-    when(engine.execute(any(), any(), any())).thenReturn(ImmutableList.of(queryMd, queryMd));
+    when(engine.execute(any(), any(), any())).thenReturn(Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not build the query");
@@ -318,7 +305,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(engine.execute(any(), any(), any())).thenReturn(ImmutableList.of(nonPeristentQueryMd));
+    when(engine.execute(any(), any(), any())).thenReturn(Optional.of(nonPeristentQueryMd));
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not build the query");

@@ -31,15 +31,12 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.util.JsonMapper;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -55,7 +52,7 @@ import org.easymock.IAnswer;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
@@ -67,16 +64,15 @@ import org.junit.runner.RunWith;
 @SuppressWarnings({"unchecked", "ConstantConditions"})
 @RunWith(EasyMockRunner.class)
 public class QueryStreamWriterTest {
-  @ClassRule
-  public static final Timeout TIMEOUT = Timeout.builder()
+
+  @Rule
+  public final Timeout timeout = Timeout.builder()
       .withTimeout(30, TimeUnit.SECONDS)
       .withLookingForStuckThread(true)
       .build();
 
   @Mock(MockType.NICE)
   private KsqlEngine ksqlEngine;
-  @Mock(MockType.NICE)
-  private ServiceContext serviceContext;
   @Mock(MockType.NICE)
   private QueuedQueryMetadata queryMetadata;
   @Mock(MockType.NICE)
@@ -108,9 +104,6 @@ public class QueryStreamWriterTest {
 
     expect(queryMetadata.getRowQueue()).andReturn(rowQueue).anyTimes();
     expect(queryMetadata.getResultSchema()).andReturn(schema).anyTimes();
-
-    expect(ksqlEngine.execute(anyObject(), anyObject(), anyObject()))
-        .andReturn(ImmutableList.of(queryMetadata));
 
     queryMetadata.setLimitHandler(capture(limitHandlerCapture));
     expectLastCall().once();
@@ -182,18 +175,10 @@ public class QueryStreamWriterTest {
         containsString("Row3")));
   }
 
-  private void createWriter() throws Exception {
+  private void createWriter() {
     replay(queryMetadata, ksqlEngine, rowQueue);
 
-    writer = new QueryStreamWriter(
-        new KsqlConfig(Collections.emptyMap()),
-        ksqlEngine,
-        serviceContext,
-        1000,
-        "a KSQL statement",
-        Collections.emptyMap(),
-        objectMapper
-        );
+    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper);
 
     out = new ByteArrayOutputStream();
     limitHandler = limitHandlerCapture.getValue();

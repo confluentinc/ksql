@@ -56,6 +56,7 @@ public class StreamedQueryResource {
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
+  private final Duration commandQueueCatchupTimeout;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
 
@@ -66,6 +67,7 @@ public class StreamedQueryResource {
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
+      final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -75,6 +77,8 @@ public class StreamedQueryResource {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
+    this.commandQueueCatchupTimeout =
+        Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
@@ -96,7 +100,7 @@ public class StreamedQueryResource {
     activenessRegistrar.updateLastRequestTime();
 
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
-        commandQueue, request, disconnectCheckInterval);
+        commandQueue, request, commandQueueCatchupTimeout);
     try {
       statement = statementParser.parseSingleStatement(ksql);
     } catch (IllegalArgumentException | KsqlException e) {

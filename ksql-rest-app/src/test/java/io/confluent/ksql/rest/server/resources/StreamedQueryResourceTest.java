@@ -90,6 +90,7 @@ import org.junit.runner.RunWith;
 public class StreamedQueryResourceTest {
 
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
+  private static final Duration COMMAND_QUEUE_CATCHUP_TIMOEUT = Duration.ofMillis(1000);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -130,6 +131,7 @@ public class StreamedQueryResourceTest {
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar);
   }
 

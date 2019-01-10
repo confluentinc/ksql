@@ -38,10 +38,10 @@ Download the Tutorial and Start KSQL
 
 #. From two separate terminal windows, run the data generator tool to simulate "user" and "pageview" data: 
 
-   .. code:: bash
+   .. codewithvars:: bash
 
       docker run --network tutorials_default --rm --name datagen-pageviews \
-        confluentinc/ksql-examples:5.0.0 \
+        confluentinc/ksql-examples:|release| \
         ksql-datagen \
             bootstrap-server=kafka:39092 \
             quickstart=pageviews \
@@ -49,10 +49,10 @@ Download the Tutorial and Start KSQL
             topic=pageviews \
             maxInterval=500 
 
-   .. code:: bash
+   .. codewithvars:: bash
 
       docker run --network tutorials_default --rm --name datagen-users \
-        confluentinc/ksql-examples:5.0.0 \
+        confluentinc/ksql-examples:|release| \
         ksql-datagen \
             bootstrap-server=kafka:39092 \
             quickstart=users \
@@ -62,10 +62,10 @@ Download the Tutorial and Start KSQL
 
 #. From the host machine, start KSQL CLI
 
-   .. code:: bash
+   .. codewithvars:: bash
 
        docker run --network tutorials_default --rm --interactive --tty \
-          confluentinc/cp-ksql-cli:5.0.0 \
+          confluentinc/cp-ksql-cli:|release| \
           http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst

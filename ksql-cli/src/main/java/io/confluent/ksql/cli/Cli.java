@@ -110,7 +110,7 @@ public class Cli implements Closeable {
 
     terminal
         .registerCliSpecificCommand(new RemoteServerSpecificCommand(
-            restClient, terminal.writer(), (unused) -> setShouldWaitForPreviousCommand(true)));
+            restClient, terminal.writer(), (unused) -> resetForNewServer()));
     terminal
         .registerCliSpecificCommand(new WaitForPreviousCommand(
             terminal.writer(),
@@ -185,6 +185,11 @@ public class Cli implements Closeable {
 
   private void setShouldWaitForPreviousCommand(final boolean newSetting) {
     shouldWaitForPreviousCommand = newSetting;
+  }
+
+  private void resetForNewServer() {
+    lastCommandSequenceNumber = -1;
+    setShouldWaitForPreviousCommand(true);
   }
 
   void handleLine(final String line) throws Exception {

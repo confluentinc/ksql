@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -494,6 +495,23 @@ public class CodeGenRunnerTest {
 
         // Then:
         assertThat(result, is("large"));
+    }
+
+    @Test
+    public void shouldReturnNullForCaseIfNoDefault() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT CASE WHEN col0 > 10 THEN 'small' END FROM codegen_test;", metaStore)
+            .getSelectExpressions()
+            .get(0);
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Case")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        Assert.assertNull(result);
     }
 
 

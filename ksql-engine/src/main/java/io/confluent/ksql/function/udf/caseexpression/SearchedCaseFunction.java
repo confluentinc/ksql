@@ -28,7 +28,7 @@ public final class SearchedCaseFunction {
   public static <T> T searchedCaseFunction(
       final List<LazyWhenClause<T>> whenClauses,
       final Supplier<T> defaultValue
-  ) {
+  ) throws KsqlException {
     if (whenClauses.isEmpty()) {
       throw new KsqlException("When clause cannot be empty.");
     }

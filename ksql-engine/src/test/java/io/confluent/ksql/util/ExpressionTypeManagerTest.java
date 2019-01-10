@@ -33,7 +33,6 @@ import org.junit.rules.ExpectedException;
 public class ExpressionTypeManagerTest {
 
   private MetaStore metaStore;
-  private Schema schema;
   private ExpressionTypeManager expressionTypeManager;
   private ExpressionTypeManager ordersExpressionTypeManager;
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -46,11 +45,11 @@ public class ExpressionTypeManagerTest {
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     // load udfs that are not hardcoded
     UdfLoaderUtil.load(metaStore);
-    schema = SchemaBuilder.struct()
-            .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA);
+    final Schema schema = SchemaBuilder.struct()
+        .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+        .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA);
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     ordersExpressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(), functionRegistry);
   }

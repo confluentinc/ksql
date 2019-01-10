@@ -15,10 +15,14 @@
 package io.confluent.ksql.function.udf.caseexpression;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.LazyWhenClause;
+import io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.ThenObjectSupplier;
+import io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.WhenBooleanSupplier;
 import java.util.List;
 import java.util.Map;
 import org.junit.Rule;
@@ -204,4 +208,22 @@ public class SearchedCaseFunctionTest {
     assertThat(result, equalTo(10));
   }
 
+  @Test
+  public void shouldGetWhenSupplierCorrectly() {
+    // When:
+    final WhenBooleanSupplier whenBooleanSupplier = SearchedCaseFunction.whenBooleanSupplier(true);
+
+    // Then:
+    assertThat(whenBooleanSupplier.get(), is(true));
+  }
+
+  @Test
+  public void shouldGetThenObjectSupplierCorrectly() {
+    // When:
+    final ThenObjectSupplier thenObjectSupplier = SearchedCaseFunction.thenObjectSupplier("ksql");
+
+    // Then:
+    assertThat(thenObjectSupplier.get(), equalTo("ksql"));
+  }
+  
 }

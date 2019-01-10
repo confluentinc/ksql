@@ -72,8 +72,6 @@ public class SqlToJavaVisitor {
       "org.apache.kafka.connect.data.Struct",
       "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction",
       "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.LazyWhenClause",
-      "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.WhenBooleanSupplier",
-      "io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction.ThenObjectSupplier",
       "java.util.HashMap",
       "java.util.Map",
       "java.util.List",
@@ -502,30 +500,40 @@ public class SqlToJavaVisitor {
         final SearchedCaseExpression node,
         final Boolean unmangleNames) {
       final String functionClassName = SearchedCaseFunction.class.getSimpleName();
-      final String whenBooleanSupplierMethod = functionClassName + ".whenBooleanSupplier";
-      final String thenObjectSupplierMethod = functionClassName + ".thenObjectSupplier";
-
-      final List<String> lazyWhenClause = node.getWhenClauses()
+      // Need to process the when and result expressions only once.
+      final List<CaseWhenProcessed> whenClauses = node
+          .getWhenClauses()
           .stream()
-          .map(whenClause -> functionClassName + ".whenClause("
-              + whenBooleanSupplierMethod
-              + "(" + process(whenClause.getOperand(), unmangleNames).getLeft() + "), "
-              + thenObjectSupplierMethod
-              + "(" + process(whenClause.getResult(), unmangleNames).getLeft() + ")"
+          .map(whenClause -> new CaseWhenProcessed(
+              process(whenClause.getOperand(), unmangleNames),
+              process(whenClause.getResult(), unmangleNames)
+          ))
+          .collect(Collectors.toList());
+      final Schema resultSchema = whenClauses.get(0).getThenProcessResult().getRight();
+      final String resultSchemaString = SchemaUtil.getJavaType(resultSchema).getCanonicalName();
+
+      final List<String> lazyWhenClause = whenClauses
+          .stream()
+          .map(processedWhenClause -> functionClassName + ".whenClause("
+              + " new java.util.function.Supplier<Boolean>() {"
+              + " @Override public Boolean get() { return "
+              + processedWhenClause.whenProcessResult.getLeft() + "; }}, "
+              + " new java.util.function.Supplier<" + resultSchemaString + ">() {"
+              + " @Override public " + resultSchemaString + " get() { return "
+              + processedWhenClause.thenProcessResult.getLeft() + "; }}"
               + ")")
           .collect(Collectors.toList());
-      final Schema resultSchema = process(node.getWhenClauses().get(0).getResult(), unmangleNames)
-          .getRight();
+
       final String defaultValue = node.getDefaultValue().isPresent()
           ? process(node.getDefaultValue().get(), unmangleNames).getLeft()
           : "null";
 
-      final String resultSchemaString =
-          SchemaUtil.getJavaType(resultSchema).getCanonicalName();
+
       final String codeString = "(" + resultSchemaString + ")"
           + functionClassName + ".searchedCaseFunction(ImmutableList.of( "
           + StringUtils.join(lazyWhenClause, ",") + ")"
-          + ", " + thenObjectSupplierMethod + "(" + defaultValue + "))";
+          + ", new java.util.function.Supplier<" + resultSchemaString + ">() {"
+          + " @Override public " + resultSchemaString + " get() { return " + defaultValue + ";}})";
       return new Pair<>(codeString, resultSchema);
     }
 
@@ -688,4 +696,26 @@ public class SqlToJavaVisitor {
       }
     }
   }
+
+  private static final class CaseWhenProcessed {
+    final Pair<String, Schema> whenProcessResult;
+    final Pair<String, Schema> thenProcessResult;
+
+    CaseWhenProcessed(
+        final Pair<String, Schema> whenProcessResult,
+        final Pair<String, Schema> thenProcessResult
+    ) {
+      this.whenProcessResult = whenProcessResult;
+      this.thenProcessResult = thenProcessResult;
+    }
+
+    public Pair<String, Schema> getWhenProcessResult() {
+      return whenProcessResult;
+    }
+
+    Pair<String, Schema> getThenProcessResult() {
+      return thenProcessResult;
+    }
+  }
+
 }

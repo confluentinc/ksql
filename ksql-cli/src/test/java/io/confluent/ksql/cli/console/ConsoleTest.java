@@ -17,7 +17,10 @@ package io.confluent.ksql.cli.console;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,7 +75,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class ConsoleTest {
 
-  private static final String CLI_CMD_NAME = "someCommand";
+  private static final String CLI_CMD_NAME = "some command";
   private static final String WHITE_SPACE = " \t ";
 
   private final TestTerminal terminal;
@@ -263,21 +266,91 @@ public class ConsoleTest {
     console.readLine();
 
     // Then:
-    verify(cliCommand).execute("");
+    verify(cliCommand).execute(eq(ImmutableList.of()), any());
   }
 
   @Test
-  public void shouldExecuteCliCommandWithArgs() {
+  public void shouldExecuteCliCommandWithArgsTrimmingWhiteSpace() {
     // Given:
     when(lineSupplier.get())
-        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "arg0" + WHITE_SPACE + "arg1")
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "Arg0" + WHITE_SPACE + "Arg1" + WHITE_SPACE)
         .thenReturn("not a CLI command;");
 
     // When:
     console.readLine();
 
     // Then:
-    verify(cliCommand).execute("arg0" + WHITE_SPACE + "arg1");
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg1")), any());
+  }
+
+  @Test
+  public void shouldExecuteCliCommandWithQuotedArgsContainingSpaces() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "Arg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
+  }
+
+  @Test
+  public void shouldSupportOtherWhitespaceBetweenCliCommandAndArgs() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + "\tArg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
+  }
+
+  @Test
+  public void shouldSupportCmdBeingTerminatedWithSemiColon() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "Arg0;")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
+  }
+
+  @Test
+  public void shouldSupportCmdWithQuotedArgBeingTerminatedWithSemiColon() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "'Arg0';")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
+  }
+
+  @Test
+  public void shouldFailIfCommandNameIsQuoted() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn("'some' 'command' " + "Arg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand, never()).execute(any(), any());
   }
 
   @Test

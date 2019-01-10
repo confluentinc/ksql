@@ -83,7 +83,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       final OutputFormat outputFormat,
       final KsqlRestClient restClient
   ) {
-    final Console console = Console.build(outputFormat, restClient);
+    final Console console = Console.build(outputFormat);
     return new Cli(streamedQueryRowLimit, streamedQueryTimeoutMs, restClient, console);
   }
 
@@ -108,7 +108,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     CliCommandRegisterUtil.registerDefaultCommands(this, terminal, versionSuppler);
 
     terminal
-        .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient, terminal.writer()));
+        .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient));
   }
 
   @Override

@@ -23,19 +23,22 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Objects;
 import javax.ws.rs.ProcessingException;
 
 public class RemoteServerSpecificCommand implements CliSpecificCommand {
 
-  private final KsqlRestClient restClient;
-  private final PrintWriter writer;
+  private static final String HELP = "server:" + System.lineSeparator()
+      + "\tShow the current server" + System.lineSeparator()
+      + "\nserver <server>:" + System.lineSeparator()
+      + "\tChange the current server to <server>" + System.lineSeparator()
+      + "\t example: \"server http://my.awesome.server.com:9098;\"";
 
-  public RemoteServerSpecificCommand(
-      final KsqlRestClient restClient,
-      final PrintWriter writer) {
+  private final KsqlRestClient restClient;
+
+  public RemoteServerSpecificCommand(final KsqlRestClient restClient) {
     this.restClient = Objects.requireNonNull(restClient, "restClient");
-    this.writer = Objects.requireNonNull(writer, "writer");
   }
 
   @Override
@@ -44,25 +47,24 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
   }
 
   @Override
-  public void printHelp() {
-    writer.println("server:");
-    writer.println("\tShow the current server");
-    writer.println("\nserver <server>:");
-    writer.println("\tChange the current server to <server>");
-    writer.println("\t example: \"server http://my.awesome.server.com:9098;\"");
+  public String getHelpMessage() {
+    return HELP;
   }
 
   @Override
-  public void execute(final String command) {
-    if (command.isEmpty()) {
-      writer.println(restClient.getServerAddress());
+  public void execute(final List<String> args, final PrintWriter terminal) {
+    CliCmdUtil.ensureArgCountBounds(args, 0, 1, () -> HELP);
+
+    if (args.isEmpty()) {
+      terminal.println(restClient.getServerAddress());
+      return;
     } else {
-      final String serverAddress = command.trim();
+      final String serverAddress = args.get(0);
       restClient.setServerAddress(serverAddress);
-      writer.write("Server now: " + command);
+      terminal.println("Server now: " + serverAddress);
     }
 
-    validateClient(writer, restClient);
+    validateClient(terminal, restClient);
   }
 
   public static void validateClient(

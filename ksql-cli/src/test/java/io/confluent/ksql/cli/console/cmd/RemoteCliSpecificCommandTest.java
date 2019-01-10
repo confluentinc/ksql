@@ -23,6 +23,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -31,7 +32,6 @@ import io.confluent.ksql.rest.server.resources.Errors;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
-import java.util.Collections;
 import javax.ws.rs.ProcessingException;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -53,11 +53,13 @@ public class RemoteCliSpecificCommandTest {
   @Mock(MockType.NICE)
   private RemoteServerSpecificCommand command;
   private StringWriter out;
+  private PrintWriter terminal;
 
   @Before
   public void setUp() {
     out = new StringWriter();
-    command = new RemoteServerSpecificCommand(restClient, new PrintWriter(out));
+    terminal = new PrintWriter(out);
+    command = new RemoteServerSpecificCommand(restClient);
   }
 
   @Test
@@ -67,7 +69,7 @@ public class RemoteCliSpecificCommandTest {
     expectLastCall();
     replay(restClient);
 
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     verify(restClient);
   }
@@ -78,7 +80,7 @@ public class RemoteCliSpecificCommandTest {
     expectLastCall().andThrow(new KsqlRestClientException("Boom"));
     replay(restClient);
 
-    command.execute("localhost:8088");
+    command.execute(ImmutableList.of("localhost:8088"), terminal);
   }
 
   @Test
@@ -89,7 +91,7 @@ public class RemoteCliSpecificCommandTest {
     expectLastCall().andThrow(new AssertionError("should not set address"));
     replay(restClient);
 
-    command.execute("");
+    command.execute(ImmutableList.of(), terminal);
 
     assertThat(out.toString(), equalTo(INITIAL_SERVER_ADDRESS + "\n"));
   }
@@ -100,7 +102,7 @@ public class RemoteCliSpecificCommandTest {
         new KsqlRestClientException("Failed to connect", new ProcessingException("Boom")));
     replay(restClient);
 
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     assertThat(out.toString(), containsString("Boom"));
     assertThat(out.toString(), containsString("Failed to connect"));
@@ -111,7 +113,7 @@ public class RemoteCliSpecificCommandTest {
     expect(restClient.makeRootRequest()).andReturn(RestResponse.successful(SERVER_INFO));
     replay(restClient);
 
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     assertThat(out.toString(), containsString("Server now: " + VALID_SERVER_ADDRESS));
   }
@@ -122,15 +124,16 @@ public class RemoteCliSpecificCommandTest {
         Errors.ERROR_CODE_SERVER_ERROR, "it is broken"));
     replay(restClient);
 
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     assertThat(out.toString(), containsString("it is broken"));
   }
 
   @Test
-  public void shouldPrintHelp() {
-    command.printHelp();
-    assertThat(out.toString(), containsString("server:\n\tShow the current server"));
-    assertThat(out.toString(), containsString("server <server>:\n\tChange the current server to <server>"));
+  public void shouldGetHelp() {
+    assertThat(command.getHelpMessage(),
+        containsString("server:\n\tShow the current server"));
+    assertThat(command.getHelpMessage(),
+        containsString("server <server>:\n\tChange the current server to <server>"));
   }
 }

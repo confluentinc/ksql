@@ -14,15 +14,20 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
-import io.confluent.ksql.cli.console.Console;
+import java.io.PrintWriter;
+import java.util.List;
 import java.util.Objects;
 
 class History implements CliSpecificCommand {
 
-  private Console console;
+  private static final String HELP = "history:" + System.lineSeparator()
+      + "\tShow previous lines entered during the current CLI session. "
+      + "You can use up and down arrow keys to view previous lines.";
 
-  History(final Console console) {
-    this.console = Objects.requireNonNull(console, "console");
+  private final Runnable historyPrinter;
+
+  History(final Runnable historyPrinter) {
+    this.historyPrinter = Objects.requireNonNull(historyPrinter, "historyPrinter");
   }
 
   @Override
@@ -31,18 +36,13 @@ class History implements CliSpecificCommand {
   }
 
   @Override
-  public void printHelp() {
-    console.writer().println(
-        "history:");
-    console.writer().println(
-        "\tShow previous lines entered during the current CLI session. You can"
-            + " use up and down arrow keys to view previous lines."
-    );
+  public String getHelpMessage() {
+    return HELP;
   }
 
   @Override
-  public void execute(final String commandStrippedLine) {
-    console.printHistory();
-    console.flush();
+  public void execute(final List<String> args, final PrintWriter terminal) {
+    CliCmdUtil.ensureArgCountBounds(args, 0, 0, () -> HELP);
+    historyPrinter.run();
   }
 }

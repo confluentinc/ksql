@@ -20,10 +20,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.KsqlRequestExecutor;
-import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -45,7 +44,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class RunScriptTest {
 
   private static final String FILE_CONTENT = "some scripts;" + System.lineSeparator() + "more;";
-  private static final String WHITE_SPACE = "\t  ";
 
   @ClassRule
   public static final TemporaryFolder TMP = new TemporaryFolder();
@@ -55,18 +53,15 @@ public class RunScriptTest {
 
   @Mock
   private KsqlRequestExecutor requestExecutor;
-  @Mock
-  private Console console;
   private RunScript cmd;
-  private StringWriter output;
   private File scriptFile;
+  private PrintWriter terminal;
 
   @Before
   public void setUp() throws Exception {
-    cmd = new RunScript(console, requestExecutor);
+    terminal = new PrintWriter(new StringWriter());
 
-    output = new StringWriter();
-    when(console.writer()).thenReturn(new PrintWriter(output));
+    cmd = new RunScript(requestExecutor);
 
     scriptFile = TMP.newFile();
     Files.write(scriptFile.toPath(), FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
@@ -74,34 +69,41 @@ public class RunScriptTest {
 
   @Test
   public void shouldGetName() {
-    assertThat(cmd.getName(), is("run"));
+    assertThat(cmd.getName(), is("run script"));
   }
 
   @Test
   public void shouldGetHelp() {
-    // When:
-    cmd.printHelp();
-
-    // Then:
-    assertThat(output.toString(), is(
+    assertThat(cmd.getHelpMessage(), is(
         "run <path_to_sql_file>:" + System.lineSeparator()
             + "\tLoad and run the statements in the supplied file." + System.lineSeparator()
-            + "\tNote: the file must be UTF-8 encoded." + System.lineSeparator()));
+            + "\tNote: the file must be UTF-8 encoded."));
+  }
+
+  @Test
+  public void ShouldThrowIfNoArgSupplied() {
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Too few parameters");
+
+    // When:
+    cmd.execute(ImmutableList.of(), terminal);
+  }
+
+  @Test
+  public void shouldThrowIfTooManyArgsSupplied() {
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Too many parameters");
+
+    // When:
+    cmd.execute(ImmutableList.of("too", "many"), terminal);
   }
 
   @Test
   public void shouldExecuteScript() {
     // When:
-    cmd.execute(WHITE_SPACE + scriptFile.toString() + WHITE_SPACE);
-
-    // Then:
-    verify(requestExecutor).makeKsqlRequest(FILE_CONTENT);
-  }
-
-  @Test
-  public void shouldHandlePathBeingWrappedInSingleQuotes() {
-    // When:
-    cmd.execute(WHITE_SPACE + "'" + scriptFile.toString() + "'" + WHITE_SPACE);
+    cmd.execute(ImmutableList.of(scriptFile.toString()), terminal);
 
     // Then:
     verify(requestExecutor).makeKsqlRequest(FILE_CONTENT);
@@ -115,7 +117,7 @@ public class RunScriptTest {
     expectedException.expectCause(instanceOf(FileNotFoundException.class));
 
     // When:
-    cmd.execute("you-will-not-find-me");
+    cmd.execute(ImmutableList.of("you-will-not-find-me"), terminal);
   }
 
   @Test
@@ -129,6 +131,6 @@ public class RunScriptTest {
     expectedException.expectCause(hasMessage(containsString("Is a directory")));
 
     // When:
-    cmd.execute(dir.toString());
+    cmd.execute(ImmutableList.of(dir.toString()), terminal);
   }
 }

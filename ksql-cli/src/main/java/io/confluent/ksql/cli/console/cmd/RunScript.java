@@ -16,43 +16,42 @@ package io.confluent.ksql.cli.console.cmd;
 
 import com.google.common.io.Files;
 import io.confluent.ksql.cli.KsqlRequestExecutor;
-import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.StringUtil;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 class RunScript implements CliSpecificCommand {
 
-  private final Console console;
+  private static final String HELP = "run <path_to_sql_file>:" + System.lineSeparator()
+      + "\tLoad and run the statements in the supplied file." + System.lineSeparator()
+      + "\tNote: the file must be UTF-8 encoded.";
+
   private final KsqlRequestExecutor requestExecutor;
 
-  RunScript(
-      final Console console,
-      final KsqlRequestExecutor requestExecutor
-  ) {
-    this.console = Objects.requireNonNull(console, "console");
+  RunScript(final KsqlRequestExecutor requestExecutor) {
     this.requestExecutor = Objects.requireNonNull(requestExecutor, "requestExecutor");
   }
 
   @Override
   public String getName() {
-    return "run";
+    return "run script";
   }
 
   @Override
-  public void printHelp() {
-    console.writer().println("run <path_to_sql_file>:");
-    console.writer().println("\tLoad and run the statements in the supplied file.");
-    console.writer().println("\tNote: the file must be UTF-8 encoded.");
+  public String getHelpMessage() {
+    return HELP;
   }
 
   @Override
-  public void execute(final String command) {
-    final String filePath = StringUtil.cleanQuotes(command.trim());
+  public void execute(final List<String> args, final PrintWriter terminal) {
+    CliCmdUtil.ensureArgCountBounds(args, 1, 1, () -> HELP);
+
+    final String filePath = args.get(0);
     final String content = loadScript(filePath);
     requestExecutor.makeKsqlRequest(content);
   }

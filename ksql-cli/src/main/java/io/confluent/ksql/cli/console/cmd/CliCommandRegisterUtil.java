@@ -31,18 +31,19 @@ public final class CliCommandRegisterUtil {
       final Console console,
       final Supplier<String> versionSuppler) {
 
-    console.registerCliSpecificCommand(new Help(console));
+    console.registerCliSpecificCommand(new Help(() -> console.getCliSpecificCommands().values()));
 
-    console.registerCliSpecificCommand(new Clear(console));
+    console.registerCliSpecificCommand(new Clear(console::clearScreen));
 
-    console.registerCliSpecificCommand(new Output(console));
+    console.registerCliSpecificCommand(
+        new Output(console::getOutputFormat, console::setOutputFormat));
 
-    console.registerCliSpecificCommand(new History(console));
+    console.registerCliSpecificCommand(new History(console::printHistory));
 
-    console.registerCliSpecificCommand(new Version(console, versionSuppler));
+    console.registerCliSpecificCommand(new Version(versionSuppler));
 
-    console.registerCliSpecificCommand(new Exit(console));
+    console.registerCliSpecificCommand(new Exit());
 
-    console.registerCliSpecificCommand(new RunScript(console, requestExecutor));
+    console.registerCliSpecificCommand(new RunScript(requestExecutor));
   }
 }

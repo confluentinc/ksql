@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class WaitForPreviousCommand implements CliSpecificCommand {
-  public static final String NAME = "waitforpreviouscommand";
+  public static final String NAME = "wait-for-previous-command";
 
   private final PrintWriter writer;
   private final Supplier<Boolean> waitForPreviousCommandSupplier;

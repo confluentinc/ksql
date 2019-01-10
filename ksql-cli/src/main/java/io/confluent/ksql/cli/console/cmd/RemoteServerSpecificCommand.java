@@ -24,18 +24,23 @@ import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import java.io.PrintWriter;
 import java.util.Objects;
+import java.util.function.Consumer;
 import javax.ws.rs.ProcessingException;
 
 public class RemoteServerSpecificCommand implements CliSpecificCommand {
 
   private final KsqlRestClient restClient;
   private final PrintWriter writer;
+  private final Consumer<Void> resetCliForNewServer;
 
   public RemoteServerSpecificCommand(
       final KsqlRestClient restClient,
-      final PrintWriter writer) {
+      final PrintWriter writer,
+      final Consumer<Void> resetCliForNewServer) {
     this.restClient = Objects.requireNonNull(restClient, "restClient");
     this.writer = Objects.requireNonNull(writer, "writer");
+    this.resetCliForNewServer =
+        Objects.requireNonNull(resetCliForNewServer, "resetCliForNewServer");
   }
 
   @Override
@@ -60,6 +65,7 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
       final String serverAddress = command.trim();
       restClient.setServerAddress(serverAddress);
       writer.write("Server now: " + command);
+      resetCliForNewServer.accept(null);
     }
 
     validateClient(writer, restClient);

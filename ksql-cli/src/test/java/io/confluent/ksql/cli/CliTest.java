@@ -27,9 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +40,7 @@ import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.Console.RowCaptor;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
+import io.confluent.ksql.cli.console.cmd.WaitForPreviousCommand;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -95,7 +94,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -661,14 +659,19 @@ public class CliTest {
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
-    assertThat(terminal.getOutputString(),containsString("Remote server address may not be valid"));
+    assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
   }
 
   @Test
   public void shouldRegisterRemoteCommand() {
-    new Cli(1L, 1L, restClient, console);
     assertThat(console.getCliSpecificCommands().get("server"),
         instanceOf(RemoteServerSpecificCommand.class));
+  }
+
+  @Test
+  public void shouldRegisterWaitForPreviousCommand() {
+    assertThat(console.getCliSpecificCommands().get(WaitForPreviousCommand.NAME),
+        instanceOf(WaitForPreviousCommand.class));
   }
 
   @Test
@@ -734,7 +737,7 @@ public class CliTest {
                 "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 GMT.\n" +
                 "\tformatPattern: The format pattern should be in the format expected by \n" +
                 "                 java.time.format.DateTimeFormatter.";
-    
+
     assertThat(outputString, containsString(expectedVariation));
   }
 
@@ -799,59 +802,6 @@ public class CliTest {
   }
 
   @Test
-  public void shouldRetryOnCommandQueueCatchupTimeoutUntilLimitReached() throws Exception {
-    // Given:
-    final String statementText = "list streams;";
-    final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeKsqlRequest(statementText, -1L))
-        .thenReturn(RestResponse.erroneous(
-            new KsqlErrorMessage(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT, "timed out!")));
-    when(mockRestClient.makeKsqlRequest(statementText, null))
-        .thenReturn(RestResponse.successful(new KsqlEntityList()));
-
-    // When:
-    localCli.handleLine(statementText);
-
-    // Then:
-    final InOrder inOrder = inOrder(mockRestClient);
-    inOrder.verify(mockRestClient, times(Cli.COMMAND_QUEUE_CATCHUP_TIMEOUT_RETRIES + 1))
-        .makeKsqlRequest(statementText, -1L);
-    inOrder.verify(mockRestClient).makeKsqlRequest(statementText, null);
-    inOrder.verifyNoMoreInteractions();
-  }
-
-  @Test
-  public void shouldNotRetryOnSuccess() throws Exception {
-    // Given:
-    final String statementText = "list streams;";
-    final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeKsqlRequest(statementText, -1L))
-        .thenReturn(RestResponse.successful(new KsqlEntityList()));
-
-    // When:
-    localCli.handleLine(statementText);
-
-    // Then:
-    verify(mockRestClient, times(1)).makeKsqlRequest(anyString(), anyLong());
-  }
-
-  @Test
-  public void shouldNotRetryOnErrorThatIsNotCommandQueueCatchupTimeout() throws Exception {
-    // Given:
-    final String statementText = "list streams;";
-    final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeKsqlRequest(statementText, -1L))
-        .thenReturn(RestResponse.erroneous(
-            new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, "uh oh")));
-
-    // When:
-    localCli.handleLine(statementText);
-
-    // Then:
-    verify(mockRestClient, times(1)).makeKsqlRequest(anyString(), anyLong());
-  }
-
-  @Test
   public void shouldUpdateCommandSequenceNumber() throws Exception {
     // Given:
     final String statementText = "create stream foo;";
@@ -910,6 +860,78 @@ public class CliTest {
     verify(mockRestClient).makeKsqlRequest(secondStatement, -1L);
   }
 
+  @Test
+  public void shouldIssueRequestWithoutCommandSequenceNumberIfWaitForPreviousCommandOff() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    givenWaitForPreviousCommand("OFF");
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    verify(mockRestClient).makeKsqlRequest(statementText, null);
+  }
+
+  @Test
+  public void shouldUpdateCommandSequenceNumberEvenIfWaitForPreviousCommandOff() throws Exception {
+    // Given:
+    final String statementText = "create stream foo;";
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(12L);
+    when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
+        .thenReturn(RestResponse.successful(new KsqlEntityList(
+            Collections.singletonList(stubEntity))));
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    givenWaitForPreviousCommand("OFF");
+
+    // When:
+    localCli.handleLine(statementText);
+
+    givenWaitForPreviousCommand("ON");
+    final String secondStatement = "list streams;";
+    localCli.handleLine(secondStatement);
+
+    // Then:
+    verify(mockRestClient).makeKsqlRequest(secondStatement, 12L);
+  }
+
+  @Test
+  public void shouldDefaultWaitForPreviousCommandToOn() {
+    // When:
+    runCliSpecificCommand(WaitForPreviousCommand.NAME);
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString(String.format("Current %s configuration: ON", WaitForPreviousCommand.NAME)));
+  }
+
+  @Test
+  public void shouldUpdateWaitForPreviousCommand() {
+    // When:
+    runCliSpecificCommand(WaitForPreviousCommand.NAME + " OFF");
+    runCliSpecificCommand(WaitForPreviousCommand.NAME);
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString(String.format("Current %s configuration: OFF", WaitForPreviousCommand.NAME)));
+  }
+
+  private void givenWaitForPreviousCommand(final String setting) {
+    runCliSpecificCommand(WaitForPreviousCommand.NAME + " " + setting);
+  }
+
+  private void runCliSpecificCommand(final String command) {
+    when(lineSupplier.get()).thenReturn(command).thenReturn("");
+    console.readLine();
+  }
+
   private void givenRunInteractivelyWillExit() {
     when(lineSupplier.get()).thenReturn("eXiT");
   }
@@ -927,7 +949,7 @@ public class CliTest {
     return mockRestClient;
   }
 
-  private CommandStatusEntity stubCommandStatusEntityWithSeqNum(final long seqNum) {
+  private static CommandStatusEntity stubCommandStatusEntityWithSeqNum(final long seqNum) {
     return new CommandStatusEntity(
         "stub",
         new CommandId(CommandId.Type.STREAM, "stub", CommandId.Action.CREATE),

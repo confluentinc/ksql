@@ -14,14 +14,15 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
-import static org.easymock.EasyMock.anyString;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -31,16 +32,15 @@ import io.confluent.ksql.rest.server.resources.Errors;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
-import java.util.Collections;
+import java.util.function.Consumer;
 import javax.ws.rs.ProcessingException;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class RemoteCliSpecificCommandTest {
 
   private static final String INITIAL_SERVER_ADDRESS = "http://192.168.0.1:8080";
@@ -48,89 +48,104 @@ public class RemoteCliSpecificCommandTest {
   private static final ServerInfo SERVER_INFO =
       new ServerInfo("1.x", "myClusterId", "myKsqlServiceId");
 
-  @Mock(MockType.NICE)
+  @Mock
   private KsqlRestClient restClient;
-  @Mock(MockType.NICE)
+  @Mock
+  private Consumer<Void> resetCliForNewServer;
+
   private RemoteServerSpecificCommand command;
   private StringWriter out;
 
   @Before
-  public void setUp() {
+  public void setUp() throws Exception {
     out = new StringWriter();
-    command = new RemoteServerSpecificCommand(restClient, new PrintWriter(out));
+    command = new RemoteServerSpecificCommand(restClient, new PrintWriter(out), resetCliForNewServer);
+
+    when(restClient.makeRootRequest()).thenReturn(RestResponse.successful(SERVER_INFO));
+    when(restClient.getServerAddress()).thenReturn(new URI(INITIAL_SERVER_ADDRESS));
   }
 
   @Test
-  public void shouldRestClientServerAddressWhenNonEmptyStringArg() {
-    expect(restClient.makeRootRequest()).andReturn(RestResponse.successful(SERVER_INFO));
-    restClient.setServerAddress(VALID_SERVER_ADDRESS);
-    expectLastCall();
-    replay(restClient);
-
+  public void shouldSetRestClientServerAddressWhenNonEmptyStringArg() {
+    // When:
     command.execute(VALID_SERVER_ADDRESS);
 
-    verify(restClient);
+    // Then:
+    verify(restClient).setServerAddress(VALID_SERVER_ADDRESS);
   }
 
   @Test(expected = KsqlRestClientException.class)
   public void shouldThrowIfRestClientThrowsOnSet() {
-    restClient.setServerAddress("localhost:8088");
-    expectLastCall().andThrow(new KsqlRestClientException("Boom"));
-    replay(restClient);
+    // Given:
+    doThrow(new KsqlRestClientException("Boom")).when(restClient).setServerAddress("localhost:8088");
 
+    // When:
     command.execute("localhost:8088");
   }
 
   @Test
-  public void shouldPrintServerAddressWhenEmptyStringArg() throws Exception {
-    expect(restClient.makeRootRequest()).andReturn(RestResponse.successful(SERVER_INFO));
-    expect(restClient.getServerAddress()).andReturn(new URI(INITIAL_SERVER_ADDRESS));
-    restClient.setServerAddress(anyString());
-    expectLastCall().andThrow(new AssertionError("should not set address"));
-    replay(restClient);
-
+  public void shouldPrintServerAddressWhenEmptyStringArg() {
+    // When:
     command.execute("");
 
+    // Then:
     assertThat(out.toString(), equalTo(INITIAL_SERVER_ADDRESS + "\n"));
+    verify(restClient, never()).setServerAddress(anyString());
+    verify(resetCliForNewServer, never()).accept(any());
   }
 
   @Test
   public void shouldPrintErrorWhenCantConnectToNewAddress() {
-    expect(restClient.makeRootRequest()).andThrow(
+    // Given:
+    when(restClient.makeRootRequest()).thenThrow(
         new KsqlRestClientException("Failed to connect", new ProcessingException("Boom")));
-    replay(restClient);
 
+    // When:
     command.execute(VALID_SERVER_ADDRESS);
 
+    // Then:
     assertThat(out.toString(), containsString("Boom"));
     assertThat(out.toString(), containsString("Failed to connect"));
   }
 
   @Test
   public void shouldOutputNewServerDetails() {
-    expect(restClient.makeRootRequest()).andReturn(RestResponse.successful(SERVER_INFO));
-    replay(restClient);
-
+    // When:
     command.execute(VALID_SERVER_ADDRESS);
 
+    // Then:
     assertThat(out.toString(), containsString("Server now: " + VALID_SERVER_ADDRESS));
   }
 
   @Test
   public void shouldPrintErrorOnErrorResponseFromRestClient() {
-    expect(restClient.makeRootRequest()).andReturn(RestResponse.erroneous(
+    // Given:
+    when(restClient.makeRootRequest()).thenReturn(RestResponse.erroneous(
         Errors.ERROR_CODE_SERVER_ERROR, "it is broken"));
-    replay(restClient);
 
+    // When:
     command.execute(VALID_SERVER_ADDRESS);
 
+    // Then:
     assertThat(out.toString(), containsString("it is broken"));
   }
 
   @Test
   public void shouldPrintHelp() {
+    // When:
     command.printHelp();
+
+    // Then:
     assertThat(out.toString(), containsString("server:\n\tShow the current server"));
     assertThat(out.toString(), containsString("server <server>:\n\tChange the current server to <server>"));
+  }
+
+  @Test
+  public void shouldResetCliForNewServer() {
+    // When:
+    command.execute(VALID_SERVER_ADDRESS);
+
+    // Then:
+    verify(resetCliForNewServer).accept(null);
   }
 }

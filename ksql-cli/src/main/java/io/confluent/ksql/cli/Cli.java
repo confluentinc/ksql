@@ -20,6 +20,7 @@ import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
+import io.confluent.ksql.cli.console.cmd.WaitForPreviousCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
@@ -69,8 +70,6 @@ public class Cli implements Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
-  static final int COMMAND_QUEUE_CATCHUP_TIMEOUT_RETRIES = 1;
-
   private final ExecutorService queryStreamExecutorService;
 
   private final Long streamedQueryRowLimit;
@@ -80,6 +79,7 @@ public class Cli implements Closeable {
   private final Console terminal;
 
   private long lastCommandSequenceNumber;
+  private boolean shouldWaitForPreviousCommand;
 
   public static Cli build(
       final Long streamedQueryRowLimit,
@@ -106,9 +106,16 @@ public class Cli implements Closeable {
     this.terminal = terminal;
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
     this.lastCommandSequenceNumber = -1;
+    this.shouldWaitForPreviousCommand = true;
 
     terminal
-        .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient, terminal.writer()));
+        .registerCliSpecificCommand(new RemoteServerSpecificCommand(
+            restClient, terminal.writer(), (unused) -> setShouldWaitForPreviousCommand(true)));
+    terminal
+        .registerCliSpecificCommand(new WaitForPreviousCommand(
+            terminal.writer(),
+            this::getShouldWaitForPreviousCommand,
+            this::setShouldWaitForPreviousCommand));
   }
 
   public void runInteractively() {
@@ -170,6 +177,14 @@ public class Cli implements Closeable {
   public void close() {
     queryStreamExecutorService.shutdownNow();
     terminal.close();
+  }
+
+  private boolean getShouldWaitForPreviousCommand() {
+    return shouldWaitForPreviousCommand;
+  }
+
+  private void setShouldWaitForPreviousCommand(final boolean newSetting) {
+    shouldWaitForPreviousCommand = newSetting;
   }
 
   void handleLine(final String line) throws Exception {
@@ -488,25 +503,22 @@ public class Cli implements Closeable {
 
     terminal.writer()
         .printf("Successfully unset local property '%s' (value was '%s').%n", property, oldValue);
-  }
-
-  private <R> RestResponse<R> makeKsqlRequest(
-      final String ksql, final BiFunction<String, Long, RestResponse<R>> requestIssuer) {
-    return makeKsqlRequest(ksql, requestIssuer, COMMAND_QUEUE_CATCHUP_TIMEOUT_RETRIES);
+    terminal.flush();
   }
 
   private <R> RestResponse<R> makeKsqlRequest(
       final String ksql,
-      final BiFunction<String, Long, RestResponse<R>> requestIssuer,
-      final int remainingRetries) {
+      final BiFunction<String, Long, RestResponse<R>> requestIssuer) {
     final RestResponse<R> response =
-        requestIssuer.apply(ksql, lastCommandSequenceNumber);
+        requestIssuer.apply(ksql, shouldWaitForPreviousCommand ? lastCommandSequenceNumber : null);
+
     if (isSequenceNumberTimeout(response)) {
-      if (remainingRetries > 0) {
-        return makeKsqlRequest(ksql, requestIssuer, remainingRetries - 1);
-      } else {
-        return requestIssuer.apply(ksql, null);
-      }
+      terminal.writer().printf(
+          "Error: command not executed since the server timed out "
+          + "while waiting for prior commands to finish executing.%n"
+          + "If you wish to execute new commands without waiting for "
+          + "prior commands to finish, run the command '%s OFF'.%n",
+          WaitForPreviousCommand.NAME);
     } else if (isKsqlEntityList(response)) {
       updateLastCommandSequenceNumber((KsqlEntityList)response.getResponse());
     }

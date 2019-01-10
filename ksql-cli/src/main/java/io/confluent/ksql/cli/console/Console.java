@@ -151,9 +151,7 @@ public final class Console implements Closeable {
     void addRows(List<List<String>> fields);
   }
 
-  public static Console build(
-      final OutputFormat outputFormat,
-      final KsqlRestClient restClient) {
+  public static Console build(final OutputFormat outputFormat, final KsqlRestClient restClient) {
     final AtomicReference<Console> consoleRef = new AtomicReference<>();
     final Predicate<String> isCliCommand = line -> {
       final Console theConsole = consoleRef.get();

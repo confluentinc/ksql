@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -814,11 +815,8 @@ public class CliTest {
     // When:
     localCli.handleLine(statementText);
 
-    final String secondStatement = "list streams;";
-    localCli.handleLine(secondStatement);
-
     // Then:
-    verify(mockRestClient).makeKsqlRequest(secondStatement, 12L);
+    assertLastCommandSequenceNumber(mockRestClient, 12L);
   }
 
   @Test
@@ -835,11 +833,8 @@ public class CliTest {
     // When:
     localCli.handleLine(statementText);
 
-    final String secondStatement = "list streams;";
-    localCli.handleLine(secondStatement);
-
     // Then:
-    verify(mockRestClient).makeKsqlRequest(secondStatement, 14L);
+    assertLastCommandSequenceNumber(mockRestClient, 14L);
   }
 
   @Test
@@ -853,11 +848,8 @@ public class CliTest {
     // When:
     localCli.handleLine(statementText);
 
-    final String secondStatement = "list streams;";
-    localCli.handleLine(secondStatement);
-
     // Then:
-    verify(mockRestClient).makeKsqlRequest(secondStatement, -1L);
+    assertLastCommandSequenceNumber(mockRestClient, -1L);
   }
 
   @Test
@@ -886,20 +878,15 @@ public class CliTest {
     when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
         .thenReturn(RestResponse.successful(new KsqlEntityList(
             Collections.singletonList(stubEntity))));
-    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.successful(new KsqlEntityList()));
 
     givenWaitForPreviousCommand("OFF");
 
     // When:
     localCli.handleLine(statementText);
 
-    givenWaitForPreviousCommand("ON");
-    final String secondStatement = "list streams;";
-    localCli.handleLine(secondStatement);
-
     // Then:
-    verify(mockRestClient).makeKsqlRequest(secondStatement, 12L);
+    givenWaitForPreviousCommand("ON");
+    assertLastCommandSequenceNumber(mockRestClient, 12L);
   }
 
   @Test
@@ -921,6 +908,22 @@ public class CliTest {
     // Then:
     assertThat(terminal.getOutputString(),
         containsString(String.format("Current %s configuration: OFF", WaitForPreviousCommand.NAME)));
+  }
+
+  @Test
+  public void shouldResetStateWhenServerChanges() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    givenCommandSequenceNumber(mockRestClient, 5L);
+    givenWaitForPreviousCommand("OFF");
+    when(mockRestClient.makeRootRequest()).thenReturn(
+        RestResponse.successful(new ServerInfo("version", "clusterId", "serviceId")));
+
+    // When:
+    runCliSpecificCommand("server foo");
+
+    // Then:
+    assertLastCommandSequenceNumber(mockRestClient, -1L);
   }
 
   private void givenWaitForPreviousCommand(final String setting) {
@@ -956,6 +959,30 @@ public class CliTest {
         new CommandStatus(CommandStatus.Status.SUCCESS, "stub"),
         seqNum
     );
+  }
+
+  private void givenCommandSequenceNumber(
+      final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
+    final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(seqNum);
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList(
+            Collections.singletonList(stubEntity))));
+    localCli.handleLine("create stream foo;");
+  }
+
+  private void assertLastCommandSequenceNumber(
+      final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
+    // Given:
+    reset(mockRestClient);
+    final String statementText = "list streams;";
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+
+    // When:
+    localCli.handleLine(statementText);
+
+    // Then:
+    verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
   }
 
   private static class TestRowCaptor implements RowCaptor {

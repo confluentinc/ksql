@@ -508,7 +508,7 @@ public class Cli implements Closeable {
           "Error: command not executed since the server timed out "
           + "while waiting for prior commands to finish executing.%n"
           + "If you wish to execute new commands without waiting for "
-          + "prior commands to finish, run the command '%s OFF'.%n",
+          + "prior commands to finish, run the command '%s ON'.%n",
           RequestPipeliningCommand.NAME);
     } else if (isKsqlEntityList(response)) {
       updateLastCommandSequenceNumber((KsqlEntityList)response.getResponse());

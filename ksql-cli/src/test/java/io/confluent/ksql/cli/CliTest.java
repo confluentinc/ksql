@@ -55,7 +55,10 @@ import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
+import java.io.File;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -85,6 +88,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 
 /**
@@ -105,6 +109,9 @@ public class CliTest {
       .withProperty(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
       .build();
+
+  @ClassRule
+  public static final TemporaryFolder TMP = new TemporaryFolder();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
@@ -790,6 +797,26 @@ public class CliTest {
     localCli.handleLine("describe function foobar;");
     final String expectedOutput = "Can't find any functions with the name 'foobar'";
     assertThat(terminal.getOutputString(), containsString(expectedOutput));
+  }
+
+  @Test
+  public void shouldRunScript() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + orderDataProvider.kstreamName() + ";"
+        + "").getBytes(StandardCharsets.UTF_8));
+
+    EasyMock.expect(lineSupplier.get())
+        .andReturn("run script '" + scriptFile.getAbsolutePath() + "'");
+
+    givenRunInteractivelyWillExit();
+
+    // When:
+    localCli.runInteractively();
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString("Stream created and running"));
   }
 
   private void givenRunInteractivelyWillExit() {

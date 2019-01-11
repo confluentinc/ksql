@@ -45,8 +45,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -245,8 +243,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
       } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
         consecutiveStatements = unsetProperty(consecutiveStatements, statementContext);
-      } else if (statementContext.statement() instanceof SqlBaseParser.RunScriptContext) {
-        runScript(statementContext, statementText);
       } else if (statementContext.statement() instanceof SqlBaseParser.RegisterTopicContext) {
         registerTopic(consecutiveStatements, statementContext, statementText);
       } else {
@@ -268,27 +264,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         (SqlBaseParser.RegisterTopicContext) statementContext.statement());
     avroSchema.ifPresent(s -> setProperty(DdlConfig.AVRO_SCHEMA, s));
     consecutiveStatements.append(statementText);
-  }
-
-  private void runScript(
-      final SqlBaseParser.SingleStatementContext statementContext,
-      final String statementText
-  ) {
-    final SqlBaseParser.RunScriptContext runScriptContext =
-        (SqlBaseParser.RunScriptContext) statementContext.statement();
-    final String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
-    final String fileContent;
-    try {
-      fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)), UTF_8);
-    } catch (final IOException e) {
-      throw new KsqlException(
-          " Could not read statements from the provided script file " + schemaFilePath + ": "
-          + e + " Make sure the file exists and can be read by KSQL CLI.",
-          e
-      );
-    }
-    setProperty(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
-    makeKsqlRequest(statementText);
   }
 
   private StringBuilder printOrDisplayQueryResults(

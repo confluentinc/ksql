@@ -1,4 +1,5 @@
-_troubleshoot-ksql:
+
+.. _troubleshoot-ksql:
 
 Troubleshoot KSQL issues
 ###########################

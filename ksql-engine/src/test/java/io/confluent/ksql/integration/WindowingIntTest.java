@@ -17,6 +17,7 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -36,7 +37,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -46,7 +46,6 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.test.TestUtils;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -197,29 +196,25 @@ public class WindowingIntTest {
   @SuppressWarnings("unchecked")
   private Map<?, GenericRow> getOutput(
       final String streamName,
-      final Matcher<Integer> expectedMsgCount,
       final Deserializer keyDeserializer
   ) {
     return TEST_HARNESS.verifyAvailableUniqueRows(
-        streamName, expectedMsgCount, JSON, resultSchema, keyDeserializer);
+        streamName, any(Integer.class), JSON, resultSchema, keyDeserializer);
   }
 
   private enum AssertType {
-    EqualTo(Matchers::is, (expected, actual) ->
+    EqualTo((expected, actual) ->
         Matchers.is(expected).matches(actual)),
-    HasItems(Matchers::greaterThanOrEqualTo, (expected, actual) ->
+    HasItems((expected, actual) ->
         expected.entrySet().stream().reduce(true,
             (acc, e) -> acc && Matchers.is(e.getValue()).matches(actual.get(e.getKey())),
             (b1, b2) -> b1 & b2));
 
-    private final Function<Integer, Matcher<Integer>> sizeMatcher;
     private final BiFunction<Map<?, GenericRow>, Map<?, GenericRow>, Boolean> rowMatcher;
 
     AssertType(
-        final Function<Integer, Matcher<Integer>> sizeMatcher,
         final BiFunction<Map<?, GenericRow>, Map<?, GenericRow>, Boolean> rowMatcher
     ) {
-      this.sizeMatcher = sizeMatcher;
       this.rowMatcher = rowMatcher;
     }
   }
@@ -237,7 +232,6 @@ public class WindowingIntTest {
       TestUtils.waitForCondition(() -> {
         actual.putAll(getOutput(
             streamName,
-            type.sizeMatcher.apply(expected.size()),
             keyDeserializer));
 
         return type.rowMatcher.apply(expected, actual);

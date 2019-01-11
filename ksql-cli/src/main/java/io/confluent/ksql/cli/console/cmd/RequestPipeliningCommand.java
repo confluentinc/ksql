@@ -45,7 +45,10 @@ public class RequestPipeliningCommand implements CliSpecificCommand {
   @Override
   public void printHelp() {
     writer.println(NAME + ":");
-    writer.println("\tView the current setting.");
+    writer.println("\tView the current setting. "
+        + "If 'ON', commands will be executed without waiting for previous commands to finish. "
+        + "If 'OFF', newly issued commands will wait until all prior commands have finished. "
+        + "Defaults to 'OFF'.");
     writer.println("");
     writer.println(NAME + " <ON/OFF>;");
     writer.println("");

@@ -112,7 +112,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-    brokerConfig.put("group.initial.rebalance.delay.ms", 0);
+    // Streams runs multiple consumers, so let's give them all a chance to join.
+    // (Tests run quicker and with a more stable consumer group):
+    brokerConfig.put("group.initial.rebalance.delay.ms", 100);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));

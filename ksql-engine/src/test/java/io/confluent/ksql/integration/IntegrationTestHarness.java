@@ -14,6 +14,9 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
+import static io.confluent.ksql.test.util.ConsumerTestUtil.toUniqueRecords;
+import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -28,13 +31,14 @@ import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.serde.json.KsqlJsonSerializer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.ConsumerTestUtil;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TestDataProvider;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,9 +65,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
-import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -309,6 +311,78 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
+   * Verify there are {@code expected} records available to the supplied {@code consumer}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expected the expected rows.
+   * @param valueFormat the format of the value.
+   * @param schema the schema of the value.
+   * @return the list of consumed records.
+   */
+  public List<ConsumerRecord<String, GenericRow>> verifyAvailableRows(
+      final String topic,
+      final Matcher<? super List<ConsumerRecord<String, GenericRow>>> expected,
+      final DataSourceSerDe valueFormat,
+      final Schema schema
+  ) {
+    return verifyAvailableRows(topic, expected, valueFormat, schema, new StringDeserializer());
+  }
+
+  /**
+   * Verify there are {@code expected} records available to the supplied {@code consumer}.
+   *
+   * @param topic the name of the topic to check.
+   * @param expected the expected rows.
+   * @param valueFormat the format of the value.
+   * @param schema the schema of the value.
+   * @param keyDeserializer the keyDeserilizer to use.
+   * @param <K> the type of the key.
+   * @return the list of consumed records.
+   */
+  public <K> List<ConsumerRecord<K, GenericRow>> verifyAvailableRows(
+      final String topic,
+      final Matcher<? super List<ConsumerRecord<K, GenericRow>>> expected,
+      final DataSourceSerDe valueFormat,
+      final Schema schema,
+      final Deserializer<K> keyDeserializer
+  ) {
+    return verifyAvailableRows(
+        topic, expected, valueFormat, schema, keyDeserializer,
+        ConsumerTestUtil.DEFAULT_VERIFY_TIMEOUT);
+  }
+
+  /**
+   * Verify there are {@code expected} records available to the supplied {@code consumer}.
+   *
+   * @param <K> the type of the key.
+   * @param topic the name of the topic to check.
+   * @param expected the expected rows.
+   * @param valueFormat the format of the value.
+   * @param schema the schema of the value.
+   * @param keyDeserializer the key deserilizer to use.
+   * @param timeout the max time to wait for the messages to be received.
+   * @return the list of consumed records.
+   */
+  public <K> List<ConsumerRecord<K, GenericRow>> verifyAvailableRows(
+      final String topic,
+      final Matcher<? super List<ConsumerRecord<K, GenericRow>>> expected,
+      final DataSourceSerDe valueFormat,
+      final Schema schema,
+      final Deserializer<K> keyDeserializer,
+      final Duration timeout
+  ) {
+    final Deserializer<GenericRow> valueDeserializer = getDeserializer(valueFormat, schema);
+
+    try (final KafkaConsumer<K, GenericRow> consumer
+        = new KafkaConsumer<>(consumerConfig(), keyDeserializer, valueDeserializer)) {
+
+      consumer.subscribe(Collections.singleton(topic));
+
+      return ConsumerTestUtil.verifyAvailableRecords(consumer, expected, timeout);
+    }
+  }
+
+  /**
    * Verify there are {@code expectedCount} unique rows available on the supplied {@code topic}.
    *
    * @param topic the name of the topic to check.
@@ -374,10 +448,10 @@ public class IntegrationTestHarness extends ExternalResource {
 
       consumer.subscribe(Collections.singleton(topic));
 
-      final List<ConsumerRecord<K, GenericRow>> consumerRecords =
-          ConsumerTestUtil.verifyAvailableRecords(consumer, hasUniqueRowCount(expectedCount));
+      final List<ConsumerRecord<K, GenericRow>> consumerRecords = ConsumerTestUtil
+          .verifyAvailableRecords(consumer, hasUniqueRecords(mapHasSize(expectedCount)));
 
-      return toUniqueRows(consumerRecords);
+      return toUniqueRecords(consumerRecords);
     }
   }
 
@@ -408,6 +482,9 @@ public class IntegrationTestHarness extends ExternalResource {
     final Map<String, Object> config = clientConfig();
     config.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    // Try to keep consumer groups stable:
+    config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10_000);
+    config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30_000);
     return config;
   }
 
@@ -462,41 +539,6 @@ public class IntegrationTestHarness extends ExternalResource {
       default:
         throw new KsqlException("Format not supported: " + format);
     }
-  }
-
-  private static <K> Matcher<List<ConsumerRecord<K, GenericRow>>> hasUniqueRowCount(
-      final Matcher<Integer> expectedCount
-  ) {
-    return new TypeSafeDiagnosingMatcher<List<ConsumerRecord<K, GenericRow>>>() {
-      @Override
-      protected boolean matchesSafely(
-          final List<ConsumerRecord<K, GenericRow>> actual,
-          final Description mismatchDescription
-      ) {
-        final Map<K, ?> uniqueRows = toUniqueRows(actual);
-
-        if (!expectedCount.matches(uniqueRows.size())) {
-          mismatchDescription.appendText("unique row count was ");
-          expectedCount.describeMismatch(uniqueRows.size(), mismatchDescription);
-          return false;
-        }
-        return true;
-      }
-
-      @Override
-      public void describeTo(final Description description) {
-        description.appendText("unique row count ").appendDescriptionOf(expectedCount);
-      }
-    };
-  }
-
-  private static <K> Map<K, GenericRow> toUniqueRows(
-      final List<ConsumerRecord<K, GenericRow>> rows
-  ) {
-    // Note: Can't use J8 streams as they can't handle null values:
-    final Map<K, GenericRow> unique = new HashMap<>(rows.size());
-    rows.forEach(cr -> unique.put(cr.key(), cr.value()));
-    return unique;
   }
 
   public static final class Builder {

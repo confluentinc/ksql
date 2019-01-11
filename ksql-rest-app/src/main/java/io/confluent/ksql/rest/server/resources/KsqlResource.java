@@ -100,6 +100,7 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -131,9 +132,9 @@ public class KsqlResource {
           .put(PrintTopic.class,
               castValidator(KsqlResource::validateQueryEndpointStatements, PrintTopic.class))
           .put(SetProperty.class,
-              castValidator(KsqlResource::validatePropertyStatements, SetProperty.class))
+              castValidator(KsqlResource::validateSetPropertyStatement, SetProperty.class))
           .put(UnsetProperty.class,
-              castValidator(KsqlResource::validatePropertyStatements, UnsetProperty.class))
+              castValidator(KsqlResource::validateUnsetPropertyStatement, UnsetProperty.class))
           .put(ShowColumns.class,
               castValidator(KsqlResource::showColumns, ShowColumns.class))
           .put(Explain.class,
@@ -164,6 +165,10 @@ public class KsqlResource {
               castExecutor(KsqlResource::explain, Explain.class))
           .put(DescribeFunction.class,
               castExecutor(KsqlResource::describeFunction, DescribeFunction.class))
+          .put(SetProperty.class,
+              castExecutor(KsqlResource::setProperty, SetProperty.class))
+          .put(UnsetProperty.class,
+              castExecutor(KsqlResource::unsetProperty, UnsetProperty.class))
           .put(RunScript.class,
               castExecutor(KsqlResource::distributeStatement, RunScript.class))
           .put(TerminateQuery.class,
@@ -299,10 +304,15 @@ public class KsqlResource {
   ) {
     final KsqlEntityList entities = new KsqlEntityList();
 
+    final HashMap<String, Object> requestScopedOverrides = new HashMap<>(propertyOverrides);
+
     for (final PreparedStatement<?> statement : statements) {
       validateStatement(statement, propertyOverrides, entities);
 
-      entities.add(executeStatement(statement, propertyOverrides, entities));
+      final KsqlEntity entity = executeStatement(statement, requestScopedOverrides, entities);
+      if (entity != null) {
+        entities.add(entity);
+      }
     }
 
     return Response.ok(entities).build();
@@ -335,12 +345,53 @@ public class KsqlResource {
     throw new ShouldUseQueryEndpointException(statement.getStatementText());
   }
 
+  private void validateSetPropertyStatement(final PreparedStatement<SetProperty> statement) {
+    if (isUnknownPropertyName(statement.getStatement().getPropertyName())) {
+      throw new KsqlRestException(Errors.badStatement(
+          "Unknown property", statement.getStatementText()));
+    }
+
+    try {
+      ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
+          statement.getStatement().getPropertyName(),
+          statement.getStatement().getPropertyValue()));
+    } catch (final Exception e) {
+      throw new KsqlRestException(Errors.badStatement(e, statement.getStatementText()));
+    }
+  }
+
   @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
-  private void validatePropertyStatements(final PreparedStatement<?> statement) {
-    throw new KsqlRestException(Errors.badStatement(
-        "SET and UNSET commands are not supported on the REST API. "
-            + "Pass properties via the 'streamsProperties' field",
-        statement.getStatementText()));
+  private void validateUnsetPropertyStatement(final PreparedStatement<UnsetProperty> statement) {
+    if (isUnknownPropertyName(statement.getStatement().getPropertyName())) {
+      throw new KsqlRestException(Errors.badStatement(
+          "Unknown property", statement.getStatementText()));
+    }
+  }
+
+  @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
+  private KsqlEntity setProperty(
+      final PreparedStatement<SetProperty> stmt,
+      final Map<String, Object> propertyOverrides
+  ) {
+    final SetProperty statement = stmt.getStatement();
+    propertyOverrides.put(statement.getPropertyName(), statement.getPropertyValue());
+    return null;
+  }
+
+  @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
+  private KsqlEntity unsetProperty(
+      final PreparedStatement<UnsetProperty> stmt,
+      final Map<String, Object> propertyOverrides
+  ) {
+    final UnsetProperty statement = stmt.getStatement();
+    propertyOverrides.remove(statement.getPropertyName());
+    return null;
+  }
+
+  private static boolean isUnknownPropertyName(final String propertyName) {
+    return !new KsqlConfigResolver()
+        .resolve(propertyName, false)
+        .isPresent();
   }
 
   private KafkaTopicsList listTopics(final PreparedStatement<ListTopics> statement) {

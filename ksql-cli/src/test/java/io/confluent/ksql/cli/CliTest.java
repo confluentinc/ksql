@@ -396,7 +396,7 @@ public class CliTest {
                 any(String.class))));
     assertRunListCommand(
         "registered topics",
-        containsInAnyOrder(
+        hasItems(
             new TestResult.Builder()
                 .addRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
                 .addRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")

@@ -41,7 +41,7 @@ import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.Console.RowCaptor;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
-import io.confluent.ksql.cli.console.cmd.WaitForPreviousCommand;
+import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -173,7 +173,7 @@ public class CliTest {
   public void setUp() {
     terminal = new TestTerminal(lineSupplier);
     rowCaptor = new TestRowCaptor();
-    console = new Console(CLI_OUTPUT_FORMAT, () -> "v1.2.3", terminal, rowCaptor);
+    console = new Console(CLI_OUTPUT_FORMAT, terminal, rowCaptor);
 
     localCli = new Cli(
         STREAMED_QUERY_ROW_LIMIT,
@@ -670,9 +670,9 @@ public class CliTest {
   }
 
   @Test
-  public void shouldRegisterWaitForPreviousCommand() {
-    assertThat(console.getCliSpecificCommands().get(WaitForPreviousCommand.NAME),
-        instanceOf(WaitForPreviousCommand.class));
+  public void shouldRegisterRequestPipeliningCommand() {
+    assertThat(console.getCliSpecificCommands().get(RequestPipeliningCommand.NAME),
+        instanceOf(RequestPipeliningCommand.class));
   }
 
   @Test
@@ -853,14 +853,14 @@ public class CliTest {
   }
 
   @Test
-  public void shouldIssueRequestWithoutCommandSequenceNumberIfWaitForPreviousCommandOff() throws Exception {
+  public void shouldIssueRequestWithoutCommandSequenceNumberIfRequestPipeliningOn() throws Exception {
     // Given:
     final String statementText = "create stream foo;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
         .thenReturn(RestResponse.successful(new KsqlEntityList()));
 
-    givenWaitForPreviousCommand("OFF");
+    givenRequestPipelining("ON");
 
     // When:
     localCli.handleLine(statementText);
@@ -870,7 +870,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldUpdateCommandSequenceNumberEvenIfWaitForPreviousCommandOff() throws Exception {
+  public void shouldUpdateCommandSequenceNumberEvenIfRequestPipeliningOn() throws Exception {
     // Given:
     final String statementText = "create stream foo;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
@@ -879,35 +879,35 @@ public class CliTest {
         .thenReturn(RestResponse.successful(new KsqlEntityList(
             Collections.singletonList(stubEntity))));
 
-    givenWaitForPreviousCommand("OFF");
+    givenRequestPipelining("ON");
 
     // When:
     localCli.handleLine(statementText);
 
     // Then:
-    givenWaitForPreviousCommand("ON");
+    givenRequestPipelining("OFF");
     assertLastCommandSequenceNumber(mockRestClient, 12L);
   }
 
   @Test
-  public void shouldDefaultWaitForPreviousCommandToOn() {
+  public void shouldDefaultRequestPipeliningToOff() {
     // When:
-    runCliSpecificCommand(WaitForPreviousCommand.NAME);
+    runCliSpecificCommand(RequestPipeliningCommand.NAME);
 
     // Then:
     assertThat(terminal.getOutputString(),
-        containsString(String.format("Current %s configuration: ON", WaitForPreviousCommand.NAME)));
+        containsString(String.format("Current %s configuration: OFF", RequestPipeliningCommand.NAME)));
   }
 
   @Test
-  public void shouldUpdateWaitForPreviousCommand() {
+  public void shouldUpdateRequestPipelining() {
     // When:
-    runCliSpecificCommand(WaitForPreviousCommand.NAME + " OFF");
-    runCliSpecificCommand(WaitForPreviousCommand.NAME);
+    runCliSpecificCommand(RequestPipeliningCommand.NAME + " ON");
+    runCliSpecificCommand(RequestPipeliningCommand.NAME);
 
     // Then:
     assertThat(terminal.getOutputString(),
-        containsString(String.format("Current %s configuration: OFF", WaitForPreviousCommand.NAME)));
+        containsString(String.format("Current %s configuration: ON", RequestPipeliningCommand.NAME)));
   }
 
   @Test
@@ -915,7 +915,7 @@ public class CliTest {
     // Given:
     final KsqlRestClient mockRestClient = givenMockRestClient();
     givenCommandSequenceNumber(mockRestClient, 5L);
-    givenWaitForPreviousCommand("OFF");
+    givenRequestPipelining("ON");
     when(mockRestClient.makeRootRequest()).thenReturn(
         RestResponse.successful(new ServerInfo("version", "clusterId", "serviceId")));
 
@@ -926,8 +926,8 @@ public class CliTest {
     assertLastCommandSequenceNumber(mockRestClient, -1L);
   }
 
-  private void givenWaitForPreviousCommand(final String setting) {
-    runCliSpecificCommand(WaitForPreviousCommand.NAME + " " + setting);
+  private void givenRequestPipelining(final String setting) {
+    runCliSpecificCommand(RequestPipeliningCommand.NAME + " " + setting);
   }
 
   private void runCliSpecificCommand(final String command) {

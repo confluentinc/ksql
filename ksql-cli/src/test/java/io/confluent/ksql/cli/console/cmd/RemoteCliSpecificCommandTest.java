@@ -17,7 +17,6 @@ package io.confluent.ksql.cli.console.cmd;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -29,10 +28,10 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
-import java.util.function.Consumer;
 import javax.ws.rs.ProcessingException;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +50,7 @@ public class RemoteCliSpecificCommandTest {
   @Mock
   private KsqlRestClient restClient;
   @Mock
-  private Consumer<Void> resetCliForNewServer;
+  private Event resetCliForNewServer;
 
   private RemoteServerSpecificCommand command;
   private StringWriter out;
@@ -91,7 +90,7 @@ public class RemoteCliSpecificCommandTest {
     // Then:
     assertThat(out.toString(), equalTo(INITIAL_SERVER_ADDRESS + "\n"));
     verify(restClient, never()).setServerAddress(anyString());
-    verify(resetCliForNewServer, never()).accept(any());
+    verify(resetCliForNewServer, never()).fire();
   }
 
   @Test
@@ -146,6 +145,6 @@ public class RemoteCliSpecificCommandTest {
     command.execute(VALID_SERVER_ADDRESS);
 
     // Then:
-    verify(resetCliForNewServer).accept(null);
+    verify(resetCliForNewServer).fire();
   }
 }

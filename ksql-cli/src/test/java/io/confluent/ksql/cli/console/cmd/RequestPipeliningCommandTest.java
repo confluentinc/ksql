@@ -32,7 +32,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class WaitForPreviousCommandTest {
+public class RequestPipeliningCommandTest {
 
   @Mock
   private Supplier<Boolean> settingSupplier;
@@ -40,19 +40,19 @@ public class WaitForPreviousCommandTest {
   private Consumer<Boolean> settingConsumer;
   private StringWriter out;
 
-  private WaitForPreviousCommand waitForPreviousCommand;
+  private RequestPipeliningCommand requestPipeliningCommand;
 
   @Before
   public void setUp() {
     out = new StringWriter();
-    waitForPreviousCommand =
-        new WaitForPreviousCommand(new PrintWriter(out), settingSupplier, settingConsumer);
+    requestPipeliningCommand =
+        new RequestPipeliningCommand(new PrintWriter(out), settingSupplier, settingConsumer);
   }
 
   @Test
   public void shouldPrintHelp() {
     // When:
-    waitForPreviousCommand.printHelp();
+    requestPipeliningCommand.printHelp();
 
     // Then:
     assertThat(out.toString(), containsString("View the current setting"));
@@ -65,11 +65,11 @@ public class WaitForPreviousCommandTest {
     when(settingSupplier.get()).thenReturn(true);
 
     // When:
-    waitForPreviousCommand.execute("");
+    requestPipeliningCommand.execute("");
 
     // Then:
     assertThat(out.toString(),
-        containsString(String.format("Current %s configuration: ON", WaitForPreviousCommand.NAME)));
+        containsString(String.format("Current %s configuration: ON", RequestPipeliningCommand.NAME)));
   }
 
   @Test
@@ -78,17 +78,17 @@ public class WaitForPreviousCommandTest {
     when(settingSupplier.get()).thenReturn(false);
 
     // When:
-    waitForPreviousCommand.execute("");
+    requestPipeliningCommand.execute("");
 
     // Then:
     assertThat(out.toString(),
-        containsString(String.format("Current %s configuration: OFF", WaitForPreviousCommand.NAME)));
+        containsString(String.format("Current %s configuration: OFF", RequestPipeliningCommand.NAME)));
   }
 
   @Test
   public void shouldUpdateSettingToOn() {
     // When:
-    waitForPreviousCommand.execute("on");
+    requestPipeliningCommand.execute("on");
 
     // Then:
     verify(settingConsumer).accept(true);
@@ -97,7 +97,7 @@ public class WaitForPreviousCommandTest {
   @Test
   public void shouldUpdateSettingToOff() {
     // When:
-    waitForPreviousCommand.execute("OFF");
+    requestPipeliningCommand.execute("OFF");
 
     // Then:
     verify(settingConsumer).accept(false);
@@ -106,12 +106,12 @@ public class WaitForPreviousCommandTest {
   @Test
   public void shouldRejectUpdateOnInvalidSetting() {
     // When:
-    waitForPreviousCommand.execute("bad");
+    requestPipeliningCommand.execute("bad");
 
     // Then:
     verify(settingConsumer, never()).accept(anyBoolean());
     assertThat(out.toString(),
-        containsString(String.format("Invalid %s setting: bad", WaitForPreviousCommand.NAME)));
+        containsString(String.format("Invalid %s setting: bad", RequestPipeliningCommand.NAME)));
     assertThat(out.toString(), containsString("Valid options are 'ON' and 'OFF'"));
   }
 }

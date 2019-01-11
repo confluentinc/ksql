@@ -84,7 +84,7 @@ public class ConsoleTest {
   public ConsoleTest(final OutputFormat outputFormat) {
     this.lineSupplier = niceMock(Supplier.class);
     this.terminal = new TestTerminal(lineSupplier);
-    this.console = new Console(outputFormat, () -> "v1.1.2", terminal, new NoOpRowCaptor());
+    this.console = new Console(outputFormat, terminal, new NoOpRowCaptor());
   }
 
   @After

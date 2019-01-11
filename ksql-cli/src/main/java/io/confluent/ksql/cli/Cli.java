@@ -19,8 +19,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
-import io.confluent.ksql.cli.console.cmd.WaitForPreviousCommand;
+import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
@@ -66,6 +67,7 @@ import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class Cli implements Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
@@ -77,9 +79,7 @@ public class Cli implements Closeable {
 
   private final KsqlRestClient restClient;
   private final Console terminal;
-
-  private long lastCommandSequenceNumber;
-  private boolean shouldWaitForPreviousCommand;
+  private final RemoteServerState remoteServerState;
 
   public static Cli build(
       final Long streamedQueryRowLimit,
@@ -87,7 +87,7 @@ public class Cli implements Closeable {
       final OutputFormat outputFormat,
       final KsqlRestClient restClient
   ) {
-    final Console console = Console.build(outputFormat, restClient);
+    final Console console = Console.build(outputFormat);
     return new Cli(streamedQueryRowLimit, streamedQueryTimeoutMs, restClient, console);
   }
 
@@ -105,17 +105,14 @@ public class Cli implements Closeable {
     this.restClient = restClient;
     this.terminal = terminal;
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
-    this.lastCommandSequenceNumber = -1;
-    this.shouldWaitForPreviousCommand = true;
+    this.remoteServerState = new RemoteServerState();
 
-    terminal
-        .registerCliSpecificCommand(new RemoteServerSpecificCommand(
-            restClient, terminal.writer(), (unused) -> resetForNewServer()));
-    terminal
-        .registerCliSpecificCommand(new WaitForPreviousCommand(
-            terminal.writer(),
-            this::getShouldWaitForPreviousCommand,
-            this::setShouldWaitForPreviousCommand));
+    CliCommandRegisterUtil.registerDefaultCliCommands(
+        terminal,
+        restClient,
+        remoteServerState::reset,
+        remoteServerState::getRequestPipelining,
+        remoteServerState::setRequestPipelining);
   }
 
   public void runInteractively() {
@@ -177,19 +174,6 @@ public class Cli implements Closeable {
   public void close() {
     queryStreamExecutorService.shutdownNow();
     terminal.close();
-  }
-
-  private boolean getShouldWaitForPreviousCommand() {
-    return shouldWaitForPreviousCommand;
-  }
-
-  private void setShouldWaitForPreviousCommand(final boolean newSetting) {
-    shouldWaitForPreviousCommand = newSetting;
-  }
-
-  private void resetForNewServer() {
-    lastCommandSequenceNumber = -1;
-    setShouldWaitForPreviousCommand(true);
   }
 
   void handleLine(final String line) throws Exception {
@@ -514,8 +498,10 @@ public class Cli implements Closeable {
   private <R> RestResponse<R> makeKsqlRequest(
       final String ksql,
       final BiFunction<String, Long, RestResponse<R>> requestIssuer) {
-    final RestResponse<R> response =
-        requestIssuer.apply(ksql, shouldWaitForPreviousCommand ? lastCommandSequenceNumber : null);
+    final Long commandSequenceNumberToWaitFor = remoteServerState.getRequestPipelining()
+        ? null
+        : remoteServerState.getLastCommandSequenceNumber();
+    final RestResponse<R> response = requestIssuer.apply(ksql, commandSequenceNumberToWaitFor);
 
     if (isSequenceNumberTimeout(response)) {
       terminal.writer().printf(
@@ -523,7 +509,7 @@ public class Cli implements Closeable {
           + "while waiting for prior commands to finish executing.%n"
           + "If you wish to execute new commands without waiting for "
           + "prior commands to finish, run the command '%s OFF'.%n",
-          WaitForPreviousCommand.NAME);
+          RequestPipeliningCommand.NAME);
     } else if (isKsqlEntityList(response)) {
       updateLastCommandSequenceNumber((KsqlEntityList)response.getResponse());
     }
@@ -541,11 +527,41 @@ public class Cli implements Closeable {
   }
 
   private void updateLastCommandSequenceNumber(final KsqlEntityList entities) {
-    final Optional<Long> lastSeqNum = entities.stream()
+    entities.stream()
         .filter(entity -> entity instanceof CommandStatusEntity)
         .map(entity -> (CommandStatusEntity)entity)
-        .map(CommandStatusEntity::getCommandSequenceNumber)
-        .reduce(Long::max);
-    lastSeqNum.ifPresent(seqNum -> lastCommandSequenceNumber = seqNum);
+        .mapToLong(CommandStatusEntity::getCommandSequenceNumber)
+        .max()
+        .ifPresent(remoteServerState::setLastCommandSequenceNumber);
+  }
+
+  private static final class RemoteServerState {
+    private long lastCommandSequenceNumber;
+    private boolean requestPipelining;
+
+    private RemoteServerState() {
+      reset();
+    }
+
+    private void reset() {
+      lastCommandSequenceNumber = -1L;
+      requestPipelining = false;
+    }
+
+    private long getLastCommandSequenceNumber() {
+      return lastCommandSequenceNumber;
+    }
+
+    private boolean getRequestPipelining() {
+      return requestPipelining;
+    }
+
+    private void setLastCommandSequenceNumber(final long seqNum) {
+      lastCommandSequenceNumber = seqNum;
+    }
+
+    private void setRequestPipelining(final boolean newSetting) {
+      requestPipelining = newSetting;
+    }
   }
 }

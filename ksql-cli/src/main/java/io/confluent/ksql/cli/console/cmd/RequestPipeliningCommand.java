@@ -19,22 +19,22 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class WaitForPreviousCommand implements CliSpecificCommand {
-  public static final String NAME = "wait-for-previous-command";
+public class RequestPipeliningCommand implements CliSpecificCommand {
+  public static final String NAME = "request-pipelining";
 
   private final PrintWriter writer;
-  private final Supplier<Boolean> waitForPreviousCommandSupplier;
-  private final Consumer<Boolean> waitForPreviousCommandConsumer;
+  private final Supplier<Boolean> requestPipeliningSupplier;
+  private final Consumer<Boolean> requestPipeliningConsumer;
 
-  public WaitForPreviousCommand(
+  RequestPipeliningCommand(
       final PrintWriter writer,
-      final Supplier<Boolean> waitForPreviousCommandSupplier,
-      final Consumer<Boolean> waitForPreviousCommandConsumer) {
+      final Supplier<Boolean> requestPipeliningSupplier,
+      final Consumer<Boolean> requestPipeliningConsumer) {
     this.writer = Objects.requireNonNull(writer, "writer");
-    this.waitForPreviousCommandSupplier =
-        Objects.requireNonNull(waitForPreviousCommandSupplier, "waitForPreviousCommandSupplier");
-    this.waitForPreviousCommandConsumer =
-        Objects.requireNonNull(waitForPreviousCommandConsumer, "waitForPreviousCommandConsumer");
+    this.requestPipeliningSupplier =
+        Objects.requireNonNull(requestPipeliningSupplier, "requestPipeliningSupplier");
+    this.requestPipeliningConsumer =
+        Objects.requireNonNull(requestPipeliningConsumer, "requestPipeliningConsumer");
   }
 
   @Override
@@ -57,15 +57,15 @@ public class WaitForPreviousCommand implements CliSpecificCommand {
   public void execute(final String commandStrippedLine) {
     final String newSetting = commandStrippedLine.trim();
     if (newSetting.isEmpty()) {
-      final String setting = waitForPreviousCommandSupplier.get() ? "ON" : "OFF";
+      final String setting = requestPipeliningSupplier.get() ? "ON" : "OFF";
       writer.printf("Current %s configuration: %s%n", NAME, setting);
     } else {
       switch (newSetting.toUpperCase()) {
         case "ON":
-          waitForPreviousCommandConsumer.accept(true);
+          requestPipeliningConsumer.accept(true);
           break;
         case "OFF":
-          waitForPreviousCommandConsumer.accept(false);
+          requestPipeliningConsumer.accept(false);
           break;
         default:
           writer.printf("Invalid %s setting: %s. ", NAME, newSetting);

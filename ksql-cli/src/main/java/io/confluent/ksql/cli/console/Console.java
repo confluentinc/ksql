@@ -34,7 +34,6 @@ import io.confluent.ksql.cli.console.table.builder.StreamsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
@@ -151,7 +150,7 @@ public final class Console implements Closeable {
     void addRows(List<List<String>> fields);
   }
 
-  public static Console build(final OutputFormat outputFormat, final KsqlRestClient restClient) {
+  public static Console build(final OutputFormat outputFormat) {
     final AtomicReference<Console> consoleRef = new AtomicReference<>();
     final Predicate<String> isCliCommand = line -> {
       final Console theConsole = consoleRef.get();
@@ -166,11 +165,8 @@ public final class Console implements Closeable {
 
     final KsqlTerminal terminal = new JLineTerminal(isCliCommand, historyFilePath);
 
-    final Supplier<String> versionSuppler =
-        () -> restClient.getServerInfo().getResponse().getVersion();
-
     final Console console = new Console(
-        outputFormat, versionSuppler, terminal, new NoOpRowCaptor());
+        outputFormat, terminal, new NoOpRowCaptor());
 
     consoleRef.set(console);
     return console;
@@ -178,7 +174,6 @@ public final class Console implements Closeable {
 
   public Console(
       final OutputFormat outputFormat,
-      final Supplier<String> versionSuppler,
       final KsqlTerminal terminal,
       final RowCaptor rowCaptor
   ) {
@@ -188,7 +183,7 @@ public final class Console implements Closeable {
     this.cliSpecificCommands = Maps.newLinkedHashMap();
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
 
-    CliCommandRegisterUtil.registerDefaultCommands(this, versionSuppler);
+    CliCommandRegisterUtil.registerDefaultConsoleCommands(this);
   }
 
   public PrintWriter writer() {

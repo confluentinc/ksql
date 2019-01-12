@@ -20,7 +20,9 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -46,7 +48,7 @@ public class AvroProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    return new KsqlAvroTopicSerDe()
+    return new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME)
         .getGenericRowSerde(kafkaSchema, ksqlConfig, false,
             () -> schemaRegistryClient).serializer();
   }

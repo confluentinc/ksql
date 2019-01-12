@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
@@ -119,7 +120,8 @@ public class SecureIntegrationTest {
   @After
   public void after() {
     if (queryId != null) {
-      ksqlEngine.terminateQuery(queryId, true);
+      ksqlEngine.getPersistentQuery(queryId)
+          .ifPresent(QueryMetadata::close);
     }
     if (ksqlEngine != null) {
       ksqlEngine.close();
@@ -340,16 +342,15 @@ public class SecureIntegrationTest {
                                            + "kafka_topic='%s' , "
                                            + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
 
-    ksqlEngine.execute(
-        ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   private void executePersistentQuery(final String queryString,
                                       final Object... params) {
     final String query = String.format(queryString, params);
 
-    final QueryMetadata queryMetadata = ksqlEngine
-        .execute(query, ksqlConfig, Collections.emptyMap()).get(0);
+    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+        .execute(ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();

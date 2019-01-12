@@ -56,7 +56,13 @@ Use the following syntax to declare nested data:
 The ``STRUCT`` type requires you to specify a list of fields. For each field, you
 specify the field name and field type. The field type can be any of the
 supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and
-``STRUCT``. Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
+``STRUCT``.
+
+.. note::
+    
+    ``Properties`` is not a valid field name.
+
+Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
 encapsulate a street address and a postal code:
 
 .. code:: sql
@@ -173,6 +179,9 @@ KSQL statements
        -  In the CLI you must use a backslash (``\``) to indicate
           continuation of a statement on the next line.
        -  Do not use ``\`` for multi-line statements in ``.sql`` files.
+    - The hyphen character, ``-``, isn't supported in names for streams, tables,
+      topics, and columns.
+    - Don't use quotes around stream names or table names when you CREATE them.
 
 .. _create-stream:
 
@@ -241,8 +250,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
-|                         | characters requiring single quotes, you can escape them with '', for example:              |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
+|                         | characters requiring single quotes, you can escape them with successive single quotes,     |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
@@ -349,8 +358,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
-|                         | characters requiring single quotes, you can escape them with '', for example:              |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes, |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
@@ -459,8 +468,8 @@ The WITH clause for the result supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with '', for example:                        |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -547,8 +556,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with '', for example:                        |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -1108,6 +1117,19 @@ The explanation for each operator includes a supporting example based on the fol
 
   SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
 
+- You can use the ``+`` operator for multi-part concatenation, for example:
+
+.. code:: sql
+
+    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') + \
+            ': :heavy_exclamation_mark: On ' + \
+            HOST + \
+            ' there were ' + \
+            CAST(INVALID_LOGIN_COUNT AS VARCHAR) + \
+            ' attempts in the last minute (threshold is >=4)' \
+    FROM INVALID_USERS_LOGINS_PER_HOST \
+    WHERE INVALID_LOGIN_COUNT>=4;
+
 - Source Dereference (``.``) The source dereference operator can be used to specify columns
   by dereferencing the source stream or table.
 
@@ -1160,8 +1182,9 @@ Scalar functions
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |
 |                        |                                                                           | the given format. Single quotes in the            |
-|                        |                                                                           | timestamp format can be escaped with '', for      |
-|                        |                                                                           | example: 'yyyy-MM-dd''T'''.                       |
+|                        |                                                                           | timestamp format can be escaped with two          |
+|                        |                                                                           | successive single quotes, ``''``, for example:    |
+|                        |                                                                           | ``'yyyy-MM-dd''T'''``.                            |
 |                        |                                                                           | The integer represents days since epoch           |
 |                        |                                                                           | matching the encoding used by Kafka Connect dates.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1242,14 +1265,16 @@ Scalar functions
 | STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                                     | Converts a string representation of a date in the |
 |                        |                                                                           | given format into an integer representing days    |
 |                        |                                                                           | since epoch. Single quotes in the timestamp       |
-|                        |                                                                           | format can be escaped with '', for example:       |
-|                        |                                                                           | 'yyyy-MM-dd''T'''.                                |
+|                        |                                                                           | format can be escaped with two successive single  |
+|                        |                                                                           | quotes, ``''``, for example:                      |
+|                        |                                                                           | ``'yyyy-MM-dd''T'''``.                            |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``      | Converts a string value in the given              |
 |                        |                                                                           | format into the BIGINT value                      |
 |                        |                                                                           | that represents the millisecond timestamp. Single |
 |                        |                                                                           | quotes in the timestamp format can be escaped with|
-|                        |                                                                           | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
+|                        |                                                                           | two successive single quotes, ``''``, for         |
+|                        |                                                                           | example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
 |                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
@@ -1280,8 +1305,9 @@ Scalar functions
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``   | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                                           | the string representation of the timestamp in     |
 |                        |                                                                           | the given format. Single quotes in the            |
-|                        |                                                                           | timestamp format can be escaped with '', for      |
-|                        |                                                                           | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
+|                        |                                                                           | timestamp format can be escaped with two          |
+|                        |                                                                           | successive single quotes, ``''``, for example:    |
+|                        |                                                                           | ``'yyyy-MM-dd''T''HH:mm:ssX'``.                   |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
 |                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |

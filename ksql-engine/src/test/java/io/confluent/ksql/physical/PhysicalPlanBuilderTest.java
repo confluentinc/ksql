@@ -52,6 +52,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -69,8 +70,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class PhysicalPlanBuilderTest {
 
   private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
@@ -90,6 +95,8 @@ public class PhysicalPlanBuilderTest {
 
   private ServiceContext serviceContext;
   private LogicalPlanBuilder planBuilder;
+  @Mock
+  private Consumer<QueryMetadata> queryCloseCallback;
 
   // Test implementation of KafkaStreamsBuilder that tracks calls and returned values
   private static class TestKafkaStreamsBuilder implements KafkaStreamsBuilder {
@@ -157,7 +164,8 @@ public class PhysicalPlanBuilderTest {
         false,
         metaStore,
         new QueryIdGenerator(""),
-        testKafkaStreamsBuilder
+        testKafkaStreamsBuilder,
+        queryCloseCallback
     );
 
   }
@@ -212,7 +220,8 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
+        ksqlEngine,
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -248,7 +257,8 @@ public class PhysicalPlanBuilderTest {
         .expect(rawMessage(is("Sink 'S1' does not exist for the INSERT INTO statement.")));
 
     try {
-      ksqlEngine.execute(
+      KsqlEngineTestUtil.execute(
+          ksqlEngine,
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -268,7 +278,8 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      ksqlEngine.execute(
+      KsqlEngineTestUtil.execute(
+          ksqlEngine,
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -293,7 +304,7 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(ksqlEngine,
         createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -329,7 +340,7 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      ksqlEngine.execute(
+      KsqlEngineTestUtil.execute(ksqlEngine,
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -351,7 +362,8 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(
+    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
+        ksqlEngine,
         createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
@@ -378,7 +390,8 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
-      ksqlEngine.execute(
+      KsqlEngineTestUtil.execute(
+          ksqlEngine,
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
@@ -598,7 +611,8 @@ public class PhysicalPlanBuilderTest {
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    final List<QueryMetadata> queryMetadataList = ksqlEngine.execute(createStream + "\n " +
+    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
+        ksqlEngine, createStream + "\n " +
         csasQuery + "\n " +
         insertIntoQuery,
         ksqlConfig,
@@ -620,7 +634,8 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
-    ksqlEngine.execute(
+    KsqlEngineTestUtil.execute(
+        ksqlEngine,
         createStream + "\n " + csasQuery + "\n " + ctasQuery,
         ksqlConfig,
         Collections.emptyMap());

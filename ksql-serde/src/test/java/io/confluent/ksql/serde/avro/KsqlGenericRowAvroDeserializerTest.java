@@ -35,6 +35,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -188,7 +190,7 @@ public class KsqlGenericRowAvroDeserializerTest {
     final byte[] bytes = kafkaAvroSerializer.serialize(topicName, avroRecord);
 
     final Deserializer<GenericRow> deserializer =
-        new KsqlAvroTopicSerDe().getGenericRowSerde(
+        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
             schema, ksqlConfig, false,
             () -> schemaRegistryClient).deserializer();
 
@@ -487,7 +489,7 @@ public class KsqlGenericRowAvroDeserializerTest {
         .build();
 
     final Deserializer<GenericRow> deserializer =
-        new KsqlAvroTopicSerDe().getGenericRowSerde(
+        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
             ksqlRecordSchema, ksqlConfig, false,
             () -> schemaRegistryClient).deserializer();
 

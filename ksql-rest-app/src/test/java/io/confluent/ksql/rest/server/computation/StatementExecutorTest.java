@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
@@ -37,6 +38,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -209,10 +211,14 @@ public class StatementExecutorTest extends EasyMockSupport {
     final String statementText
         = "CREATE STREAM user1pv AS select * from pageviews WHERE userid = 'user1';";
     final StatementParser realParser = new StatementParser(ksqlEngine);
-    final ExecutableDdlStatement ddlStatement = (ExecutableDdlStatement) realParser.parseSingleStatement(ddlText);
-    ksqlEngine.executeDdlStatement(ddlText, ddlStatement, Collections.emptyMap());
-    final CreateStreamAsSelect csasStatement =
-        (CreateStreamAsSelect) realParser.parseSingleStatement(statementText);
+    final PreparedStatement<?> ddlStatement = realParser.parseSingleStatement(ddlText);
+    ksqlEngine.executeDdlStatement(
+        ddlText,
+        (ExecutableDdlStatement)ddlStatement.getStatement(),
+        Collections.emptyMap());
+
+    final PreparedStatement<Statement> csasStatement =
+        realParser.parseSingleStatement(statementText);
 
     expect(mockQueryMetadata.getQueryId()).andStubReturn(mock(QueryId.class));
 
@@ -234,8 +240,8 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
     expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
-    expect(mockEngine.execute(statementText, expectedConfig, Collections.emptyMap()))
-        .andReturn(Collections.singletonList(mockQueryMetadata));
+    expect(mockEngine.execute(csasStatement, expectedConfig, Collections.emptyMap()))
+        .andReturn(Optional.of(mockQueryMetadata));
     mockQueryMetadata.start();
     expectLastCall();
 
@@ -493,7 +499,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     final DropStream mockDropStream = mock(DropStream.class);
     expect(mockDropStream.getName()).andStubReturn(QualifiedName.of(name));
     expect(mockDropStream.getStreamName()).andStubReturn(QualifiedName.of(name));
-    expect(mockParser.parseSingleStatement("DROP")).andReturn(mockDropStream);
+    expect(mockParser.parseSingleStatement("DROP"))
+        .andReturn(new PreparedStatement<>("DROP", mockDropStream));
     return mockDropStream;
   }
 
@@ -510,21 +517,31 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CreateStreamAsSelect mockCSAS = mockCSAS(name);
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
     expect(mockQuery.getQueryId()).andStubReturn(queryId);
-    expect(mockParser.parseSingleStatement(statement)).andReturn(mockCSAS);
+    final PreparedStatement<Statement> csas = new PreparedStatement<>("CSAS", mockCSAS);
+    expect(mockParser.parseSingleStatement(statement))
+        .andReturn(csas);
     expect(mockMetaStore.getSource(name)).andStubReturn(null);
     expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
-    expect(mockEngine.execute(eq(statement), anyObject(), anyObject()))
-        .andReturn(Collections.singletonList(mockQuery));
+    expect(mockEngine.execute(eq(csas), anyObject(), anyObject()))
+        .andReturn(Optional.of(mockQuery));
     return mockQuery;
   }
 
   private PersistentQueryMetadata mockReplayRunScript(
-      final String runScriptStatement, final String queryStatement) {
+      final String runScriptStatement,
+      final String queryStatement
+  ) {
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
     final Statement mockRunScript = mock(RunScript.class);
-    expect(mockParser.parseSingleStatement(runScriptStatement)).andReturn(mockRunScript);
-    expect(mockEngine.execute(eq(queryStatement), anyObject(), anyObject()))
-        .andReturn(Collections.singletonList(mockQuery));
+    final PreparedStatement<Statement> runScript =
+        new PreparedStatement<>(queryStatement, mockRunScript);
+    expect(mockParser.parseSingleStatement(runScriptStatement))
+        .andReturn(runScript);
+    final ImmutableList<PreparedStatement<?>> statements = ImmutableList
+        .of(new PreparedStatement<>(queryStatement, mock(Statement.class)));
+    expect(mockEngine.parseStatements(eq(queryStatement))).andReturn(statements);
+    expect(mockEngine.execute(eq(statements.get(0)), anyObject(), anyObject()))
+        .andReturn(Optional.of(mockQuery));
     expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
     return mockQuery;
   }
@@ -558,8 +575,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockMetaStore.getQueriesWithSink("foo"))
         .andStubReturn(ImmutableSet.of("query-id"));
     expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
-    expect(mockEngine.terminateQuery(eq(new QueryId("query-id")), eq(false)))
-        .andReturn(true);
+    expect(mockEngine.getPersistentQuery(new QueryId("query-id"))).andReturn(Optional.of(mockQueryMetadata));
+    mockQueryMetadata.close();
+    expectLastCall();
     expect(mockEngine.executeDdlStatement("DROP", mockDropStream, Collections.emptyMap()))
         .andReturn(new DdlCommandResult(true, "SUCCESS"));
     replayAll();

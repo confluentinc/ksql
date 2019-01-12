@@ -16,9 +16,9 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
@@ -31,8 +31,11 @@ import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -88,59 +91,91 @@ public class StreamedQueryResource {
           "The cluster has been terminated. No new request will be accepted.",
           new KsqlEntityList());
     }
-    final String ksql = request.getKsql();
-    final Statement statement;
-    if (ksql.isEmpty()) {
-      return Errors.badRequest("\"ksql\" field must be populated");
-    }
+
     activenessRegistrar.updateLastRequestTime();
+
+    final PreparedStatement<?> statement = parseStatement(request);
 
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
         commandQueue, request, disconnectCheckInterval);
-    try {
-      statement = statementParser.parseSingleStatement(ksql);
-    } catch (IllegalArgumentException | KsqlException e) {
-      return Errors.badRequest(e);
-    }
 
-    if (statement instanceof Query) {
-      final QueryStreamWriter queryStreamWriter;
-      try {
-        queryStreamWriter = new QueryStreamWriter(
-            ksqlConfig,
-            ksqlEngine,
-            serviceContext,
-            disconnectCheckInterval.toMillis(),
-            ksql,
-            request.getStreamsProperties(),
-            objectMapper);
-      } catch (final KsqlException e) {
-        return Errors.badRequest(e);
-      }
-      log.info("Streaming query '{}'", ksql);
-      return Response.ok().entity(queryStreamWriter).build();
-
-    } else if (statement instanceof PrintTopic) {
-      final TopicStreamWriter topicStreamWriter = getTopicStreamWriter(
-          (PrintTopic) statement
-      );
-      return Response.ok().entity(topicStreamWriter).build();
-    }
-    return Errors.badRequest(String .format(
-        "Statement type `%s' not supported for this resource",
-        statement.getClass().getName()));
+    return handleStatement(request, statement);
   }
 
-  private TopicStreamWriter getTopicStreamWriter(final PrintTopic printTopic) {
+  private PreparedStatement<?> parseStatement(final KsqlRequest request) {
+    final String ksql = request.getKsql();
+    if (ksql.trim().isEmpty()) {
+      throw new KsqlRestException(Errors.badRequest("\"ksql\" field must be populated"));
+    }
+
+    try {
+      return statementParser.parseSingleStatement(ksql);
+    } catch (IllegalArgumentException | KsqlException e) {
+      throw new KsqlRestException(Errors.badStatement(e, ksql));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private Response handleStatement(
+      final KsqlRequest request,
+      final PreparedStatement<?> statement
+  ) throws Exception {
+    try {
+      if (statement.getStatement() instanceof Query) {
+        return handleQuery((PreparedStatement<Query>) statement, request.getStreamsProperties());
+      }
+
+      if (statement.getStatement() instanceof PrintTopic) {
+        return handlePrintTopic((PreparedStatement<PrintTopic>) statement);
+      }
+
+      return Errors.badRequest(String.format(
+          "Statement type `%s' not supported for this resource",
+          statement.getClass().getName()));
+    } catch (final KsqlException e) {
+      return Errors.badRequest(e);
+    }
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  private Response handleQuery(
+      final PreparedStatement<Query> statement,
+      final Map<String, Object> streamsProperties
+  ) throws Exception {
+    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties).get();
+
+    if (!(query instanceof QueuedQueryMetadata)) {
+      throw new Exception(String.format(
+          "Unexpected metadata type: expected QueuedQueryMetadata, found %s instead",
+          query.getClass()
+      ));
+    }
+
+    final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
+        (QueuedQueryMetadata) query,
+        disconnectCheckInterval.toMillis(),
+        objectMapper);
+
+    log.info("Streaming query '{}'", statement.getStatementText());
+    return Response.ok().entity(queryStreamWriter).build();
+  }
+
+  private Response handlePrintTopic(final PreparedStatement<PrintTopic> statement) {
+    final PrintTopic printTopic = statement.getStatement();
     final String topicName = printTopic.getTopic().toString();
 
     if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
       throw new KsqlRestException(
           Errors.badRequest(String.format(
-              "Could not find topic '%s', KSQL uses uppercase.%n"
-              + "To print a case-sensitive topic apply quotations, for example: print \'topic\';",
+              "Could not find topic '%s', "
+                  + "or the KSQL user does not have permissions to list the topic."
+                  + System.lineSeparator()
+                  + "KSQL will treat unquoted topic names as uppercase."
+                  + System.lineSeparator()
+                  + "To print a case-sensitive topic use quotes, for example: print \'Topic\';",
               topicName)));
     }
+
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         serviceContext.getSchemaRegistryClient(),
         ksqlConfig.getKsqlStreamConfigProps(),
@@ -149,7 +184,8 @@ public class StreamedQueryResource {
         disconnectCheckInterval,
         printTopic.getFromBeginning()
     );
+
     log.info("Printing topic '{}'", topicName);
-    return topicStreamWriter;
+    return Response.ok().entity(topicStreamWriter).build();
   }
 }

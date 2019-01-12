@@ -176,6 +176,8 @@ public class CliTest {
         restClient,
         console
     );
+
+    maybeDropStream("SHOULDRUNSCRIPT");
   }
 
   @SuppressWarnings("unchecked")
@@ -376,6 +378,18 @@ public class CliTest {
         .forEach(CliTest::terminateQuery);
 
     runStatement(dropStatement, restClient);
+  }
+
+  private static void maybeDropStream(final String name) {
+    final String dropStatement = String.format("drop stream %s;", name);
+
+    final RestResponse response = restClient.makeKsqlRequest(dropStatement);
+    if (response.isSuccessful()
+        || response.getErrorMessage().toString().contains("does not exist")) {
+      return;
+    }
+
+    dropStream(name);
   }
 
   private void selectWithLimit(String selectQuery, final int limit, final TestResult expectedResults) {

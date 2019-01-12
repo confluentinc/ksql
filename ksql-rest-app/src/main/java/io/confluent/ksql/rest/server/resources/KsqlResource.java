@@ -18,6 +18,7 @@ import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.function.AggregateFunctionFactory;
@@ -100,6 +101,7 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -307,7 +309,7 @@ public class KsqlResource {
     final HashMap<String, Object> requestScopedOverrides = new HashMap<>(propertyOverrides);
 
     for (final PreparedStatement<?> statement : statements) {
-      validateStatement(statement, propertyOverrides, entities);
+      validateStatement(statement, Collections.unmodifiableMap(requestScopedOverrides), entities);
 
       final KsqlEntity entity = executeStatement(statement, requestScopedOverrides, entities);
       if (entity != null) {
@@ -345,6 +347,7 @@ public class KsqlResource {
     throw new ShouldUseQueryEndpointException(statement.getStatementText());
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
   private void validateSetPropertyStatement(final PreparedStatement<SetProperty> statement) {
     if (isUnknownPropertyName(statement.getStatement().getPropertyName())) {
       throw new KsqlRestException(Errors.badStatement(

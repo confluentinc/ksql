@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -75,6 +76,7 @@ public final class ClassFinder {
 
   private static Class<?> parseClass(final String packageName, final Path path) {
     try {
+      Objects.requireNonNull(path.getFileName(), "path must not be empty");
       final String name = path.getFileName().toString();
       final String className = name.substring(0, name.length() - CLASS_FILE_EXT.length());
       return Class.forName(packageName + '.' + className);

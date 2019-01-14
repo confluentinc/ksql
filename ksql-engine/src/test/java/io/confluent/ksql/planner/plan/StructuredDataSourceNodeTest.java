@@ -16,11 +16,12 @@ package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -36,6 +37,9 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -43,6 +47,7 @@ import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Arrays;
@@ -104,6 +109,7 @@ public class StructuredDataSourceNodeTest {
           new KsqlTopic("topic", "topic",
               new KsqlJsonTopicSerDe(), false), Serdes.String()),
       realSchema);
+  private final QueryId queryId = new QueryId("source-test");
 
   private final PlanNodeId realNodeId = new PlanNodeId("source");
   @Mock
@@ -160,7 +166,8 @@ public class StructuredDataSourceNodeTest {
         any(Schema.class),
         any(KsqlConfig.class),
         any(Boolean.class),
-        any(Supplier.class))).thenReturn(rowSerde);
+        any(Supplier.class),
+        anyString())).thenReturn(rowSerde);
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
@@ -195,13 +202,33 @@ public class StructuredDataSourceNodeTest {
         realConfig,
         serviceContext,
         functionRegistry,
-        Collections.emptyMap()
+        Collections.emptyMap(),
+        queryId
     );
 
     // Then:
     verify(materializedFactorySupplier).apply(realConfig);
     verify(materializedFactory).create(keySerde, rowSerde, "source-REDUCE");
     verify(kGroupedStream).aggregate(any(), any(), same(materialized));
+  }
+
+  @Test
+  public void shouldCreateLoggerForSourceSerde() {
+    assertThat(
+        ProcessingLoggerFactory.getLoggers(),
+        hasItem(
+            startsWith(
+                ProcessingLoggerUtil.join(
+                    ProcessingLoggerFactory.PREFIX,
+                    QueryLoggerUtil.queryLoggerName(
+                        queryId,
+                        node.getId(),
+                        "source"
+                    )
+                )
+            )
+        )
+    );
   }
 
   @Test
@@ -308,7 +335,8 @@ public class StructuredDataSourceNodeTest {
         realConfig,
         serviceContext,
         new InternalFunctionRegistry(),
-        new HashMap<>());
+        new HashMap<>(),
+        queryId);
   }
 
   private StructuredDataSourceNode nodeWithMockTableSource() {

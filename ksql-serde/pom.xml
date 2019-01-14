@@ -48,6 +48,12 @@
             <artifactId>kafka-schema-registry-client</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>common-logging</artifactId>
+            <version>${confluent.version}</version>
+        </dependency>
+
 	<dependency>
 		<groupId>io.confluent</groupId>
 		<artifactId>kafka-connect-avro-converter</artifactId>

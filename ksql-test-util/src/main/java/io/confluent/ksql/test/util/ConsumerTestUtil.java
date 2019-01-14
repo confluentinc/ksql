@@ -19,11 +19,15 @@ import static org.hamcrest.Matchers.hasSize;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 /**
  * Helper for consuming expected messages from Kafka in integration tests
@@ -31,7 +35,7 @@ import org.hamcrest.Matcher;
 @SuppressWarnings("WeakerAccess")
 public final class ConsumerTestUtil {
 
-  private static final Duration DEFAULT_VERIFY_TIMEOUT = Duration.ofSeconds(30);
+  public static final Duration DEFAULT_VERIFY_TIMEOUT = Duration.ofSeconds(30);
   private static final Duration POLL_TIMEOUT = Duration.ofMillis(100);
 
   private ConsumerTestUtil() {
@@ -144,5 +148,57 @@ public final class ConsumerTestUtil {
             .collect(Collectors.joining(System.lineSeparator())),
         acquired, expected);
     return acquired;
+  }
+
+  /**
+   * Matcher that converts the list of received records into a map, keyed of the message value.
+   *
+   * @param expected the expected map of unique records.
+   * @param <K> the key of the record.
+   * @param <V> the value of the record.
+   * @return the matcher.
+   */
+  public static <K, V> Matcher<List<ConsumerRecord<K, V>>> hasUniqueRecords(
+      final Matcher<? super Map<K, V>> expected
+  ) {
+    return new TypeSafeDiagnosingMatcher<List<ConsumerRecord<K, V>>>() {
+      @Override
+      protected boolean matchesSafely(
+          final List<ConsumerRecord<K, V>> actual,
+          final Description mismatchDescription
+      ) {
+
+        final Map<K, V> uniqueRows = toUniqueRecords(actual);
+
+        if (!expected.matches(uniqueRows)) {
+          mismatchDescription.appendText("unique rows ");
+          expected.describeMismatch(uniqueRows, mismatchDescription);
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("unique rows ").appendDescriptionOf(expected);
+      }
+    };
+  }
+
+  /**
+   * Convert a list of records to a map containing the last value per key.
+   *
+   * @param records the list of records
+   * @param <K> the type of the record key.
+   * @param <V> the type of the record value.
+   * @return the map of unique records.
+   */
+  public static <K, V> Map<K, V> toUniqueRecords(
+      final List<ConsumerRecord<K, V>> records
+  ) {
+    // Note: Can't use J8 streams as they can't handle null values:
+    final Map<K, V> unique = new HashMap<>(records.size());
+    records.forEach(cr -> unique.put(cr.key(), cr.value()));
+    return unique;
   }
 }

@@ -86,10 +86,10 @@ Download the Tutorial and Start KSQL
     :start-after: struct_support_01_start
     :end-before: struct_support_01_end
 
-.. code:: bash
+.. codewithvars:: bash
 
     docker run --network tutorials_default --rm  \
-      confluentinc/ksql-examples:5.0.0 \
+      confluentinc/ksql-examples:|release| \
       ksql-datagen \
           quickstart=orders \
           format=avro \
@@ -178,10 +178,10 @@ Download the Tutorial and Start KSQL
     :start-after: insert-into-01-start
     :end-before: insert-into-01-end
 
-.. code:: bash
+.. codewithvars:: bash
 
     docker run --network tutorials_default --rm  --name datagen-orders-local \
-      confluentinc/ksql-examples:5.0.0 \
+      confluentinc/ksql-examples:|release| \
       ksql-datagen \
           quickstart=orders \
           format=avro \
@@ -189,10 +189,10 @@ Download the Tutorial and Start KSQL
           bootstrap-server=kafka:39092 \
           schemaRegistryUrl=http://schema-registry:8081
 
-.. code:: bash
+.. codewithvars:: bash
 
     docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-      confluentinc/ksql-examples:5.0.0 \
+      confluentinc/ksql-examples:|release| \
       ksql-datagen \
           quickstart=orders \
           format=avro \

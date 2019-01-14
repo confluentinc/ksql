@@ -606,7 +606,7 @@ public class KsqlEngineTest {
 
     // Then:
     verify(jsonKsqlSerde, atLeastOnce()).getGenericRowSerde(
-        any(), any(), anyBoolean(), eq(schemaRegistryClientFactory)
+        any(), any(), anyBoolean(), eq(schemaRegistryClientFactory), any()
     );
   }
 

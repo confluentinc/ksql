@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static io.confluent.ksql.processing.log.ProcessingLoggerUtil.join;
+
 import com.google.common.collect.ImmutableMap;
 
 import io.confluent.connect.avro.AvroConverter;
@@ -21,12 +23,14 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
+import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 
@@ -71,7 +75,8 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
       final Schema schemaMaybeWithSource,
       final KsqlConfig ksqlConfig,
       final boolean isInternal,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final String loggerNamePrefix) {
     final Schema schema = isInternal
         ? schemaMaybeWithSource : SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource);
     final Serializer<GenericRow> genericRowSerializer = new ThreadLocalSerializer(
@@ -81,7 +86,10 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
     final Deserializer<GenericRow> genericRowDeserializer = new ThreadLocalDeserializer(
         () -> new KsqlConnectDeserializer(
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig),
-            new AvroDataTranslator(schema, this.fullSchemaName))
+            new AvroDataTranslator(schema, this.fullSchemaName),
+            ProcessingLoggerFactory.getLogger(
+                join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
+        )
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }

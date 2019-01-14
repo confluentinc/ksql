@@ -49,6 +49,7 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -298,7 +299,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
-    final ServiceContext serviceContext = ServiceContext.create(ksqlConfig);
+    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));

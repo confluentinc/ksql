@@ -90,6 +90,6 @@ public final class TestServiceContext {
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
-    return new ServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory);
+    return new DefaultServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory);
   }
 }

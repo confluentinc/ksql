@@ -592,7 +592,7 @@ public class KsqlResourceTest {
             + "Caused by: No schema registered under subject!"));
   }
 
-  //@Test
+  @Test
   public void shouldFailWhenAvroSchemaCanNotBeEvolved() {
     // Given:
     givenAvroSchemaNotEvolveable("S1");
@@ -673,7 +673,7 @@ public class KsqlResourceTest {
     validateQueryDescription(ksqlQueryString, Collections.emptyMap(), query);
   }
 
-  //@Test
+  @Test
   public void shouldExplainCreateAsSelectStatement() {
     // Given:
     final String ksqlQueryString = "CREATE STREAM S3 AS SELECT * FROM test_stream;";

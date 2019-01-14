@@ -70,7 +70,7 @@ class QueryEngine {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
     this.queryIdGenerator = new QueryIdGenerator("");
-    this.tryQueryIdGenerator = new QueryIdGenerator("_TRY");
+    this.tryQueryIdGenerator = new QueryIdGenerator("_TRY"); // Todo(ac): remove?
   }
 
   @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.

@@ -16,6 +16,7 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
@@ -32,7 +33,7 @@ public final class StandaloneExecutorFactory {
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
 
-    final ServiceContext serviceContext = ServiceContext.create(ksqlConfig);
+    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));

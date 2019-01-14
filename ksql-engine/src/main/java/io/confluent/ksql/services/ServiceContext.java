@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -15,52 +15,15 @@
 package io.confluent.ksql.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 /**
  * Provides access to clients required to communicate with remote services.
  */
-public class ServiceContext implements AutoCloseable {
-
-  private final KafkaClientSupplier kafkaClientSupplier;
-  private final AdminClient adminClient;
-  private final KafkaTopicClient topicClient;
-  private final Supplier<SchemaRegistryClient> srClientFactory;
-  private final SchemaRegistryClient srClient;
-
-  public static ServiceContext create(final KsqlConfig ksqlConfig) {
-    final DefaultKafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
-    final AdminClient adminClient = kafkaClientSupplier
-        .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
-
-    return new ServiceContext(
-        kafkaClientSupplier,
-        adminClient,
-        new KafkaTopicClientImpl(adminClient),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig)::get
-    );
-  }
-
-  ServiceContext(
-      final KafkaClientSupplier kafkaClientSupplier,
-      final AdminClient adminClient,
-      final KafkaTopicClient topicClient,
-      final Supplier<SchemaRegistryClient> srClientFactory
-  ) {
-    this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
-    this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
-    this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
-    this.srClientFactory = Objects.requireNonNull(srClientFactory, "srClientFactory");
-    this.srClient = Objects.requireNonNull(srClientFactory.get(), "srClient");
-  }
+public interface ServiceContext extends AutoCloseable {
 
   /**
    * Get the shared {@link AdminClient} instance.
@@ -71,9 +34,7 @@ public class ServiceContext implements AutoCloseable {
    *
    * @return a shared {@link AdminClient} instance.
    */
-  public AdminClient getAdminClient() {
-    return adminClient;
-  }
+  AdminClient getAdminClient();
 
   /**
    * Get the shared {@link KafkaTopicClient} instance.
@@ -82,9 +43,7 @@ public class ServiceContext implements AutoCloseable {
    *
    * @return a shared {@link KafkaTopicClient} instance.
    */
-  public KafkaTopicClient getTopicClient() {
-    return topicClient;
-  }
+  KafkaTopicClient getTopicClient();
 
   /**
    * Get the {@link KafkaClientSupplier} instance.
@@ -96,9 +55,7 @@ public class ServiceContext implements AutoCloseable {
    *
    * @return a {@link KafkaClientSupplier}.
    */
-  public KafkaClientSupplier getKafkaClientSupplier() {
-    return kafkaClientSupplier;
-  }
+  KafkaClientSupplier getKafkaClientSupplier();
 
   /**
    * Get the shared {@link SchemaRegistryClient} instance.
@@ -111,9 +68,7 @@ public class ServiceContext implements AutoCloseable {
    *
    * @return a shared {@link SchemaRegistryClient}.
    */
-  public SchemaRegistryClient getSchemaRegistryClient() {
-    return srClient;
-  }
+  SchemaRegistryClient getSchemaRegistryClient();
 
   /**
    * Get a supplier of {@link SchemaRegistryClient} instance.
@@ -127,12 +82,8 @@ public class ServiceContext implements AutoCloseable {
    *
    * @return a shared {@link SchemaRegistryClient}.
    */
-  public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
-    return srClientFactory;
-  }
+  Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory();
 
   @Override
-  public void close() {
-    adminClient.close();
-  }
+  void close();
 }

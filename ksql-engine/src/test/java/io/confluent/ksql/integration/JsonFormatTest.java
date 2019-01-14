@@ -26,6 +26,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -80,7 +81,7 @@ public class JsonFormatTest {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
     ksqlConfig = KsqlContextTestUtil.createKsqlConfig(CLUSTER);
-    serviceContext = ServiceContext.create(ksqlConfig);
+    serviceContext = DefaultServiceContext.create(ksqlConfig);
     ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();

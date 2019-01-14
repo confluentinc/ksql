@@ -25,7 +25,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.junit.rules.ExternalResource;
 
 public final class TestKsqlContext extends ExternalResource {

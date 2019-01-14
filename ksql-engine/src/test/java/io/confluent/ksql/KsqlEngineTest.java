@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -426,7 +425,7 @@ public class KsqlEngineTest {
     // Given:
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream bar with (value_format = 'avro') as select * from test1;"
-            + "create stream foo as select * from test1;",
+        + "create stream foo as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
     query.close();
@@ -736,7 +735,7 @@ public class KsqlEngineTest {
         KSQL_CONFIG, Collections.emptyMap());
   }
 
-  //@Test
+  @Test
   public void shouldThrowWhenTryExecuteCsasThatCreatesTable() {
     // Given:
     final List<PreparedStatement<?>> statements = parse(
@@ -753,7 +752,7 @@ public class KsqlEngineTest {
     ksqlEngine.tryExecute(statements, KSQL_CONFIG, Collections.emptyMap());
   }
 
-  //@Test
+  @Test
   public void shouldThrowWhenTryExecuteCtasThatCreatesStream() {
     // Given:
     final List<PreparedStatement<?>> statements = parse(

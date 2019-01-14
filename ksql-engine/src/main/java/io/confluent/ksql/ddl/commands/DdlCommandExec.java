@@ -35,6 +35,7 @@ public class DdlCommandExec {
   /**
    * execute on temp metaStore
    */
+  // Todo(ac): No longer requried?
   public DdlCommandResult tryExecute(final DdlCommand ddlCommand, final MetaStore tempMetaStore) {
     if (tempMetaStore == metaStore) {
       throw new KsqlException(
@@ -47,6 +48,7 @@ public class DdlCommandExec {
   /**
    * execute on real metaStore
    */
+  // Todo(ac): isValidatePhase...
   public DdlCommandResult execute(final DdlCommand ddlCommand, final boolean isValidatePhase) {
     return executeOnMetaStore(ddlCommand, this.metaStore, isValidatePhase);
   }

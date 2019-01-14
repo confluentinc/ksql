@@ -32,6 +32,10 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io.confluent.ksql.parser.SqlBaseParser.*"/>
     </Match>
 
+    <Match>
+        <Class name="~io.confluent.ksql.benchmark.generated.*"/>
+    </Match>
+
 
     <!-- false positive in Java 11, see https://github.com/spotbugs/spotbugs/issues/756 -->
     <Match>

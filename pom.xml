@@ -53,6 +53,7 @@
         <module>ksql-etc</module>
         <module>ksql-package</module>
         <module>ksql-test-util</module>
+        <module>ksql-benchmark</module>
     </modules>
 
     <repositories>

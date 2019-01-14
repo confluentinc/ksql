@@ -48,7 +48,7 @@ public abstract class DataGenProducer {
 
     final AvroData avroData = new AvroData(1);
     final org.apache.kafka.connect.data.Schema ksqlSchema =
-        SchemaUtil.getOptionalSchema(avroData.toConnectSchema(avroSchema));
+        DataGenSchemaUtil.getOptionalSchema(avroData.toConnectSchema(avroSchema));
 
     final Serializer<GenericRow> serializer = getSerializer(avroSchema, ksqlSchema, kafkaTopicName);
 

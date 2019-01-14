@@ -25,10 +25,17 @@ import java.util.Objects;
 import org.apache.avro.Schema;
 
 /**
- * // Todo(ac):
+ * SchemaRegistryClient used when trying out operations.
+ *
+ * <p>The client will not allow any operation that changes the state of the Kafka cluster.
+ *
+ * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
+ * not called.
  */
 @SuppressWarnings("deprecation")
 class TrySchemaRegistryClient implements SchemaRegistryClient {
+
+  // Todo(ac): tidy up & test.
 
   private final SchemaRegistryClient delegate;
 
@@ -37,30 +44,27 @@ class TrySchemaRegistryClient implements SchemaRegistryClient {
   }
 
   @Override
-  public int register(final String subject, final Schema schema)
-      throws IOException, RestClientException {
+  public int register(final String subject, final Schema schema) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Schema getByID(final int id) throws IOException, RestClientException {
+  public Schema getByID(final int id) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Schema getById(final int id) throws IOException, RestClientException {
+  public Schema getById(final int id) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Schema getBySubjectAndID(final String subject, final int id)
-      throws IOException, RestClientException {
+  public Schema getBySubjectAndID(final String subject, final int id) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Schema getBySubjectAndId(final String subject, final int id)
-      throws IOException, RestClientException {
+  public Schema getBySubjectAndId(final String subject, final int id) {
     throw new UnsupportedOperationException();
   }
 
@@ -71,20 +75,17 @@ class TrySchemaRegistryClient implements SchemaRegistryClient {
   }
 
   @Override
-  public SchemaMetadata getSchemaMetadata(final String subject, final int version)
-      throws IOException, RestClientException {
+  public SchemaMetadata getSchemaMetadata(final String subject, final int version) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public int getVersion(final String subject, final Schema schema)
-      throws IOException, RestClientException {
+  public int getVersion(final String subject, final Schema schema) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public List<Integer> getAllVersions(final String subject)
-      throws IOException, RestClientException {
+  public List<Integer> getAllVersions(final String subject) {
     throw new UnsupportedOperationException();
   }
 
@@ -95,42 +96,38 @@ class TrySchemaRegistryClient implements SchemaRegistryClient {
   }
 
   @Override
-  public String updateCompatibility(final String subject, final String compatibility)
-      throws IOException, RestClientException {
+  public String updateCompatibility(final String subject, final String compatibility) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public String getCompatibility(final String subject) throws IOException, RestClientException {
+  public String getCompatibility(final String subject) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Collection<String> getAllSubjects() throws IOException, RestClientException {
+  public Collection<String> getAllSubjects() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public int getId(final String subject, final Schema schema)
-      throws IOException, RestClientException {
+  public int getId(final String subject, final Schema schema) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public List<Integer> deleteSubject(final String subject) throws IOException, RestClientException {
+  public List<Integer> deleteSubject(final String subject) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public List<Integer> deleteSubject(final Map<String, String> requestProperties,
-      final String subject)
-      throws IOException, RestClientException {
+      final String subject) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Integer deleteSchemaVersion(final String subject, final String version)
-      throws IOException, RestClientException {
+  public Integer deleteSchemaVersion(final String subject, final String version) {
     throw new UnsupportedOperationException();
   }
 
@@ -138,8 +135,8 @@ class TrySchemaRegistryClient implements SchemaRegistryClient {
   public Integer deleteSchemaVersion(
       final Map<String, String> requestProperties,
       final String subject,
-      final String version)
-      throws IOException, RestClientException {
+      final String version
+  ) {
     throw new UnsupportedOperationException();
   }
 }

@@ -34,10 +34,17 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 
 /**
- * Todo(ac):
+ * A limited consumer that can be used while trying out operations.
+ *
+ * <p>The client will not allow any operation that changes the state of the Kafka cluster.
+ *
+ * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
+ * not called.
  */
 @SuppressWarnings("deprecation")
 class TryConsumer<K, V> implements Consumer<K, V> {
+
+  // Todo(ac): tidy up & test.
 
   private final Consumer<K, V> delegate;
 

@@ -84,7 +84,7 @@ import org.apache.kafka.common.config.ConfigResource;
  */
 class TryAdminClient extends AdminClient {
 
-  // Todo(ac): Can we just throw if the admin client is requested? i.e. is it needed at all?
+  // Todo(ac): tidy up & test.
 
   private final AdminClient delegate;
 
@@ -118,7 +118,7 @@ class TryAdminClient extends AdminClient {
 
   @Override
   public ListTopicsResult listTopics(final ListTopicsOptions options) {
-    return delegate.listTopics(options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -126,12 +126,12 @@ class TryAdminClient extends AdminClient {
       final Collection<String> topics,
       final DescribeTopicsOptions options
   ) {
-    return delegate.describeTopics(topics, options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public DescribeClusterResult describeCluster(final DescribeClusterOptions options) {
-    return delegate.describeCluster(options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -139,7 +139,7 @@ class TryAdminClient extends AdminClient {
       final AclBindingFilter filter,
       final DescribeAclsOptions options
   ) {
-    return delegate.describeAcls(filter, options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -165,7 +165,7 @@ class TryAdminClient extends AdminClient {
       final Collection<ConfigResource> configs,
       final DescribeConfigsOptions options
   ) {
-    return delegate.describeConfigs(configs, options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -191,7 +191,7 @@ class TryAdminClient extends AdminClient {
       final Collection<Integer> brokers,
       final DescribeLogDirsOptions options
   ) {
-    return delegate.describeLogDirs(brokers, options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -199,7 +199,7 @@ class TryAdminClient extends AdminClient {
       final Collection<TopicPartitionReplica> replicas,
       final DescribeReplicaLogDirsOptions options
   ) {
-    return delegate.describeReplicaLogDirs(replicas, options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -250,7 +250,7 @@ class TryAdminClient extends AdminClient {
   public DescribeDelegationTokenResult describeDelegationToken(
       final DescribeDelegationTokenOptions options
   ) {
-    return delegate.describeDelegationToken(options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -258,12 +258,12 @@ class TryAdminClient extends AdminClient {
       final Collection<String> groupIds,
       final DescribeConsumerGroupsOptions options
   ) {
-    return delegate.describeConsumerGroups(groupIds, options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ListConsumerGroupsResult listConsumerGroups(final ListConsumerGroupsOptions options) {
-    return delegate.listConsumerGroups(options);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -271,7 +271,7 @@ class TryAdminClient extends AdminClient {
       final String groupId,
       final ListConsumerGroupOffsetsOptions options
   ) {
-    return delegate.listConsumerGroupOffsets(groupId, options);
+    throw new UnsupportedOperationException();
   }
 
   @Override

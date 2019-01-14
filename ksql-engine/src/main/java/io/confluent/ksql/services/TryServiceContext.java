@@ -28,10 +28,9 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  */
 public final class TryServiceContext implements ServiceContext {
 
-  private final KafkaClientSupplier kafkaClientSupplier;
-  private final AdminClient adminClient;
   private final KafkaTopicClient topicClient;
   private final SchemaRegistryClient srClient;
+  private final KafkaClientSupplier kafkaClientSupplier;
 
   public static TryServiceContext tryContext(final ServiceContext serviceContext) {
     if (serviceContext instanceof TryServiceContext) {
@@ -40,8 +39,6 @@ public final class TryServiceContext implements ServiceContext {
 
     final KafkaClientSupplier kafkaClientSupplier = new TryKafkaClientSupplier(serviceContext
         .getKafkaClientSupplier());
-    final AdminClient adminClient = new TryAdminClient(
-        serviceContext.getAdminClient());
     final KafkaTopicClient kafkaTopicClient = new TryKafkaTopicClient(
         serviceContext.getTopicClient());
     final SchemaRegistryClient schemaRegistryClient =
@@ -49,26 +46,23 @@ public final class TryServiceContext implements ServiceContext {
 
     return new TryServiceContext(
         kafkaClientSupplier,
-        adminClient,
         kafkaTopicClient,
         schemaRegistryClient);
   }
 
   private TryServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
-      final AdminClient adminClient,
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient srClient
   ) {
     this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
-    this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.srClient = Objects.requireNonNull(srClient, "srClient");
   }
 
   @Override
   public AdminClient getAdminClient() {
-    return adminClient;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -93,6 +87,5 @@ public final class TryServiceContext implements ServiceContext {
 
   @Override
   public void close() {
-    adminClient.close();
   }
 }

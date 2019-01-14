@@ -22,9 +22,16 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
- * Todo(ac):
+ * A limited kafka client supplier that can be used while trying out operations.
+ *
+ * <p>The clients supplied will not allow any operation that changes the state of the Kafka cluster.
+ *
+ * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
+ * not currently called.
  */
 class TryKafkaClientSupplier implements KafkaClientSupplier {
+
+  // Todo(ac): tidy up & test.
 
   private final KafkaClientSupplier delegate;
 

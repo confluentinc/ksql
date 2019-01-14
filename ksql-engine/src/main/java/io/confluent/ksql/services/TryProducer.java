@@ -31,9 +31,16 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.ProducerFencedException;
 
 /**
- * Todo(ac):
+ * A limited producer that can be used while trying out operations.
+ *
+ * <p>The client will not allow any operation that changes the state of the Kafka cluster.
+ *
+ * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
+ * not called.
  */
 class TryProducer<K, V> implements Producer<K, V> {
+
+  // Todo(ac): tidy up & test.  Only close?
 
   private final Producer<byte[], byte[]> delegate;
 

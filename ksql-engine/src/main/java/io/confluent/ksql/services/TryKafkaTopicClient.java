@@ -16,10 +16,19 @@ package io.confluent.ksql.services;
 
 import io.confluent.ksql.util.KafkaTopicClient;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 /**
  * A topic client to use when trying out operations.
@@ -28,7 +37,11 @@ import org.apache.kafka.clients.admin.TopicDescription;
  */
 class TryKafkaTopicClient implements KafkaTopicClient {
 
+  // Todo(ac): tidy up & test.
+
   private final KafkaTopicClient delegate;
+
+  private final Map<String, TopicDescription> createdTopics = new HashMap<>();
 
   TryKafkaTopicClient(final KafkaTopicClient delegate) {
     this.delegate = Objects.requireNonNull(delegate, "delegate");
@@ -41,7 +54,19 @@ class TryKafkaTopicClient implements KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
-    // Todo(ac): Might want to track so that later `isTopicExists` succeed...
+    final List<Node> replicas = IntStream.range(0, replicationFactor)
+        .mapToObj(idx -> (Node) null)
+        .collect(Collectors.toList());
+
+    final List<TopicPartitionInfo> partitions = IntStream.range(1, numPartitions + 1)
+        .mapToObj(partition -> new TopicPartitionInfo(
+            partition,
+            null,
+            replicas,
+            Collections.emptyList()))
+        .collect(Collectors.toList());
+
+    createdTopics.put(topic, new TopicDescription(topic, false, partitions));
   }
 
   @Override
@@ -61,7 +86,21 @@ class TryKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
-    return delegate.describeTopics(topicNames);
+    final Map<String, TopicDescription> descriptions = topicNames.stream()
+        .map(createdTopics::get)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
+
+    final HashSet<String> remaining = new HashSet<>(topicNames);
+    remaining.removeAll(descriptions.keySet());
+    if (remaining.isEmpty()) {
+      return descriptions;
+    }
+
+    final Map<String, TopicDescription> fromKafka = delegate.describeTopics(remaining);
+
+    descriptions.putAll(fromKafka);
+    return descriptions;
   }
 
   @Override

@@ -24,13 +24,14 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
-import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.serde.delimited.KsqlDelimitedTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.ConsumerTestUtil;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KafkaTopicClient;
@@ -60,7 +61,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -192,6 +192,7 @@ public class IntegrationTestHarness extends ExternalResource {
    * @param timestampSupplier supplier of timestamps.
    * @return the map of produced rows
    */
+  @SuppressWarnings("unchecked")
   public Map<String, RecordMetadata> produceRows(
       final String topic,
       final TestDataProvider dataProvider,
@@ -204,22 +205,6 @@ public class IntegrationTestHarness extends ExternalResource {
         getSerializer(valueFormat, dataProvider.schema()),
         timestampSupplier
     );
-  }
-
-  /**
-   * Publish test data to the supplied {@code topic}.
-   *
-   * @param topic the name of the topic to produce to.
-   * @param recordsToPublish the records to produce.
-   * @param valueSerializer the serializer to use to serialize values.
-   * @return the map of produced rows, with an iteration order that matches produce order.
-   */
-  public Map<String, RecordMetadata> produceRows(
-      final String topic,
-      final Map<String, GenericRow> recordsToPublish,
-      final Serializer<GenericRow> valueSerializer
-  ) {
-    return produceRows(topic, recordsToPublish, valueSerializer, () -> null);
   }
 
   /**
@@ -488,74 +473,49 @@ public class IntegrationTestHarness extends ExternalResource {
     return config;
   }
 
-  private Serializer<GenericRow> getSerializer(
-      final DataSourceSerDe serDeType,
-      final Schema schema
-  ) {
-    switch (serDeType) {
+  private KsqlTopicSerDe getSerde(
+      final DataSource.DataSourceSerDe dataSourceSerDe) {
+    switch (dataSourceSerDe) {
       case JSON:
-        return new KsqlJsonSerializer(schema);
-
+        return new KsqlJsonTopicSerDe();
       case AVRO:
-        final KsqlAvroTopicSerDe avroSerDe = new KsqlAvroTopicSerDe(
-                KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-        final Serde<GenericRow> serde = avroSerDe.getGenericRowSerde(
-            schema,
-            new KsqlConfig(Collections.emptyMap()), false,
-            serviceContext.get().getSchemaRegistryClientFactory()
-        );
-
-        return serde.serializer();
-
+        return new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
       case DELIMITED:
-        return new KsqlDelimitedSerializer(schema);
-
+        return new KsqlDelimitedTopicSerDe();
       default:
-        throw new KsqlException("Format not supported: " + serDeType);
+        throw new RuntimeException("Format not supported: " + dataSourceSerDe);
     }
   }
 
+  private Serializer getSerializer(
+      final DataSource.DataSourceSerDe dataSourceSerDe,
+      final Schema schema) {
+    return getSerde(dataSourceSerDe).getGenericRowSerde(
+        schema,
+        new KsqlConfig(Collections.emptyMap()),
+        false,
+        serviceContext.get().getSchemaRegistryClientFactory(),
+        "producer"
+    ).serializer();
+  }
+
   private Deserializer<GenericRow> getDeserializer(
-      final DataSourceSerDe format,
-      final Schema schema
-  ) {
-    switch (format) {
-      case JSON:
-        return new KsqlJsonDeserializer(schema, false);
-
-      case AVRO:
-        final KsqlAvroTopicSerDe avroSerDe = new KsqlAvroTopicSerDe(
-                KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-        final Serde<GenericRow> serde = avroSerDe.getGenericRowSerde(
-            schema,
-            new KsqlConfig(Collections.emptyMap()), false,
-            serviceContext.get().getSchemaRegistryClientFactory()
-        );
-        return serde.deserializer();
-
-      case DELIMITED:
-        return new KsqlDelimitedDeserializer(schema);
-
-      default:
-        throw new KsqlException("Format not supported: " + format);
-    }
+      final DataSource.DataSourceSerDe dataSourceSerDe,
+      final Schema schema) {
+    return getSerde(dataSourceSerDe).getGenericRowSerde(
+        schema,
+        new KsqlConfig(Collections.emptyMap()),
+        false,
+        serviceContext.get().getSchemaRegistryClientFactory(),
+        "consumer"
+    ).deserializer();
   }
 
   public static final class Builder {
 
-    private SchemaRegistryClient schemaRegistry = new MockSchemaRegistryClient();
-    private EmbeddedSingleNodeKafkaCluster.Builder kafkaCluster
+    private final SchemaRegistryClient schemaRegistry = new MockSchemaRegistryClient();
+    private final EmbeddedSingleNodeKafkaCluster.Builder kafkaCluster
         = EmbeddedSingleNodeKafkaCluster.newBuilder();
-
-    public Builder withKafkaCluster(final EmbeddedSingleNodeKafkaCluster.Builder kafkaCluster) {
-      this.kafkaCluster = Objects.requireNonNull(kafkaCluster, "kafkaCluster");
-      return this;
-    }
-
-    public Builder withSchemaRegistryClient(final SchemaRegistryClient client) {
-      this.schemaRegistry = Objects.requireNonNull(client, "client");
-      return this;
-    }
 
     public IntegrationTestHarness build() {
       return new IntegrationTestHarness(kafkaCluster.build(), schemaRegistry);

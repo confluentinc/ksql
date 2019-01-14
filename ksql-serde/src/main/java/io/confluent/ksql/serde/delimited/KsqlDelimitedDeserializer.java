@@ -14,12 +14,15 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogMessageFactory;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -30,9 +33,13 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
+  private final StructuredLogger recordLogger;
 
-  public KsqlDelimitedDeserializer(final Schema schema) {
+  public KsqlDelimitedDeserializer(
+      final Schema schema,
+      final StructuredLogger recordLogger) {
     this.schema = schema;
+    this.recordLogger = recordLogger;
   }
 
   @Override
@@ -77,6 +84,8 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       }
       return new GenericRow(columns);
     } catch (final Exception e) {
+      recordLogger.error(
+          ProcessingLogMessageFactory.deserializationErrorMsg(e, Optional.ofNullable(bytes)));
       throw new SerializationException(
           "Exception in deserializing the delimited row: " + recordCsvString,
           e

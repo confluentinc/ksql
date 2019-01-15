@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
@@ -340,7 +341,10 @@ public class KsqlStructuredDataOutputNodeTest {
             anyBoolean(),
             any(),
             startsWith(
-                QueryLoggerUtil.queryLoggerName(QUERY_ID, outputNode.getId(), "into"))
+                QueryLoggerUtil.queryLoggerName(
+                    new QueryContext.Builder(QUERY_ID)
+                        .push(outputNode.getId().toString())
+                        .getQueryContext()))
         );
   }
 

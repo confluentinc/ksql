@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.structured.QueryContext;
 import java.util.Arrays;
 
 public final class QueryLoggerUtil {
@@ -33,5 +34,15 @@ public final class QueryLoggerUtil {
             .add(queryId.getId(), nodeId.toString())
             .addAll(Arrays.asList(subHierarchy))
             .build());
+  }
+
+  public static String queryLoggerName(final QueryContext queryContext) {
+    return String.join(
+        ".",
+        new ImmutableList.Builder<String>()
+            .add(queryContext.getQueryId().getId())
+            .addAll(queryContext.getContext())
+            .build()
+    );
   }
 }

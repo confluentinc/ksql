@@ -19,27 +19,29 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.structured.QueryContext;
+import io.confluent.ksql.structured.QueryContext.Builder;
 import org.junit.Test;
 
 public class QueryLoggerUtilTest {
-  private final QueryId queryId = new QueryId("queryid");
-  private final PlanNodeId nodeId = new PlanNodeId("nodeid");
+  private final QueryContext.Builder contextBuilder = new Builder(new QueryId("queryid"));
 
   @Test
   public void shouldBuildCorrectName() {
     // When:
-    final String name = QueryLoggerUtil.queryLoggerName(queryId, nodeId, "biz", "baz");
+    final String name = QueryLoggerUtil.queryLoggerName(
+        contextBuilder.push("biz", "baz").getQueryContext());
 
     // Then:
-    assertThat(name, equalTo("queryid.nodeid.biz.baz"));
+    assertThat(name, equalTo("queryid.biz.baz"));
   }
 
   @Test
   public void shouldBuildCorrectNameWhenNoSubhierarchy() {
     // When:
-    final String name = QueryLoggerUtil.queryLoggerName(queryId, nodeId);
+    final String name = QueryLoggerUtil.queryLoggerName(contextBuilder.getQueryContext());
 
     // Then:
-    assertThat(name, equalTo("queryid.nodeid"));
+    assertThat(name, equalTo("queryid"));
   }
 }

@@ -18,7 +18,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import org.junit.Test;
 

@@ -16,6 +16,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.parser.tree.Expression;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
@@ -31,18 +32,21 @@ public class ExpressionMetadata {
   private final Schema expressionType;
   private final GenericRowValueTypeEnforcer typeEnforcer;
   private final ThreadLocal<Object[]> threadLocalParameters;
+  private final Expression expression;
 
   public ExpressionMetadata(
       final IExpressionEvaluator expressionEvaluator,
       final List<Integer> indexes,
       final List<Kudf> udfs,
       final Schema expressionType,
-      final GenericRowValueTypeEnforcer typeEnforcer) {
+      final GenericRowValueTypeEnforcer typeEnforcer,
+      final Expression expression) {
     this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
     this.indexes = Collections.unmodifiableList(Objects.requireNonNull(indexes, "indexes"));
     this.udfs = Collections.unmodifiableList(Objects.requireNonNull(udfs, "udfs"));
     this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
     this.typeEnforcer = Objects.requireNonNull(typeEnforcer, "typeEnforcer");
+    this.expression = Objects.requireNonNull(expression, "expression");
     this.threadLocalParameters = ThreadLocal.withInitial(() -> new Object[indexes.size()]);
   }
 
@@ -58,11 +62,15 @@ public class ExpressionMetadata {
     return expressionType;
   }
 
+  public Expression getExpression() {
+    return expression;
+  }
+
   public Object evaluate(final GenericRow row) {
     try {
       return expressionEvaluator.evaluate(getParameters(row));
     } catch (InvocationTargetException e) {
-      throw new KsqlException(e.getMessage(), e);
+      throw new KsqlException(e.getCause().getMessage(), e.getCause());
     }
   }
 

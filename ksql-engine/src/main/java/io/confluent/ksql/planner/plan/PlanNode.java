@@ -22,6 +22,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -69,6 +70,10 @@ public abstract class PlanNode {
       return this.getSources().get(0).getTheSourceNode();
     }
     return null;
+  }
+
+  QueryContext.Builder buildNodeContext(final QueryId queryId) {
+    return new QueryContext.Builder(queryId).push(id.toString());
   }
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);

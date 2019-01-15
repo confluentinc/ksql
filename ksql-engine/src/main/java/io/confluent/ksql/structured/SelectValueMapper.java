@@ -14,10 +14,14 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +32,19 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
 
   private final List<String> selectFieldNames;
   private final List<ExpressionMetadata> expressionEvaluators;
+  private final Schema schema;
+  private final StructuredLogger processingLogger;
 
   SelectValueMapper(
       final List<String> selectFieldNames,
-      final List<ExpressionMetadata> expressionEvaluators
+      final List<ExpressionMetadata> expressionEvaluators,
+      final Schema schema,
+      final StructuredLogger processingLogger
   ) {
-    this.selectFieldNames = selectFieldNames;
-    this.expressionEvaluators = expressionEvaluators;
+    this.selectFieldNames = Objects.requireNonNull(selectFieldNames);
+    this.expressionEvaluators = Objects.requireNonNull(expressionEvaluators);
+    this.schema = Objects.requireNonNull(schema);
+    this.processingLogger = Objects.requireNonNull(processingLogger);
 
     if (selectFieldNames.size() != expressionEvaluators.size()) {
       throw new IllegalArgumentException("must have field names for all expressions");
@@ -60,8 +70,15 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
           .get(column)
           .evaluate(row);
     } catch (final Exception e) {
-      LOG.error(String.format("Error calculating column with index %d : %s",
-          column, selectFieldNames.get(column)), e);
+      final String errorMsg = String.format(
+          "Error computing expression %s for column %s with index %d: %s",
+          expressionEvaluators.get(column).getExpression(),
+          selectFieldNames.get(column),
+          column,
+          e.getMessage());
+      processingLogger.error(
+          EngineProcessingLogMessageFactory.recordProcessingError(errorMsg, schema, row));
+      LOG.error(errorMsg, e);
       return null;
     }
   }

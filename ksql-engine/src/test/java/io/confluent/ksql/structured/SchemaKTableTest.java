@@ -28,6 +28,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -67,6 +68,8 @@ import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
+import org.easymock.Mock;
+import org.easymock.MockType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -92,7 +95,6 @@ public class SchemaKTableTest {
   private SchemaKTable firstSchemaKTable;
   private SchemaKTable secondSchemaKTable;
   private Schema joinSchema;
-
 
   @Before
   public void init() {
@@ -152,8 +154,11 @@ public class SchemaKTableTest {
 
   private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return topic.getKsqlTopicSerDe().getGenericRowSerde(
-        schema, new KsqlConfig(Collections.emptyMap()), false,
-        MockSchemaRegistryClient::new);
+        schema,
+        new KsqlConfig(Collections.emptyMap()),
+        false,
+        MockSchemaRegistryClient::new,
+        "test");
   }
 
   @Test
@@ -290,7 +295,7 @@ public class SchemaKTableTest {
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, () -> null);
+        initialSchemaKTable.getSchema(), null, false, () -> null, "test");
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde, groupByExpressions, GROUP_OP_NAME);
@@ -354,7 +359,11 @@ public class SchemaKTableTest {
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final Serde<GenericRow> rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, () -> null);
+        initialSchemaKTable.getSchema(),
+        null,
+        false,
+        () -> null,
+        "test");
 
     // Call groupBy and extract the captured mapper
     initialSchemaKTable.groupBy(rowSerde, groupByExpressions, GROUP_OP_NAME);

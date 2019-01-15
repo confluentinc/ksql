@@ -199,4 +199,14 @@ public class InternalFunctionRegistryTest {
     expectedException.expectMessage("'foo_bar'");
     functionRegistry.getUdfFactory("foo_bar");
   }
+
+  @Test
+  public void shouldHaveAllInitializedFunctionsNamesInUppercase() {
+    for (UdfFactory udfFactory : functionRegistry.listFunctions()) {
+      String actual = udfFactory.getName();
+      String expected = actual.toUpperCase();
+
+      assertThat("UDF name must registered in uppercase", actual, equalTo(expected));
+    }
+  }
 }

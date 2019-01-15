@@ -40,5 +40,6 @@ public abstract class KsqlTopicSerDe {
       Schema schemaMaybeWithSource,
       KsqlConfig ksqlConfig,
       boolean isInternal,
-      Supplier<SchemaRegistryClient> schemaRegistryClientFactory);
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      String loggerNamePrefix);
 }

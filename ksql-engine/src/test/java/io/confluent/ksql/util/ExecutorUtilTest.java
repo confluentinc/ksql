@@ -14,9 +14,12 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ON_RETRYABLE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.time.Duration;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,89 +30,111 @@ import org.junit.rules.ExpectedException;
 
 public class ExecutorUtilTest {
 
+  private static final Duration SMALL_RETRY_BACKOFF = Duration.ofMillis(1);
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldRetryAndEventuallyThrowIfNeverSucceeds() throws Exception {
+    // Given:
+    final Callable<Object> neverSucceeds = () -> {
+      throw new ExecutionException(new TestRetriableException("I will never succeed"));
+    };
+
+    // Expect:
     expectedException.expect(ExecutionException.class);
     expectedException.expectMessage("I will never succeed");
-    ExecutorUtil.executeWithRetries(() -> {
-          throw new ExecutionException(new TestRetriableException("I will never succeed"));
-          },
-        ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+
+    // When:
+    ExecutorUtil.executeWithRetries(neverSucceeds, ON_RETRYABLE, () -> SMALL_RETRY_BACKOFF);
   }
 
   @Test
   public void shouldRetryAndSucceed() throws Exception {
+    // Given:
     final AtomicInteger counts = new AtomicInteger(5);
-    ExecutorUtil.executeWithRetries(() -> {
+    final Callable<Object> eventuallySucceeds = () -> {
       if (counts.decrementAndGet() == 0) {
         return null;
       }
       throw new TestRetriableException("I will never succeed");
-    },
-    ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    };
+
+    // When:
+    ExecutorUtil.executeWithRetries(eventuallySucceeds, ON_RETRYABLE, () -> SMALL_RETRY_BACKOFF);
+
+    // Then: Succeeded, i.e. did not throw.
   }
 
   @Test
   public void shouldReturnValue() throws Exception {
+    // Given:
     final String expectedValue = "should return this";
-    assertThat(ExecutorUtil.executeWithRetries(
-        () -> expectedValue,
-        ExecutorUtil.RetryBehaviour.ON_RETRYABLE),
-        is(expectedValue));
+
+    // When:
+    final String result = ExecutorUtil.executeWithRetries(() -> expectedValue, ON_RETRYABLE);
+
+    // Then:
+    assertThat(result, is(expectedValue));
   }
 
   @Test
-  public void shouldNotRetryOnNonRetryableException() throws Exception {
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("First non-retry exception");
+  public void shouldNotRetryOnNonRetriableException() throws Exception {
+    // Expect
     final AtomicBoolean firstCall = new AtomicBoolean(true);
-    ExecutorUtil.executeWithRetries(() -> {
+    final Callable<Object> throwsException = () -> {
       if (firstCall.get()) {
         firstCall.set(false);
         throw new RuntimeException("First non-retry exception");
       } else {
         throw new RuntimeException("Test should not retry");
       }
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    };
+
+    // Expect:
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("First non-retry exception");
+
+    // When:
+    ExecutorUtil.executeWithRetries(throwsException, ON_RETRYABLE);
   }
 
   @Test
-  public void shouldNotRetryIfSupplierThrowsNonRetryableException() throws Exception {
-    expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("First non-retry exception");
+  public void shouldNotRetryIfSupplierThrowsNonRetriableException() throws Exception {
+    // Given:
     final AtomicBoolean firstCall = new AtomicBoolean(true);
-    ExecutorUtil.executeWithRetries(() -> {
+    final Callable<Object> throwsNonRetriable = () -> {
       if (firstCall.get()) {
         firstCall.set(false);
         throw new RuntimeException("First non-retry exception");
       }
       throw new RuntimeException("Test should not retry");
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    };
+
+    // Expect:
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("First non-retry exception");
+
+    // When:
+    ExecutorUtil.executeWithRetries(throwsNonRetriable, ON_RETRYABLE);
   }
 
   @Test
-  public void shouldRetryIfSupplierThrowsRetryableException() throws Exception {
+  public void shouldRetryIfSupplierThrowsExecutionExceptionWrapingRetriable() throws Exception {
+    // Given:
     final AtomicInteger counts = new AtomicInteger(5);
-    ExecutorUtil.executeWithRetries(() -> {
-      if (counts.decrementAndGet() == 0) {
-        return null;
-      }
-      throw new TestRetriableException("Test should retry");
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
-  }
-
-  @Test
-  public void shouldRetryIfSupplierThrowsExecutionException() throws Exception {
-    final AtomicInteger counts = new AtomicInteger(5);
-    ExecutorUtil.executeWithRetries(() -> {
+    final Callable<Object> throwsExecutionExceptionThenSucceeds = () -> {
       if (counts.decrementAndGet() == 0) {
         return null;
       }
       throw new ExecutionException(new TestRetriableException("Test should retry"));
-    }, ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    };
+
+    // When:
+    ExecutorUtil.executeWithRetries(throwsExecutionExceptionThenSucceeds, ON_RETRYABLE, () -> SMALL_RETRY_BACKOFF);
+
+    // Then: Succeeded, i.e. did not throw.
   }
 
   private static final class TestRetriableException extends RetriableException {
@@ -117,5 +142,4 @@ public class ExecutorUtilTest {
       super(msg);
     }
   }
-
 }

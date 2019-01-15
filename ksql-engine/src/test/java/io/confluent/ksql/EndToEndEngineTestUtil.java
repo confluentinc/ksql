@@ -648,7 +648,7 @@ final class EndToEndEngineTestUtil {
     testCase.initializeTopics(serviceContext);
     testCase.statements().forEach(
         q -> queries.addAll(
-            ksqlEngine.execute(q, ksqlConfig, testCase.properties()))
+            KsqlEngineTestUtil.execute(ksqlEngine, q, ksqlConfig, testCase.properties()))
     );
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return queries.get(queries.size() - 1);

@@ -36,6 +36,7 @@ import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -101,9 +102,15 @@ public class QueryDescriptionTest {
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
-        final Map<String, Object> props
+        final Map<String, Object> props,
+        final QueryId queryId
     ) {
       return null;
+    }
+
+    @Override
+    public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
+      return new QueryId("fake");
     }
   }
 

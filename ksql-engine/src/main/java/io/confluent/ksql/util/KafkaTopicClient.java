@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -85,6 +86,16 @@ public interface KafkaTopicClient {
    * @return map of topic name to description.
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
+
+  /**
+   * Synchronous call to get a one topic's description.
+   *
+   * @param topicName topicName to describe
+   * @return the description if the topic exists, or else {@code Optional.empty()}
+   */
+  default TopicDescription describeTopic(String topicName) {
+    return describeTopics(ImmutableList.of(topicName)).get(topicName);
+  }
 
   /**
    * Synchronous call to get the config of a topic.

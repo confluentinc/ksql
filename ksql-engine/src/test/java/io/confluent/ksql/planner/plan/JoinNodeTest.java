@@ -195,11 +195,8 @@ public class JoinNodeTest {
                 p -> new TopicPartitionInfo(p, node, Collections.emptyList(),
                     Collections.emptyList()))
             .collect(Collectors.toList());
-    expect(mockKafkaTopicClient.describeTopics(Collections.singletonList("test1")))
-        .andReturn(
-            Collections.singletonMap(
-                "test1",
-                new TopicDescription("test1", false, streamPartitionInfoList)));
+    expect(mockKafkaTopicClient.describeTopic("test1"))
+        .andReturn(new TopicDescription("test1", false, streamPartitionInfoList));
 
     final List<TopicPartitionInfo> tablePartitionInfoList =
         IntStream.range(0, tablePartitions)
@@ -207,11 +204,9 @@ public class JoinNodeTest {
                 p -> new TopicPartitionInfo(p, node, Collections.emptyList(),
                     Collections.emptyList()))
             .collect(Collectors.toList());
-    expect(mockKafkaTopicClient.describeTopics(Collections.singletonList("test2")))
-        .andReturn(
-            Collections.singletonMap(
-                "test2",
-                new TopicDescription("test2", false, tablePartitionInfoList)));
+    expect(mockKafkaTopicClient.describeTopic("test2"))
+        .andReturn(new TopicDescription("test2", false, tablePartitionInfoList));
+
     replay(mockKafkaTopicClient);
   }
 

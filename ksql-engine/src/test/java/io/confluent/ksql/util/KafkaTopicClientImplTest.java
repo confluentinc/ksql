@@ -104,12 +104,13 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldCreateTopic() {
-    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.describeTopics(Collections.singletonList("test")))
+        .andReturn(getDescribeTopicsResult());
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     replay(adminClient);
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic("test", 1, (short) 1);
+    kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
     verify(adminClient);
   }
 

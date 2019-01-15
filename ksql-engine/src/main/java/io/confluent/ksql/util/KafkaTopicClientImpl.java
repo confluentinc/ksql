@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
@@ -126,8 +127,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return ExecutorUtil.executeWithRetries(
           () -> adminClient.describeTopics(topicNames).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    } catch (final ExecutionException e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
     } catch (final Exception e) {
-      throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics " + topicNames, e);
+      throw new KafkaResponseGetFailedException(
+          "Failed to Describe Kafka Topic(s): " + topicNames, e);
     }
   }
 
@@ -266,38 +271,60 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
-  private boolean isInternalTopic(final String topicName, final String applicationId) {
+  private static boolean isInternalTopic(final String topicName, final String applicationId) {
     return topicName.startsWith(applicationId + "-")
         && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
         || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
   }
 
-  private void validateTopicProperties(final String topic,
-      final int numPartitions,
-      final short replicationFactor) {
-    final Map<String, TopicDescription> topicDescriptions =
-        describeTopics(Collections.singletonList(topic));
-    final TopicDescription topicDescription = topicDescriptions.get(topic);
-    if (topicDescription.partitions().size() != numPartitions
-        || topicDescription.partitions().get(0).replicas().size() < replicationFactor) {
+  private void validateTopicProperties(
+      final String topic,
+      final int requiredNumPartition,
+      final int requiredNumReplicas
+  ) {
+    final TopicDescription existingTopic = describeTopic(topic);
+    validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
+  }
+
+  public static void validateTopicProperties(
+      final int requiredNumPartition,
+      final int requiredNumReplicas,
+      final TopicDescription existingTopic
+  ) {
+    final int actualNumPartitions = existingTopic.partitions().size();
+    final int actualNumReplicas = existingTopic.partitions().get(0).replicas().size();
+
+    validateTopicProperties(
+        existingTopic.name(), requiredNumPartition, requiredNumReplicas, actualNumPartitions,
+        actualNumReplicas);
+  }
+
+  static void validateTopicProperties(
+      final String topicName,
+      final int requiredNumPartition,
+      final int requiredNumReplicas,
+      final int actualNumPartitions,
+      final int actualNumReplicas
+  ) {
+    if (actualNumPartitions != requiredNumPartition || actualNumReplicas < requiredNumReplicas) {
       throw new KafkaTopicException(String.format(
           "A Kafka topic with the name '%s' already exists, with different partition/replica "
               + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
               + "replication factor (topic has %d).",
-          topic,
-          numPartitions,
-          topicDescription.partitions().size(),
-          replicationFactor,
-          topicDescription.partitions().get(0).replicas().size()
+          topicName,
+          requiredNumPartition,
+          actualNumPartitions,
+          requiredNumReplicas,
+          actualNumReplicas
       ));
     }
-    // Topic with the partitions and replicas exists, reuse it!
+
     log.debug(
         "Did not create topic {} with {} partitions and replication-factor {} since it already "
             + "exists",
-        topic,
-        numPartitions,
-        replicationFactor
+        topicName,
+        requiredNumPartition,
+        requiredNumReplicas
     );
   }
 

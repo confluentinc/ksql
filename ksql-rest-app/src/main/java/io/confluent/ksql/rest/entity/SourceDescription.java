@@ -24,13 +24,10 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.connect.data.Field;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -130,11 +127,13 @@ public class SourceDescription {
   }
 
   private static int getPartitions(
-      final KafkaTopicClient topicClient, final String kafkaTopicName) {
-    final Map<String, TopicDescription> stringTopicDescriptionMap =
-        topicClient.describeTopics(Arrays.asList(kafkaTopicName));
-    final TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
-    return topicDescription.partitions().size();
+      final KafkaTopicClient topicClient,
+      final String kafkaTopicName
+  ) {
+    return topicClient
+        .describeTopic(kafkaTopicName)
+        .partitions()
+        .size();
   }
 
   public int getPartitions() {
@@ -142,11 +141,14 @@ public class SourceDescription {
   }
 
   private static int getReplication(
-      final KafkaTopicClient topicClient, final String kafkaTopicName) {
-    final Map<String, TopicDescription> stringTopicDescriptionMap =
-        topicClient.describeTopics(Arrays.asList(kafkaTopicName));
-    final TopicDescription topicDescription = stringTopicDescriptionMap.values().iterator().next();
-    return topicDescription.partitions().iterator().next().replicas().size();
+      final KafkaTopicClient topicClient,
+      final String kafkaTopicName
+  ) {
+    return topicClient
+        .describeTopic(kafkaTopicName)
+        .partitions().iterator().next()
+        .replicas()
+        .size();
   }
 
   public int getReplication() {

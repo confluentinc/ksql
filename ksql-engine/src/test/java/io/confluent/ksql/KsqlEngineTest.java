@@ -39,6 +39,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -333,12 +334,10 @@ public class KsqlEngineTest {
   public void shouldEnforceTopicExistenceCorrectly() {
     serviceContext.getTopicClient().createTopic("s1_topic", 1, (short) 1);
 
-    final String runScriptContent = "CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
-        + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
-        + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
-        + "S1 GROUP BY COL1;\n"
-        + "CREATE STREAM S2 (C1 BIGINT, C2 BIGINT) "
-        + "WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
+    final String runScriptContent =
+        "CREATE STREAM S1 (COL1 BIGINT) WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
+        + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM S1 GROUP BY COL1;\n"
+        + "CREATE STREAM S2 (C1 BIGINT) WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
 
     KsqlEngineTestUtil.execute(ksqlEngine, runScriptContent, KSQL_CONFIG, Collections.emptyMap());
     Assert.assertTrue(serviceContext.getTopicClient().isTopicExists("T1"));
@@ -356,6 +355,116 @@ public class KsqlEngineTest {
     final List<?> parsedStatements = ksqlEngine.parseStatements(runScriptContent);
 
     assertThat(parsedStatements.size(), equalTo(3));
+  }
+
+  @Test
+  public void shouldThrowFromTryExecuteIfSourceTopicDoesNotExist() {
+    // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM S1 (COL1 BIGINT) "
+            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Kafka topic does not exist: i_do_not_exist"));
+
+    // When:
+    ksqlEngine.tryExecute(statements, KSQL_CONFIG, new HashMap<>());
+  }
+
+  @Test
+  public void shouldThrowFromExecuteIfSourceTopicDoesNotExist() {
+    // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM S1 (COL1 BIGINT) "
+            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Kafka topic does not exist: i_do_not_exist"));
+
+    // When:
+    ksqlEngine.execute(statements.get(0), KSQL_CONFIG, new HashMap<>());
+  }
+
+  @Test
+  public void shouldThrowFromTryExecuteIfSinkTopicExistsWithWrongPartitionCount() {
+    // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
+            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
+
+    serviceContext.getTopicClient().createTopic("source", 1, (short) 1);
+    serviceContext.getTopicClient().createTopic("sink", 2, (short) 1);
+
+    // Expect:
+    expectedException.expect(KafkaTopicException.class);
+    expectedException.expectMessage("A Kafka topic with the name 'sink' already exists, "
+        + "with different partition/replica configuration than required");
+
+    // When:
+    ksqlEngine.tryExecute(statements, KSQL_CONFIG, new HashMap<>());
+  }
+
+  @Test
+  public void shouldThrowFromExecuteIfSinkTopicExistsWithWrongPartitionCount() {
+    // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
+            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
+
+    serviceContext.getTopicClient().createTopic("source", 1, (short) 1);
+    serviceContext.getTopicClient().createTopic("sink", 2, (short) 1);
+
+    ksqlEngine.execute(statements.get(0), KSQL_CONFIG, new HashMap<>());
+
+    // Expect:
+    expectedException.expect(KafkaTopicException.class);
+    expectedException.expectMessage("A Kafka topic with the name 'sink' already exists, "
+        + "with different partition/replica configuration than required");
+
+    // When:
+    ksqlEngine.execute(statements.get(1), KSQL_CONFIG, new HashMap<>());
+  }
+
+  @Test
+  public void shouldThrowFromTryExecuteIfSinkTopicExistsWithWrongReplicaCount() {
+    // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
+            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
+
+    serviceContext.getTopicClient().createTopic("source", 1, (short) 3);
+    serviceContext.getTopicClient().createTopic("sink", 1, (short) 2);
+
+    // Expect:
+    expectedException.expect(KafkaTopicException.class);
+    expectedException.expectMessage("A Kafka topic with the name 'sink' already exists, "
+        + "with different partition/replica configuration than required");
+
+    // When:
+    ksqlEngine.tryExecute(statements, KSQL_CONFIG, new HashMap<>());
+  }
+
+  @Test
+  public void shouldThrowFromExecuteIfSinkTopicExistsWithWrongReplicaCount() {
+    // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
+            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
+
+    serviceContext.getTopicClient().createTopic("source", 1, (short) 3);
+    serviceContext.getTopicClient().createTopic("sink", 1, (short) 2);
+
+    ksqlEngine.execute(statements.get(0), KSQL_CONFIG, new HashMap<>());
+
+    // Expect:
+    expectedException.expect(KafkaTopicException.class);
+    expectedException.expectMessage("A Kafka topic with the name 'sink' already exists, "
+        + "with different partition/replica configuration than required");
+
+    // When:
+    ksqlEngine.execute(statements.get(1), KSQL_CONFIG, new HashMap<>());
   }
 
   @Test
@@ -693,7 +802,7 @@ public class KsqlEngineTest {
     final String statementsString = new String(Files.readAllBytes(
         Paths.get("src/test/resources/SampleMultilineStatements.sql")), "UTF-8");
 
-    givenTopicsExist("pageviews", "users", "pageviews_enriched_r8_r9");
+    givenTopicsExist("pageviews", "users");
 
     // When:
     final List<QueryMetadata> queries =
@@ -800,21 +909,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldThrowFromTryExecuteIfTopicDoesNotExist() {
-    // Given:
-    final List<PreparedStatement<?>> statements = parse(
-        "CREATE STREAM S1 (COL1 BIGINT) "
-            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');");
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Kafka topic does not exist: i_do_not_exist"));
-
-    // When:
-    ksqlEngine.tryExecute(statements, KSQL_CONFIG, new HashMap<>());
-  }
-
-  @Test
   public void shouldNotUpdateMetaStoreDuringTryExecute() {
     // Given:
     final long numberOfLiveQueries = ksqlEngine.numberOfLiveQueries();
@@ -893,8 +987,12 @@ public class KsqlEngineTest {
   }
 
   private void givenTopicsExist(final String... topics) {
+    givenTopicsExist(1, topics);
+  }
+
+  private void givenTopicsExist(final int partitionCount, final String... topics) {
     Arrays.stream(topics)
-        .forEach(topic -> topicClient.createTopic(topic, 1, (short) 1));
+        .forEach(topic -> topicClient.createTopic(topic, partitionCount, (short) 1));
   }
 
   private List<PreparedStatement<?>> parse(final String sql) {
@@ -903,7 +1001,7 @@ public class KsqlEngineTest {
 
   private void givenTopicWithSchema(final String topicName, final Schema schema) {
     try {
-      givenTopicsExist(topicName);
+      givenTopicsExist(4, topicName);
       schemaRegistryClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
     } catch (final Exception e) {
       fail("invalid test:" + e.getMessage());

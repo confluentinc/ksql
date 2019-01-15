@@ -18,7 +18,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
@@ -143,7 +142,7 @@ public class JsonFormatTest {
   }
 
   //@Test
-  public void testSelectDateTimeUDFs() throws Exception {
+  public void testSelectDateTimeUDFs() {
     final String streamName = "SelectDateTimeUDFsStream".toUpperCase();
 
     final String selectColumns =
@@ -192,7 +191,7 @@ public class JsonFormatTest {
     );
 
     assertThat(
-        topicClient.describeTopics(ImmutableList.of(streamName)).get(streamName).partitions(),
+        topicClient.describeTopic(streamName).partitions(),
         hasSize(3));
     assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.DELETE));

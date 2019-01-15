@@ -15,6 +15,7 @@
 package io.confluent.ksql.services;
 
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClientImpl;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,6 +53,11 @@ class TryKafkaTopicClient implements KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
+    if (isTopicExists(topic)) {
+      validateTopicProperties(topic, numPartitions, replicationFactor);
+      return;
+    }
+
     final List<Node> replicas = IntStream.range(0, replicationFactor)
         .mapToObj(idx -> (Node) null)
         .collect(Collectors.toList());
@@ -128,5 +134,15 @@ class TryKafkaTopicClient implements KafkaTopicClient {
   @Override
   public void deleteInternalTopics(final String applicationId) {
     throw new UnsupportedOperationException();
+  }
+
+  private void validateTopicProperties(
+      final String topic,
+      final int requiredNumPartition,
+      final int requiredNumReplicas
+  ) {
+    final TopicDescription existingTopic = describeTopic(topic);
+    KafkaTopicClientImpl
+        .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
   }
 }

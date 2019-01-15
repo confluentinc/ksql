@@ -23,24 +23,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
  */
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
-  static class FakeTopic {
+  private static class FakeTopic {
     private final String topicName;
     private final int numPartitions;
     private final short replicatonFactor;
     private final TopicCleanupPolicy cleanupPolicy;
 
-    public FakeTopic(final String topicName,
+    private FakeTopic(final String topicName,
                      final int numPartitions,
                      final short replicatonFactor,
                      final TopicCleanupPolicy cleanupPolicy) {
@@ -50,29 +52,19 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       this.cleanupPolicy = cleanupPolicy;
     }
 
-    public String getTopicName() {
-      return topicName;
-    }
-
-    public int getNumPartitions() {
-      return numPartitions;
-    }
-
-    public short getReplicatonFactor() {
-      return replicatonFactor;
-    }
-
-    public TopicDescription getDescription() {
+    private TopicDescription getDescription() {
       final Node node = new Node(0, "localhost", 9091);
+
+      final List<Node> replicas = IntStream.range(0, replicatonFactor)
+          .mapToObj(idx -> (Node) null)
+          .collect(Collectors.toList());
+
       final List<TopicPartitionInfo> partitionInfoList =
           IntStream.range(0, numPartitions)
               .mapToObj(
-                  p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
+                  p -> new TopicPartitionInfo(p, node, replicas, Collections.emptyList()))
               .collect(Collectors.toList());
       return new TopicDescription(topicName, false, partitionInfoList);
-    }
-    public TopicCleanupPolicy getCleanupPolicy() {
-      return cleanupPolicy;
     }
   }
 
@@ -88,8 +80,15 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public void createTopic(final String topic, final int numPartitions, final short replicationFactor, final Map<String, ?> configs) {
-    if (topicMap.containsKey(topic)) {
+  public void createTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor,
+      final Map<String, ?> configs
+  ) {
+    final FakeTopic existing = topicMap.get(topic);
+    if (existing != null) {
+      validateTopicProperties(numPartitions, replicationFactor, existing);
       return;
     }
 
@@ -122,11 +121,18 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
-    return listTopicNames()
-        .stream()
-        .filter(topicNames::contains)
-        .collect(
-            Collectors.toMap(n -> n, n -> topicMap.get(n).getDescription()));
+    return topicNames.stream()
+        .collect(Collectors.toMap(Function.identity(), this::describeTopic));
+  }
+
+  @Override
+  public TopicDescription describeTopic(final String topicName) {
+    final FakeTopic fakeTopic = topicMap.get(topicName);
+    if (fakeTopic == null) {
+      throw new UnknownTopicOrPartitionException("unknown topic: " + topicName);
+    }
+
+    return fakeTopic.getDescription();
   }
 
   @Override
@@ -163,5 +169,18 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
             : TopicCleanupPolicy.DELETE;
 
     return new FakeTopic(topic, numPartitions, replicationFactor, cleanUpPolicy);
+  }
+
+  private static void validateTopicProperties(
+      final int requiredNumPartition,
+      final int requiredNumReplicas,
+      final FakeTopic existing
+  ) {
+    KafkaTopicClientImpl.validateTopicProperties(
+        existing.topicName,
+        requiredNumPartition,
+        requiredNumReplicas,
+        existing.numPartitions,
+        existing.replicatonFactor);
   }
 }

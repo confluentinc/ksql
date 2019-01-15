@@ -17,8 +17,15 @@ package io.confluent.ksql;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryMetadata;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class KsqlEngineTestUtil {
+
   private KsqlEngineTestUtil() {
   }
 
@@ -45,5 +52,18 @@ public final class KsqlEngineTestUtil {
         metaStore,
         ignored -> engineMetrics
     );
+  }
+
+  public static List<QueryMetadata> execute(
+      final KsqlEngine engine,
+      final String sql,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties
+  ) {
+    return engine.parseStatements(sql).stream()
+        .map(stmt -> engine.execute(stmt, ksqlConfig, overriddenProperties))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toList());
   }
 }

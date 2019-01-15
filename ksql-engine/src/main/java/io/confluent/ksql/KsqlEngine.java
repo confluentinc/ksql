@@ -162,8 +162,8 @@ public class KsqlEngine implements Closeable {
     return persistentQueries.size();
   }
 
-  public PersistentQueryMetadata getPersistentQuery(final QueryId queryId) {
-    return persistentQueries.get(queryId);
+  public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
+    return Optional.ofNullable(persistentQueries.get(queryId));
   }
 
   public List<PersistentQueryMetadata> getPersistentQueries() {
@@ -190,15 +190,6 @@ public class KsqlEngine implements Closeable {
 
   public String getServiceId() {
     return serviceId;
-  }
-
-  public boolean terminateQuery(final QueryId queryId) {
-    final PersistentQueryMetadata persistentQueryMetadata = persistentQueries.remove(queryId);
-    if (persistentQueryMetadata == null) {
-      return false;
-    }
-    persistentQueryMetadata.close();
-    return true;
   }
 
   /**
@@ -266,30 +257,27 @@ public class KsqlEngine implements Closeable {
   }
 
   /**
-   * Execute the supplied SQL, updating the meta store and registering the queries.
+   * Execute the supplied statement, updating the meta store and registering any query.
    *
-   * <p>Statements must be executable. See {@link #isExecutableStatement(PreparedStatement)}.
+   * <p>The statement must be executable. See {@link #isExecutableStatement(PreparedStatement)}.
    *
-   * <p>If the SQL contains queries, they are added to the list of the engines active queries,
-   * but not started.
+   * <p>If the statement contains a query, then it will be tracked by the engine, but not started.
    *
-   * @param sql The SQL to execute
-   * @param overriddenProperties The user-requested property overrides
+   * @param statement The SQL to execute.
+   * @param overriddenProperties The user-requested property overrides.
    * @return List of query metadata.
    */
-  public List<QueryMetadata> execute(
-      final String sql,
+  public Optional<QueryMetadata> execute(
+      final PreparedStatement<?> statement,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    final List<PreparedStatement<?>> statements = parseStatements(sql);
-
     final List<QueryMetadata> queries = doExecute(
-        statements, ksqlConfig, overriddenProperties, true);
+        Collections.singletonList(statement), ksqlConfig, overriddenProperties, true);
 
     registerQueries(queries);
 
-    return queries;
+    return queries.isEmpty() ? Optional.empty() : Optional.of(queries.get(0));
   }
 
   @Override
@@ -366,38 +354,44 @@ public class KsqlEngine implements Closeable {
     );
 
     final Builder<QueryMetadata> queries = ImmutableList.builderWithExpectedSize(statements.size());
-    final Map<PreparedStatement<?>, QueryMetadata> queriesByStatement =
-        new IdentityHashMap<>(statements.size());
 
-    for (int i = 0; i != logicalPlans.size(); ++i) {
-      final PreparedStatement<?> statement = postProcessed.get(i);
-      final LogicalPlanNode logicalPlan = logicalPlans.get(i);
-      if (logicalPlan.getNode() == null) {
-        if (updateMetastore) {
-          doExecuteDdlStatement(
-              statement.getStatementText(),
-              (ExecutableDdlStatement) statement.getStatement(),
-              overriddenProperties
+    try {
+      final Map<PreparedStatement<?>, QueryMetadata> queriesByStatement =
+          new IdentityHashMap<>(statements.size());
+
+      for (int i = 0; i != logicalPlans.size(); ++i) {
+        final PreparedStatement<?> statement = postProcessed.get(i);
+        final LogicalPlanNode logicalPlan = logicalPlans.get(i);
+        if (logicalPlan.getNode() == null) {
+          if (updateMetastore) {
+            doExecuteDdlStatement(
+                statement.getStatementText(),
+                (ExecutableDdlStatement) statement.getStatement(),
+                overriddenProperties
+            );
+          }
+        } else {
+          final QueryMetadata query = queryEngine.buildPhysicalPlan(
+              logicalPlan,
+              ksqlConfig,
+              overriddenProperties,
+              serviceContext.getKafkaClientSupplier(),
+              updateMetastore ? metaStore : tempMetaStore,
+              updateMetastore
           );
+
+          queries.add(query);
+          queriesByStatement.put(statements.get(i), query);
         }
-      } else {
-        final QueryMetadata query = queryEngine.buildPhysicalPlan(
-            logicalPlan,
-            ksqlConfig,
-            overriddenProperties,
-            serviceContext.getKafkaClientSupplier(),
-            updateMetastore ? metaStore : tempMetaStore,
-            updateMetastore
-        );
-
-        queries.add(query);
-        queriesByStatement.put(statements.get(i), query);
       }
+
+      validateQueries(queriesByStatement);
+
+      return queries.build();
+    } catch (final Exception e) {
+      queries.build().forEach(QueryMetadata::close);
+      throw e;
     }
-
-    validateQueries(queriesByStatement);
-
-    return queries.build();
   }
 
   private void validateQueries(final Map<PreparedStatement<?>, QueryMetadata> queries) {

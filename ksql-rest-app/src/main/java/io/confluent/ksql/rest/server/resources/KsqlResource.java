@@ -515,12 +515,10 @@ public class KsqlResource {
   }
 
   private QueryDescription explainQuery(final String queryId) {
-    final PersistentQueryMetadata metadata = ksqlEngine.getPersistentQuery(new QueryId(queryId));
-    if (metadata == null) {
-      throw new KsqlException(
-          "Query with id:" + queryId + " does not exist, "
-              + "use SHOW QUERIES to view the full set of queries.");
-    }
+    final PersistentQueryMetadata metadata = ksqlEngine.getPersistentQuery(new QueryId(queryId))
+        .orElseThrow(() -> new KsqlException(
+            "Query with id:" + queryId + " does not exist, "
+                + "use SHOW QUERIES to view the full set of queries."));
 
     return QueryDescription.forQueryMetadata(metadata);
   }

@@ -210,6 +210,11 @@
                 <version>${confluent.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>common-utils</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
             <!-- End Confluent dependencies -->
 
             <dependency>

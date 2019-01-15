@@ -31,6 +31,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
   private final AtomicBoolean isRunning = new AtomicBoolean(true);
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public QueuedQueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
@@ -40,12 +41,22 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final DataSource.DataSourceType dataSourceType,
       final String queryApplicationId,
       final Topology topology,
+      final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback
-  ) {
-    super(statementString, kafkaStreams, outputNode, executionPlan, dataSourceType,
-          queryApplicationId, topology, overriddenProperties, closeCallback);
-    this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
+      final Consumer<QueryMetadata> closeCallback) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+    super(
+        statementString,
+        kafkaStreams,
+        outputNode,
+        executionPlan,
+        dataSourceType,
+        queryApplicationId,
+        topology,
+        streamsProperties,
+        overriddenProperties,
+        closeCallback);
+    this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue"); 
   }
 
   public boolean isRunning() {

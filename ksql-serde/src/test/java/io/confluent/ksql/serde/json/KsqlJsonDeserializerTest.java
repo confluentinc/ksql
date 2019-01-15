@@ -15,30 +15,47 @@
 package io.confluent.ksql.serde.json;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogMessageFactory;
+import io.confluent.ksql.serde.SerdeTestUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 public class KsqlJsonDeserializerTest {
 
   private Schema orderSchema;
+  private KsqlJsonDeserializer ksqlJsonDeserializer;
   private final ObjectMapper objectMapper = new ObjectMapper();
+
+  @Mock
+  StructuredLogger recordLogger;
+
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void before() {
-
     orderSchema = SchemaBuilder.struct()
         .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
@@ -47,6 +64,10 @@ public class KsqlJsonDeserializerTest {
         .field("arraycol".toUpperCase(), SchemaBuilder.array(org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("mapcol".toUpperCase(), SchemaBuilder.map(org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA, org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .build();
+    ksqlJsonDeserializer = new KsqlJsonDeserializer(
+        orderSchema,
+        false,
+        recordLogger);
   }
 
   @Test
@@ -61,15 +82,12 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
-    final KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema, false);
-
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(6));
     assertThat(genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat(genericRow.getColumns().get(1), equalTo(1L));
     assertThat(genericRow.getColumns().get(2), equalTo("Item_1"));
     assertThat(genericRow.getColumns().get(3), equalTo(10.0));
-
   }
 
   @Test
@@ -90,7 +108,10 @@ public class KsqlJsonDeserializerTest {
         .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
         .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
         .build();
-    final KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(newOrderSchema, false);
+    final KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(
+        newOrderSchema,
+        false,
+        recordLogger);
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(4));
@@ -111,21 +132,18 @@ public class KsqlJsonDeserializerTest {
 
     final byte[] jsonBytes = objectMapper.writeValueAsBytes(orderRow);
 
-    final KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(orderSchema, false);
-
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(6));
     assertThat(genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat(genericRow.getColumns().get(1), equalTo(1L));
     assertThat(genericRow.getColumns().get(2), equalTo("Item_1"));
     assertThat(genericRow.getColumns().get(3), equalTo(10.0));
-    Assert.assertNull(genericRow.getColumns().get(4));
-    Assert.assertNull(genericRow.getColumns().get(5));
+    assertThat(genericRow.getColumns().get(4), is(nullValue()));
+    assertThat(genericRow.getColumns().get(5), is(nullValue()));
   }
 
   @Test
   public void shouldTreatNullAsNull() throws JsonProcessingException {
-    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(orderSchema, false);
     final Map<String, Object> row = new HashMap<>();
     row.put("ordertime", null);
     row.put("@orderid", null);
@@ -135,7 +153,8 @@ public class KsqlJsonDeserializerTest {
     row.put("mapCol", null);
 
     final GenericRow expected = new GenericRow(Arrays.asList(null, null, null, null, new Double[]{0.0, null}, null));
-    final GenericRow genericRow = deserializer.deserialize("", objectMapper.writeValueAsBytes(row));
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize(
+        "", objectMapper.writeValueAsBytes(row));
     assertThat(genericRow, equalTo(expected));
 
   }
@@ -145,7 +164,10 @@ public class KsqlJsonDeserializerTest {
     final Schema schema = SchemaBuilder.struct()
         .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
         .build();
-    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(schema, false);
+    final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(
+        schema,
+        false,
+        recordLogger);
 
     final GenericRow expected = new GenericRow(Collections.singletonList(
         "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
@@ -153,4 +175,21 @@ public class KsqlJsonDeserializerTest {
     assertThat(genericRow, equalTo(expected));
   }
 
+  @Test
+  public void shouldLogDeserializationErrors() {
+    // When:
+    Throwable cause = null;
+    final byte[] data = "{foo".getBytes(StandardCharsets.UTF_8);
+    try {
+      ksqlJsonDeserializer.deserialize("", data);
+      fail("deserialize should have thrown");
+    } catch (final SerializationException e) {
+      cause = e.getCause();
+    }
+
+    // Then:
+    SerdeTestUtils.shouldLogError(
+        recordLogger,
+        ProcessingLogMessageFactory.deserializationErrorMsg(cause, Optional.ofNullable(data)).get());
+  }
 }

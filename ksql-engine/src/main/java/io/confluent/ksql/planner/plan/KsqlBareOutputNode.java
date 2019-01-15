@@ -17,12 +17,16 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -45,6 +49,11 @@ public class KsqlBareOutputNode extends OutputNode {
   }
 
   @Override
+  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
+    return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
+  }
+
+  @Override
   public Field getKeyField() {
     return null;
   }
@@ -55,12 +64,15 @@ public class KsqlBareOutputNode extends OutputNode {
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props) {
-    final SchemaKStream schemaKStream = getSource().buildStream(builder,
+      final Map<String, Object> props,
+      final QueryId queryId) {
+    final SchemaKStream schemaKStream = getSource().buildStream(
+        builder,
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props);
+        props,
+        queryId);
 
     schemaKStream.setOutputNode(this);
     return schemaKStream.toQueue();

@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableList;
@@ -53,7 +54,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -97,17 +97,16 @@ public class CodeGenRunnerTest {
     public void init() {
         final KsqlFunction whenCondition = new KsqlFunction(
             Schema.OPTIONAL_BOOLEAN_SCHEMA,
-            ImmutableList.of(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA),
+            ImmutableList.of(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
             "WHENCONDITION",
             WhenCondition.class
         );
         final KsqlFunction whenResult = new KsqlFunction(
             Schema.OPTIONAL_INT32_SCHEMA,
-            ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA),
+            ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
             "WHENRESULT",
             WhenResult.class
         );
-
         functionRegistry.addFunction(whenCondition);
         functionRegistry.addFunction(whenResult);
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
@@ -483,10 +482,13 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleCaseStatement() {
         // Given:
-        WhenCondition.reset();
-        WhenResult.reset();
         final Expression expression = analyzeQuery(
-            "SELECT CASE WHEN col0 < 10 THEN 'small' WHEN col0 < 100 THEN 'medium' ELSE 'large' END FROM codegen_test;", metaStore)
+            "SELECT CASE "
+                + "     WHEN col0 < 10 THEN 'small' "
+                + "     WHEN col0 < 100 THEN 'medium' "
+                + "     ELSE 'large' "
+                + "END "
+                + "FROM codegen_test;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -502,10 +504,13 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleCaseStatementLazily() {
         // Given:
-        WhenCondition.reset();
-        WhenResult.reset();
         final Expression expression = analyzeQuery(
-            "SELECT CASE WHEN WHENCONDITION(false, 1) THEN WHENRESULT(100) WHEN WHENCONDITION(true, 2) THEN WHENRESULT(200) ELSE WHENRESULT(300) END FROM codegen_test;", metaStore)
+            "SELECT CASE "
+                + "     WHEN WHENCONDITION(true, true) THEN WHENRESULT(100, true) "
+                + "     WHEN WHENCONDITION(true, false) THEN WHENRESULT(200, false) "
+                + "     ELSE WHENRESULT(300, false) "
+                + "END "
+                + "FROM codegen_test;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -515,16 +520,19 @@ public class CodeGenRunnerTest {
             .evaluate(genericRow(ONE_ROW));
 
         // Then:
-        assertThat(result, is(200));
+        assertThat(result, is(100));
     }
 
     @Test
     public void shouldOnlyRunElseIfNoMatchInWhen() {
         // Given:
-        WhenCondition.reset();
-        WhenResult.reset();
         final Expression expression = analyzeQuery(
-            "SELECT CASE WHEN WHENCONDITION(false, 1) THEN WHENRESULT(100) WHEN WHENCONDITION(false, 2) THEN WHENRESULT(200) ELSE WHENRESULT(300) END FROM codegen_test;", metaStore)
+            "SELECT CASE "
+                + "     WHEN WHENCONDITION(false, true) THEN WHENRESULT(100, false) "
+                + "     WHEN WHENCONDITION(false, true) THEN WHENRESULT(200, false) "
+                + "     ELSE WHENRESULT(300, true) "
+                + "END "
+                + "FROM codegen_test;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -541,7 +549,11 @@ public class CodeGenRunnerTest {
     public void shouldReturnDefaultForCaseCorrectly() {
         // Given:
         final Expression expression = analyzeQuery(
-            "SELECT CASE WHEN col0 > 10 THEN 'small' ELSE 'large' END FROM codegen_test;", metaStore)
+            "SELECT CASE "
+                + "     WHEN col0 > 10 THEN 'small' "
+                + "     ELSE 'large' "
+                + "END "
+                + "FROM codegen_test;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -558,7 +570,10 @@ public class CodeGenRunnerTest {
     public void shouldReturnNullForCaseIfNoDefault() {
         // Given:
         final Expression expression = analyzeQuery(
-            "SELECT CASE WHEN col0 > 10 THEN 'small' END FROM codegen_test;", metaStore)
+            "SELECT CASE "
+                + "     WHEN col0 > 10 THEN 'small' "
+                + "END "
+                + "FROM codegen_test;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -568,7 +583,7 @@ public class CodeGenRunnerTest {
             .evaluate(genericRow(ONE_ROW));
 
         // Then:
-        Assert.assertNull(result);
+        assertThat(result, is(nullValue()));
     }
 
 
@@ -675,7 +690,7 @@ public class CodeGenRunnerTest {
         return (Boolean)result0;
     }
 
-    private GenericRow buildRow(final Map<Integer, Object> overrides) {
+    private static GenericRow buildRow(final Map<Integer, Object> overrides) {
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         overrides.forEach(columns::set);
         return genericRow(columns);
@@ -690,38 +705,25 @@ public class CodeGenRunnerTest {
     }
 
     public static final class WhenCondition implements Kudf {
-        static int counter = 0;
 
         @Override
         public Object evaluate(final Object... args) {
-            counter ++;
-            final int expectedOrder = (int) args[1];
-            if (expectedOrder != counter) {
+            final boolean shouldBeEvaluated = (boolean) args[1];
+            if (!shouldBeEvaluated) {
                 throw new KsqlException("When condition in case is not running lazily!");
             }
             return args[0];
         }
-
-        public static void reset() {
-            counter = 0;
-        }
     }
 
     public static final class WhenResult implements Kudf {
-        static int counter = 0;
-
         @Override
         public Object evaluate(final Object... args) {
-            // This should be called only once!
-            if (counter > 0) {
+            final boolean shouldBeEvaluated = (boolean) args[1];
+            if (!shouldBeEvaluated) {
                 throw new KsqlException("Then expression in case is not running lazily!");
             }
-            counter ++;
             return args[0];
-        }
-
-        public static void reset() {
-            counter = 0;
         }
     }
 }

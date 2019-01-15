@@ -315,14 +315,18 @@ final class EndToEndEngineTestUtil {
     private final String name;
     private final org.apache.avro.Schema schema;
     private final SerdeSupplier serdeSupplier;
+    private final int numPartitions;
 
     Topic(
         final String name,
         final org.apache.avro.Schema schema,
-        final SerdeSupplier serdeSupplier) {
+        final SerdeSupplier serdeSupplier,
+        final int numPartitions
+    ) {
       this.name = name;
       this.schema = schema;
       this.serdeSupplier = serdeSupplier;
+      this.numPartitions = numPartitions;
     }
 
     public String getName() {
@@ -582,7 +586,7 @@ final class EndToEndEngineTestUtil {
 
     void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
-        serviceContext.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
+        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) 1);
         if (topic.getSchema() != null) {
           try {
             serviceContext.getSchemaRegistryClient().register(

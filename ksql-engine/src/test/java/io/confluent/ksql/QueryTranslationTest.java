@@ -305,7 +305,7 @@ public class QueryTranslationTest {
       } else {
         avroSchema = null;
       }
-      return new Topic(topicName, avroSchema, getSerdeSupplier(format));
+      return new Topic(topicName, avroSchema, getSerdeSupplier(format), 1);
     };
 
     final List<Topic> topics = parser.buildAst(sql, metaStore, filter, mapper);
@@ -328,7 +328,11 @@ public class QueryTranslationTest {
 
     final SerdeSupplier serdeSupplier = getSerdeSupplier(node.get("format").asText());
 
-    return new Topic(node.get("name").asText(), schema, serdeSupplier);
+    final int numPartitions = node.has("partitions")
+        ? node.get("partitions").intValue()
+        : 1;
+
+    return new Topic(node.get("name").asText(), schema, serdeSupplier, numPartitions);
   }
 
   private static Record createRecordFromNode(final List<Topic> topics,
@@ -338,7 +342,7 @@ public class QueryTranslationTest {
     final Topic topic = topics.stream()
         .filter(t -> t.getName().equals(topicName))
         .findFirst()
-        .orElse(new Topic(topicName, null, defaultSerdeSupplier));
+        .orElse(new Topic(topicName, null, defaultSerdeSupplier, 1));
 
     final Object topicValue;
     if (node.findValue("value").asText().equals("null")) {

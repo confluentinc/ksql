@@ -23,10 +23,8 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.datagen.SessionManager;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
-import io.confluent.ksql.serde.json.KsqlJsonSerializer;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
@@ -38,6 +36,7 @@ import org.apache.avro.Schema;
 
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 
 import org.apache.kafka.connect.data.Field;
@@ -124,12 +123,15 @@ public final class SerdeBenchmark {
       byte[] bytes;
 
       @Setup(Level.Iteration)
-      public abstract void setUp(SchemaAndGenericRowState rowState);
-
-      void setUpData(final SchemaAndGenericRowState rowState) {
+      public void setUp(final SchemaAndGenericRowState rowState) {
+        final Serde<GenericRow> serde = getSerde(rowState.schema);
+        serializer = serde.serializer();
+        deserializer = serde.deserializer();
         row = rowState.row;
         bytes = serializer.serialize(topicName, row);
       }
+
+      abstract Serde<GenericRow> getSerde(org.apache.kafka.connect.data.Schema schema);
     }
   }
 
@@ -138,15 +140,12 @@ public final class SerdeBenchmark {
     public static class JsonSerdeState extends SerdeState {
 
       @Override
-      public void setUp(final SchemaAndGenericRowState rowState) {
-        serializer = new KsqlJsonSerializer(rowState.schema);
+      Serde<GenericRow> getSerde(final org.apache.kafka.connect.data.Schema schema) {
+        final Serializer<GenericRow> serializer = getJsonSerde(schema).serializer();
         // KsqlJsonDeserializer requires schema field names to be uppercase
-        deserializer = new KsqlJsonDeserializer(
-            convertFieldNamesToUppercase(rowState.schema),
-            false,
-            ProcessingLoggerFactory.getLogger("benchmarkDeserializer"));
-
-        setUpData(rowState);
+        final Deserializer<GenericRow> deserializer =
+            getJsonSerde(convertFieldNamesToUppercase(schema)).deserializer();
+        return Serdes.serdeFrom(serializer, deserializer);
       }
     }
 
@@ -168,6 +167,16 @@ public final class SerdeBenchmark {
       }
       return builder.build();
     }
+
+    private static Serde<GenericRow> getJsonSerde(
+        final org.apache.kafka.connect.data.Schema schema) {
+      return new KsqlJsonTopicSerDe().getGenericRowSerde(
+          schema,
+          new KsqlConfig(Collections.emptyMap()),
+          false,
+          () -> null,
+          "benchmark");
+    }
   }
 
   public static class AvroBenchmark extends AbstractBenchmark {
@@ -175,12 +184,14 @@ public final class SerdeBenchmark {
     public static class AvroSerdeState extends SerdeState {
 
       @Override
-      public void setUp(final SchemaAndGenericRowState rowState) {
-        final Serde<GenericRow> serde = getAvroSerde(rowState.schema);
-        serializer = serde.serializer();
-        deserializer = serde.deserializer();
-
-        setUpData(rowState);
+      Serde<GenericRow> getSerde(final org.apache.kafka.connect.data.Schema schema) {
+        final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+        return new KsqlAvroTopicSerDe("benchmarkSchema").getGenericRowSerde(
+            schema,
+            new KsqlConfig(Collections.emptyMap()),
+            false,
+            () -> schemaRegistryClient,
+            "benchmark");
       }
     }
 
@@ -193,16 +204,6 @@ public final class SerdeBenchmark {
     public GenericRow deserialize(final AvroSerdeState serdeState) {
       return serdeState.deserializer.deserialize(topicName, serdeState.bytes);
     }
-  }
-
-  private static Serde<GenericRow> getAvroSerde(final org.apache.kafka.connect.data.Schema schema) {
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    return new KsqlAvroTopicSerDe("benchmarkSchema").getGenericRowSerde(
-        schema,
-        new KsqlConfig(Collections.emptyMap()),
-        false,
-        () -> schemaRegistryClient,
-        "benchmark");
   }
 
   public static void main(final String[] args) throws RunnerException {

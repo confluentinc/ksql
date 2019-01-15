@@ -48,8 +48,8 @@ class Help implements CliSpecificCommand {
     terminal.println();
     terminal.println("Description:");
     terminal.println(
-        "\tThe KSQL CLI provides a terminal-based interactive shell"
-            + " for running queries. Each command must be on a separate line. "
+        "\tThe KSQL CLI provides a terminal-based interactive shell for running queries. "
+            + "Each command should be on a separate line. "
             + "For KSQL command syntax, see the documentation at "
             + "https://github.com/confluentinc/ksql/docs/."
     );
@@ -78,17 +78,15 @@ class Help implements CliSpecificCommand {
     );
     terminal.println();
     terminal.println(
-        "    1. The line is empty or entirely whitespace. In this"
-            + " case, no request is made to the server."
+        "    1. The line is empty or entirely whitespace. "
+            + "In this case, no request is made to the server."
     );
     terminal.println();
     terminal.println(
-        "    2. The line ends with backslash ('\\'). In this case, lines are "
-            + "continuously read and stripped of their trailing newline and '\\' "
-            + "until one is "
-            + "encountered that does not end with '\\'; then, the concatenation of "
-            + "all lines read "
-            + "during this time is sent to the server as KSQL."
+        "    2. The line is not an in-built CLI command and does not end with a semi-colon. "
+            + "In this case, the cli enters multi-line mode where lines are continuously read "
+            + "until a line is encountered that is terminated with a semi-colon, "
+            + "the concatenation of all lines read during this time is sent to the server as KSQL."
     );
     terminal.println();
   }

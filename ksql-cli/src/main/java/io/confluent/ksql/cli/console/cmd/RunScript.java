@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 class RunScript implements CliSpecificCommand {
 
-  private static final String HELP = "run <path_to_sql_file>:" + System.lineSeparator()
+  private static final String HELP = "run script <path_to_sql_file>:" + System.lineSeparator()
       + "\tLoad and run the statements in the supplied file." + System.lineSeparator()
       + "\tNote: the file must be UTF-8 encoded.";
 

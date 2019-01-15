@@ -75,13 +75,13 @@ public class RunScriptTest {
   @Test
   public void shouldGetHelp() {
     assertThat(cmd.getHelpMessage(), is(
-        "run <path_to_sql_file>:" + System.lineSeparator()
+        "run script <path_to_sql_file>:" + System.lineSeparator()
             + "\tLoad and run the statements in the supplied file." + System.lineSeparator()
             + "\tNote: the file must be UTF-8 encoded."));
   }
 
   @Test
-  public void ShouldThrowIfNoArgSupplied() {
+  public void shouldThrowIfNoArgSupplied() {
     // Expect
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Too few parameters");

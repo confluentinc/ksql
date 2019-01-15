@@ -1,0 +1,162 @@
+{
+  "comments": [
+    "Tests covering the use of all URL based operators.",
+    "See https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Definition"
+  ],
+  "tests": [
+    {
+      "name": "encode a url parameter using ENCODE_URL_PARAM",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_ENCODE_PARAM(url) as ENCODED FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "?foo $bar"}, "timestamp":  0},
+        {"topic":  "test_topic", "key":  2, "value": {"url": "hello&world"}, "timestamp":  1},
+        {"topic":  "test_topic", "key":  3, "value": {"url": "nothing"}, "timestamp":  2}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"ENCODED": "%3Ffoo+%24bar"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  {"ENCODED": "hello%26world"}, "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  {"ENCODED": "nothing"}, "timestamp": 2}
+      ]
+    },
+    {
+      "name": "decode a url parameter using DECODE_URL_PARAM",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_DECODE_PARAM(url) as DECODED FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "%3Ffoo+%24bar"}, "timestamp":  0},
+        {"topic":  "test_topic", "key":  2, "value": {"url": "hello%26world"}, "timestamp":  1},
+        {"topic":  "test_topic", "key":  3, "value": {"url": "nothing"}, "timestamp":  2}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"DECODED": "?foo $bar"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  {"DECODED": "hello&world"}, "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  {"DECODED": "nothing"}, "timestamp": 2}
+      ]
+    },
+    {
+      "name": "extract a fragment from a URL using URL_EXTRACT_FRAGMENT",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_FRAGMENT(url) as FRAGMENT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com/?query#fragment"}, "timestamp":  0},
+        {"topic":  "test_topic", "key":  2, "value": {"url": "http://www.nofragment.com"}, "timestamp":  1}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"FRAGMENT": "fragment"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  {"FRAGMENT": null}, "timestamp": 1}
+      ]
+    },
+    {
+      "name": "extract a host from a URL using URL_EXTRACT_HOST",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_HOST(url) as HOST FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com/?query#fragment"}, "timestamp":  0},
+        {"topic":  "test_topic", "key":  2, "value": {"url": "http://test@confluent.io:8080"}, "timestamp":  1}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"HOST": "www.test.com"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  {"HOST": "confluent.io"}, "timestamp": 1}
+      ]
+    },
+    {
+      "name": "extract a parameter from a URL using URL_EXTRACT_PARAMETER",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PARAMETER(url,'one') as PARAM_A, URL_EXTRACT_PARAMETER(url,'two') as PARAM_B FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com/?one=a&two=b&three"}, "timestamp":  0}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"PARAM_A": "a", "PARAM_B": "b"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "extract a path from a URL using URL_EXTRACT_PATH",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PATH(url) as PATH FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com?query#fragment"}, "timestamp":  0},
+        {"topic":  "test_topic", "key":  2, "value": {"url": "http://www.test.com/path?query"}, "timestamp":  1},
+        {"topic":  "test_topic", "key":  3, "value": {"url": "http://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  2}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"PATH": ""}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  {"PATH": "/path"}, "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  {"PATH": "/nested/path"}, "timestamp": 2}
+      ]
+    },
+    {
+      "name": "extract a port from a URL using URL_EXTRACT_PORT",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PORT(url) as PORT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "http://test@confluent.io"}, "timestamp":  0},
+        {"topic":  "test_topic", "key":  2, "value": {"url": "http://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  1}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"PORT": null}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  {"PORT": 8080}, "timestamp": 1}
+      ]
+    },
+    {
+      "name": "extract a protocol from a URL using URL_EXTRACT_PROTOCOL",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_PROTOCOL(url) as PROTOCOL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "http://test@confluent.io"}, "timestamp":  0},
+        {"topic":  "test_topic", "key":  2, "value": {"url": "https://test@confluent.io:8080/nested/path?query&jobs"}, "timestamp":  1},
+        {"topic":  "test_topic", "key":  3, "value": {"url": "www.confluent.io"}, "timestamp":  2}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"PROTOCOL": "http"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  {"PROTOCOL": "https"}, "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  {"PROTOCOL": null}, "timestamp": 2}
+      ]
+    },
+    {
+      "name": "extract a query from a URL using URL_EXTRACT_QUERY",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_EXTRACT_QUERY(url) as Q FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com?query#fragment"}, "timestamp":  0},
+        {"topic":  "test_topic", "key":  2, "value": {"url": "http://www.test.com/path?q1&q2"}, "timestamp":  1},
+        {"topic":  "test_topic", "key":  3, "value": {"url": "http://test@confluent.io:8080/nested/path?q=2"}, "timestamp":  2},
+        {"topic":  "test_topic", "key":  4, "value": {"url": "http://test@confluent.io:8080/path"}, "timestamp":  3}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"Q": "query"}, "timestamp": 0},
+        {"topic":  "OUTPUT", "key":  2, "value":  {"Q": "q1&q2"}, "timestamp": 1},
+        {"topic":  "OUTPUT", "key":  3, "value":  {"Q": "q=2"}, "timestamp": 2},
+        {"topic":  "OUTPUT", "key":  4, "value":  {"Q": null}, "timestamp": 3}
+      ]
+    }
+  ]
+}

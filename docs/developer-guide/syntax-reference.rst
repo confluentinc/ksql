@@ -1362,6 +1362,47 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | UCASE                  |  ``UCASE(col1)``                                                          | Convert a string to uppercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_DECODE_PARAM       |  ``URL_DECODE_PARAM(col1)``                                               | Unescapes the URL-param-encoded value in col1.    |
+|                        |                                                                           | This is the inverse of the URL_ENCODE_PARAM       |
+|                        |                                                                           | function.                                         |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_ENCODE_PARAM       |  ``URL_ENCODE_PARAM(col1)``                                               | Escapes the value of col1 such that it can safely |
+|                        |                                                                           | be used in URL query parameters. Note that this   |
+|                        |                                                                           | is not the same as encoding a value for use in    |
+|                        |                                                                           | the path portion of a URL.                        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_FRAGMENT   |  ``URL_EXTRACT_FRAGMENT(url)``                                            | Extract the fragment portion of the specified     |
+|                        |                                                                           | value. Returns NULL if no fragment is present or  |
+|                        |                                                                           | supplied value is not a valid URI.                |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_HOST       |  ``URL_EXTRACT_HOST(url)``                                                | Extract the host-name portion of the specified    |
+|                        |                                                                           | value. Returns NULL if the supplied value is not  |
+|                        |                                                                           | a valid URI according to RFC-2396.                |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_PARAMETER  |  ``URL_EXTRACT_PARAMETER(url, parameter_name)``                           | Extract the value of the requested parameter from |
+|                        |                                                                           | the query-string of the url value. Returns NULL   |
+|                        |                                                                           | if the parameter is not present, has no value     |
+|                        |                                                                           | specified for it in the query-string, or the      |
+|                        |                                                                           | input URL is not a valid URI.                     |
+|                        |                                                                           | To get all the parameter names and values from a  |
+|                        |                                                                           | URL as a single string, see URL_EXTRACT_QUERY.    |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_PATH       |  ``URL_EXTRACT_PATH(url)``                                                | Extracts the path from the specified url value.   |
+|                        |                                                                           | Returns NULL if the supplied value is not a valid |
+|                        |                                                                           | URI, but returns "" if the path is empty.         |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_PORT       |  ``URL_EXTRACT_PORT(url)``                                                | Extract the port number from the specified value. |
+|                        |                                                                           | Returns NULL if the supplied value is not a valid |
+|                        |                                                                           | URI or does not contain an explicit port number.  |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_PROTOCOL   |  ``URL_EXTRACT_PROTOCOL(url)``                                            | Extract the protocol from the specified value,    |
+|                        |                                                                           | e.g. 'https'. Returns NULL if the supplied value  |
+|                        |                                                                           | is not a valid URI or it contains no protocol.    |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_QUERY      |  ``URL_EXTRACT_QUERY(url)``                                               | Extract the decoded query-string portion of the   |
+|                        |                                                                           | specified URL. Returns NULL if no query-string    |
+|                        |                                                                           | is present or the URL is not a valid URI.         |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 
 .. _ksql_aggregate_functions:
 

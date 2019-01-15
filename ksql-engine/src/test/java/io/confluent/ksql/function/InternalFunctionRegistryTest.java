@@ -17,13 +17,19 @@ package io.confluent.ksql.function;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -201,12 +207,51 @@ public class InternalFunctionRegistryTest {
   }
 
   @Test
-  public void shouldHaveAllInitializedFunctionsNamesInUppercase() {
+  public void shouldHaveAllInitializedFunctionNamesInUppercase() {
     for (UdfFactory udfFactory : functionRegistry.listFunctions()) {
       String actual = udfFactory.getName();
       String expected = actual.toUpperCase();
 
-      assertThat("UDF name must registered in uppercase", actual, equalTo(expected));
+      assertThat("UDF name must be registered in uppercase", actual, equalTo(expected));
     }
+  }
+
+  @Test
+  public void shouldHaveBuiltInUDFRegistered() {
+
+    // Verify that all built-in UDF are correctly registered in the InternalFunctionRegistry
+    List<String> buildtInUDF = Arrays.asList(
+        // String UDF
+        "LCASE", "UCASE", "CONCAT", "TRIM", "IFNULL", "LEN",
+        // Math UDF
+        "ABS", "CEIL", "FLOOR", "ROUND", "RANDOM",
+        // Geo UDF
+        "GEO_DISTANCE",
+        // JSON UDF
+        "EXTRACTJSONFIELD", "ARRAYCONTAINS",
+        // Struct UDF
+        "FETCH_FIELD_FROM_STRUCT"
+    );
+
+
+    Collection<String> names = Collections2.transform(functionRegistry.listFunctions(),
+        udf -> udf.getName());
+
+    assertThat("More or less UDF are registered in the InternalFunctionRegistry",
+        names, containsInAnyOrder(buildtInUDF.toArray()));
+  }
+
+  @Test
+  public void shouldHaveBuiltInUDAFRegistered() {
+    Collection<String> builtInUDAF =  Arrays.asList(
+        "COUNT", "SUM", "MAX", "MIN", "TOPK", "TOPKDISTINCT"
+    );
+
+    Collection<String> names = Collections2.transform(functionRegistry.listAggregateFunctions(),
+        udf -> udf.getName());
+
+    assertThat("More or less UDAF are registered in the InternalFunctionRegistry",
+        names, containsInAnyOrder(builtInUDAF.toArray()));
+
   }
 }

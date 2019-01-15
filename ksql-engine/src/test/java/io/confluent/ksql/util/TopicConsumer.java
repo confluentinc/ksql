@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
@@ -85,24 +86,24 @@ public class TopicConsumer {
                                             final Schema schema,
                                             final int expectedNumMessages,
                                             final Deserializer<K> keyDeserializer) {
-    return readResults(topic, greaterThanOrEqualTo(expectedNumMessages),
-                       new KsqlJsonDeserializer(schema, false), keyDeserializer
+    return readResults(
+        topic,
+        greaterThanOrEqualTo(expectedNumMessages),
+        new KsqlJsonDeserializer(
+            schema,
+            false,
+            ProcessingLoggerFactory.getLogger("consumer")),
+        keyDeserializer
     );
   }
 
   public void verifyRecordsReceived(final String topic,
                                     final Matcher<Integer> expectedNumMessages) {
-    verifyRecordsReceived(topic, expectedNumMessages,
-                          new ByteArrayDeserializer(),
-                          new ByteArrayDeserializer());
-  }
-
-  public <K> Map<K, GenericRow> verifyRecordsReceived(final String topic,
-                                                      final Schema schema,
-                                                      final Matcher<Integer> expectedNumMessages,
-                                                      final Deserializer<K> keyDeserializer) {
-    return verifyRecordsReceived(topic, expectedNumMessages,
-                                 new KsqlJsonDeserializer(schema, false), keyDeserializer);
+    verifyRecordsReceived(
+        topic,
+        expectedNumMessages,
+        new ByteArrayDeserializer(),
+        new ByteArrayDeserializer());
   }
 
   public <K, V> Map<K, V> verifyRecordsReceived(final String topic,

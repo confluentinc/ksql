@@ -14,11 +14,18 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
+import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -29,36 +36,40 @@ import io.confluent.ksql.util.SelectExpression;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
-@RunWith(EasyMockRunner.class)
 public class ProjectNodeTest {
 
   @Mock
   private PlanNode source;
-  @Mock(MockType.NICE)
-  private SchemaKStream<String> stream;
+  @Mock
+  private SchemaKStream stream;
 
   private final StreamsBuilder builder = new StreamsBuilder();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final ServiceContext serviceContext = TestServiceContext.create();
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final HashMap<String, Object> props = new HashMap<>();
+  private final QueryId queryId = new QueryId("project-test");
+
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void init() {
-    EasyMock.expect(source.getNodeOutputType()).andReturn(DataSourceType.KSTREAM);
+    mockSourceNode();
+    when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
   }
 
   @After
@@ -66,62 +77,77 @@ public class ProjectNodeTest {
     serviceContext.close();
   }
 
-  @Test(expected = KsqlException.class)
-  public void shouldThrowKsqlExcptionIfSchemaSizeDoesntMatchProjection() {
-    mockSourceNode();
-
-    EasyMock.replay(source, stream);
-
-    final ProjectNode node = new ProjectNode(new PlanNodeId("1"),
+  private ProjectNode buildNode(final List<Expression> expressionList) {
+    return new ProjectNode(
+        new PlanNodeId("1"),
         source,
         SchemaBuilder.struct()
             .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
             .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
             .build(),
+        expressionList);
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowKsqlExcptionIfSchemaSizeDoesntMatchProjection() {
+    final ProjectNode node = buildNode(
         Collections.singletonList(new BooleanLiteral("true")));
 
-
-    node.buildStream(builder,
+    node.buildStream(
+        builder,
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props);
+        props,
+        queryId);
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldCreateProjectionWithFieldNameExpressionPairs() {
-    mockSourceNode();
+    // Given:
     final BooleanLiteral trueExpression = new BooleanLiteral("true");
     final BooleanLiteral falseExpression = new BooleanLiteral("false");
-    EasyMock.expect(stream.select(
-        Arrays.asList(SelectExpression.of("field1", trueExpression),
-            SelectExpression.of("field2", falseExpression))))
-        .andReturn(stream);
-
-    EasyMock.replay(source, stream);
-
-    final ProjectNode node = new ProjectNode(new PlanNodeId("1"),
-        source,
-        SchemaBuilder.struct()
-            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .build(),
+    when(stream.select(anyList())).thenReturn(stream);
+    final ProjectNode node = buildNode(
         Arrays.asList(trueExpression, falseExpression));
 
-    node.buildStream(builder, ksqlConfig, serviceContext, functionRegistry, props);
+    // When:
+    node.buildStream(
+        builder,
+        ksqlConfig,
+        serviceContext,
+        functionRegistry,
+        props,
+        queryId);
 
-    EasyMock.verify(stream);
+    // Then:
+    verify(stream).select(
+        Arrays.asList(
+            SelectExpression.of("field1", trueExpression),
+            SelectExpression.of("field2", falseExpression))
+    );
+    verify(source, times(1)).buildStream(
+        same(builder),
+        same(ksqlConfig),
+        same(serviceContext),
+        same(functionRegistry),
+        same(props),
+        same(queryId)
+    );
   }
 
   @SuppressWarnings("unchecked")
   private void mockSourceNode() {
-    EasyMock.expect(source.getKeyField()).andReturn(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA));
-    EasyMock.expect(source.buildStream(
-        anyObject(StreamsBuilder.class),
-        anyObject(KsqlConfig.class),
-        anyObject(ServiceContext.class),
-        anyObject(InternalFunctionRegistry.class),
-        eq(props)))
-        .andReturn((SchemaKStream)stream);
+    when(source.getKeyField())
+        .thenReturn(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA));
+    when(source.buildStream(
+        any(StreamsBuilder.class),
+        any(KsqlConfig.class),
+        any(ServiceContext.class),
+        any(InternalFunctionRegistry.class),
+        anyMap(),
+        same(queryId))
+    ).thenReturn(stream);
   }
 }

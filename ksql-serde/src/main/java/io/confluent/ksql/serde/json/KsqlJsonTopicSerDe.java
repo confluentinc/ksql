@@ -14,10 +14,14 @@
 
 package io.confluent.ksql.serde.json;
 
+import static io.confluent.ksql.processing.log.ProcessingLoggerUtil.join;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,15 +43,21 @@ public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
   @Override
   public Serde<GenericRow> getGenericRowSerde(final Schema schema, final KsqlConfig ksqlConfig,
       final boolean isInternal,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory) {
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final String loggerNamePrefix) {
     final Map<String, Object> serdeProps = new HashMap<>();
     serdeProps.put("JsonPOJOClass", GenericRow.class);
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlJsonSerializer(schema);
     genericRowSerializer.configure(serdeProps, false);
 
-    final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonDeserializer(schema,
-        isInternal);
+    final Deserializer<GenericRow> genericRowDeserializer = new KsqlJsonDeserializer(
+        schema,
+        isInternal,
+        ProcessingLoggerFactory.getLogger(
+            join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
+    );
+
     genericRowDeserializer.configure(serdeProps, false);
 
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

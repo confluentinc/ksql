@@ -17,13 +17,13 @@ package io.confluent.ksql.function.udf.string;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 
-@UdfDescription(name = "mask_keep_right", author = "Confluent",
+@UdfDescription(name = MaskKeepRightKudf.NAME, author = "Confluent",
     description = "Returns a version of the input string with all but the"
         + " specified number of right-most characters masked out."
         + " Default masking rules will replace all upper-case characters with 'X', all lower-case"
         + " characters with 'x', all digits with 'n', and any other character with '-'.")
 public class MaskKeepRightKudf {
-  private final String udfName = Masker.getMaskUdfName(this);
+  protected static final String NAME = "mask_keep_right";
 
   @Udf(description = "Returns a masked version of the input string. All characters except for the"
       + " last n will be replaced according to the default masking rules.")
@@ -49,7 +49,7 @@ public class MaskKeepRightKudf {
   }
 
   private String doMask(final Masker masker, final String input, final int numChars) {
-    Masker.validateParams(udfName, numChars);
+    Masker.validateParams(NAME, numChars);
     if (input == null) {
       return null;
     }

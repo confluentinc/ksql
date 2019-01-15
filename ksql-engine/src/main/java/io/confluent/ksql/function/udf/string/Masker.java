@@ -15,7 +15,6 @@
 package io.confluent.ksql.function.udf.string;
 
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.UdfDescription;
 
 class Masker {
 
@@ -83,9 +82,5 @@ class Masker {
       throw new KsqlFunctionException(
           "function " + udfName + " requires a non-negative number of characters to mask or skip");
     }
-  }
-
-  static String getMaskUdfName(final Object maskObject) {
-    return maskObject.getClass().getAnnotation(UdfDescription.class).name();
   }
 }

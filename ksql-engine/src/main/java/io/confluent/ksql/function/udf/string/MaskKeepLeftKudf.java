@@ -49,7 +49,7 @@ public class MaskKeepLeftKudf {
   }
 
   private String doMask(final Masker masker, final String input, final int numChars) {
-    Masker.validateParams(this.NAME, numChars);
+    Masker.validateParams(NAME, numChars);
     if (input == null) {
       return null;
     }

@@ -27,7 +27,8 @@ import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
-import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Random;
@@ -60,7 +61,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 public final class SerdeBenchmark {
 
-  private static final String SCHEMA_DIR = "ksql-benchmark/src/resources/schemas";
+  private static final Path SCHEMA_DIR = Paths.get("schemas");
   private static final String topicName = "serde_benchmark";
 
   private SerdeBenchmark() {
@@ -84,7 +85,7 @@ public final class SerdeBenchmark {
       @Setup(Level.Iteration)
       public void setUp() throws Exception {
         // from DataGen
-        final Generator generator = new Generator(getSchemaFile(), new Random());
+        final Generator generator = new Generator(getSchemaStream(), new Random());
 
         // from DataGenProducer
         final Schema avroSchema = generator.schema();
@@ -110,8 +111,9 @@ public final class SerdeBenchmark {
         schema = ksqlSchema;
       }
 
-      private File getSchemaFile() {
-        return Paths.get(SCHEMA_DIR, schemaName + ".avro").toFile();
+      private InputStream getSchemaStream() {
+        return SerdeBenchmark.class.getClassLoader().getResourceAsStream(
+            SCHEMA_DIR.resolve(schemaName + ".avro").toString());
       }
     }
 

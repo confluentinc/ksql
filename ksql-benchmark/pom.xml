@@ -69,11 +69,21 @@ questions.
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksql-serde</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksql-examples</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- for running tests -->
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-test-util</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

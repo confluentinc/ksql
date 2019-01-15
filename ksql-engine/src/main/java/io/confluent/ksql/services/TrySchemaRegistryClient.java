@@ -35,8 +35,6 @@ import org.apache.avro.Schema;
 @SuppressWarnings("deprecation")
 class TrySchemaRegistryClient implements SchemaRegistryClient {
 
-  // Todo(ac): tidy up & test.
-
   private final SchemaRegistryClient delegate;
 
   TrySchemaRegistryClient(final SchemaRegistryClient delegate) {
@@ -90,8 +88,10 @@ class TrySchemaRegistryClient implements SchemaRegistryClient {
   }
 
   @Override
-  public boolean testCompatibility(final String subject, final Schema schema)
-      throws IOException, RestClientException {
+  public boolean testCompatibility(
+      final String subject,
+      final Schema schema
+  ) throws IOException, RestClientException {
     return delegate.testCompatibility(subject, schema);
   }
 
@@ -121,8 +121,10 @@ class TrySchemaRegistryClient implements SchemaRegistryClient {
   }
 
   @Override
-  public List<Integer> deleteSubject(final Map<String, String> requestProperties,
-      final String subject) {
+  public List<Integer> deleteSubject(
+      final Map<String, String> requestProperties,
+      final String subject
+  ) {
     throw new UnsupportedOperationException();
   }
 

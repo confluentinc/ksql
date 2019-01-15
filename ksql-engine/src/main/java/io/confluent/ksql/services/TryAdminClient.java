@@ -16,7 +16,6 @@ package io.confluent.ksql.services;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigsOptions;
@@ -81,20 +80,18 @@ import org.apache.kafka.common.config.ConfigResource;
  * An admin client to use while trying out operations.
  *
  * <p>The client will not make changes to the remote Kafka cluster.
+ *
+ * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
+ * not called.
  */
 class TryAdminClient extends AdminClient {
 
-  // Todo(ac): tidy up & test.
-
-  private final AdminClient delegate;
-
-  TryAdminClient(final AdminClient delegate) {
-    this.delegate = Objects.requireNonNull(delegate, "delegate");
+  TryAdminClient() {
   }
 
   @Override
   public void close(final long timeout, final TimeUnit unit) {
-    delegate.close(timeout, unit);
+    // No-op
   }
 
   @Override
@@ -102,8 +99,6 @@ class TryAdminClient extends AdminClient {
       final Collection<NewTopic> newTopics,
       final CreateTopicsOptions options
   ) {
-    // todo(ac):
-    // We might want a shared state between the different try kafka clients.
     throw new UnsupportedOperationException();
   }
 
@@ -112,7 +107,6 @@ class TryAdminClient extends AdminClient {
       final Collection<String> topics,
       final DeleteTopicsOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -147,7 +141,6 @@ class TryAdminClient extends AdminClient {
       final Collection<AclBinding> acls,
       final CreateAclsOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -156,7 +149,6 @@ class TryAdminClient extends AdminClient {
       final Collection<AclBindingFilter> acls,
       final DeleteAclsOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -173,7 +165,6 @@ class TryAdminClient extends AdminClient {
       final Map<ConfigResource, Config> configs,
       final AlterConfigsOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -182,7 +173,6 @@ class TryAdminClient extends AdminClient {
       final Map<TopicPartitionReplica, String> replicaAssignment,
       final AlterReplicaLogDirsOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -207,7 +197,6 @@ class TryAdminClient extends AdminClient {
       final Map<String, NewPartitions> newPartitions,
       final CreatePartitionsOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -216,7 +205,6 @@ class TryAdminClient extends AdminClient {
       final Map<TopicPartition, RecordsToDelete> recordsToDelete,
       final DeleteRecordsOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -224,7 +212,6 @@ class TryAdminClient extends AdminClient {
   public CreateDelegationTokenResult createDelegationToken(
       final CreateDelegationTokenOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -233,7 +220,6 @@ class TryAdminClient extends AdminClient {
       final byte[] hmac,
       final RenewDelegationTokenOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -242,7 +228,6 @@ class TryAdminClient extends AdminClient {
       final byte[] hmac,
       final ExpireDelegationTokenOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
@@ -279,12 +264,11 @@ class TryAdminClient extends AdminClient {
       final Collection<String> groupIds,
       final DeleteConsumerGroupsOptions options
   ) {
-    // todo(ac):
     throw new UnsupportedOperationException();
   }
 
   @Override
   public Map<MetricName, ? extends Metric> metrics() {
-    return delegate.metrics();
+    throw new UnsupportedOperationException();
   }
 }

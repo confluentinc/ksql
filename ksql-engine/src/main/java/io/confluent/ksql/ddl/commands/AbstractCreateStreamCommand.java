@@ -184,7 +184,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   }
 
 
-  private void validateWithClause(final Set<String> withClauseVariables) {
+  private static void validateWithClause(final Set<String> withClauseVariables) {
 
     final Set<String> validSet = new HashSet<>();
     validSet.add(DdlConfig.VALUE_FORMAT_PROPERTY.toUpperCase());

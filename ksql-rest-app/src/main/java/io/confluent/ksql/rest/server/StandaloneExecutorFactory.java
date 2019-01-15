@@ -39,7 +39,7 @@ public final class StandaloneExecutorFactory {
         serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
     final UdfLoader udfLoader =
-        UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), installDir);
+        UdfLoader.newInstance(ksqlConfig, ksqlEngine.getFunctionRegistry(), installDir);
 
     return new StandaloneExecutor(
         serviceContext,

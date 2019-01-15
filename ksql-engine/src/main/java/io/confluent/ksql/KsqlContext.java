@@ -14,6 +14,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
@@ -69,6 +70,10 @@ public class KsqlContext {
 
   public MetaStore getMetaStore() {
     return ksqlEngine.getMetaStore();
+  }
+
+  public FunctionRegistry getFunctionRegistry() {
+    return ksqlEngine.getFunctionRegistry();
   }
 
   /**

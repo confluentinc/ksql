@@ -304,7 +304,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
-    UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
+    UdfLoader.newInstance(ksqlConfig, ksqlEngine.getFunctionRegistry(), ksqlInstallDir).load();
 
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);

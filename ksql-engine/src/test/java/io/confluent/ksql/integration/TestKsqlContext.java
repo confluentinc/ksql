@@ -16,6 +16,7 @@ package io.confluent.ksql.integration;
 
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -47,6 +48,10 @@ public final class TestKsqlContext extends ExternalResource {
 
   public MetaStore getMetaStore() {
     return delegate.getMetaStore();
+  }
+
+  public FunctionRegistry getFunctionRegistry() {
+    return delegate.getFunctionRegistry();
   }
 
   public List<QueryMetadata> sql(final String sql) {

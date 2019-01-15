@@ -366,7 +366,7 @@ public class RecoveryTest {
     protected boolean matchesSafely(final MetaStore other, final Description description) {
       if (!test(
           equalTo(sourceMatchers.keySet()),
-          other.getAllStructuredDataSourceNames(),
+          other.getAllStructuredDataSources().keySet(),
           description,
           "source set mismatch: ")) {
         return false;
@@ -609,7 +609,7 @@ public class RecoveryTest {
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     assertThat(
-        server.ksqlEngine.getMetaStore().getAllStructuredDataSourceNames(),
+        server.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
         contains("A", "B"));
     commands.add(
         new QueuedCommand(
@@ -620,7 +620,7 @@ public class RecoveryTest {
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
     assertThat(
-        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSourceNames(),
+        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
         contains("A"));
   }
 }

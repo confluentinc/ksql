@@ -18,7 +18,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -44,12 +43,7 @@ import org.apache.kafka.common.TopicPartition;
 @SuppressWarnings("deprecation")
 class TryConsumer<K, V> implements Consumer<K, V> {
 
-  // Todo(ac): tidy up & test.
-
-  private final Consumer<K, V> delegate;
-
-  TryConsumer(final Consumer<K, V> delegate) {
-    this.delegate = Objects.requireNonNull(delegate, "delegate");
+  TryConsumer() {
   }
 
   @Override
@@ -89,7 +83,7 @@ class TryConsumer<K, V> implements Consumer<K, V> {
 
   @Override
   public void unsubscribe() {
-    delegate.unsubscribe();
+    // No-op
   }
 
   @Override
@@ -250,21 +244,21 @@ class TryConsumer<K, V> implements Consumer<K, V> {
 
   @Override
   public void close() {
-    delegate.close();
+    // No-op
   }
 
   @Override
   public void close(final long timeout, final TimeUnit unit) {
-    delegate.close(timeout, unit);
+    // No-op
   }
 
   @Override
   public void close(final Duration timeout) {
-    delegate.close(timeout);
+    // No-op
   }
 
   @Override
   public void wakeup() {
-    delegate.wakeup();
+    // No-op
   }
 }

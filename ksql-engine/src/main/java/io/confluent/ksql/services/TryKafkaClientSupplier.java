@@ -15,7 +15,6 @@
 package io.confluent.ksql.services;
 
 import java.util.Map;
-import java.util.Objects;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
@@ -31,32 +30,27 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  */
 class TryKafkaClientSupplier implements KafkaClientSupplier {
 
-  // Todo(ac): tidy up & test.
-
-  private final KafkaClientSupplier delegate;
-
-  TryKafkaClientSupplier(final KafkaClientSupplier delegate) {
-    this.delegate = Objects.requireNonNull(delegate, "delegate");
+  TryKafkaClientSupplier() {
   }
 
   @Override
   public AdminClient getAdminClient(final Map<String, Object> config) {
-    return new TryAdminClient(delegate.getAdminClient(config));
+    return new TryAdminClient();
   }
 
   @Override
   public Producer<byte[], byte[]> getProducer(final Map<String, Object> config) {
-    return new TryProducer<>(delegate.getProducer(config));
+    return new TryProducer<>();
   }
 
   @Override
   public Consumer<byte[], byte[]> getConsumer(final Map<String, Object> config) {
-    return new TryConsumer<>(delegate.getConsumer(config));
+    return new TryConsumer<>();
   }
 
   @Override
   public Consumer<byte[], byte[]> getRestoreConsumer(final Map<String, Object> config) {
-    return new TryConsumer<>(delegate.getRestoreConsumer(config));
+    return new TryConsumer<>();
   }
 
   @Override

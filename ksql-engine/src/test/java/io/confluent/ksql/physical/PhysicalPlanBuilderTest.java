@@ -161,13 +161,11 @@ public class PhysicalPlanBuilderTest {
         serviceContext,
         functionRegistry,
         overrideProperties,
-        false,
         metaStore,
-        new QueryIdGenerator(""),
+        new QueryIdGenerator(),
         testKafkaStreamsBuilder,
         queryCloseCallback
     );
-
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {

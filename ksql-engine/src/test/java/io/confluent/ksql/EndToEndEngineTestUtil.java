@@ -643,13 +643,16 @@ final class EndToEndEngineTestUtil {
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig) {
-    final List<QueryMetadata> queries = new ArrayList<>();
+      final KsqlConfig ksqlConfig
+  ) {
     testCase.initializeTopics(serviceContext);
-    testCase.statements().forEach(
-        q -> queries.addAll(
-            KsqlEngineTestUtil.execute(ksqlEngine, q, ksqlConfig, testCase.properties()))
-    );
+
+    final String sql = testCase.statements().stream()
+        .collect(Collectors.joining(System.lineSeparator()));
+
+    final List<QueryMetadata> queries =
+        KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, testCase.properties());
+
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return queries.get(queries.size() - 1);
   }

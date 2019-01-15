@@ -84,7 +84,7 @@ public class WindowingIntTest {
   public void before() {
     topicClient = ksqlContext.getServiceContext().getTopicClient();
 
-    UdfLoaderUtil.load(ksqlContext.getMetaStore());
+    UdfLoaderUtil.load(ksqlContext.getFunctionRegistry());
 
     sourceTopicName = TopicTestUtil.uniqueTopicName("orders");
     resultStream0 = KsqlIdentifierTestUtil.uniqueIdentifierName("FIRST");

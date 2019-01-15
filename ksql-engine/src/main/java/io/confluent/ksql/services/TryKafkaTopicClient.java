@@ -37,8 +37,6 @@ import org.apache.kafka.common.TopicPartitionInfo;
  */
 class TryKafkaTopicClient implements KafkaTopicClient {
 
-  // Todo(ac): tidy up & test.
-
   private final KafkaTopicClient delegate;
 
   private final Map<String, TopicDescription> createdTopics = new HashMap<>();
@@ -71,17 +69,21 @@ class TryKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public boolean isTopicExists(final String topic) {
+    if (createdTopics.containsKey(topic)) {
+      return true;
+    }
+
     return delegate.isTopicExists(topic);
   }
 
   @Override
   public Set<String> listTopicNames() {
-    return delegate.listTopicNames();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Set<String> listNonInternalTopicNames() {
-    return delegate.listNonInternalTopicNames();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -105,24 +107,26 @@ class TryKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, String> getTopicConfig(final String topicName) {
-    return delegate.getTopicConfig(topicName);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
-    return delegate.getTopicCleanupPolicy(topicName);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void deleteTopics(final Collection<String> topicsToDelete) {
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void deleteInternalTopics(final String applicationId) {
+    throw new UnsupportedOperationException();
   }
 }

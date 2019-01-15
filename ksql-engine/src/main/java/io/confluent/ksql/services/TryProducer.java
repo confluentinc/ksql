@@ -16,7 +16,6 @@ package io.confluent.ksql.services;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -40,12 +39,7 @@ import org.apache.kafka.common.errors.ProducerFencedException;
  */
 class TryProducer<K, V> implements Producer<K, V> {
 
-  // Todo(ac): tidy up & test.  Only close?
-
-  private final Producer<byte[], byte[]> delegate;
-
-  TryProducer(final Producer<byte[], byte[]> delegate) {
-    this.delegate = Objects.requireNonNull(delegate, "delegate");
+  TryProducer() {
   }
 
   @Override
@@ -101,11 +95,11 @@ class TryProducer<K, V> implements Producer<K, V> {
 
   @Override
   public void close() {
-    delegate.close();
+    // No op
   }
 
   @Override
   public void close(final long timeout, final TimeUnit unit) {
-    delegate.close(timeout, unit);
+    // No op
   }
 }

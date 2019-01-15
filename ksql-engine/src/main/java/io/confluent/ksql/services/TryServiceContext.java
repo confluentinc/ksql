@@ -37,8 +37,7 @@ public final class TryServiceContext implements ServiceContext {
       return (TryServiceContext) serviceContext;
     }
 
-    final KafkaClientSupplier kafkaClientSupplier = new TryKafkaClientSupplier(serviceContext
-        .getKafkaClientSupplier());
+    final KafkaClientSupplier kafkaClientSupplier = new TryKafkaClientSupplier();
     final KafkaTopicClient kafkaTopicClient = new TryKafkaTopicClient(
         serviceContext.getTopicClient());
     final SchemaRegistryClient schemaRegistryClient =

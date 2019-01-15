@@ -148,14 +148,14 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldThrowOnTerminate() {
+  public void shouldThrowOnTerminateAsNotExecutable() {
     // Given:
     final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil
         .execute(ksqlEngine,
         "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap()).get(0);
 
     expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is("Statement(s) not executable")));
+    expectedException.expect(rawMessage(is("Statement not executable")));
     expectedException.expect(statementText(is("TERMINATE CTAS_BAR_0;")));
 
     // When:
@@ -792,11 +792,26 @@ public class KsqlEngineTest {
   public void shouldThrowOnNoneExecutableDdlStatement() {
     // Given:
     expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is("Statement(s) not executable")));
+    expectedException.expect(rawMessage(is("Statement not executable")));
     expectedException.expect(statementText(is("SHOW STREAMS;")));
 
     // When:
     KsqlEngineTestUtil.execute(ksqlEngine, "SHOW STREAMS;", KSQL_CONFIG, Collections.emptyMap());
+  }
+
+  @Test
+  public void shouldThrowFromTryExecuteIfTopicDoesNotExist() {
+    // Given:
+    final List<PreparedStatement<?>> statements = parse(
+        "CREATE STREAM S1 (COL1 BIGINT) "
+            + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');");
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Kafka topic does not exist: i_do_not_exist"));
+
+    // When:
+    ksqlEngine.tryExecute(statements, KSQL_CONFIG, new HashMap<>());
   }
 
   @Test
@@ -812,8 +827,10 @@ public class KsqlEngineTest {
             + "CREATE TABLE FOO AS SELECT * FROM TEST2;"
             + "DROP TABLE TEST3;");
 
+    topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, Collections.emptyMap());
+
     // When:
-    ksqlEngine.tryExecute(statements, KSQL_CONFIG, Collections.emptyMap());
+    ksqlEngine.tryExecute(statements, KSQL_CONFIG, new HashMap<>());
 
     // Then:
     assertThat(metaStore.getSource("TEST3"), is(notNullValue()));

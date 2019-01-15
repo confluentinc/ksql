@@ -36,7 +36,6 @@ import io.confluent.ksql.test.util.ConsumerTestUtil;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TestDataProvider;
 import java.time.Duration;
 import java.util.Arrays;
@@ -472,7 +471,7 @@ public class IntegrationTestHarness extends ExternalResource {
     return config;
   }
 
-  private KsqlTopicSerDe getSerde(
+  private static KsqlTopicSerDe getSerde(
       final DataSource.DataSourceSerDe dataSourceSerDe) {
     switch (dataSourceSerDe) {
       case JSON:

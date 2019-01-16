@@ -1238,7 +1238,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldBuildSimpleCaseStatement() {
+  public void shouldBuildSearchedCaseStatement() {
     // Given:
     final String statementString =
         "CREATE STREAM S AS SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE 'large' END FROM orders;";
@@ -1262,7 +1262,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldBuildSimpleCaseWithoutDefaultStatement() {
+  public void shouldBuildSearchedCaseWithoutDefaultStatement() {
     // Given:
     final String statementString =
         "CREATE STREAM S AS SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' END FROM orders;";

@@ -493,7 +493,7 @@ public class SqlToJavaVisitor {
       final Pair<String, Schema> right = process(node.getRight(), unmangleNames);
       return new Pair<>(
           "(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")",
-          Schema.OPTIONAL_FLOAT64_SCHEMA
+          SchemaUtil.resolveArithmeticType(left.getRight().type(), right.getRight().type())
       );
     }
 
@@ -529,11 +529,11 @@ public class SqlToJavaVisitor {
           : "null";
 
 
-      final String codeString = "(" + resultSchemaString + ")"
+      final String codeString = "((" + resultSchemaString + ")"
           + functionClassName + ".searchedCaseFunction(ImmutableList.of( "
-          + StringUtils.join(lazyWhenClause, ",") + "),"
+          + StringUtils.join(lazyWhenClause, ", ") + "),"
           + buildSupplierCode(resultSchemaString, defaultValue)
-          + ")";
+          + "))";
       return new Pair<>(codeString, resultSchema);
     }
 

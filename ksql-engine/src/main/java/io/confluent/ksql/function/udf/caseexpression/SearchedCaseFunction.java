@@ -46,14 +46,6 @@ public final class SearchedCaseFunction {
     return new LazyWhenClause<>(operand, result);
   }
 
-  public static WhenBooleanSupplier whenBooleanSupplier(final Boolean whenBoolean) {
-    return new WhenBooleanSupplier(whenBoolean);
-  }
-
-  public static <T> ThenObjectSupplier thenObjectSupplier(final T thenResultObject) {
-    return new ThenObjectSupplier<>(thenResultObject);
-  }
-
   public static final class LazyWhenClause<T> {
     private final Supplier<Boolean> operand;
     private final Supplier<T> result;

@@ -54,7 +54,7 @@ class Output implements CliSpecificCommand {
 
   @Override
   public void execute(final List<String> args, final PrintWriter terminal) {
-    CliCmdUtil.ensureArgCountBounds(args, 0, 1, () -> HELP);
+    CliCmdUtil.ensureArgCountBounds(args, 0, 1, HELP);
 
     if (args.isEmpty()) {
       terminal.printf("Current output format: %s%n", getter.get().name());

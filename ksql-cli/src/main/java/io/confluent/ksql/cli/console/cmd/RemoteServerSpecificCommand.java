@@ -53,7 +53,7 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
 
   @Override
   public void execute(final List<String> args, final PrintWriter terminal) {
-    CliCmdUtil.ensureArgCountBounds(args, 0, 1, () -> HELP);
+    CliCmdUtil.ensureArgCountBounds(args, 0, 1, HELP);
 
     if (args.isEmpty()) {
       terminal.println(restClient.getServerAddress());

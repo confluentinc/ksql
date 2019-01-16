@@ -49,7 +49,7 @@ class RunScript implements CliSpecificCommand {
 
   @Override
   public void execute(final List<String> args, final PrintWriter terminal) {
-    CliCmdUtil.ensureArgCountBounds(args, 1, 1, () -> HELP);
+    CliCmdUtil.ensureArgCountBounds(args, 1, 1, HELP);
 
     final String filePath = args.get(0);
     final String content = loadScript(filePath);

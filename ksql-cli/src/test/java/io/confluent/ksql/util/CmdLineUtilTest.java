@@ -129,36 +129,6 @@ public class CmdLineUtilTest {
     assertMatchedQuotesRemoved("'a '''' b ''' c '''' d '' e '' f '''", "a '' b ' c ' d  e  f '''");
   }
 
-  @Test
-  public void shouldTrimLineWithoutSemi() {
-    assertThat(CmdLineUtil.trimTrailingSemiColon("something"), is("something"));
-  }
-
-  @Test
-  public void shouldTrimLineWithSemi() {
-    assertThat(CmdLineUtil.trimTrailingSemiColon("something;"), is("something"));
-  }
-
-  @Test
-  public void shouldTrimLineWithMultipleSemi() {
-    assertThat(CmdLineUtil.trimTrailingSemiColon("something;;;"), is("something"));
-  }
-
-  @Test
-  public void shouldNotTrimSemiFromAnywhereElse() {
-    assertThat(CmdLineUtil.trimTrailingSemiColon(";s;o;m;e;t;h;i;n;g;"), is(";s;o;m;e;t;h;i;n;g"));
-  }
-
-  @Test
-  public void shouldHandleOnlySemiColons() {
-    assertThat(CmdLineUtil.trimTrailingSemiColon(";;;;"), is(""));
-  }
-
-  @Test
-  public void shouldHandleOnlyEmptyString() {
-    assertThat(CmdLineUtil.trimTrailingSemiColon(""), is(""));
-  }
-
   private static void assertSplit(final String input, final String... expected) {
     final List<String> result = CmdLineUtil.splitByUnquotedWhitespace(input);
     assertThat(result, CoreMatchers.is(Arrays.asList(expected)));

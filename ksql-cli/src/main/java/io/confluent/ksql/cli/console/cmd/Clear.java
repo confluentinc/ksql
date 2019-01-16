@@ -41,7 +41,7 @@ class Clear implements CliSpecificCommand {
 
   @Override
   public void execute(final List<String> args, final PrintWriter terminal) {
-    CliCmdUtil.ensureArgCountBounds(args, 0, 0, () -> HELP);
+    CliCmdUtil.ensureArgCountBounds(args, 0, 0, HELP);
     screenCleaner.run();
   }
 }

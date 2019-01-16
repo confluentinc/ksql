@@ -15,7 +15,6 @@
 package io.confluent.ksql.cli.console;
 
 import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
-import static io.confluent.ksql.util.CmdLineUtil.trimTrailingSemiColon;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -84,6 +83,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
@@ -326,7 +326,7 @@ public class Console implements Closeable {
   }
 
   private Optional<CliCmdExecutor> getCliCommand(final String line) {
-    final List<String> parts = splitByUnquotedWhitespace(trimTrailingSemiColon(line));
+    final List<String> parts = splitByUnquotedWhitespace(StringUtils.stripEnd(line, ";"));
     if (parts.isEmpty()) {
       return Optional.empty();
     }

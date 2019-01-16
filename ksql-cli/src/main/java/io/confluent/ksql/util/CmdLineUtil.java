@@ -64,21 +64,6 @@ public final class CmdLineUtil {
     return new QuoteRemover().parse(string);
   }
 
-  /**
-   * Removes any trailing semi colon(s).
-   *
-   * @param s the string to trim.
-   * @return the trimmed string
-   */
-  public static String trimTrailingSemiColon(final String s) {
-    int pos = s.length() - 1;
-    while (pos >= 0 && s.charAt(pos) == ';') {
-      pos--;
-    }
-
-    return pos < 0 ? "" : s.substring(0, pos + 1);
-  }
-
   private static final class WhitespaceParser {
 
     private boolean inQuotes;

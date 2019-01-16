@@ -16,7 +16,6 @@ package io.confluent.ksql.cli.console.cmd;
 
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
-import java.util.function.Supplier;
 
 final class CliCmdUtil {
 
@@ -27,18 +26,18 @@ final class CliCmdUtil {
       final Collection<String> args,
       final int minArgCount,
       final int maxArgCount,
-      final Supplier<String> helpSupplier
+      final String helpMsg
   ) {
     if (args.size() < minArgCount) {
       throw new KsqlException("Too few parameters"
           + System.lineSeparator()
-          + helpSupplier.get());
+          + helpMsg);
     }
 
     if (args.size() > maxArgCount) {
       throw new KsqlException("Too many parameters"
           + System.lineSeparator()
-          + helpSupplier.get());
+          + helpMsg);
     }
   }
 }

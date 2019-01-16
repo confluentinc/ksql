@@ -89,8 +89,13 @@ public class SchemaKGroupedTableTest {
     final StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
         .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(ksqlTable.getSchema(), new
-                KsqlConfig(Collections.emptyMap()), false, MockSchemaRegistryClient::new)));
+            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
+                ksqlTable.getSchema(),
+                new KsqlConfig(Collections.emptyMap()),
+                false,
+                MockSchemaRegistryClient::new, 
+                "test")));
+
   }
 
   private SchemaKGroupedTable buildSchemaKGroupedTableFromQuery(
@@ -106,7 +111,7 @@ public class SchemaKGroupedTableTest {
             .collect(Collectors.toList());
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, () -> null);
+        initialSchemaKTable.getSchema(), null, false, () -> null, "test");
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde, groupByExpressions, "GROUP-BY");
     Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
@@ -129,7 +134,7 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           windowExpression,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(), ksqlConfig, false, () -> null),
+              ksqlTable.getSchema(), ksqlConfig, false, () -> null, "test"),
           AGGREGATE_OP_NAME
       );
       Assert.fail("Should fail to build topology for aggregation with window");
@@ -155,7 +160,7 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           null,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(), ksqlConfig, false, () -> null),
+              ksqlTable.getSchema(), ksqlConfig, false, () -> null, "test"),
           AGGREGATE_OP_NAME
       );
       Assert.fail("Should fail to build topology for aggregation with unsupported function");

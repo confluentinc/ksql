@@ -17,7 +17,6 @@ package io.confluent.ksql.structured;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.isNull;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
@@ -49,7 +48,6 @@ import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SelectExpression;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -107,7 +105,6 @@ public class SchemaKStreamTest {
   private Serde<GenericRow> rightSerde;
   private Schema joinSchema;
 
-
   @Before
   public void init() {
     functionRegistry = new InternalFunctionRegistry();
@@ -135,8 +132,7 @@ public class SchemaKStreamTest {
 
     secondSchemaKStream = buildSchemaKStreamForJoin(secondKsqlStream, secondKStream);
 
-    leftSerde = getRowSerde(ksqlStream.getKsqlTopic(),
-                                                    ksqlStream.getSchema());
+    leftSerde = getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema());
     rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(),
                                                      secondKsqlStream.getSchema());
 
@@ -148,6 +144,15 @@ public class SchemaKStreamTest {
         functionRegistry);
 
     joinSchema = getJoinSchema(ksqlStream.getSchema(), secondKsqlStream.getSchema());
+  }
+
+  private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
+    return topic.getKsqlTopicSerDe().getGenericRowSerde(
+        schema,
+        new KsqlConfig(Collections.emptyMap()),
+        false,
+        MockSchemaRegistryClient::new,
+        "test");
   }
 
   @Test
@@ -330,7 +335,7 @@ public class SchemaKStreamTest {
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, () -> null);
+        initialSchemaKStream.getSchema(), null, false, () -> null, "test");
     final List<Expression> groupByExpressions = Collections.singletonList(keyExpression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         rowSerde, groupByExpressions, GROUP_OP_NAME);
@@ -353,7 +358,11 @@ public class SchemaKStreamTest {
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, () -> null);
+        initialSchemaKStream.getSchema(),
+        null,
+        false,
+        () -> null,
+        "test");
     final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         rowSerde, groupByExpressions, GROUP_OP_NAME);
@@ -632,12 +641,6 @@ public class SchemaKStreamTest {
         kStream,
         groupedFactory,
         joinedFactory);
-  }
-
-  private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
-    return topic.getKsqlTopicSerDe().getGenericRowSerde(
-        schema, new KsqlConfig(Collections.emptyMap()), false,
-        MockSchemaRegistryClient::new);
   }
 
   private static Schema getJoinSchema(final Schema leftSchema, final Schema rightSchema) {

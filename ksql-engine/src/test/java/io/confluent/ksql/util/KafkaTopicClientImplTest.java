@@ -68,7 +68,9 @@ import org.easymock.EasyMockRunner;
 import org.easymock.IArgumentMatcher;
 import org.easymock.Mock;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
@@ -93,6 +95,9 @@ public class KafkaTopicClientImplTest {
   private Node node;
   @Mock
   private AdminClient adminClient;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
@@ -124,16 +129,36 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @Test(expected = KafkaTopicException.class)
-  public void shouldFailCreateExistingTopic() {
+  @Test
+  public void shouldFailCreateExistingTopicWithIncompatiblePartitions() {
+    // Given:
+    expectedException.expect(KafkaTopicException.class);
+    expectedException.expectMessage("A Kafka topic with the name 'topic1' already exists, with different partition/replica configuration than required. KSQL expects 2 partitions (topic has 1), and 1 replication factor (topic has 1).");
+
+    // When:
+    createTopicWithProperties(2, (short) 1);
+  }
+
+  @Test
+  public void shouldFailCreateExistingTopicWithIncompatibleReplications() {
+    // Given:
+    expectedException.expect(KafkaTopicException.class);
+    expectedException.expectMessage("A Kafka topic with the name 'topic1' already exists, with different partition/replica configuration than required. KSQL expects 1 partitions (topic has 1), and 2 replication factor (topic has 1).");
+
+    // When:
+    createTopicWithProperties(1, (short) 2);
+  }
+
+  private void createTopicWithProperties(final int partitions, final short replicas) {
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
+    kafkaTopicClient.createTopic(topicName1, partitions, replicas);
     verify(adminClient);
   }
+
 
   @Test
   public void shouldNotFailIfTopicAlreadyExistsWhenCreating() {

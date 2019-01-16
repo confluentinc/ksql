@@ -247,7 +247,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
   }
 
-  private SourceTopicProperties getSourceTopicProperties(
+  private static SourceTopicProperties getSourceTopicProperties(
       final String kafkaTopicName,
       final Map<String, Object> sinkProperties,
       final KafkaTopicClient kafkaTopicClient
@@ -264,10 +264,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         kafkaTopicName,
         kafkaTopicClient);
 
-    final int partitions = (Integer) outputProperties.getOrDefault(
+    final int partitions = (Integer) sinkProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
         topicDescription.partitions().size());
-    final short replicas = (Short) outputProperties.getOrDefault(
+    final short replicas = (Short) sinkProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
         (short) topicDescription.partitions().get(0).replicas().size());
 

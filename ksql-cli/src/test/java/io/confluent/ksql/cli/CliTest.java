@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -128,13 +129,13 @@ public class CliTest {
   private static TopicConsumer topicConsumer;
   private static KsqlRestClient restClient;
   private static OrderDataProvider orderDataProvider;
-  private static int result_stream_no = 0;
 
   private Console console;
   private TestTerminal terminal;
   private TestRowCaptor rowCaptor;
   private Supplier<String> lineSupplier;
   private Cli localCli;
+  private String streamName;
 
   @BeforeClass
   public static void classSetUp() throws Exception {
@@ -158,6 +159,7 @@ public class CliTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
+    streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     lineSupplier = niceMock(Supplier.class);
     terminal = new TestTerminal(lineSupplier);
     rowCaptor = new TestRowCaptor();
@@ -297,8 +299,7 @@ public class CliTest {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
-    final String resultKStreamName = "RESULT_" + result_stream_no++;
-    final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
+    final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
     /* Start Stream Query */
     assertRunCommand(
@@ -309,9 +310,10 @@ public class CliTest {
             equalTo(new TestResult("Executing statement"))));
 
     /* Assert Results */
-    final Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
+    final Map<String, GenericRow> results = topicConsumer
+        .readResults(streamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
-    dropStream(resultKStreamName);
+    dropStream(streamName);
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -788,8 +790,27 @@ public class CliTest {
   @Test
   public void shouldPrintErrorIfCantFindFunction() throws Exception {
     localCli.handleLine("describe function foobar;");
-    final String expectedOutput = "Can't find any functions with the name 'foobar'";
-    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+
+    assertThat(terminal.getOutputString(),
+        containsString("Can't find any functions with the name 'foobar'"));
+  }
+
+  @Test
+  public void shouldHandleSetPropertyAsPartOfMultiStatementLine() throws Exception {
+    // Given:
+    final String csas =
+        "CREATE STREAM " + streamName + " "
+            + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";";
+
+    // When:
+    localCli
+        .handleLine("set 'auto.offset.reset'='earliest'; " + csas);
+
+    // Then:
+    dropStream(streamName);
+
+    assertThat(terminal.getOutputString(),
+        containsString("Successfully changed local property 'auto.offset.reset' to 'earliest'"));
   }
 
   private void givenRunInteractivelyWillExit() {

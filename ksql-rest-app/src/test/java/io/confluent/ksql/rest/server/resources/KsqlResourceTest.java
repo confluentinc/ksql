@@ -99,6 +99,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -170,6 +171,8 @@ public class KsqlResourceTest {
   private MetaStoreImpl metaStore;
   private ServiceContext serviceContext;
 
+  private String streamName;
+
   @Before
   public void setUp() throws IOException, RestClientException {
     commandStatus = new QueuedCommandStatus(
@@ -195,6 +198,8 @@ public class KsqlResourceTest {
     setUpKsqlResource();
 
     when(commandStore.enqueueCommand(any(), any(), any(), any())).thenReturn(commandStatus);
+
+    streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
   }
 
   @After
@@ -763,27 +768,98 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailOnSetProperty() {
+  public void shouldSetProperty() {
+    // Given:
+    final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+
     // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-        "SET 'auto.offset.reset' = 'earliest';", Code.BAD_REQUEST);
+    final List<CommandStatusEntity> results = makeMultipleRequest(
+        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '2';\n"
+            + csas,
+        CommandStatusEntity.class);
 
     // Then:
-    assertThat(result.getMessage(), is(
-        "SET and UNSET commands are not supported on the REST API. "
-            + "Pass properties via the 'streamsProperties' field"));
+    verify(commandStore).enqueueCommand(eq(csas), any(), any(),
+        eq(ImmutableMap.of(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2")));
+
+    assertThat(results, hasSize(1));
+    assertThat(results.get(0).getStatementText(), is(csas));
   }
 
   @Test
-  public void shouldFailOnUnsetProperty() {
+  public void shouldFailSetPropertyOnInvalidPropertyName() {
     // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-        "UNSET 'auto.offset.reset';", Code.BAD_REQUEST);
+    final KsqlErrorMessage response = makeFailingRequest(
+        "SET 'ksql.unknown.property' = '1';",
+        Code.BAD_REQUEST);
 
     // Then:
-    assertThat(result.getMessage(), is(
-        "SET and UNSET commands are not supported on the REST API. "
-            + "Pass properties via the 'streamsProperties' field"));
+    assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
+    assertThat(response.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(response.getMessage(), containsString("Unknown property"));
+  }
+
+  @Test
+  public void shouldFailSetPropertyOnInvalidPropertyValue() {
+    // When:
+    final KsqlErrorMessage response = makeFailingRequest(
+        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = 'invalid value';",
+        Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
+    assertThat(response.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(response.getMessage(),
+        containsString("Invalid value invalid value for configuration ksql.sink.replicas: "
+            + "Not a number of type SHORT"));
+  }
+
+  @Test
+  public void shouldUnsetProperty() {
+    // Given:
+    final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+    final Map<String, Object> localOverrides = ImmutableMap.of(
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2"
+    );
+
+    // When:
+    final CommandStatusEntity result = makeSingleRequest(
+         new KsqlRequest("UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';\n"
+            + csas, localOverrides, null),
+        CommandStatusEntity.class);
+
+    // Then:
+    verify(commandStore).enqueueCommand(eq(csas), any(), any(), eq(Collections.emptyMap()));
+
+    assertThat(result.getStatementText(), is(csas));
+  }
+
+  @Test
+  public void shouldFailUnsetPropertyOnInvalidPropertyName() {
+    // When:
+    final KsqlErrorMessage response = makeFailingRequest(
+        "UNSET 'ksql.unknown.property';",
+        Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
+    assertThat(response.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(response.getMessage(), containsString("Unknown property"));
+  }
+
+  @Test
+  public void shouldScopeSetPropertyToSingleRequest() {
+    // given:
+    final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+
+    makeMultipleRequest(
+        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '2';", KsqlEntity.class);
+
+    // When:
+    makeSingleRequest(csas, KsqlEntity.class);
+
+    // Then:
+    verify(commandStore).enqueueCommand(eq(csas), any(), any(), eq(Collections.emptyMap()));
   }
 
   @Test
@@ -1179,6 +1255,13 @@ public class KsqlResourceTest {
     final List<T> entities = makeMultipleRequest(ksqlRequest, expectedEntityType);
     assertThat(entities, hasSize(1));
     return entities.get(0);
+  }
+
+  private <T extends KsqlEntity> List<T> makeMultipleRequest(
+      final String sql,
+      final Class<T> expectedEntityType) {
+    return makeMultipleRequest(
+        new KsqlRequest(sql, Collections.emptyMap(), null), expectedEntityType);
   }
 
   private <T extends KsqlEntity> List<T> makeMultipleRequest(

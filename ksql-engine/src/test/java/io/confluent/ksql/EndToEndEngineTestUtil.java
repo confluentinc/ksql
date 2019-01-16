@@ -96,6 +96,12 @@ final class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private static final String CONFIG_END_MARKER = "CONFIGS_END";
 
+  // Pass a single test or multiple tests separated by commas to the test framework.
+  // Example:
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=test1.json
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=test1.json,test2,json
+  public static final String PARAM_TEST_FILE = "testFile";
+
   static {
     // don't use the actual metastore, aim is just to get the functions into the registry.
     // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
@@ -779,10 +785,38 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static Stream<JsonTestCase> findTestCases(final Path dir) {
+  private static List<Path> getTestFiles(final Path dir, final String files) {
+    List<Path> filePaths = new ArrayList<>();
+    for (String jsonFile : files.split(",")) {
+      filePaths.add(dir.resolve(jsonFile.trim()));
+    }
+
+    return filePaths;
+  }
+
+  public static String getTestProperty(final String propName) {
+    String propValue = System.getProperty(propName);
+    if (propValue == null || propValue.trim().isEmpty()) {
+      return null;
+    }
+
+    return propValue.trim();
+  }
+
+  static Stream<JsonTestCase> findTestCases(final Path dir, final String files) {
     final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
 
-    return findTests(dir).stream()
+    List<Path> testPaths;
+
+    // Use the list of files separated by comma passed to this method, or find
+    // all the tests in the specified directory
+    if (files != null && !files.trim().isEmpty()) {
+      testPaths = getTestFiles(dir, files);
+    } else {
+      testPaths = findTests(dir);
+    }
+
+    return testPaths.stream()
         .flatMap(testPath -> {
           final JsonNode rootNode = loadTest(classLoader, testPath);
 

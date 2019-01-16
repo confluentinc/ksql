@@ -38,7 +38,7 @@ public final class CliCommandRegisterUtil {
     console.registerCliSpecificCommand(
         new Output(console::getOutputFormat, console::setOutputFormat));
 
-    console.registerCliSpecificCommand(new History(console::printHistory));
+    console.registerCliSpecificCommand(new History(console::getHistory));
 
     console.registerCliSpecificCommand(new Version(versionSuppler));
 

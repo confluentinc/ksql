@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.cli.console.KsqlTerminal.HistoryEntry;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.cli.console.table.Table;
@@ -73,6 +74,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -237,10 +239,8 @@ public class Console implements Closeable {
     return line;
   }
 
-  public void printHistory() {
-    terminal.getHistory().forEach(historyEntry ->
-        writer().printf("%4d: %s%n", historyEntry.index, historyEntry.line)
-    );
+  public List<HistoryEntry> getHistory() {
+    return Collections.unmodifiableList(terminal.getHistory());
   }
 
   public void printErrorMessage(final KsqlErrorMessage errorMessage) throws IOException {

@@ -14,9 +14,12 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
+import io.confluent.ksql.cli.console.KsqlTerminal.HistoryEntry;
 import java.io.PrintWriter;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 class History implements CliSpecificCommand {
 
@@ -24,10 +27,10 @@ class History implements CliSpecificCommand {
       + "\tShow previous lines entered during the current CLI session. "
       + "You can use up and down arrow keys to view previous lines.";
 
-  private final Runnable historyPrinter;
+  private final Supplier<? extends Collection<HistoryEntry>> historySupplier;
 
-  History(final Runnable historyPrinter) {
-    this.historyPrinter = Objects.requireNonNull(historyPrinter, "historyPrinter");
+  History(final Supplier<? extends Collection<HistoryEntry>> historySupplier) {
+    this.historySupplier = Objects.requireNonNull(historySupplier, "historySupplier");
   }
 
   @Override
@@ -43,6 +46,9 @@ class History implements CliSpecificCommand {
   @Override
   public void execute(final List<String> args, final PrintWriter terminal) {
     CliCmdUtil.ensureArgCountBounds(args, 0, 0, HELP);
-    historyPrinter.run();
+
+    historySupplier.get().forEach(historyEntry ->
+        terminal.printf("%4d: %s%n", historyEntry.getIndex(), historyEntry.getLine())
+    );
   }
 }

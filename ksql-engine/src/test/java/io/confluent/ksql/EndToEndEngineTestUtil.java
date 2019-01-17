@@ -99,9 +99,9 @@ final class EndToEndEngineTestUtil {
 
   // Pass a single test or multiple tests separated by commas to the test framework.
   // Example:
-  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=test1.json
-  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=test1.json,test2,json
-  private static final String PARAM_TEST_FILE = "testFile";
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
+  private static final String KSQL_TEST_FILES = "ksql.test.files";
 
   static {
     // don't use the actual metastore, aim is just to get the functions into the registry.
@@ -796,11 +796,11 @@ final class EndToEndEngineTestUtil {
   }
 
   /**
-   * Returns a list of files specified in the system property 'testFile'. The list may be specified
-   * as a comma-separated string.
+   * Returns a list of files specified in the system property 'ksql.test.file'.
+   * The list may be specified as a comma-separated string.
    */
-  public static List<String> getTestFileList() {
-    String propValue = System.getProperty(PARAM_TEST_FILE);
+  public static List<String> getTestFilesParam() {
+    String propValue = System.getProperty(KSQL_TEST_FILES);
     if (propValue == null || propValue.trim().isEmpty()) {
       return null;
     }
@@ -813,8 +813,8 @@ final class EndToEndEngineTestUtil {
 
     List<Path> testPaths;
 
-    // Use the list of files separated by comma passed to this method, or find
-    // all the tests in the specified directory
+    // Use the list of files passed to this method, or find all the tests in the
+    // specified directory
     if (files != null && !files.isEmpty()) {
       testPaths = getTests(dir, files);
     } else {

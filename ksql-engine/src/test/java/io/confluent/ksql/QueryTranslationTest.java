@@ -159,7 +159,7 @@ public class QueryTranslationTest {
   }
 
   static Stream<TestCase> buildTestCases() {
-    List<String> testFiles = EndToEndEngineTestUtil.getTestFileList();
+    List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
 
     return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR, testFiles)
         .flatMap(test -> {

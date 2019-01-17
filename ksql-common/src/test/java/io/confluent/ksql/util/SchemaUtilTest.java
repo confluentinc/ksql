@@ -707,6 +707,32 @@ public class SchemaUtilTest {
     assertThat(SchemaUtil.getSchemaFromType(Double.class, "", "doc").doc(), is("doc"));
   }
 
+  @Test
+  public void shouldPassIsNumberForInt() {
+    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_INT32_SCHEMA), is(true));
+  }
+
+  @Test
+  public void shouldPassIsNumberForBigint() {
+    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_INT64_SCHEMA), is(true));
+  }
+
+  @Test
+  public void shouldPassIsNumberForDouble() {
+    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+  }
+
+  @Test
+  public void shouldFailIsNumberForBoolean() {
+    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_BOOLEAN_SCHEMA), is(false));
+  }
+
+  @Test
+  public void shouldFailIsNumberForString() {
+    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_STRING_SCHEMA), is(false));
+  }
+
+
   // Following methods not invoked but used to test conversion from Type -> Schema
   @SuppressWarnings("unused")
   private void mapType(final Map<String, Integer> map) {}

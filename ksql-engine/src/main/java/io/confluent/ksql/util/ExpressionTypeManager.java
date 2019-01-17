@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.ComparisonExpression.Type;
 import io.confluent.ksql.parser.tree.DefaultAstVisitor;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
@@ -111,6 +112,11 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitComparisonExpression(
       final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext) {
+    process(node.getLeft(), expressionTypeContext);
+    final Schema leftType = expressionTypeContext.getSchema();
+    process(node.getRight(), expressionTypeContext);
+    final Schema rightType = expressionTypeContext.getSchema();
+    validateComparisonOperandTypes(node.getType(), leftType, rightType);
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
@@ -245,5 +251,31 @@ public class ExpressionTypeManager
   private Schema resolveArithmeticType(final Schema leftSchema,
                                        final Schema rightSchema) {
     return SchemaUtil.resolveArithmeticType(leftSchema.type(), rightSchema.type());
+  }
+
+  private static void validateComparisonOperandTypes(
+      final ComparisonExpression.Type operator,
+      final Schema leftType,
+      final Schema rightType) {
+    if (SchemaUtil.isNumber(leftType)) {
+      if (!SchemaUtil.isNumber(rightType)) {
+        throw new KsqlException("Invalid comparison operand types. Both sides should be numbers."
+            + " Left type: " + leftType + ", right type: " + rightType);
+      }
+      return;
+    }
+    if (leftType != rightType) {
+      throw new KsqlException("Invalid comparison operand types. Cannot compare incompatible types."
+          + " Left type: " + leftType.type() + ", right type: " + rightType.type());
+    }
+    if (leftType == Schema.OPTIONAL_STRING_SCHEMA) {
+      return;
+    }
+    if (operator == Type.GREATER_THAN
+        || operator == Type.GREATER_THAN_OR_EQUAL
+        || operator == Type.LESS_THAN
+        || operator == Type.LESS_THAN_OR_EQUAL) {
+      throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType.type());
+    }
   }
 }

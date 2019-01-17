@@ -464,6 +464,12 @@ public final class SchemaUtil {
     return schema;
   }
 
+  static boolean isNumber(final Schema schema) {
+    return schema == Schema.OPTIONAL_INT32_SCHEMA
+        || schema == Schema.OPTIONAL_INT64_SCHEMA
+        || schema == Schema.OPTIONAL_FLOAT64_SCHEMA;
+  }
+
   private static SchemaBuilder handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;

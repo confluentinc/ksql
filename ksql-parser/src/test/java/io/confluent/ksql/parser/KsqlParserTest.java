@@ -1248,10 +1248,7 @@ public class KsqlParserTest {
         .getStatement();
 
     // Then:
-    final Query query = ((CreateStreamAsSelect) statement).getQuery();
-    final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    final Expression caseExpression = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
-    final SearchedCaseExpression searchedCaseExpression = (SearchedCaseExpression) caseExpression;
+    final SearchedCaseExpression searchedCaseExpression = getSearchedCaseExpressionFromCsas(statement);
     assertThat(searchedCaseExpression.getWhenClauses().size(), equalTo(2));
     assertThat(searchedCaseExpression.getWhenClauses().get(0).getOperand().toString(), equalTo("(ORDERS.ORDERUNITS < 10)"));
     assertThat(searchedCaseExpression.getWhenClauses().get(0).getResult().toString(), equalTo("'small'"));
@@ -1272,10 +1269,15 @@ public class KsqlParserTest {
         .getStatement();
 
     // Then:
+    final SearchedCaseExpression searchedCaseExpression = getSearchedCaseExpressionFromCsas(statement);
+    assertThat(searchedCaseExpression.getDefaultValue().isPresent(), equalTo(false));
+  }
+
+  private static SearchedCaseExpression getSearchedCaseExpressionFromCsas(final Statement statement) {
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
     final Expression caseExpression = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
-    final SearchedCaseExpression searchedCaseExpression = (SearchedCaseExpression) caseExpression;
-    assertThat(searchedCaseExpression.getDefaultValue().isPresent(), equalTo(false));
+    return (SearchedCaseExpression) caseExpression;
   }
+
 }

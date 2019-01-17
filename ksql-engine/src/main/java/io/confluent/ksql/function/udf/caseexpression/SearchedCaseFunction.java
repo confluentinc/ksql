@@ -59,30 +59,4 @@ public final class SearchedCaseFunction {
     }
   }
 
-  public static final class WhenBooleanSupplier implements Supplier<Boolean> {
-    private final Boolean whenBoolean;
-
-    private WhenBooleanSupplier(final Boolean whenBoolean) {
-      this.whenBoolean = whenBoolean;
-    }
-
-    @Override
-    public Boolean get() {
-      return whenBoolean;
-    }
-  }
-
-  public static final class ThenObjectSupplier<T> implements Supplier<T> {
-    private final T thenResultObject;
-
-    private ThenObjectSupplier(final T thenResultObject) {
-      this.thenResultObject = thenResultObject;
-    }
-
-    @Override
-    public T get() {
-      return thenResultObject;
-    }
-  }
-
 }

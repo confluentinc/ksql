@@ -15,7 +15,6 @@
 package io.confluent.ksql;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.ExpectedException;
-import static io.confluent.ksql.EndToEndEngineTestUtil.PARAM_TEST_FILE;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
 import static io.confluent.ksql.EndToEndEngineTestUtil.SerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
@@ -160,7 +159,7 @@ public class QueryTranslationTest {
   }
 
   static Stream<TestCase> buildTestCases() {
-    String testFiles = EndToEndEngineTestUtil.getTestProperty(PARAM_TEST_FILE);
+    List<String> testFiles = EndToEndEngineTestUtil.getTestFileList();
 
     return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR, testFiles)
         .flatMap(test -> {

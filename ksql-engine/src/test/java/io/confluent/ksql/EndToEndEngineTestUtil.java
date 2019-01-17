@@ -54,6 +54,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -100,7 +101,7 @@ final class EndToEndEngineTestUtil {
   // Example:
   //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=test1.json
   //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=test1.json,test2,json
-  public static final String PARAM_TEST_FILE = "testFile";
+  private static final String PARAM_TEST_FILE = "testFile";
 
   static {
     // don't use the actual metastore, aim is just to get the functions into the registry.
@@ -785,33 +786,37 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static List<Path> getTestFiles(final Path dir, final String files) {
+  private static List<Path> getTests(final Path dir, final List<String> files) {
     List<Path> filePaths = new ArrayList<>();
-    for (String jsonFile : files.split(",")) {
-      filePaths.add(dir.resolve(jsonFile.trim()));
+    for (String file : files) {
+      filePaths.add(dir.resolve(file.trim()));
     }
 
     return filePaths;
   }
 
-  public static String getTestProperty(final String propName) {
-    String propValue = System.getProperty(propName);
+  /**
+   * Returns a list of files specified in the system property 'testFile'. The list may be specified
+   * as a comma-separated string.
+   */
+  public static List<String> getTestFileList() {
+    String propValue = System.getProperty(PARAM_TEST_FILE);
     if (propValue == null || propValue.trim().isEmpty()) {
       return null;
     }
 
-    return propValue.trim();
+    return Arrays.asList(propValue.trim().split(","));
   }
 
-  static Stream<JsonTestCase> findTestCases(final Path dir, final String files) {
+  static Stream<JsonTestCase> findTestCases(final Path dir, final List<String> files) {
     final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
 
     List<Path> testPaths;
 
     // Use the list of files separated by comma passed to this method, or find
     // all the tests in the specified directory
-    if (files != null && !files.trim().isEmpty()) {
-      testPaths = getTestFiles(dir, files);
+    if (files != null && !files.isEmpty()) {
+      testPaths = getTests(dir, files);
     } else {
       testPaths = findTests(dir);
     }

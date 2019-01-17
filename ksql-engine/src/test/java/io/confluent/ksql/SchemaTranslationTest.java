@@ -15,7 +15,6 @@
 package io.confluent.ksql;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.PARAM_TEST_FILE;
 import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
@@ -69,7 +68,7 @@ public class SchemaTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    String testFiles = EndToEndEngineTestUtil.getTestProperty(PARAM_TEST_FILE);
+    List<String> testFiles = EndToEndEngineTestUtil.getTestFileList();
 
     return findTestCases(SCHEMA_VALIDATION_TEST_DIR, testFiles)
         .map(SchemaTranslationTest::loadTest)

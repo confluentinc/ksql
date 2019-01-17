@@ -17,6 +17,11 @@ Your output should resemble:
 
 If the process status of the JVM isn't ``Sl`` or ``Ssl``, the KSQL server may be down.
 
+If you're running KSQL server in a Docker container, run the ``docker ps`` or 
+``docker-compose ps`` command, and check that the status of the ``ksql-server``
+container is ``Up``. Check the health of the process in the container by running
+``docker logs <ksql-server-container-id>``.
+
 Check runtime stats for the KSQL server that you're connected to.
   - Run ``ksql-print-metrics`` on a server host. The tool connects to a KSQL server
     that's running on ``localhost`` and collects JMX metrics from the server process.

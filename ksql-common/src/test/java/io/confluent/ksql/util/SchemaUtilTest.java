@@ -709,27 +709,27 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldPassIsNumberForInt() {
-    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_INT32_SCHEMA), is(true));
+    assertThat(SchemaUtil.isNumber(Schema.Type.INT32), is(true));
   }
 
   @Test
   public void shouldPassIsNumberForBigint() {
-    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_INT64_SCHEMA), is(true));
+    assertThat(SchemaUtil.isNumber(Schema.Type.INT64), is(true));
   }
 
   @Test
   public void shouldPassIsNumberForDouble() {
-    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
+    assertThat(SchemaUtil.isNumber(Schema.Type.FLOAT64), is(true));
   }
 
   @Test
   public void shouldFailIsNumberForBoolean() {
-    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_BOOLEAN_SCHEMA), is(false));
+    assertThat(SchemaUtil.isNumber(Schema.Type.BOOLEAN), is(false));
   }
 
   @Test
   public void shouldFailIsNumberForString() {
-    assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_STRING_SCHEMA), is(false));
+    assertThat(SchemaUtil.isNumber(Schema.Type.STRING), is(false));
   }
 
 

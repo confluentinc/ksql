@@ -72,13 +72,6 @@ public class ExpressionTypeManager
       return schema;
     }
 
-    public Schema.Type getSchemaType() {
-      if (schema == null) {
-        return null;
-      }
-      return schema.type();
-    }
-
     public void setSchema(final Schema schema) {
       this.schema = schema;
     }
@@ -113,10 +106,10 @@ public class ExpressionTypeManager
   protected Expression visitComparisonExpression(
       final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext) {
     process(node.getLeft(), expressionTypeContext);
-    final Schema leftType = expressionTypeContext.getSchema();
+    final Schema leftSchema = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
-    final Schema rightType = expressionTypeContext.getSchema();
-    validateComparisonOperandTypes(node.getType(), leftType, rightType);
+    final Schema rightSchema = expressionTypeContext.getSchema();
+    validateComparisonOperandTypes(node.getType(), leftSchema.type(), rightSchema.type());
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
@@ -248,15 +241,15 @@ public class ExpressionTypeManager
     return null;
   }
 
-  private Schema resolveArithmeticType(final Schema leftSchema,
+  private static Schema resolveArithmeticType(final Schema leftSchema,
                                        final Schema rightSchema) {
     return SchemaUtil.resolveArithmeticType(leftSchema.type(), rightSchema.type());
   }
 
   private static void validateComparisonOperandTypes(
       final ComparisonExpression.Type operator,
-      final Schema leftType,
-      final Schema rightType) {
+      final Schema.Type leftType,
+      final Schema.Type rightType) {
     if (SchemaUtil.isNumber(leftType)) {
       if (!SchemaUtil.isNumber(rightType)) {
         throw new KsqlException("Invalid comparison operand types. Both sides should be numbers."
@@ -266,20 +259,20 @@ public class ExpressionTypeManager
     }
     if (leftType != rightType) {
       throw new KsqlException("Invalid comparison operand types. Cannot compare incompatible types."
-          + " Left type: " + leftType.type() + ", right type: " + rightType.type());
+          + " Left type: " + leftType + ", right type: " + rightType);
     }
-    if (leftType == Schema.OPTIONAL_STRING_SCHEMA) {
+    if (leftType == Schema.Type.STRING) {
       return;
     }
     if (operator == Type.GREATER_THAN
         || operator == Type.GREATER_THAN_OR_EQUAL
         || operator == Type.LESS_THAN
         || operator == Type.LESS_THAN_OR_EQUAL) {
-      throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType.type());
+      throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType);
     }
-    if (leftType == Schema.OPTIONAL_BOOLEAN_SCHEMA) {
+    if (leftType == Schema.Type.BOOLEAN) {
       return;
     }
-    throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType.type());
+    throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType);
   }
 }

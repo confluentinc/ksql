@@ -56,6 +56,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -787,41 +788,27 @@ final class EndToEndEngineTestUtil {
   }
 
   private static List<Path> getTests(final Path dir, final List<String> files) {
-    List<Path> filePaths = new ArrayList<>();
-    for (String file : files) {
-      filePaths.add(dir.resolve(file.trim()));
-    }
-
-    return filePaths;
+    return files.stream().map(name -> dir.resolve(name.trim())).collect(Collectors.toList());
   }
 
   /**
    * Returns a list of files specified in the system property 'ksql.test.file'.
-   * The list may be specified as a comma-separated string.
+   * The list may be specified as a comma-separated string. If 'ksql.test.file' is not found,
+   * then an empty list is returned.
    */
-  public static List<String> getTestFilesParam() {
-    String propValue = System.getProperty(KSQL_TEST_FILES);
-    if (propValue == null || propValue.trim().isEmpty()) {
-      return null;
+  static List<String> getTestFilesParam() {
+    final String ksqlTestFiles = System.getProperty(KSQL_TEST_FILES, "").trim();
+    if (ksqlTestFiles.isEmpty()) {
+      return Collections.emptyList();
     }
 
-    return Arrays.asList(propValue.trim().split(","));
+    return Arrays.asList(ksqlTestFiles.split(","));
   }
 
   static Stream<JsonTestCase> findTestCases(final Path dir, final List<String> files) {
     final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
 
-    List<Path> testPaths;
-
-    // Use the list of files passed to this method, or find all the tests in the
-    // specified directory
-    if (files != null && !files.isEmpty()) {
-      testPaths = getTests(dir, files);
-    } else {
-      testPaths = findTests(dir);
-    }
-
-    return testPaths.stream()
+    return getTestPaths(dir, files).stream()
         .flatMap(testPath -> {
           final JsonNode rootNode = loadTest(classLoader, testPath);
 
@@ -831,6 +818,18 @@ final class EndToEndEngineTestUtil {
           return StreamSupport.stream(tests, false)
               .map(jsonNode -> new JsonTestCase(testPath, jsonNode));
         });
+  }
+
+  /**
+   * Return a list of test paths found on the given directory. If the files parameter is not empty,
+   * then returns only the paths of the given list.
+   */
+  private static List<Path> getTestPaths(final Path dir, final List<String> files) {
+    if (files != null && !files.isEmpty()) {
+      return getTests(dir, files);
+    } else {
+      return findTests(dir);
+    }
   }
 
   private static JsonNode loadTest(final ClassLoader classLoader, final Path testPath) {

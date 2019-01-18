@@ -68,7 +68,7 @@ public class SchemaTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
+    final List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
 
     return findTestCases(SCHEMA_VALIDATION_TEST_DIR, testFiles)
         .map(SchemaTranslationTest::loadTest)

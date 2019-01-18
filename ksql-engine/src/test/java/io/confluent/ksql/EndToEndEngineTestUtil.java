@@ -54,7 +54,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,6 +97,12 @@ final class EndToEndEngineTestUtil {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private static final String CONFIG_END_MARKER = "CONFIGS_END";
+
+  // Pass a single test or multiple tests separated by commas to the test framework.
+  // Example:
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
+  private static final String KSQL_TEST_FILES = "ksql.test.files";
 
   static {
     // don't use the actual metastore, aim is just to get the functions into the registry.
@@ -779,10 +787,28 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static Stream<JsonTestCase> findTestCases(final Path dir) {
+  private static List<Path> getTests(final Path dir, final List<String> files) {
+    return files.stream().map(name -> dir.resolve(name.trim())).collect(Collectors.toList());
+  }
+
+  /**
+   * Returns a list of files specified in the system property 'ksql.test.file'.
+   * The list may be specified as a comma-separated string. If 'ksql.test.file' is not found,
+   * then an empty list is returned.
+   */
+  static List<String> getTestFilesParam() {
+    final String ksqlTestFiles = System.getProperty(KSQL_TEST_FILES, "").trim();
+    if (ksqlTestFiles.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    return Arrays.asList(ksqlTestFiles.split(","));
+  }
+
+  static Stream<JsonTestCase> findTestCases(final Path dir, final List<String> files) {
     final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
 
-    return findTests(dir).stream()
+    return getTestPaths(dir, files).stream()
         .flatMap(testPath -> {
           final JsonNode rootNode = loadTest(classLoader, testPath);
 
@@ -792,6 +818,18 @@ final class EndToEndEngineTestUtil {
           return StreamSupport.stream(tests, false)
               .map(jsonNode -> new JsonTestCase(testPath, jsonNode));
         });
+  }
+
+  /**
+   * Return a list of test paths found on the given directory. If the files parameter is not empty,
+   * then returns only the paths of the given list.
+   */
+  private static List<Path> getTestPaths(final Path dir, final List<String> files) {
+    if (files != null && !files.isEmpty()) {
+      return getTests(dir, files);
+    } else {
+      return findTests(dir);
+    }
   }
 
   private static JsonNode loadTest(final ClassLoader classLoader, final Path testPath) {

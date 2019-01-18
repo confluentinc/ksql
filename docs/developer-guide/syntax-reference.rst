@@ -969,8 +969,8 @@ BETWEEN
     WHERE expression [NOT] BETWEEN start_expression AND end_expression;
 
 The BETWEEN operator is used to indicate that a certain value must lie within
-a specified range, inclusive of boundaries. Currently, KSQL supports numeric
-and string values for comparison.
+a specified range, inclusive of boundaries. Currently, KSQL supports any expression
+that resolves to a numeric or string value for comparison.
 
 Example:
 

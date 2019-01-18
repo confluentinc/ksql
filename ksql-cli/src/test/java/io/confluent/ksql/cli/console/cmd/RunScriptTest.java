@@ -25,11 +25,11 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -114,7 +114,7 @@ public class RunScriptTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Failed to read file: you-will-not-find-me");
-    expectedException.expectCause(instanceOf(FileNotFoundException.class));
+    expectedException.expectCause(instanceOf(NoSuchFileException.class));
 
     // When:
     cmd.execute(ImmutableList.of("you-will-not-find-me"), terminal);

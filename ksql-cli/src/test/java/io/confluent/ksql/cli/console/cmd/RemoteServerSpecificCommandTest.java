@@ -41,7 +41,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
-public class RemoteCliSpecificCommandTest {
+public class RemoteServerSpecificCommandTest {
 
   private static final String INITIAL_SERVER_ADDRESS = "http://192.168.0.1:8080";
   private static final String VALID_SERVER_ADDRESS = "http://localhost:8088";
@@ -50,7 +50,6 @@ public class RemoteCliSpecificCommandTest {
 
   @Mock(MockType.NICE)
   private KsqlRestClient restClient;
-  @Mock(MockType.NICE)
   private RemoteServerSpecificCommand command;
   private StringWriter out;
   private PrintWriter terminal;

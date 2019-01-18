@@ -18,15 +18,19 @@ import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 
-class Clear implements CliSpecificCommand {
+final class Clear implements CliSpecificCommand {
 
   private static final String HELP = "clear:" + System.lineSeparator()
       + "\tClear the current terminal.";
 
   private final Runnable screenCleaner;
 
-  Clear(final Runnable screenCleaner) {
+  private Clear(final Runnable screenCleaner) {
     this.screenCleaner = Objects.requireNonNull(screenCleaner, "screenCleaner");
+  }
+
+  static Clear create(final Runnable screenCleaner) {
+    return new Clear(screenCleaner);
   }
 
   @Override

@@ -21,7 +21,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-class Output implements CliSpecificCommand {
+final class Output implements CliSpecificCommand {
 
   private static final String HELP = "output:" + System.lineSeparator()
       + "\tView the current output format." + System.lineSeparator()
@@ -37,9 +37,13 @@ class Output implements CliSpecificCommand {
   private final Supplier<OutputFormat> getter;
   private final Consumer<String> setter;
 
-  Output(final Supplier<OutputFormat> getter, final Consumer<String> setter) {
+  private Output(final Supplier<OutputFormat> getter, final Consumer<String> setter) {
     this.getter = Objects.requireNonNull(getter, "getter");
     this.setter = Objects.requireNonNull(setter, "setter");
+  }
+
+  static Output create(final Supplier<OutputFormat> getter, final Consumer<String> setter) {
+    return new Output(getter, setter);
   }
 
   @Override

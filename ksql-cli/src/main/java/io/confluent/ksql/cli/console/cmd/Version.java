@@ -19,15 +19,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-class Version implements CliSpecificCommand {
+final class Version implements CliSpecificCommand {
 
   private static final String HELP = "version:" + System.lineSeparator()
       + "\tGet the current KSQL version.";
 
   private final Supplier<String> versionSupplier;
 
-  Version(final Supplier<String> versionSupplier) {
+  private Version(final Supplier<String> versionSupplier) {
     this.versionSupplier = Objects.requireNonNull(versionSupplier, "versionSupplier");
+  }
+
+  static Version create(final Supplier<String> versionSupplier) {
+    return new Version(versionSupplier);
   }
 
   @Override

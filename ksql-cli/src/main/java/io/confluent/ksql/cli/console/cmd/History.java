@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-class History implements CliSpecificCommand {
+final class History implements CliSpecificCommand {
 
   private static final String HELP = "history:" + System.lineSeparator()
       + "\tShow previous lines entered during the current CLI session. "
@@ -29,8 +29,12 @@ class History implements CliSpecificCommand {
 
   private final Supplier<? extends Collection<HistoryEntry>> historySupplier;
 
-  History(final Supplier<? extends Collection<HistoryEntry>> historySupplier) {
+  private History(final Supplier<? extends Collection<HistoryEntry>> historySupplier) {
     this.historySupplier = Objects.requireNonNull(historySupplier, "historySupplier");
+  }
+
+  static History create(final Supplier<? extends Collection<HistoryEntry>> historySupplier) {
+    return new History(historySupplier);
   }
 
   @Override

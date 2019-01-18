@@ -20,15 +20,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-class Help implements CliSpecificCommand {
+final class Help implements CliSpecificCommand {
 
   private static final String HELP = "help:" + System.lineSeparator()
       + "\tShow this message.";
 
   private final Supplier<Collection<CliSpecificCommand>> cmds;
 
-  Help(final Supplier<Collection<CliSpecificCommand>> cmds) {
+  private Help(final Supplier<Collection<CliSpecificCommand>> cmds) {
     this.cmds = Objects.requireNonNull(cmds, "cmds");
+  }
+
+  static Help create(final Supplier<Collection<CliSpecificCommand>> cmds) {
+    return new Help(cmds);
   }
 
   @Override

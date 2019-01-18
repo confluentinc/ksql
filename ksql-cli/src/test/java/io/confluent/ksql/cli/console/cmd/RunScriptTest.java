@@ -61,7 +61,7 @@ public class RunScriptTest {
   public void setUp() throws Exception {
     terminal = new PrintWriter(new StringWriter());
 
-    cmd = new RunScript(requestExecutor);
+    cmd = RunScript.create(requestExecutor);
 
     scriptFile = TMP.newFile();
     Files.write(scriptFile.toPath(), FILE_CONTENT.getBytes(StandardCharsets.UTF_8));

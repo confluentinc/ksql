@@ -103,16 +103,13 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     final Supplier<String> versionSuppler =
         () -> restClient.getServerInfo().getResponse().getVersion();
 
-    CliCommandRegisterUtil.registerDefaultCommands(this, terminal, versionSuppler);
-
-    terminal
-        .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient));
+    CliCommandRegisterUtil.registerDefaultCommands(this, terminal, versionSuppler, restClient);
   }
 
   @Override
-  public void makeKsqlRequest(final String requestBody) {
+  public void makeKsqlRequest(final String statements) {
     try {
-      printKsqlResponse(restClient.makeKsqlRequest(requestBody));
+      printKsqlResponse(restClient.makeKsqlRequest(statements));
     } catch (IOException e) {
       throw new KsqlException(e);
     }

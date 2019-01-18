@@ -15,7 +15,6 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.List;
 
 public final class CmdLineUtil {
@@ -69,7 +68,7 @@ public final class CmdLineUtil {
     private boolean inQuotes;
     private boolean inWhitespace;
     private String input;
-    private Builder<String> output;
+    private ImmutableList.Builder<String> output;
     private final StringBuilder currentToken = new StringBuilder();
 
     private List<String> parse(final String s) {

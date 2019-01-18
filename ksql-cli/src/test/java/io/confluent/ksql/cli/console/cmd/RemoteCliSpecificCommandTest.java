@@ -59,7 +59,7 @@ public class RemoteCliSpecificCommandTest {
   public void setUp() {
     out = new StringWriter();
     terminal = new PrintWriter(out);
-    command = new RemoteServerSpecificCommand(restClient);
+    command = RemoteServerSpecificCommand.create(restClient);
   }
 
   @Test

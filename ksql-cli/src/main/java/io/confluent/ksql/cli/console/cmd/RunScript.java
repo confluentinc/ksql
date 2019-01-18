@@ -14,18 +14,18 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
-import com.google.common.io.Files;
 import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.util.KsqlException;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-class RunScript implements CliSpecificCommand {
+final class RunScript implements CliSpecificCommand {
 
   private static final String HELP = "run script <path_to_sql_file>:" + System.lineSeparator()
       + "\tLoad and run the statements in the supplied file." + System.lineSeparator()
@@ -33,8 +33,12 @@ class RunScript implements CliSpecificCommand {
 
   private final KsqlRequestExecutor requestExecutor;
 
-  RunScript(final KsqlRequestExecutor requestExecutor) {
+  private RunScript(final KsqlRequestExecutor requestExecutor) {
     this.requestExecutor = Objects.requireNonNull(requestExecutor, "requestExecutor");
+  }
+
+  static RunScript create(final KsqlRequestExecutor requestExecutor) {
+    return new RunScript(requestExecutor);
   }
 
   @Override
@@ -58,7 +62,7 @@ class RunScript implements CliSpecificCommand {
 
   private static String loadScript(final String filePath) {
     try {
-      return Files.readLines(new File(filePath), StandardCharsets.UTF_8).stream()
+      return Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8).stream()
           .collect(Collectors.joining(System.lineSeparator()));
     } catch (IOException e) {
       throw new KsqlException("Failed to read file: " + filePath, e);

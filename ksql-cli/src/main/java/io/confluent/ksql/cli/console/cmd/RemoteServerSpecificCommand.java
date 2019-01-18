@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import javax.ws.rs.ProcessingException;
 
-public class RemoteServerSpecificCommand implements CliSpecificCommand {
+public final class RemoteServerSpecificCommand implements CliSpecificCommand {
 
   private static final String HELP = "server:" + System.lineSeparator()
       + "\tShow the current server" + System.lineSeparator()
@@ -37,7 +37,11 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
 
   private final KsqlRestClient restClient;
 
-  public RemoteServerSpecificCommand(final KsqlRestClient restClient) {
+  public static RemoteServerSpecificCommand create(final KsqlRestClient restClient) {
+    return new RemoteServerSpecificCommand(restClient);
+  }
+
+  private RemoteServerSpecificCommand(final KsqlRestClient restClient) {
     this.restClient = Objects.requireNonNull(restClient, "restClient");
   }
 

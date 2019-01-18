@@ -16,6 +16,7 @@ package io.confluent.ksql.cli.console.cmd;
 
 import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.rest.client.KsqlRestClient;
 import java.util.function.Supplier;
 
 /**
@@ -29,21 +30,31 @@ public final class CliCommandRegisterUtil {
   public static void registerDefaultCommands(
       final KsqlRequestExecutor requestExecutor,
       final Console console,
-      final Supplier<String> versionSuppler) {
-
-    console.registerCliSpecificCommand(new Help(() -> console.getCliSpecificCommands().values()));
-
-    console.registerCliSpecificCommand(new Clear(console::clearScreen));
+      final Supplier<String> versionSuppler,
+      final KsqlRestClient restClient) {
 
     console.registerCliSpecificCommand(
-        new Output(console::getOutputFormat, console::setOutputFormat));
+        Help.create(() -> console.getCliSpecificCommands().values()));
 
-    console.registerCliSpecificCommand(new History(console::getHistory));
+    console.registerCliSpecificCommand(
+        Clear.create(console::clearScreen));
 
-    console.registerCliSpecificCommand(new Version(versionSuppler));
+    console.registerCliSpecificCommand(
+        Output.create(console::getOutputFormat, console::setOutputFormat));
 
-    console.registerCliSpecificCommand(new Exit());
+    console.registerCliSpecificCommand(
+        History.create(console::getHistory));
 
-    console.registerCliSpecificCommand(new RunScript(requestExecutor));
+    console.registerCliSpecificCommand(
+        Version.create(versionSuppler));
+
+    console.registerCliSpecificCommand(
+        Exit.create());
+
+    console.registerCliSpecificCommand(
+        RunScript.create(requestExecutor));
+
+    console.registerCliSpecificCommand(
+        RemoteServerSpecificCommand.create(restClient));
   }
 }

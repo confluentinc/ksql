@@ -18,10 +18,17 @@ import java.io.PrintWriter;
 import java.util.List;
 import org.jline.reader.EndOfFileException;
 
-class Exit implements CliSpecificCommand {
+final class Exit implements CliSpecificCommand {
 
   private static final String HELP = "exit:" + System.lineSeparator()
       + "\tExit the CLI.";
+
+  static Exit create() {
+    return new Exit();
+  }
+
+  private Exit() {
+  }
 
   @Override
   public String getName() {

@@ -37,21 +37,34 @@ public class SplitKudfTest {
   }
 
   @Test
-  public void shouldSplitStringByGivenAnEmptyDelimiter() {
+  public void shouldSplitAllCharactersByGivenAnEmptyDelimiter() {
     assertThat(splitUdf.split("", ""), contains(""));
     assertThat(splitUdf.split("x-y", ""), contains("x", "-", "y"));
   }
 
   @Test
-  public void shouldSplitStringByGivenAStringDelimiter() {
+  public void shouldSplitStringByGivenDelimiter() {
     assertThat(splitUdf.split("x-y", "-"), contains("x", "y"));
     assertThat(splitUdf.split("x-y", "x"), contains("", "-y"));
     assertThat(splitUdf.split("x-y", "y"), contains("x-", ""));
     assertThat(splitUdf.split("a.b.c.d", "."), contains("a", "b", "c", "d"));
 
-    // Add empty spaces if the delimiter is at the beginning, end, or they are contiguous
+  }
+
+  @Test
+  public void shouldSplitAndAddEmptySpacesIfDelimiterIsFoundAtTheBeginningOrEnd() {
     assertThat(splitUdf.split("$A", "$"), contains("", "A"));
+    assertThat(splitUdf.split("$A$B", "$"), contains("", "A", "B"));
     assertThat(splitUdf.split("A$", "$"), contains("A", ""));
+    assertThat(splitUdf.split("A$B$", "$"), contains("A", "B", ""));
+    assertThat(splitUdf.split("$A$B$", "$"), contains("", "A", "B", ""));
+  }
+
+  @Test
+  public void shouldSplitAndAddEmptySpacesIfDelimiterIsFoundInContiguousPositions() {
     assertThat(splitUdf.split("A||A", "|"), contains("A", "", "A"));
+    assertThat(splitUdf.split("z||A||z", "|"), contains("z", "", "A", "", "z"));
+    assertThat(splitUdf.split("||A||A", "|"), contains("", "", "A", "", "A"));
+    assertThat(splitUdf.split("A||A||", "|"), contains("A", "", "A", "", ""));
   }
 }

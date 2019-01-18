@@ -491,7 +491,7 @@ final class EndToEndEngineTestUtil {
         final Path testPath,
         final String name,
         final Map<String, Object> properties,
-        final List<Topic> topics,
+        final Collection<Topic> topics,
         final List<Record> inputRecords,
         final List<Record> outputRecords,
         final List<String> statements,

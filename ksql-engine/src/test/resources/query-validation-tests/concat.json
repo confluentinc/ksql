@@ -11,12 +11,12 @@
         "CREATE STREAM OUTPUT AS SELECT CONCAT('prefix-', CONCAT(source, '-postfix')) AS THING FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"source": "s1"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "s2"}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"source": "s1"}},
+        {"topic": "test_topic", "value": {"source": "s2"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"THING":"prefix-s1-postfix"}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"THING":"prefix-s2-postfix"}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"THING":"prefix-s1-postfix"}},
+        {"topic": "OUTPUT", "value": {"THING":"prefix-s2-postfix"}}
       ]
     },
     {
@@ -27,12 +27,12 @@
         "CREATE STREAM OUTPUT AS SELECT 'prefix-' + source + '-postfix' AS THING FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"source": "s1"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "s2"}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"source": "s1"}},
+        {"topic": "test_topic", "value": {"source": "s2"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"THING":"prefix-s1-postfix"}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"THING":"prefix-s2-postfix"}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"THING":"prefix-s1-postfix"}},
+        {"topic": "OUTPUT", "value": {"THING":"prefix-s2-postfix"}}
       ]
     }
   ]

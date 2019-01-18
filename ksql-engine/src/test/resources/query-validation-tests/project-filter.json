@@ -15,32 +15,12 @@
         "CREATE STREAM S1 as SELECT name FROM test where id > 100;"
       ],
       "inputs": [
-        {
-          "topic": "test_topic",
-          "key": 0,
-          "value": "0,zero,0.0",
-          "timestamp": 0
-        },
-        {
-          "topic": "test_topic",
-          "key": 100,
-          "value": "100,100,0.0",
-          "timestamp": 0
-        },
-        {
-          "topic": "test_topic",
-          "key": 101,
-          "value": "101,101,0.0",
-          "timestamp": 0
-        }
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"},
+        {"topic": "test_topic", "key": 101, "value": "101,101,0.0"}
       ],
       "outputs": [
-        {
-          "topic": "S1",
-          "key": 101,
-          "value": "101",
-          "timestamp": 0
-        }
+        {"topic": "S1", "key": 101, "value": "101"}
       ]
     },
     {
@@ -50,14 +30,14 @@
         "CREATE STREAM S1 as SELECT ID FROM TEST WHERE THING['status']='false';"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 1, "thing": {"other": 11, "status": false}}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 2, "thing": {"other": 12, "status": true}}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 3, "thing": {"other": 13, "status": true}}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 4, "thing": {"other": 13, "status": false}}}
+        {"topic": "test_topic", "key": 0, "value": {"id": 1, "thing": {"other": 11, "status": false}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 2, "thing": {"other": 12, "status": true}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 3, "thing": {"other": 13, "status": true}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 4, "thing": {"other": 13, "status": false}}}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "timestamp": 0, "value": {"ID":1}},
-        {"topic": "S1", "key": 0, "timestamp": 0, "value": {"ID":4}}
+        {"topic": "S1", "key": 0, "value": {"ID":1}},
+        {"topic": "S1", "key": 0, "value": {"ID":4}}
       ]
     },
     {
@@ -67,20 +47,10 @@
         "CREATE STREAM eventstest AS SELECT id, 'x_0' AS field1, field0 FROM events WHERE ((id=1 OR id=2 OR id=3 OR id=4) AND (field0='0x10' OR field0='0x11' OR field0='0x12' OR field0='0x13' OR field0='0x14' OR field0='0x15' OR field0='0x16' OR field0='0x17' OR field0='0x18' OR field0='0x19' OR field0='0x1A' OR field0='0x1B' OR field0='0x1C' OR field0='0x1D' OR field0='0x1E' OR field0='0x1F' OR field0='0x20' OR field0='0x21' OR field0='0x22' OR field0='0x23' OR field0='0x24' OR field0='0x25' OR field0='0x26' OR field0='0x27' OR field0='0x28' OR field0='0x29' OR field0='0x2A' OR field0='0x2B' OR field0='0x2C' OR field0='0x2D' OR field0='0x2E' OR field0='0x2F' OR field0='0x30' OR field0='0x31' OR field0='0x32' OR field0='0x33' OR field0='0x34' OR field0='0x35' OR field0='0x36' OR field0='0x37' OR field0='0x38' OR field0='0x39' OR field0='0x3A' OR field0='0x3B' OR field0='0x3C' OR field0='0x3D' OR field0='0x3E' OR field0='0x3F'));"
       ],
       "inputs": [
-        {
-          "topic": "events",
-          "key": 0,
-          "value": {"id": 1, "field0": "0x10"},
-          "timestamp": 0
-        }
+        {"topic": "events", "key": 0, "value": {"id": 1, "field0": "0x10"}}
       ],
       "outputs": [
-        {
-          "topic": "EVENTSTEST",
-          "key": 0,
-          "value": {"ID": 1, "FIELD1": "x_0", "FIELD0": "0x10"},
-          "timestamp": 0
-        }
+        {"topic": "EVENTSTEST", "key": 0, "value": {"ID": 1, "FIELD1": "x_0", "FIELD0": "0x10"}}
       ]
     },
     {
@@ -90,32 +60,12 @@
         "CREATE STREAM S2 as SELECT name, id FROM test where id < -100;"
       ],
       "inputs": [
-        {
-          "topic": "test_topic",
-          "key": 0,
-          "value": "0,zero,0.0",
-          "timestamp": 0
-        },
-        {
-          "topic": "test_topic",
-          "key": 100,
-          "value": "100,100,0.0",
-          "timestamp": 0
-        },
-        {
-          "topic": "test_topic",
-          "key": 101,
-          "value": "-101,101,0.0",
-          "timestamp": 0
-        }
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"},
+        {"topic": "test_topic", "key": 101, "value": "-101,101,0.0"}
       ],
       "outputs": [
-        {
-          "topic": "S2",
-          "key": 101,
-          "value": "101,-101",
-          "timestamp": 0
-        }
+        {"topic": "S2", "key": 101, "value": "101,-101"}
       ]
     },
     {
@@ -125,18 +75,18 @@
         "CREATE STREAM S3 as SELECT ID, ARRAY_COL[0][1] AS array_item FROM array_array;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 1, "array_col": [["item_00_1","item_01_1"],["item_10_1","item_11_1"]]}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 2, "array_col": [["item_00_2","item_01_2"],["item_10_2","item_11_2"]]}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 3, "array_col": [["item_00_3","item_01_3"],["item_10_3","item_11_3"]]}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 4, "array_col": [["item_00_4","item_01_4"],["item_10_4","item_11_4"]]}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 5, "array_col": [["item_00_5"],["item_10_5","item_11_5"]]}}
+        {"topic": "test_topic", "key": 0, "value": {"id": 1, "array_col": [["item_00_1","item_01_1"],["item_10_1","item_11_1"]]}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 2, "array_col": [["item_00_2","item_01_2"],["item_10_2","item_11_2"]]}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 3, "array_col": [["item_00_3","item_01_3"],["item_10_3","item_11_3"]]}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 4, "array_col": [["item_00_4","item_01_4"],["item_10_4","item_11_4"]]}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 5, "array_col": [["item_00_5"],["item_10_5","item_11_5"]]}}
       ],
       "outputs": [
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 1, "ARRAY_ITEM": "item_01_1"}},
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 2, "ARRAY_ITEM": "item_01_2"}},
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 3, "ARRAY_ITEM": "item_01_3"}},
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 4, "ARRAY_ITEM": "item_01_4"}},
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 5, "ARRAY_ITEM": null}}
+        {"topic": "S3", "key": 0, "value": {"ID": 1, "ARRAY_ITEM": "item_01_1"}},
+        {"topic": "S3", "key": 0, "value": {"ID": 2, "ARRAY_ITEM": "item_01_2"}},
+        {"topic": "S3", "key": 0, "value": {"ID": 3, "ARRAY_ITEM": "item_01_3"}},
+        {"topic": "S3", "key": 0, "value": {"ID": 4, "ARRAY_ITEM": "item_01_4"}},
+        {"topic": "S3", "key": 0, "value": {"ID": 5, "ARRAY_ITEM": null}}
       ]
     },
     {
@@ -146,18 +96,18 @@
         "CREATE STREAM S3 as SELECT ID, ARRAY_COL[0][0][0] AS array_item FROM array_array;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 1, "array_col": [[["item_000_1","item_001_1"],["item_010_1","item_011_1"]],[["item_100_1","item_101_1"],["item_110_1","item_111_1"]]]}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 2, "array_col": [[["item_000_2","item_001_2"],["item_010_2","item_011_2"]],[["item_100_2","item_101_2"],["item_110_2","item_111_2"]]]}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 3, "array_col": [[["item_000_3","item_001_3"],["item_010_3","item_011_3"]],[["item_100_3","item_101_3"],["item_110_3","item_111_3"]]]}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 4, "array_col": [[["item_000_4","item_001_4"],["item_010_4","item_011_4"]],[["item_100_4","item_101_4"],["item_110_4","item_111_4"]]]}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 5, "array_col": [[["item_000_5","item_001_5"],["item_010_5","item_011_5"]],[["item_100_5","item_101_5"],["item_110_5","item_111_5"]]]}}
+        {"topic": "test_topic", "key": 0, "value": {"id": 1, "array_col": [[["item_000_1","item_001_1"],["item_010_1","item_011_1"]],[["item_100_1","item_101_1"],["item_110_1","item_111_1"]]]}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 2, "array_col": [[["item_000_2","item_001_2"],["item_010_2","item_011_2"]],[["item_100_2","item_101_2"],["item_110_2","item_111_2"]]]}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 3, "array_col": [[["item_000_3","item_001_3"],["item_010_3","item_011_3"]],[["item_100_3","item_101_3"],["item_110_3","item_111_3"]]]}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 4, "array_col": [[["item_000_4","item_001_4"],["item_010_4","item_011_4"]],[["item_100_4","item_101_4"],["item_110_4","item_111_4"]]]}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 5, "array_col": [[["item_000_5","item_001_5"],["item_010_5","item_011_5"]],[["item_100_5","item_101_5"],["item_110_5","item_111_5"]]]}}
       ],
       "outputs": [
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 1, "ARRAY_ITEM": "item_000_1"}},
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 2, "ARRAY_ITEM": "item_000_2"}},
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 3, "ARRAY_ITEM": "item_000_3"}},
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 4, "ARRAY_ITEM": "item_000_4"}},
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID": 5, "ARRAY_ITEM": "item_000_5"}}
+        {"topic": "S3", "key": 0, "value": {"ID": 1, "ARRAY_ITEM": "item_000_1"}},
+        {"topic": "S3", "key": 0, "value": {"ID": 2, "ARRAY_ITEM": "item_000_2"}},
+        {"topic": "S3", "key": 0, "value": {"ID": 3, "ARRAY_ITEM": "item_000_3"}},
+        {"topic": "S3", "key": 0, "value": {"ID": 4, "ARRAY_ITEM": "item_000_4"}},
+        {"topic": "S3", "key": 0, "value": {"ID": 5, "ARRAY_ITEM": "item_000_5"}}
       ]
     },
     {
@@ -167,11 +117,11 @@
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 = 4294967296;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo"},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo"}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+        {"topic": "S1", "key": 0, "value": "4294967296,456,foo"}
       ]
     },
     {
@@ -181,13 +131,13 @@
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3='foo';"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,1,bar", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo"},
+        {"topic": "test_topic", "key": 0, "value": "2,1,bar"},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo"}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "S1", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+        {"topic": "S1", "key": 0, "value": "123,456,foo"},
+        {"topic": "S1", "key": 0, "value": "4294967296,456,foo"}
       ]
     },
     {
@@ -197,13 +147,13 @@
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3 LIKE 'f%';"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,1,bar", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo"},
+        {"topic": "test_topic", "key": 0, "value": "2,1,bar"},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,f"}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "S1", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+        {"topic": "S1", "key": 0, "value": "123,456,foo"},
+        {"topic": "S1", "key": 0, "value": "4294967296,456,f"}
       ]
     },
     {
@@ -213,12 +163,12 @@
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3 LIKE 'f';"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,1,bar", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo"},
+        {"topic": "test_topic", "key": 0, "value": "2,1,bar"},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,f"}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+        {"topic": "S1", "key": 0, "value": "4294967296,456,f"}
       ]
     },
     {
@@ -228,11 +178,11 @@
         "CREATE STREAM S3 as SELECT ID FROM TEST WHERE THING['status']='false';"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": {"id": 1, "thing": {"other": 11, "status": false}}},
-        {"topic": "test_topic", "key": 0, "timestamp": 0, "value": null}
+        {"topic": "test_topic", "key": 0, "value": {"id": 1, "thing": {"other": 11, "status": false}}},
+        {"topic": "test_topic", "key": 0, "value": null}
       ],
       "outputs": [
-        {"topic": "S3", "key": 0, "timestamp": 0, "value": {"ID":1}}
+        {"topic": "S3", "key": 0, "value": {"ID":1}}
       ]
     },
     {
@@ -242,12 +192,12 @@
         "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C3 NOT LIKE 'f%';"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "3,5,bar", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "4294967296,456,f", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo"},
+        {"topic": "test_topic", "key": 0, "value": "3,5,bar"},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,f"}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": "3,5,bar", "timestamp": 0}
+        {"topic": "S1", "key": 0, "value": "3,5,bar"}
       ]
     },
     {
@@ -257,12 +207,12 @@
         "CREATE STREAM S1 AS SELECT `END` FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"START": "hello", "END": "foo"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"START": "world", "END": "bar"}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"START": "hello", "END": "foo"}},
+        {"topic": "test_topic", "key": 0, "value": {"START": "world", "END": "bar"}}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": {"END": "foo"}, "timestamp": 0},
-        {"topic": "S1", "key": 0, "value": {"END": "bar"}, "timestamp": 0}
+        {"topic": "S1", "key": 0, "value": {"END": "foo"}},
+        {"topic": "S1", "key": 0, "value": {"END": "bar"}}
       ]
     },
     {
@@ -272,12 +222,12 @@
         "CREATE STREAM S1 AS SELECT S->`END` FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"S": {"START": "hello", "END": "foo"}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"S": {"START": "world", "END": "bar"}}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"S": {"START": "hello", "END": "foo"}}},
+        {"topic": "test_topic", "key": 0, "value": {"S": {"START": "world", "END": "bar"}}}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": {"S__END": "foo"}, "timestamp": 0},
-        {"topic": "S1", "key": 0, "value": {"S__END": "bar"}, "timestamp": 0}
+        {"topic": "S1", "key": 0, "value": {"S__END": "foo"}},
+        {"topic": "S1", "key": 0, "value": {"S__END": "bar"}}
       ]
     },
     {
@@ -287,11 +237,11 @@
         "CREATE STREAM S1 WITH (KAFKA_TOPIC='topic_s') AS SELECT * FROM TEST WHERE C1 = 4294967296;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "123,456,foo", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "123,456,foo"},
+        {"topic": "test_topic", "key": 0, "value": "4294967296,456,foo"}
       ],
       "outputs": [
-        {"topic": "topic_s", "key": 0, "value": "4294967296,456,foo", "timestamp": 0}
+        {"topic": "topic_s", "key": 0, "value": "4294967296,456,foo"}
       ]
     }
   ]

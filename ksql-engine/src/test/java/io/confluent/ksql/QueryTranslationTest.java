@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
@@ -51,10 +52,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
@@ -71,40 +74,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 /**
- *  This test also validates the generated topology matches the
- *  expected topology. The expected topology files, and the configuration
- *  used to generated them are found in src/test/resources/expected_topology/&lt;Version Number&gt;
+ *  Runs the json functional tests defined under
+ *  `ksql-engine/src/test/resources/query-validation-tests`.
  *
- *  By default this test will compare the
- *  current generated topology against the previous released version
- *  identified by the CURRENT_TOPOLOGY_VERSION variable.
- *
- *  To run this test against previously released versions there are three options
- *
- *  1. Just manually change CURRENT_TOPOLOGY_VERSION to a valid version number found under
- *  the src/test/resources/expected_topology directory.
- *
- *  2. This test checks for a system property "topology.version" on test startup. If that
- *  property is set, that is the version used for the test.
- *
- *  3. There are two options for setting the system property.
- *     a. Within Intellij
- *        i. Click Run/Edit configurations
- *        ii. Select the QueryTranslationTest
- *        iii. Enter -Dtopology.version=X  in the "VM options:" form entry
- *             where X is the desired previously released version number.
- *
- *     b. From the command line
- *        i. run mvn clean package -DskipTests=true from the base of the KSQL project
- *        ii. Then run "mvn test -Dtopology.version=X -Dtest=QueryTranslationTest -pl ksql-engine"
- *            (without the quotes).  Again X is the version you want to run the tests against.
- *
- *   Note that for both options above the version must exist
- *   under the src/test/resources/expected_topology directory.
- *
- *  For instructions on how to generate new topologies, see TopologyFileGenerator.java.
+ *  See `ksql-engine/src/test/resources/query-validation-tests/README.md` for more info.
  */
-
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -164,75 +138,159 @@ public class QueryTranslationTest {
   }
 
   private static TestCase createTest(final JsonTestCase test, final String format) {
+    final String testName = buildTestName(test, format);
+
     try {
-      final JsonNode query = test.getNode();
-      final StringBuilder nameBuilder = new StringBuilder();
-      nameBuilder.append(Files.getNameWithoutExtension(test.getTestPath().toString()));
-      nameBuilder.append(" - ");
-      nameBuilder.append(getRequiredQueryField("Unknown", query, "name").asText());
-      if (!format.equals("")) {
-        nameBuilder.append(" - ").append(format);
-      }
-      final String name = nameBuilder.toString();
-      final Map<String, Object> properties = new HashMap<>();
-      final List<String> statements = new ArrayList<>();
-      final List<Record> inputs = new ArrayList<>();
-      final List<Record> outputs = new ArrayList<>();
-      final JsonNode propertiesNode = query.findValue("properties");
-      final ExpectedException expectedException = ExpectedException.none();
+      final JsonNode testCase = test.getNode();
 
-      if (propertiesNode != null) {
-        propertiesNode.fields()
-            .forEachRemaining(
-                property -> properties.put(property.getKey(), property.getValue().asText()));
-      }
-      getRequiredQueryField(name, query, "statements").elements()
-          .forEachRemaining(
-              statement -> statements.add(statement.asText().replace("{FORMAT}", format)));
+      final Map<String, Object> properties = getTestCaseProperties(testCase);
 
-      final Map<String, Topic> topicsMap = new HashMap<>();
-      // add all topics from topic nodes to the map
-      if (query.has("topics")) {
-        query.findValue("topics").forEach(
+      final Optional<ExpectedException> expectedException = getTestCaseExpectedException(testCase);
+
+      final List<String> statements = getTestCaseStatements(testCase, format);
+
+      final Map<String, Topic> topics =
+          getTestCaseTopics(testCase, statements, expectedException.isPresent());
+
+      final List<Record> inputs = getTestCaseTopicMessages(testCase, topics, "inputs");
+
+      final List<Record> outputs = getTestCaseTopicMessages(testCase, topics, "outputs");
+
+      if (inputs.isEmpty() && !expectedException.isPresent()) {
+        throw new InvalidFieldException("inputs", "is empty and 'expectedException' is not defind");
+      }
+
+      return new TestCase(
+          test.getTestPath(),
+          testName,
+          properties,
+          topics.values(),
+          inputs,
+          outputs,
+          statements,
+          expectedException.orElseGet(ExpectedException::none)
+      );
+    } catch (final Exception e) {
+      throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);
+    }
+  }
+
+  private static List<Record> getTestCaseTopicMessages(
+      final JsonNode testCase,
+      final Map<String, Topic> topics,
+      final String fieldName
+  ) {
+    final List<Record> messages = new ArrayList<>();
+    getOptionalJsonField(testCase, fieldName)
+        .ifPresent(node -> node.elements().forEachRemaining(
+            message -> messages.add(
+                createRecordFromNode(topics, message, fieldName + "[]"))));
+
+    return messages;
+  }
+
+  private static Map<String, Topic> getTestCaseTopics(
+      final JsonNode testCase,
+      final List<String> statements,
+      final boolean expectsException
+  ) {
+    final Map<String, Topic> topicsMap = new HashMap<>();
+
+    // Add all topics from topic nodes to the map
+    getOptionalJsonField(testCase, "topics")
+        .ifPresent(topicsNode -> topicsNode.forEach(
             topicNode -> {
               final Topic topic = createTopicFromNode(topicNode);
               topicsMap.put(topic.getName(), createTopicFromNode(topicNode));
             }
+        ));
+
+    // Infer topics if not added already
+    statements.stream()
+        .map(QueryTranslationTest::createTopicFromStatement)
+        .filter(Objects::nonNull)
+        .forEach(
+            topic -> topicsMap.putIfAbsent(topic.getName(), topic)
         );
+
+    if (topicsMap.isEmpty()) {
+      if (expectsException) {
+        return topicsMap;
       }
-      // infer topics if not added already
-      statements.stream()
-          .map(QueryTranslationTest::createTopicFromStatement)
-          .filter(Objects::nonNull)
-          .forEach(
-              topic -> topicsMap.putIfAbsent(topic.getName(), topic)
-          );
-      final List<Topic> topics = new LinkedList<>(topicsMap.values());
+      throw new InvalidFieldException("statements/topics", "The test does not define any topics");
+    }
 
-      final SerdeSupplier defaultSerdeSupplier = topics.get(0).getSerdeSupplier();
+    final SerdeSupplier defaultSerdeSupplier =
+        topicsMap.values().iterator().next().getSerdeSupplier();
 
-      getRequiredQueryField(name, query, "inputs").elements()
-          .forEachRemaining(
-              input -> inputs.add(createRecordFromNode(topics, input, defaultSerdeSupplier)));
+    // Get topics from inputs field:
+    final Set<String> msgTopics = getTestCaseMessageTopicNames(testCase, "inputs");
+    msgTopics.addAll(getTestCaseMessageTopicNames(testCase, "outputs"));
 
-      getRequiredQueryField(name, query, "outputs").elements()
-          .forEachRemaining(
-              output -> outputs.add(createRecordFromNode(topics, output, defaultSerdeSupplier)));
+    msgTopics.stream()
+        .filter(topicName -> !topicsMap.containsKey(topicName))
+        .forEach(topicName -> topicsMap
+            .put(topicName, (new Topic(topicName, null, defaultSerdeSupplier))));
 
-      if (query.has("expectedException")) {
-        final JsonNode node = query.findValue("expectedException");
-        if (node.hasNonNull("type")) {
-          expectedException.expect(parseThrowable(name, node.get("type").asText()));
-        }
-        if (node.hasNonNull("message")) {
-          expectedException.expectMessage(node.get("message").asText());
-        }
-      }
+    return topicsMap;
+  }
 
-      return new TestCase(test.getTestPath(), name, properties, topics, inputs, outputs, statements,
-          expectedException);
-    } catch (final Exception e) {
-      throw new RuntimeException("Failed to build a testCase in " + test.getTestPath(), e);
+  private static Set<String> getTestCaseMessageTopicNames(
+      final JsonNode testCase,
+      final String fieldName
+  ) {
+    final Set<String> allTopics = new HashSet<>();
+
+    getOptionalJsonField(testCase, fieldName)
+        .ifPresent(messages -> messages.elements().forEachRemaining(
+            message -> allTopics
+                .add(getRequiredJsonField(message, "topic", fieldName + "[]").asText())));
+
+    return allTopics;
+  }
+
+  private static List<String> getTestCaseStatements(final JsonNode testCase, final String format) {
+    final List<String> statements = new ArrayList<>();
+    getRequiredJsonField(testCase, "statements").elements()
+        .forEachRemaining(
+            statement -> statements.add(statement.asText().replace("{FORMAT}", format)));
+    return statements;
+  }
+
+  private static Map<String, Object> getTestCaseProperties(final JsonNode testCase) {
+    final Map<String, Object> properties = new HashMap<>();
+    getOptionalJsonField(testCase, "properties")
+        .ifPresent(propNode -> propNode.fields().forEachRemaining(
+            property -> properties.put(property.getKey(), property.getValue().asText())));
+
+    return properties;
+  }
+
+  private static Optional<ExpectedException> getTestCaseExpectedException(final JsonNode testCase) {
+    return getOptionalJsonField(testCase, "expectedException")
+        .map(eeNode -> {
+          final ExpectedException expectedException = ExpectedException.none();
+
+          getOptionalJsonField(eeNode, "type")
+              .ifPresent(type -> expectedException.expect(parseThrowable(type.asText())));
+
+          getOptionalJsonField(eeNode, "message")
+              .ifPresent(msg -> expectedException.expectMessage(msg.asText()));
+
+          return expectedException;
+        });
+  }
+
+  private static String buildTestName(final JsonTestCase testCase, final String format) {
+    try {
+      final String fileName = Files.getNameWithoutExtension(testCase.getTestPath().toString());
+      final String testName = getRequiredJsonField(testCase.getNode(), "name").asText();
+      final String formatPostFix = format.isEmpty() ? "" : " - " + format;
+
+      return fileName + " - " + testName + formatPostFix;
+    } catch (final MissingFieldException e) {
+      throw new AssertionError(
+          "Test file contains an invalid test case: " + testCase.getTestPath(), e);
     }
   }
 
@@ -308,8 +366,13 @@ public class QueryTranslationTest {
       return new Topic(topicName, avroSchema, getSerdeSupplier(format));
     };
 
-    final List<Topic> topics = parser.buildAst(sql, metaStore, filter, mapper);
-    return topics.isEmpty() ? null :topics.get(0);
+    try {
+      final List<Topic> topics = parser.buildAst(sql, metaStore, filter, mapper);
+      return topics.isEmpty() ? null : topics.get(0);
+    } catch (final ParseFailedException e) {
+      // Statement won't parse:
+      return null;
+    }
   }
 
   private static Topic createTopicFromNode(final JsonNode node) {
@@ -331,19 +394,21 @@ public class QueryTranslationTest {
     return new Topic(node.get("name").asText(), schema, serdeSupplier);
   }
 
-  private static Record createRecordFromNode(final List<Topic> topics,
-                                             final JsonNode node,
-                                             final SerdeSupplier defaultSerdeSupplier) {
-    final String topicName = node.findValue("topic").asText();
-    final Topic topic = topics.stream()
-        .filter(t -> t.getName().equals(topicName))
-        .findFirst()
-        .orElse(new Topic(topicName, null, defaultSerdeSupplier));
+  private static Record createRecordFromNode(
+      final Map<String, Topic> topics,
+      final JsonNode node,
+      final String scope
+  ) {
+    final String topicName = getRequiredJsonField(node, "topic", scope).asText();
+
+    final String key = getOptionalJsonField(node, "key")
+        .map(JsonNode::asText)
+        .orElse("");
 
     final Object topicValue;
     if (node.findValue("value").asText().equals("null")) {
       topicValue = null;
-    } else if (topic.getSerdeSupplier() instanceof StringSerdeSupplier) {
+    } else if (topics.get(topicName).getSerdeSupplier() instanceof StringSerdeSupplier) {
       topicValue = node.findValue("value").asText();
     } else {
       try {
@@ -354,13 +419,18 @@ public class QueryTranslationTest {
       }
     }
 
+    final long timestamp = getOptionalJsonField(node, "timestamp")
+        .map(JsonNode::asLong)
+        .orElse(0L);
+
     final WindowData window = createWindowIfExists(node);
 
+
     return new Record(
-        topic,
-        node.findValue("key").asText(),
+        topics.get(topicName),
+        key,
         topicValue,
-        node.findValue("timestamp").asLong(),
+        timestamp,
         window
     );
   }
@@ -378,26 +448,68 @@ public class QueryTranslationTest {
   }
 
   @SuppressWarnings("unchecked")
-  private static Class<? extends Throwable> parseThrowable(final String testName,
-                                                           final String className) {
+  private static Class<? extends Throwable> parseThrowable(final String className) {
     try {
       final Class<?> theClass = Class.forName(className);
       if (!Throwable.class.isAssignableFrom(theClass)) {
-        throw new AssertionError(testName + ": Invalid test - 'expectedException.type' not Throwable");
+        throw new InvalidFieldException("expectedException.type", "Type was not a Throwable");
         }
         return (Class<? extends Throwable>) theClass;
     } catch (final ClassNotFoundException e) {
-      throw new AssertionError(testName + ": Invalid test - 'expectedException.type' not found", e);
+      throw new InvalidFieldException("expectedException.type", "Type was not found", e);
     }
   }
 
-  private static JsonNode getRequiredQueryField(final String testName,
-                                                final JsonNode query,
-                                                final String fieldName) {
+  private static JsonNode getRequiredJsonField(
+      final JsonNode query,
+      final String fieldName
+  ) {
+    return getRequiredJsonField(query, fieldName, "");
+  }
+
+  private static JsonNode getRequiredJsonField(
+      final JsonNode query,
+      final String fieldName,
+      final String scope
+  ) {
     if (!query.has(fieldName)) {
-      throw new AssertionError(
-          testName + ": Invalid test - it must define '" + fieldName + "' field");
+      throw new MissingFieldException(scope + "." + fieldName);
     }
     return query.findValue(fieldName);
+  }
+
+  private static Optional<JsonNode> getOptionalJsonField(
+      final JsonNode node,
+      final String fieldName
+  ) {
+    if (node.hasNonNull(fieldName)) {
+      return Optional.of(node.findValue(fieldName));
+    }
+    return Optional.empty();
+  }
+
+  private static final class MissingFieldException extends RuntimeException {
+
+    private MissingFieldException(final String fieldName) {
+      super("test it must define '" + fieldName + "' field");
+    }
+  }
+
+  private static final class InvalidFieldException extends RuntimeException {
+
+    private InvalidFieldException(
+        final String fieldName,
+        final String reason
+    ) {
+      super("'" + fieldName + "': " + reason);
+    }
+
+    private InvalidFieldException(
+        final String fieldName,
+        final String reason,
+        final Throwable cause
+    ) {
+      super(fieldName + ": " + reason, cause);
+    }
   }
 }

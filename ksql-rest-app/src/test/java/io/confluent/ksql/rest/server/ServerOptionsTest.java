@@ -18,9 +18,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Properties;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Test;
@@ -68,7 +69,7 @@ public class ServerOptionsTest {
 
     final File propsFile = TestUtils.tempFile();
     try (final PrintWriter writer =
-             new PrintWriter(new FileWriter(propsFile))) {
+        new PrintWriter(Files.newBufferedWriter(propsFile.toPath(), StandardCharsets.UTF_8))) {
       writer.println("bootstrap.servers=localhost:9092");
       writer.println("listeners=http://some-server");
       writer.println("num.stream.threads=1");

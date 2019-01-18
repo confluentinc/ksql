@@ -959,6 +959,27 @@ Example:
       FROM users
       WHERE user_id LIKE 'santa%';
 
+BETWEEN
+~~~~~~~
+
+**Synopsis**
+
+.. code:: sql
+
+    WHERE expression [NOT] BETWEEN start_expression AND end_expression;
+
+The BETWEEN operator is used to indicate that a certain value must lie within
+a specified range, inclusive of boundaries. Currently, KSQL supports any expression
+that resolves to a numeric or string value for comparison.
+
+Example:
+
+.. code:: sql
+
+  SELECT event
+    FROM events
+    WHERE event_id BETWEEN 10 AND 20
+
 SHOW FUNCTIONS
 --------------
 

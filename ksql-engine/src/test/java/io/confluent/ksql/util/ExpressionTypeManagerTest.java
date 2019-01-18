@@ -106,6 +106,34 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
+  public void shouldFailForComplexTypeComparison() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT MAPCOL > NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
+        functionRegistry);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid comparison operand types. Cannot compare incompatible types. Left type: MAP, right type: STRUCT");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+  }
+
+  @Test
+  public void shouldFailForComparingComplexTypes() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT NESTED_ORDER_COL = NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
+        functionRegistry);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Operator EQUAL cannot be applied to STRUCT");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+  }
+
+  @Test
   public void shouldEvaluateBooleanSchemaForLikeExpression() {
     final String simpleQuery = "SELECT col1 LIKE 'foo%', col2 LIKE '%bar' FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
@@ -213,17 +241,4 @@ public class ExpressionTypeManagerTest {
 
   }
 
-  @Test
-  public void shouldFailForComplexTypeComparison() {
-    // Given:
-    final Analysis analysis = analyzeQuery("SELECT MAPCOL > NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
-        functionRegistry);
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid comparison operand types. Cannot compare incompatible types. Left type: MAP, right type: STRUCT");
-
-    // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-
-  }
 }

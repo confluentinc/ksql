@@ -277,5 +277,9 @@ public class ExpressionTypeManager
         || operator == Type.LESS_THAN_OR_EQUAL) {
       throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType.type());
     }
+    if (leftType == Schema.OPTIONAL_BOOLEAN_SCHEMA) {
+      return;
+    }
+    throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType.type());
   }
 }

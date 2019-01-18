@@ -50,7 +50,7 @@ class TryKafkaTopicClient implements KafkaTopicClient {
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final short replicationFactor,
+      final int replicationFactor,
       final Map<String, ?> configs
   ) {
     if (isTopicExists(topic)) {

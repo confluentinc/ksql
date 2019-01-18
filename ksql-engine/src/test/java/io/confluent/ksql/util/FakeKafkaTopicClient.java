@@ -39,12 +39,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   private static class FakeTopic {
     private final String topicName;
     private final int numPartitions;
-    private final short replicatonFactor;
+    private final int replicatonFactor;
     private final TopicCleanupPolicy cleanupPolicy;
 
     private FakeTopic(final String topicName,
                      final int numPartitions,
-                     final short replicatonFactor,
+        final int replicatonFactor,
                      final TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
@@ -72,9 +72,15 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   private final Map<String, FakeTopic> createdTopics = new HashMap<>();
 
   public void preconditionTopicExists(
+      final String topic
+  ) {
+    preconditionTopicExists(topic, 1, 1, Collections.emptyMap());
+  }
+
+  public void preconditionTopicExists(
       final String topic,
       final int numPartitions,
-      final short replicationFactor,
+      final int replicationFactor,
       final Map<String, ?> configs) {
     topicMap.put(topic, createFakeTopic(topic, numPartitions, replicationFactor, configs));
   }
@@ -83,7 +89,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final short replicationFactor,
+      final int replicationFactor,
       final Map<String, ?> configs
   ) {
     final FakeTopic existing = topicMap.get(topic);
@@ -161,8 +167,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public void deleteInternalTopics(final String applicationId) {
   }
 
-  private static FakeTopic createFakeTopic(final String topic, final int numPartitions,
-      final short replicationFactor, final Map<String, ?> configs) {
+  private static FakeTopic createFakeTopic(
+      final String topic,
+      final int numPartitions,
+      final int replicationFactor,
+      final Map<String, ?> configs
+  ) {
     final TopicCleanupPolicy cleanUpPolicy =
         CLEANUP_POLICY_COMPACT.equals(configs.get(COMPRESSION_TYPE_CONFIG))
             ? TopicCleanupPolicy.COMPACT

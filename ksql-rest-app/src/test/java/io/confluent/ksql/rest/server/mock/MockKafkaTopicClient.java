@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.mock;
 import io.confluent.ksql.util.KafkaTopicClient;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -31,7 +30,7 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   @Override
   public void createTopic(final String topic,
                           final int numPartitions,
-                          final short replicationFactor,
+                          final int replicationFactor,
                           final Map<String, ?> configs) {
 
   }

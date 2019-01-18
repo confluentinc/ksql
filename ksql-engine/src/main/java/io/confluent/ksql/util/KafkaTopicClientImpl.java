@@ -64,7 +64,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final short replicationFactor,
+      final int replicationFactor,
       final Map<String, ?> configs
   ) {
     if (isTopicExists(topic)) {
@@ -72,7 +72,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
 
-    final NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
+    final NewTopic newTopic = new NewTopic(topic, numPartitions, (short)replicationFactor);
     newTopic.configs(toStringConfigs(configs));
 
     try {

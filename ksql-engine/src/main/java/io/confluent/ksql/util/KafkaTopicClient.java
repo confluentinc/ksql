@@ -53,7 +53,7 @@ public interface KafkaTopicClient {
   void createTopic(
       String topic,
       int numPartitions,
-      short replicationFactor,
+      int replicationFactor,
       Map<String, ?> configs
   );
 

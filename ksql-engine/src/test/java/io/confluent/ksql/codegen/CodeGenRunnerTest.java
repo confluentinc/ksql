@@ -445,10 +445,10 @@ public class CodeGenRunnerTest {
         // Given:
         expectedException.expect(KsqlException.class);
         expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute between with ARRAY values. "
+            + "Cannot execute BETWEEN with ARRAY values. "
             + "expression:(NOT (CODEGEN_TEST.COL9 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute between with ARRAY values")));
+            equalTo("Cannot execute BETWEEN with ARRAY values")));
 
         // When:
         evalNotBetweenClauseObject(ARRAY_INDEX1, new Object[]{1, 2}, "'a'", "'c'");
@@ -459,10 +459,10 @@ public class CodeGenRunnerTest {
         // Given:
         expectedException.expect(KsqlException.class);
         expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute between with MAP values. "
+            + "Cannot execute BETWEEN with MAP values. "
             + "expression:(NOT (CODEGEN_TEST.COL11 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute between with MAP values")));
+            equalTo("Cannot execute BETWEEN with MAP values")));
 
         // When:
         evalNotBetweenClauseObject(MAP_INDEX1, ImmutableMap.of(1, 2), "'a'", "'c'");
@@ -473,10 +473,10 @@ public class CodeGenRunnerTest {
         // Given:
         expectedException.expect(KsqlException.class);
         expectedException.expectMessage("Code generation failed for Filter: "
-            + "Cannot execute between with BOOLEAN values. "
+            + "Cannot execute BETWEEN with BOOLEAN values. "
             + "expression:(NOT (CODEGEN_TEST.COL6 BETWEEN 'a' AND 'c'))");
         expectedException.expectCause(hasMessage(
-            equalTo("Cannot execute between with BOOLEAN values")));
+            equalTo("Cannot execute BETWEEN with BOOLEAN values")));
 
         // When:
         evalNotBetweenClauseObject(BOOLEAN_INDEX1, true, "'a'", "'c'");

@@ -32,10 +32,6 @@ public class UrlExtractHostKudfTest {
     extractUdf = new UrlExtractHostKudf();
   }
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-
   @Test
   public void shouldExtractHostIfPresent() {
     assertThat(extractUdf.extractHost("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("docs.confluent.io"));

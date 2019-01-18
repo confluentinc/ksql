@@ -32,10 +32,6 @@ public class UrlExtractProtocolKudfTest {
     extractUdf = new UrlExtractProtocolKudf();
   }
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-
   @Test
   public void shouldExtractProtocolIfPresent() {
     assertThat(

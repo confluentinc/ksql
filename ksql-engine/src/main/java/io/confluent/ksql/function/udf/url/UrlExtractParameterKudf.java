@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.url;
 import com.google.common.base.Splitter;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 import java.util.List;
@@ -35,7 +36,13 @@ public class UrlExtractParameterKudf {
 
   @Udf(description = "Extracts a parameter with a specified name encoded inside an "
           + "application/x-www-form-urlencoded String.")
-  public String extractParam(final String input, final String paramToFind) {
+  public String extractParam(
+      @UdfParameter(value = "input", description = "a vald URL")
+      final String input,
+      @UdfParameter(
+          value = "paramToFind",
+          description = "the query parameter whose value will be extracted")
+      final String paramToFind) {
     final String query = UrlParser.extract(input, URI::getQuery);
     if (query == null) {
       return null;

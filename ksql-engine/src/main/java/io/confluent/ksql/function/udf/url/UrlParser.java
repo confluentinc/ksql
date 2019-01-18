@@ -14,9 +14,12 @@
 
 package io.confluent.ksql.function.udf.url;
 
+import com.google.common.base.Preconditions;
+import io.confluent.ksql.function.KsqlFunctionException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.function.Function;
+import javax.annotation.Nonnull;
 
 /**
  * Utility class for extracting information from a String encoded URL
@@ -31,15 +34,15 @@ final class UrlParser {
    *
    * @return the value of {@code extract(url)} if present and valid, otherwise {@code null}
    */
-  static <T> T extract(final String url, final Function<URI, T> extract) {
-    if (url == null || extract == null) {
+  static <T> T extract(final String url, @Nonnull final Function<URI, T> extract) {
+    if (url == null) {
       return null;
     }
 
     try {
       return extract.apply(new URI(url));
     } catch (final URISyntaxException e) {
-      return null;
+      throw new KsqlFunctionException("The passed in URL " + url + " has invalid syntax!", e);
     }
   }
 }

@@ -32,10 +32,6 @@ public class UrlExtractQueryKudfTest {
     extractUdf = new UrlExtractQueryKudf();
   }
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-
   @Test
   public void shouldExtractQueryIfPresent() {
     assertThat(extractUdf.extractQuery("https://docs.confluent.io/current/ksql/docs/syntax-reference.html?a=b&foo%20bar=baz&c=d&e#scalar-functions"), equalTo("a=b&foo bar=baz&c=d&e"));

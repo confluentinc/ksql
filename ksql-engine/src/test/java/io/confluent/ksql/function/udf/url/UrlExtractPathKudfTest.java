@@ -32,10 +32,6 @@ public class UrlExtractPathKudfTest {
     extractUdf = new UrlExtractPathKudf();
   }
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-
   @Test
   public void shouldExtractPathIfPresent() {
     assertThat(extractUdf.extractPath("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("/current/ksql/docs/syntax-reference.html"));

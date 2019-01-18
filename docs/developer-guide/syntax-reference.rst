@@ -1362,8 +1362,8 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | UCASE                  |  ``UCASE(col1)``                                                          | Convert a string to uppercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| URL_DECODE_PARAM       |  ``URL_DECODE_PARAM(col1)``                                               | Unescapes the URL-param-encoded value in col1.    |
-|                        |                                                                           | This is the inverse of the URL_ENCODE_PARAM       |
+| URL_DECODE_PARAM       |  ``URL_DECODE_PARAM(col1)``                                               | Unescapes the URL-param-encoded [1]_ value in     |
+|                        |                                                                           | col1. This is the inverse of the URL_ENCODE_PARAM |
 |                        |                                                                           | function.                                         |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | URL_ENCODE_PARAM       |  ``URL_ENCODE_PARAM(col1)``                                               | Escapes the value of col1 such that it can safely |
@@ -1403,6 +1403,13 @@ Scalar functions
 |                        |                                                                           | specified URL. Returns NULL if no query-string    |
 |                        |                                                                           | is present or the URL is not a valid URI.         |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+
+.. [1] All KSQL URL functions assume URI syntax defined in `RFC 39386`_.
+   For more information on the structure of a URI, including definitions of the various components,
+   see Section 3 of the RFC. For encoding/decoding, the ``application/x-www-form-urlencoded``
+   convention is followed.
+
+.. _RFC 39386: https://tools.ietf.org/html/rfc3986
 
 .. _ksql_aggregate_functions:
 

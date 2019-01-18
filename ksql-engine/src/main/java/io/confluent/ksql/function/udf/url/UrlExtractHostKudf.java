@@ -16,6 +16,7 @@ package io.confluent.ksql.function.udf.url;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
 import java.net.URI;
@@ -29,7 +30,8 @@ public class UrlExtractHostKudf {
   static final String NAME = "url_extract_host";
 
   @Udf(description = "Extracts the Host Name of an application/x-www-form-urlencoded String input")
-  public String extractHost(final String input) {
+  public String extractHost(
+      @UdfParameter(value = "input", description = "a valid URL") final String input) {
     return UrlParser.extract(input, URI::getHost);
   }
 }

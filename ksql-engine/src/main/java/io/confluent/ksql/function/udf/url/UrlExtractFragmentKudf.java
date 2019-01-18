@@ -16,6 +16,7 @@ package io.confluent.ksql.function.udf.url;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
 import java.net.URI;
@@ -29,7 +30,9 @@ public class UrlExtractFragmentKudf {
   static final String NAME = "url_extract_fragment";
 
   @Udf(description = "Extracts the fragment of an application/x-www-form-urlencoded String input")
-  public String extractFragment(final String input) {
+  public String extractFragment(
+      @UdfParameter(value = "input", description = "a valid URL to extract a fragment from")
+      final String input) {
     return UrlParser.extract(input, URI::getFragment);
   }
 }

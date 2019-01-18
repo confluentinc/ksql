@@ -32,10 +32,6 @@ public class UrlExtractFragmentKudfTest {
     extractUdf = new UrlExtractFragmentKudf();
   }
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-
   @Test
   public void shouldExtractFragmentIfPresent() {
     assertThat(extractUdf.extractFragment("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("scalar-functions"));

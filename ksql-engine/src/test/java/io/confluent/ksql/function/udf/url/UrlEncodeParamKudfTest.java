@@ -31,9 +31,6 @@ public class UrlEncodeParamKudfTest {
     encodeUdf = new UrlEncodeParamKudf();
   }
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void shouldEncodeValue() {
     assertThat(encodeUdf.encodeParam("?foo $bar"), equalTo("%3Ffoo+%24bar"));

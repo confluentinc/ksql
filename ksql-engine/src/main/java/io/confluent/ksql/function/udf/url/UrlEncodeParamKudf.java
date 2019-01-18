@@ -18,6 +18,7 @@ import com.google.common.escape.Escaper;
 import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
@@ -31,7 +32,8 @@ public class UrlEncodeParamKudf {
 
   @Udf(description = "Returns a version of 'input' with all URL sensitive characters encoded using"
                      + "the aplpication/x-www-form-urlencoded standard.")
-  public String encodeParam(final String input) {
+  public String encodeParam(
+      @UdfParameter(value = "input", description = "the value to encode") final String input) {
     final Escaper escaper = UrlEscapers.urlFormParameterEscaper();
     return escaper.escape(input);
   }

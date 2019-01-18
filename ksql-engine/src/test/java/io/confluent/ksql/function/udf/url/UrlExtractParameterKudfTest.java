@@ -32,10 +32,6 @@ public class UrlExtractParameterKudfTest {
     extractUdf = new UrlExtractParameterKudf();
   }
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-
   @Test
   public void shouldExtractParamValueIfPresent() {
     assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz&blank#scalar-functions", "foo bar"), equalTo("baz"));

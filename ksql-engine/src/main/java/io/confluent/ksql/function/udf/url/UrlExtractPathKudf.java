@@ -16,6 +16,7 @@ package io.confluent.ksql.function.udf.url;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 
 import java.net.URI;
@@ -31,7 +32,9 @@ public class UrlExtractPathKudf {
 
   @Udf(description = "Extracts the path of an application/x-www-form-urlencoded "
                              + "encoded String input")
-  public String extractPath(final String input) {
+  public String extractPath(
+      @UdfParameter(value = "input", description = "a valid URL to extract the path from")
+      final String input) {
     // A path component, consisting of a sequence of path segments separated by a slash (/). A path
     // is always defined for a URI, though the defined path may be empty (zero length).
     // source: https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Definition

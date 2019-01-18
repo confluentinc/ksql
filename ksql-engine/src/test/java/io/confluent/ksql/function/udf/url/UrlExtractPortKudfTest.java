@@ -31,10 +31,6 @@ public class UrlExtractPortKudfTest {
     extractUdf = new UrlExtractPortKudf();
   }
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-
   @Test
   public void shouldExtractPortIfPresent() {
     assertThat(

@@ -18,6 +18,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,6 +27,9 @@ import org.junit.rules.ExpectedException;
 public class UrlExtractParameterKudfTest {
 
   private UrlExtractParameterKudf extractUdf;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -53,8 +57,13 @@ public class UrlExtractParameterKudfTest {
   }
 
   @Test
-  public void shouldReturnNullForInvalidUrl() {
-    assertThat(extractUdf.extractParam("http://257.1/bogus/[url", "foo bar"), nullValue());
+  public void shouldThrowExceptionForMalformedURL() {
+    // Given:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("The passed in URL http://257.1/bogus/[url has invalid syntax!");
+
+    // When:
+    extractUdf.extractParam("http://257.1/bogus/[url", "foo bar");
   }
 
 }

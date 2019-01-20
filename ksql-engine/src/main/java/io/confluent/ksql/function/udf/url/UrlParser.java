@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.function.udf.url;
 
-import com.google.common.base.Preconditions;
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.net.URI;
 import java.net.URISyntaxException;

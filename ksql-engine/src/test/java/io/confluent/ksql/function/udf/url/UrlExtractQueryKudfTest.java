@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.url;
 
+import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,6 +27,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class UrlExtractQueryKudfTest {
 
   private UrlExtractQueryKudf extractUdf;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -43,8 +47,13 @@ public class UrlExtractQueryKudfTest {
   }
 
   @Test
-  public void shouldReturnNullForInvalidUrl() {
-    assertThat(extractUdf.extractQuery("http://257.1/bogus/[url"), nullValue());
+  public void shouldThrowExceptionForMalformedURL() {
+    // Given:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("The passed in URL http://257.1/bogus/[url has invalid syntax!");
+
+    // When:
+    extractUdf.extractQuery("http://257.1/bogus/[url");
   }
 
 }

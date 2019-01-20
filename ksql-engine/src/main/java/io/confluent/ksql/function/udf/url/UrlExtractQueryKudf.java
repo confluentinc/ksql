@@ -17,13 +17,10 @@ package io.confluent.ksql.function.udf.url;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.util.KsqlConstants;
-
 import java.net.URI;
 
 @UdfDescription(
         name = UrlExtractQueryKudf.NAME,
-        author = KsqlConstants.CONFLUENT_AUTHOR,
         description = "Extracts the query parameters of an application/x-www-form-urlencoded "
                       + "encoded String input, if it exists.")
 public class UrlExtractQueryKudf {

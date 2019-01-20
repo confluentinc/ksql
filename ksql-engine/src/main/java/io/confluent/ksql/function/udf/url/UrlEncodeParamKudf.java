@@ -19,11 +19,9 @@ import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
         name = UrlEncodeParamKudf.NAME,
-        author = KsqlConstants.CONFLUENT_AUTHOR,
         description = "Returns a version of the input with all URL sensitive characters encoded "
                       + "using the application/x-www-form-urlencoded standard.")
 public class UrlEncodeParamKudf {

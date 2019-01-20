@@ -17,12 +17,10 @@ package io.confluent.ksql.function.udf.url;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 
 @UdfDescription(
         name = UrlExtractPortKudf.NAME,
-        author = KsqlConstants.CONFLUENT_AUTHOR,
         description = "Extracts the port from an application/x-www-form-urlencoded encoded String."
                       + " If there is no port or the string is invalid, this will return null.")
 public class UrlExtractPortKudf {

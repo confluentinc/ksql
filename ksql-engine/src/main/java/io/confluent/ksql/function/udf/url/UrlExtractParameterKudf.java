@@ -18,13 +18,11 @@ import com.google.common.base.Splitter;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.util.KsqlConstants;
 import java.net.URI;
 import java.util.List;
 
 @UdfDescription(
         name = UrlExtractParameterKudf.NAME,
-        author = KsqlConstants.CONFLUENT_AUTHOR,
         description = "Extracts a parameter with a specified name encoded inside an "
                       + "application/x-www-form-urlencoded String.")
 public class UrlExtractParameterKudf {

@@ -20,14 +20,12 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.util.KsqlConstants;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
 
 @UdfDescription(
         name = UrlDecodeParamKudf.NAME,
-        author = KsqlConstants.CONFLUENT_AUTHOR,
         description = "Decodes a previously encoded application/x-www-form-urlencoded String")
 public class UrlDecodeParamKudf {
 

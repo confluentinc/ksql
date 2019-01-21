@@ -12,21 +12,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.cli;
 
-import org.apache.kafka.streams.errors.StreamsException;
+public interface KsqlRequestExecutor {
 
-public class KsqlException extends StreamsException {
-
-  public KsqlException(final Throwable cause) {
-    super(cause);
-  }
-
-  public KsqlException(final String message) {
-    super(message);
-  }
-
-  public KsqlException(final String message, final Throwable cause) {
-    super(message, cause);
-  }
+  /**
+   * Execute a request on the KSQL servers and handle the response.
+   *
+   * @param body the request body.
+   */
+  void makeKsqlRequest(String body);
 }

@@ -321,27 +321,27 @@ final class EndToEndEngineTestUtil {
 
   static class Topic {
     private final String name;
-    private final org.apache.avro.Schema schema;
+    private final Optional<org.apache.avro.Schema> schema;
     private final SerdeSupplier serdeSupplier;
     private final int numPartitions;
 
     Topic(
         final String name,
-        final org.apache.avro.Schema schema,
+        final Optional<org.apache.avro.Schema> schema,
         final SerdeSupplier serdeSupplier,
         final int numPartitions
     ) {
-      this.name = name;
-      this.schema = schema;
-      this.serdeSupplier = serdeSupplier;
+      this.name = Objects.requireNonNull(name, "name");
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.serdeSupplier = Objects.requireNonNull(serdeSupplier, "serdeSupplier");
       this.numPartitions = numPartitions;
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    public org.apache.avro.Schema getSchema() {
+    Optional<org.apache.avro.Schema> getSchema() {
       return schema;
     }
 
@@ -503,7 +503,7 @@ final class EndToEndEngineTestUtil {
         final Path testPath,
         final String name,
         final Map<String, Object> properties,
-        final List<Topic> topics,
+        final Collection<Topic> topics,
         final List<Record> inputRecords,
         final List<Record> outputRecords,
         final List<String> statements,
@@ -595,14 +595,16 @@ final class EndToEndEngineTestUtil {
     void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
         serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) 1);
-        if (topic.getSchema() != null) {
-          try {
-            serviceContext.getSchemaRegistryClient().register(
-                topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, topic.getSchema());
-          } catch (final Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
+
+        topic.getSchema()
+            .ifPresent(schema -> {
+              try {
+                serviceContext.getSchemaRegistryClient()
+                    .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+              } catch (final Exception e) {
+                throw new RuntimeException(e);
+              }
+            });
       }
     }
 

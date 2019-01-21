@@ -8,9 +8,7 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "The statement or topic schema does not define any columns."
-      },
-      "inputs": [],
-      "outputs": []
+      }
     },
     {
       "name": "validate DELIMITED fails without elements",
@@ -20,9 +18,7 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "The statement or topic schema does not define any columns."
-      },
-      "inputs": [],
-      "outputs": []
+      }
     },
     {
       "name": "validate AVRO ok without elements",
@@ -42,8 +38,8 @@
           "partitions": 4
         }
       ],
-      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
-      "outputs": [{"topic": "S", "key": 0, "value": {"C1": 4}, "timestamp": 0}]
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
     },
     {
       "name": "validate AVRO ok with elements",
@@ -63,8 +59,8 @@
           "partitions": 4
         }
       ],
-      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
-      "outputs": [{"topic": "S", "key": 0, "value": {"C1": 4}, "timestamp": 0}]
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
     },
     {
       "name": "validate AVRO uses null for unknown element",
@@ -84,8 +80,8 @@
           "partitions": 4
         }
       ],
-      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
-      "outputs": [{"topic": "S", "key": 0, "value": {"UNKNOWN": null, "C1": 4}, "timestamp": 0}]
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"UNKNOWN": null, "C1": 4}}]
     },
     {
       "name": "validate AVRO fails on incompatible schema evolution",
@@ -110,8 +106,8 @@
           "partitions": 4
         }
       ],
-      "inputs": [{"topic": "input", "key": 0, "value": {"c1": 4}, "timestamp": 0}],
-      "outputs": [{"topic": "S", "key": 0, "value": {"C1": 4}, "timestamp": 0}]
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
     }
   ]
 }

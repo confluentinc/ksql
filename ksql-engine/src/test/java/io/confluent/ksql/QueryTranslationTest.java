@@ -99,10 +99,21 @@ import org.junit.runners.Parameterized;
  *        ii. Then run "mvn test -Dtopology.version=X -Dtest=QueryTranslationTest -pl ksql-engine"
  *            (without the quotes).  Again X is the version you want to run the tests against.
  *
+ *
  *   Note that for both options above the version must exist
  *   under the src/test/resources/expected_topology directory.
  *
  *  For instructions on how to generate new topologies, see TopologyFileGenerator.java.
+ *
+ *  This test also accepts a parameter to execute a list of given test files. To run the test, use
+ *  the following example:
+ *
+ *     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=sum.json
+ *     or
+ *     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=sum.json,substring.json
+ *
+ *  The above commands can execute only a single test (sum.json) or multiple tests
+ *  (sum.json and substring.json).
  */
 
 @RunWith(Parameterized.class)
@@ -148,7 +159,9 @@ public class QueryTranslationTest {
   }
 
   static Stream<TestCase> buildTestCases() {
-    return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR)
+    final List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
+
+    return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR, testFiles)
         .flatMap(test -> {
           final JsonNode formatsNode = test.getNode().get("format");
           if (formatsNode == null) {

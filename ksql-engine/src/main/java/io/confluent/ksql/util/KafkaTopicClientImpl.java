@@ -64,7 +64,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final int replicationFactor,
+      final short replicationFactor,
       final Map<String, ?> configs
   ) {
     if (isTopicExists(topic)) {

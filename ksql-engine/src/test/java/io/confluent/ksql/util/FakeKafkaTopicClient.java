@@ -89,7 +89,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public void createTopic(
       final String topic,
       final int numPartitions,
-      final int replicationFactor,
+      final short replicationFactor,
       final Map<String, ?> configs
   ) {
     final FakeTopic existing = topicMap.get(topic);

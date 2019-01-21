@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
@@ -99,8 +98,6 @@ public class ReadonlyMetaStoreTest {
     private StructuredDataSource source;
     @Mock
     private UdfFactory function;
-    @Mock
-    private KsqlFunction ksqlFunction;
     @Mock
     private UdfFactory udfFactory;
     @Mock

@@ -71,22 +71,20 @@ class QueryEngine {
       final PreparedStatement<?> statement,
       final KsqlConfig config
   ) {
-    final LogicalPlanNode logicalPlan;
-    if (statement.getStatement() instanceof Query) {
-      final PlanNode planNode = buildQueryLogicalPlan(
-          statement.getStatementText(),
-          (Query) statement.getStatement(),
-          metaStore,
-          config
-      );
-      logicalPlan = new LogicalPlanNode(statement.getStatementText(), planNode);
-    } else {
-      logicalPlan = new LogicalPlanNode(statement.getStatementText(), null);
-    }
-
     LOG.info("Build logical plan for {}.", statement.getStatementText());
 
-    return logicalPlan;
+    if (!(statement.getStatement() instanceof Query)) {
+      return new LogicalPlanNode(statement.getStatementText(), null);
+    }
+
+    final PlanNode planNode = buildQueryLogicalPlan(
+        statement.getStatementText(),
+        (Query) statement.getStatement(),
+        metaStore,
+        config
+    );
+
+    return new LogicalPlanNode(statement.getStatementText(), planNode);
   }
 
   QueryMetadata buildPhysicalPlan(

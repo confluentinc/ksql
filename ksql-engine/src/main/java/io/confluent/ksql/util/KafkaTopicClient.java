@@ -32,9 +32,16 @@ public interface KafkaTopicClient {
 
   /**
    * Create a new topic with the specified name, numPartitions and replicationFactor.
-   * [warn] synchronous call to get the response
+   *
+   * <p>If the topic already exists the method checks that partition count <i>matches</i>matches
+   * {@code numPartitions} and that the replication factor is <i>at least</i>
+   * {@code replicationFactor}
+   *
+   * <p>[warn] synchronous call to get the response
    *
    * @param topic name of the topic to create
+   * @param replicationFactor the rf of the topic.
+   * @param numPartitions the partition count of the topic.
    */
   default void createTopic(
       final String topic,
@@ -45,15 +52,22 @@ public interface KafkaTopicClient {
 
   /**
    * Create a new topic with the specified name, numPartitions and replicationFactor.
-   * [warn] synchronous call to get the response
+   *
+   * <p>If the topic already exists the method checks that partition count <i>matches</i>matches
+   * {@code numPartitions} and that the replication factor is <i>at least</i>
+   * {@code replicationFactor}
+   *
+   * <p>[warn] synchronous call to get the response
    *
    * @param topic name of the topic to create
+   * @param replicationFactor the rf of the topic.
+   * @param numPartitions the partition count of the topic.
    * @param configs any additional topic configs to use
    */
   void createTopic(
       String topic,
       int numPartitions,
-      int replicationFactor,
+      short replicationFactor,
       Map<String, ?> configs
   );
 

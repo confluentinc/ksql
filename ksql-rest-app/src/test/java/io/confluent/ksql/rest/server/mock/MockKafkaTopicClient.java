@@ -30,9 +30,8 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   @Override
   public void createTopic(final String topic,
                           final int numPartitions,
-                          final int replicationFactor,
+                          final short replicationFactor,
                           final Map<String, ?> configs) {
-
   }
 
   @Override

@@ -184,8 +184,8 @@ public class KsqlEngine implements Closeable {
     return serviceId;
   }
 
-  public static List<String> getImmutableProperties() {
-    return new ArrayList<>(IMMUTABLE_PROPERTIES);
+  public static Set<String> getImmutableProperties() {
+    return IMMUTABLE_PROPERTIES;
   }
 
   public void stopAcceptingStatements() {
@@ -421,7 +421,8 @@ public class KsqlEngine implements Closeable {
         final String sqlExpression,
         final ExecutableDdlStatement statement,
         final Map<String, Object> overriddenProperties,
-        final boolean enforceTopicExistence) {
+        final boolean enforceTopicExistence
+    ) {
       final String resultingSqlExpression;
       final ExecutableDdlStatement resultingStatement;
 

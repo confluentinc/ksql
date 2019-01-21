@@ -232,7 +232,7 @@ public class QueryTranslationTest {
     msgTopics.stream()
         .filter(topicName -> !topicsMap.containsKey(topicName))
         .forEach(topicName -> topicsMap
-            .put(topicName, (new Topic(topicName, Optional.empty(), defaultSerdeSupplier))));
+            .put(topicName, (new Topic(topicName, Optional.empty(), defaultSerdeSupplier, 4))));
 
     return topicsMap;
   }

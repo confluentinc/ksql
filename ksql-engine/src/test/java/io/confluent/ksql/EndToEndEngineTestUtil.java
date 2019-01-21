@@ -313,23 +313,24 @@ final class EndToEndEngineTestUtil {
 
   static class Topic {
     private final String name;
-    private final org.apache.avro.Schema schema;
+    private final Optional<org.apache.avro.Schema> schema;
     private final SerdeSupplier serdeSupplier;
 
     Topic(
         final String name,
-        final org.apache.avro.Schema schema,
-        final SerdeSupplier serdeSupplier) {
-      this.name = name;
-      this.schema = schema;
-      this.serdeSupplier = serdeSupplier;
+        final Optional<org.apache.avro.Schema> schema,
+        final SerdeSupplier serdeSupplier
+    ) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.serdeSupplier = Objects.requireNonNull(serdeSupplier, "serdeSupplier");
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    public org.apache.avro.Schema getSchema() {
+    Optional<org.apache.avro.Schema> getSchema() {
       return schema;
     }
 
@@ -583,14 +584,16 @@ final class EndToEndEngineTestUtil {
     void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
         serviceContext.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
-        if (topic.getSchema() != null) {
-          try {
-            serviceContext.getSchemaRegistryClient().register(
-                topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, topic.getSchema());
-          } catch (final Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
+
+        topic.getSchema()
+            .ifPresent(schema -> {
+              try {
+                serviceContext.getSchemaRegistryClient()
+                    .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+              } catch (final Exception e) {
+                throw new RuntimeException(e);
+              }
+            });
       }
     }
 

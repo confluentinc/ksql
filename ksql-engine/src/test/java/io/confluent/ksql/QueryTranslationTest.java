@@ -230,7 +230,7 @@ public class QueryTranslationTest {
     msgTopics.stream()
         .filter(topicName -> !topicsMap.containsKey(topicName))
         .forEach(topicName -> topicsMap
-            .put(topicName, (new Topic(topicName, null, defaultSerdeSupplier))));
+            .put(topicName, (new Topic(topicName, Optional.empty(), defaultSerdeSupplier))));
 
     return topicsMap;
   }
@@ -352,16 +352,17 @@ public class QueryTranslationTest {
       final String format
           = StringUtil.cleanQuotes(properties.get(DdlConfig.VALUE_FORMAT_PROPERTY).toString());
 
-      final org.apache.avro.Schema avroSchema;
+      final Optional<org.apache.avro.Schema> avroSchema;
       if (format.equals(DataSource.AVRO_SERDE_NAME)) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(
             e -> schemaBuilder.field(e.getName(), TypeUtil.getTypeSchema(e.getType()))
         );
-        avroSchema = new AvroData(1).fromConnectSchema(addNames(schemaBuilder.build()));
+        avroSchema = Optional.of(new AvroData(1)
+            .fromConnectSchema(addNames(schemaBuilder.build())));
       } else {
-        avroSchema = null;
+        avroSchema = Optional.empty();
       }
       return new Topic(topicName, avroSchema, getSerdeSupplier(format));
     };
@@ -376,17 +377,17 @@ public class QueryTranslationTest {
   }
 
   private static Topic createTopicFromNode(final JsonNode node) {
-    final org.apache.avro.Schema schema;
+    final Optional<org.apache.avro.Schema> schema;
     if (node.has("schema")) {
       try {
         final String schemaString = objectMapper.writeValueAsString(node.get("schema"));
         final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-        schema = parser.parse(schemaString);
+        schema = Optional.of(parser.parse(schemaString));
       } catch (final JsonProcessingException e) {
         throw new RuntimeException(e);
       }
     } else {
-      schema = null;
+      schema = Optional.empty();
     }
 
     final SerdeSupplier serdeSupplier = getSerdeSupplier(node.get("format").asText());

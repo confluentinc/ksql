@@ -9,7 +9,7 @@ The test cases are run by the `QueryTranslationTest` test class.
 
 ## Topology comparision
 These test also validate the generated topology matches the expected topology,
-i.e. a test will fail if the topology has changed from previouus runs.
+i.e. a test will fail if the topology has changed from previous runs.
 This is needed to detect potentially non-backwards compatible changes to the generated topology.
 
 The expected topology files, and the configuration used to generated them are found in
@@ -87,7 +87,7 @@ Test cases should be written to be as succinct as possible to make them as reada
 For example:
  - the schemas in DDL statements should be as minimal as possible. So avoid cutting & pasting large schemas between test cases.
  - keep the test of source messages to the minimum required to prove the functionality and any edge cases.
- - keep the definition of source and sink messages succinct too: don't add optional attributes if they are not pertinant to the test case.
+ - keep the definition of source and sink messages succinct too: don't add optional attributes if they are not pertinent to the test case.
 
 Each test case can have the following attributes:
 
@@ -139,8 +139,8 @@ It is not necessary to add entries for topics required by the test case unless a
 | Attribute | Description |
 |-----------|:------------|
 | name      | (Required) the name of the topic |
-| schema    | (Optional) the schema, registered in the schema store, of the topic. |
-| format    | (Optional) the serialization format of records within the topic, e.g. `AVRO` |
+| format    | (Required) the serialization format of records within the topic, e.g. `AVRO` |
+| schema    | (Optional) the schema, registered in the schema store, of the topic. If not supplied, no schema is registered |
 
 ### Inputs & Outputs
 Each input and output row defines a message either produced to, or expected from, Kafka.

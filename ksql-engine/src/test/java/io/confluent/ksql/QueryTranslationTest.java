@@ -122,7 +122,9 @@ public class QueryTranslationTest {
   }
 
   static Stream<TestCase> buildTestCases() {
-    return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR)
+    final List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
+
+    return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR, testFiles)
         .flatMap(test -> {
           final JsonNode formatsNode = test.getNode().get("format");
           if (formatsNode == null) {

@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableList;
@@ -368,6 +369,120 @@ public class CodeGenRunnerTest {
     }
 
     @Test
+    public void testBetweenExprScalar() {
+        // int
+        assertThat(evalBetweenClauseScalar(INT32_INDEX1, 1, 0, 2), is(true));
+        assertThat(evalBetweenClauseScalar(INT32_INDEX1, 0, 0, 2), is(true));
+        assertThat(evalBetweenClauseScalar(INT32_INDEX1, 3, 0, 2), is(false));
+        assertThat(evalBetweenClauseScalar(INT32_INDEX1, null, 0, 2), is(false));
+
+        // long
+        assertThat(evalBetweenClauseScalar(INT64_INDEX1, 12345L, 12344L, 12346L), is(true));
+        assertThat(evalBetweenClauseScalar(INT64_INDEX1, 12344L, 12344L, 12346L), is(true));
+        assertThat(evalBetweenClauseScalar(INT64_INDEX1, 12345L, 0, 2L), is(false));
+        assertThat(evalBetweenClauseScalar(INT64_INDEX1, null, 0, 2L), is(false));
+
+        // double
+        assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 1.0d, 0.1d, 1.9d), is(true));
+        assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 0.1d, 0.1d, 1.9d), is(true));
+        assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 2.0d, 0.1d, 1.9d), is(false));
+        assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, null, 0.1d, 1.9d), is(false));
+    }
+
+    @Test
+    public void testNotBetweenScalar() {
+        // int
+        assertThat(evalNotBetweenClauseScalar(INT32_INDEX1, 1, 0, 2), is(false));
+        assertThat(evalNotBetweenClauseScalar(INT32_INDEX1, 0, 0, 2), is(false));
+        assertThat(evalNotBetweenClauseScalar(INT32_INDEX1, 3, 0, 2), is(true));
+        assertThat(evalNotBetweenClauseScalar(INT32_INDEX1, null, 0, 2), is(true));
+
+        // long
+        assertThat(evalNotBetweenClauseScalar(INT64_INDEX1, 12345L, 12344L, 12346L), is(false));
+        assertThat(evalNotBetweenClauseScalar(INT64_INDEX1, 12344L, 12344L, 12346L), is(false));
+        assertThat(evalNotBetweenClauseScalar(INT64_INDEX1, 12345L, 0, 2L), is(true));
+        assertThat(evalNotBetweenClauseScalar(INT64_INDEX1, null, 0, 2L), is(true));
+
+        // double
+        assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 1.0d, 0.1d, 1.9d), is(false));
+        assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 0.1d, 0.1d, 1.9d), is(false));
+        assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 2.0d, 0.1d, 1.9d), is(true));
+        assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, null, 0.1d, 1.9d), is(true));
+    }
+
+    @Test
+    public void testBetweenExprString() {
+        // constants
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "b", "'a'", "'c'"), is(true));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "a", "'a'", "'c'"), is(true));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "d", "'a'", "'c'"), is(false));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, null, "'a'", "'c'"), is(false));
+
+        // columns
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "S2", "col" + STRING_INDEX2, "'S3'"), is(true));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "S3", "col" + STRING_INDEX2, "'S3'"), is(true));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "S4", "col" + STRING_INDEX2, "'S3'"), is(false));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, null, "col" + STRING_INDEX2, "'S3'"), is(false));
+    }
+
+    @Test
+    public void testNotBetweenExprString() {
+        // constants
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "b", "'a'", "'c'"), is(false));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "a", "'a'", "'c'"), is(false));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "d", "'a'", "'c'"), is(true));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, null, "'a'", "'c'"), is(true));
+
+        // columns
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "S2", "col" + STRING_INDEX2, "'S3'"), is(false));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "S3", "col" + STRING_INDEX2, "'S3'"), is(false));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "S4", "col" + STRING_INDEX2, "'S3'"), is(true));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, null, "col" + STRING_INDEX2, "'S3'"), is(true));
+    }
+
+    @Test
+    public void testInvalidBetweenArrayValue() {
+        // Given:
+        expectedException.expect(KsqlException.class);
+        expectedException.expectMessage("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with ARRAY values. "
+            + "expression:(NOT (CODEGEN_TEST.COL9 BETWEEN 'a' AND 'c'))");
+        expectedException.expectCause(hasMessage(
+            equalTo("Cannot execute BETWEEN with ARRAY values")));
+
+        // When:
+        evalNotBetweenClauseObject(ARRAY_INDEX1, new Object[]{1, 2}, "'a'", "'c'");
+    }
+
+    @Test
+    public void testInvalidBetweenMapValue() {
+        // Given:
+        expectedException.expect(KsqlException.class);
+        expectedException.expectMessage("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with MAP values. "
+            + "expression:(NOT (CODEGEN_TEST.COL11 BETWEEN 'a' AND 'c'))");
+        expectedException.expectCause(hasMessage(
+            equalTo("Cannot execute BETWEEN with MAP values")));
+
+        // When:
+        evalNotBetweenClauseObject(MAP_INDEX1, ImmutableMap.of(1, 2), "'a'", "'c'");
+    }
+
+    @Test
+    public void testInvalidBetweenBooleanValue() {
+        // Given:
+        expectedException.expect(KsqlException.class);
+        expectedException.expectMessage("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with BOOLEAN values. "
+            + "expression:(NOT (CODEGEN_TEST.COL6 BETWEEN 'a' AND 'c'))");
+        expectedException.expectCause(hasMessage(
+            equalTo("Cannot execute BETWEEN with BOOLEAN values")));
+
+        // When:
+        evalNotBetweenClauseObject(BOOLEAN_INDEX1, true, "'a'", "'c'");
+    }
+
+    @Test
     public void shouldHandleArithmeticExpr() {
         // Given:
         final String query =
@@ -559,6 +674,45 @@ public class CodeGenRunnerTest {
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         columns.set(cola, values[0]);
         columns.set(colb, values[1]);
+
+        final Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(columns));
+        assertThat(result0, instanceOf(Boolean.class));
+        return (Boolean)result0;
+    }
+
+    private boolean evalBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s;", col, min.toString(), max.toString());
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalNotBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min.toString(), max.toString());
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalBetweenClauseString(final int col, final String val, final String min, final String max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s;", col, min, max);
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalNotBetweenClauseString(final int col, final String val, final String min, final String max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min, max);
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalNotBetweenClauseObject(final int col, final Object val, final String min, final String max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min, max);
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalBetweenClause(final String simpleQuery, final int col, final Object val) {
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+
+        final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getWhereExpression(), "Filter");
+
+        final List<Object> columns = new ArrayList<>(ONE_ROW);
+        columns.set(col, val);
 
         final Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(columns));
         assertThat(result0, instanceOf(Boolean.class));

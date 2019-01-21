@@ -66,17 +66,17 @@ public class CmdLineUtilTest {
 
   @Test
   public void shouldSplitThreeSingleQuotes() {
-    assertSplit("'''", "''");
+    assertSplit("'''", "'''");
   }
 
   @Test
   public void shouldSplitSingleQuotedEscapedQuote() {
-    assertSplit("''''", "'''");
+    assertSplit("''''", "''''");
   }
 
   @Test
   public void shouldSplitStringWithEmbeddedQuoted() {
-    assertSplit("'string''with''embedded''quotes'", "'string'with'embedded'quotes'");
+    assertSplit("'string''with''embedded''quotes'", "'string''with''embedded''quotes'");
   }
 
   @Test
@@ -97,6 +97,14 @@ public class CmdLineUtilTest {
   @Test
   public void shouldHandleCharactersTrailingAfterQuoteEnds() {
     assertSplit("'thing'one 'thing'two", "'thing'one", "'thing'two");
+  }
+
+  @Test
+  public void shouldCheckSplitJavaDocExamplesAreRight() {
+    assertSplit("t0 t1", "t0", "t1");
+    assertSplit("'quoted string'", "'quoted string'");
+    assertSplit("'quoted 'connected' quoted'", "'quoted 'connected' quoted'");
+    assertSplit("'escaped '' quote'", "'escaped '' quote'");
   }
 
   @Test
@@ -127,6 +135,24 @@ public class CmdLineUtilTest {
   @Test
   public void shouldCorrectlyHandleEscapedQuotesWhenRemovingMatchedQuotes() {
     assertMatchedQuotesRemoved("'a '''' b ''' c '''' d '' e '' f '''", "a '' b ' c ' d  e  f '''");
+  }
+
+  @Test
+  public void shouldStripSingleQuotedEscapedQuote() {
+    assertMatchedQuotesRemoved("''''", "'");
+  }
+
+  @Test
+  public void shouldStripThreeSingleQuotes() {
+    assertMatchedQuotesRemoved("'''", "'''");
+  }
+
+  @Test
+  public void shouldCheckRemoveQuotesJavaDocExamplesAreRight() {
+    assertMatchedQuotesRemoved("unquoted", "unquoted");
+    assertMatchedQuotesRemoved("'quoted string'", "quoted string");
+    assertMatchedQuotesRemoved("'quoted'connected'quoted'", "quotedconnectedquoted");
+    assertMatchedQuotesRemoved("escaped ' quote", "escaped ' quote");
   }
 
   private static void assertSplit(final String input, final String... expected) {

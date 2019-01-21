@@ -25,15 +25,17 @@ public final class CmdLineUtil {
   /**
    * Split the supplied line by unquoted whitespace.
    *
+   * <p>Note: The quotes are maintained in the returned value.
+   *
    * <p>White space within an open single quote will be ignored
    *
    * <p>A quote can be escaped using a second single quote, e.g. {@code "'escaped '' quote'"}.
    *
    * <ul>
    * <li>{@code "t0 t1"} becomes {@code ["t0", "t1"]}</li>
-   * <li>{@code "'quoted string'"} becomes {@code ["quoted string"]}</li>
-   * <li>{@code "'quoted'connected'quoted'"} becomes {@code ["quotedconnectedquoted"]}</li>
-   * <li>{@code "'escaped '' quote'"} becomes {@code ["escaped ' quote"]}</li>
+   * <li>{@code "'quoted string'"} becomes {@code ["'quoted string'"]}</li>
+   * <li>{@code "'quoted 'connected' quoted'"} becomes {@code ["'quoted 'connected' quoted'"]}</li>
+   * <li>{@code "'escaped '' quote'"} becomes {@code ["'escaped '' quote'"]}</li>
    * </ul>
    *
    * @return the list of parts.
@@ -52,7 +54,7 @@ public final class CmdLineUtil {
    * <p>e.g.
    * <ul>
    * <li>{@code "unquoted"} becomes {@code "unquoted"}</li>
-   * <li>{@code "'some quoted string'"} becomes {@code "some quoted string"}</li>
+   * <li>{@code "'quoted string'"} becomes {@code "quoted string"}</li>
    * <li>{@code "'quoted'connected'quoted'"} becomes {@code "quotedconnectedquoted"}</li>
    * <li>{@code "'escaped '' quote'"} becomes {@code "escaped ' quote"}</li>
    * </ul>
@@ -111,6 +113,7 @@ public final class CmdLineUtil {
         if (!inQuotes) {
           inQuotes = true;
         } else if (isEscapedChar(input, pos)) {
+          currentToken.append('\'');
           ++returnPos;
         } else {
           inQuotes = false;

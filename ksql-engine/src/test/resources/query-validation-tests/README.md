@@ -18,6 +18,23 @@ The expected topology files, and the configuration used to generated them are fo
 By default test will compare the current generated topology against the previous released version
 of KSQL, as identified by the `QueryTranslationTest.CURRENT_TOPOLOGY_VERSION` variable.
 
+### Running a subset of tests:
+
+`QueryTranslationTest` supports running a subset of test files, for example following example:
+
+```
+mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=sum.json
+```
+
+or
+```
+mvn test -pl ksql-engine -Dtest=QueryTranslationTest -DtestFile=sum.json,substring.json
+```
+
+The above commands can execute only a single test (sum.json) or multiple tests (sum.json and substring.json).
+
+### Running against different previous versions:
+
 To run this test against previously released versions there are three options
 
 1. Manually change `QueryTranslationTest.CURRENT_TOPOLOGY_VERSION` to a valid version number
@@ -36,6 +53,8 @@ found under the `src/test/resources/expected_topology` directory.
 
   Note that for both options above the version must exist
   under the `src/test/resources/expected_topology` directory.
+
+### Generating new topology files
 
 For instructions on how to generate new topologies, see `TopologyFileGenerator.java`
 

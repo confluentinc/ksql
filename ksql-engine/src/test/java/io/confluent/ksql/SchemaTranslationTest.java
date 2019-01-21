@@ -15,8 +15,8 @@
 package io.confluent.ksql;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
+import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -154,15 +155,15 @@ public class SchemaTranslationTest {
 
     final Topic srcTopic;
     final Topic outputTopic
-        = new Topic(OUTPUT_TOPIC_NAME, null, new ValueSpecAvroSerdeSupplier());
+        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier());
     final List<Record> inputRecords;
     final List<Record> outputRecords;
     if (node.has("input_records")) {
-      srcTopic = new Topic(TOPIC_NAME, avroSchema, new ValueSpecAvroSerdeSupplier());
+      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new ValueSpecAvroSerdeSupplier());
       inputRecords = loadRecords(srcTopic, node.get("input_records"));
       outputRecords = loadRecords(outputTopic, node.get("output_records"));
     } else {
-      srcTopic = new Topic(TOPIC_NAME, avroSchema, new AvroSerdeSupplier());
+      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new AvroSerdeSupplier());
       inputRecords = generateInputRecords(srcTopic, avroSchema);
       outputRecords = getOutputRecords(outputTopic, inputRecords, avroSchema);
     }

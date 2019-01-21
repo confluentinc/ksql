@@ -16,21 +16,21 @@
         "CREATE TABLE COUNT_BY_REGION AS SELECT REGION, count(*) AS COUNT FROM TEST GROUP BY REGION;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "alice", "REGION": "east"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "east"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "carol", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": {"ID": 3, "NAME": "dave", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": null, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "alice", "REGION": "east"}},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "east"}},
+        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "carol", "REGION": "west"}},
+        {"topic": "test_topic", "key": 3, "value": {"ID": 3, "NAME": "dave", "REGION": "west"}},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "west"}},
+        {"topic": "test_topic", "key": 1, "value": null}
       ],
       "outputs": [
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 1}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 2}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 1}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 2}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 1}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 3}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 2}, "timestamp": 0}
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 1}},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 2}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 1}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 2}},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 1}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 3}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 2}}
       ]
     },
     {
@@ -41,23 +41,23 @@
         "CREATE TABLE COUNT_BY_REGION AS SELECT REGION, count(*) AS COUNT FROM TEST GROUP BY REGION HAVING count(*) > 2;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "alice", "REGION": "east"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "east"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "dave", "REGION": "east"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": {"ID": 3, "NAME": "carol", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": {"ID": 4, "NAME": "ed", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "dave", "REGION": "west"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": null, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "alice", "REGION": "east"}},
+        {"topic": "test_topic", "key": 1, "value": {"ID": 1, "NAME": "bob", "REGION": "east"}},
+        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "dave", "REGION": "east"}},
+        {"topic": "test_topic", "key": 3, "value": {"ID": 3, "NAME": "carol", "REGION": "west"}},
+        {"topic": "test_topic", "key": 4, "value": {"ID": 4, "NAME": "ed", "REGION": "west"}},
+        {"topic": "test_topic", "key": 2, "value": {"ID": 2, "NAME": "dave", "REGION": "west"}},
+        {"topic": "test_topic", "key": 3, "value": null}
       ],
       "outputs": [
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": null, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": null, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 3}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": null, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": null, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "east", "value": null, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 3}, "timestamp": 0},
-        {"topic": "COUNT_BY_REGION", "key": "west", "value": null, "timestamp": 0}
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": null},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": null},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": {"REGION": "east", "COUNT": 3}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": null},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": null},
+        {"topic": "COUNT_BY_REGION", "key": "east", "value": null},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": {"REGION": "west", "COUNT": 3}},
+        {"topic": "COUNT_BY_REGION", "key": "west", "value": null}
       ]
     }
   ]

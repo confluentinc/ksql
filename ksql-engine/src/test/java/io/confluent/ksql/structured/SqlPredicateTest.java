@@ -24,8 +24,8 @@ import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -36,7 +36,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -49,7 +48,6 @@ import org.junit.Test;
 public class SqlPredicateTest {
 
   private SchemaKStream initialSchemaKStream;
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   private MetaStore metaStore;
@@ -137,9 +135,12 @@ public class SqlPredicateTest {
   @SuppressWarnings("unchecked")
   public void shouldIgnoreNullRows() {
     final String selectQuery = "SELECT col0 FROM test1 WHERE col0 > 100;";
-    final List<PreparedStatement<?>> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
-    final QuerySpecification querySpecification = (QuerySpecification)((Query) statements.get(0)
-        .getStatement()).getQueryBody();
+    final PreparedStatement<Query> statement = KsqlParserTestUtil
+        .buildSingleAst(selectQuery, metaStore);
+    final QuerySpecification querySpecification = (QuerySpecification) statement
+        .getStatement()
+        .getQueryBody();
+
     final Expression filterExpr = querySpecification.getWhere().get();
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
 

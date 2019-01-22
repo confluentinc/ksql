@@ -211,7 +211,7 @@ public class KsqlResource {
 
     try {
       result.add(distributeStatement(
-          new PreparedStatement<>(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+          PreparedStatement.of(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
               new TerminateCluster()),
           request.getStreamsProperties()
       ));
@@ -562,7 +562,7 @@ public class KsqlResource {
     }
 
     final List<QueryMetadata> metadata = ksqlEngine.tryExecute(
-        ImmutableList.of(new PreparedStatement<>(statementText, statement)),
+        ImmutableList.of(PreparedStatement.of(statementText, statement)),
         ksqlConfig, propertyOverrides);
 
     return QueryDescription.forQueryMetadata(metadata.get(0));

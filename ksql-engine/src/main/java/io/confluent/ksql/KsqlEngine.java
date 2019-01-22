@@ -30,6 +30,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
+import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -45,7 +46,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -202,14 +202,19 @@ public class KsqlEngine implements Closeable {
     try {
       final MetaStore parserMetaStore = metaStore.clone();
 
-      final KsqlParser ksqlParser = new KsqlParser();
+      final KsqlParser ksqlParser = new DefaultKsqlParser();
 
-      return ksqlParser.buildAst(
-          sql,
-          parserMetaStore,
-          stmt -> {
+      return ksqlParser.parse(sql).stream()
+          .map(parsed -> {
+            final PreparedStatement<?> stmt = ksqlParser
+                .prepare(parsed, parserMetaStore);
+
             validateSingleQueryAstAndUpdateParserMetaStore(stmt, parserMetaStore);
-          });
+
+            return stmt;
+          })
+          .collect(Collectors.toList());
+
     } catch (final KsqlException e) {
       throw e;
     } catch (final Exception e) {
@@ -242,7 +247,7 @@ public class KsqlEngine implements Closeable {
         .map(statement -> {
               if (statement.getStatement() instanceof QueryContainer) {
                 final Query query = ((QueryContainer) statement.getStatement()).getQuery();
-                return new PreparedStatement<Statement>(statement.getStatementText(), query);
+                return PreparedStatement.of(statement.getStatementText(), query);
               }
               return statement;
             }
@@ -588,7 +593,7 @@ public class KsqlEngine implements Closeable {
         true
     );
 
-    return new PreparedStatement<>(statement.getStatementText(), query);
+    return PreparedStatement.of(statement.getStatementText(), query);
   }
 
   private static PreparedStatement<?> postProcessInsertIntoStatement(
@@ -608,7 +613,7 @@ public class KsqlEngine implements Closeable {
         false
     );
 
-    return new PreparedStatement<>(statement.getStatementText(), query);
+    return PreparedStatement.of(statement.getStatementText(), query);
   }
 
   private PreparedStatement<?> postProcessSingleDdlStatement(

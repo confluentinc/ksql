@@ -29,7 +29,7 @@ public final class StatementWithSchema {
       final T statement,
       final String statementText,
       final SchemaRegistryClient schemaRegistryClient) {
-    return forStatement(new PreparedStatement<>(statementText, statement), schemaRegistryClient);
+    return forStatement(PreparedStatement.of(statementText, statement), schemaRegistryClient);
   }
 
   @SuppressWarnings("unchecked")
@@ -48,7 +48,7 @@ public final class StatementWithSchema {
       return statement;
     }
 
-    return (PreparedStatement) new PreparedStatement<>(
+    return (PreparedStatement) PreparedStatement.of(
         SqlFormatter.formatSql(statementWithSchema),
         statementWithSchema);
   }

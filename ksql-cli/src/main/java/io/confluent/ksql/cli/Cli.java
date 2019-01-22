@@ -23,7 +23,7 @@ import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
-import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -217,7 +217,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       throws InterruptedException, IOException, ExecutionException {
 
     final List<ParsedStatement> statements =
-        new KsqlParser().getStatements(line);
+        new DefaultKsqlParser().parse(line);
 
     StringBuilder consecutiveStatements = new StringBuilder();
     for (final ParsedStatement statement : statements) {

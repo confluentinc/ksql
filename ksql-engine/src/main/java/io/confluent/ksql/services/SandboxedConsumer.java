@@ -41,9 +41,9 @@ import org.apache.kafka.common.TopicPartition;
  * not called.
  */
 @SuppressWarnings("deprecation")
-class TryConsumer<K, V> implements Consumer<K, V> {
+class SandboxedConsumer<K, V> implements Consumer<K, V> {
 
-  TryConsumer() {
+  SandboxedConsumer() {
   }
 
   @Override

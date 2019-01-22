@@ -36,13 +36,13 @@ import org.apache.kafka.common.TopicPartitionInfo;
  *
  * <p>The client will not make changes to the remote Kafka cluster.
  */
-class TryKafkaTopicClient implements KafkaTopicClient {
+class SandboxedKafkaTopicClient implements KafkaTopicClient {
 
   private final KafkaTopicClient delegate;
 
   private final Map<String, TopicDescription> createdTopics = new HashMap<>();
 
-  TryKafkaTopicClient(final KafkaTopicClient delegate) {
+  SandboxedKafkaTopicClient(final KafkaTopicClient delegate) {
     this.delegate = Objects.requireNonNull(delegate, "delegate");
   }
 

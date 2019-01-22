@@ -84,9 +84,9 @@ import org.apache.kafka.common.config.ConfigResource;
  * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
  * not called.
  */
-class TryAdminClient extends AdminClient {
+class SandboxedAdminClient extends AdminClient {
 
-  TryAdminClient() {
+  SandboxedAdminClient() {
   }
 
   @Override

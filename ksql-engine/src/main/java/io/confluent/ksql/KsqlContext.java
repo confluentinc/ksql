@@ -86,7 +86,8 @@ public class KsqlContext {
   public List<QueryMetadata> sql(final String sql, final Map<String, Object> overriddenProperties) {
     final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(sql);
 
-    ksqlEngine.tryExecute(statements, ksqlConfig, overriddenProperties);
+    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox();
+    statements.forEach(stmt -> sandbox.execute(stmt, ksqlConfig, overriddenProperties));
 
     final List<QueryMetadata> queries = statements.stream()
         .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))

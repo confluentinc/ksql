@@ -33,11 +33,11 @@ import org.apache.avro.Schema;
  * not called.
  */
 @SuppressWarnings("deprecation")
-class TrySchemaRegistryClient implements SchemaRegistryClient {
+class SandboxedSchemaRegistryClient implements SchemaRegistryClient {
 
   private final SchemaRegistryClient delegate;
 
-  TrySchemaRegistryClient(final SchemaRegistryClient delegate) {
+  SandboxedSchemaRegistryClient(final SchemaRegistryClient delegate) {
     this.delegate = Objects.requireNonNull(delegate, "delegate");
   }
 

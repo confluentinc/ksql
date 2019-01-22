@@ -54,6 +54,8 @@ public class KsqlContextTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
+  private KsqlExecutionContext sandbox;
+  @Mock
   private PersistentQueryMetadata persistentQuery;
   @Mock
   private QueuedQueryMetadata transientQuery;
@@ -70,6 +72,8 @@ public class KsqlContextTest {
     when(ksqlEngine.parseStatements(any()))
         .thenReturn(ImmutableList.of(statement0));
 
+    when(ksqlEngine.createSandbox())
+        .thenReturn(sandbox);
   }
 
   @Test
@@ -82,7 +86,7 @@ public class KsqlContextTest {
   }
 
   @Test
-  public void shouldTryExecuteStatementsReturnedByParser() {
+  public void shouldTryExecuteStatementsReturnedByParserBeforeExecute() {
     // Given:
     when(ksqlEngine.parseStatements(any()))
         .thenReturn(ImmutableList.of(statement0, statement1));
@@ -91,21 +95,9 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
-    verify(ksqlEngine)
-        .tryExecute(ImmutableList.of(statement0, statement1), SOME_CONFIG, SOME_PROPERTIES);
-  }
-
-  @Test
-  public void shouldExecuteEachStatementReturnedByParser() {
-    // Given:
-    when(ksqlEngine.parseStatements(any()))
-        .thenReturn(ImmutableList.of(statement0, statement1));
-
-    // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
-
-    // Then:
-    final InOrder inOrder = inOrder(ksqlEngine);
+    final InOrder inOrder = inOrder(ksqlEngine, sandbox);
+    inOrder.verify(sandbox).execute(statement0, SOME_CONFIG, SOME_PROPERTIES);
+    inOrder.verify(sandbox).execute(statement1, SOME_CONFIG, SOME_PROPERTIES);
     inOrder.verify(ksqlEngine).execute(statement0, SOME_CONFIG, SOME_PROPERTIES);
     inOrder.verify(ksqlEngine).execute(statement1, SOME_CONFIG, SOME_PROPERTIES);
   }
@@ -127,7 +119,7 @@ public class KsqlContextTest {
   @Test
   public void shouldThrowIfTryExecuteThrows() {
     // Given:
-    when(ksqlEngine.tryExecute(any(), any(), any()))
+    when(sandbox.execute(any(), any(), any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
     // Expect
@@ -155,7 +147,7 @@ public class KsqlContextTest {
   @Test
   public void shouldNotExecuteAnyStatementsIfTryExecuteThrows() {
     // Given:
-    when(ksqlEngine.tryExecute(any(), any(), any()))
+    when(sandbox.execute(any(), any(), any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
     // When:

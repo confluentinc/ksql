@@ -37,9 +37,9 @@ import org.apache.kafka.common.errors.ProducerFencedException;
  * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
  * not called.
  */
-class TryProducer<K, V> implements Producer<K, V> {
+class SandboxedProducer<K, V> implements Producer<K, V> {
 
-  TryProducer() {
+  SandboxedProducer() {
   }
 
   @Override

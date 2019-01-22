@@ -26,9 +26,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Enclosed.class)
-public final class TryProducerTest {
+public final class SandboxedProducerTest {
 
-  private TryProducerTest() {
+  private SandboxedProducerTest() {
   }
 
   @RunWith(Parameterized.class)
@@ -36,47 +36,47 @@ public final class TryProducerTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(TryProducer.class)
+      return TestMethods.builder(SandboxedProducer.class)
           .ignore("close")
           .ignore("close", long.class, TimeUnit.class)
           .build();
     }
 
-    private final TestCase<TryProducer<Long, String>> testCase;
-    private TryProducer<Long, String> tryProducer;
+    private final TestCase<SandboxedProducer<Long, String>> testCase;
+    private SandboxedProducer<Long, String> sandboxedProducer;
 
-    public UnsupportedMethods(final TestCase<TryProducer<Long, String>> testCase) {
+    public UnsupportedMethods(final TestCase<SandboxedProducer<Long, String>> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      tryProducer = new TryProducer<>();
+      sandboxedProducer = new SandboxedProducer<>();
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(tryProducer);
+      testCase.invokeMethod(sandboxedProducer);
     }
   }
 
   public static class SupportedMethods {
 
-    private TryProducer<Long, String> tryProducer;
+    private SandboxedProducer<Long, String> sandboxedProducer;
 
     @Before
     public void setUp() {
-      tryProducer = new TryProducer<>();
+      sandboxedProducer = new SandboxedProducer<>();
     }
 
     @Test
     public void shouldDoNothingOnCloseWithNoArgs() {
-      tryProducer.close();
+      sandboxedProducer.close();
     }
 
     @Test
     public void shouldDoNothingOnClose() {
-      tryProducer.close(1, TimeUnit.MILLISECONDS);
+      sandboxedProducer.close(1, TimeUnit.MILLISECONDS);
     }
   }
 }

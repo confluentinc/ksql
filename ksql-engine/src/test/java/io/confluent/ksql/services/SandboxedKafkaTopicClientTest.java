@@ -52,9 +52,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
-public class TryKafkaTopicClientTest {
+public class SandboxedKafkaTopicClientTest {
 
-  private TryKafkaTopicClientTest() {
+  private SandboxedKafkaTopicClientTest() {
   }
 
   @RunWith(Parameterized.class)
@@ -62,28 +62,28 @@ public class TryKafkaTopicClientTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(TryKafkaTopicClient.class)
+      return TestMethods.builder(SandboxedKafkaTopicClient.class)
           .ignore("createTopic", String.class, int.class, short.class, Map.class)
           .ignore("isTopicExists", String.class)
           .ignore("describeTopics", Collection.class)
           .build();
     }
 
-    private final TestCase<TryKafkaTopicClient> testCase;
-    private TryKafkaTopicClient tryKafkaTopicClient;
+    private final TestCase<SandboxedKafkaTopicClient> testCase;
+    private SandboxedKafkaTopicClient sandboxedKafkaTopicClient;
 
-    public UnsupportedMethods(final TestCase<TryKafkaTopicClient> testCase) {
+    public UnsupportedMethods(final TestCase<SandboxedKafkaTopicClient> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      tryKafkaTopicClient = new TryKafkaTopicClient(mock(KafkaTopicClient.class));
+      sandboxedKafkaTopicClient = new SandboxedKafkaTopicClient(mock(KafkaTopicClient.class));
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(tryKafkaTopicClient);
+      testCase.invokeMethod(sandboxedKafkaTopicClient);
     }
   }
 
@@ -95,31 +95,31 @@ public class TryKafkaTopicClientTest {
 
     @Mock
     private KafkaTopicClient delegate;
-    private TryKafkaTopicClient tryKafkaTopicClient;
+    private SandboxedKafkaTopicClient sandboxedKafkaTopicClient;
     private final Map<String, ?> configs = ImmutableMap.of("some config", 1);
 
     @Before
     public void setUp() {
-      tryKafkaTopicClient = new TryKafkaTopicClient(delegate);
+      sandboxedKafkaTopicClient = new SandboxedKafkaTopicClient(delegate);
     }
 
     @Test
     public void shouldTrackCreatedTopics() {
       // Given:
-      tryKafkaTopicClient.createTopic("some topic", 1, (short) 3, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 1, (short) 3, configs);
 
       // Then:
-      assertThat(tryKafkaTopicClient.isTopicExists("some topic"), is(true));
+      assertThat(sandboxedKafkaTopicClient.isTopicExists("some topic"), is(true));
     }
 
     @Test
     public void shouldNotCallDelegateOnIsTopicExistsIfTopicCreatedInScope() {
       // given:
-      tryKafkaTopicClient.createTopic("some topic", 1, (short) 3, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 1, (short) 3, configs);
       Mockito.clearInvocations(delegate);
 
       // When:
-      tryKafkaTopicClient.isTopicExists("some topic");
+      sandboxedKafkaTopicClient.isTopicExists("some topic");
 
       // Then:
       verify(delegate, never()).isTopicExists("some topic");
@@ -128,7 +128,7 @@ public class TryKafkaTopicClientTest {
     @Test
     public void shouldDelegateOnIsTopicExistsIfTopicNotCreatedInScope() {
       // When:
-      tryKafkaTopicClient.isTopicExists("some topic");
+      sandboxedKafkaTopicClient.isTopicExists("some topic");
 
       // Then:
       verify(delegate).isTopicExists("some topic");
@@ -137,10 +137,10 @@ public class TryKafkaTopicClientTest {
     @Test
     public void shouldTrackCreatedTopicDetails() {
       // Given:
-      tryKafkaTopicClient.createTopic("some topic", 2, (short) 3, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 3, configs);
 
       // When:
-      final TopicDescription result = tryKafkaTopicClient
+      final TopicDescription result = sandboxedKafkaTopicClient
           .describeTopic("some topic");
 
       // Then:
@@ -153,7 +153,7 @@ public class TryKafkaTopicClientTest {
     @Test
     public void shouldThrowOnCreateIfTopicPreviouslyCreatedInScopeWithDifferentPartitionCount() {
       // Given:
-      tryKafkaTopicClient.createTopic("some topic", 2, (short) 3, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 3, configs);
 
       // Expect:
       expectedException.expect(KafkaTopicException.class);
@@ -161,13 +161,13 @@ public class TryKafkaTopicClientTest {
           + "exists, with different partition/replica configuration than required");
 
       // When:
-      tryKafkaTopicClient.createTopic("some topic", 4, (short) 3, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 4, (short) 3, configs);
     }
 
     @Test
     public void shouldThrowOnCreateIfTopicPreviouslyCreatedInScopeWithDifferentReplicaCount() {
       // Given:
-      tryKafkaTopicClient.createTopic("some topic", 2, (short) 1, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 1, configs);
 
       // Expect:
       expectedException.expect(KafkaTopicException.class);
@@ -175,7 +175,7 @@ public class TryKafkaTopicClientTest {
           + "exists, with different partition/replica configuration than required");
 
       // When:
-      tryKafkaTopicClient.createTopic("some topic", 2, (short) 2, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 2, configs);
     }
 
     @Test
@@ -189,7 +189,7 @@ public class TryKafkaTopicClientTest {
           + "exists, with different partition/replica configuration than required");
 
       // When:
-      tryKafkaTopicClient.createTopic("some topic", 3, (short) 3, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 3, (short) 3, configs);
     }
 
     @Test
@@ -203,7 +203,7 @@ public class TryKafkaTopicClientTest {
           + "exists, with different partition/replica configuration than required");
 
       // When:
-      tryKafkaTopicClient.createTopic("some topic", 2, (short) 2, configs);
+      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 2, configs);
     }
 
     @SuppressWarnings("SameParameterValue")

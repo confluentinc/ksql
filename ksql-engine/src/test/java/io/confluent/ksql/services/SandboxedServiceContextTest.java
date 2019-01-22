@@ -39,9 +39,9 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
-public final class TryServiceContextTest {
+public final class SandboxedServiceContextTest {
 
-  private TryServiceContextTest() {
+  private SandboxedServiceContextTest() {
   }
 
   @RunWith(Parameterized.class)
@@ -49,7 +49,7 @@ public final class TryServiceContextTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(TryServiceContext.class)
+      return TestMethods.builder(SandboxedServiceContext.class)
           .ignore("getTopicClient")
           .ignore("getKafkaClientSupplier")
           .ignore("getSchemaRegistryClient")
@@ -58,16 +58,16 @@ public final class TryServiceContextTest {
           .build();
     }
 
-    private final TestCase<TryServiceContext> testCase;
+    private final TestCase<SandboxedServiceContext> testCase;
     @Mock
     private ServiceContext delegate;
     @Mock
     private KafkaTopicClient delegateTopicClient;
     @Mock
     private SchemaRegistryClient delegateSrClient;
-    private TryServiceContext tryServiceContext;
+    private SandboxedServiceContext sandboxedServiceContext;
 
-    public UnsupportedMethods(final TestCase<TryServiceContext> testCase) {
+    public UnsupportedMethods(final TestCase<SandboxedServiceContext> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
@@ -78,12 +78,12 @@ public final class TryServiceContextTest {
       when(delegate.getTopicClient()).thenReturn(delegateTopicClient);
       when(delegate.getSchemaRegistryClient()).thenReturn(delegateSrClient);
 
-      tryServiceContext = TryServiceContext.tryContext(delegate);
+      sandboxedServiceContext = SandboxedServiceContext.create(delegate);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(tryServiceContext);
+      testCase.invokeMethod(sandboxedServiceContext);
     }
   }
 
@@ -96,29 +96,29 @@ public final class TryServiceContextTest {
     private KafkaTopicClient delegateTopicClient;
     @Mock
     private SchemaRegistryClient delegateSrClient;
-    private TryServiceContext tryServiceContext;
+    private SandboxedServiceContext sandboxedServiceContext;
 
     @Before
     public void setUp() {
       when(delegate.getTopicClient()).thenReturn(delegateTopicClient);
       when(delegate.getSchemaRegistryClient()).thenReturn(delegateSrClient);
 
-      tryServiceContext = TryServiceContext.tryContext(delegate);
+      sandboxedServiceContext = SandboxedServiceContext.create(delegate);
     }
 
     @Test
     public void shouldNowWrapTwice() {
-      assertThat(TryServiceContext.tryContext(tryServiceContext),
-          is(sameInstance(tryServiceContext)));
+      assertThat(SandboxedServiceContext.create(sandboxedServiceContext),
+          is(sameInstance(sandboxedServiceContext)));
     }
 
     @Test
     public void shouldGetTryTopicClient() {
       // When:
-      final KafkaTopicClient client = tryServiceContext.getTopicClient();
+      final KafkaTopicClient client = sandboxedServiceContext.getTopicClient();
 
       // Then:
-      assertThat(client, is(instanceOf(TryKafkaTopicClient.class)));
+      assertThat(client, is(instanceOf(SandboxedKafkaTopicClient.class)));
 
       // When:
       client.isTopicExists("some topic");
@@ -130,19 +130,19 @@ public final class TryServiceContextTest {
     @Test
     public void shouldGetTypeKafkaClientSupplier() {
       // When:
-      final KafkaClientSupplier actual = tryServiceContext.getKafkaClientSupplier();
+      final KafkaClientSupplier actual = sandboxedServiceContext.getKafkaClientSupplier();
 
       // Then:
-      assertThat(actual, is(instanceOf(TryKafkaClientSupplier.class)));
+      assertThat(actual, is(instanceOf(SandboxedKafkaClientSupplier.class)));
     }
 
     @Test
     public void shouldGetTrySchemaRegistryClient() throws Exception {
       // When:
-      final SchemaRegistryClient actual = tryServiceContext.getSchemaRegistryClient();
+      final SchemaRegistryClient actual = sandboxedServiceContext.getSchemaRegistryClient();
 
       // Then:
-      assertThat(actual, is(instanceOf(TrySchemaRegistryClient.class)));
+      assertThat(actual, is(instanceOf(SandboxedSchemaRegistryClient.class)));
 
       // When:
       actual.getLatestSchemaMetadata("some subject");
@@ -154,16 +154,16 @@ public final class TryServiceContextTest {
     @Test
     public void shouldGetTrySchemaRegistryFactory() {
       // When:
-      final Supplier<SchemaRegistryClient> factory = tryServiceContext
+      final Supplier<SchemaRegistryClient> factory = sandboxedServiceContext
           .getSchemaRegistryClientFactory();
 
       // Then:
-      assertThat(factory.get(), is(sameInstance(tryServiceContext.getSchemaRegistryClient())));
+      assertThat(factory.get(), is(sameInstance(sandboxedServiceContext.getSchemaRegistryClient())));
     }
 
     @Test
     public void shouldNoNothingOnClose() {
-      tryServiceContext.close();
+      sandboxedServiceContext.close();
     }
 
   }

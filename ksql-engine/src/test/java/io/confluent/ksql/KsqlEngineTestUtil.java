@@ -63,7 +63,8 @@ public final class KsqlEngineTestUtil {
   ) {
     final List<PreparedStatement<?>> statements = engine.parseStatements(sql);
 
-    engine.tryExecute(statements, ksqlConfig, overriddenProperties);
+    final KsqlExecutionContext sandbox = engine.createSandbox();
+    statements.forEach(stmt -> sandbox.execute(stmt, ksqlConfig, overriddenProperties));
 
     return statements.stream()
         .map(stmt -> engine.execute(stmt, ksqlConfig, overriddenProperties))

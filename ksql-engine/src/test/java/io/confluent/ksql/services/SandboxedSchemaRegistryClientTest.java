@@ -35,9 +35,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
-public final class TrySchemaRegistryClientTest {
+public final class SandboxedSchemaRegistryClientTest {
 
-  private TrySchemaRegistryClientTest() {
+  private SandboxedSchemaRegistryClientTest() {
   }
 
   @RunWith(Parameterized.class)
@@ -45,27 +45,27 @@ public final class TrySchemaRegistryClientTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(TrySchemaRegistryClient.class)
+      return TestMethods.builder(SandboxedSchemaRegistryClient.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("testCompatibility", String.class, Schema.class)
           .build();
     }
 
-    private final TestCase<TrySchemaRegistryClient> testCase;
-    private TrySchemaRegistryClient trySchemaRegistryClient;
+    private final TestCase<SandboxedSchemaRegistryClient> testCase;
+    private SandboxedSchemaRegistryClient sandboxedSchemaRegistryClient;
 
-    public UnsupportedMethods(final TestCase<TrySchemaRegistryClient> testCase) {
+    public UnsupportedMethods(final TestCase<SandboxedSchemaRegistryClient> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      trySchemaRegistryClient = new TrySchemaRegistryClient(mock(SchemaRegistryClient.class));
+      sandboxedSchemaRegistryClient = new SandboxedSchemaRegistryClient(mock(SchemaRegistryClient.class));
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(trySchemaRegistryClient);
+      testCase.invokeMethod(sandboxedSchemaRegistryClient);
     }
   }
 
@@ -78,11 +78,11 @@ public final class TrySchemaRegistryClientTest {
     private Schema schema;
     @Mock
     private SchemaMetadata schemaMetadata;
-    private TrySchemaRegistryClient trySchemaRegistryClient;
+    private SandboxedSchemaRegistryClient sandboxedSchemaRegistryClient;
 
     @Before
     public void setUp() {
-      trySchemaRegistryClient = new TrySchemaRegistryClient(delegate);
+      sandboxedSchemaRegistryClient = new SandboxedSchemaRegistryClient(delegate);
     }
 
     @Test
@@ -91,7 +91,7 @@ public final class TrySchemaRegistryClientTest {
       when(delegate.getLatestSchemaMetadata("some subject")).thenReturn(schemaMetadata);
 
       // When:
-      final SchemaMetadata actual = trySchemaRegistryClient
+      final SchemaMetadata actual = sandboxedSchemaRegistryClient
           .getLatestSchemaMetadata("some subject");
 
       // Then:
@@ -106,8 +106,8 @@ public final class TrySchemaRegistryClientTest {
           .thenReturn(false);
 
       // When:
-      final boolean first = trySchemaRegistryClient.testCompatibility("some subject", schema);
-      final boolean second = trySchemaRegistryClient.testCompatibility("some subject", schema);
+      final boolean first = sandboxedSchemaRegistryClient.testCompatibility("some subject", schema);
+      final boolean second = sandboxedSchemaRegistryClient.testCompatibility("some subject", schema);
 
       // Then:
       assertThat(first, is(true));

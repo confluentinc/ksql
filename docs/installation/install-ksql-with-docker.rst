@@ -29,10 +29,9 @@ configurations.
 Assign Configuration Settings in the Docker Run Command 
 *******************************************************
 
-Docker images for |cp| support passing configuration settings into containers
-dynamically, with environment variables. When you start a container, set up the
-configuration by using the ``-e`` or ``--env`` flags in the ``docker run``
-command.
+You can dynamically pass configuration settings into containers by using
+environment variables. When you start a container, set up the configuration
+with the ``-e`` or ``--env`` flags in the ``docker run`` command.
 
 For a complete list of KSQL parameters, see
 :ref:`KSQL Configuration Parameter Reference <ksql-param-reference>`.
@@ -100,8 +99,8 @@ a container:
 KSQL Headless Server with Interceptors Settings (Production)
 ============================================================
 
-|cp| supports pluggable *interceptors* to examine, and potentially modify,
-incoming and outgoing records. Specify interceptor classes by assigning the
+|cp| supports pluggable *interceptors* to examine and modify incoming and
+outgoing records. Specify interceptor classes by assigning the
 ``KSQL_PRODUCER_INTERCEPTOR_CLASSES`` and ``KSQL_CONSUMER_INTERCEPTOR_CLASSES``
 settings. For more info on interceptor classes, see
 :ref:`Confluent Monitoring Interceptors <controlcenter_clients>`.
@@ -382,8 +381,8 @@ container:
 
 .. _ksql-cli-connect-to-hosted-server:
 
-Connect KSQL CLI to a KSQL Server Running on Another Host, Like AWS
-===================================================================
+Connect KSQL CLI to a KSQL Server Running on Another Host (Cloud)
+=================================================================
 
 Run a KSQL CLI instance in a container and connect to a remote KSQL Server
 host:
@@ -398,9 +397,9 @@ Your output should resemble:
 .. codewithvars:: text
 
   ... 
-  Copyright 2017 Confluent Inc.
+  Copyright 2017-2018 Confluent Inc.
 
-  CLI v|release|-SNAPSHOT, Server v|release|-SNAPSHOT located at http://ec2-blah.us-blah.compute.amazonaws.com:8080
+  CLI v|release|, Server v|release| located at http://ec2-blah.us-blah.compute.amazonaws.com:8080
 
   Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 

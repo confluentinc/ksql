@@ -301,14 +301,11 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides
   ) {
     if (!(stmt.getStatement() instanceof ExecutableDdlStatement)) {
-      throw new IllegalArgumentException("statement is not exexutable");
+      throw new IllegalArgumentException("statement is not executable");
     }
 
-    ksqlEngine.executeDdlStatement(
-        stmt.getStatementText(),
-        (ExecutableDdlStatement) stmt.getStatement(),
-        propertyOverrides);
-    return null;  // Todo(ac): return result?
+    ksqlEngine.execute(stmt, ksqlConfig, propertyOverrides);
+    return null;
   }
 
   private static boolean isUnknownPropertyName(final String propertyName) {
@@ -487,7 +484,8 @@ public class KsqlResource {
 
     final Optional<QueryMetadata> metadata = executionContext.createSandbox().execute(
         new PreparedStatement<>(statementText, statement),
-        ksqlConfig, propertyOverrides);
+        ksqlConfig, propertyOverrides)
+        .getQuery();
 
     if (!metadata.isPresent()) {
       throw new KsqlException("The provided statement did not run a ksql query");

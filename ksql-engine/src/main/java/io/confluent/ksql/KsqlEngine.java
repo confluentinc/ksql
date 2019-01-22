@@ -234,18 +234,18 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    * @return List of query metadata.
    */
   @Override
-  public Optional<QueryMetadata> execute(
+  public ExecuteResult execute(
       final PreparedStatement<?> statement,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    final Optional<QueryMetadata> query =
+    final ExecuteResult result =
         EngineExecutor.create(primaryContext, ksqlConfig, overriddenProperties)
             .execute(statement);
 
-    query.ifPresent(this::registerQuery);
+    result.getQuery().ifPresent(this::registerQuery);
 
-    return query;
+    return result;
   }
 
   @Override
@@ -255,16 +255,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
-  }
-
-  // Todo(ac): Should just be normal execute... but execute will return query OR DdlCommandResult.
-  public DdlCommandResult executeDdlStatement(
-      final String sqlExpression,
-      final ExecutableDdlStatement statement,
-      final Map<String, Object> overriddenProperties
-  ) {
-    return primaryContext
-        .executeDdlStatement(sqlExpression, statement, overriddenProperties);
   }
 
   /**
@@ -367,20 +357,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       return new EngineContext(serviceContext, metaStore, onQueryCloseCallback);
     }
 
-    private void doExecuteDdlStatement(
-        final String sqlExpression,
-        final ExecutableDdlStatement statement,
-        final Map<String, Object> overriddenProperties
-    ) {
-      final DdlCommandResult result =
-          executeDdlStatement(sqlExpression, statement, overriddenProperties);
-
-      if (!result.isSuccess()) {
-        throw new KsqlStatementException(result.getMessage(), sqlExpression);
-      }
-    }
-
-    private DdlCommandResult executeDdlStatement(
+    private String executeDdlStatement(
         final String sqlExpression,
         final ExecutableDdlStatement statement,
         final Map<String, Object> overriddenProperties
@@ -393,7 +370,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           overriddenProperties,
           true);
 
-      return ddlCommandExec.execute(command, serviceContext instanceof SandboxedServiceContext);
+      final DdlCommandResult result =
+          ddlCommandExec.execute(command, serviceContext instanceof SandboxedServiceContext);
+
+      if (!result.isSuccess()) {
+        throw new KsqlStatementException(result.getMessage(), sqlExpression);
+      }
+
+      return result.getMessage();
     }
 
     private DdlCommand createDdlCommand(
@@ -604,7 +588,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       return new EngineExecutor(engineContext, ksqlConfig, overriddenProperties);
     }
 
-    private Optional<QueryMetadata> execute(final PreparedStatement<?> statement) {
+    private ExecuteResult execute(final PreparedStatement<?> statement) {
       final PreparedStatement<?> postProcessed = preProcessStatement(statement);
 
       throwOnNonExecutableStatement(postProcessed);
@@ -616,13 +600,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       );
 
       if (logicalPlan.getNode() == null) {
-        engineContext.doExecuteDdlStatement(
+        final String msg = engineContext.executeDdlStatement(
             statement.getStatementText(),
             (ExecutableDdlStatement) statement.getStatement(),
             overriddenProperties
         );
 
-        return Optional.empty();
+        return ExecuteResult.of(msg);
       }
 
       final QueryMetadata query = engineContext.queryEngine.buildPhysicalPlan(
@@ -635,7 +619,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
       validateQuery(query, statement);
 
-      return Optional.of(query);
+      return ExecuteResult.of(query);
     }
 
     private static PreparedStatement<?> preProcessStatement(final PreparedStatement<?> stmt) {
@@ -804,7 +788,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
 
     @Override
-    public Optional<QueryMetadata> execute(
+    public ExecuteResult execute(
         final PreparedStatement<?> statement,
         final KsqlConfig ksqlConfig,
         final Map<String, Object> overriddenProperties
@@ -812,11 +796,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final EngineExecutor executor =
           EngineExecutor.create(engineContext, ksqlConfig, overriddenProperties);
 
-      final Optional<QueryMetadata> query = executor.execute(statement);
+      final ExecuteResult result = executor.execute(statement);
 
-      query.ifPresent(QueryMetadata::close);
+      result.getQuery().ifPresent(QueryMetadata::close);
 
-      return query;
+      return result;
     }
   }
 }

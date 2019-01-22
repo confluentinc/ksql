@@ -14,6 +14,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -91,6 +92,7 @@ public class KsqlContext {
 
     final List<QueryMetadata> queries = statements.stream()
         .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
+        .map(ExecuteResult::getQuery)
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());

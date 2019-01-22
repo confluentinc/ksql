@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -29,7 +30,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -165,7 +165,7 @@ public class KsqlContextTest {
   public void shouldStartPersistentQueries() {
     // Given:
     when(ksqlEngine.execute(any(), any(), any()))
-        .thenReturn(Optional.of(persistentQuery));
+        .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
@@ -178,7 +178,7 @@ public class KsqlContextTest {
   public void shouldNotBlowUpOnSqlThatDoesNotResultInPersistentQueries() {
     // Given:
     when(ksqlEngine.execute(any(), any(), any()))
-        .thenReturn(Optional.of(transientQuery));
+        .thenReturn(ExecuteResult.of(transientQuery));
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);

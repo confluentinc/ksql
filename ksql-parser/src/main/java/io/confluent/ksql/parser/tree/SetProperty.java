@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
+// Todo(ac): None executable? Not handled by engine?
 public class SetProperty extends Statement implements ExecutableDdlStatement {
 
   private final String propertyName;

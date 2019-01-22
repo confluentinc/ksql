@@ -142,7 +142,9 @@ public class StreamedQueryResource {
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties
   ) throws Exception {
-    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties).get();
+    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties)
+        .getQuery()
+        .get();
 
     if (!(query instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(

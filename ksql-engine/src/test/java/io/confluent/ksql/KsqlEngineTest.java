@@ -39,6 +39,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -212,11 +213,11 @@ public class KsqlEngineTest {
     givenStatementAlreadyExecuted(statements.get(0));
 
     // When:
-    final Optional<QueryMetadata> queries = sandbox
+    final ExecuteResult result = sandbox
         .execute(statements.get(1), KSQL_CONFIG, Collections.emptyMap());
 
     // Then:
-    assertThat(queries, is(not(Optional.empty())));
+    assertThat(result.getQuery(), is(not(Optional.empty())));
   }
 
   @Test
@@ -993,6 +994,20 @@ public class KsqlEngineTest {
 
     // Then:
     verify(schemaRegistryClient, never()).register(any(), any());
+  }
+
+  @Test
+  public void shouldExecuteNonQueryDdlStatement() {
+    // Given:
+    final PreparedStatement<?> statement =
+        parse("SET 'auto.offset.reset' = 'earliest';").get(0);
+
+    // When:
+    final ExecuteResult result = sandbox.execute(statement, KSQL_CONFIG, new HashMap<>());
+
+    // Then:
+    assertThat(result.getCommandResult(),
+        is(Optional.of("property:auto.offset.reset set to earliest")));
   }
 
   @Test

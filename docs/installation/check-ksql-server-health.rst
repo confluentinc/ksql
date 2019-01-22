@@ -18,9 +18,9 @@ Use the ``ps`` command to check whether the KSQL server process is running:
 
 Your output should resemble:
 
-::
+.. codewithvars:: bash
 
-    jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-5.0.0/share/java/monitoring-interceptors/* ...
+    jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-|release|/share/java/monitoring-interceptors/* ...
 
 If the process status of the JVM isn't ``Sl`` or ``Ssl``, the KSQL server may be down.
 

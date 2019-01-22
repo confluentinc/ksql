@@ -8,6 +8,7 @@ Installation and Configuration
 
     installing
     check-ksql-server-health
+    install-ksql-with-docker
     server-config/index
     cli-config
     ../../../cloud/connect/ksql-cloud-config

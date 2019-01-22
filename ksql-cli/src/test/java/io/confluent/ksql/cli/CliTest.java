@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -55,7 +56,10 @@ import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
+import java.io.File;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -85,6 +89,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 
 /**
@@ -105,6 +110,9 @@ public class CliTest {
       .withProperty(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
       .build();
+
+  @ClassRule
+  public static final TemporaryFolder TMP = new TemporaryFolder();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
@@ -128,13 +136,13 @@ public class CliTest {
   private static TopicConsumer topicConsumer;
   private static KsqlRestClient restClient;
   private static OrderDataProvider orderDataProvider;
-  private static int result_stream_no = 0;
 
   private Console console;
   private TestTerminal terminal;
   private TestRowCaptor rowCaptor;
   private Supplier<String> lineSupplier;
   private Cli localCli;
+  private String streamName;
 
   @BeforeClass
   public static void classSetUp() throws Exception {
@@ -158,10 +166,11 @@ public class CliTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
+    streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     lineSupplier = niceMock(Supplier.class);
     terminal = new TestTerminal(lineSupplier);
     rowCaptor = new TestRowCaptor();
-    console = new Console(CLI_OUTPUT_FORMAT, () -> "v1.2.3", terminal, rowCaptor);
+    console = new Console(CLI_OUTPUT_FORMAT, terminal, rowCaptor);
 
     localCli = new Cli(
         STREAMED_QUERY_ROW_LIMIT,
@@ -169,6 +178,8 @@ public class CliTest {
         restClient,
         console
     );
+
+    maybeDropStream("SHOULDRUNSCRIPT");
   }
 
   @SuppressWarnings("unchecked")
@@ -297,8 +308,7 @@ public class CliTest {
     if (!selectQuery.endsWith(";")) {
       selectQuery += ";";
     }
-    final String resultKStreamName = "RESULT_" + result_stream_no++;
-    final String queryString = "CREATE STREAM " + resultKStreamName + " AS " + selectQuery;
+    final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
     /* Start Stream Query */
     assertRunCommand(
@@ -309,9 +319,10 @@ public class CliTest {
             equalTo(new TestResult("Executing statement"))));
 
     /* Assert Results */
-    final Map<String, GenericRow> results = topicConsumer.readResults(resultKStreamName, resultSchema, expectedResults.size(), new StringDeserializer());
+    final Map<String, GenericRow> results = topicConsumer
+        .readResults(streamName, resultSchema, expectedResults.size(), new StringDeserializer());
 
-    dropStream(resultKStreamName);
+    dropStream(streamName);
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -371,6 +382,18 @@ public class CliTest {
     runStatement(dropStatement, restClient);
   }
 
+  private static void maybeDropStream(final String name) {
+    final String dropStatement = String.format("drop stream %s;", name);
+
+    final RestResponse response = restClient.makeKsqlRequest(dropStatement);
+    if (response.isSuccessful()
+        || response.getErrorMessage().toString().contains("does not exist")) {
+      return;
+    }
+
+    dropStream(name);
+  }
+
   private void selectWithLimit(String selectQuery, final int limit, final TestResult expectedResults) {
     selectQuery += " LIMIT " + limit + ";";
     assertRunCommand(selectQuery, contains(expectedResults));
@@ -389,7 +412,7 @@ public class CliTest {
                 any(String.class))));
     assertRunListCommand(
         "registered topics",
-        containsInAnyOrder(
+        hasItems(
             new TestResult.Builder()
                 .addRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
                 .addRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")
@@ -788,8 +811,47 @@ public class CliTest {
   @Test
   public void shouldPrintErrorIfCantFindFunction() throws Exception {
     localCli.handleLine("describe function foobar;");
-    final String expectedOutput = "Can't find any functions with the name 'foobar'";
-    assertThat(terminal.getOutputString(), containsString(expectedOutput));
+
+    assertThat(terminal.getOutputString(),
+        containsString("Can't find any functions with the name 'foobar'"));
+  }
+
+  @Test
+  public void shouldHandleSetPropertyAsPartOfMultiStatementLine() throws Exception {
+    // Given:
+    final String csas =
+        "CREATE STREAM " + streamName + " "
+            + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";";
+
+    // When:
+    localCli
+        .handleLine("set 'auto.offset.reset'='earliest'; " + csas);
+
+    // Then:
+    dropStream(streamName);
+
+    assertThat(terminal.getOutputString(),
+        containsString("Successfully changed local property 'auto.offset.reset' to 'earliest'"));
+  }
+
+  @Test
+  public void shouldRunScript() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + orderDataProvider.kstreamName() + ";"
+        + "").getBytes(StandardCharsets.UTF_8));
+
+    EasyMock.expect(lineSupplier.get())
+        .andReturn("run script '" + scriptFile.getAbsolutePath() + "'");
+
+    givenRunInteractivelyWillExit();
+
+    // When:
+    localCli.runInteractively();
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString("Stream created and running"));
   }
 
   private void givenRunInteractivelyWillExit() {

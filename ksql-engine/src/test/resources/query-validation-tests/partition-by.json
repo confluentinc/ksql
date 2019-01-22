@@ -15,10 +15,10 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
       ],
       "outputs": [
-        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0", "timestamp": 0}
+        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
       ]
     },
     {
@@ -28,10 +28,10 @@
         "CREATE STREAM REPARTITIONED AS select * from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
       ],
       "outputs": [
-        {"topic": "REPARTITIONED", "key": "zero", "value": "0,zero,50", "timestamp": 0}
+        {"topic": "REPARTITIONED", "key": "zero", "value": "0,zero,50"}
       ]
     },
     {
@@ -41,11 +41,11 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": null, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": null},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
       ],
       "outputs": [
-        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0", "timestamp": 0}
+        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
       ]
     },
     {
@@ -55,11 +55,11 @@
         "CREATE STREAM REPARTITIONED AS select name,id from TEST partition by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,,1", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,50", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,,1"},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,50"}
       ],
       "outputs": [
-        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0", "timestamp": 0}
+        {"topic": "REPARTITIONED", "key": "zero", "value": "zero,0"}
       ]
     }
   ]

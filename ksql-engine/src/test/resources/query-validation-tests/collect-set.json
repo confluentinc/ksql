@@ -16,16 +16,16 @@
         "CREATE TABLE S2 as SELECT id, collect_set(value) as collected FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 0}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 100}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 500}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 0}},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 100}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 500}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0,100]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500,100]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0]}},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [0,100]}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500,100]}}
       ]
     },
     {
@@ -36,16 +36,16 @@
         "CREATE TABLE S2 as SELECT id, collect_set(value) as collected FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 2147483648}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 500}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 100}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 2147483648}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 500}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 100}},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500,100]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648,100]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648]}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500]}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500,100]}},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [2147483648,100]}}
       ]
     },
     {
@@ -56,16 +56,16 @@
         "CREATE TABLE S2 as SELECT id, collect_set(value) as collected FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 5.4}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 100.1}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 500.9}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 300.8}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 5.4}},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": 100.1}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 500.9}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": 300.8}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [5.4]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [5.4,100.1]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500.9]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500.9,300.8]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [5.4]}},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": [5.4,100.1]}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500.9]}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": [500.9,300.8]}}
       ]
     },
     {
@@ -76,18 +76,18 @@
         "CREATE TABLE S2 as SELECT id, collect_set(value) as collected FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "foo"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "baz"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "bar"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "baz"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "foo"}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "foo"}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "baz"}},
+        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "VALUE": "bar"}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "baz"}},
+        {"topic": "test_topic", "key": 100, "value": {"ID": 100, "VALUE": "foo"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": ["foo"]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz"]}, "timestamp": 0},
+        {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": ["foo"]}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz"]}},
         {"topic": "S2", "key": 0, "value": {"ID": 0, "COLLECTED": ["foo","bar"]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz"]}, "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz","foo"]}, "timestamp": 0}
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz"]}},
+        {"topic": "S2", "key": 100, "value": {"ID": 100, "COLLECTED": ["baz","foo"]}}
       ]
     },
     {
@@ -98,14 +98,14 @@
         "CREATE TABLE S2 as SELECT id, collect_set(value['key1']) AS collected FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":false}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":false, "key2":true}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":true}}, "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":false}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":false, "key2":true}}},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0, "name": "zero", "value": {"key1":true, "key2":true}}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true,false]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true,false]}, "timestamp": 0}
+        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true]}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true,false]}},
+        {"topic": "S2", "key": 0, "value": {"ID":0,"COLLECTED":[true,false]}}
       ]
     }
   ]

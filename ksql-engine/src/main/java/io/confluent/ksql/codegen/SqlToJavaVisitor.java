@@ -18,6 +18,7 @@ import static java.lang.String.format;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
@@ -64,6 +65,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -517,17 +519,16 @@ public class SqlToJavaVisitor {
           .stream()
           .map(processedWhenClause -> functionClassName + ".whenClause("
               + buildSupplierCode(
-                  "Boolean", processedWhenClause.whenProcessResult.getLeft())
+              "Boolean", processedWhenClause.whenProcessResult.getLeft())
               + ", "
               + buildSupplierCode(
-                  resultSchemaString, processedWhenClause.thenProcessResult.getLeft())
+              resultSchemaString, processedWhenClause.thenProcessResult.getLeft())
               + ")")
           .collect(Collectors.toList());
 
       final String defaultValue = node.getDefaultValue().isPresent()
           ? process(node.getDefaultValue().get(), unmangleNames).getLeft()
           : "null";
-
 
       final String codeString = "((" + resultSchemaString + ")"
           + functionClassName + ".searchedCaseFunction(ImmutableList.of( "
@@ -635,7 +636,44 @@ public class SqlToJavaVisitor {
         final BetweenPredicate node,
         final Boolean unmangleNames
     ) {
-      throw new UnsupportedOperationException();
+      final Pair<String, Schema> value = process(node.getValue(), unmangleNames);
+      final Pair<String, Schema> min = process(node.getMin(), unmangleNames);
+      final Pair<String, Schema> max = process(node.getMax(), unmangleNames);
+
+      String expression = "(((Object) {value}) == null "
+          + "|| ((Object) {min}) == null "
+          + "|| ((Object) {max}) == null) "
+          + "? false "
+          + ": ";
+
+      final Schema.Type type = value.getRight().type();
+      switch (type) {
+        case FLOAT32:
+        case FLOAT64:
+        case INT64:
+        case INT8:
+        case INT16:
+        case INT32:
+          expression += "{min} <= {value} && {value} <= {max}";
+          break;
+        case STRING:
+          expression += "({value}.compareTo({min}) >= 0 && {value}.compareTo({max}) <= 0)";
+          break;
+        default:
+          throw new KsqlException("Cannot execute BETWEEN with " + type + " values");
+      }
+
+      // note that the entire expression must be surrounded by parentheses
+      // otherwise negations and other higher level operations will not work
+      final String evaluation = StrSubstitutor.replace(
+          "(" + expression + ")",
+          ImmutableMap.of(
+              "value", value.getLeft(),
+              "min", min.getLeft(),
+              "max", max.getLeft()),
+          "{", "}");
+
+      return new Pair<>(evaluation, Schema.OPTIONAL_BOOLEAN_SCHEMA);
     }
 
     private String formatBinaryExpression(
@@ -703,6 +741,7 @@ public class SqlToJavaVisitor {
   }
 
   private static final class CaseWhenProcessed {
+
     final Pair<String, Schema> whenProcessResult;
     final Pair<String, Schema> thenProcessResult;
 

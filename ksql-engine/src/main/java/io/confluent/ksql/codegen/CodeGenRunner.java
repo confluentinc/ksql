@@ -20,6 +20,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -221,6 +222,14 @@ public class CodeGenRunner {
         final Object context) {
       process(node.getLeft(), null);
       process(node.getRight(), null);
+      return null;
+    }
+
+    @Override
+    protected Object visitBetweenPredicate(final BetweenPredicate node, final Object context) {
+      process(node.getValue(), null);
+      process(node.getMax(), null);
+      process(node.getMin(), null);
       return null;
     }
 

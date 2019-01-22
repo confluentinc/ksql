@@ -991,6 +991,27 @@ Example:
       FROM users
       WHERE user_id LIKE 'santa%';
 
+BETWEEN
+~~~~~~~
+
+**Synopsis**
+
+.. code:: sql
+
+    WHERE expression [NOT] BETWEEN start_expression AND end_expression;
+
+The BETWEEN operator is used to indicate that a certain value must lie within
+a specified range, inclusive of boundaries. Currently, KSQL supports any expression
+that resolves to a numeric or string value for comparison.
+
+Example:
+
+.. code:: sql
+
+  SELECT event
+    FROM events
+    WHERE event_id BETWEEN 10 AND 20
+
 SHOW FUNCTIONS
 --------------
 
@@ -1273,6 +1294,18 @@ Scalar functions
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SPLIT                  |  ``SPLIT(col1, delimiter)``                                               | Splits a string into an array of substrings based |
+|                        |                                                                           | on a delimiter. If the delimiter is not found,    |
+|                        |                                                                           | then the original string is returned as the only  |
+|                        |                                                                           | element in the array. If the delimiter is empty,  |
+|                        |                                                                           | then all characters in the string are split.      |
+|                        |                                                                           | If either, string or delimiter, are NULL, then a  |
+|                        |                                                                           | NULL value is returned.                           |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | If the delimiter is found at the beginning or end |
+|                        |                                                                           | of the string, or there are contiguous delimiters,|
+|                        |                                                                           | then an empty space is added to the array.        |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                                     | Converts a string representation of a date in the |
 |                        |                                                                           | given format into an integer representing days    |

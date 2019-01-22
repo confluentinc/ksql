@@ -14,10 +14,34 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
+import java.io.PrintWriter;
+import java.util.List;
+
 public interface CliSpecificCommand {
+
+  /**
+   * Get the name of the command.
+   *
+   * <p>This is used to determine if a line entered in the CLI is trying to execute this command.
+   * Comparison is case-insensitive. The name can contain spaces.
+   *
+   * @return get the name of the command.
+   */
   String getName();
 
-  void printHelp();
+  /**
+   * Get the help message for the command.
+   *
+   * @return the help message for this command.
+   */
+  String getHelpMessage();
 
-  void execute(String command);
+  /**
+   * Execute the command.
+   *
+   * @param args any additional arguments supplied.
+   *             The arguments will already have had any single quotes removed.
+   * @param terminal the terminal to write any output to.
+   */
+  void execute(List<String> args, PrintWriter terminal);
 }

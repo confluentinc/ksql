@@ -609,6 +609,11 @@ public class SchemaUtilTest {
     SchemaUtil.resolveArithmeticType(Schema.Type.STRING, Schema.Type.FLOAT64);
   }
 
+  @Test(expected = KsqlException.class)
+  public void shouldThrowExceptionWhenResolvingUnkonwnType() {
+    SchemaUtil.resolveArithmeticType(Schema.Type.BOOLEAN, Schema.Type.FLOAT64);
+  }
+
   @Test
   public void shouldGetBooleanSchemaForBooleanClass() {
     assertThat(SchemaUtil.getSchemaFromType(Boolean.class),

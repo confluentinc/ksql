@@ -14,6 +14,7 @@
 
 package io.confluent.ksql;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -71,6 +72,7 @@ public final class Ksql {
     }
   }
 
+  @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Properties loadProperties(final Optional<String> propertiesFile) {
     final Properties properties = new Properties();

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.FunctionRegistry;
 import java.util.Map;
 import org.junit.Before;
@@ -56,6 +57,7 @@ public class MetaStoreImplTest {
     when(dataSource.getName()).thenReturn("some source");
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldCopyFunctionRegistryOnCopy() {
     // Given:

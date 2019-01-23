@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Map;
 import org.junit.Rule;
@@ -30,6 +31,7 @@ public class SearchedCaseFunctionTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressFBWarnings("NP_BOOLEAN_RETURN_NULL")
   @Test
   public void shouldWorkForBooleanValues() {
     // Given:

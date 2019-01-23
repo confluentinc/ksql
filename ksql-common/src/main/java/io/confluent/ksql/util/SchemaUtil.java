@@ -22,7 +22,6 @@ import static org.apache.avro.Schema.createUnion;
 import com.google.common.collect.ImmutableMap;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -79,15 +78,15 @@ public final class SchemaUtil {
 
   public static final Map<Schema.Type, Function<Schema.Type, Boolean>> TYPE_COMPARISON_COMPATIBILITY
       = ImmutableMap.<Schema.Type, Function<Schema.Type, Boolean>>builder()
-          .put(Schema.Type.INT32, SchemaUtil::isNumber)
-          .put(Schema.Type.INT64, SchemaUtil::isNumber)
-          .put(Schema.Type.FLOAT64, SchemaUtil::isNumber)
-          .put(Schema.Type.STRING, type -> type == Schema.Type.STRING)
-          .put(Schema.Type.BOOLEAN, type -> type == Schema.Type.BOOLEAN)
-          .put(Schema.Type.ARRAY, type -> false)
-          .put(Schema.Type.MAP, type -> false)
-          .put(Schema.Type.STRUCT, type -> false)
-          .build();
+      .put(Schema.Type.INT32, SchemaUtil::isNumber)
+      .put(Schema.Type.INT64, SchemaUtil::isNumber)
+      .put(Schema.Type.FLOAT64, SchemaUtil::isNumber)
+      .put(Schema.Type.STRING, type -> type == Schema.Type.STRING)
+      .put(Schema.Type.BOOLEAN, type -> type == Schema.Type.BOOLEAN)
+      .put(Schema.Type.ARRAY, type -> false)
+      .put(Schema.Type.MAP, type -> false)
+      .put(Schema.Type.STRUCT, type -> false)
+      .build();
 
   private SchemaUtil() {
   }
@@ -469,7 +468,7 @@ public final class SchemaUtil {
   }
 
   static Schema resolveArithmeticType(final Schema.Type left,
-                                      final Schema.Type right) {
+      final Schema.Type right) {
 
     final Schema schema = ARITHMETIC_TYPE_MAPPINGS.get(new Pair<>(left, right));
     if (schema == null) {

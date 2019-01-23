@@ -233,6 +233,9 @@ can be used to better describe what the parameter does, for example:
        @UdfParameter("str") final String str,
        @UdfParameter(value = "pos", description = "Starting position of the substring") final int pos)
 
+If your Java8 class is compiled with the ``-parameter`` compiler flag, the name of the parameter
+will be inferred from the method declaration.
+
 Configurable UDF
 ~~~~~~~~~~~~~~~~
 

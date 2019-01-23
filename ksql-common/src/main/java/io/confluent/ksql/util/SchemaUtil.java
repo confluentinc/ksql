@@ -454,7 +454,7 @@ public final class SchemaUtil {
     );
   }
 
-  static Schema resolveArithmeticType(final Schema.Type left,
+  public static Schema resolveArithmeticType(final Schema.Type left,
                                       final Schema.Type right) {
 
     final Schema schema = ARITHMETIC_TYPE_MAPPINGS.get(new Pair<>(left, right));

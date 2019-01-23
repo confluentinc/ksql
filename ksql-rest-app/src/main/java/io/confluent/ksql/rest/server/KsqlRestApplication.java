@@ -401,7 +401,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         new ProcessingLogConfig(restConfig.getOriginals());
     ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
         serviceContext.getTopicClient(),
-        processingLogConfig);
+        processingLogConfig,
+        ksqlConfig);
     maybeCreateProcessingLogStream(
         processingLogConfig,
         ksqlConfig,
@@ -525,7 +526,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final String statementText = ProcessingLogServerUtils.processingLogStreamCreateStatement(
         name,
         topicName);
-    if (!commandQueue.empty()) {
+    if (!commandQueue.isEmpty()) {
       return;
     }
     final List<PreparedStatement<?>> statement;

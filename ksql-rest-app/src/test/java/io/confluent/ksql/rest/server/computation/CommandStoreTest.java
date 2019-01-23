@@ -260,19 +260,19 @@ public class CommandStoreTest {
   @Test
   public void shouldComputeNotEmptyCorrectly() {
     // Given:
-    when(commandTopic.getCommandTopicConsumerPosition()).thenReturn(1L);
+    when(commandTopic.getEndOffset()).thenReturn(1L);
 
     // When/Then:
-    assertThat(commandStore.empty(), is(false));
+    assertThat(commandStore.isEmpty(), is(false));
   }
 
   @Test
   public void shouldComputeEmptyCorrectly() {
     // Given:
-    when(commandTopic.getCommandTopicConsumerPosition()).thenReturn(0L);
+    when(commandTopic.getEndOffset()).thenReturn(0L);
 
     // When/Then:
-    assertThat(commandStore.empty(), is(true));
+    assertThat(commandStore.isEmpty(), is(true));
   }
 
   private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {

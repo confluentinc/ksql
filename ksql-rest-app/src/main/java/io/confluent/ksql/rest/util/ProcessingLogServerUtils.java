@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.processing.log.ProcessingLogMessageFactory;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TypeUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -44,15 +45,30 @@ public final class ProcessingLogServerUtils {
         .schema();
   }
 
+  private static String getTopicName(
+      final ProcessingLogConfig config,
+      final KsqlConfig ksqlConfig) {
+    final String topicNameConfig = config.getString(ProcessingLogConfig.TOPIC_NAME);
+    if (topicNameConfig.equals(ProcessingLogConfig.TOPIC_NAME_NOT_SET)) {
+      return String.format(
+          "%s%s",
+          ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+          ProcessingLogConfig.TOPIC_NAME_DEFAULT_SUFFIX
+      );
+    } else {
+      return topicNameConfig;
+    }
+  }
+
   public static void maybeCreateProcessingLogTopic(
       final KafkaTopicClient topicClient,
-      final ProcessingLogConfig config) {
+      final ProcessingLogConfig config,
+      final KsqlConfig ksqlConfig) {
     if (!config.getString(ProcessingLogConfig.TOPIC_AUTO_CREATE).equals(
         ProcessingLogConfig.AUTO_CREATE_ON)) {
       return;
     }
-    final String topicName =
-        config.getString(ProcessingLogConfig.TOPIC_NAME);
+    final String topicName = getTopicName(config, ksqlConfig);
     final int nPartitions =
         config.getInt(ProcessingLogConfig.TOPIC_PARTITIONS);
     final short nReplicas =

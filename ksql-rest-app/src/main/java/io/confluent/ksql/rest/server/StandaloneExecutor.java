@@ -112,7 +112,8 @@ public class StandaloneExecutor implements Executable {
       udfLoader.load();
       ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
           serviceContext.getTopicClient(),
-          processingLogConfig);
+          processingLogConfig,
+          ksqlConfig);
       executeStatements(readQueriesFile(queriesFile));
       showWelcomeMessage();
       final Properties properties = new Properties();

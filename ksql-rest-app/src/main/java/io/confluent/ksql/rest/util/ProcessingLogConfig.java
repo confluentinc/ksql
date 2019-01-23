@@ -34,13 +34,14 @@ public class ProcessingLogConfig extends AbstractConfig {
   public static final String AUTO_CREATE_OFF = "off";
 
   public static final String STREAM_NAME = propertyName("stream.name");
-  private static final String STREAM_NAME_DEFAULT = "PROCESSING_LOG";
+  private static final String STREAM_NAME_DEFAULT = "KSQL_PROCESSING_LOG";
   private static final String STREAM_NAME_DOC =
       "If automatic processing log stream creation is enabled, KSQL sets the name of the "
           + "stream to the value of this property.";
 
   public static final String TOPIC_NAME = propertyName("topic.name");
-  private static final String TOPIC_NAME_DEFAULT = "ksql_processing_log";
+  public static final String TOPIC_NAME_NOT_SET = "";
+  public static final String TOPIC_NAME_DEFAULT_SUFFIX = "ksql_processing_log";
   private static final String TOPIC_NAME_DOC =
       "If automatic processing log topic creation is enabled, KSQL sets the name of the "
           + "topic to the value of this property. If automatic processing log stream "
@@ -108,7 +109,7 @@ public class ProcessingLogConfig extends AbstractConfig {
       .define(
           TOPIC_NAME,
           Type.STRING,
-          TOPIC_NAME_DEFAULT,
+          TOPIC_NAME_NOT_SET,
           Importance.MEDIUM,
           TOPIC_NAME_DOC)
       .define(

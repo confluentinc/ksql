@@ -58,6 +58,7 @@ import org.mockito.junit.MockitoRule;
 public class ProcessingLogServerUtilsTest {
   private static final String STREAM = "PROCESSING_LOG_STREAM";
   private static final String TOPIC = "processing_log_topic";
+  private static final String CLUSTER_ID = "ksql_cluster.";
   private static final int PARTITIONS = 10;
   private static final short REPLICAS = 3;
 
@@ -80,7 +81,9 @@ public class ProcessingLogServerUtilsTest {
           REPLICAS
       )
   );
-  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+  private final KsqlConfig ksqlConfig = new KsqlConfig(
+      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, CLUSTER_ID)
+  );
 
   @Mock
   private KafkaTopicClient mockTopicClient;
@@ -191,7 +194,7 @@ public class ProcessingLogServerUtilsTest {
     );
 
     // When:
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(spyTopicClient, config);
+    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(spyTopicClient, config, ksqlConfig);
 
     // Then:
     verifyZeroInteractions(spyTopicClient);
@@ -205,15 +208,39 @@ public class ProcessingLogServerUtilsTest {
     expectedException.expectMessage("bad");
     expectedException.expect(RuntimeException.class);
 
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config);
+    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config, ksqlConfig);
   }
 
   @Test
   public void shouldCreateProcessingLogTopic() {
     // When:
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config);
+    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config, ksqlConfig);
 
     // Then:
     verify(mockTopicClient).createTopic(TOPIC, PARTITIONS, REPLICAS);
+  }
+
+  @Test
+  public void shouldCreateProcessingLogTopicWithCorrectDefaultName() {
+    // Given:
+    final ProcessingLogConfig config = new ProcessingLogConfig(
+        ImmutableMap.of(
+            ProcessingLogConfig.TOPIC_AUTO_CREATE,
+            ProcessingLogConfig.AUTO_CREATE_ON,
+            ProcessingLogConfig.TOPIC_PARTITIONS,
+            PARTITIONS,
+            ProcessingLogConfig.TOPIC_REPLICATION_FACTOR,
+            REPLICAS
+        )
+    );
+
+    // When:
+    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config, ksqlConfig);
+
+    // Then:
+    verify(mockTopicClient).createTopic(
+        CLUSTER_ID + ProcessingLogConfig.TOPIC_NAME_DEFAULT_SUFFIX,
+        PARTITIONS,
+        REPLICAS);
   }
 }

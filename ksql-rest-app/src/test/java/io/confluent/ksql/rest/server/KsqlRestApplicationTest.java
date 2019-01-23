@@ -110,7 +110,7 @@ public class KsqlRestApplicationTest {
                 new PreparedStatement<>(invocation.getArgument(0), statement)
             )
         );
-    when(commandQueue.empty()).thenReturn(true);
+    when(commandQueue.isEmpty()).thenReturn(true);
     when(commandQueue.enqueueCommand(any(), any(), any(), any()))
         .thenReturn(queuedCommandStatus);
     when(serviceContext.getAdminClient())
@@ -238,7 +238,7 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue).empty();
+    verify(commandQueue).isEmpty();
     final String statementText = ProcessingLogServerUtils.processingLogStreamCreateStatement(
         LOG_STREAM_NAME,
         LOG_TOPIC_NAME
@@ -277,7 +277,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldOnlyCreateLogStreamIfCommandTopicEmpty() {
     // Given:
-    when(commandQueue.empty()).thenReturn(false);
+    when(commandQueue.isEmpty()).thenReturn(false);
 
     // When:
     KsqlRestApplication.maybeCreateProcessingLogStream(
@@ -288,7 +288,7 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue).empty();
+    verify(commandQueue).isEmpty();
     verifyNoMoreInteractions(ksqlEngine, commandQueue);
   }
 
@@ -306,7 +306,7 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue).empty();
+    verify(commandQueue).isEmpty();
     verify(ksqlEngine).parseStatements(any());
     verify(ksqlEngine).tryExecute(any(), any(), any());
     verifyNoMoreInteractions(ksqlEngine, commandQueue);

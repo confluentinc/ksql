@@ -1241,7 +1241,7 @@ public class KsqlParserTest {
         "CREATE STREAM S AS SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE 'large' END FROM orders;";
 
     // When:
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     // Then:
@@ -1262,7 +1262,7 @@ public class KsqlParserTest {
         "CREATE STREAM S AS SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' END FROM orders;";
 
     // When:
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     // Then:

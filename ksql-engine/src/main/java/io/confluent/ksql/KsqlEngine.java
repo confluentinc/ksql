@@ -526,7 +526,7 @@ public class KsqlEngine implements Closeable {
 
     private PreparedStatement<?> prepareStatement(final ParsedStatement parsedStatement) {
       final PreparedStatement<?> stmt = ksqlParser
-            .prepare(parsedStatement, executionContext.metaStore);
+          .prepare(parsedStatement, executionContext.metaStore);
 
       postProcessAstStatement(stmt);
       return stmt;
@@ -689,8 +689,8 @@ public class KsqlEngine implements Closeable {
           true
       );
 
-    return PreparedStatement.of(statement.getStatementText(), query);
-  }
+      return PreparedStatement.of(statement.getStatementText(), query);
+    }
 
     private static PreparedStatement<?> postProcessInsertIntoStatement(
         final PreparedStatement<?> statement
@@ -709,8 +709,8 @@ public class KsqlEngine implements Closeable {
           false
       );
 
-    return PreparedStatement.of(statement.getStatementText(), query);
-  }
+      return PreparedStatement.of(statement.getStatementText(), query);
+    }
 
     private void validateQuery(final QueryMetadata query, final PreparedStatement<?> statement) {
       if (statement.getStatement() instanceof CreateStreamAsSelect

@@ -210,7 +210,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   /**
    * Parse the statement(s) in supplied {@code sql}.
    *
-   * <p>Note: the engine's metas-tore will not be changed.
+   * <p>Note: the engine's metas-store will not be changed.
    *
    * @param sql the statements to parse.
    * @return the list of prepared statements.

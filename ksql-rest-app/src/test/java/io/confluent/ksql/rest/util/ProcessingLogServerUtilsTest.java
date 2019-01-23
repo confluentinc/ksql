@@ -51,11 +51,13 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ProcessingLogServerUtilsTest {
+
   private static final String STREAM = "PROCESSING_LOG_STREAM";
   private static final String TOPIC = "processing_log_topic";
   private static final String CLUSTER_ID = "ksql_cluster.";
@@ -90,8 +92,6 @@ public class ProcessingLogServerUtilsTest {
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
-  @Rule
-  public MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @After
   public void teardown() {
@@ -134,6 +134,8 @@ public class ProcessingLogServerUtilsTest {
         break;
       case ARRAY:
         assertLogSchema(expected.valueSchema(), schema.valueSchema(), push(path, "ELEMENTS"));
+        break;
+      default:
         break;
     }
   }

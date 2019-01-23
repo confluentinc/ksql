@@ -249,7 +249,8 @@ public class KsqlRestClient implements Closeable {
     }
 
     return RestResponse.erroneous(
-        Errors.toErrorCode(response.getStatus()), "The server returned an unexpected error: "
+        Errors.toErrorCode(response.getStatus()),
+        "The server returned an unexpected error: "
             + response.getStatusInfo().getReasonPhrase());
   }
 

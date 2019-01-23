@@ -997,7 +997,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldExecuteNonQueryDdlStatement() {
+  public void shouldExecuteDdlStatement() {
     // Given:
     final PreparedStatement<?> statement =
         parse("SET 'auto.offset.reset' = 'earliest';").get(0);

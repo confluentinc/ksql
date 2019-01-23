@@ -39,7 +39,7 @@ public final class Errors {
 
   static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
 
-  static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
+  public static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 1;
 
   private Errors() {

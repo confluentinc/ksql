@@ -105,7 +105,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
@@ -482,16 +481,14 @@ public class KsqlResource {
       throw new KsqlException("The provided statement does not run a ksql query");
     }
 
-    final Optional<QueryMetadata> metadata = executionContext.createSandbox().execute(
+    final QueryMetadata metadata = executionContext.createSandbox().execute(
         new PreparedStatement<>(statementText, statement),
         ksqlConfig, propertyOverrides)
-        .getQuery();
+        .getQuery()
+        .orElseThrow(() ->
+            new IllegalStateException("The provided statement did not run a ksql query"));
 
-    if (!metadata.isPresent()) {
-      throw new KsqlException("The provided statement did not run a ksql query");
-    }
-
-    return QueryDescription.forQueryMetadata(metadata.get());
+    return QueryDescription.forQueryMetadata(metadata);
   }
 
   private static QueryDescription explainQuery(

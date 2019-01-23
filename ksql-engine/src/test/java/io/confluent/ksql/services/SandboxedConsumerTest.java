@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public final class SandboxedConsumerTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(SandboxedConsumer.class)
+      return TestMethods.builder(Consumer.class)
           .ignore("unsubscribe")
           .ignore("close")
           .ignore("close", long.class, TimeUnit.class)
@@ -48,16 +49,16 @@ public final class SandboxedConsumerTest {
           .build();
     }
 
-    private final TestCase<SandboxedConsumer<Long, String>> testCase;
-    private SandboxedConsumer<Long, String> sandboxedConsumer;
+    private final TestCase<Consumer<Long, String>> testCase;
+    private Consumer<Long, String> sandboxedConsumer;
 
-    public UnsupportedMethods(final TestCase<SandboxedConsumer<Long, String>> testCase) {
+    public UnsupportedMethods(final TestCase<Consumer<Long, String>> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      sandboxedConsumer = new SandboxedConsumer<>();
+      sandboxedConsumer = SandboxedConsumer.createProxy();
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -68,11 +69,11 @@ public final class SandboxedConsumerTest {
 
   public static class SupportedMethods {
 
-    private SandboxedConsumer<Long, String> sandboxedConsumer;
+    private Consumer<Long, String> sandboxedConsumer;
 
     @Before
     public void setUp() {
-      sandboxedConsumer = new SandboxedConsumer<>();
+      sandboxedConsumer = SandboxedConsumer.createProxy();
     }
 
     @Test
@@ -85,6 +86,7 @@ public final class SandboxedConsumerTest {
       sandboxedConsumer.close();
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void shouldDoNothingOnCloseWithTimeUnit() {
       sandboxedConsumer.close(1, TimeUnit.MILLISECONDS);

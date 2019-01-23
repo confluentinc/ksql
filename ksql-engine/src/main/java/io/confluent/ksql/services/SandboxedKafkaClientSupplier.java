@@ -40,17 +40,17 @@ class SandboxedKafkaClientSupplier implements KafkaClientSupplier {
 
   @Override
   public Producer<byte[], byte[]> getProducer(final Map<String, Object> config) {
-    return new SandboxedProducer<>();
+    return SandboxedProducer.createProxy();
   }
 
   @Override
   public Consumer<byte[], byte[]> getConsumer(final Map<String, Object> config) {
-    return new SandboxedConsumer<>();
+    return SandboxedConsumer.createProxy();
   }
 
   @Override
   public Consumer<byte[], byte[]> getRestoreConsumer(final Map<String, Object> config) {
-    return new SandboxedConsumer<>();
+    return SandboxedConsumer.createProxy();
   }
 
   @Override

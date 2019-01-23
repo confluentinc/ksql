@@ -45,22 +45,22 @@ public final class SandboxedSchemaRegistryClientTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(SandboxedSchemaRegistryClient.class)
+      return TestMethods.builder(SchemaRegistryClient.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("testCompatibility", String.class, Schema.class)
           .build();
     }
 
-    private final TestCase<SandboxedSchemaRegistryClient> testCase;
-    private SandboxedSchemaRegistryClient sandboxedSchemaRegistryClient;
+    private final TestCase<SchemaRegistryClient> testCase;
+    private SchemaRegistryClient sandboxedSchemaRegistryClient;
 
-    public UnsupportedMethods(final TestCase<SandboxedSchemaRegistryClient> testCase) {
+    public UnsupportedMethods(final TestCase<SchemaRegistryClient> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      sandboxedSchemaRegistryClient = new SandboxedSchemaRegistryClient(mock(SchemaRegistryClient.class));
+      sandboxedSchemaRegistryClient = SandboxedSchemaRegistryClient.createProxy(mock(SchemaRegistryClient.class));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -78,11 +78,11 @@ public final class SandboxedSchemaRegistryClientTest {
     private Schema schema;
     @Mock
     private SchemaMetadata schemaMetadata;
-    private SandboxedSchemaRegistryClient sandboxedSchemaRegistryClient;
+    private SchemaRegistryClient sandboxedSchemaRegistryClient;
 
     @Before
     public void setUp() {
-      sandboxedSchemaRegistryClient = new SandboxedSchemaRegistryClient(delegate);
+      sandboxedSchemaRegistryClient = SandboxedSchemaRegistryClient.createProxy(delegate);
     }
 
     @Test

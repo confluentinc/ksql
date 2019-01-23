@@ -17,6 +17,7 @@ package io.confluent.ksql.services;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -62,23 +63,25 @@ public class SandboxedKafkaTopicClientTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(SandboxedKafkaTopicClient.class)
+      return TestMethods.builder(KafkaTopicClient.class)
+          .ignore("createTopic", String.class, int.class, short.class)
           .ignore("createTopic", String.class, int.class, short.class, Map.class)
           .ignore("isTopicExists", String.class)
+          .ignore("describeTopic", String.class)
           .ignore("describeTopics", Collection.class)
           .build();
     }
 
-    private final TestCase<SandboxedKafkaTopicClient> testCase;
-    private SandboxedKafkaTopicClient sandboxedKafkaTopicClient;
+    private final TestCase<KafkaTopicClient> testCase;
+    private KafkaTopicClient sandboxedKafkaTopicClient;
 
-    public UnsupportedMethods(final TestCase<SandboxedKafkaTopicClient> testCase) {
+    public UnsupportedMethods(final TestCase<KafkaTopicClient> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      sandboxedKafkaTopicClient = new SandboxedKafkaTopicClient(mock(KafkaTopicClient.class));
+      sandboxedKafkaTopicClient = SandboxedKafkaTopicClient.createProxy(mock(KafkaTopicClient.class));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -95,16 +98,25 @@ public class SandboxedKafkaTopicClientTest {
 
     @Mock
     private KafkaTopicClient delegate;
-    private SandboxedKafkaTopicClient sandboxedKafkaTopicClient;
+    private KafkaTopicClient sandboxedKafkaTopicClient;
     private final Map<String, ?> configs = ImmutableMap.of("some config", 1);
 
     @Before
     public void setUp() {
-      sandboxedKafkaTopicClient = new SandboxedKafkaTopicClient(delegate);
+      sandboxedKafkaTopicClient = SandboxedKafkaTopicClient.createProxy(delegate);
     }
 
     @Test
-    public void shouldTrackCreatedTopics() {
+    public void shouldTrackCreatedTopicWithNoConfig() {
+      // Given:
+      sandboxedKafkaTopicClient.createTopic("some topic", 1, (short) 3);
+
+      // Then:
+      assertThat(sandboxedKafkaTopicClient.isTopicExists("some topic"), is(true));
+    }
+
+    @Test
+    public void shouldTrackCreatedTopicsWithConfig() {
       // Given:
       sandboxedKafkaTopicClient.createTopic("some topic", 1, (short) 3, configs);
 
@@ -145,6 +157,23 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(result, is(new TopicDescription(
+          "some topic",
+          false,
+          topicPartitions(2, 3))));
+    }
+
+    @Test
+    public void shouldTrackCreatedTopicsDetails() {
+      // Given:
+      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 3, configs);
+
+      // When:
+      final Map<String, TopicDescription> result = sandboxedKafkaTopicClient
+          .describeTopics(ImmutableList.of("some topic"));
+
+      // Then:
+      assertThat(result.keySet(), contains("some topic"));
+      assertThat(result.get("some topic"), is(new TopicDescription(
           "some topic",
           false,
           topicPartitions(2, 3))));

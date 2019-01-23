@@ -16,9 +16,11 @@ package io.confluent.ksql.services;
 
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -36,22 +38,23 @@ public final class SandboxedProducerTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(SandboxedProducer.class)
+      return TestMethods.builder(Producer.class)
           .ignore("close")
           .ignore("close", long.class, TimeUnit.class)
+          .ignore("close", Duration.class)
           .build();
     }
 
-    private final TestCase<SandboxedProducer<Long, String>> testCase;
-    private SandboxedProducer<Long, String> sandboxedProducer;
+    private final TestCase<Producer<Long, String>> testCase;
+    private Producer<Long, String> sandboxedProducer;
 
-    public UnsupportedMethods(final TestCase<SandboxedProducer<Long, String>> testCase) {
+    public UnsupportedMethods(final TestCase<Producer<Long, String>> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      sandboxedProducer = new SandboxedProducer<>();
+      sandboxedProducer = SandboxedProducer.createProxy();
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -62,11 +65,11 @@ public final class SandboxedProducerTest {
 
   public static class SupportedMethods {
 
-    private SandboxedProducer<Long, String> sandboxedProducer;
+    private Producer<Long, String> sandboxedProducer;
 
     @Before
     public void setUp() {
-      sandboxedProducer = new SandboxedProducer<>();
+      sandboxedProducer = SandboxedProducer.createProxy();
     }
 
     @Test
@@ -74,9 +77,12 @@ public final class SandboxedProducerTest {
       sandboxedProducer.close();
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void shouldDoNothingOnClose() {
+      sandboxedProducer.close();
       sandboxedProducer.close(1, TimeUnit.MILLISECONDS);
+      sandboxedProducer.close(Duration.ofMillis(1));
     }
   }
 }

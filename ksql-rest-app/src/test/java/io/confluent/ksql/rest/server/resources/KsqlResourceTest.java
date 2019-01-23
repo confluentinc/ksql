@@ -652,7 +652,7 @@ public class KsqlResourceTest {
         "CREATE STREAM S AS SELECT * FROM test_stream; "
             + "DESCRIBE S;",
         KsqlEntity.class
-    ); // Todo(ac): can we get a set property in there to prove its picked up?
+    );
 
     // Todo(ac): This requires each statement to wait on any previous statement _if it was posted to the command topic_
 

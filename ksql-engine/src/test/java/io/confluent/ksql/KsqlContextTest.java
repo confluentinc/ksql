@@ -74,6 +74,8 @@ public class KsqlContextTest {
 
     when(ksqlEngine.createSandbox())
         .thenReturn(sandbox);
+
+    when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
   }
 
   @Test

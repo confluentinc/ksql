@@ -188,7 +188,11 @@ public final class TestMethods {
 
     @Override
     public String toString() {
-      return method.getName();
+      final String params = Arrays.stream(method.getParameterTypes())
+          .map(Class::getSimpleName)
+          .collect(Collectors.joining(", "));
+
+      return method.getReturnType().getSimpleName() + " " + method.getName() + "(" + params + ")";
     }
   }
 }

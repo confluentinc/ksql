@@ -14,9 +14,9 @@
 
 package io.confluent.ksql.services;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigsOptions;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
@@ -90,8 +90,8 @@ class SandboxedAdminClient extends AdminClient {
   }
 
   @Override
-  public void close(final long timeout, final TimeUnit unit) {
-    // No-op
+  public void close(final Duration duration) {
+    // No op
   }
 
   @Override

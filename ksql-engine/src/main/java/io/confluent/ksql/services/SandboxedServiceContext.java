@@ -38,10 +38,10 @@ public final class SandboxedServiceContext implements ServiceContext {
     }
 
     final KafkaClientSupplier kafkaClientSupplier = new SandboxedKafkaClientSupplier();
-    final KafkaTopicClient kafkaTopicClient = new SandboxedKafkaTopicClient(
-        serviceContext.getTopicClient());
+    final KafkaTopicClient kafkaTopicClient = SandboxedKafkaTopicClient
+        .createProxy(serviceContext.getTopicClient());
     final SchemaRegistryClient schemaRegistryClient =
-        new SandboxedSchemaRegistryClient(serviceContext.getSchemaRegistryClient());
+        SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
 
     return new SandboxedServiceContext(
         kafkaClientSupplier,
@@ -86,5 +86,6 @@ public final class SandboxedServiceContext implements ServiceContext {
 
   @Override
   public void close() {
+    // No op.
   }
 }

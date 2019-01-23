@@ -14,6 +14,10 @@
 
 package io.confluent.ksql.services;
 
+import static io.confluent.ksql.services.SandboxProxyBuilder.methodParams;
+
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClientImpl;
 import java.util.Collection;
@@ -23,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -36,22 +39,45 @@ import org.apache.kafka.common.TopicPartitionInfo;
  *
  * <p>The client will not make changes to the remote Kafka cluster.
  */
-class SandboxedKafkaTopicClient implements KafkaTopicClient {
+@SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD") // Methods invoked via reflection.
+@SuppressWarnings("unused")  // Methods invoked via reflection.
+final class SandboxedKafkaTopicClient {
+
+  static KafkaTopicClient createProxy(final KafkaTopicClient delegate) {
+    final SandboxedKafkaTopicClient sandbox = new SandboxedKafkaTopicClient(delegate);
+
+    return SandboxProxyBuilder.forClass(KafkaTopicClient.class)
+        .forward("createTopic",
+            methodParams(String.class, int.class, short.class), sandbox)
+        .forward("createTopic",
+            methodParams(String.class, int.class, short.class, Map.class), sandbox)
+        .forward("isTopicExists", methodParams(String.class), sandbox)
+        .forward("describeTopic", methodParams(String.class), sandbox)
+        .forward("describeTopics", methodParams(Collection.class), sandbox)
+        .build();
+  }
 
   private final KafkaTopicClient delegate;
 
   private final Map<String, TopicDescription> createdTopics = new HashMap<>();
 
-  SandboxedKafkaTopicClient(final KafkaTopicClient delegate) {
+  private SandboxedKafkaTopicClient(final KafkaTopicClient delegate) {
     this.delegate = Objects.requireNonNull(delegate, "delegate");
   }
 
-  @Override
-  public void createTopic(
+  private void createTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor
+  ) {
+    createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
+  }
+
+  private void createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor,
-      final Map<String, ?> configs
+      final Map<String, Object> configs
   ) {
     if (isTopicExists(topic)) {
       validateTopicProperties(topic, numPartitions, replicationFactor);
@@ -73,8 +99,7 @@ class SandboxedKafkaTopicClient implements KafkaTopicClient {
     createdTopics.put(topic, new TopicDescription(topic, false, partitions));
   }
 
-  @Override
-  public boolean isTopicExists(final String topic) {
+  private boolean isTopicExists(final String topic) {
     if (createdTopics.containsKey(topic)) {
       return true;
     }
@@ -82,18 +107,11 @@ class SandboxedKafkaTopicClient implements KafkaTopicClient {
     return delegate.isTopicExists(topic);
   }
 
-  @Override
-  public Set<String> listTopicNames() {
-    throw new UnsupportedOperationException();
+  public TopicDescription describeTopic(final String topicName) {
+    return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
 
-  @Override
-  public Set<String> listNonInternalTopicNames() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
+  private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     final Map<String, TopicDescription> descriptions = topicNames.stream()
         .map(createdTopics::get)
         .filter(Objects::nonNull)
@@ -109,31 +127,6 @@ class SandboxedKafkaTopicClient implements KafkaTopicClient {
 
     descriptions.putAll(fromKafka);
     return descriptions;
-  }
-
-  @Override
-  public Map<String, String> getTopicConfig(final String topicName) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public TopicCleanupPolicy getTopicCleanupPolicy(final String topicName) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void deleteTopics(final Collection<String> topicsToDelete) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void deleteInternalTopics(final String applicationId) {
-    throw new UnsupportedOperationException();
   }
 
   private void validateTopicProperties(

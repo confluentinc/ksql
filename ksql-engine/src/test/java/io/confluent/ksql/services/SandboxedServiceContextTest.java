@@ -25,6 +25,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
 import io.confluent.ksql.util.KafkaTopicClient;
+import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -113,12 +114,12 @@ public final class SandboxedServiceContextTest {
     }
 
     @Test
-    public void shouldGetTryTopicClient() {
+    public void shouldGetSandboxedTopicClient() {
       // When:
       final KafkaTopicClient client = sandboxedServiceContext.getTopicClient();
 
       // Then:
-      assertThat(client, is(instanceOf(SandboxedKafkaTopicClient.class)));
+      assertThat(Proxy.isProxyClass(client.getClass()), is(true));
 
       // When:
       client.isTopicExists("some topic");
@@ -128,7 +129,7 @@ public final class SandboxedServiceContextTest {
     }
 
     @Test
-    public void shouldGetTypeKafkaClientSupplier() {
+    public void shouldGetSandboxedKafkaClientSupplier() {
       // When:
       final KafkaClientSupplier actual = sandboxedServiceContext.getKafkaClientSupplier();
 
@@ -137,12 +138,12 @@ public final class SandboxedServiceContextTest {
     }
 
     @Test
-    public void shouldGetTrySchemaRegistryClient() throws Exception {
+    public void shouldGetSandboxedSchemaRegistryClient() throws Exception {
       // When:
       final SchemaRegistryClient actual = sandboxedServiceContext.getSchemaRegistryClient();
 
       // Then:
-      assertThat(actual, is(instanceOf(SandboxedSchemaRegistryClient.class)));
+      assertThat(Proxy.isProxyClass(actual.getClass()), is(true));
 
       // When:
       actual.getLatestSchemaMetadata("some subject");
@@ -152,7 +153,7 @@ public final class SandboxedServiceContextTest {
     }
 
     @Test
-    public void shouldGetTrySchemaRegistryFactory() {
+    public void shouldGetSandboxedSchemaRegistryFactory() {
       // When:
       final Supplier<SchemaRegistryClient> factory = sandboxedServiceContext
           .getSchemaRegistryClientFactory();

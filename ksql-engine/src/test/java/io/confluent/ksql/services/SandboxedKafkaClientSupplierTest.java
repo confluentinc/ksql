@@ -21,9 +21,12 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
+import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -84,19 +87,25 @@ public final class SandboxedKafkaClientSupplierTest {
     }
 
     @Test
-    public void shouldReturnTryProducer() {
-      assertThat(sandboxedKafkaClientSupplier.getProducer(config), is(instanceOf(SandboxedProducer.class)));
+    public void shouldReturnSandboxProxyProducer() {
+      final Producer<byte[], byte[]> producer = sandboxedKafkaClientSupplier.getProducer(config);
+
+      assertThat(Proxy.isProxyClass(producer.getClass()), is(true));
     }
 
     @Test
-    public void shouldReturnTryConsumer() {
-      assertThat(sandboxedKafkaClientSupplier.getConsumer(config), is(instanceOf(SandboxedConsumer.class)));
+    public void shouldReturnSandboxProxyConsumer() {
+      final Consumer<byte[], byte[]> consumer = sandboxedKafkaClientSupplier.getConsumer(config);
+
+      assertThat(Proxy.isProxyClass(consumer.getClass()), is(true));
     }
 
     @Test
-    public void shouldReturnTryRestoreConsumer() {
-      assertThat(sandboxedKafkaClientSupplier.getRestoreConsumer(config),
-          is(instanceOf(SandboxedConsumer.class)));
+    public void shouldReturnSandboxProxyRestoreConsumer() {
+      final Consumer<byte[], byte[]> consumer = sandboxedKafkaClientSupplier
+          .getRestoreConsumer(config);
+
+      assertThat(Proxy.isProxyClass(consumer.getClass()), is(true));
     }
   }
 }

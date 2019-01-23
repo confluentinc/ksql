@@ -14,20 +14,9 @@
 
 package io.confluent.ksql.services;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.producer.Callback;
+import static io.confluent.ksql.services.SandboxProxyBuilder.anyParams;
+
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.Metric;
-import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.ProducerFencedException;
 
 /**
  * A limited producer that can be used while trying out operations.
@@ -37,69 +26,14 @@ import org.apache.kafka.common.errors.ProducerFencedException;
  * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
  * not called.
  */
-class SandboxedProducer<K, V> implements Producer<K, V> {
+final class SandboxedProducer<K, V> {
 
-  SandboxedProducer() {
+  static <K, V> Producer<K, V> createProxy() {
+    return SandboxProxyBuilder.forClass(Producer.class)
+        .swallow("close", anyParams())
+        .build();
   }
 
-  @Override
-  public void initTransactions() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void beginTransaction() throws ProducerFencedException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void sendOffsetsToTransaction(final Map<TopicPartition, OffsetAndMetadata> offsets,
-      final String consumerGroupId) throws ProducerFencedException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void commitTransaction() throws ProducerFencedException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void abortTransaction() throws ProducerFencedException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Future<RecordMetadata> send(final ProducerRecord<K, V> record) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Future<RecordMetadata> send(final ProducerRecord<K, V> record, final Callback callback) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void flush() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public List<PartitionInfo> partitionsFor(final String topic) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Map<MetricName, ? extends Metric> metrics() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void close() {
-    // No op
-  }
-
-  @Override
-  public void close(final long timeout, final TimeUnit unit) {
-    // No op
+  private SandboxedProducer() {
   }
 }

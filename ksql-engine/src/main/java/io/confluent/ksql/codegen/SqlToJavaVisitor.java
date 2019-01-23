@@ -493,9 +493,13 @@ public class SqlToJavaVisitor {
     ) {
       final Pair<String, Schema> left = process(node.getLeft(), unmangleNames);
       final Pair<String, Schema> right = process(node.getRight(), unmangleNames);
+
+      final Schema schema =
+          SchemaUtil.resolveArithmeticType(left.getRight().type(), right.getRight().type());
+
       return new Pair<>(
           "(" + left.getLeft() + " " + node.getType().getValue() + " " + right.getLeft() + ")",
-          SchemaUtil.resolveArithmeticType(left.getRight().type(), right.getRight().type())
+          schema
       );
     }
 

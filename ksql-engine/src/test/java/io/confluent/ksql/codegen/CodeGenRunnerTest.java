@@ -514,6 +514,42 @@ public class CodeGenRunnerTest {
     }
 
     @Test
+    public void testCastNumericArithmeticExpressions() {
+        final Map<Integer, Object> inputValues =
+            ImmutableMap.of(0, 1, 3, 3, 4, 4, 5, 5);
+
+        // INT64 - INT32
+        assertThat(executeExpression(
+            "SELECT "
+                + "CAST((col5 - col0) AS INTEGER),"
+                + "CAST((col5 - col0) AS BIGINT),"
+                + "CAST((col5 - col0) AS DOUBLE),"
+                + "CAST((col5 - col0) AS STRING)"
+                + "FROM codegen_test;",
+            inputValues), contains(4, 4L, 4.0, "4"));
+
+        // FLOAT64 - FLOAT64
+        assertThat(executeExpression(
+            "SELECT "
+                + "CAST((col4 - col3) AS INTEGER),"
+                + "CAST((col4 - col3) AS BIGINT),"
+                + "CAST((col4 - col3) AS DOUBLE),"
+                + "CAST((col4 - col3) AS STRING)"
+                + "FROM codegen_test;",
+            inputValues), contains(1, 1L, 1.0, "1.0"));
+
+        // FLOAT64 - INT64
+        assertThat(executeExpression(
+            "SELECT "
+                + "CAST((col4 - col0) AS INTEGER),"
+                + "CAST((col4 - col0) AS BIGINT),"
+                + "CAST((col4 - col0) AS DOUBLE),"
+                + "CAST((col4 - col0) AS STRING)"
+                + "FROM codegen_test;",
+            inputValues), contains(3, 3L, 3.0, "3.0"));
+    }
+
+    @Test
     public void shouldHandleMathUdfs() {
         // Given:
         final String query =

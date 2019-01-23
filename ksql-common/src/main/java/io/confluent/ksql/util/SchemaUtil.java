@@ -461,8 +461,8 @@ public final class SchemaUtil {
     );
   }
 
-  static Schema resolveArithmeticType(final Schema.Type left,
-                                      final Schema.Type right) {
+  public static Schema resolveBinaryOperatorResultType(final Schema.Type left,
+                                                       final Schema.Type right) {
     if (left == Schema.Type.STRING && right == Schema.Type.STRING) {
       return Schema.OPTIONAL_STRING_SCHEMA;
     }

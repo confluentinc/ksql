@@ -250,8 +250,8 @@ public class ExpressionTypeManager
     return null;
   }
 
-  private Schema resolveArithmeticType(final Schema leftSchema,
-                                       final Schema rightSchema) {
-    return SchemaUtil.resolveArithmeticType(leftSchema.type(), rightSchema.type());
+  private static Schema resolveArithmeticType(final Schema leftSchema,
+                                              final Schema rightSchema) {
+    return SchemaUtil.resolveBinaryOperatorResultType(leftSchema.type(), rightSchema.type());
   }
 }

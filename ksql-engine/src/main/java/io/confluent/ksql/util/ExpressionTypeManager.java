@@ -110,7 +110,7 @@ public class ExpressionTypeManager
     final Schema leftSchema = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     final Schema rightSchema = expressionTypeContext.getSchema();
-    validateComparisonOperandTypes(node.getType(), leftSchema.type(), rightSchema.type());
+    isValidComparison(leftSchema.type(), node.getType(), rightSchema.type());
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
@@ -254,11 +254,11 @@ public class ExpressionTypeManager
     return SchemaUtil.resolveArithmeticType(leftSchema.type(), rightSchema.type());
   }
 
-  private static void validateComparisonOperandTypes(
-      final ComparisonExpression.Type operator,
+  private static void isValidComparison(
       final Schema.Type leftType,
+      final ComparisonExpression.Type operator,
       final Schema.Type rightType) {
-    if (SchemaUtil.TYPE_COMPARISON_COMPATIBILITY.get(leftType).apply(rightType)) {
+    if (ComparisonUtil.areCompatibleTypesForComparison(leftType, rightType)) {
       if (leftType == Schema.Type.BOOLEAN) {
         if (operator != Type.EQUAL
             && operator != Type.NOT_EQUAL) {

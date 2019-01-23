@@ -14,7 +14,6 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;

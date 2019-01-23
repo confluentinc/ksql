@@ -69,6 +69,7 @@ public class SandboxedKafkaTopicClientTest {
           .ignore("isTopicExists", String.class)
           .ignore("describeTopic", String.class)
           .ignore("describeTopics", Collection.class)
+          .ignore("deleteTopics", Collection.class)
           .build();
     }
 
@@ -98,40 +99,40 @@ public class SandboxedKafkaTopicClientTest {
 
     @Mock
     private KafkaTopicClient delegate;
-    private KafkaTopicClient sandboxedKafkaTopicClient;
+    private KafkaTopicClient sandboxedClient;
     private final Map<String, ?> configs = ImmutableMap.of("some config", 1);
 
     @Before
     public void setUp() {
-      sandboxedKafkaTopicClient = SandboxedKafkaTopicClient.createProxy(delegate);
+      sandboxedClient = SandboxedKafkaTopicClient.createProxy(delegate);
     }
 
     @Test
     public void shouldTrackCreatedTopicWithNoConfig() {
       // Given:
-      sandboxedKafkaTopicClient.createTopic("some topic", 1, (short) 3);
+      sandboxedClient.createTopic("some topic", 1, (short) 3);
 
       // Then:
-      assertThat(sandboxedKafkaTopicClient.isTopicExists("some topic"), is(true));
+      assertThat(sandboxedClient.isTopicExists("some topic"), is(true));
     }
 
     @Test
     public void shouldTrackCreatedTopicsWithConfig() {
       // Given:
-      sandboxedKafkaTopicClient.createTopic("some topic", 1, (short) 3, configs);
+      sandboxedClient.createTopic("some topic", 1, (short) 3, configs);
 
       // Then:
-      assertThat(sandboxedKafkaTopicClient.isTopicExists("some topic"), is(true));
+      assertThat(sandboxedClient.isTopicExists("some topic"), is(true));
     }
 
     @Test
     public void shouldNotCallDelegateOnIsTopicExistsIfTopicCreatedInScope() {
       // given:
-      sandboxedKafkaTopicClient.createTopic("some topic", 1, (short) 3, configs);
+      sandboxedClient.createTopic("some topic", 1, (short) 3, configs);
       Mockito.clearInvocations(delegate);
 
       // When:
-      sandboxedKafkaTopicClient.isTopicExists("some topic");
+      sandboxedClient.isTopicExists("some topic");
 
       // Then:
       verify(delegate, never()).isTopicExists("some topic");
@@ -140,7 +141,7 @@ public class SandboxedKafkaTopicClientTest {
     @Test
     public void shouldDelegateOnIsTopicExistsIfTopicNotCreatedInScope() {
       // When:
-      sandboxedKafkaTopicClient.isTopicExists("some topic");
+      sandboxedClient.isTopicExists("some topic");
 
       // Then:
       verify(delegate).isTopicExists("some topic");
@@ -149,7 +150,7 @@ public class SandboxedKafkaTopicClientTest {
     @Test
     public void shouldTrackCreatedTopicDetails() {
       // Given:
-      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 3, configs);
+      sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
 
       // When:
       final TopicDescription result = sandboxedKafkaTopicClient
@@ -165,10 +166,10 @@ public class SandboxedKafkaTopicClientTest {
     @Test
     public void shouldTrackCreatedTopicsDetails() {
       // Given:
-      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 3, configs);
+      sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
 
       // When:
-      final Map<String, TopicDescription> result = sandboxedKafkaTopicClient
+      final Map<String, TopicDescription> result = sandboxedClient
           .describeTopics(ImmutableList.of("some topic"));
 
       // Then:
@@ -182,7 +183,7 @@ public class SandboxedKafkaTopicClientTest {
     @Test
     public void shouldThrowOnCreateIfTopicPreviouslyCreatedInScopeWithDifferentPartitionCount() {
       // Given:
-      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 3, configs);
+      sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
 
       // Expect:
       expectedException.expect(KafkaTopicException.class);
@@ -190,13 +191,13 @@ public class SandboxedKafkaTopicClientTest {
           + "exists, with different partition/replica configuration than required");
 
       // When:
-      sandboxedKafkaTopicClient.createTopic("some topic", 4, (short) 3, configs);
+      sandboxedClient.createTopic("some topic", 4, (short) 3, configs);
     }
 
     @Test
     public void shouldThrowOnCreateIfTopicPreviouslyCreatedInScopeWithDifferentReplicaCount() {
       // Given:
-      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 1, configs);
+      sandboxedClient.createTopic("some topic", 2, (short) 1, configs);
 
       // Expect:
       expectedException.expect(KafkaTopicException.class);
@@ -204,7 +205,7 @@ public class SandboxedKafkaTopicClientTest {
           + "exists, with different partition/replica configuration than required");
 
       // When:
-      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 2, configs);
+      sandboxedClient.createTopic("some topic", 2, (short) 2, configs);
     }
 
     @Test
@@ -218,7 +219,7 @@ public class SandboxedKafkaTopicClientTest {
           + "exists, with different partition/replica configuration than required");
 
       // When:
-      sandboxedKafkaTopicClient.createTopic("some topic", 3, (short) 3, configs);
+      sandboxedClient.createTopic("some topic", 3, (short) 3, configs);
     }
 
     @Test
@@ -232,7 +233,31 @@ public class SandboxedKafkaTopicClientTest {
           + "exists, with different partition/replica configuration than required");
 
       // When:
-      sandboxedKafkaTopicClient.createTopic("some topic", 2, (short) 2, configs);
+      sandboxedClient.createTopic("some topic", 2, (short) 2, configs);
+    }
+
+    @Test
+    public void shouldSupportDeleteTopics() {
+      // Given:
+      sandboxedClient.createTopic("some topic", 1, (short)1);
+
+      // When:
+      sandboxedClient.deleteTopics(ImmutableList.of("some topic"));
+
+      // Then:
+      verify(delegate, never()).deleteTopics(any());
+
+      // Should be able to recreate the topic with different params:
+      sandboxedClient.createTopic("some topic", 3, (short)3);
+    }
+
+    @Test
+    public void shouldNoOpDeletingTopicThatWasNotCreatedInScope() {
+      // When:
+      sandboxedClient.deleteTopics(ImmutableList.of("some topic"));
+
+      // Then:
+      verifyZeroInteractions(delegate);
     }
 
     @SuppressWarnings("SameParameterValue")

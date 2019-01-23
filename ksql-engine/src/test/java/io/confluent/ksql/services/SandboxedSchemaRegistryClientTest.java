@@ -17,6 +17,7 @@ package io.confluent.ksql.services;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -48,6 +49,7 @@ public final class SandboxedSchemaRegistryClientTest {
       return TestMethods.builder(SchemaRegistryClient.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("testCompatibility", String.class, Schema.class)
+          .ignore("deleteSubject", String.class)
           .build();
     }
 
@@ -78,11 +80,11 @@ public final class SandboxedSchemaRegistryClientTest {
     private Schema schema;
     @Mock
     private SchemaMetadata schemaMetadata;
-    private SchemaRegistryClient sandboxedSchemaRegistryClient;
+    private SchemaRegistryClient sandboxedClient;
 
     @Before
     public void setUp() {
-      sandboxedSchemaRegistryClient = SandboxedSchemaRegistryClient.createProxy(delegate);
+      sandboxedClient = SandboxedSchemaRegistryClient.createProxy(delegate);
     }
 
     @Test
@@ -91,7 +93,7 @@ public final class SandboxedSchemaRegistryClientTest {
       when(delegate.getLatestSchemaMetadata("some subject")).thenReturn(schemaMetadata);
 
       // When:
-      final SchemaMetadata actual = sandboxedSchemaRegistryClient
+      final SchemaMetadata actual = sandboxedClient
           .getLatestSchemaMetadata("some subject");
 
       // Then:
@@ -106,12 +108,21 @@ public final class SandboxedSchemaRegistryClientTest {
           .thenReturn(false);
 
       // When:
-      final boolean first = sandboxedSchemaRegistryClient.testCompatibility("some subject", schema);
-      final boolean second = sandboxedSchemaRegistryClient.testCompatibility("some subject", schema);
+      final boolean first = sandboxedClient.testCompatibility("some subject", schema);
+      final boolean second = sandboxedClient.testCompatibility("some subject", schema);
 
       // Then:
       assertThat(first, is(true));
       assertThat(second, is(false));
+    }
+
+    @Test
+    public void shouldSwallowDeleteSubject() throws Exception {
+      // When:
+      sandboxedClient.deleteSubject("some subject");
+
+      // Then:
+      verifyZeroInteractions(delegate);
     }
   }
 }

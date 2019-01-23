@@ -14,7 +14,6 @@
 
 package io.confluent.ksql;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -557,7 +556,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           Collections.emptyMap(),
           false);
 
-      engineContext.ddlCommandExec.execute(ddlCmd, true);
+      engineContext.ddlCommandExec.execute(ddlCmd);
     }
   }
 

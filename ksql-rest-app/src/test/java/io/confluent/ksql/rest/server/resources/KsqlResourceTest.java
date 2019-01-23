@@ -98,6 +98,7 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;

@@ -18,8 +18,10 @@ import static io.confluent.ksql.services.SandboxProxyBuilder.anyParams;
 import static io.confluent.ksql.services.SandboxProxyBuilder.methodParams;
 import static io.confluent.ksql.services.SandboxProxyBuilder.noParams;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assume.assumeThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -27,6 +29,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,7 +55,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldThrowOnNoneInterface() {
       // Expect:
-      expectedException.expect(UnsupportedOperationException.class);
+      expectedException.expect(IllegalArgumentException.class);
       expectedException.expectMessage("Type not an interface: " + String.class);
 
       // When:
@@ -184,9 +188,9 @@ public final class SandboxProxyBuilderTest {
     }
 
     @Test
-    public void shouldThrowIfMethodHasNonVoidReturnType() {
+    public void shouldThrowIfMethodHasNonVoidReturnTypeAndNoReturnValueSupplied() {
       // Expect:
-      expectedException.expect(UnsupportedOperationException.class);
+      expectedException.expect(IllegalArgumentException.class);
       expectedException.expectMessage("Can only swallow void methods. None void methods:");
       expectedException.expectMessage("int someFunc()");
 
@@ -199,7 +203,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldThrowIfAnyMethodHasNonVoidReturnType() {
       // Expect:
-      expectedException.expect(UnsupportedOperationException.class);
+      expectedException.expect(IllegalArgumentException.class);
       expectedException.expectMessage("Can only swallow void methods. None void methods:");
       expectedException.expectMessage("int someFunc()");
       expectedException.expectMessage("String someFunc(String)");
@@ -208,6 +212,61 @@ public final class SandboxProxyBuilderTest {
       SandboxProxyBuilder.forClass(TestInterface.class)
           .swallow("someFunc", anyParams())
           .build();
+    }
+
+    @Test
+    public void shouldThrowIfMethodHasVoidReturnTypeAndReturnValueSupplied() {
+      // Expect:
+      expectedException.expect(IllegalArgumentException.class);
+      expectedException.expectMessage("Can not provide a default value for void method:");
+      expectedException.expectMessage("void noReturnValue()");
+
+      // When:
+      SandboxProxyBuilder.forClass(TestInterface.class)
+          .swallow("noReturnValue", noParams(), 10)
+          .build();
+    }
+
+    @Test
+    public void shouldSwallowNonVoidFunctionWithNonNullReturnValue() {
+      // Given:
+      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+          .swallow("someFunc", noParams(), 10)
+          .build();
+
+      // When:
+      final int result = proxy.someFunc();
+
+      // Then:
+      assertThat(result, is(10));
+    }
+
+    @Test
+    public void shouldSwallowNonVoidFunctionWithNullReturnValue() {
+      // Given:
+      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+          .swallow("returnsList", noParams(), null)
+          .build();
+
+      // When:
+      final List<String> result = proxy.returnsList();
+
+      // Then:
+      assertThat(result, is(nullValue()));
+    }
+
+    @Test
+    public void shouldSwallowNonVoidFunctionWithReturnValue() {
+      // Given:
+      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+          .swallow("returnsList", noParams(), Collections.emptyList())
+          .build();
+
+      // When:
+      final List<String> result = proxy.returnsList();
+
+      // Then:
+      assertThat(result, is(empty()));
     }
   }
 
@@ -461,5 +520,7 @@ public final class SandboxProxyBuilderTest {
     default void defaultMethods(int i) {
       throw new AssertionError("should never be called");
     }
+
+    List<String> returnsList();
   }
 }

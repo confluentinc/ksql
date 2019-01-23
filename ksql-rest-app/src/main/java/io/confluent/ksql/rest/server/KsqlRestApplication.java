@@ -25,8 +25,9 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
-import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -49,6 +50,8 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.rest.util.ProcessingLogConfig;
+import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -166,8 +169,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   @Override
   public void start() throws Exception {
-    super.start();
     commandRunnerThread.start();
+    super.start();
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
     if (versionCheckerAgent != null) {
@@ -394,6 +397,18 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
+    final ProcessingLogConfig processingLogConfig =
+        new ProcessingLogConfig(restConfig.getOriginals());
+    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+        serviceContext.getTopicClient(),
+        processingLogConfig);
+    maybeCreateProcessingLogStream(
+        processingLogConfig,
+        ksqlConfig,
+        ksqlEngine,
+        commandStore
+    );
+
     commandRunner.processPriorCommands();
 
     return new KsqlRestApplication(
@@ -465,7 +480,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
           replicationFactor,
           Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention)
       );
-    } catch (final KafkaTopicException e) {
+    } catch (final KafkaTopicExistsException e) {
       log.info("Command Topic Exists: {}", e.getMessage());
     }
   }
@@ -494,5 +509,38 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     writer.println();
 
     writer.flush();
+  }
+
+  static void maybeCreateProcessingLogStream(
+      final ProcessingLogConfig config,
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
+      final CommandQueue commandQueue) {
+    if (!config.getString(ProcessingLogConfig.STREAM_AUTO_CREATE).equals(
+        ProcessingLogConfig.AUTO_CREATE_ON)) {
+      return;
+    }
+    final String name = config.getString(ProcessingLogConfig.STREAM_NAME);
+    final String topicName = config.getString(ProcessingLogConfig.TOPIC_NAME);
+    final String statementText = ProcessingLogServerUtils.processingLogStreamCreateStatement(
+        name,
+        topicName);
+    if (!commandQueue.empty()) {
+      return;
+    }
+    final List<PreparedStatement<?>> statement;
+    try {
+      statement = ksqlEngine.parseStatements(statementText);
+      ksqlEngine.tryExecute(statement, ksqlConfig, Collections.emptyMap());
+    } catch (final KsqlException e) {
+      log.warn("Failed to create processing log stream", e);
+      return;
+    }
+    commandQueue.enqueueCommand(
+          statement.get(0).getStatementText(),
+          statement.get(0).getStatement(),
+          ksqlConfig,
+          Collections.emptyMap()
+    );
   }
 }

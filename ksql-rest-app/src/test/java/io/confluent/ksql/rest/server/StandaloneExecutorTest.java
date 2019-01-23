@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -63,6 +64,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StandaloneExecutorTest {
 
+  private static final ProcessingLogConfig processingLogConfig =
+      new ProcessingLogConfig(emptyMap());
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
   private static final QualifiedName SOME_NAME = QualifiedName.of("Test");
 
@@ -94,8 +97,14 @@ public class StandaloneExecutorTest {
     when(engine.execute(any(), any(), any())).thenReturn(Optional.of(queryMd));
 
     standaloneExecutor = new StandaloneExecutor(
-        serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader,
-        false, versionCheckerAgent);
+        serviceContext,
+        processingLogConfig,
+        ksqlConfig,
+        engine,
+        queriesFile.toString(),
+        udfLoader,
+        false,
+        versionCheckerAgent);
   }
 
   @Test
@@ -354,7 +363,14 @@ public class StandaloneExecutorTest {
 
   private void givenExecutorWillFailOnNoQueries() {
     standaloneExecutor = new StandaloneExecutor(
-        serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader, true, versionCheckerAgent);
+        serviceContext,
+        processingLogConfig,
+        ksqlConfig,
+        engine,
+        queriesFile.toString(),
+        udfLoader,
+        true,
+        versionCheckerAgent);
   }
 
   private void givenFileContainsAPersistentQuery() {

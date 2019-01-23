@@ -46,7 +46,7 @@ public final class ProcessingLogMessageFactory {
   static String TYPE = "type";
   static String DESERIALIZATION_ERROR = "deserializationError";
 
-  static final Schema PROCESSING_LOG_SCHEMA = SchemaBuilder.struct()
+  public static final Schema PROCESSING_LOG_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "ProcessingLogRecord")
       .field(TYPE, Schema.OPTIONAL_INT32_SCHEMA)
       .field(DESERIALIZATION_ERROR, DESERIALIZATION_ERROR_SCHEMA)

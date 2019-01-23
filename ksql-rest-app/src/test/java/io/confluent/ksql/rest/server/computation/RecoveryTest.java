@@ -142,6 +142,11 @@ public class RecoveryTest {
     }
 
     @Override
+    public boolean empty() {
+      return commandLog.isEmpty();
+    }
+
+    @Override
     public void close() {
     }
   }

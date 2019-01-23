@@ -26,12 +26,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressFBWarnings("NP_BOOLEAN_RETURN_NULL")
 public class SearchedCaseFunctionTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  @SuppressFBWarnings("NP_BOOLEAN_RETURN_NULL")
   @Test
   public void shouldWorkForBooleanValues() {
     // Given:
@@ -60,7 +60,6 @@ public class SearchedCaseFunctionTest {
         SearchedCaseFunction.whenClause(() -> true, () -> 3),
         SearchedCaseFunction.whenClause(() -> true, () -> 4)
     );
-
 
     // When:
     final Integer result = SearchedCaseFunction.searchedCaseFunction(

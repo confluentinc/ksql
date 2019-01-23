@@ -124,7 +124,7 @@ public class StreamedQueryResourceTest {
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     expect(serviceContext.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
-    statement = new PreparedStatement<>("s", mock(Statement.class));
+    statement = PreparedStatement.of("s", mock(Statement.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(statement);
     replay(mockKsqlEngine, mockStatementParser);
@@ -274,7 +274,7 @@ public class StreamedQueryResourceTest {
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
     reset(mockStatementParser);
-    statement = new PreparedStatement<>("query", mock(Query.class));
+    statement = PreparedStatement.of("query", mock(Query.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(statement);
 

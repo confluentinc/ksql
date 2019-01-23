@@ -45,7 +45,7 @@ import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -172,9 +172,11 @@ public class JoinNodeTest {
 
   private void buildJoinNode(final String queryString) {
     final KsqlBareOutputNode planNode =
-        (KsqlBareOutputNode) new LogicalPlanBuilder(
-            MetaStoreFixture.getNewMetaStore(
-                new InternalFunctionRegistry())).buildLogicalPlan(queryString);
+        (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+            .buildLogicalPlan(queryString,
+                MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry())
+            );
+
     joinNode = (JoinNode) ((ProjectNode) planNode.getSource()).getSource();
   }
 

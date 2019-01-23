@@ -172,7 +172,7 @@ public class StandaloneExecutorTest {
   public void shouldFailOnDropStatement() {
     // Given:
     when(engine.parseStatements(any())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("DROP",
+        PreparedStatement.of("DROP",
             new DropStream(SOME_NAME, false, false))
     ));
 
@@ -191,7 +191,7 @@ public class StandaloneExecutorTest {
     givenExecutorWillFailOnNoQueries();
 
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("Transient query", query)
+        PreparedStatement.of("Transient query", query)
     ));
 
     expectedException.expect(KsqlException.class);
@@ -204,7 +204,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunCsStatement() {
     // Given:
-    final PreparedStatement<CreateStream> cs = new PreparedStatement<>("CS",
+    final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
         new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
 
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(cs));
@@ -219,7 +219,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunCtStatement() {
     // Given:
-    final PreparedStatement<CreateTable> ct = new PreparedStatement<>("CT",
+    final PreparedStatement<CreateTable> ct = PreparedStatement.of("CT",
         new CreateTable(SOME_NAME, emptyList(), false, emptyMap()));
 
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(ct));
@@ -235,9 +235,9 @@ public class StandaloneExecutorTest {
   public void shouldRunSetStatements() {
     // Given:
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("CS",
+        PreparedStatement.of("CS",
             new SetProperty(Optional.empty(), "name", "value")),
-        new PreparedStatement<>("CS",
+        PreparedStatement.of("CS",
             new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
     ));
 
@@ -253,11 +253,11 @@ public class StandaloneExecutorTest {
   public void shouldRunUnSetStatements() {
     // Given:
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("SET",
+        PreparedStatement.of("SET",
             new SetProperty(Optional.empty(), "name", "value")),
-        new PreparedStatement<>("UNSET",
+        PreparedStatement.of("UNSET",
             new UnsetProperty(Optional.empty(), "name")),
-        new PreparedStatement<>("CS",
+        PreparedStatement.of("CS",
             new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
     ));
 
@@ -271,7 +271,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldRunCsasStatements() {
     // Given:
-    final PreparedStatement<CreateStreamAsSelect> csas = new PreparedStatement<>("CSAS1",
+    final PreparedStatement<CreateStreamAsSelect> csas = PreparedStatement.of("CSAS1",
         new CreateStreamAsSelect(SOME_NAME, query, false, emptyMap(), Optional.empty()));
 
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(csas));
@@ -287,7 +287,7 @@ public class StandaloneExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldRunCtasStatements() {
     // Given:
-    final PreparedStatement<CreateTableAsSelect> ctas = new PreparedStatement<>("CTAS",
+    final PreparedStatement<CreateTableAsSelect> ctas = PreparedStatement.of("CTAS",
         new CreateTableAsSelect(SOME_NAME, query, false, emptyMap()));
 
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(ctas));
@@ -303,7 +303,7 @@ public class StandaloneExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldRunInsertIntoStatements() {
     // Given:
-    final PreparedStatement<InsertInto> insertInto = new PreparedStatement<>("InsertInto",
+    final PreparedStatement<InsertInto> insertInto = PreparedStatement.of("InsertInto",
         new InsertInto(SOME_NAME, query, Optional.empty()));
 
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(insertInto));
@@ -396,7 +396,7 @@ public class StandaloneExecutorTest {
 
   private void givenFileContainsAPersistentQuery() {
     when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        new PreparedStatement<>("InsertInto",
+        PreparedStatement.of("InsertInto",
             new InsertInto(SOME_NAME, query, Optional.empty()))
     ));
   }

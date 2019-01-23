@@ -54,6 +54,7 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
+
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());

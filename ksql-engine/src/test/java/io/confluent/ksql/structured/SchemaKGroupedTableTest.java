@@ -78,7 +78,6 @@ public class SchemaKGroupedTableTest {
       .build();
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
 
@@ -103,7 +102,7 @@ public class SchemaKGroupedTableTest {
   private SchemaKGroupedTable buildSchemaKGroupedTableFromQuery(
       final String query,
       final String...groupByColumns) {
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(query);
+    final PlanNode logicalPlan = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
     final SchemaKTable initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,

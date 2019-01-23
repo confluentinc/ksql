@@ -78,20 +78,19 @@ import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
 
   private final Grouped grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
@@ -121,9 +120,6 @@ public class SchemaKStreamTest {
   private JoinedFactory mockJoinedFactory;
   @Mock
   private KStream mockKStream;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void init() {
@@ -170,7 +166,7 @@ public class SchemaKStreamTest {
     whenCreateJoined();
   }
 
-  private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
+  private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return topic.getKsqlTopicSerDe().getGenericRowSerde(
         schema,
         new KsqlConfig(Collections.emptyMap()),
@@ -182,7 +178,7 @@ public class SchemaKStreamTest {
   @Test
   public void testSelectSchemaKStream() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -190,26 +186,29 @@ public class SchemaKStreamTest {
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
         childContextStacker);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
-                      projectedSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL2") ==
-                      projectedSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL3") ==
-                      projectedSchemaKStream.getSchema().fields().get(2));
+    Assert.assertEquals(3, projectedSchemaKStream.getSchema().fields().size());
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0"),
+        projectedSchemaKStream.getSchema().fields().get(0));
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL2"),
+        projectedSchemaKStream.getSchema().fields().get(1));
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL3"),
+        projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL2").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL3").schema().type() == Schema.Type.FLOAT64);
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0").schema().type(),
+        Schema.Type.INT64);
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL2").schema().type(),
+        Schema.Type.STRING);
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL3").schema().type(),
+        Schema.Type.FLOAT64);
 
-    Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) ==
-                      initialSchemaKStream);
+    Assert
+        .assertSame(projectedSchemaKStream.getSourceSchemaKStreams().get(0), initialSchemaKStream);
   }
 
   @Test
   public void shouldUpdateKeyIfRenamed() {
     final String selectQuery = "SELECT col0 as NEWKEY, col2, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -225,7 +224,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldPreserveKeyOnSelectStar() {
     final String selectQuery = "SELECT * FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -241,7 +240,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldUpdateKeyIfMovedToDifferentIndex() {
     final String selectQuery = "SELECT col2, col0, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -257,7 +256,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldDropKeyIfNotSelected() {
     final String selectQuery = "SELECT col2, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -271,59 +270,67 @@ public class SchemaKStreamTest {
   @Test
   public void testSelectWithExpression() {
     final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         projectNode.getProjectSelectExpressions(),
         childContextStacker);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
-                      projectedSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("KSQL_COL_1") ==
-                      projectedSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("KSQL_COL_2") ==
-                      projectedSchemaKStream.getSchema().fields().get(2));
+    Assert.assertEquals(3, projectedSchemaKStream.getSchema().fields().size());
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0"),
+        projectedSchemaKStream.getSchema().fields().get(0));
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("KSQL_COL_1"),
+        projectedSchemaKStream.getSchema().fields().get(1));
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("KSQL_COL_2"),
+        projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(1).schema().type() == Schema.Type.INT32);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(2).schema().type() == Schema.Type.FLOAT64);
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0").schema().type(),
+        Schema.Type.INT64);
+    Assert.assertSame(projectedSchemaKStream.getSchema().fields().get(1).schema().type(),
+        Schema.Type.INT32);
+    Assert.assertSame(projectedSchemaKStream.getSchema().fields().get(2).schema().type(),
+        Schema.Type.FLOAT64);
 
-    Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) == initialSchemaKStream);
+    Assert
+        .assertSame(projectedSchemaKStream.getSourceSchemaKStreams().get(0), initialSchemaKStream);
   }
 
   @Test
   public void testFilter() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
         childContextStacker);
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 8);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0") ==
-                      filteredSchemaKStream.getSchema().fields().get(2));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1") ==
-                      filteredSchemaKStream.getSchema().fields().get(3));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2") ==
-                      filteredSchemaKStream.getSchema().fields().get(4));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3") ==
-                      filteredSchemaKStream.getSchema().fields().get(5));
+    Assert.assertEquals(8, filteredSchemaKStream.getSchema().fields().size());
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL0"),
+        filteredSchemaKStream.getSchema().fields().get(2));
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL1"),
+        filteredSchemaKStream.getSchema().fields().get(3));
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL2"),
+        filteredSchemaKStream.getSchema().fields().get(4));
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL3"),
+        filteredSchemaKStream.getSchema().fields().get(5));
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3").schema().type() == Schema.Type.FLOAT64);
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL0").schema().type(),
+        Schema.Type.INT64);
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema().type(),
+        Schema.Type.STRING);
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL2").schema().type(),
+        Schema.Type.STRING);
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL3").schema().type(),
+        Schema.Type.FLOAT64);
 
-    Assert.assertTrue(filteredSchemaKStream.getSourceSchemaKStreams().get(0) == initialSchemaKStream);
+    Assert.assertSame(filteredSchemaKStream.getSourceSchemaKStreams().get(0), initialSchemaKStream);
   }
 
   @Test
   public void testSelectKey() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         initialSchemaKStream.getSchema().fields().get(3),
@@ -355,7 +362,7 @@ public class SchemaKStreamTest {
   @Test
   public void testGroupByMultipleColumns() {
     final String selectQuery = "SELECT col0, col1 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final Expression col0Expression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
@@ -674,7 +681,7 @@ public class SchemaKStreamTest {
     // When/Then:
     final String expected =
         " > [ SOURCE ] | Schema: [key : VARCHAR, val : BIGINT] | Logger: query.node.source\n\t"
-        + "parent plan";
+            + "parent plan";
     assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
   }
 
@@ -800,5 +807,9 @@ public class SchemaKStreamTest {
       schemaBuilder.field(fieldName, field.schema());
     }
     return schemaBuilder.build();
+  }
+
+  private PlanNode buildLogicalPlan(final String query) {
+    return LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
   }
 }

@@ -155,15 +155,15 @@ public class SchemaTranslationTest {
 
     final Topic srcTopic;
     final Topic outputTopic
-        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier());
+        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier(), 4);
     final List<Record> inputRecords;
     final List<Record> outputRecords;
     if (node.has("input_records")) {
-      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new ValueSpecAvroSerdeSupplier());
+      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new ValueSpecAvroSerdeSupplier(), 1);
       inputRecords = loadRecords(srcTopic, node.get("input_records"));
       outputRecords = loadRecords(outputTopic, node.get("output_records"));
     } else {
-      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new AvroSerdeSupplier());
+      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new AvroSerdeSupplier(), 1);
       inputRecords = generateInputRecords(srcTopic, avroSchema);
       outputRecords = getOutputRecords(outputTopic, inputRecords, avroSchema);
     }
@@ -178,7 +178,7 @@ public class SchemaTranslationTest {
         .collect(
             Collectors.joining(
                 ", ",
-                "CREATE STREAM TEST_OUTPUT AS SELECT ",
+                "CREATE STREAM " + OUTPUT_TOPIC_NAME + " AS SELECT ",
                 " FROM " + TOPIC_NAME + ";")
         );
 

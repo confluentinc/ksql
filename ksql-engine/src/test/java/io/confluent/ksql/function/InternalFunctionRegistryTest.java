@@ -17,14 +17,15 @@ package io.confluent.ksql.function;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlException;
@@ -35,13 +36,19 @@ import java.util.List;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class InternalFunctionRegistryTest {
 
   private static class Func1 implements Kudf {
+
     @Override
     public Object evaluate(final Object... args) {
       return null;
@@ -49,6 +56,7 @@ public class InternalFunctionRegistryTest {
   }
 
   private static class Func2 implements Kudf {
+
     @Override
     public Object evaluate(final Object... args) {
       return null;
@@ -63,6 +71,14 @@ public class InternalFunctionRegistryTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private UdfFactory udfFactory;
+
+  @Before
+  public void setUp() {
+    when(udfFactory.getName()).thenReturn("someFunc");
+  }
 
   @Test
   public void shouldAddFunction() {
@@ -95,7 +111,7 @@ public class InternalFunctionRegistryTest {
     final KsqlFunction func2 = new KsqlFunction(Schema.OPTIONAL_STRING_SCHEMA,
         Collections.emptyList(),
         "func2",
-       Func2.class);
+        Func2.class);
 
     copy.addFunction(func2);
 
@@ -233,7 +249,6 @@ public class InternalFunctionRegistryTest {
         "FETCH_FIELD_FROM_STRUCT"
     );
 
-
     Collection<String> names = Collections2.transform(functionRegistry.listFunctions(),
         udf -> udf.getName());
 
@@ -243,7 +258,7 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldHaveBuiltInUDAFRegistered() {
-    Collection<String> builtInUDAF =  Arrays.asList(
+    Collection<String> builtInUDAF = Arrays.asList(
         "COUNT", "SUM", "MAX", "MIN", "TOPK", "TOPKDISTINCT"
     );
 
@@ -253,5 +268,19 @@ public class InternalFunctionRegistryTest {
     assertThat("More or less UDAF are registered in the InternalFunctionRegistry",
         names, containsInAnyOrder(builtInUDAF.toArray()));
 
+  }
+
+  @Test
+  public void shouldNotAllowModificationViaListFunctions() {
+    // Given:
+    functionRegistry.addFunctionFactory(udfFactory);
+
+    final List<UdfFactory> functions = functionRegistry.listFunctions();
+
+    // When
+    functions.clear();
+
+    // Then:
+    assertThat(functionRegistry.listFunctions(), hasItem(sameInstance(udfFactory)));
   }
 }

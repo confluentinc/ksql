@@ -25,25 +25,22 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -139,12 +136,10 @@ public class StructuredDataSourceNode
   @Override
   public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     final String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
-    final Map<String, TopicDescription> descriptions
-        = kafkaTopicClient.describeTopics(Collections.singletonList(topicName));
-    if (!descriptions.containsKey(topicName)) {
-      throw new KsqlException("Could not get topic description for " + topicName);
-    }
-    return descriptions.get(topicName).partitions().size();
+
+    return kafkaTopicClient.describeTopic(topicName)
+        .partitions()
+        .size();
   }
 
   @Override

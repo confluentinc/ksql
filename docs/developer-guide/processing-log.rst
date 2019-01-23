@@ -4,26 +4,26 @@ KSQL Processing Log
 -------------------
 
 KSQL emits a log of record processing events, called the processing log, to help developers debug
-their KSQL queries. As KSQL executes a query, it writes records to the processing log detailing how
-it processes each row, including details about any errors it encounters along the way.
+their KSQL queries. As KSQL executes a query, it writes records to the processing log that detail how
+it processes each row, including any errors it encounters along the way.
 
 Log entries are written with a log level, so you can tune the log to emit a verbose trace of every
-record processed, to only log errors, or disable it completely. Log entries are also written with
-a hierarchical name that can be corellated back to the query execution plan. This way you can tune
+record processed, to log only errors, or to disable it completely. Log entries are also written with
+a hierarchical name that can be correlated back to the query execution plan. This way, you can tune
 the log level for specific queries, and even specific steps of a given query.
 
 Log entries are structured events, so in addition to using them to help you debug, they should be
 easy to consume from downstream applications and from KSQL itself. In fact, KSQL supports writing
-the processing log to kafka and consuming it as KSQL stream.
+the processing log to Kafka and consuming it as KSQL stream.
 
 Logger Names
 ============
 
 The logger name identifies the logger that emits a log record. Logger names are hierarchical. The
 logger name always has the prefix: ``processing.<query-id>``, where ``query-id`` refers to the KSQL
-query ID (e.g. as returned by ``LIST QUERIES;``). Loggers for a given query are organized into a
-hierarchy according to the step in the execution plan that uses the logger. The log level can be
-configured using a prefix of the logger name to set the level for all loggers under that prefix.
+query ID, which you can see with statements like ``LIST QUERIES;``. Loggers for a given query are organized into a
+hierarchy according to the step in the execution plan that uses the logger. You can configure the log level
+by using a prefix of the logger name to set the level for all loggers under that prefix.
 The logger name for a given step is included in the execution plan:
 
 ::
@@ -38,7 +38,7 @@ The logger name for a given step is included in the execution plan:
 Configuration Using Log4J
 =========================
 
-The log uses log4j underneath to write entries, so you can configure it just like you would the
+Internally, the log uses log4j to write entries, so you can configure it just like you would the
 normal KSQL log. All entries are written under the logger hierarchy ``processing``. The following
 example shows how to configure the processing log to emit all events at ERROR level or higher to
 an appender that writes to stdout:
@@ -51,7 +51,7 @@ an appender that writes to stdout:
      log4j.logger.processing=ERROR, stdout
      log4j.additivity.processing=false
 
-If you wanted to set the log level to DEBUG for the query ``CSAS_PAGEVIEWS_UPPER_0``, then you
+For example, if you want to set the log level to DEBUG for a query named ``CSAS_PAGEVIEWS_UPPER_0``, you
 could write the following into your log4j properties file:
 
 ::
@@ -63,13 +63,13 @@ could write the following into your log4j properties file:
 Note On Security
 ================
 
-Note that entries in the record processing log may include data from the rows processed by KSQL.
-Therefore you must be careful to ensure that the log is configured to write to a destination
-where it is safe to write the data being processed. Its also important to set
-``log4j.additivity.processing=false`` as in the above example, to ensure that processing log
-events are not forwarded to appenders configured for the other ksql loggers.
+Entries in the record-processing log may include data from the rows processed by KSQL.
+Be careful to ensure that the log is configured to write to a destination
+where it is safe to write the data being processed. It's also important to set
+``log4j.additivity.processing=false`` as shown in the previous example, to ensure that processing log
+events are not forwarded to appenders configured for the other KSQL loggers.
 
-It is possible to disable the log completely by setting the level to OFF:
+You can disable the log completely by setting the level to OFF:
 
 ::
 
@@ -78,7 +78,7 @@ It is possible to disable the log completely by setting the level to OFF:
 Log Schema
 ==========
 
-Log entries are structured, and have the following schema:
+Log entries are structured and have the following schema:
 
 logger (STRING)
   The name of the logger that wrote the log entry.
@@ -104,12 +104,12 @@ message.deserializationError.errorMessage (STRING)
   A string containing a human-readable error message detailing the error encountered.
 
 message.deserializationError.recordB64 (STRING)
-  The Kafka record, encoded in base64.
+  The Kafka record, encoded in Base64.
 
 message.recordProcessingError.errorMessage (STRING)
   The contents of a message with type 1 (RECORD_PROCESSING_ERROR). Logged when KSQL hits
-  an error when processing a record (for example, an unexpected null value when evaluating
-  an operator in a SELECT clause).
+  an error when processing a record, for example, an unexpected null value when evaluating
+  an operator in a SELECT clause.
 
 message.recordProcessingError.record (STRING)
   The KSQL record, serialized as a JSON string.
@@ -117,10 +117,10 @@ message.recordProcessingError.record (STRING)
 Log Stream
 ==========
 
-The recommended way to use the query processing log is to configure it to write entries back to
-Kafka. Then, you can configure KSQL to setup a stream over the topic automatically.
+We recommend configuring the query processing log to write entries back to
+Kafka. This way, you can configure KSQL to set up a stream over the topic automatically.
 
-To log to Kafka, you need to set up a Kafka appender and setup a special layout for formatting the
+To log to Kafka, set up a Kafka appender and a special layout for formatting the
 log entries as JSON:
 
 ::
@@ -130,10 +130,10 @@ log entries as JSON:
     log4j.appender.kafka.BrokerList=<list of kafka brokers>
     log4j.appender.kafka.Topic=<kafka topic>
 
-Where ``list of kafka brokers`` is a comma-separated list of brokers in the Kafka cluster, and
-``kafka topic`` is the name of the kafka topic to log to.
+The ``list of kafka brokers`` setting is a comma-separated list of brokers in the Kafka cluster, and
+``kafka topic`` is the name of the Kafka topic to log to.
 
-To have KSQL setup the log topic automatically at start up, include the following in your KSQL
+To have KSQL set up the log topic automatically at startup, include the following in your KSQL
 properties file:
 
 ::
@@ -153,7 +153,7 @@ a log stream automatically by including the following in your KSQL properties fi
     ksql.processing.log.stream.auto.create=on
     ksql.processing.log.stream.name=<stream name>  # defaults to PROCESSING_LOG
 
-Then, once you start KSQL, you should see the stream in your list of streams:
+When you start KSQL, you should see the stream in your list of streams:
 
 ::
 

@@ -122,8 +122,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public QueuedSchemaKStream toQueue() {
-    return new QueuedSchemaKStream<>(this, queryContext);
+  public QueuedSchemaKStream toQueue(final QueryContext.Builder contextBuilder) {
+    return new QueuedSchemaKStream<>(this, contextBuilder.getQueryContext());
   }
 
   @SuppressWarnings("unchecked")

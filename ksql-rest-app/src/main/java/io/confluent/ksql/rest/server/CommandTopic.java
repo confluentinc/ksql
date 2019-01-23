@@ -132,6 +132,11 @@ public class CommandTopic {
     return commandConsumer.position(commandTopicPartition);
   }
 
+  public long getEndOffset() {
+    return commandConsumer.endOffsets(Collections.singletonList(commandTopicPartition))
+        .get(commandTopicPartition);
+  }
+
   public void close() {
     commandConsumer.wakeup();
     commandConsumer.close();

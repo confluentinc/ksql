@@ -89,7 +89,7 @@ public class CommandTopicTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
-  private final static TopicPartition TOPIC_PARTITION = new TopicPartition("topic", 0);
+  private final static TopicPartition TOPIC_PARTITION = new TopicPartition(COMMAND_TOPIC_NAME, 0);
 
 
   @Before
@@ -271,6 +271,19 @@ public class CommandTopicTest {
     )));
   }
 
+  @Test
+  public void shouldGetEndOffsetCorrectly() {
+    // Given:
+    when(commandConsumer.endOffsets(any()))
+        .thenReturn(Collections.singletonMap(TOPIC_PARTITION, 123L));
+
+    // When:
+    final long endOff = commandTopic.getEndOffset();
+
+    // Then:
+    assertThat(endOff, equalTo(123L));
+    verify(commandConsumer).endOffsets(Collections.singletonList(TOPIC_PARTITION));
+  }
 
   @SuppressWarnings("unchecked")
   private static ConsumerRecords<CommandId, Command> someConsumerRecords(

@@ -109,6 +109,11 @@ public class ExpressionTypeManager
   @Override
   protected Expression visitComparisonExpression(
       final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext) {
+    process(node.getLeft(), expressionTypeContext);
+    final Schema leftSchema = expressionTypeContext.getSchema();
+    process(node.getRight(), expressionTypeContext);
+    final Schema rightSchema = expressionTypeContext.getSchema();
+    ComparisonUtil.isValidComparison(leftSchema.type(), node.getType(), rightSchema.type());
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }

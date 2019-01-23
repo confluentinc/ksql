@@ -18,6 +18,8 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -39,6 +41,8 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.util.ProcessingLogConfig;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -64,6 +68,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StandaloneExecutorTest {
 
+  private static final String PROCESSING_LOG_TOPIC_NAME = "proclogtop";
+  private static final ProcessingLogConfig processingLogConfig =
+      new ProcessingLogConfig(ImmutableMap.of(
+          ProcessingLogConfig.TOPIC_AUTO_CREATE, ProcessingLogConfig.AUTO_CREATE_ON,
+          ProcessingLogConfig.TOPIC_NAME, PROCESSING_LOG_TOPIC_NAME
+      ));
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
   private static final QualifiedName SOME_NAME = QualifiedName.of("Test");
 
@@ -84,6 +94,8 @@ public class StandaloneExecutorTest {
   private VersionCheckerAgent versionCheckerAgent;
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private KafkaTopicClient kafkaTopicClient;
 
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
@@ -93,10 +105,17 @@ public class StandaloneExecutorTest {
     queriesFile = Paths.get(TestUtils.tempFile().getPath());
 
     when(engine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(queryMd));
+    when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
 
     standaloneExecutor = new StandaloneExecutor(
-        serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader,
-        false, versionCheckerAgent);
+        serviceContext,
+        processingLogConfig,
+        ksqlConfig,
+        engine,
+        queriesFile.toString(),
+        udfLoader,
+        false,
+        versionCheckerAgent);
   }
 
   @Test
@@ -138,6 +157,15 @@ public class StandaloneExecutorTest {
 
     // Then:
     verify(udfLoader).load();
+  }
+
+  @Test
+  public void shouldCreateProcessingLogTopic() {
+    // When:
+    standaloneExecutor.start();
+
+    // Then
+    verify(kafkaTopicClient).createTopic(eq(PROCESSING_LOG_TOPIC_NAME), anyInt(), anyShort());
   }
 
   @Test
@@ -356,7 +384,14 @@ public class StandaloneExecutorTest {
 
   private void givenExecutorWillFailOnNoQueries() {
     standaloneExecutor = new StandaloneExecutor(
-        serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader, true, versionCheckerAgent);
+        serviceContext,
+        processingLogConfig,
+        ksqlConfig,
+        engine,
+        queriesFile.toString(),
+        udfLoader,
+        true,
+        versionCheckerAgent);
   }
 
   private void givenFileContainsAPersistentQuery() {

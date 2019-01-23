@@ -56,8 +56,8 @@ public class QueryAnalyzerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, new InternalFunctionRegistry(),
-                                                                 new KsqlConfig(Collections.emptyMap()));
+  private final QueryAnalyzer queryAnalyzer =
+      new QueryAnalyzer(metaStore, new KsqlConfig(Collections.emptyMap()));
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {

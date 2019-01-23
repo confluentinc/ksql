@@ -323,15 +323,18 @@ final class EndToEndEngineTestUtil {
     private final String name;
     private final Optional<org.apache.avro.Schema> schema;
     private final SerdeSupplier serdeSupplier;
+    private final int numPartitions;
 
     Topic(
         final String name,
         final Optional<org.apache.avro.Schema> schema,
-        final SerdeSupplier serdeSupplier
+        final SerdeSupplier serdeSupplier,
+        final int numPartitions
     ) {
       this.name = Objects.requireNonNull(name, "name");
       this.schema = Objects.requireNonNull(schema, "schema");
       this.serdeSupplier = Objects.requireNonNull(serdeSupplier, "serdeSupplier");
+      this.numPartitions = numPartitions;
     }
 
     String getName() {
@@ -591,7 +594,7 @@ final class EndToEndEngineTestUtil {
 
     void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
-        serviceContext.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
+        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) 1);
 
         topic.getSchema()
             .ifPresent(schema -> {
@@ -654,13 +657,16 @@ final class EndToEndEngineTestUtil {
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig) {
-    final List<QueryMetadata> queries = new ArrayList<>();
+      final KsqlConfig ksqlConfig
+  ) {
     testCase.initializeTopics(serviceContext);
-    testCase.statements().forEach(
-        q -> queries.addAll(
-            KsqlEngineTestUtil.execute(ksqlEngine, q, ksqlConfig, testCase.properties()))
-    );
+
+    final String sql = testCase.statements().stream()
+        .collect(Collectors.joining(System.lineSeparator()));
+
+    final List<QueryMetadata> queries =
+        KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, testCase.properties());
+
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return queries.get(queries.size() - 1);
   }

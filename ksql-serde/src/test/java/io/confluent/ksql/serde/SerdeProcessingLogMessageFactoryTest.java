@@ -17,12 +17,12 @@ package io.confluent.ksql.serde;
 import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.DESERIALIZATION_ERROR;
 import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE;
 import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64;
+import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
 import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.TYPE;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;

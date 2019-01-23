@@ -19,7 +19,7 @@ import org.junit.Test;
 public class EngineProcessingLogMessageFactoryTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private final String errorMsg = "error msg";
+  private static final String errorMsg = "error msg";
 
   @Test
   @SuppressWarnings("unchecked")

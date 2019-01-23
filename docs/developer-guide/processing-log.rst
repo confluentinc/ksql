@@ -145,7 +145,7 @@ The replication factor and partition count are configurable
 using the ``ksql.processing.log.topic.replication.factor`` and ``ksql.processing.log.topic.partitions`` properties,
 respectively.
 
-If you are bringing up a new interactive mode KSQL cluster, you can configure KSQL setup
+If you are bringing up a new interactive mode KSQL cluster, you can configure KSQL to set up
 a log stream automatically by including the following in your KSQL properties file:
 
 ::

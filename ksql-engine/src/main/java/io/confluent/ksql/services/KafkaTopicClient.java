@@ -99,16 +99,6 @@ public interface KafkaTopicClient {
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
 
   /**
-   * Synchronous call to get a one topic's description.
-   *
-   * @param topicName topicName to describe
-   * @return the description if the topic exists, or else {@code Optional.empty()}
-   */
-  default TopicDescription describeTopic(String topicName) {
-    return describeTopics(ImmutableList.of(topicName)).get(topicName);
-  }
-
-  /**
    * Call to get a one topic's description.
    *
    * @param topicName topicName to describe

@@ -88,20 +88,6 @@ public class KsqlContextTest {
   }
 
   @Test
-  public void shouldTryExecuteStatementsReturnedByParser() {
-    // Given:
-    when(ksqlEngine.parseStatements(any()))
-        .thenReturn(ImmutableList.of(statement0, statement1));
-
-    // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
-
-    // Then:
-    verify(ksqlEngine)
-        .tryExecute(ImmutableList.of(statement0, statement1), SOME_CONFIG, SOME_PROPERTIES);
-  }
-
-  @Test
   public void shouldTryExecuteStatementsReturnedByParserBeforeExecute() {
     // Given:
     when(ksqlEngine.parseStatements(any()))
@@ -158,23 +144,6 @@ public class KsqlContextTest {
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
-  }
-
-  @Test
-  public void shouldNotExecuteAnyStatementsIfTryExecuteThrows() {
-    // Given:
-    when(ksqlEngine.tryExecute(any(), any(), any()))
-        .thenThrow(new KsqlException("Bad tings happen"));
-
-    // When:
-    try {
-      ksqlContext.sql("Some SQL", SOME_PROPERTIES);
-    } catch (final KsqlException e) {
-      // expected
-    }
-
-    // Then:
-    verify(ksqlEngine, never()).execute(any(), any(), any());
   }
 
   @Test

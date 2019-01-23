@@ -14,6 +14,7 @@
 
 package io.confluent.ksql;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -369,8 +370,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           overriddenProperties,
           true);
 
-      final DdlCommandResult result =
-          ddlCommandExec.execute(command, serviceContext instanceof SandboxedServiceContext);
+      final DdlCommandResult result = ddlCommandExec.execute(command);
 
       if (!result.isSuccess()) {
         throw new KsqlStatementException(result.getMessage(), sqlExpression);

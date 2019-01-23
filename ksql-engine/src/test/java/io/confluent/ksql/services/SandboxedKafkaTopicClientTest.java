@@ -19,9 +19,11 @@ import static java.util.Collections.unmodifiableList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -30,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
-import io.confluent.ksql.util.KafkaTopicClient;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -153,7 +154,7 @@ public class SandboxedKafkaTopicClientTest {
       sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
 
       // When:
-      final TopicDescription result = sandboxedKafkaTopicClient
+      final TopicDescription result = sandboxedClient
           .describeTopic("some topic");
 
       // Then:

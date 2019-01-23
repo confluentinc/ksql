@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
-import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -41,8 +40,6 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
@@ -131,7 +128,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     handleStatement(statementExecutor, command, commandId, commandStatus);
   }
 
-  private void handleStatement(
+  private static void handleStatement(
       final StatementExecutor statementExecutor,
       final Command command,
       final CommandId commandId,
@@ -337,7 +334,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     }
   }
 
-  private CommandStatus sameStatus(final CommandStatus.Status status) {
+  private static CommandStatus sameStatus(final CommandStatus.Status status) {
     reportMatcher(new StatusMatcher(status));
     return null;
   }
@@ -907,11 +904,11 @@ public class StatementExecutorTest extends EasyMockSupport {
     return commandStatus.get();
   }
 
-  private KsqlConfig givenCommandConfig(final String name, final Object value) {
+  private static KsqlConfig givenCommandConfig(final String name, final Object value) {
     return new KsqlConfig(Collections.singletonMap(name, value));
   }
 
-  private Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
+  private static Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
     return new Command(
         statementStr, Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
   }

@@ -16,6 +16,7 @@ package io.confluent.ksql.services;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.internal.Primitives;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -81,7 +82,26 @@ final class SandboxProxyBuilder<T> {
 
     throwOnNoneVoidReturnType(methods);
 
-    methods.forEach(method -> handledMethods.put(method, SWALLOW));
+    methods.forEach(method -> handledMethods.put(method, buildSwallower(method, null)));
+    return this;
+  }
+
+  /**
+   * Add method(s) whose invocation should be swallowed, i.e. result in a no-op.
+   *
+   * @param methodName the name of the method.
+   * @param methodParams the type of the method.
+   * @param returnValue the return value from the method.
+   * @return the builder.
+   */
+  SandboxProxyBuilder<T> swallow(
+      final String methodName,
+      final MethodParams methodParams,
+      final Object returnValue
+  ) {
+    final Collection<Method> methods = getDeclaredPublicMethods(methodName, methodParams);
+
+    methods.forEach(method -> handledMethods.put(method, buildSwallower(method, returnValue)));
     return this;
   }
 
@@ -107,7 +127,7 @@ final class SandboxProxyBuilder<T> {
   ) {
     final Collection<Method> methods = getDeclaredPublicMethods(methodName, methodParams);
 
-    methods.forEach(method -> handledMethods.put(method, buildHandler(delegate, method)));
+    methods.forEach(method -> handledMethods.put(method, buildForwader(delegate, method)));
     return this;
   }
 
@@ -159,7 +179,7 @@ final class SandboxProxyBuilder<T> {
     this.type = Objects.requireNonNull(type, "type");
 
     if (!type.isInterface()) {
-      throw new UnsupportedOperationException("Type not an interface: " + type);
+      throw new IllegalArgumentException("Type not an interface: " + type);
     }
   }
 
@@ -184,7 +204,27 @@ final class SandboxProxyBuilder<T> {
     return matching;
   }
 
-  private InvocationHandler buildHandler(final Object delegate, final Method proxyMethod) {
+  private static InvocationHandler buildSwallower(final Method method, final Object returnValue) {
+    final Class<?> returnType = method.getReturnType();
+    if (returnType.equals(void.class)) {
+      if (returnValue != null) {
+        throw new IllegalArgumentException("Can not provide a default value for void method: "
+            + formatMethod(method));
+      }
+      return SWALLOW;
+    }
+
+    if (returnValue != null
+        && !Primitives.unwrap(returnValue.getClass()).equals(Primitives.unwrap(returnType))
+        && !returnType.isAssignableFrom(returnValue.getClass())) {
+      throw new IllegalArgumentException("Supplied return value is not of type "
+          + returnType.getSimpleName());
+    }
+
+    return (proxy, m, args) -> returnValue;
+  }
+
+  private InvocationHandler buildForwader(final Object delegate, final Method proxyMethod) {
     if (type.isAssignableFrom(delegate.getClass())) {
       return (proxy, m, args) -> m.invoke(delegate, args);
     }
@@ -212,7 +252,7 @@ final class SandboxProxyBuilder<T> {
         .collect(Collectors.joining(System.lineSeparator()));
 
     if (!noneVoid.isEmpty()) {
-      throw new UnsupportedOperationException("Can only swallow void methods. "
+      throw new IllegalArgumentException("Can only swallow void methods. "
           + "None void methods: " + System.lineSeparator() + noneVoid);
     }
   }

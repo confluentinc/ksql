@@ -12,11 +12,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.services;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.util.ExecutorUtil;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -286,49 +288,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final int requiredNumReplicas
   ) {
     final TopicDescription existingTopic = describeTopic(topic);
-    validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
-  }
-
-  public static void validateTopicProperties(
-      final int requiredNumPartition,
-      final int requiredNumReplicas,
-      final TopicDescription existingTopic
-  ) {
-    final int actualNumPartitions = existingTopic.partitions().size();
-    final int actualNumReplicas = existingTopic.partitions().get(0).replicas().size();
-
-    validateTopicProperties(
-        existingTopic.name(), requiredNumPartition, requiredNumReplicas, actualNumPartitions,
-        actualNumReplicas);
-  }
-
-  static void validateTopicProperties(
-      final String topicName,
-      final int requiredNumPartition,
-      final int requiredNumReplicas,
-      final int actualNumPartitions,
-      final int actualNumReplicas
-  ) {
-    if (actualNumPartitions != requiredNumPartition || actualNumReplicas < requiredNumReplicas) {
-      throw new KafkaTopicException(String.format(
-          "A Kafka topic with the name '%s' already exists, with different partition/replica "
-              + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
-              + "replication factor (topic has %d).",
-          topicName,
-          requiredNumPartition,
-          actualNumPartitions,
-          requiredNumReplicas,
-          actualNumReplicas
-      ));
-    }
+    TopicValidationUtil
+        .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
 
     log.debug(
-        "Did not create topic {} with {} partitions and replication-factor {} since it already "
-            + "exists",
-        topicName,
-        requiredNumPartition,
-        requiredNumReplicas
-    );
+        "Did not create topic {} with {} partitions and replication-factor {} since it exists",
+        topic, requiredNumPartition, requiredNumReplicas);
   }
 
   private Map<String, String> topicConfig(final String topicName,

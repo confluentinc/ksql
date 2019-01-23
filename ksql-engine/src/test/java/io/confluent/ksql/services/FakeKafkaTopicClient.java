@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -12,11 +12,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.services;
 
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.COMPRESSION_TYPE_CONFIG;
 
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,15 +38,16 @@ import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   private static class FakeTopic {
+
     private final String topicName;
     private final int numPartitions;
     private final int replicatonFactor;
     private final TopicCleanupPolicy cleanupPolicy;
 
     private FakeTopic(final String topicName,
-                     final int numPartitions,
+        final int numPartitions,
         final int replicatonFactor,
-                     final TopicCleanupPolicy cleanupPolicy) {
+        final TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
       this.replicatonFactor = replicatonFactor;
@@ -121,7 +123,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public Set<String> listNonInternalTopicNames() {
     return topicMap.keySet().stream()
         .filter((topic) -> (!topic.startsWith(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX)
-                            || !topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
+            || !topic.startsWith(KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX)))
         .collect(Collectors.toSet());
   }
 
@@ -158,7 +160,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public void deleteTopics(final Collection<String> topicsToDelete) {
-    for (final String topicName: topicsToDelete) {
+    for (final String topicName : topicsToDelete) {
       topicMap.remove(topicName);
     }
   }
@@ -186,7 +188,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       final int requiredNumReplicas,
       final FakeTopic existing
   ) {
-    KafkaTopicClientImpl.validateTopicProperties(
+    TopicValidationUtil.validateTopicProperties(
         existing.topicName,
         requiredNumPartition,
         requiredNumReplicas,

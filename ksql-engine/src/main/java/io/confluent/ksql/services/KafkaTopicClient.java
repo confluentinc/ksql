@@ -12,9 +12,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.services;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.exception.KafkaTopicException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -93,6 +94,7 @@ public interface KafkaTopicClient {
    *
    * @param topicNames topicNames to describe
    * @return map of topic name to description.
+   * @throws KafkaTopicException if any of the topic do not exist.
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
 
@@ -100,7 +102,8 @@ public interface KafkaTopicClient {
    * Call to get a one topic's description.
    *
    * @param topicName topicName to describe
-   * @return the description if the topic exists, or else {@code Optional.empty()}
+   * @return the description if the topic
+   * @throws KafkaTopicException if the topic does not exist.
    */
   default TopicDescription describeTopic(String topicName) {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);

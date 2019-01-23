@@ -18,8 +18,6 @@ import static io.confluent.ksql.services.SandboxProxyBuilder.methodParams;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,6 +52,7 @@ final class SandboxedKafkaTopicClient {
         .forward("isTopicExists", methodParams(String.class), sandbox)
         .forward("describeTopic", methodParams(String.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
+        .forward("deleteTopics", methodParams(Collection.class), sandbox)
         .build();
   }
 
@@ -129,13 +128,17 @@ final class SandboxedKafkaTopicClient {
     return descriptions;
   }
 
+  private void deleteTopics(final Collection<String> topicsToDelete) {
+    topicsToDelete.forEach(createdTopics::remove);
+  }
+
   private void validateTopicProperties(
       final String topic,
       final int requiredNumPartition,
       final int requiredNumReplicas
   ) {
     final TopicDescription existingTopic = describeTopic(topic);
-    KafkaTopicClientImpl
+    TopicValidationUtil
         .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
   }
 }

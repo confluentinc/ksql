@@ -414,7 +414,7 @@ public class KsqlEngine implements Closeable {
           overriddenProperties,
           true);
 
-      return ddlCommandExec.execute(command, serviceContext instanceof SandboxedServiceContext);
+      return ddlCommandExec.execute(command);
     }
 
     private DdlCommand createDdlCommand(
@@ -590,7 +590,7 @@ public class KsqlEngine implements Closeable {
           Collections.emptyMap(),
           false);
 
-      executionContext.ddlCommandExec.execute(ddlCmd, true);
+      executionContext.ddlCommandExec.execute(ddlCmd);
     }
   }
 

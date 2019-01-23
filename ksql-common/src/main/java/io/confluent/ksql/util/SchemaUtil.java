@@ -22,11 +22,13 @@ import static org.apache.avro.Schema.createUnion;
 import com.google.common.collect.ImmutableMap;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
@@ -73,6 +75,18 @@ public final class SchemaUtil {
           .put(new Pair<>(Schema.Type.FLOAT32, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
           .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
           .put(new Pair<>(Schema.Type.STRING, Schema.Type.STRING), Schema.OPTIONAL_STRING_SCHEMA)
+          .build();
+
+  public static final Map<Schema.Type, Function<Schema.Type, Boolean>> TYPE_COMPARISON_COMPATIBILITY
+      = ImmutableMap.<Schema.Type, Function<Schema.Type, Boolean>>builder()
+          .put(Schema.Type.INT32, SchemaUtil::isNumber)
+          .put(Schema.Type.INT64, SchemaUtil::isNumber)
+          .put(Schema.Type.FLOAT64, SchemaUtil::isNumber)
+          .put(Schema.Type.STRING, type -> type == Schema.Type.STRING)
+          .put(Schema.Type.BOOLEAN, type -> type == Schema.Type.BOOLEAN)
+          .put(Schema.Type.ARRAY, type -> false)
+          .put(Schema.Type.MAP, type -> false)
+          .put(Schema.Type.STRUCT, type -> false)
           .build();
 
   private SchemaUtil() {

@@ -85,7 +85,7 @@ public class ExpressionTypeManagerTest {
     final String simpleQuery = "SELECT col1 > 10 FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid comparison operand types. Cannot compare incompatible types. Left type: STRING, right type: INT32");
+    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare STRING and INT32");
 
     // When:
     final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
@@ -98,7 +98,7 @@ public class ExpressionTypeManagerTest {
     final String simpleQuery = "SELECT true > false FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator GREATER_THAN cannot be applied to BOOLEAN");
+    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare BOOLEAN");
 
     // When:
     final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
@@ -112,7 +112,7 @@ public class ExpressionTypeManagerTest {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
         functionRegistry);
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid comparison operand types. Cannot compare incompatible types. Left type: MAP, right type: STRUCT");
+    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare MAP and STRUCT");
 
     // When:
     expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
@@ -126,7 +126,7 @@ public class ExpressionTypeManagerTest {
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
         functionRegistry);
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Operator EQUAL cannot be applied to STRUCT");
+    expectedException.expectMessage("Operator EQUAL cannot be used to compare STRUCT and STRUCT");
 
     // When:
     expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));

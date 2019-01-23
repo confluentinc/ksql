@@ -250,29 +250,17 @@ public class ExpressionTypeManager
       final ComparisonExpression.Type operator,
       final Schema.Type leftType,
       final Schema.Type rightType) {
-    if (SchemaUtil.isNumber(leftType)) {
-      if (!SchemaUtil.isNumber(rightType)) {
-        throw new KsqlException("Invalid comparison operand types. Both sides should be numbers."
-            + " Left type: " + leftType + ", right type: " + rightType);
+    if (SchemaUtil.TYPE_COMPARISON_COMPATIBILITY.get(leftType).apply(rightType)) {
+      if (leftType == Schema.Type.BOOLEAN) {
+        if (operator != Type.EQUAL
+            && operator != Type.NOT_EQUAL) {
+          throw new KsqlException("Operator " + operator + " cannot be used to compare " + leftType
+              + " and " + rightType);
+        }
       }
       return;
     }
-    if (leftType != rightType) {
-      throw new KsqlException("Invalid comparison operand types. Cannot compare incompatible types."
-          + " Left type: " + leftType + ", right type: " + rightType);
-    }
-    if (leftType == Schema.Type.STRING) {
-      return;
-    }
-    if (operator == Type.GREATER_THAN
-        || operator == Type.GREATER_THAN_OR_EQUAL
-        || operator == Type.LESS_THAN
-        || operator == Type.LESS_THAN_OR_EQUAL) {
-      throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType);
-    }
-    if (leftType == Schema.Type.BOOLEAN) {
-      return;
-    }
-    throw new KsqlException("Operator " + operator + " cannot be applied to " + leftType);
+    throw new KsqlException("Operator " + operator + " cannot be used to compare " + leftType
+        + " and " + rightType);
   }
 }

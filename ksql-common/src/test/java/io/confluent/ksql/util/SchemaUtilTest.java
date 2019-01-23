@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 
+import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
@@ -730,6 +731,33 @@ public class SchemaUtilTest {
   @Test
   public void shouldFailIsNumberForString() {
     assertThat(SchemaUtil.isNumber(Schema.Type.STRING), is(false));
+  }
+
+  @Test
+  public void shouldReturnCorrectFunctionForComparisonCompatibility() {
+    final List<Schema.Type> typesTable = ImmutableList.of(
+        Schema.Type.BOOLEAN, Schema.Type.INT32, Schema.Type.INT64, Schema.Type.FLOAT64, Schema.Type.STRING, Schema.Type.ARRAY, Schema.Type.MAP, Schema.Type.STRUCT
+    );
+    final List<List<Boolean>> expectedResults = ImmutableList.of(
+        ImmutableList.of(true, false, false, false, false, false, false, false), // Boolean
+        ImmutableList.of(false, true, true, true, false, false, false, false), // Int
+        ImmutableList.of(false, true, true, true, false, false, false, false), // BigInt
+        ImmutableList.of(false, true, true, true, false, false, false, false), // Double
+        ImmutableList.of(false, false, false, false, true, false, false, false),  // String
+        ImmutableList.of(false, false, false, false, false, false, false, false), // Array
+        ImmutableList.of(false, false, false, false, false, false, false, false), // Map
+        ImmutableList.of(false, false, false, false, false, false, false, false) // Struct
+    );
+    int i = 0;
+    int j = 0;
+    for (final Schema.Type leftType: typesTable) {
+      for (final Schema.Type rightType: typesTable) {
+        assertThat(SchemaUtil.TYPE_COMPARISON_COMPATIBILITY.get(leftType).apply(rightType), equalTo(expectedResults.get(i).get(j)));
+        j++;
+      }
+      i++;
+      j = 0;
+    }
   }
 
 

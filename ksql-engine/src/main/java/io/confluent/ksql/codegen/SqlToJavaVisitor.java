@@ -742,8 +742,8 @@ public class SqlToJavaVisitor {
 
   private static final class CaseWhenProcessed {
 
-    final Pair<String, Schema> whenProcessResult;
-    final Pair<String, Schema> thenProcessResult;
+    private final Pair<String, Schema> whenProcessResult;
+    private final Pair<String, Schema> thenProcessResult;
 
     private CaseWhenProcessed(
         final Pair<String, Schema> whenProcessResult,

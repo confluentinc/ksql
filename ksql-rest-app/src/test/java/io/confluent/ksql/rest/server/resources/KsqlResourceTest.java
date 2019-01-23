@@ -645,24 +645,6 @@ public class KsqlResourceTest {
         eq("CREATE STREAM S2 AS SELECT * FROM S;"), any(), any(), any());
   }
 
-  // Todo(ac): @Test
-  public void shouldHandleInterDependantExecutableAndNoneExecutableStatements() {
-    // When:
-    final List<KsqlEntity> results = makeMultipleRequest(
-        "CREATE STREAM S AS SELECT * FROM test_stream; "
-            + "DESCRIBE S;",
-        KsqlEntity.class
-    );
-
-    // Todo(ac): This requires each statement to wait on any previous statement _if it was posted to the command topic_
-
-    // Then:
-    verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S AS SELECT * FROM test_stream;"), any(), any(), any());
-    assertThat(results, hasSize(2));
-    assertThat(results.get(1), is(instanceOf(SourceDescriptionEntity.class)));
-  }
-
   @Test
   public void shouldFailMultipleStatementsAtomically() {
     // When:

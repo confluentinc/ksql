@@ -54,7 +54,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,6 +97,12 @@ final class EndToEndEngineTestUtil {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private static final String CONFIG_END_MARKER = "CONFIGS_END";
+
+  // Pass a single test or multiple tests separated by commas to the test framework.
+  // Example:
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
+  private static final String KSQL_TEST_FILES = "ksql.test.files";
 
   static {
     // don't use the actual metastore, aim is just to get the functions into the registry.
@@ -313,23 +321,24 @@ final class EndToEndEngineTestUtil {
 
   static class Topic {
     private final String name;
-    private final org.apache.avro.Schema schema;
+    private final Optional<org.apache.avro.Schema> schema;
     private final SerdeSupplier serdeSupplier;
 
     Topic(
         final String name,
-        final org.apache.avro.Schema schema,
-        final SerdeSupplier serdeSupplier) {
-      this.name = name;
-      this.schema = schema;
-      this.serdeSupplier = serdeSupplier;
+        final Optional<org.apache.avro.Schema> schema,
+        final SerdeSupplier serdeSupplier
+    ) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.serdeSupplier = Objects.requireNonNull(serdeSupplier, "serdeSupplier");
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    public org.apache.avro.Schema getSchema() {
+    Optional<org.apache.avro.Schema> getSchema() {
       return schema;
     }
 
@@ -491,7 +500,7 @@ final class EndToEndEngineTestUtil {
         final Path testPath,
         final String name,
         final Map<String, Object> properties,
-        final List<Topic> topics,
+        final Collection<Topic> topics,
         final List<Record> inputRecords,
         final List<Record> outputRecords,
         final List<String> statements,
@@ -583,14 +592,16 @@ final class EndToEndEngineTestUtil {
     void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
         serviceContext.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
-        if (topic.getSchema() != null) {
-          try {
-            serviceContext.getSchemaRegistryClient().register(
-                topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, topic.getSchema());
-          } catch (final Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
+
+        topic.getSchema()
+            .ifPresent(schema -> {
+              try {
+                serviceContext.getSchemaRegistryClient()
+                    .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+              } catch (final Exception e) {
+                throw new RuntimeException(e);
+              }
+            });
       }
     }
 
@@ -779,10 +790,28 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static Stream<JsonTestCase> findTestCases(final Path dir) {
+  private static List<Path> getTests(final Path dir, final List<String> files) {
+    return files.stream().map(name -> dir.resolve(name.trim())).collect(Collectors.toList());
+  }
+
+  /**
+   * Returns a list of files specified in the system property 'ksql.test.file'.
+   * The list may be specified as a comma-separated string. If 'ksql.test.file' is not found,
+   * then an empty list is returned.
+   */
+  static List<String> getTestFilesParam() {
+    final String ksqlTestFiles = System.getProperty(KSQL_TEST_FILES, "").trim();
+    if (ksqlTestFiles.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    return Arrays.asList(ksqlTestFiles.split(","));
+  }
+
+  static Stream<JsonTestCase> findTestCases(final Path dir, final List<String> files) {
     final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
 
-    return findTests(dir).stream()
+    return getTestPaths(dir, files).stream()
         .flatMap(testPath -> {
           final JsonNode rootNode = loadTest(classLoader, testPath);
 
@@ -792,6 +821,18 @@ final class EndToEndEngineTestUtil {
           return StreamSupport.stream(tests, false)
               .map(jsonNode -> new JsonTestCase(testPath, jsonNode));
         });
+  }
+
+  /**
+   * Return a list of test paths found on the given directory. If the files parameter is not empty,
+   * then returns only the paths of the given list.
+   */
+  private static List<Path> getTestPaths(final Path dir, final List<String> files) {
+    if (files != null && !files.isEmpty()) {
+      return getTests(dir, files);
+    } else {
+      return findTests(dir);
+    }
   }
 
   private static JsonNode loadTest(final ClassLoader classLoader, final Path testPath) {

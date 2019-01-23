@@ -19,6 +19,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -111,6 +112,13 @@ public class ExpressionTypeManager
     final Schema rightSchema = expressionTypeContext.getSchema();
     validateComparisonOperandTypes(node.getType(), leftSchema.type(), rightSchema.type());
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    return null;
+  }
+
+  @Override
+  protected Expression visitBetweenPredicate(final BetweenPredicate node,
+      final ExpressionTypeContext context) {
+    context.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
 

@@ -21,9 +21,12 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
+import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -31,9 +34,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Enclosed.class)
-public final class TryKafkaClientSupplierTest {
+public final class SandboxedKafkaClientSupplierTest {
 
-  private TryKafkaClientSupplierTest() {
+  private SandboxedKafkaClientSupplierTest() {
   }
 
   @RunWith(Parameterized.class)
@@ -41,7 +44,7 @@ public final class TryKafkaClientSupplierTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(TryKafkaClientSupplier.class)
+      return TestMethods.builder(SandboxedKafkaClientSupplier.class)
           .ignore("getAdminClient", Map.class)
           .ignore("getProducer", Map.class)
           .ignore("getConsumer", Map.class)
@@ -49,54 +52,60 @@ public final class TryKafkaClientSupplierTest {
           .build();
     }
 
-    private final TestCase<TryKafkaClientSupplier> testCase;
-    private TryKafkaClientSupplier tryKafkaClientSupplier;
+    private final TestCase<SandboxedKafkaClientSupplier> testCase;
+    private SandboxedKafkaClientSupplier sandboxedKafkaClientSupplier;
 
-    public UnsupportedMethods(final TestCase<TryKafkaClientSupplier> testCase) {
+    public UnsupportedMethods(final TestCase<SandboxedKafkaClientSupplier> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      tryKafkaClientSupplier = new TryKafkaClientSupplier();
+      sandboxedKafkaClientSupplier = new SandboxedKafkaClientSupplier();
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(tryKafkaClientSupplier);
+      testCase.invokeMethod(sandboxedKafkaClientSupplier);
     }
   }
 
   public static class SupportedMethods {
 
     private final Map<String, Object> config = ImmutableMap.of();
-    private TryKafkaClientSupplier tryKafkaClientSupplier;
+    private SandboxedKafkaClientSupplier sandboxedKafkaClientSupplier;
 
     @Before
     public void setUp() {
-      tryKafkaClientSupplier = new TryKafkaClientSupplier();
+      sandboxedKafkaClientSupplier = new SandboxedKafkaClientSupplier();
     }
 
     @Test
     public void shouldReturnTryAdminClient() {
-      assertThat(tryKafkaClientSupplier.getAdminClient(config),
-          is(instanceOf(TryAdminClient.class)));
+      assertThat(sandboxedKafkaClientSupplier.getAdminClient(config),
+          is(instanceOf(SandboxedAdminClient.class)));
     }
 
     @Test
-    public void shouldReturnTryProducer() {
-      assertThat(tryKafkaClientSupplier.getProducer(config), is(instanceOf(TryProducer.class)));
+    public void shouldReturnSandboxProxyProducer() {
+      final Producer<byte[], byte[]> producer = sandboxedKafkaClientSupplier.getProducer(config);
+
+      assertThat(Proxy.isProxyClass(producer.getClass()), is(true));
     }
 
     @Test
-    public void shouldReturnTryConsumer() {
-      assertThat(tryKafkaClientSupplier.getConsumer(config), is(instanceOf(TryConsumer.class)));
+    public void shouldReturnSandboxProxyConsumer() {
+      final Consumer<byte[], byte[]> consumer = sandboxedKafkaClientSupplier.getConsumer(config);
+
+      assertThat(Proxy.isProxyClass(consumer.getClass()), is(true));
     }
 
     @Test
-    public void shouldReturnTryRestoreConsumer() {
-      assertThat(tryKafkaClientSupplier.getRestoreConsumer(config),
-          is(instanceOf(TryConsumer.class)));
+    public void shouldReturnSandboxProxyRestoreConsumer() {
+      final Consumer<byte[], byte[]> consumer = sandboxedKafkaClientSupplier
+          .getRestoreConsumer(config);
+
+      assertThat(Proxy.isProxyClass(consumer.getClass()), is(true));
     }
   }
 }

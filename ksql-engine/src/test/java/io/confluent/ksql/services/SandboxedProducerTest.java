@@ -20,7 +20,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -28,9 +28,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Enclosed.class)
-public final class TryConsumerTest {
+public final class SandboxedProducerTest {
 
-  private TryConsumerTest() {
+  private SandboxedProducerTest() {
   }
 
   @RunWith(Parameterized.class)
@@ -38,66 +38,51 @@ public final class TryConsumerTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(TryConsumer.class)
-          .ignore("unsubscribe")
+      return TestMethods.builder(Producer.class)
           .ignore("close")
           .ignore("close", long.class, TimeUnit.class)
           .ignore("close", Duration.class)
-          .ignore("wakeup")
-          .setDefault(TopicPartition.class, new TopicPartition("t", 1))
           .build();
     }
 
-    private final TestCase<TryConsumer<Long, String>> testCase;
-    private TryConsumer<Long, String> tryConsumer;
+    private final TestCase<Producer<Long, String>> testCase;
+    private Producer<Long, String> sandboxedProducer;
 
-    public UnsupportedMethods(final TestCase<TryConsumer<Long, String>> testCase) {
+    public UnsupportedMethods(final TestCase<Producer<Long, String>> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      tryConsumer = new TryConsumer<>();
+      sandboxedProducer = SandboxedProducer.createProxy();
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(tryConsumer);
+      testCase.invokeMethod(sandboxedProducer);
     }
   }
 
   public static class SupportedMethods {
 
-    private TryConsumer<Long, String> tryConsumer;
+    private Producer<Long, String> sandboxedProducer;
 
     @Before
     public void setUp() {
-      tryConsumer = new TryConsumer<>();
-    }
-
-    @Test
-    public void shouldDoNothingOnUnsubscribe() {
-      tryConsumer.unsubscribe();
+      sandboxedProducer = SandboxedProducer.createProxy();
     }
 
     @Test
     public void shouldDoNothingOnCloseWithNoArgs() {
-      tryConsumer.close();
+      sandboxedProducer.close();
     }
 
+    @SuppressWarnings("deprecation")
     @Test
-    public void shouldDoNothingOnCloseWithTimeUnit() {
-      tryConsumer.close(1, TimeUnit.MILLISECONDS);
-    }
-
-    @Test
-    public void shouldDoNothingOnCloseWithDuration() {
-      tryConsumer.close(Duration.ofMillis(1));
-    }
-
-    @Test
-    public void shouldDoNothingOnWakeUp() {
-      tryConsumer.wakeup();
+    public void shouldDoNothingOnClose() {
+      sandboxedProducer.close();
+      sandboxedProducer.close(1, TimeUnit.MILLISECONDS);
+      sandboxedProducer.close(Duration.ofMillis(1));
     }
   }
 }

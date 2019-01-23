@@ -53,8 +53,8 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.TryServiceContext;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -298,7 +298,7 @@ public class KsqlEngine implements Closeable {
   }
 
   private ExecutionContext createTryContext() {
-    final ServiceContext tryServiceContext = TryServiceContext.tryContext(serviceContext);
+    final ServiceContext tryServiceContext = SandboxedServiceContext.create(serviceContext);
 
     return new ExecutionContext(
         tryServiceContext,
@@ -414,7 +414,7 @@ public class KsqlEngine implements Closeable {
           overriddenProperties,
           true);
 
-      return ddlCommandExec.execute(command, serviceContext instanceof TryServiceContext);
+      return ddlCommandExec.execute(command, serviceContext instanceof SandboxedServiceContext);
     }
 
     private DdlCommand createDdlCommand(

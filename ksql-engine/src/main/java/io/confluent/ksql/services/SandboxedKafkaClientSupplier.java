@@ -28,29 +28,29 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
  * not currently called.
  */
-class TryKafkaClientSupplier implements KafkaClientSupplier {
+class SandboxedKafkaClientSupplier implements KafkaClientSupplier {
 
-  TryKafkaClientSupplier() {
+  SandboxedKafkaClientSupplier() {
   }
 
   @Override
   public AdminClient getAdminClient(final Map<String, Object> config) {
-    return new TryAdminClient();
+    return new SandboxedAdminClient();
   }
 
   @Override
   public Producer<byte[], byte[]> getProducer(final Map<String, Object> config) {
-    return new TryProducer<>();
+    return SandboxedProducer.createProxy();
   }
 
   @Override
   public Consumer<byte[], byte[]> getConsumer(final Map<String, Object> config) {
-    return new TryConsumer<>();
+    return SandboxedConsumer.createProxy();
   }
 
   @Override
   public Consumer<byte[], byte[]> getRestoreConsumer(final Map<String, Object> config) {
-    return new TryConsumer<>();
+    return SandboxedConsumer.createProxy();
   }
 
   @Override

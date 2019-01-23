@@ -16,9 +16,12 @@ package io.confluent.ksql.services;
 
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -26,9 +29,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Enclosed.class)
-public final class TryProducerTest {
+public final class SandboxedConsumerTest {
 
-  private TryProducerTest() {
+  private SandboxedConsumerTest() {
   }
 
   @RunWith(Parameterized.class)
@@ -36,47 +39,67 @@ public final class TryProducerTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase> getMethodsToTest() {
-      return TestMethods.builder(TryProducer.class)
+      return TestMethods.builder(Consumer.class)
+          .ignore("unsubscribe")
           .ignore("close")
           .ignore("close", long.class, TimeUnit.class)
+          .ignore("close", Duration.class)
+          .ignore("wakeup")
+          .setDefault(TopicPartition.class, new TopicPartition("t", 1))
           .build();
     }
 
-    private final TestCase<TryProducer<Long, String>> testCase;
-    private TryProducer<Long, String> tryProducer;
+    private final TestCase<Consumer<Long, String>> testCase;
+    private Consumer<Long, String> sandboxedConsumer;
 
-    public UnsupportedMethods(final TestCase<TryProducer<Long, String>> testCase) {
+    public UnsupportedMethods(final TestCase<Consumer<Long, String>> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      tryProducer = new TryProducer<>();
+      sandboxedConsumer = SandboxedConsumer.createProxy();
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(tryProducer);
+      testCase.invokeMethod(sandboxedConsumer);
     }
   }
 
   public static class SupportedMethods {
 
-    private TryProducer<Long, String> tryProducer;
+    private Consumer<Long, String> sandboxedConsumer;
 
     @Before
     public void setUp() {
-      tryProducer = new TryProducer<>();
+      sandboxedConsumer = SandboxedConsumer.createProxy();
+    }
+
+    @Test
+    public void shouldDoNothingOnUnsubscribe() {
+      sandboxedConsumer.unsubscribe();
     }
 
     @Test
     public void shouldDoNothingOnCloseWithNoArgs() {
-      tryProducer.close();
+      sandboxedConsumer.close();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void shouldDoNothingOnCloseWithTimeUnit() {
+      sandboxedConsumer.close(1, TimeUnit.MILLISECONDS);
     }
 
     @Test
-    public void shouldDoNothingOnClose() {
-      tryProducer.close(1, TimeUnit.MILLISECONDS);
+    public void shouldDoNothingOnCloseWithDuration() {
+      sandboxedConsumer.close(Duration.ofMillis(1));
+    }
+
+    @Test
+    public void shouldDoNothingOnWakeUp() {
+      sandboxedConsumer.wakeup();
     }
   }
 }

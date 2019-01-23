@@ -42,6 +42,9 @@ import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Note: all calls make cross machine calls and are synchronous.
+ */
 @ThreadSafe
 public class KafkaTopicClientImpl implements KafkaTopicClient {
 

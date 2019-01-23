@@ -14,9 +14,9 @@
 
 package io.confluent.ksql.services;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigsOptions;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
@@ -84,14 +84,14 @@ import org.apache.kafka.common.config.ConfigResource;
  * <p>Most operations result in a {@code UnsupportedOperationException} being thrown as they are
  * not called.
  */
-class TryAdminClient extends AdminClient {
+class SandboxedAdminClient extends AdminClient {
 
-  TryAdminClient() {
+  SandboxedAdminClient() {
   }
 
   @Override
-  public void close(final long timeout, final TimeUnit unit) {
-    // No-op
+  public void close(final Duration duration) {
+    // No op
   }
 
   @Override

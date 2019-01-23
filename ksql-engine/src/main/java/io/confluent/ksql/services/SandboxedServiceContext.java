@@ -22,34 +22,34 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
 /**
- * A service context to use when trying out operations.
+ * A sandboxed service context to use when trying out operations.
  *
  * <p>The service clients within will not make changes to the external services they connect to.
  */
-public final class TryServiceContext implements ServiceContext {
+public final class SandboxedServiceContext implements ServiceContext {
 
   private final KafkaTopicClient topicClient;
   private final SchemaRegistryClient srClient;
   private final KafkaClientSupplier kafkaClientSupplier;
 
-  public static TryServiceContext tryContext(final ServiceContext serviceContext) {
-    if (serviceContext instanceof TryServiceContext) {
-      return (TryServiceContext) serviceContext;
+  public static SandboxedServiceContext create(final ServiceContext serviceContext) {
+    if (serviceContext instanceof SandboxedServiceContext) {
+      return (SandboxedServiceContext) serviceContext;
     }
 
-    final KafkaClientSupplier kafkaClientSupplier = new TryKafkaClientSupplier();
-    final KafkaTopicClient kafkaTopicClient = new TryKafkaTopicClient(
-        serviceContext.getTopicClient());
+    final KafkaClientSupplier kafkaClientSupplier = new SandboxedKafkaClientSupplier();
+    final KafkaTopicClient kafkaTopicClient = SandboxedKafkaTopicClient
+        .createProxy(serviceContext.getTopicClient());
     final SchemaRegistryClient schemaRegistryClient =
-        new TrySchemaRegistryClient(serviceContext.getSchemaRegistryClient());
+        SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
 
-    return new TryServiceContext(
+    return new SandboxedServiceContext(
         kafkaClientSupplier,
         kafkaTopicClient,
         schemaRegistryClient);
   }
 
-  private TryServiceContext(
+  private SandboxedServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient srClient
@@ -86,5 +86,6 @@ public final class TryServiceContext implements ServiceContext {
 
   @Override
   public void close() {
+    // No op.
   }
 }

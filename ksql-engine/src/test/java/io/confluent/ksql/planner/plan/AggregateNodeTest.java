@@ -36,6 +36,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -139,7 +140,7 @@ public class AggregateNodeTest {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
-    assertThat(node.topicSet(), hasItem(equalTo("Aggregate-GROUP-BY-repartition")));
+    assertThat(node.topicSet(), hasItem(equalTo("Aggregate-groupby-repartition")));
   }
 
   @Test
@@ -188,7 +189,7 @@ public class AggregateNodeTest {
     build();
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
         builder.build(), "KSTREAM-AGGREGATE-0000000005");
-    assertThat(node.stores(), hasItem(equalTo("Aggregate-AGGREGATION")));
+    assertThat(node.stores(), hasItem(equalTo("Aggregate-aggregate")));
   }
 
   @Test
@@ -268,7 +269,10 @@ public class AggregateNodeTest {
             startsWith(
                 ProcessingLoggerUtil.join(
                     ProcessingLoggerFactory.PREFIX,
-                    QueryLoggerUtil.queryLoggerName(queryId, node.getId(), name)
+                    QueryLoggerUtil.queryLoggerName(
+                        new QueryContext.Stacker(queryId)
+                            .push(node.getId().toString(), name)
+                            .getQueryContext())
                 )
             )
         )
@@ -282,7 +286,7 @@ public class AggregateNodeTest {
 
   @Test
   public void shouldCreateLoggerForStatestore() {
-    shouldCreateLogger("aggregation");
+    shouldCreateLogger("aggregate");
   }
 
   private SchemaKStream buildQuery(final String queryString) {

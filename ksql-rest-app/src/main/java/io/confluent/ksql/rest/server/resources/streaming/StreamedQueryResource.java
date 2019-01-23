@@ -16,6 +16,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -27,7 +28,6 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
-import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -146,7 +146,9 @@ public class StreamedQueryResource {
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties
   ) throws Exception {
-    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties).get();
+    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties)
+        .getQuery()
+        .get();
 
     if (!(query instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(

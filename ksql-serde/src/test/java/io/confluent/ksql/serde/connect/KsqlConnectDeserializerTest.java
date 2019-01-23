@@ -25,8 +25,8 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogMessageFactory;
 import io.confluent.ksql.serde.SerdeTestUtils;
+import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -98,7 +98,7 @@ public class KsqlConnectDeserializerTest {
    }
     SerdeTestUtils.shouldLogError(
         recordLogger,
-        ProcessingLogMessageFactory.deserializationErrorMsg(error, Optional.ofNullable(BYTES)).get()
+        SerdeProcessingLogMessageFactory.deserializationErrorMsg(error, Optional.ofNullable(BYTES)).get()
     );
   }
 }

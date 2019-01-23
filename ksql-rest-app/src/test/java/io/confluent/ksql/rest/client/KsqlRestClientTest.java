@@ -319,7 +319,7 @@ public class KsqlRestClientTest {
     assertThat(response.getErrorMessage().getErrorCode(),
         is(Errors.toErrorCode(Status.EXPECTATION_FAILED.getStatusCode())));
     assertThat(response.getErrorMessage().getMessage(),
-        is("The server returned an unexpected error."));
+        is("The server returned an unexpected error: Expectation Failed"));
   }
 
   @Test
@@ -334,7 +334,7 @@ public class KsqlRestClientTest {
     assertThat(response.getErrorMessage().getErrorCode(),
         is(Errors.toErrorCode(Status.EXPECTATION_FAILED.getStatusCode())));
     assertThat(response.getErrorMessage().getMessage(),
-        is("The server returned an unexpected error."));
+        is("The server returned an unexpected error: Expectation Failed"));
   }
 
   @Test
@@ -380,6 +380,7 @@ public class KsqlRestClientTest {
   private <T> void givenServerWillReturn(final int statusCode, final Optional<T> entity) {
     final Response response = mock(Response.class);
     when(response.getStatus()).thenReturn(statusCode);
+    when(response.getStatusInfo()).thenReturn(Status.fromStatusCode(statusCode));
 
     entity.ifPresent(e -> when(response.readEntity((Class<T>) e.getClass())).thenReturn(e));
 

@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;

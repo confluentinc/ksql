@@ -27,6 +27,7 @@ import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
@@ -49,7 +50,6 @@ import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
-import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
@@ -517,8 +517,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue) {
-    if (!config.getString(ProcessingLogConfig.STREAM_AUTO_CREATE).equals(
-        ProcessingLogConfig.AUTO_CREATE_ON)) {
+    if (!config.getString(ProcessingLogConfig.STREAM_AUTO_CREATE)
+        .equals(ProcessingLogConfig.AUTO_CREATE_ON)) {
       return;
     }
     final String name = config.getString(ProcessingLogConfig.STREAM_NAME);
@@ -529,17 +529,17 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     if (!commandQueue.isEmpty()) {
       return;
     }
-    final List<PreparedStatement<?>> statement;
+    final PreparedStatement<?> statement;
     try {
-      statement = ksqlEngine.parseStatements(statementText);
-      ksqlEngine.tryExecute(statement, ksqlConfig, Collections.emptyMap());
+      statement = ksqlEngine.parseStatements(statementText).get(0);
+      ksqlEngine.createSandbox().execute(statement, ksqlConfig, Collections.emptyMap());
     } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);
       return;
     }
     commandQueue.enqueueCommand(
-          statement.get(0).getStatementText(),
-          statement.get(0).getStatement(),
+          statement.getStatementText(),
+          statement.getStatement(),
           ksqlConfig,
           Collections.emptyMap()
     );

@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
@@ -190,20 +191,25 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata metadata = buildPhysicalPlan(queryString);
     final String planText = metadata.getExecutionPlan();
     final String[] lines = planText.split("\n");
-    Assert.assertEquals(" > [ SINK ] Schema: [COL0 : BIGINT, KSQL_COL_1 : DOUBLE"
-        + ", KSQL_COL_2 : BIGINT].", lines[0]);
-    Assert.assertEquals(
-        "\t\t > [ AGGREGATE ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_AGG_VARIABLE_0 : DOUBLE, KSQL_AGG_VARIABLE_1 : BIGINT].",
-        lines[1]);
-    Assert.assertEquals(
-        "\t\t\t\t > [ PROJECT ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE].",
-        lines[2]);
-    Assert.assertEquals(
-        "\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, TEST1.COL5 : MAP<VARCHAR,DOUBLE>].",
-        lines[3]);
-    Assert.assertEquals(
-        "\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, TEST1.COL5 : MAP<VARCHAR,DOUBLE>].",
-        lines[4]);
+    assertThat(lines[0], startsWith(
+        " > [ SINK ] | Schema: [COL0 : BIGINT, KSQL_COL_1 : DOUBLE, KSQL_COL_2 : BIGINT] |"));
+    assertThat(lines[1], startsWith(
+        "\t\t > [ AGGREGATE ] | Schema: [KSQL_INTERNAL_COL_0 : BIGINT, "
+            + "KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_AGG_VARIABLE_0 : DOUBLE, "
+            + "KSQL_AGG_VARIABLE_1 : BIGINT] |"));
+    assertThat(lines[2], startsWith(
+        "\t\t\t\t > [ PROJECT ] | Schema: [KSQL_INTERNAL_COL_0 : BIGINT, "
+            + "KSQL_INTERNAL_COL_1 : DOUBLE] |"));
+    assertThat(lines[3], startsWith(
+        "\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, "
+            + "TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, "
+            + "TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, "
+            + "TEST1.COL5 : MAP<VARCHAR,DOUBLE>] |"));
+    assertThat(lines[4], startsWith(
+        "\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, "
+            + "TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, "
+            + "TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, "
+            + "TEST1.COL5 : MAP<VARCHAR,DOUBLE>] |"));
   }
 
   @Test
@@ -226,11 +232,11 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 3);
     Assert.assertEquals(lines[0],
-        " > [ SINK ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE].");
+        " > [ SINK ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] | Logger: InsertQuery_1.S1");
     Assert.assertEquals(lines[1],
-        "\t\t > [ PROJECT ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE].");
+        "\t\t > [ PROJECT ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] | Logger: InsertQuery_1.Project");
     Assert.assertEquals(lines[2],
-        "\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : DOUBLE].");
+        "\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : DOUBLE] | Logger: InsertQuery_1.KsqlTopic");
     assertThat(queryMetadataList.get(1).getOutputNode(),
         instanceOf(KsqlStructuredDataOutputNode.class));
     final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
@@ -309,12 +315,12 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(2));
     assertThat(lines[0],
-        equalTo(" > [ PROJECT ] Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : "
-            + "BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE]."));
+        equalTo(" > [ PROJECT ] | Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : "
+            + "BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE] | Logger: InsertQuery_1.Project"));
     assertThat(lines[1],
-        equalTo("\t\t > [ SOURCE ] Schema: [T1.ROWTIME : BIGINT, T1.ROWKEY : VARCHAR, "
+        equalTo("\t\t > [ SOURCE ] | Schema: [T1.ROWTIME : BIGINT, T1.ROWKEY : VARCHAR, "
             + "T1.COL0 : BIGINT, T1.COL1 : VARCHAR, T1.COL2 : DOUBLE, T1.COL3 : "
-            + "DOUBLE]."));
+            + "DOUBLE] | Logger: InsertQuery_1.KsqlTopic"));
     closeQueries(queryMetadataList);
     ksqlEngine.close();
   }
@@ -368,11 +374,12 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
     assertThat(lines[0],
-        equalTo(" > [ REKEY ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
-    assertThat(lines[1], equalTo("\t\t > [ SINK ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 "
-        + ": DOUBLE]."));
-    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] Schema: [COL0 : BIGINT, COL1 : VARCHAR"
-        + ", COL2 : DOUBLE]."));
+        equalTo(" > [ REKEY ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] "
+            + "| Logger: InsertQuery_1.S1"));
+    assertThat(lines[1], equalTo("\t\t > [ SINK ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 "
+        + ": DOUBLE] | Logger: InsertQuery_1.S1"));
+    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR"
+        + ", COL2 : DOUBLE] | Logger: InsertQuery_1.Project"));
     closeQueries(queryMetadataList);
     ksqlEngine.close();
   }

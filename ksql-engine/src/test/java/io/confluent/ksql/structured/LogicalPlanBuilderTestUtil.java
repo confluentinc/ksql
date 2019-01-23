@@ -27,24 +27,22 @@ import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 
-public class LogicalPlanBuilder {
+public final class LogicalPlanBuilderTestUtil {
 
-  private final MetaStore metaStore;
-
-  public LogicalPlanBuilder(final MetaStore metaStore) {
-    this.metaStore = metaStore;
+  private LogicalPlanBuilderTestUtil() {
   }
 
-  public PlanNode buildLogicalPlan(final String queryStr) {
+  public static PlanNode buildLogicalPlan(final String queryStr, final MetaStore metaStore) {
     final PreparedStatement<?> statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore);
     final Analysis analysis = new Analysis();
     final Analyzer analyzer = new Analyzer(queryStr, analysis, metaStore, "");
     analyzer.process(statement.getStatement(), new AnalysisContext(null));
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis, metaStore);
+    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
+        metaStore);
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(metaStore);
-    for (final Expression expression: analysis.getSelectExpressions()) {
+    for (final Expression expression : analysis.getSelectExpressions()) {
       aggregateAnalyzer.process(expression, new AnalysisContext(null));
       if (!aggregateAnalyzer.isHasAggregateFunction()) {
         aggregateAnalysis.addNonAggResultColumns(expression);

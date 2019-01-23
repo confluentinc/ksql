@@ -40,7 +40,6 @@ public class SelectValueMapperTest {
 
   private final MetaStore metaStore =
       MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Test
@@ -85,7 +84,7 @@ public class SelectValueMapperTest {
   }
 
   private SelectValueMapper givenSelectMapperFor(final String query) {
-    final PlanNode planNode = planBuilder.buildLogicalPlan(query);
+    final PlanNode planNode = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final Schema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();

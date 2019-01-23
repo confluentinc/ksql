@@ -33,11 +33,11 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
@@ -305,8 +305,8 @@ public class AggregateNodeTest {
 
   private static AggregateNode buildAggregateNode(final String queryString) {
     final MetaStore newMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(newMetaStore)
-        .buildLogicalPlan(queryString);
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+        .buildLogicalPlan(queryString, newMetaStore);
 
     return (AggregateNode) planNode.getSource();
   }

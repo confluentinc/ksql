@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -62,6 +63,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class RecoveryTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(
@@ -82,7 +84,8 @@ public class RecoveryTest {
     serviceContext.close();
   }
 
-  private KsqlEngine createKsqlEngine() {
+  private KsqlEngine createKsqlEngine(
+      final ServiceContext serviceContext) {
     final KsqlEngineMetrics engineMetrics = EasyMock.niceMock(KsqlEngineMetrics.class);
     EasyMock.replay(engineMetrics);
     return KsqlEngineTestUtil.createKsqlEngine(
@@ -154,7 +157,11 @@ public class RecoveryTest {
     final CommandRunner commandRunner;
 
     KsqlServer(final List<QueuedCommand> commandLog) {
-      this.ksqlEngine = createKsqlEngine();
+      this(commandLog, serviceContext);
+    }
+
+    KsqlServer(final List<QueuedCommand> commandLog, final ServiceContext serviceContext) {
+      this.ksqlEngine = createKsqlEngine(serviceContext);
       this.commandIdAssigner = new CommandIdAssigner(ksqlEngine.getMetaStore());
       this.fakeCommandQueue = new FakeCommandQueue(
           new CommandIdAssigner(ksqlEngine.getMetaStore()),
@@ -539,6 +546,25 @@ public class RecoveryTest {
         "DROP STREAM B;"
     );
     shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldNotDeleteTopicOnRecovery() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;",
+        "DROP STREAM B DELETE TOPIC;"
+    );
+
+    KafkaTopicClient mockKafkaClient = Mockito.mock(KafkaTopicClient.class);
+    Mockito.when(mockKafkaClient.isTopicExists(Mockito.anyString())).thenReturn(true);
+
+    final KsqlServer recoverServer = new KsqlServer(
+        commands, TestServiceContext.create(mockKafkaClient));
+
+    recoverServer.recover();
+    Mockito.verify(mockKafkaClient, Mockito.never()).deleteTopics(Mockito.anyCollection());
   }
 
   @Test

@@ -18,6 +18,7 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reportMatcher;
 import static org.easymock.EasyMock.verify;
@@ -30,6 +31,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
@@ -68,6 +70,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.easymock.EasyMock;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.hamcrest.CoreMatchers;
@@ -570,6 +573,10 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldCascade4Dot1DropStreamCommand() {
     // Given:
     final DropStream mockDropStream = mockDropStream("foo");
+    expect(mockDropStream.getLocation()).andStubReturn(Optional.empty());
+    expect(mockDropStream.isDeleteTopic()).andStubReturn(false);
+    expect(mockDropStream.getIfExists()).andStubReturn(true);
+
     expect(mockMetaStore.getSource("foo"))
         .andStubReturn(mock(StructuredDataSource.class));
     expect(mockMetaStore.getQueriesWithSink("foo"))
@@ -578,7 +585,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockEngine.getPersistentQuery(new QueryId("query-id"))).andReturn(Optional.of(mockQueryMetadata));
     mockQueryMetadata.close();
     expectLastCall();
-    expect(mockEngine.executeDdlStatement("DROP", mockDropStream, Collections.emptyMap()))
+    expect(mockEngine.executeDdlStatement(
+        matches("DROP"), anyObject(DropStream.class), eq(ImmutableMap.of())))
         .andReturn(new DdlCommandResult(true, "SUCCESS"));
     replayAll();
 
@@ -599,8 +607,13 @@ public class StatementExecutorTest extends EasyMockSupport {
     // Given:
     final String drop = "DROP";
     final DropStream mockDropStream = mockDropStream("foo");
-    expect(mockEngine.executeDdlStatement(drop, mockDropStream, Collections.emptyMap()))
-        .andReturn(new DdlCommandResult(true, "SUCCESS"));
+    expect(mockDropStream.getLocation()).andStubReturn(Optional.empty());
+    expect(mockDropStream.isDeleteTopic()).andStubReturn(false);
+    expect(mockDropStream.getIfExists()).andStubReturn(true);
+
+    expect(mockEngine.executeDdlStatement(
+        matches("DROP"), anyObject(DropStream.class), eq(ImmutableMap.of())))
+        .andReturn(new DdlCommandResult(true, "SUCCESS"));;
     replayAll();
 
     // When:

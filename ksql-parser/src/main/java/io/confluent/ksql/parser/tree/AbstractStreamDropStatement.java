@@ -14,14 +14,65 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.common.base.MoreObjects;
+import java.util.Objects;
 import java.util.Optional;
 
 public abstract class AbstractStreamDropStatement extends Statement {
-  public AbstractStreamDropStatement(final Optional<NodeLocation> location) {
+
+  private final QualifiedName name;
+  private final boolean ifExists;
+  private final boolean deleteTopic;
+
+  public AbstractStreamDropStatement(final Optional<NodeLocation> location,
+                                     final QualifiedName name,
+                                     final boolean deleteTopic,
+                                     final boolean ifExists) {
     super(location);
+    this.name = name;
+    this.deleteTopic = deleteTopic;
+    this.ifExists = ifExists;
   }
 
-  public abstract boolean getIfExists();
+  public QualifiedName getName() {
+    return name;
+  }
 
-  public abstract QualifiedName getName();
+  public boolean isDeleteTopic() {
+    return deleteTopic;
+  }
+
+  public boolean getIfExists() {
+    return ifExists;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    final AbstractStreamDropStatement that = (AbstractStreamDropStatement) o;
+    return deleteTopic == that.deleteTopic
+        && ifExists == that.ifExists
+        && Objects.equals(name, that.name);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, deleteTopic, ifExists);
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("name", name)
+        .add("deleteTopic", deleteTopic)
+        .add("ifExists", ifExists)
+        .toString();
+  }
+
 }

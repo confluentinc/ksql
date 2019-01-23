@@ -22,9 +22,12 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -187,10 +190,10 @@ public class StatementExecutor {
     DdlCommandResult result = null;
     String successMessage = "";
     if (statement.getStatement() instanceof ExecutableDdlStatement) {
+      final ExecutableDdlStatement ddlStatement =
+          maybeUnsetDeleteTopic(statement.getStatement(), mode);
       result = ksqlEngine.executeDdlStatement(
-          statement.getStatementText(),
-          (ExecutableDdlStatement) statement.getStatement(),
-          command.getOverwriteProperties());
+          statement.getStatementText(), ddlStatement, command.getOverwriteProperties());
     } else if (statement.getStatement() instanceof CreateAsSelect) {
       startQuery(statement, command, mode);
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
@@ -215,6 +218,28 @@ public class StatementExecutor {
         result != null ? result.getMessage() : successMessage
     );
     putFinalStatus(commandId, commandStatusFuture, successStatus);
+  }
+
+  private ExecutableDdlStatement maybeUnsetDeleteTopic(final Statement statement, final Mode mode) {
+    if (mode == Mode.RESTORE && statement instanceof DropStream) {
+      final DropStream dropStream = (DropStream) statement;
+      return new DropStream(
+          dropStream.getLocation(),
+          dropStream.getName(),
+          dropStream.getIfExists(),
+          false
+      );
+    } else if (mode == Mode.RESTORE && statement instanceof DropTable) {
+      final DropTable dropTable = (DropTable) statement;
+      return new DropTable(
+          dropTable.getLocation(),
+          dropTable.getName(),
+          dropTable.getIfExists(),
+          false
+      );
+    } else {
+      return (ExecutableDdlStatement) statement;
+    }
   }
 
   private void handleRunScript(final Command command, final Mode mode) {

@@ -14,17 +14,10 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
-import java.util.Objects;
 import java.util.Optional;
 
 public class DropStream
     extends AbstractStreamDropStatement implements ExecutableDdlStatement {
-
-  private final QualifiedName streamName;
-  private final boolean ifExists;
-  private final boolean deleteTopic;
 
   public DropStream(
       final QualifiedName tableName,
@@ -40,30 +33,15 @@ public class DropStream
     this(Optional.of(location), tableName, ifExists, deleteTopic);
   }
 
-  private DropStream(final Optional<NodeLocation> location,
+  public DropStream(final Optional<NodeLocation> location,
                      final QualifiedName streamName,
                      final boolean ifExists,
                      final boolean deleteTopic) {
-    super(location);
-    this.streamName = streamName;
-    this.ifExists = ifExists;
-    this.deleteTopic = deleteTopic;
-  }
-
-  public QualifiedName getName() {
-    return streamName;
-  }
-
-  public boolean getIfExists() {
-    return ifExists;
+    super(location, streamName, deleteTopic, ifExists);
   }
 
   public QualifiedName getStreamName() {
-    return streamName;
-  }
-
-  public boolean isDeleteTopic() {
-    return deleteTopic;
+    return getName();
   }
 
   @Override
@@ -71,31 +49,4 @@ public class DropStream
     return visitor.visitDropStream(this, context);
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(streamName, ifExists);
-  }
-
-  @Override
-  public boolean equals(final Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if ((obj == null) || (getClass() != obj.getClass())) {
-      return false;
-    }
-    final DropStream o = (DropStream) obj;
-    return Objects.equals(streamName, o.streamName)
-           && (ifExists == o.ifExists)
-           && (deleteTopic == o.deleteTopic);
-  }
-
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("tableName", streamName)
-        .add("ifExists", ifExists)
-        .add("deleteTopic", deleteTopic)
-        .toString();
-  }
 }

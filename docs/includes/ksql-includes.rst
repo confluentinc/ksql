@@ -501,7 +501,7 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
                of the ``ksql`` executable. For example, if ``ksql`` is installed at ``/usr/local/bin/ksql``, then it would
                attempt to store its logs in ``/usr/local/logs``. If you are running ``ksql`` from the default |cp|
                location, ``<path-to-confluent>/bin``, you must override this default behavior by using the ``LOG_DIR`` variable.
-.. log_limitations_qs_end
+.. log_limitations_mid
                For example, to store your logs in the ``ksql_logs`` directory within your current working directory, run this
                command when starting the KSQL CLI:
 
@@ -930,3 +930,6 @@ Your output should resemble:
 
 .. insert-into_02_end
 
+=======
+.. log_limitations_end
+>>>>>>> 4.1.2-post

@@ -26,6 +26,7 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
@@ -45,14 +46,11 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
-  private static final String INTO_LOGGER_NAME = "into";
-
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final Field keyField;
   private final boolean doCreateInto;
   private final Map<String, Object> outputProperties;
-
 
   @JsonCreator
   public KsqlStructuredDataOutputNode(
@@ -118,6 +116,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         queryId
     );
 
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
+
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
     final Builder outputNodeBuilder = Builder.from(this);
     final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
@@ -139,7 +139,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         outputNodeBuilder,
         ksqlConfig,
         functionRegistry,
-        outputProperties
+        outputProperties,
+        contextStacker
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
@@ -159,7 +160,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 ksqlConfig,
                 false,
                 serviceContext.getSchemaRegistryClientFactory(),
-                QueryLoggerUtil.queryLoggerName(queryId, getId(), INTO_LOGGER_NAME)),
+                QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext())),
         rowkeyIndexes
     );
 
@@ -182,7 +183,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> outputProperties
+      final Map<String, Object> outputProperties,
+      final QueryContext.Stacker contextStacker
   ) {
 
     if (schemaKStream instanceof SchemaKTable) {
@@ -197,7 +199,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         schemaKStream.getKeySerde(),
         SchemaKStream.Type.SINK,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
@@ -211,7 +214,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           )));
 
       outputNodeBuilder.withKeyField(keyField);
-      return result.selectKey(keyField, false);
+      return result.selectKey(keyField, false, contextStacker);
     }
     return result;
   }

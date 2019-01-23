@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -108,7 +109,7 @@ public class ProjectNodeTest {
     // Given:
     final BooleanLiteral trueExpression = new BooleanLiteral("true");
     final BooleanLiteral falseExpression = new BooleanLiteral("false");
-    when(stream.select(anyList())).thenReturn(stream);
+    when(stream.select(anyList(), any())).thenReturn(stream);
     final ProjectNode node = buildNode(
         Arrays.asList(trueExpression, falseExpression));
 
@@ -123,9 +124,10 @@ public class ProjectNodeTest {
 
     // Then:
     verify(stream).select(
-        Arrays.asList(
+        eq(Arrays.asList(
             SelectExpression.of("field1", trueExpression),
-            SelectExpression.of("field2", falseExpression))
+            SelectExpression.of("field2", falseExpression))),
+        eq(node.buildNodeContext(queryId))
     );
     verify(source, times(1)).buildStream(
         same(builder),

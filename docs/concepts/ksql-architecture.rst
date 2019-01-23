@@ -175,8 +175,55 @@ In headless mode you can:
 * Ensure resource isolation
 * Leave resource management to dedicated systems, like Kubernetes
 
+Supported Operations in Headless and Interactive Modes
+======================================================
+
+The following table shows which KSQL operations are supported in headless and
+interactive deployments.
+
++----------------------------------------------------+-------------------+---------------------+
+| KSQL Operation                                     | Interactive KSQL  | Headless KSQL       |
++====================================================+===================+=====================+
+| Describe a stream or table, including              | Supported         | Not Supported       |
+| runtime stats (DESCRIBE, DESCRIBE EXTENDED)        |                   |                     |
++----------------------------------------------------+-------------------+---------------------+
+| Explain a query, including runtime stats (EXPLAIN) | Supported         | Not Supported       |
++----------------------------------------------------+-------------------+---------------------+
+| CREATE and DROP a stream or table                  | Supported         | Supported           |
++----------------------------------------------------+-------------------+---------------------+
+| List existing streams and tables (SHOW STREAMS,    | Supported         | Not Supported       |
+| SHOW TABLES)                                       |                   |                     |
++----------------------------------------------------+-------------------+---------------------+
+| List running queries (SHOW QUERIES)                | Supported         | Not Supported       |
++----------------------------------------------------+-------------------+---------------------+
+| Run a script (RUN SCRIPT)                          | Supported         | Not Supported       |
++----------------------------------------------------+-------------------+---------------------+
+| Set query properties (SET)                         | Supported         | Supported           |
++----------------------------------------------------+-------------------+---------------------+
+| Show contents of a Kafka topic (PRINT)             | Supported         | Not Supported       |
++----------------------------------------------------+-------------------+---------------------+
+| Show contents of a stream or table (SELECT)        | Supported         | Not Supported       |
++----------------------------------------------------+-------------------+---------------------+
+| Show properties of a query (SHOW PROPERTIES)       | Supported         | Not Supported       |
++----------------------------------------------------+-------------------+---------------------+
+| Show results of a query (SELECT)                   | Supported         | Not Supported       |
++----------------------------------------------------+-------------------+---------------------+
+| Start and stop a query                             | Supported         | Supported           |
++----------------------------------------------------+-------------------+---------------------+
+| Start and stop a KSQL Server instance              | Not with KSQL API | Not with KSQL API   |
++----------------------------------------------------+-------------------+---------------------+
+| Cleanup and delete internal data (internal topics) | Supported         | Not with KSQL API   |
+| of a KSQL cluster or application                   | (KSQL REST API)   |                     |
++----------------------------------------------------+-------------------+---------------------+
+
+.. note::
+
+   You can perform operations listed as "Not with KSQL API" manually. Also,
+   you can use deployment tools, like Kubernetes or Ansible, and you can use
+   the Kafka tools, like ``kafka-delete-records``.
+
 Dedicating Resources
-====================
+********************
 
 Join KSQL engines to the same *service pool* by using the ``ksql.service.id``
 property. The following diagram shows a Kafka cluster with separate workloads

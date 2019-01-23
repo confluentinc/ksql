@@ -26,6 +26,15 @@ configurations.
 * :ref:`ksql-cli-config-file`
 * :ref:`ksql-cli-connect-to-hosted-server`
 
+When your KSQL processes are running in containers, you can
+:ref:`interact <ksql-interact-with-containerized-ksql>` with them
+by using shell scripts and Docker Compose files. 
+
+* :ref:`ksql-wait-for-http-endpoint`
+* :ref:`ksql-wait-for-message-in-container-log`
+* :ref:`ksql-run-custom-code-before-launch`
+* :ref:`ksql-execute-script-in-cli`
+
 Assign Configuration Settings in the Docker Run Command 
 *******************************************************
 
@@ -404,6 +413,180 @@ Your output should resemble:
   Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
   ksql>
+
+.. _ksql-interact-with-containerized-ksql:
+
+Interact With KSQL Running in a Docker Container
+***************************************************
+
+You can communicate with KSQL Server and the KSQL CLI when they run in Docker
+containers. The following examples show common tasks with KSQL processes that
+run in containers.
+
+* :ref:`ksql-wait-for-http-endpoint`
+* :ref:`ksql-wait-for-message-in-container-log`
+* :ref:`ksql-run-custom-code-before-launch`
+* :ref:`ksql-execute-script-in-cli`
+
+.. _ksql-wait-for-http-endpoint:
+
+Wait for an HTTP Endpoint to Be Available
+=========================================
+
+Sometimes, a container reports its state as ``up`` before it's actually running.
+In this case, the docker-compose ``depends_on`` dependencies aren't sufficient.
+For a service that exposes an HTTP endpoint, like KSQL Server, you can force a
+script to wait before running a client that requires the service to be ready
+and available.
+
+Use the following bash commands to wait for KSQL Server to be available: 
+
+.. code:: bash
+
+   echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"
+   while [ $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) -eq 000 ]
+   do 
+     echo -e $(date) "KSQL Server HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) " (waiting for 200)"
+     sleep 5
+   done
+
+This script pings the KSQL Server at ``<ksql-server-ip-address>:8088``
+every five seconds, until it receives an HTTP 200 response.
+
+.. note::
+
+   The previous script doesn't work with "headless" deployments of KSQL Server,
+   because headless deployments don't have a REST API server.  
+
+To launch the KSQL CLI in a container only after KSQL Server is available, use
+the following Docker Compose command: 
+
+.. code:: bash
+
+   docker-compose exec ksql-cli bash -c \
+   'echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"; while [ $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) -eq 000 ] ; do echo -e $(date) "KSQL Server HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) " (waiting for 200)" ; sleep 5 ; done; ksql http://<ksql-server-ip-address>:8088'
+
+.. _ksql-wait-for-message-in-container-log:
+
+Wait for a Particular Phrase in a Container’s Log
+=================================================
+
+Use the ``grep`` command and `bash process substitution <http://tldp.org/LDP/abs/html/process-sub.html>`__
+to wait until the a specific phrase occurs in the Docker Compose log:
+
+.. code:: bash
+
+   export CONNECT_HOST=<container-name>
+   echo -e "\n--\n\nWaiting for Kafka Connect to start on $CONNECT_HOST … ⏳"
+   grep -q "Kafka Connect started" <(docker-compose logs -f $CONNECT_HOST)
+
+
+.. _ksql-run-custom-code-before-launch:
+
+Run Custom Code Before Launching a Container’s Program
+======================================================
+
+You can run custom code, like downloading a dependency or moving a file, before
+a KSQL process starts in a container. Use Docker Compose to overlay a change on
+an existing image.
+
+Get the Container's Default Command
+-----------------------------------
+
+Discover the default command that the container runs when it launches, which is
+either ``Entrypoint`` or ``Cmd``:
+
+.. codewithvars:: bash
+
+   docker inspect --format='{{.Config.Entrypoint}}' confluentinc/cp-ksql-server:|release|
+   docker inspect --format='{{.Config.Cmd}}' confluentinc/cp-ksql-server:|release|
+
+Your output should resemble:
+
+::
+
+   []
+   [/etc/confluent/docker/run]
+
+In this example, the default command is ``/etc/confluent/docker/run``.
+
+Run Custom Commands Before the KSQL Process Starts
+--------------------------------------------------
+
+In a Docker Compose file, add the commands that you want to run before the main
+process starts. Use the ``command`` option to override the default command. In
+the following example, the ``command`` option creates a directory and downloads
+a tar archive into it.
+
+.. codewithvars:: yaml
+
+   ksql-server:
+     image: confluentinc/cp-ksql-server:|release|
+     depends_on:
+       - kafka
+     environment:
+       KSQL_BOOTSTRAP_SERVERS: <bootstrap-server-ip>:29092
+       KSQL_LISTENERS: http://0.0.0.0:8088
+     command: 
+       - /bin/bash
+       - -c 
+       - |
+         mkdir -p /data/maxmind
+         cd /data/maxmind
+         curl https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz | tar xz 
+         /etc/confluent/docker/run
+
+
+After the ``mkdir``, ``cd``, ``curl``, and ``tar`` commands run,
+the ``/etc/confluent/docker/run`` command starts the ``cp-ksql-server`` image
+with the specified settings.
+
+.. note::
+
+   The literal block scalar, ``- |``, enables passing multiple arguments to
+   ``command``, by indicating that the following lines are all part of the same
+   entry. 
+
+
+.. _ksql-execute-script-in-cli:
+
+Execute a KSQL script in the KSQL CLI
+=====================================
+
+The following Docker Compose YAML runs KSQL CLI and passes it a KSQL script
+for execution. The manual EXIT is required. The advantage of this approach,
+compared with running KSQL Server headless with a queries file, is that you can
+still interact with KSQL, and you can pre-build the environment to a desired
+state.
+
+.. codewithvars:: yaml
+
+   ksql-cli:
+     image: confluentinc/cp-ksql-cli:|release|
+     depends_on:
+       - ksql-server
+     volumes:
+       - $PWD/ksql-scripts/:/data/scripts/
+     entrypoint: 
+       - /bin/bash
+       - -c
+       - |
+         echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"
+         while [ $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) -eq 000 ]
+         do 
+           echo -e $$(date) "KSQL Server HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) " (waiting for 200)"
+           sleep 5
+         done
+         echo -e "\n\n-> Running KSQL commands\n"
+         cat /data/scripts/my-ksql-script.sql <(echo 'EXIT')| ksql http://<ksql-server-ip>:8088
+         echo -e "\n\n-> Sleeping…\n"
+         sleep infinity
+
+.. note:
+
+   The ``sleep infinity`` command is necessary. Without it, the container exits,
+   because all of the defined ``entrypoint`` commands will have executed.
+
 
 Next Steps
 **********

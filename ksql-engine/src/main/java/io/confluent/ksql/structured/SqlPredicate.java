@@ -14,12 +14,14 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
@@ -47,13 +49,15 @@ public class SqlPredicate {
   private final KsqlConfig ksqlConfig;
   private final FunctionRegistry functionRegistry;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  private final StructuredLogger processingLogger;
 
   SqlPredicate(
       final Expression filterExpression,
       final Schema schema,
       final boolean isWindowedKey,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final StructuredLogger processingLogger
   ) {
     this.filterExpression = filterExpression;
     this.schema = schema;
@@ -61,6 +65,7 @@ public class SqlPredicate {
     this.isWindowedKey = isWindowedKey;
     this.functionRegistry = functionRegistry;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.processingLogger = Objects.requireNonNull(processingLogger);
 
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     final Set<CodeGenRunner.ParameterType> parameters
@@ -132,9 +137,8 @@ public class SqlPredicate {
         }
         return (Boolean) ee.evaluate(values);
       } catch (final Exception e) {
-        log.error(e.getMessage(), e);
+        logProcessingError(e, row);
       }
-      log.error("Invalid format: " + key + " : " + row);
       return false;
     };
   }
@@ -167,11 +171,23 @@ public class SqlPredicate {
         }
         return (Boolean) ee.evaluate(values);
       } catch (final Exception e) {
-        log.error(e.getMessage(), e);
+        logProcessingError(e, row);
       }
-      log.error("Invalid format: " + key + " : " + row);
       return false;
     };
+  }
+
+  private void logProcessingError(final Exception e, final GenericRow row) {
+    processingLogger.error(
+        EngineProcessingLogMessageFactory.recordProcessingError(
+            String.format(
+                "Error evaluating predicate %s: %s",
+                filterExpression,
+                e.getMessage()
+            ),
+            row
+        )
+    );
   }
 
   public Expression getFilterExpression() {

@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.ByteArrayOutputStream;

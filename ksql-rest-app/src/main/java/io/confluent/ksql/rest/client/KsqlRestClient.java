@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.client;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.client.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -27,7 +28,6 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Closeable;
 import java.io.IOException;
@@ -129,8 +129,8 @@ public class KsqlRestClient implements Closeable {
     return getRequest("/info", ServerInfo.class);
   }
 
-  public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
+  public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
     return postRequest("ksql", jsonRequest, Optional.empty(), true,
         r -> r.readEntity(KsqlEntityList.class));
   }
@@ -143,14 +143,15 @@ public class KsqlRestClient implements Closeable {
     return getRequest(String.format("status/%s", commandId), CommandStatus.class);
   }
 
-  public RestResponse<QueryStream> makeQueryRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
+  public RestResponse<QueryStream> makeQueryRequest(final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
     final Optional<Integer> readTimeoutMs = Optional.of(QueryStream.READ_TIMEOUT_MS);
     return postRequest("query", jsonRequest, readTimeoutMs, false, QueryStream::new);
   }
 
-  public RestResponse<InputStream> makePrintTopicRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
+  public RestResponse<InputStream> makePrintTopicRequest(
+      final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
     return postRequest("query", jsonRequest, Optional.empty(), false,
         r -> (InputStream) r.getEntity());
   }
@@ -248,7 +249,9 @@ public class KsqlRestClient implements Closeable {
     }
 
     return RestResponse.erroneous(
-        Errors.toErrorCode(response.getStatus()), "The server returned an unexpected error.");
+        Errors.toErrorCode(response.getStatus()),
+        "The server returned an unexpected error: "
+            + response.getStatusInfo().getReasonPhrase());
   }
 
   public static final class QueryStream implements Closeable, Iterator<StreamedRow> {

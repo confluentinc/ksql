@@ -20,8 +20,8 @@ import static org.junit.Assert.fail;
 
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogMessageFactory;
 import io.confluent.ksql.serde.SerdeTestUtils;
+import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
@@ -82,7 +82,7 @@ public class KsqlDelimitedDeserializerTest {
     }
     SerdeTestUtils.shouldLogError(
         recordLogger,
-        ProcessingLogMessageFactory.deserializationErrorMsg(cause, Optional.ofNullable(record)).get());
+        SerdeProcessingLogMessageFactory.deserializationErrorMsg(cause, Optional.ofNullable(record)).get());
   }
 
   @Test

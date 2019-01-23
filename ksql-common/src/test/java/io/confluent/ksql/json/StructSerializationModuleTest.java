@@ -12,7 +12,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.json;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;

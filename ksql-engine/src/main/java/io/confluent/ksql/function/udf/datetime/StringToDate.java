@@ -41,9 +41,9 @@ public class StringToDate {
   @Udf(description = "Converts formattedDate, a string representation of a date into"
       + " an integer representing days since epoch using the given formatPattern.")
   public int stringToDate(
-      @UdfParameter(value = "formattedDate",
+      @UdfParameter(
           description = "The string representation of a date.") final String formattedDate,
-      @UdfParameter(value = "formatPattern",
+      @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {

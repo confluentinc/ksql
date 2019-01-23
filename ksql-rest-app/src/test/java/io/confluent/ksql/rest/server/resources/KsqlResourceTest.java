@@ -55,7 +55,6 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -96,10 +95,10 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -158,7 +157,7 @@ public class KsqlResourceTest {
 
   private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
-  private KafkaTopicClient kafkaTopicClient;
+  private FakeKafkaTopicClient kafkaTopicClient;
   private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
   @Mock
@@ -177,8 +176,8 @@ public class KsqlResourceTest {
   public void setUp() throws IOException, RestClientException {
     commandStatus = new QueuedCommandStatus(
         0, new CommandStatusFuture(new CommandId(TOPIC, "whateva", CREATE)));
-    serviceContext = TestServiceContext.create();
-    kafkaTopicClient = serviceContext.getTopicClient();
+    kafkaTopicClient = new FakeKafkaTopicClient();
+    serviceContext = TestServiceContext.create(kafkaTopicClient);
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
     registerSchema(schemaRegistryClient);
     ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
@@ -539,26 +538,29 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldDistributeCreateStatementEvenIfTopicDoesNotExist() {
+  public void shouldNotDistributeCreateStatementIfTopicDoesNotExist() {
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException
+        .expect(exceptionKsqlErrorMessage(errorMessage(is("Kafka topic does not exist: unknown"))));
+
     // When:
     makeSingleRequest(
         "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='unknown');",
         CommandStatusEntity.class);
-
-    // Then:
-    verify(commandStore).enqueueCommand(any(), any(), any(), any());
   }
 
   @Test
   public void shouldDistributeAvoCreateStatementWithColumns() {
     // When:
     makeSingleRequest(
-        "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders');",
+        "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
         CommandStatusEntity.class);
 
     // Then:
     verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders');"),
+        eq("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');"),
         isA(CreateStream.class), any(), any());
   }
 
@@ -597,7 +599,7 @@ public class KsqlResourceTest {
             + "Caused by: No schema registered under subject!"));
   }
 
-  //@Test
+  @Test
   public void shouldFailWhenAvroSchemaCanNotBeEvolved() {
     // Given:
     givenAvroSchemaNotEvolveable("S1");
@@ -678,7 +680,7 @@ public class KsqlResourceTest {
     validateQueryDescription(ksqlQueryString, Collections.emptyMap(), query);
   }
 
-  //@Test
+  @Test
   public void shouldExplainCreateAsSelectStatement() {
     // Given:
     final String ksqlQueryString = "CREATE STREAM S3 AS SELECT * FROM test_stream;";
@@ -1332,8 +1334,8 @@ public class KsqlResourceTest {
       final String sourceName,
       final String topicName,
       final String ksqlTopicName,
-      final Schema schema) {
-    final MetaStore metaStore = ksqlEngine.getMetaStore();
+      final Schema schema
+  ) {
     if (metaStore.getTopic(ksqlTopicName) != null) {
       return;
     }
@@ -1407,6 +1409,6 @@ public class KsqlResourceTest {
   }
 
   private void givenTopicExists(final String name) {
-    kafkaTopicClient.createTopic(name, 1, (short) 1);
+    kafkaTopicClient.preconditionTopicExists(name, 1, (short) 1, Collections.emptyMap());
   }
 }

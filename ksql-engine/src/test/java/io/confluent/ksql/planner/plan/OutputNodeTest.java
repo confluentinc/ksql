@@ -20,17 +20,16 @@ import static org.easymock.EasyMock.verify;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Map;
 import java.util.Optional;
-
 import junit.framework.AssertionFailedError;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;

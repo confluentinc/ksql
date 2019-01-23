@@ -118,7 +118,7 @@ public class UdfIntTest {
     intermediateStream = KsqlIdentifierTestUtil.uniqueIdentifierName("INTERMEDIATE");
     resultStreamName = KsqlIdentifierTestUtil.uniqueIdentifierName("OUTPUT");
 
-    UdfLoaderUtil.load(ksqlContext.getMetaStore());
+    UdfLoaderUtil.load(ksqlContext.getFunctionRegistry());
 
     createSourceStream();
   }

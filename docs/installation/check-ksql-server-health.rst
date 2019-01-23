@@ -18,9 +18,9 @@ Use the ``ps`` command to check whether the KSQL server process is running:
 
 Your output should resemble:
 
-::
+.. codewithvars:: bash
 
-    jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-5.0.0/share/java/monitoring-interceptors/* ...
+    jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-|release|/share/java/monitoring-interceptors/* ...
 
 If the process status of the JVM isn't ``Sl`` or ``Ssl``, the KSQL server may be down.
 
@@ -38,8 +38,9 @@ Check a KSQL Server by using the REST API
 *****************************************
 
 The KSQL REST API supports a "server info" request, which you access with a URL
-like ``http://<ksql-server-url>/info``. The ``/info`` endpoint returns info
-like the KSQL version. For more info, see :ref:`ksql-rest-api`.
+like ``http://<ksql-server-url>/info``. The ``/info`` endpoint returns the
+KSQL Server version, the Kafka cluster ID, and the service ID of the KSQL Server.
+For more information, see :ref:`ksql-rest-api`.
 
 .. code:: bash
 

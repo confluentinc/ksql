@@ -175,13 +175,19 @@ public class UdfLoaderTest {
   public void shouldSupportUdfParameterAnnotation() {
     final UdfFactory substring = metaStore.getUdfFactory("somefunction");
     final KsqlFunction function = substring.getFunction(
-        ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA));
+        ImmutableList.of(
+            Schema.OPTIONAL_STRING_SCHEMA,
+            Schema.OPTIONAL_STRING_SCHEMA,
+            Schema.OPTIONAL_STRING_SCHEMA));
+
     final List<Schema> arguments = function.getArguments();
 
     assertThat(arguments.get(0).name(), is("justValue"));
     assertThat(arguments.get(0).doc(), is(""));
     assertThat(arguments.get(1).name(), is("valueAndDescription"));
     assertThat(arguments.get(1).doc(), is("Some description"));
+    assertThat(arguments.get(2).name(), is("noValue"));
+    assertThat(arguments.get(2).doc(), is(""));
   }
 
   @Test
@@ -353,9 +359,9 @@ public class UdfLoaderTest {
   public static class SomeFunctionUdf {
     @Udf
     public int foo(
-        @UdfParameter("justValue") final String v1,
-        @UdfParameter(value = "valueAndDescription",
-            description = "Some description") final String v2) {
+        @UdfParameter("justValue") final String v0,
+        @UdfParameter(value = "valueAndDescription", description = "Some description") final String v1,
+        @UdfParameter final String noValue) {
       return 0;
     }
   }

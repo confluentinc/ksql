@@ -575,7 +575,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     mockQueryMetadata.close();
     expectLastCall();
     expect(mockEngine
-        .execute(eq(new PreparedStatement<>("DROP", mockDropStream)), anyObject(), anyObject()))
+        .execute(eq(PreparedStatement.of("DROP", mockDropStream)), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of("SUCCESS"));
     replayAll();
 
@@ -596,7 +596,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     // Given:
     final String drop = "DROP";
     final DropStream mockDropStream = mockDropStream("foo");
-    final PreparedStatement<DropStream> statement = new PreparedStatement<>(drop, mockDropStream);
+    final PreparedStatement<DropStream> statement = PreparedStatement.of(drop, mockDropStream);
 
     expect(mockEngine.execute(eq(statement), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of("SUCCESS"));

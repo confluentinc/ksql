@@ -21,35 +21,35 @@ import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
-import io.confluent.ksql.util.Pair;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
-public final class MetaStoreImpl implements MetaStore, Cloneable {
+public final class MetaStoreImpl implements MetaStore {
 
-  private final Map<String, KsqlTopic> topicMap;
-  private final Map<String,
-      Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> dataSourceMap;
+  private final Map<String, KsqlTopic> topicMap = new HashMap<>();
+  private final Map<String, SourceInfo> dataSourceMap = new HashMap<>();
   private final FunctionRegistry functionRegistry;
 
   public MetaStoreImpl(final FunctionRegistry functionRegistry) {
-    this(new HashMap<>(), new HashMap<>(), functionRegistry);
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
   private MetaStoreImpl(
       final Map<String, KsqlTopic> topicMap,
-      final Map<String, Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> dataSourceMap,
+      final Map<String, SourceInfo> dataSourceMap,
       final FunctionRegistry functionRegistry
   ) {
-    this.topicMap = (topicMap != null) ? topicMap : new HashMap<>();
-    this.dataSourceMap = (dataSourceMap != null) ? dataSourceMap : new HashMap<>();
-    this.functionRegistry = functionRegistry;
+    this.topicMap.putAll(topicMap);
+    this.functionRegistry = functionRegistry.copy();
+
+    dataSourceMap.forEach((name, info) -> this.dataSourceMap.put(name, info.copy()));
   }
 
   @Override
@@ -70,34 +70,33 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
 
   @Override
   public StructuredDataSource getSource(final String sourceName) {
-    final Pair<StructuredDataSource, ?> source = dataSourceMap.get(sourceName);
+    final SourceInfo source = dataSourceMap.get(sourceName);
     if (source == null) {
       return null;
     }
-    return source.getLeft();
+    return source.source;
   }
 
   @Override
   public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
     return dataSourceMap.values()
         .stream()
-        .filter(p -> p.getLeft().getKsqlTopic().getName() != null
-            && p.getLeft().getKsqlTopic().getName().equals(ksqlTopicName))
-        .map(Pair::getLeft)
+        .filter(p -> p.source.getKsqlTopic().getName() != null
+            && p.source.getKsqlTopic().getName().equals(ksqlTopicName))
+        .map(sourceInfo -> sourceInfo.source)
         .findFirst();
   }
 
   @Override
   public void putSource(final StructuredDataSource dataSource) {
 
-    if (getSource(dataSource.getName()) == null) {
-      dataSourceMap.put(dataSource.getName(), new Pair<>(dataSource, new
-          ReferentialIntegrityTableEntry()));
-    } else {
+    if (dataSourceMap.containsKey(dataSource.getName())) {
       throw new KsqlException(
           "Cannot add the new data source. Another data source with the same name already exists: "
-          + dataSource.toString());
+              + dataSource.toString());
     }
+
+    dataSourceMap.put(dataSource.getName(), new SourceInfo(dataSource));
   }
 
   @Override
@@ -114,11 +113,11 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
       throw new KsqlException(String.format("No data source with name %s exists.", sourceName));
     }
     if (!isSafeToDrop(sourceName)) {
-      final String sourceForQueriesMessage = dataSourceMap.get(sourceName).getRight()
+      final String sourceForQueriesMessage = dataSourceMap.get(sourceName).referentialIntegrity
           .getSourceForQueries()
           .stream()
           .collect(Collectors.joining(", "));
-      final String sinkForQueriesMessage = dataSourceMap.get(sourceName).getRight()
+      final String sinkForQueriesMessage = dataSourceMap.get(sourceName).referentialIntegrity
           .getSinkForQueries()
           .stream()
           .collect(Collectors.joining(", "));
@@ -137,22 +136,12 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
     return dataSourceMap
         .entrySet()
         .stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getLeft()));
-  }
-
-  @Override
-  public Set<String> getAllStructuredDataSourceNames() {
-    return getAllStructuredDataSources().keySet();
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().source));
   }
 
   @Override
   public Map<String, KsqlTopic> getAllKsqlTopics() {
-    return topicMap;
-  }
-
-  @Override
-  public Set<String> getAllTopicNames() {
-    return getAllKsqlTopics().keySet();
+    return Collections.unmodifiableMap(topicMap);
   }
 
   @Override
@@ -166,63 +155,55 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
 
   private void addSourceNames(final Set<String> sourceNames, final String queryId) {
     for (final String sourceName: sourceNames) {
-      final ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
-          dataSourceMap.get(sourceName).getRight();
-      referentialIntegrityTableEntry.getSourceForQueries().add(queryId);
+      final ReferentialIntegrityTableEntry referentialIntegrity =
+          dataSourceMap.get(sourceName).referentialIntegrity;
+
+      referentialIntegrity.addSourceForQueries(queryId);
     }
   }
 
   private void addSinkNames(final Set<String> sinkNames, final String queryId) {
     for (final String sinkName: sinkNames) {
-      final ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
-          dataSourceMap.get(sinkName).getRight();
-      referentialIntegrityTableEntry.getSinkForQueries().add(queryId);
+      final ReferentialIntegrityTableEntry referentialIntegrity =
+          dataSourceMap.get(sinkName).referentialIntegrity;
+
+      referentialIntegrity.addSinkForQueries(queryId);
     }
   }
 
   @Override
   public void removePersistentQuery(final String queryId) {
-    for (final Pair<StructuredDataSource, ReferentialIntegrityTableEntry>
-        structuredDataSourceReferentialIntegrityTableEntryPair: dataSourceMap.values()) {
-      structuredDataSourceReferentialIntegrityTableEntryPair.getRight()
-          .removeQuery(queryId);
+    for (final SourceInfo sourceInfo : dataSourceMap.values()) {
+      sourceInfo.referentialIntegrity.removeQuery(queryId);
     }
   }
 
   private boolean isSafeToDrop(final String sourceName) {
-    if (!dataSourceMap.containsKey(sourceName)) {
+    final SourceInfo sourceInfo = dataSourceMap.get(sourceName);
+    if (sourceInfo == null) {
       return true;
     }
-    final ReferentialIntegrityTableEntry referentialIntegrityTableEntry =
-        dataSourceMap.get(sourceName).getRight();
-    return (referentialIntegrityTableEntry.getSinkForQueries().isEmpty()
-            && referentialIntegrityTableEntry.getSourceForQueries().isEmpty());
+
+    final ReferentialIntegrityTableEntry referentialIntegrity =
+        sourceInfo.referentialIntegrity;
+
+    return (referentialIntegrity.getSinkForQueries().isEmpty()
+        && referentialIntegrity.getSourceForQueries().isEmpty());
   }
 
   @Override
   public Set<String> getQueriesWithSource(final String sourceName) {
-    return Collections.unmodifiableSet(dataSourceMap.get(sourceName).getRight()
-                                           .getSourceForQueries());
+    return dataSourceMap.get(sourceName).referentialIntegrity.getSourceForQueries();
   }
 
   @Override
   public Set<String> getQueriesWithSink(final String sourceName) {
-    return Collections.unmodifiableSet(dataSourceMap.get(sourceName).getRight()
-                                           .getSinkForQueries());
+    return dataSourceMap.get(sourceName).referentialIntegrity.getSinkForQueries();
   }
 
   @Override
-  public MetaStore clone() {
-    final Map<String, KsqlTopic> cloneTopicMap = new HashMap<>(topicMap);
-    final Map<String, Pair<StructuredDataSource, ReferentialIntegrityTableEntry>> cloneDsMap =
-        dataSourceMap
-        .entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            Map.Entry::getKey,
-            entry -> new Pair<>(entry.getValue().getLeft(), entry.getValue().getRight().clone())));
-    cloneDsMap.putAll(dataSourceMap);
-    return new MetaStoreImpl(cloneTopicMap, cloneDsMap, functionRegistry.copy());
+  public MetaStore copy() {
+    return new MetaStoreImpl(topicMap, dataSourceMap, functionRegistry);
   }
 
   @Override
@@ -255,11 +236,6 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
   }
 
   @Override
-  public MetaStore copy() {
-    return clone();
-  }
-
-  @Override
   public List<UdfFactory> listFunctions() {
     return functionRegistry.listFunctions();
   }
@@ -274,4 +250,28 @@ public final class MetaStoreImpl implements MetaStore, Cloneable {
     return functionRegistry.listAggregateFunctions();
   }
 
+  private static final class SourceInfo {
+
+    private final StructuredDataSource source;
+    private final ReferentialIntegrityTableEntry referentialIntegrity;
+
+    private SourceInfo(
+        final StructuredDataSource source
+    ) {
+      this.source = Objects.requireNonNull(source, "source");
+      this.referentialIntegrity = new ReferentialIntegrityTableEntry();
+    }
+
+    private SourceInfo(
+        final StructuredDataSource source,
+        final ReferentialIntegrityTableEntry referentialIntegrity
+    ) {
+      this.source = Objects.requireNonNull(source, "source");
+      this.referentialIntegrity = referentialIntegrity.copy();
+    }
+
+    public SourceInfo copy() {
+      return new SourceInfo(source, referentialIntegrity);
+    }
+  }
 }

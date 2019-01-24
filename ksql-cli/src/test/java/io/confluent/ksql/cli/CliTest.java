@@ -852,9 +852,9 @@ public class CliTest {
         + "CREATE STREAM shouldRunScript AS SELECT * FROM " + orderDataProvider.kstreamName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
-    when(lineSupplier.get()).thenReturn("run script '" + scriptFile.getAbsolutePath() + "'");
-
-    givenRunInteractivelyWillExit();
+    when(lineSupplier.get())
+        .thenReturn("run script '" + scriptFile.getAbsolutePath() + "'")
+        .thenReturn("exit");
 
     // When:
     localCli.runInteractively();

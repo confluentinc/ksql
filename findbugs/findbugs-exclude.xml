@@ -49,11 +49,6 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Bug pattern="CN_IDIOM_NO_SUPER_CALL"/>
     </Match>
     <Match>
-        <Class name="io.confluent.ksql.metastore.MetaStoreImpl"/>
-        <Method name="clone"/>
-        <Bug pattern="CN_IDIOM_NO_SUPER_CALL"/>
-    </Match>
-    <Match>
         <Class name="io.confluent.ksql.util.ExpressionMetadata"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>

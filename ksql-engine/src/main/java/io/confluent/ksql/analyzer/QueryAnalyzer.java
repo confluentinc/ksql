@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
@@ -32,14 +31,10 @@ import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
-  private final FunctionRegistry functionRegistry;
   private final KsqlConfig config;
 
-  public QueryAnalyzer(final MetaStore metaStore,
-                       final FunctionRegistry functionRegistry,
-                       final KsqlConfig config) {
+  public QueryAnalyzer(final MetaStore metaStore, final KsqlConfig config) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.config = Objects.requireNonNull(config, "config");
   }
 
@@ -53,9 +48,9 @@ public class QueryAnalyzer {
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     final AggregateAnalyzer aggregateAnalyzer = new
-        AggregateAnalyzer(aggregateAnalysis, analysis, functionRegistry);
+        AggregateAnalyzer(aggregateAnalysis, analysis, metaStore);
     final AggregateExpressionRewriter aggregateExpressionRewriter =
-        new AggregateExpressionRewriter(functionRegistry);
+        new AggregateExpressionRewriter(metaStore);
 
     processSelectExpressions(
         analysis,

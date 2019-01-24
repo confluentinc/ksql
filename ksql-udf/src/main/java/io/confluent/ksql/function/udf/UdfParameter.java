@@ -25,13 +25,14 @@ import java.lang.annotation.Target;
  * Optionally, applied to @Udf function parameters.
  */
 public @interface UdfParameter {
+
   /**
    * The name of the parameter
    *
    * <p>This text is displayed when the user calls {@code DESCRIBE FUNCTION ...}.
    * @return parameter name.
    */
-  String value();
+  String value() default "";
 
   /**
    * The parameter description.

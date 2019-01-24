@@ -24,14 +24,15 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class DropSourceCommandTest {
-  MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MetaStore metaStore = MetaStoreFixture
+      .getNewMetaStore(new InternalFunctionRegistry());
 
   @Test
   public void shouldSucceedOnMissingSourceWithIfExists() {
@@ -40,7 +41,7 @@ public class DropSourceCommandTest {
         .KSTREAM,
         new FakeKafkaTopicClient(),
         EasyMock.niceMock(SchemaRegistryClient.class), true);
-    final DdlCommandResult result = dropSourceCommand.run(metaStore, false);
+    final DdlCommandResult result = dropSourceCommand.run(metaStore);
     assertThat(result.getMessage(), equalTo("Source foo does not exist."));
   }
 
@@ -52,7 +53,7 @@ public class DropSourceCommandTest {
         new FakeKafkaTopicClient(),
         EasyMock.niceMock(SchemaRegistryClient.class), true);
     try {
-      dropSourceCommand.run(metaStore, false);
+      dropSourceCommand.run(metaStore);
       fail("Should raise a Ksql Exception if source not found");
     } catch (final KsqlException e) {}
   }

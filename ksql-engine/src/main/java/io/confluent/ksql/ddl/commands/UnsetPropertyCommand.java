@@ -29,7 +29,7 @@ public class UnsetPropertyCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
+  public DdlCommandResult run(final MetaStore metaStore) {
     return new DdlCommandResult(true, "property:"
         + unsetProperty.getPropertyName()
         + " was removed. "

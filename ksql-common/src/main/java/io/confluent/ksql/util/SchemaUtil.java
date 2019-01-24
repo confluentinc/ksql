@@ -19,12 +19,16 @@ import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
 import static org.apache.avro.Schema.createUnion;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Ordering;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -59,20 +63,23 @@ public final class SchemaUtil {
       .put(double.class, SchemaBuilder::float64)
       .build();
 
-  private static final Map<Pair<Schema.Type, Schema.Type>, Schema> ARITHMETIC_TYPE_MAPPINGS =
-      ImmutableMap.<Pair<Schema.Type, Schema.Type>, Schema>builder()
-          .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT64), Schema.OPTIONAL_INT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT64, Schema.Type.INT32), Schema.OPTIONAL_INT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT32, Schema.Type.INT32), Schema.OPTIONAL_INT32_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT32, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.INT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.INT64, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT32, Schema.Type.FLOAT64), Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.FLOAT64, Schema.Type.FLOAT32), Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(new Pair<>(Schema.Type.STRING, Schema.Type.STRING), Schema.OPTIONAL_STRING_SCHEMA)
+  private static final Ordering<Schema.Type> ARITHMETIC_TYPE_ORDERING = Ordering.explicit(
+      ImmutableList.of(
+          Schema.Type.INT8,
+          Schema.Type.INT16,
+          Schema.Type.INT32,
+          Schema.Type.INT64,
+          Schema.Type.FLOAT32,
+          Schema.Type.FLOAT64
+      )
+  );
+
+  private static final NavigableMap<Schema.Type, Schema> TYPE_TO_SCHEMA =
+      ImmutableSortedMap.<Schema.Type, Schema>orderedBy(ARITHMETIC_TYPE_ORDERING)
+          .put(Schema.Type.INT32, Schema.OPTIONAL_INT32_SCHEMA)
+          .put(Schema.Type.INT64, Schema.OPTIONAL_INT64_SCHEMA)
+          .put(Schema.Type.FLOAT32, Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .build();
 
   private SchemaUtil() {
@@ -454,14 +461,17 @@ public final class SchemaUtil {
     );
   }
 
-  static Schema resolveArithmeticType(final Schema.Type left,
-                                      final Schema.Type right) {
+  public static Schema resolveBinaryOperatorResultType(final Schema.Type left,
+                                                       final Schema.Type right) {
+    if (left == Schema.Type.STRING && right == Schema.Type.STRING) {
+      return Schema.OPTIONAL_STRING_SCHEMA;
+    }
 
-    final Schema schema = ARITHMETIC_TYPE_MAPPINGS.get(new Pair<>(left, right));
-    if (schema == null) {
+    if (!TYPE_TO_SCHEMA.containsKey(left) || !TYPE_TO_SCHEMA.containsKey(right)) {
       throw new KsqlException("Unsupported arithmetic types. " + left + " " + right);
     }
-    return schema;
+
+    return TYPE_TO_SCHEMA.ceilingEntry(ARITHMETIC_TYPE_ORDERING.max(left, right)).getValue();
   }
 
   private static SchemaBuilder handleParametrizedType(final Type type) {

@@ -30,8 +30,8 @@ public class QueryIdGeneratorTest {
   private QueryIdGenerator generator;
 
   @Before
-  public void setUp() throws Exception {
-    generator = new QueryIdGenerator("");
+  public void setUp() {
+    generator = new QueryIdGenerator();
   }
 
   @Test
@@ -39,17 +39,6 @@ public class QueryIdGeneratorTest {
     assertThat(generator.getNextId(), is("0"));
     assertThat(generator.getNextId(), is("1"));
     assertThat(generator.getNextId(), is("2"));
-  }
-
-  @Test
-  public void shouldGeneratePostFixedIdes() {
-    // Given:
-    generator = new QueryIdGenerator("_post");
-
-    // Then:
-    assertThat(generator.getNextId(), is("0_post"));
-    assertThat(generator.getNextId(), is("1_post"));
-    assertThat(generator.getNextId(), is("2_post"));
   }
 
   @Test

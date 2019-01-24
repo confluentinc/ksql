@@ -939,6 +939,38 @@ example of converting a BIGINT into a VARCHAR type:
       WINDOW TUMBLING (SIZE 20 SECONDS)
       GROUP BY page_id;
 
+CASE
+~~~~
+
+ **Synopsis**
+
+ .. code:: sql
+
+     CASE
+        WHEN condition THEN result
+        [ WHEN ... THEN ... ]
+        …
+        [ WHEN … THEN … ]
+        [ ELSE result ]
+     END
+
+ Currently, KSQL supports a ``searched`` form of CASE expression. In this form, CASE evaluates
+each boolean ``condition`` in WHEN caluses, from left to right. If a condition is true, then it returns the
+corresponding result. If none of the conditions are true, it returns the result from the ELSE clause.
+If none of the conditions are true and there is no ELSE clause, it returns null.
+ The schema for all results should be the same, otherwise, KSQL will reject the statement.
+ Here is an example of CASE expression:
+
+ .. code:: sql
+
+     SELECT
+      CASE
+        WHEN orderunits < 2.0 THEN 'small'
+        WHEN orderunits < 4.0 THEN 'medium'
+        ELSE 'large'
+      END AS case_result
+     FROM orders;
+
 LIKE
 ~~~~
 
@@ -958,6 +990,27 @@ Example:
     SELECT user_id
       FROM users
       WHERE user_id LIKE 'santa%';
+
+BETWEEN
+~~~~~~~
+
+**Synopsis**
+
+.. code:: sql
+
+    WHERE expression [NOT] BETWEEN start_expression AND end_expression;
+
+The BETWEEN operator is used to indicate that a certain value must lie within
+a specified range, inclusive of boundaries. Currently, KSQL supports any expression
+that resolves to a numeric or string value for comparison.
+
+Example:
+
+.. code:: sql
+
+  SELECT event
+    FROM events
+    WHERE event_id BETWEEN 10 AND 20
 
 SHOW FUNCTIONS
 --------------
@@ -1241,6 +1294,18 @@ Scalar functions
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SPLIT                  |  ``SPLIT(col1, delimiter)``                                               | Splits a string into an array of substrings based |
+|                        |                                                                           | on a delimiter. If the delimiter is not found,    |
+|                        |                                                                           | then the original string is returned as the only  |
+|                        |                                                                           | element in the array. If the delimiter is empty,  |
+|                        |                                                                           | then all characters in the string are split.      |
+|                        |                                                                           | If either, string or delimiter, are NULL, then a  |
+|                        |                                                                           | NULL value is returned.                           |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | If the delimiter is found at the beginning or end |
+|                        |                                                                           | of the string, or there are contiguous delimiters,|
+|                        |                                                                           | then an empty space is added to the array.        |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                                     | Converts a string representation of a date in the |
 |                        |                                                                           | given format into an integer representing days    |

@@ -14,16 +14,20 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
-import io.confluent.ksql.cli.console.Console;
-import java.util.Objects;
+import java.io.PrintWriter;
+import java.util.List;
 import org.jline.reader.EndOfFileException;
 
-class Exit implements CliSpecificCommand {
+final class Exit implements CliSpecificCommand {
 
-  private final Console console;
+  private static final String HELP = "exit:" + System.lineSeparator()
+      + "\tExit the CLI.";
 
-  Exit(final Console console) {
-    this.console = Objects.requireNonNull(console, "console");
+  static Exit create() {
+    return new Exit();
+  }
+
+  private Exit() {
   }
 
   @Override
@@ -32,13 +36,13 @@ class Exit implements CliSpecificCommand {
   }
 
   @Override
-  public void printHelp() {
-    console.writer().println("exit:");
-    console.writer().println("\tExit the CLI.");
+  public String getHelpMessage() {
+    return HELP;
   }
 
   @Override
-  public void execute(final String commandStrippedLine) {
+  public void execute(final List<String> args, final PrintWriter terminal) {
+    CliCmdUtil.ensureArgCountBounds(args, 0, 0, HELP);
     throw new EndOfFileException();
   }
 }

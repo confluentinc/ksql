@@ -64,7 +64,10 @@ import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
+import java.io.File;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -94,6 +97,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -118,6 +122,9 @@ public class CliTest {
       .withProperty(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
       .build();
+
+  @ClassRule
+  public static final TemporaryFolder TMP = new TemporaryFolder();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
@@ -183,6 +190,8 @@ public class CliTest {
         restClient,
         console
     );
+
+    maybeDropStream("SHOULDRUNSCRIPT");
   }
 
   @SuppressWarnings("unchecked")
@@ -385,6 +394,18 @@ public class CliTest {
     runStatement(dropStatement, restClient);
   }
 
+  private static void maybeDropStream(final String name) {
+    final String dropStatement = String.format("drop stream %s;", name);
+
+    final RestResponse response = restClient.makeKsqlRequest(dropStatement, null);
+    if (response.isSuccessful()
+        || response.getErrorMessage().toString().contains("does not exist")) {
+      return;
+    }
+
+    dropStream(name);
+  }
+
   private void selectWithLimit(String selectQuery, final int limit, final TestResult expectedResults) {
     selectQuery += " LIMIT " + limit + ";";
     assertRunCommand(selectQuery, contains(expectedResults));
@@ -403,7 +424,7 @@ public class CliTest {
                 any(String.class))));
     assertRunListCommand(
         "registered topics",
-        containsInAnyOrder(
+        hasItems(
             new TestResult.Builder()
                 .addRow(orderDataProvider.kstreamName(), orderDataProvider.topicName(), "JSON")
                 .addRow(COMMANDS_KSQL_TOPIC_NAME, commandTopicName, "JSON")
@@ -821,6 +842,25 @@ public class CliTest {
 
     assertThat(terminal.getOutputString(),
         containsString("Successfully changed local property 'auto.offset.reset' to 'earliest'"));
+  }
+
+  @Test
+  public void shouldRunScript() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + orderDataProvider.kstreamName() + ";"
+        + "").getBytes(StandardCharsets.UTF_8));
+
+    when(lineSupplier.get()).thenReturn("run script '" + scriptFile.getAbsolutePath() + "'");
+
+    givenRunInteractivelyWillExit();
+
+    // When:
+    localCli.runInteractively();
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString("Stream created and running"));
   }
 
   @Test

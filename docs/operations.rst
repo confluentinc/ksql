@@ -38,6 +38,7 @@ Healthchecks
   ``EXPLAIN <name of query>``.
 - Run ``ksql-print-metrics`` on a KSQL server. For example, see this `blog post <https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/>`_.
 
+.. _ksql-monitoring-and-metrics:
 
 ======================
 Monitoring and Metrics

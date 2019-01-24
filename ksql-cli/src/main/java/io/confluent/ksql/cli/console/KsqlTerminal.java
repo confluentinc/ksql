@@ -55,8 +55,8 @@ public interface KsqlTerminal {
   void close();
 
   class HistoryEntry {
-    final long index;
-    final String line;
+    private final long index;
+    private final String line;
 
     private HistoryEntry(final long index, final String line) {
       this.index = index;
@@ -64,6 +64,14 @@ public interface KsqlTerminal {
       if (index < 1) {
         throw new IllegalArgumentException("index < 1. index=" + index);
       }
+    }
+
+    public long getIndex() {
+      return index;
+    }
+
+    public String getLine() {
+      return line;
     }
 
     static HistoryEntry of(final long index, final String line) {

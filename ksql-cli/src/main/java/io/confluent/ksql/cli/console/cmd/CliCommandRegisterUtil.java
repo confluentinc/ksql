@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
+import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.util.Event;
@@ -23,42 +24,45 @@ import java.util.function.Supplier;
 /**
  * God class for registering Cli commands
  */
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class CliCommandRegisterUtil {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private CliCommandRegisterUtil() {
   }
 
-  public static void registerDefaultConsoleCommands(
-      final Console console
-  ) {
-    console.registerCliSpecificCommand(new Help(console));
-
-    console.registerCliSpecificCommand(new Clear(console));
-
-    console.registerCliSpecificCommand(new Output(console));
-
-    console.registerCliSpecificCommand(new History(console));
-
-    console.registerCliSpecificCommand(new Exit(console));
-  }
-
-  public static void registerDefaultCliCommands(
+  public static void registerDefaultCommands(
+      final KsqlRequestExecutor requestExecutor,
       final Console console,
+      final Supplier<String> versionSuppler,
       final KsqlRestClient restClient,
       final Event resetCliForNewServer,
       final Supplier<Boolean> requestPipeliningSupplier,
-      final Consumer<Boolean> requestPipeliningConsumer
-  ) {
-    final Supplier<String> versionSuppler =
-        () -> restClient.getServerInfo().getResponse().getVersion();
-    console.registerCliSpecificCommand(new Version(console, versionSuppler));
+      final Consumer<Boolean> requestPipeliningConsumer) {
 
-    console.registerCliSpecificCommand(new RemoteServerSpecificCommand(
-        restClient, console.writer(), resetCliForNewServer));
+    console.registerCliSpecificCommand(
+        Help.create(() -> console.getCliSpecificCommands().values()));
 
-    console.registerCliSpecificCommand(new RequestPipeliningCommand(
-        console.writer(), requestPipeliningSupplier, requestPipeliningConsumer));
+    console.registerCliSpecificCommand(
+        Clear.create(console::clearScreen));
+
+    console.registerCliSpecificCommand(
+        Output.create(console::getOutputFormat, console::setOutputFormat));
+
+    console.registerCliSpecificCommand(
+        History.create(console::getHistory));
+
+    console.registerCliSpecificCommand(
+        Version.create(versionSuppler));
+
+    console.registerCliSpecificCommand(
+        Exit.create());
+
+    console.registerCliSpecificCommand(
+        RunScript.create(requestExecutor));
+
+    console.registerCliSpecificCommand(
+        RemoteServerSpecificCommand.create(restClient, resetCliForNewServer));
+
+    console.registerCliSpecificCommand(
+        RequestPipeliningCommand.create(requestPipeliningSupplier, requestPipeliningConsumer));
   }
 }

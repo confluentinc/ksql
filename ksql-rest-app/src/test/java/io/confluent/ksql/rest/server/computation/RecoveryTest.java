@@ -35,9 +35,9 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
-import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -61,6 +61,7 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class RecoveryTest {
@@ -70,8 +71,8 @@ public class RecoveryTest {
       )
   );
   private final List<QueuedCommand> commands = new LinkedList<>();
-  private final ServiceContext serviceContext =
-      TestServiceContext.create(new MockKafkaTopicClient());
+  private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
+  private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
 
@@ -366,7 +367,7 @@ public class RecoveryTest {
     protected boolean matchesSafely(final MetaStore other, final Description description) {
       if (!test(
           equalTo(sourceMatchers.keySet()),
-          other.getAllStructuredDataSourceNames(),
+          other.getAllStructuredDataSources().keySet(),
           description,
           "source set mismatch: ")) {
         return false;
@@ -499,6 +500,11 @@ public class RecoveryTest {
         (queryId, query) -> assertThat(query, sameQuery(recoveredQueries.get(queryId))));
   }
 
+  @Before
+  public void setUp() {
+    topicClient.preconditionTopicExists("A");
+  }
+
   @Test
   public void shouldRecoverCreates() {
     server1.submitCommands(
@@ -572,6 +578,8 @@ public class RecoveryTest {
 
   @Test
   public void shouldRecoverLogWithTerminateAfterDrop() {
+    topicClient.preconditionTopicExists("B");
+
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');"
@@ -609,7 +617,7 @@ public class RecoveryTest {
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     assertThat(
-        server.ksqlEngine.getMetaStore().getAllStructuredDataSourceNames(),
+        server.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
         contains("A", "B"));
     commands.add(
         new QueuedCommand(
@@ -620,7 +628,7 @@ public class RecoveryTest {
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
     assertThat(
-        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSourceNames(),
+        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
         contains("A"));
   }
 }

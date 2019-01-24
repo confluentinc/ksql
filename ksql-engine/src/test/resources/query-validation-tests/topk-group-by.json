@@ -16,18 +16,18 @@
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 99}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 7}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 100}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 99}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 7}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[0]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100,0]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100,99,0]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100,99,7]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[100,100,99]}, "timestamp": 0}
+        {"topic": "S2", "value": {"ID":0,"TOPK":[0]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[100,0]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[100,99,0]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[100,99,7]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[100,100,99]}}
       ]
     },
     {
@@ -38,18 +38,18 @@
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 2147483648}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 99}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 7}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 2147483648}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 100}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 99}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 7}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 100}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648,100]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648,100,99]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648,100,99]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2147483648,100,100]}, "timestamp": 0}
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2147483648]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2147483648,100]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2147483648,100,99]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2147483648,100,99]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2147483648,100,100]}}
       ]
     },
     {
@@ -60,18 +60,18 @@
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 2147483648.9}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100.5}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 99.9}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 7.3}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 100.5}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 2147483648.9}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 100.5}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 99.9}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 7.3}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 100.5}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9,100.5]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,99.9]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,99.9]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,100.5]}, "timestamp": 0}
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2.1474836489E9]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2.1474836489E9,100.5]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,99.9]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,99.9]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":[2.1474836489E9,100.5,100.5]}}
       ]
     },
     {
@@ -82,18 +82,18 @@
         "CREATE TABLE S2 as SELECT id, topk(value, 3) as topk FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "a"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "b"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "c"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "b"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": "d"}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "a"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "b"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "c"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "b"}},
+        {"topic": "test_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": "d"}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["a"]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["b","a"]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["c","b","a"]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["c","b","b"]}, "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": {"ID":0,"TOPK":["d","c","b"]}, "timestamp": 0}
+        {"topic": "S2", "value": {"ID":0,"TOPK":["a"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["b","a"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["c","b","a"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["c","b","b"]}},
+        {"topic": "S2", "value": {"ID":0,"TOPK":["d","c","b"]}}
       ]
     }
   ]

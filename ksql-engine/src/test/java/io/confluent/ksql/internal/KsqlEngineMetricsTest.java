@@ -66,15 +66,12 @@ public class KsqlEngineMetricsTest {
   private KsqlEngine ksqlEngine;
   @Mock
   private QueryMetadata query1;
-  @Mock
-  private QueryMetadata query2;
 
   @Before
   public void setUp() {
     MetricCollectors.initialize();
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
     when(query1.getQueryApplicationId()).thenReturn("app-1");
-    when(query2.getQueryApplicationId()).thenReturn("app-2");
 
     engineMetrics = new KsqlEngineMetrics(METRIC_GROUP, ksqlEngine, MetricCollectors.getMetrics());
   }
@@ -198,26 +195,25 @@ public class KsqlEngineMetricsTest {
   @Test
   public void shouldRegisterQueries() {
     // When:
-    engineMetrics.registerQueries(ImmutableList.of(query1, query2));
+    engineMetrics.registerQuery(query1);
 
     // Then:
     verify(query1).registerQueryStateListener(any());
-    verify(query2).registerQueryStateListener(any());
   }
 
-  private double getMetricValue(final Metrics metrics, final String metricName) {
+  private static double getMetricValue(final Metrics metrics, final String metricName) {
     return Double.valueOf(
         metrics.metric(metrics.metricName(metricName, METRIC_GROUP + "-query-stats"))
             .metricValue().toString());
   }
 
-  private long getLongMetricValue(final Metrics metrics, final String metricName) {
+  private static long getLongMetricValue(final Metrics metrics, final String metricName) {
     return Long.parseLong(
         metrics.metric(metrics.metricName(metricName, METRIC_GROUP + "-query-stats"))
             .metricValue().toString());
   }
 
-  private void consumeMessages(final int numMessages, final String groupId) {
+  private static void consumeMessages(final int numMessages, final String groupId) {
     final ConsumerCollector collector1 = new ConsumerCollector();
     collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, groupId));
     final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
@@ -231,7 +227,7 @@ public class KsqlEngineMetricsTest {
     collector1.onConsume(consumerRecords);
   }
 
-  private void produceMessages(final int numMessages) {
+  private static void produceMessages(final int numMessages) {
     final ProducerCollector collector1 = new ProducerCollector();
     collector1.configure(ImmutableMap.of(ProducerConfig.CLIENT_ID_CONFIG, "client1"));
     for (int i = 0; i < numMessages; i++) {
@@ -239,7 +235,7 @@ public class KsqlEngineMetricsTest {
     }
   }
 
-  private Answer<List<PersistentQueryMetadata>> returnQueriesInState(
+  private static Answer<List<PersistentQueryMetadata>> returnQueriesInState(
       final int numberOfQueries,
       final KafkaStreams.State state
   ) {

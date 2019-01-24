@@ -21,8 +21,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collections;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.junit.Before;
@@ -39,24 +41,21 @@ public class RequestPipeliningCommandTest {
   @Mock
   private Consumer<Boolean> settingConsumer;
   private StringWriter out;
+  private PrintWriter terminal;
 
   private RequestPipeliningCommand requestPipeliningCommand;
 
   @Before
   public void setUp() {
     out = new StringWriter();
-    requestPipeliningCommand =
-        new RequestPipeliningCommand(new PrintWriter(out), settingSupplier, settingConsumer);
+    terminal = new PrintWriter(out);
+    requestPipeliningCommand = RequestPipeliningCommand.create(settingSupplier, settingConsumer);
   }
 
   @Test
-  public void shouldPrintHelp() {
-    // When:
-    requestPipeliningCommand.printHelp();
-
-    // Then:
-    assertThat(out.toString(), containsString("View the current setting"));
-    assertThat(out.toString(), containsString("Update the setting as specified."));
+  public void shouldGetHelp() {
+    assertThat(requestPipeliningCommand.getHelpMessage(), containsString("View the current setting"));
+    assertThat(requestPipeliningCommand.getHelpMessage(), containsString("Update the setting as specified."));
   }
 
   @Test
@@ -65,7 +64,7 @@ public class RequestPipeliningCommandTest {
     when(settingSupplier.get()).thenReturn(true);
 
     // When:
-    requestPipeliningCommand.execute("");
+    requestPipeliningCommand.execute(Collections.emptyList(), terminal);
 
     // Then:
     assertThat(out.toString(),
@@ -78,7 +77,7 @@ public class RequestPipeliningCommandTest {
     when(settingSupplier.get()).thenReturn(false);
 
     // When:
-    requestPipeliningCommand.execute("");
+    requestPipeliningCommand.execute(Collections.emptyList(), terminal);
 
     // Then:
     assertThat(out.toString(),
@@ -88,7 +87,7 @@ public class RequestPipeliningCommandTest {
   @Test
   public void shouldUpdateSettingToOn() {
     // When:
-    requestPipeliningCommand.execute("on");
+    requestPipeliningCommand.execute(ImmutableList.of("on"), terminal);
 
     // Then:
     verify(settingConsumer).accept(true);
@@ -97,7 +96,7 @@ public class RequestPipeliningCommandTest {
   @Test
   public void shouldUpdateSettingToOff() {
     // When:
-    requestPipeliningCommand.execute("OFF");
+    requestPipeliningCommand.execute(ImmutableList.of("OFF"), terminal);
 
     // Then:
     verify(settingConsumer).accept(false);
@@ -106,7 +105,7 @@ public class RequestPipeliningCommandTest {
   @Test
   public void shouldRejectUpdateOnInvalidSetting() {
     // When:
-    requestPipeliningCommand.execute("bad");
+    requestPipeliningCommand.execute(ImmutableList.of("bad"), terminal);
 
     // Then:
     verify(settingConsumer, never()).accept(anyBoolean());

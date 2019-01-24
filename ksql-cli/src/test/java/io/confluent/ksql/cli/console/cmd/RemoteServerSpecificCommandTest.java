@@ -23,6 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -40,7 +41,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RemoteCliSpecificCommandTest {
+public class RemoteServerSpecificCommandTest {
 
   private static final String INITIAL_SERVER_ADDRESS = "http://192.168.0.1:8080";
   private static final String VALID_SERVER_ADDRESS = "http://localhost:8088";
@@ -54,11 +55,13 @@ public class RemoteCliSpecificCommandTest {
 
   private RemoteServerSpecificCommand command;
   private StringWriter out;
+  private PrintWriter terminal;
 
   @Before
   public void setUp() throws Exception {
     out = new StringWriter();
-    command = new RemoteServerSpecificCommand(restClient, new PrintWriter(out), resetCliForNewServer);
+    terminal = new PrintWriter(out);
+    command = RemoteServerSpecificCommand.create(restClient, resetCliForNewServer);
 
     when(restClient.makeRootRequest()).thenReturn(RestResponse.successful(SERVER_INFO));
     when(restClient.getServerAddress()).thenReturn(new URI(INITIAL_SERVER_ADDRESS));
@@ -67,7 +70,7 @@ public class RemoteCliSpecificCommandTest {
   @Test
   public void shouldSetRestClientServerAddressWhenNonEmptyStringArg() {
     // When:
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     // Then:
     verify(restClient).setServerAddress(VALID_SERVER_ADDRESS);
@@ -79,13 +82,13 @@ public class RemoteCliSpecificCommandTest {
     doThrow(new KsqlRestClientException("Boom")).when(restClient).setServerAddress("localhost:8088");
 
     // When:
-    command.execute("localhost:8088");
+    command.execute(ImmutableList.of("localhost:8088"), terminal);
   }
 
   @Test
   public void shouldPrintServerAddressWhenEmptyStringArg() {
     // When:
-    command.execute("");
+    command.execute(ImmutableList.of(), terminal);
 
     // Then:
     assertThat(out.toString(), equalTo(INITIAL_SERVER_ADDRESS + "\n"));
@@ -100,7 +103,7 @@ public class RemoteCliSpecificCommandTest {
         new KsqlRestClientException("Failed to connect", new ProcessingException("Boom")));
 
     // When:
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     // Then:
     assertThat(out.toString(), containsString("Boom"));
@@ -110,7 +113,7 @@ public class RemoteCliSpecificCommandTest {
   @Test
   public void shouldOutputNewServerDetails() {
     // When:
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     // Then:
     assertThat(out.toString(), containsString("Server now: " + VALID_SERVER_ADDRESS));
@@ -123,28 +126,26 @@ public class RemoteCliSpecificCommandTest {
         Errors.ERROR_CODE_SERVER_ERROR, "it is broken"));
 
     // When:
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     // Then:
     assertThat(out.toString(), containsString("it is broken"));
   }
 
   @Test
-  public void shouldPrintHelp() {
-    // When:
-    command.printHelp();
-
-    // Then:
-    assertThat(out.toString(), containsString("server:\n\tShow the current server"));
-    assertThat(out.toString(), containsString("server <server>:\n\tChange the current server to <server>"));
-  }
-
-  @Test
   public void shouldResetCliForNewServer() {
     // When:
-    command.execute(VALID_SERVER_ADDRESS);
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
 
     // Then:
     verify(resetCliForNewServer).fire();
+  }
+
+  @Test
+  public void shouldGetHelp() {
+    assertThat(command.getHelpMessage(),
+        containsString("server:\n\tShow the current server"));
+    assertThat(command.getHelpMessage(),
+        containsString("server <server>:\n\tChange the current server to <server>"));
   }
 }

@@ -59,14 +59,15 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-// CHECKSTYLE_RULES.OFF: FinalClassCheck ; JMH benchmark classes cannot be final
+// CHECKSTYLE_RULES.OFF: HideUtilityClassConstructor ; Reason: "@State annotation can only be
+// applied to classes having the default public constructor."
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 5, time = 10)
 @Measurement(iterations = 5, time = 10)
 @Threads(4)
 public class SerdeBenchmark {
-  // CHECKSTYLE_RULES.ON: FinalClassCheck
+  // CHECKSTYLE_RULES.ON: HideUtilityClassConstructor
 
   private static final Path SCHEMA_DIR = Paths.get("schemas");
   private static final String SCHEMA_FILE_SUFFIX = ".avro";
@@ -176,12 +177,12 @@ public class SerdeBenchmark {
   }
 
   @Benchmark
-  public byte[] serialize(final SerdeState serdeState) {
+  public static byte[] serialize(final SerdeState serdeState) {
     return serdeState.serializer.serialize(TOPIC_NAME, serdeState.row);
   }
 
   @Benchmark
-  public GenericRow deserialize(final SerdeState serdeState) {
+  public static GenericRow deserialize(final SerdeState serdeState) {
     return serdeState.deserializer.deserialize(TOPIC_NAME, serdeState.bytes);
   }
 

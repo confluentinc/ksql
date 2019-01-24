@@ -32,10 +32,6 @@ public class DropTable extends AbstractStreamDropStatement implements Executable
     super(location, tableName, deleteTopic, ifExists);
   }
 
-  public QualifiedName getTableName() {
-    return getName();
-  }
-
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDropTable(this, context);

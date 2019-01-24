@@ -24,12 +24,13 @@ public abstract class AbstractStreamDropStatement extends Statement {
   private final boolean ifExists;
   private final boolean deleteTopic;
 
-  public AbstractStreamDropStatement(final Optional<NodeLocation> location,
-                                     final QualifiedName name,
-                                     final boolean deleteTopic,
-                                     final boolean ifExists) {
+  AbstractStreamDropStatement(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final boolean deleteTopic,
+      final boolean ifExists) {
     super(location);
-    this.name = name;
+    this.name = Objects.requireNonNull(name, "name can't be null");
     this.deleteTopic = deleteTopic;
     this.ifExists = ifExists;
   }

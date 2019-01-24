@@ -40,10 +40,6 @@ public class DropStream
     super(location, streamName, deleteTopic, ifExists);
   }
 
-  public QualifiedName getStreamName() {
-    return getName();
-  }
-
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDropStream(this, context);

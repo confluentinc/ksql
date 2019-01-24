@@ -1026,7 +1026,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
 
   protected Node visitDropTable(final DropTable node, final Object context) {
     return new DropTable(node.getLocation(),
-        node.getTableName(),
+        node.getName(),
         node.getIfExists(),
         node.isDeleteTopic());
   }

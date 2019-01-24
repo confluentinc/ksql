@@ -70,7 +70,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.easymock.EasyMock;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.hamcrest.CoreMatchers;
@@ -501,7 +500,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   private DropStream mockDropStream(final String name) {
     final DropStream mockDropStream = mock(DropStream.class);
     expect(mockDropStream.getName()).andStubReturn(QualifiedName.of(name));
-    expect(mockDropStream.getStreamName()).andStubReturn(QualifiedName.of(name));
+    expect(mockDropStream.getName()).andStubReturn(QualifiedName.of(name));
     expect(mockParser.parseSingleStatement("DROP"))
         .andReturn(new PreparedStatement<>("DROP", mockDropStream));
     return mockDropStream;

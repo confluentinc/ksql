@@ -43,15 +43,16 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -63,8 +64,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import io.confluent.ksql.util.SchemaUtil;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.Node;
@@ -75,7 +74,6 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.easymock.EasyMock;
@@ -84,9 +82,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 
+@SuppressWarnings("SameParameterValue")
 public class JoinNodeTest {
 
-  private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
+  private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder = new StreamsBuilder();
   private SchemaKStream stream;
   private JoinNode joinNode;
@@ -187,8 +186,7 @@ public class JoinNodeTest {
         queryId);
   }
 
-  private void
-  setupTopicClientExpectations(final int streamPartitions, final int tablePartitions) {
+  private void setupTopicClientExpectations(final int streamPartitions, final int tablePartitions) {
     final Node node = new Node(0, "localhost", 9091);
 
     final List<TopicPartitionInfo> streamPartitionInfoList =
@@ -196,22 +194,19 @@ public class JoinNodeTest {
             .mapToObj(
                 p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
             .collect(Collectors.toList());
-    expect(mockKafkaTopicClient.describeTopics(Collections.singletonList("test1")))
-        .andReturn(
-            Collections.singletonMap(
-                "test1",
-                new TopicDescription("test1", false, streamPartitionInfoList)));
+
+    expect(mockKafkaTopicClient.describeTopic("test1"))
+        .andReturn(new TopicDescription("test1", false, streamPartitionInfoList));
 
     final List<TopicPartitionInfo> tablePartitionInfoList =
         IntStream.range(0, tablePartitions)
         .mapToObj(
             p -> new TopicPartitionInfo(p, node, Collections.emptyList(), Collections.emptyList()))
         .collect(Collectors.toList());
-    expect(mockKafkaTopicClient.describeTopics(Collections.singletonList("test2")))
-        .andReturn(
-            Collections.singletonMap(
-                "test2",
-                new TopicDescription("test2", false, tablePartitionInfoList)));
+
+    expect(mockKafkaTopicClient.describeTopic("test2"))
+        .andReturn(new TopicDescription("test2", false, tablePartitionInfoList));
+
     replay(mockKafkaTopicClient);
   }
 

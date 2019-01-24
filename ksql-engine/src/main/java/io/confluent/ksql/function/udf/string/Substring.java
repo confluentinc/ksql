@@ -47,9 +47,9 @@ public class Substring implements Configurable {
   @Udf(description = "Returns a substring of str that starts at pos"
       + " and continues to the end of the string")
   public String substring(
-      @UdfParameter(value = "str",
+      @UdfParameter(
           description = "The source string. If null, then function returns null.") final String str,
-      @UdfParameter(value = "pos",
+      @UdfParameter(
           description = "The base-one position the substring starts from."
               + " If null, then function returns null."
               + " (If in legacy mode, this argument is base-zero)") final Integer pos) {
@@ -58,13 +58,13 @@ public class Substring implements Configurable {
 
   @Udf(description = "Returns a substring of str that starts at pos and is of length len")
   public String substring(
-      @UdfParameter(value = "str",
+      @UdfParameter(
           description = "The source string. If null, then function returns null.") final String str,
-      @UdfParameter(value = "pos",
+      @UdfParameter(
           description = "The base-one position the substring starts from."
               + " If null, then function returns null."
               + " (If in legacy mode, this argument is base-zero)") final Integer pos,
-      @UdfParameter(value = "len",
+      @UdfParameter(
           description = "The length of the substring to extract."
               + " If null, then function returns null."
               + " (If in legacy mode, this argument is the endIndex (exclusive),"

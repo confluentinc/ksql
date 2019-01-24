@@ -37,10 +37,10 @@ public class SplitKudf {
 
   @Udf(description = "Splits a string into an array of substrings based on a delimiter.")
   public List<String> split(
-      @UdfParameter(value = "string",
+      @UdfParameter(
           description = "The string to be split. If NULL, then function returns NULL.")
       final String string,
-      @UdfParameter(value = "delimiter",
+      @UdfParameter(
           description = "The delimiter to split a string by. If NULL, then function returns NULL.")
       final String delimiter) {
     if (string == null || delimiter == null) {

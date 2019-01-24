@@ -34,11 +34,11 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.services.FakeKafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -161,13 +161,11 @@ public class PhysicalPlanBuilderTest {
         serviceContext,
         functionRegistry,
         overrideProperties,
-        false,
         metaStore,
-        new QueryIdGenerator(""),
+        new QueryIdGenerator(),
         testKafkaStreamsBuilder,
         queryCloseCallback
     );
-
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {

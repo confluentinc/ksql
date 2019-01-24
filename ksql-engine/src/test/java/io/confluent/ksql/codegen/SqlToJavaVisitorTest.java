@@ -33,6 +33,7 @@ public class SqlToJavaVisitorTest {
 
   private MetaStore metaStore;
   private Schema schema;
+  private Schema orderSchema;
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   @Before
@@ -58,6 +59,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL5", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("TEST1.COL6", addressSchema)
         .build();
+    orderSchema = metaStore.getSource("ORDERS").getSchema();
   }
 
   @Test
@@ -179,5 +181,34 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getWhereExpression());
     assertThat(javaExpression, equalTo("(TEST1_COL1).equals(\"foo\")"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForCaseStatement() {
+    // Given:
+    final Analysis analysis = analyzeQuery(
+        "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE 'large' END FROM orders;", metaStore);
+
+
+    // When:
+    final String javaExpression = new SqlToJavaVisitor(orderSchema, functionRegistry)
+        .process(analysis.getSelectExpressions().get(0));
+
+    // ThenL
+    assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"10\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"10\"))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"100\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"100\"))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"large\"; }}))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForCaseStatementWithNoElse() {
+    // Given:
+    final Analysis analysis = analyzeQuery(
+        "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' END FROM orders;", metaStore);
+
+    // When:
+    final String javaExpression = new SqlToJavaVisitor(orderSchema, functionRegistry)
+        .process(analysis.getSelectExpressions().get(0));
+
+    // ThenL
+    assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"10\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"10\"))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"100\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"100\"))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
   }
 }

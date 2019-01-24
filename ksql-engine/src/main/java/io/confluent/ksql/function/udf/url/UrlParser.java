@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.url;
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 import java.util.function.Function;
 import javax.annotation.Nonnull;
 
@@ -34,6 +35,8 @@ final class UrlParser {
    * @return the value of {@code extract(url)} if present and valid, otherwise {@code null}
    */
   static <T> T extract(final String url, @Nonnull final Function<URI, T> extract) {
+    Objects.requireNonNull(extract, "must supply a non-null extract method!");
+
     if (url == null) {
       return null;
     }

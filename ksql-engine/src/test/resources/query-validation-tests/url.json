@@ -87,6 +87,20 @@
       ]
     },
     {
+      "name": "chain a call to URL_EXTRACT_PARAMETER with URL_DECODE_PARAM",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (url VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT URL_DECODE_PARAM(URL_EXTRACT_PARAMETER(url,'two')) as PARAM FROM TEST;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key":  1, "value": {"url": "http://www.test.com/?one=a&two=url%20encoded"}, "timestamp":  0}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key":  1, "value":  {"PARAM":  "url encoded"}, "timestamp": 0}
+      ]
+    },
+    {
       "name": "extract a path from a URL using URL_EXTRACT_PATH",
       "format": ["JSON"],
       "statements": [

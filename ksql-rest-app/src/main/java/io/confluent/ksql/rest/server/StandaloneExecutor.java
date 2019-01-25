@@ -27,7 +27,6 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -73,7 +72,6 @@ public class StandaloneExecutor implements Executable {
               castHandler(StandaloneExecutor::handlePersistentQuery, InsertInto.class))
           .build();
 
-  private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final String queriesFile;
@@ -84,7 +82,6 @@ public class StandaloneExecutor implements Executable {
   private final VersionCheckerAgent versionCheckerAgent;
 
   StandaloneExecutor(
-      final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final String queriesFile,
@@ -92,7 +89,6 @@ public class StandaloneExecutor implements Executable {
       final boolean failOnNoQueries,
       final VersionCheckerAgent versionCheckerAgent
   ) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile");
@@ -122,11 +118,6 @@ public class StandaloneExecutor implements Executable {
       ksqlEngine.close();
     } catch (final Exception e) {
       log.warn("Failed to cleanly shutdown the KSQL Engine", e);
-    }
-    try {
-      serviceContext.close();
-    } catch (final Exception e) {
-      log.warn("Failed to cleanly shutdown services", e);
     }
     shutdownLatch.countDown();
   }

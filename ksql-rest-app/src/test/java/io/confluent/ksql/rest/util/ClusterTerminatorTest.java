@@ -33,7 +33,6 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -69,8 +68,6 @@ public class ClusterTerminatorTest {
   private PersistentQueryMetadata persistentQuery1;
   @Mock
   private MetaStore metaStore;
-  @Mock
-  private ServiceContext serviceContext;
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -79,8 +76,7 @@ public class ClusterTerminatorTest {
 
   @Before
   public void setup() {
-    when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
-    clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext);
+    clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine, kafkaTopicClient);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("command_topic");
     when(ksqlEngine.getPersistentQueries())

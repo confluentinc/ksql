@@ -94,7 +94,7 @@ public class StandaloneExecutorTest {
     when(engine.execute(any(), any(), any())).thenReturn(Optional.of(queryMd));
 
     standaloneExecutor = new StandaloneExecutor(
-        serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader,
+        ksqlConfig, engine, queriesFile.toString(), udfLoader,
         false, versionCheckerAgent);
   }
 
@@ -343,18 +343,9 @@ public class StandaloneExecutorTest {
     verify(engine).close();
   }
 
-  @Test
-  public void shouldCloseServiceContextOnStop() {
-    // When:
-    standaloneExecutor.stop();
-
-    // Then:
-    verify(serviceContext).close();
-  }
-
   private void givenExecutorWillFailOnNoQueries() {
     standaloneExecutor = new StandaloneExecutor(
-        serviceContext, ksqlConfig, engine, queriesFile.toString(), udfLoader, true, versionCheckerAgent);
+        ksqlConfig, engine, queriesFile.toString(), udfLoader, true, versionCheckerAgent);
   }
 
   private void givenFileContainsAPersistentQuery() {

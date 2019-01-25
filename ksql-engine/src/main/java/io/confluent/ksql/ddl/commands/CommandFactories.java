@@ -29,7 +29,6 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
-import java.util.Objects;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandFactories implements DdlCommandFactory {
@@ -50,18 +49,15 @@ public class CommandFactories implements DdlCommandFactory {
       .put(UnsetProperty.class, CommandFactories::handleUnsetProperty)
       .build();
 
-  private final ServiceContext serviceContext;
-
-  public CommandFactories(final ServiceContext serviceContext) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-  }
+  public CommandFactories() { /* empty constructor for tracing instantiation */ }
 
   @Override
   public DdlCommand create(
       final String sqlExpression,
       final DdlStatement ddlStatement,
       final Map<String, Object> properties,
-      final boolean enforceTopicExistence
+      final boolean enforceTopicExistence,
+      final ServiceContext serviceContext
   ) {
     return FACTORIES
         .getOrDefault(ddlStatement.getClass(), (statement, cf, ci) -> {
@@ -74,7 +70,7 @@ public class CommandFactories implements DdlCommandFactory {
         })
         .handle(
             this,
-            new CallInfo(sqlExpression, properties, enforceTopicExistence),
+            new CallInfo(sqlExpression, properties, enforceTopicExistence, serviceContext),
             ddlStatement);
   }
 
@@ -89,7 +85,7 @@ public class CommandFactories implements DdlCommandFactory {
     return new CreateStreamCommand(
         callInfo.sqlExpression,
         statement,
-        serviceContext.getTopicClient(),
+        callInfo.serviceContext.getTopicClient(),
         callInfo.enforceTopicExistence);
   }
 
@@ -100,25 +96,25 @@ public class CommandFactories implements DdlCommandFactory {
     return new CreateTableCommand(
         callInfo.sqlExpression,
         statement,
-        serviceContext.getTopicClient(),
+        callInfo.serviceContext.getTopicClient(),
         callInfo.enforceTopicExistence);
   }
 
-  private DropSourceCommand handleDropStream(final DropStream statement) {
+  private DropSourceCommand handleDropStream(final CallInfo callInfo, final DropStream statement) {
     return new DropSourceCommand(
         statement,
         DataSource.DataSourceType.KSTREAM,
-        serviceContext.getTopicClient(),
-        serviceContext.getSchemaRegistryClient(),
+        callInfo.serviceContext.getTopicClient(),
+        callInfo.serviceContext.getSchemaRegistryClient(),
         statement.isDeleteTopic());
   }
 
-  private DropSourceCommand handleDropTable(final DropTable statement) {
+  private DropSourceCommand handleDropTable(final CallInfo callInfo, final DropTable statement) {
     return new DropSourceCommand(
         statement,
         DataSource.DataSourceType.KTABLE,
-        serviceContext.getTopicClient(),
-        serviceContext.getSchemaRegistryClient(),
+        callInfo.serviceContext.getTopicClient(),
+        callInfo.serviceContext.getSchemaRegistryClient(),
         statement.isDeleteTopic());
   }
 
@@ -147,15 +143,17 @@ public class CommandFactories implements DdlCommandFactory {
     final String sqlExpression;
     final Map<String, Object> properties;
     final boolean enforceTopicExistence;
+    final ServiceContext serviceContext;
 
     private CallInfo(
         final String sqlExpression,
         final Map<String, Object> properties,
-        final boolean enforceTopicExistence
-    ) {
+        final boolean enforceTopicExistence,
+        final ServiceContext serviceContext) {
       this.sqlExpression = sqlExpression;
       this.properties = properties;
       this.enforceTopicExistence = enforceTopicExistence;
+      this.serviceContext = serviceContext;
     }
   }
 }

@@ -530,7 +530,7 @@ public class IntegrationTestHarness extends ExternalResource {
     }
 
     public TestKsqlContext build() {
-      return new TestKsqlContext(IntegrationTestHarness.this, additionalConfig);
+      return new TestKsqlContext(IntegrationTestHarness.this, additionalConfig, serviceContext.get());
     }
   }
 

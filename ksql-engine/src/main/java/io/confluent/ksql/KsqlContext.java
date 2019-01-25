@@ -18,8 +18,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.services.DefaultServiceContext;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -38,16 +36,13 @@ public class KsqlContext {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlContext.class);
 
-  private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
 
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
-    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
-    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final KsqlEngine engine = new KsqlEngine(serviceContext, serviceId);
-    return new KsqlContext(serviceContext, ksqlConfig, engine);
+    final KsqlEngine engine = new KsqlEngine(ksqlConfig);
+    return new KsqlContext(ksqlConfig, engine);
   }
 
   /**
@@ -55,17 +50,11 @@ public class KsqlContext {
    * A KSQL context has it's own metastore valid during the life of the object.
    */
   KsqlContext(
-      final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine
   ) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-  }
-
-  public ServiceContext getServiceContext() {
-    return serviceContext;
   }
 
   public MetaStore getMetaStore() {
@@ -120,7 +109,6 @@ public class KsqlContext {
 
   public void close() {
     ksqlEngine.close();
-    serviceContext.close();
   }
 
   public void terminateQuery(final QueryId queryId) {

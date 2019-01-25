@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
+import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -175,10 +176,9 @@ public class RecoveryTest {
       this.commandRunner = new CommandRunner(
           statementExecutor,
           fakeCommandQueue,
-          ksqlConfig,
           ksqlEngine,
           1,
-          serviceContext
+          new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext.getTopicClient())
       );
     }
 

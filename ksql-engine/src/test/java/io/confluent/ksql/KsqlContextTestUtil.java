@@ -15,6 +15,9 @@
 package io.confluent.ksql;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
+import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
@@ -54,12 +57,12 @@ public final class KsqlContextTestUtil {
         () -> schemaRegistryClient
     );
 
-    final KsqlEngine engine = new KsqlEngine(
-        serviceContext,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-    );
+    final KsqlEngine engine = new KsqlEngine(serviceContext,
+                                             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+                                             new MetaStoreImpl(new InternalFunctionRegistry()),
+                                             KsqlEngineMetrics::new);
 
-    return new KsqlContext(serviceContext, ksqlConfig, engine);
+    return new KsqlContext(ksqlConfig, engine);
   }
 
   public static KsqlConfig createKsqlConfig(final EmbeddedSingleNodeKafkaCluster kafkaCluster) {

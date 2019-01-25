@@ -269,7 +269,7 @@ public class SecureIntegrationTest {
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
     serviceContext = DefaultServiceContext.create(ksqlConfig);
-    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
+    ksqlEngine = new KsqlEngine(ksqlConfig);
 
     execInitCreateStreamQueries();
   }

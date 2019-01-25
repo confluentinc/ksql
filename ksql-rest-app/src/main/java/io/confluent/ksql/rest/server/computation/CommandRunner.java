@@ -18,7 +18,6 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
@@ -56,15 +55,14 @@ public class CommandRunner implements Runnable, Closeable {
       final CommandQueue commandStore,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final int maxRetries,
-      final ServiceContext serviceContext
+      final int maxRetries
   ) {
     this(
         statementExecutor,
         commandStore,
         ksqlEngine,
         maxRetries,
-        new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext)
+        new ClusterTerminator(ksqlConfig, ksqlEngine)
     );
   }
 

@@ -170,7 +170,7 @@ public class PhysicalPlanBuilderTest {
 
   private QueryMetadata buildPhysicalPlan(final String query) {
     final PlanNode logical = planBuilder.buildLogicalPlan(query);
-    return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
+    return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical), serviceContext);
   }
 
   @Test

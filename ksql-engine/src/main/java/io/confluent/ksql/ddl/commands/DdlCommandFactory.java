@@ -15,6 +15,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.services.ServiceContext;
 import java.util.Map;
 
 public interface DdlCommandFactory {
@@ -22,6 +23,7 @@ public interface DdlCommandFactory {
       String sqlExpression,
       DdlStatement ddlStatement,
       Map<String, Object> properties,
-      boolean enforceTopicExistence
+      boolean enforceTopicExistence,
+      ServiceContext serviceContext
   );
 }

@@ -18,7 +18,8 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -30,29 +31,42 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public class ClusterTerminator {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final ServiceContext serviceContext;
+  private final KafkaTopicClient kafkaTopicClient;
+
+  public ClusterTerminator(
+      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine
+  ) {
+    this(ksqlConfig,
+         ksqlEngine,
+         new KafkaTopicClientImpl(
+             new DefaultKafkaClientSupplier()
+                 .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps())));
+  }
 
   public ClusterTerminator(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext
+      final KafkaTopicClient kafkaTopicClient
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig is null.");
     Objects.requireNonNull(ksqlEngine, "ksqlEngine is null.");
+    Objects.requireNonNull(kafkaTopicClient, "kafkaTopicClient is null.");
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
-    this.serviceContext = Objects.requireNonNull(serviceContext);
+    this.kafkaTopicClient = kafkaTopicClient;
   }
 
   public void terminateCluster(final List<String> deleteTopicPatterns) {
     terminatePersistentQueries();
-    deleteSinkTopics(deleteTopicPatterns);
-    deleteCommandTopic();
+    deleteSinkTopics(deleteTopicPatterns, kafkaTopicClient);
+    deleteCommandTopic(kafkaTopicClient);
     ksqlEngine.close();
   }
 
@@ -60,7 +74,9 @@ public class ClusterTerminator {
     ksqlEngine.getPersistentQueries().forEach(QueryMetadata::close);
   }
 
-  private void deleteSinkTopics(final List<String> deleteTopicPatterns) {
+  private void deleteSinkTopics(
+      final List<String> deleteTopicPatterns,
+      final KafkaTopicClient serviceContext) {
     if (deleteTopicPatterns.isEmpty()) {
       return;
     }
@@ -75,11 +91,13 @@ public class ClusterTerminator {
         .map(KsqlTopic::getKafkaTopicName)
         .filter(topicName -> topicShouldBeDeleted(topicName, patterns))
         .collect(Collectors.toList());
-    deleteTopics(toDelete);
+    deleteTopics(toDelete, serviceContext);
   }
 
-  private List<String> filterNonExistingTopics(final List<String> topicList) {
-    final Set<String> existingTopicNames = serviceContext.getTopicClient().listTopicNames();
+  private List<String> filterNonExistingTopics(
+      final List<String> topicList,
+      final KafkaTopicClient topicClient) {
+    final Set<String> existingTopicNames = topicClient.listTopicNames();
     return topicList.stream().filter(existingTopicNames::contains).collect(Collectors.toList());
   }
 
@@ -90,17 +108,19 @@ public class ClusterTerminator {
         .anyMatch(pattern -> pattern.matcher(topicName).matches());
   }
 
-  private void deleteCommandTopic() {
+  private void deleteCommandTopic(final KafkaTopicClient serviceContext) {
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
-    deleteTopics(Collections.singletonList(commandTopic));
+    deleteTopics(Collections.singletonList(commandTopic), serviceContext);
   }
 
-  private void deleteTopics(final List<String> topicsToBeDeleted) {
+  private void deleteTopics(
+      final List<String> topicsToBeDeleted,
+      final KafkaTopicClient topicClient) {
     try {
       ExecutorUtil.executeWithRetries(
-          () -> serviceContext.getTopicClient().deleteTopics(
-              filterNonExistingTopics(topicsToBeDeleted)),
+          () -> topicClient.deleteTopics(
+              filterNonExistingTopics(topicsToBeDeleted, topicClient)),
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final Exception e) {
       throw new KsqlException(

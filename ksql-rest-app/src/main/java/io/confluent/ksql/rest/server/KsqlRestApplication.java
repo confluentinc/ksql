@@ -298,16 +298,14 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
-
-    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
-
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    final KsqlEngine ksqlEngine = new KsqlEngine(ksqlConfig);
 
     UdfLoader.newInstance(ksqlConfig, ksqlEngine.getFunctionRegistry(), ksqlInstallDir).load();
 
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
+
+    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
     ensureCommandTopic(restConfig, serviceContext.getTopicClient(), commandTopic);
 
     final Map<String, Expression> commandTopicProperties = new HashMap<>();
@@ -363,8 +361,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         commandStore,
         ksqlConfig,
         ksqlEngine,
-        maxStatementRetries,
-        serviceContext
+        maxStatementRetries
     );
 
     final RootDocument rootDocument = new RootDocument();

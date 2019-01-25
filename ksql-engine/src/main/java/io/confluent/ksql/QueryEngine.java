@@ -52,15 +52,12 @@ class QueryEngine {
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryEngine.class);
 
-  private final ServiceContext serviceContext;
   private final Consumer<QueryMetadata> queryCloseCallback;
   private final QueryIdGenerator queryIdGenerator;
 
   QueryEngine(
-      final ServiceContext serviceContext,
       final Consumer<QueryMetadata> queryCloseCallback
   ) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
     this.queryIdGenerator = new QueryIdGenerator();
   }
@@ -92,7 +89,8 @@ class QueryEngine {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
-      final MetaStore metaStore
+      final MetaStore metaStore,
+      final ServiceContext serviceContext
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
@@ -110,7 +108,7 @@ class QueryEngine {
         queryCloseCallback
     );
 
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, serviceContext);
   }
 
   @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.

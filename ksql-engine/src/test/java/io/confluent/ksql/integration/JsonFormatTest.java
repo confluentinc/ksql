@@ -81,7 +81,7 @@ public class JsonFormatTest {
 
     ksqlConfig = KsqlContextTestUtil.createKsqlConfig(CLUSTER);
     serviceContext = DefaultServiceContext.create(ksqlConfig);
-    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    ksqlEngine = new KsqlEngine(ksqlConfig);
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
 

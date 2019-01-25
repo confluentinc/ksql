@@ -184,13 +184,12 @@ public class JoinNode extends PlanNode {
     final JoinerFactory joinerFactory = new JoinerFactory(
         builder,
         ksqlConfig,
-        serviceContext,
         functionRegistry,
         props,
         this,
         queryId);
 
-    return joinerFactory.getJoiner(leftType, rightType).join();
+    return joinerFactory.getJoiner(leftType, rightType).join(serviceContext);
   }
 
   @Override
@@ -228,7 +227,6 @@ public class JoinNode extends PlanNode {
     JoinerFactory(
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
         final JoinNode joinNode,
@@ -237,13 +235,13 @@ public class JoinNode extends PlanNode {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KSTREAM),
           () -> new StreamToStreamJoiner(
-              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId),
+              builder, ksqlConfig, functionRegistry, props, joinNode, queryId),
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KTABLE),
           () -> new StreamToTableJoiner(
-              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId),
+              builder, ksqlConfig, functionRegistry, props, joinNode, queryId),
           new Pair<>(DataSource.DataSourceType.KTABLE, DataSource.DataSourceType.KTABLE),
           () -> new TableToTableJoiner(
-              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId)
+              builder, ksqlConfig, functionRegistry, props, joinNode, queryId)
       );
     }
 
@@ -260,7 +258,6 @@ public class JoinNode extends PlanNode {
   private abstract static class Joiner {
     protected final StreamsBuilder builder;
     protected final KsqlConfig ksqlConfig;
-    private final ServiceContext serviceContext;
     protected final FunctionRegistry functionRegistry;
     protected final Map<String, Object> props;
     final JoinNode joinNode;
@@ -269,7 +266,6 @@ public class JoinNode extends PlanNode {
     Joiner(
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
         final JoinNode joinNode,
@@ -277,7 +273,6 @@ public class JoinNode extends PlanNode {
     ) {
       this.builder = Objects.requireNonNull(builder, "builder");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
       this.props = Objects.requireNonNull(props, "props");
       this.joinNode = Objects.requireNonNull(joinNode, "joinNode");
@@ -288,9 +283,12 @@ public class JoinNode extends PlanNode {
       return joinNode.getId() + "-JOIN";
     }
 
-    public abstract SchemaKStream join();
+    public abstract SchemaKStream join(ServiceContext serviceContext);
 
-    protected SchemaKStream buildStream(final PlanNode node, final String keyFieldName) {
+    protected SchemaKStream buildStream(
+        final PlanNode node,
+        final String keyFieldName,
+        final ServiceContext serviceContext) {
 
       return maybeRePartitionByKey(
           node.buildStream(builder, ksqlConfig, serviceContext, functionRegistry, props, queryId),
@@ -300,7 +298,8 @@ public class JoinNode extends PlanNode {
 
     protected SchemaKTable buildTable(final PlanNode node,
                                       final String keyFieldName,
-                                      final String tableName) {
+                                      final String tableName,
+                                      final ServiceContext serviceContext) {
 
       final Map<String, Object> joinTableProps = new HashMap<>(props);
       joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -348,7 +347,7 @@ public class JoinNode extends PlanNode {
       return stream.selectKey(field, true);
     }
 
-    Serde<GenericRow> getSerDeForNode(final PlanNode node) {
+    Serde<GenericRow> getSerDeForNode(final PlanNode node, final ServiceContext serviceContext) {
       if (!(node instanceof StructuredDataSourceNode)) {
         throw new KsqlException("The source for Join must be a primitive data source (Stream or "
                                 + "Table).");
@@ -376,18 +375,17 @@ public class JoinNode extends PlanNode {
     private StreamToStreamJoiner(
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
         final JoinNode joinNode,
         final QueryId queryId
     ) {
-      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId);
+      super(builder, ksqlConfig, functionRegistry, props, joinNode, queryId);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public SchemaKStream join() {
+    public SchemaKStream join(final ServiceContext serviceContext) {
       if (joinNode.withinExpression == null) {
         throw new KsqlException("Stream-Stream joins must have a WITHIN clause specified. None was "
                                 + "provided. To learn about how to specify a WITHIN clause with a "
@@ -397,9 +395,11 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
-                                                   joinNode.getLeftKeyFieldName());
+                                                   joinNode.getLeftKeyFieldName(),
+                                                   serviceContext);
       final SchemaKStream rightStream = buildStream(joinNode.getRight(),
-                                                    joinNode.getRightKeyFieldName());
+                                                    joinNode.getRightKeyFieldName(),
+                                                    serviceContext);
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -408,8 +408,8 @@ public class JoinNode extends PlanNode {
                                      getJoinKey(joinNode.leftAlias,
                                                 leftStream.getKeyField().name()),
                                      joinNode.withinExpression.joinWindow(),
-                                     getSerDeForNode(joinNode.left),
-                                     getSerDeForNode(joinNode.right),
+                                     getSerDeForNode(joinNode.left, serviceContext),
+                                     getSerDeForNode(joinNode.right, serviceContext),
                                      joinOpName());
         case OUTER:
           return leftStream.outerJoin(rightStream,
@@ -417,8 +417,8 @@ public class JoinNode extends PlanNode {
                                       getJoinKey(joinNode.leftAlias,
                                                  leftStream.getKeyField().name()),
                                       joinNode.withinExpression.joinWindow(),
-                                      getSerDeForNode(joinNode.left),
-                                      getSerDeForNode(joinNode.right),
+                                      getSerDeForNode(joinNode.left, serviceContext),
+                                      getSerDeForNode(joinNode.right, serviceContext),
                                       joinOpName());
         case INNER:
           return leftStream.join(rightStream,
@@ -426,8 +426,8 @@ public class JoinNode extends PlanNode {
                                  getJoinKey(joinNode.leftAlias,
                                             leftStream.getKeyField().name()),
                                  joinNode.withinExpression.joinWindow(),
-                                 getSerDeForNode(joinNode.left),
-                                 getSerDeForNode(joinNode.right),
+                                 getSerDeForNode(joinNode.left, serviceContext),
+                                 getSerDeForNode(joinNode.right, serviceContext),
                                  joinOpName());
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
@@ -440,18 +440,17 @@ public class JoinNode extends PlanNode {
     private StreamToTableJoiner(
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
         final JoinNode joinNode,
         final QueryId queryId
     ) {
-      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId);
+      super(builder, ksqlConfig, functionRegistry, props, joinNode, queryId);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public SchemaKStream join() {
+    public SchemaKStream join(final ServiceContext serviceContext) {
       if (joinNode.withinExpression != null) {
         throw new KsqlException("A window definition was provided for a Stream-Table join. These "
                                 + "joins are not windowed. Please drop the window definition (ie."
@@ -460,9 +459,11 @@ public class JoinNode extends PlanNode {
 
       final SchemaKTable rightTable = buildTable(joinNode.getRight(),
                                                  joinNode.getRightKeyFieldName(),
-                                                 joinNode.getRightAlias());
+                                                 joinNode.getRightAlias(),
+                                                 serviceContext);
       final SchemaKStream leftStream = buildStream(joinNode.getLeft(),
-                                                   joinNode.getLeftKeyFieldName());
+                                                   joinNode.getLeftKeyFieldName(),
+                                                   serviceContext);
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -470,7 +471,7 @@ public class JoinNode extends PlanNode {
                                      joinNode.schema,
                                      getJoinKey(joinNode.leftAlias,
                                                 leftStream.getKeyField().name()),
-                                     getSerDeForNode(joinNode.left),
+                                     getSerDeForNode(joinNode.left, serviceContext),
                                      joinOpName());
 
         case INNER:
@@ -478,7 +479,7 @@ public class JoinNode extends PlanNode {
                                  joinNode.schema,
                                  getJoinKey(joinNode.leftAlias,
                                             leftStream.getKeyField().name()),
-                                 getSerDeForNode(joinNode.left),
+                                 getSerDeForNode(joinNode.left, serviceContext),
                                  joinOpName());
         case OUTER:
           throw new KsqlException("Full outer joins between streams and tables (stream: left, "
@@ -495,18 +496,17 @@ public class JoinNode extends PlanNode {
     TableToTableJoiner(
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
         final JoinNode joinNode,
         final QueryId queryId
     ) {
-      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId);
+      super(builder, ksqlConfig, functionRegistry, props, joinNode, queryId);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public SchemaKTable join() {
+    public SchemaKTable join(final ServiceContext serviceContext) {
       if (joinNode.withinExpression != null) {
         throw new KsqlException("A window definition was provided for a Table-Table join. These "
                                 + "joins are not windowed. Please drop the window definition "
@@ -516,10 +516,12 @@ public class JoinNode extends PlanNode {
 
       final SchemaKTable leftTable = buildTable(joinNode.getLeft(),
                                                 joinNode.getLeftKeyFieldName(),
-                                                joinNode.getLeftAlias());
+                                                joinNode.getLeftAlias(),
+                                                serviceContext);
       final SchemaKTable rightTable = buildTable(joinNode.getRight(),
                                                  joinNode.getRightKeyFieldName(),
-                                                 joinNode.getRightAlias());
+                                                 joinNode.getRightAlias(),
+                                                 serviceContext);
 
       switch (joinNode.joinType) {
         case LEFT:

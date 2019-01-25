@@ -32,18 +32,20 @@ public final class TestKsqlContext extends ExternalResource {
 
   private final IntegrationTestHarness testHarness;
   private final Map<String, Object> additionalConfig;
+  private final ServiceContext serviceContext;
   private KsqlContext delegate;
 
   TestKsqlContext(
       final IntegrationTestHarness testHarness,
-      final Map<String, Object> additionalConfig
-  ) {
+      final Map<String, Object> additionalConfig,
+      final ServiceContext serviceContext) {
     this.testHarness = Objects.requireNonNull(testHarness, "testHarness");
     this.additionalConfig = Objects.requireNonNull(additionalConfig, "additionalConfig");
+    this.serviceContext = serviceContext;
   }
 
   public ServiceContext getServiceContext() {
-    return delegate.getServiceContext();
+    return serviceContext;
   }
 
   public MetaStore getMetaStore() {

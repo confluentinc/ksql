@@ -50,8 +50,6 @@ public class KsqlContextTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private ServiceContext serviceContext;
-  @Mock
   private KsqlEngine ksqlEngine;
   @Mock
   private PersistentQueryMetadata persistentQuery;
@@ -65,7 +63,7 @@ public class KsqlContextTest {
 
   @Before
   public void setUp() {
-    ksqlContext = new KsqlContext(serviceContext, SOME_CONFIG, ksqlEngine);
+    ksqlContext = new KsqlContext(SOME_CONFIG, ksqlEngine);
 
     when(ksqlEngine.parseStatements(any()))
         .thenReturn(ImmutableList.of(statement0));
@@ -196,13 +194,11 @@ public class KsqlContextTest {
   }
 
   @Test
-  public void shouldCloseEngineBeforeServiceContextOnClose() {
+  public void shouldCloseEngine() {
     // When:
     ksqlContext.close();
 
     // Then:
-    final InOrder inOrder = inOrder(ksqlEngine, serviceContext);
-    inOrder.verify(ksqlEngine).close();
-    inOrder.verify(serviceContext).close();
+    verify(ksqlEngine).close();
   }
 }

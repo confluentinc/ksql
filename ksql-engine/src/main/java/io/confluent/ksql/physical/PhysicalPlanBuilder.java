@@ -61,7 +61,6 @@ public class PhysicalPlanBuilder {
 
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
-  private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenProperties;
   private final MetaStore metaStore;
@@ -82,7 +81,6 @@ public class PhysicalPlanBuilder {
   ) {
     this.builder = Objects.requireNonNull(builder, "builder");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.overriddenProperties =
         Objects.requireNonNull(overriddenProperties, "overriddenProperties");
@@ -99,7 +97,9 @@ public class PhysicalPlanBuilder {
     throw new RuntimeException("Unexpected output node for query");
   }
 
-  public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
+  public QueryMetadata buildPhysicalPlan(
+      final LogicalPlanNode logicalPlanNode,
+      final ServiceContext serviceContext) {
     final QueryId queryId = computeQueryId(logicalPlanNode.getNode());
     final SchemaKStream resultStream = logicalPlanNode
         .getNode()

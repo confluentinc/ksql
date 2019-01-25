@@ -78,6 +78,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
+import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -289,13 +290,20 @@ public class StreamedQueryResourceTest {
             "",
             mock(Topology.class),
             Collections.emptyMap(),
-            Collections.emptyMap(),
-            queryCloseCallback);
+            Collections.emptyMap()
+        );
     reset(mockOutputNode);
     expect(mockOutputNode.getSchema())
         .andReturn(SchemaBuilder.struct().field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA));
     expect(mockKsqlEngine.execute(statement, ksqlConfig, requestStreamsProperties))
         .andReturn(Optional.of(queuedQueryMetadata));
+
+    Capture<QueryMetadata> captureQuery = Capture.newInstance();
+    mockKsqlEngine.closeQuery(EasyMock.capture(captureQuery));
+    expectLastCall().andAnswer(() -> {
+      captureQuery.getValue().close();
+      return null;
+    });
 
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);

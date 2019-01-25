@@ -37,6 +37,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -85,6 +86,10 @@ public class ClusterTerminatorTest {
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("command_topic");
     when(ksqlEngine.getPersistentQueries())
         .thenReturn(ImmutableList.of(persistentQuery0, persistentQuery1));
+    Mockito.doAnswer(invocation -> {
+      ((QueryMetadata) invocation.getArgument(0)).close();
+      return null;
+    }).when(ksqlEngine).closeQuery(Mockito.any());
   }
 
   @Test

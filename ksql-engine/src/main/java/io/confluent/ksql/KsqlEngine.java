@@ -77,7 +77,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
@@ -125,7 +124,7 @@ public class KsqlEngine implements Closeable {
       final MetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
-    this.primaryContext = new ExecutionContext(serviceContext, metaStore, this::unregisterQuery);
+    this.primaryContext = new ExecutionContext(serviceContext, metaStore);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.persistentQueries = new HashMap<>();
@@ -234,7 +233,7 @@ public class KsqlEngine implements Closeable {
     for (final PreparedStatement<?> stmt : statements) {
       executor.execute(stmt)
           .ifPresent(query -> {
-            query.close();
+            closeQuery(query);
             queries.add(query);
           });
     }
@@ -269,9 +268,7 @@ public class KsqlEngine implements Closeable {
 
   @Override
   public void close() {
-    for (final QueryMetadata queryMetadata : new HashSet<>(allLiveQueries)) {
-      queryMetadata.close();
-    }
+    new HashSet<>(allLiveQueries).forEach(this::closeQuery);
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
   }
@@ -302,9 +299,7 @@ public class KsqlEngine implements Closeable {
 
     return new ExecutionContext(
         tryServiceContext,
-        primaryContext.metaStore.copy(),
-        query -> {
-        } // No op on query close.
+        primaryContext.metaStore.copy()
     );
   }
 
@@ -324,9 +319,10 @@ public class KsqlEngine implements Closeable {
     engineMetrics.registerQuery(query);
   }
 
-  private void unregisterQuery(final QueryMetadata query) {
+  public void closeQuery(final QueryMetadata query) {
     final String applicationId = query.getQueryApplicationId();
 
+    query.close();
     if (!query.getState().equalsIgnoreCase("NOT_RUNNING")) {
       throw new IllegalStateException("query not stopped."
           + " id " + applicationId + ", state: " + query.getState());
@@ -378,13 +374,12 @@ public class KsqlEngine implements Closeable {
 
     private ExecutionContext(
         final ServiceContext serviceContext,
-        final MetaStore metaStore,
-        final Consumer<QueryMetadata> onQueryCloseCallback
+        final MetaStore metaStore
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
       this.ddlCommandFactory = new CommandFactories(serviceContext);
-      this.queryEngine = new QueryEngine(serviceContext, onQueryCloseCallback);
+      this.queryEngine = new QueryEngine(serviceContext);
       this.ddlCommandExec = new DdlCommandExec(metaStore);
     }
 

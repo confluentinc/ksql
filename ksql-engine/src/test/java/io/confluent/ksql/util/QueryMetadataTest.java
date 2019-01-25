@@ -48,8 +48,6 @@ public class QueryMetadataTest {
   private KafkaStreams kafkaStreams;
   @Mock
   private QueryStateListener listener;
-  @Mock
-  private Consumer<QueryMetadata> closeCallback;
   private QueryMetadata query;
 
   @Before
@@ -63,8 +61,7 @@ public class QueryMetadataTest {
         QUERY_APPLICATION_ID,
         topoplogy,
         Collections.emptyMap(),
-        Collections.emptyMap(),
-        closeCallback
+        Collections.emptyMap()
     );
   }
 
@@ -117,14 +114,12 @@ public class QueryMetadataTest {
   }
 
   @Test
-  public void shouldCloseKStreamsAppOnCloseThenCloseCallback() {
+  public void shouldCloseKStreamsAppOnClose() {
     // When:
     query.close();
 
     // Then:
-    final InOrder inOrder = inOrder(kafkaStreams, closeCallback);
-    inOrder.verify(kafkaStreams).close();
-    inOrder.verify(closeCallback).accept(query);
+    verify(kafkaStreams).close();
   }
 
   @Test

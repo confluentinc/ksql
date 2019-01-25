@@ -238,7 +238,7 @@ public class StatementExecutor {
           .collect(Collectors.toList());
 
       if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
-        queryMetadataList.forEach(QueryMetadata::close);
+        queryMetadataList.forEach(ksqlEngine::closeQuery);
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
             ksqlEngine, mergedConfig, command.getStatement());
       }
@@ -293,10 +293,10 @@ public class StatementExecutor {
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {
     final QueryId queryId = terminateQuery.getStatement().getQueryId();
 
-    ksqlEngine.getPersistentQuery(queryId)
+    final QueryMetadata query = ksqlEngine.getPersistentQuery(queryId)
         .orElseThrow(() ->
-            new KsqlException(String.format("No running query with id %s was found", queryId)))
-        .close();
+            new KsqlException(String.format("No running query with id %s was found", queryId)));
+    ksqlEngine.closeQuery(query);
   }
 
   private void maybeTerminateQueryForLegacyDropCommand(
@@ -318,6 +318,6 @@ public class StatementExecutor {
         .map(ksqlEngine::getPersistentQuery)
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .forEach(QueryMetadata::close);
+        .forEach(ksqlEngine::closeQuery);
   }
 }

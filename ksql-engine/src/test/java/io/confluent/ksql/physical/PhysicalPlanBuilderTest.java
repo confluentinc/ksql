@@ -163,8 +163,7 @@ public class PhysicalPlanBuilderTest {
         overrideProperties,
         metaStore,
         new QueryIdGenerator(),
-        testKafkaStreamsBuilder,
-        queryCloseCallback
+        testKafkaStreamsBuilder
     );
   }
 

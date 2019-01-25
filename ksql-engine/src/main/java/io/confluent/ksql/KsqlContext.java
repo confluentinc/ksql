@@ -124,6 +124,6 @@ public class KsqlContext {
   }
 
   public void terminateQuery(final QueryId queryId) {
-    ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::close);
+    ksqlEngine.getPersistentQuery(queryId).ifPresent(ksqlEngine::closeQuery);
   }
 }

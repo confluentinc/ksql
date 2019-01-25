@@ -46,8 +46,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.connect.data.Field;
@@ -67,7 +65,6 @@ public class PhysicalPlanBuilder {
   private final MetaStore metaStore;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final Consumer<QueryMetadata> queryCloseCallback;
 
   public PhysicalPlanBuilder(
       final StreamsBuilder builder,
@@ -77,8 +74,7 @@ public class PhysicalPlanBuilder {
       final Map<String, Object> overriddenProperties,
       final MetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final KafkaStreamsBuilder kafkaStreamsBuilder,
-      final Consumer<QueryMetadata> queryCloseCallback
+      final KafkaStreamsBuilder kafkaStreamsBuilder
   ) {
     this.builder = Objects.requireNonNull(builder, "builder");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -89,7 +85,6 @@ public class PhysicalPlanBuilder {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
-    this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
   }
 
   private QueryId computeQueryId(final PlanNode planNode) {
@@ -201,8 +196,7 @@ public class PhysicalPlanBuilder {
         applicationId,
         builder.build(),
         streamsProperties,
-        overriddenProperties,
-        queryCloseCallback
+        overriddenProperties
     );
   }
 
@@ -278,8 +272,7 @@ public class PhysicalPlanBuilder {
         sinkDataSource.getKsqlTopic(),
         topology,
         streamsProperties,
-        overriddenProperties,
-        queryCloseCallback
+        overriddenProperties
     );
   }
 

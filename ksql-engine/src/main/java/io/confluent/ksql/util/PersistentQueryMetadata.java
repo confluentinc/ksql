@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
@@ -46,8 +45,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
                                  final KsqlTopic resultTopic,
                                  final Topology topology,
                                  final Map<String, Object> streamsProperties,
-                                 final Map<String, Object> overriddenProperties,
-                                 final Consumer<QueryMetadata> closeCallback) {
+                                 final Map<String, Object> overriddenProperties) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
@@ -58,8 +56,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
         queryApplicationId,
         topology,
         streamsProperties,
-        overriddenProperties,
-        closeCallback);
+        overriddenProperties
+    );
     this.id = Objects.requireNonNull(id, "id");
     this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = new HashSet<>();

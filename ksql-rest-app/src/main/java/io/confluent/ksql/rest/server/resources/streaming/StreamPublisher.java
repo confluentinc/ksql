@@ -109,7 +109,7 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       if (!closed) {
         closed = true;
         log.info("Terminating query {}", queryMetadata.getQueryApplicationId());
-        queryMetadata.close();
+        ksqlEngine.closeQuery(queryMetadata);
       }
     }
   }

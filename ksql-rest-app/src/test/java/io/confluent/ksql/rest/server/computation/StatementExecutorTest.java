@@ -28,6 +28,8 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -63,11 +65,13 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.easymock.EasyMock;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.hamcrest.CoreMatchers;
@@ -577,6 +581,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
     expect(mockEngine.getPersistentQuery(new QueryId("query-id"))).andReturn(Optional.of(mockQueryMetadata));
     mockQueryMetadata.close();
+    expectLastCall();
+    mockEngine.closeQuery(EasyMock.anyObject(QueryMetadata.class));
     expectLastCall();
     expect(mockEngine.executeDdlStatement("DROP", mockDropStream, Collections.emptyMap()))
         .andReturn(new DdlCommandResult(true, "SUCCESS"));

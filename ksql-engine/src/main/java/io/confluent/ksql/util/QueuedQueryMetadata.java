@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.Topology;
@@ -42,8 +41,7 @@ public class QueuedQueryMetadata extends QueryMetadata {
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,
-      final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback) {
+      final Map<String, Object> overriddenProperties) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
@@ -54,8 +52,8 @@ public class QueuedQueryMetadata extends QueryMetadata {
         queryApplicationId,
         topology,
         streamsProperties,
-        overriddenProperties,
-        closeCallback);
+        overriddenProperties
+    );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue"); 
   }
 

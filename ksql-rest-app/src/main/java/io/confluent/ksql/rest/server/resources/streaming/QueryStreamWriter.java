@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
@@ -38,6 +39,7 @@ class QueryStreamWriter implements StreamingOutput {
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
 
   private final QueuedQueryMetadata queryMetadata;
+  private KsqlEngine ksqlEngine;
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private volatile Exception streamsException;
@@ -46,11 +48,12 @@ class QueryStreamWriter implements StreamingOutput {
   QueryStreamWriter(
       final QueuedQueryMetadata queryMetadata,
       final long disconnectCheckInterval,
-      final ObjectMapper objectMapper
-  ) {
+      final ObjectMapper objectMapper,
+      final KsqlEngine ksqlEngine) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
     queryMetadata.start();
@@ -93,7 +96,7 @@ class QueryStreamWriter implements StreamingOutput {
       log.error("Exception occurred while writing to connection stream: ", exception);
       outputException(out, exception);
     } finally {
-      queryMetadata.close();
+      ksqlEngine.closeQuery(queryMetadata);
     }
   }
 

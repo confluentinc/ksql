@@ -154,7 +154,8 @@ public class StreamedQueryResource {
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         (QueuedQueryMetadata) query,
         disconnectCheckInterval.toMillis(),
-        objectMapper);
+        objectMapper,
+        ksqlEngine);
 
     log.info("Streaming query '{}'", statement.getStatementText());
     return Response.ok().entity(queryStreamWriter).build();

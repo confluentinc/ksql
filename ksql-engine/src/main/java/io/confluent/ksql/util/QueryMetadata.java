@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
@@ -44,7 +43,6 @@ public class QueryMetadata {
   private final Topology topoplogy;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  private final Consumer<QueryMetadata> closeCallback;
   private final Set<String> sourceNames;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
@@ -59,8 +57,7 @@ public class QueryMetadata {
       final String queryApplicationId,
       final Topology topoplogy,
       final Map<String, Object> streamsProperties,
-      final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback
+      final Map<String, Object> overriddenProperties
   ) {
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
@@ -75,7 +72,6 @@ public class QueryMetadata {
     this.overriddenProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
-    this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
 
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
     visitor.process(outputNode, null);
@@ -145,8 +141,6 @@ public class QueryMetadata {
     kafkaStreams.cleanUp();
 
     queryStateListener.ifPresent(QueryStateListener::close);
-
-    closeCallback.accept(this);
   }
 
   public void start() {

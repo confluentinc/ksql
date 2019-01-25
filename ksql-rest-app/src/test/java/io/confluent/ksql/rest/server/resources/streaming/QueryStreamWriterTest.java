@@ -178,7 +178,7 @@ public class QueryStreamWriterTest {
   private void createWriter() {
     replay(queryMetadata, ksqlEngine, rowQueue);
 
-    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper);
+    writer = new QueryStreamWriter(queryMetadata, 1000, objectMapper, ksqlEngine);
 
     out = new ByteArrayOutputStream();
     limitHandler = limitHandlerCapture.getValue();

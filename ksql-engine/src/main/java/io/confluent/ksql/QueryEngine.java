@@ -37,7 +37,6 @@ import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -53,15 +52,12 @@ class QueryEngine {
   private static final Logger LOG = LoggerFactory.getLogger(QueryEngine.class);
 
   private final ServiceContext serviceContext;
-  private final Consumer<QueryMetadata> queryCloseCallback;
   private final QueryIdGenerator queryIdGenerator;
 
   QueryEngine(
-      final ServiceContext serviceContext,
-      final Consumer<QueryMetadata> queryCloseCallback
+      final ServiceContext serviceContext
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
     this.queryIdGenerator = new QueryIdGenerator();
   }
 
@@ -106,8 +102,7 @@ class QueryEngine {
         overriddenProperties,
         metaStore,
         queryIdGenerator,
-        new KafkaStreamsBuilderImpl(clientSupplier),
-        queryCloseCallback
+        new KafkaStreamsBuilderImpl(clientSupplier)
     );
 
     return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);

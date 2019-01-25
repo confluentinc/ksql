@@ -321,7 +321,7 @@ public class KsqlEngineTest {
             + "create table foo as select * from test2;",
         KSQL_CONFIG, Collections.emptyMap()).get(1);
 
-    secondQuery.close();
+    ksqlEngine.closeQuery(secondQuery);
 
     // When:
     KsqlEngineTestUtil.execute(ksqlEngine, "drop table foo;", KSQL_CONFIG, Collections.emptyMap());
@@ -486,7 +486,7 @@ public class KsqlEngineTest {
         "create stream bar with (value_format = 'avro') as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
-    query.close();
+    ksqlEngine.closeQuery(query);
 
     final Schema schema = SchemaBuilder
         .record("Test").fields()
@@ -511,7 +511,7 @@ public class KsqlEngineTest {
         "create table bar with (value_format = 'avro') as select * from test2;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
-    query.close();
+    ksqlEngine.closeQuery(query);
 
     final Schema schema = SchemaBuilder
         .record("Test").fields()
@@ -537,7 +537,7 @@ public class KsqlEngineTest {
         + "create stream foo as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
-    query.close();
+    ksqlEngine.closeQuery(query);
 
     final Schema schema = SchemaBuilder
         .record("Test").fields()
@@ -623,7 +623,7 @@ public class KsqlEngineTest {
         "create table bar with (value_format = 'avro') as select * from test2;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
-    query.close();
+    ksqlEngine.closeQuery(query);
 
     final Schema schema = SchemaBuilder
         .record("Test").fields()
@@ -650,7 +650,7 @@ public class KsqlEngineTest {
     query.start();
 
     // When:
-    query.close();
+    ksqlEngine.closeQuery(query);
 
     // Then:
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
@@ -664,7 +664,7 @@ public class KsqlEngineTest {
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
     // When:
-    query.close();
+    ksqlEngine.closeQuery(query);
 
     // Then:
     verify(topicClient, never()).deleteInternalTopics(any());
@@ -682,7 +682,7 @@ public class KsqlEngineTest {
 
 
     // When:
-    query.close();
+    ksqlEngine.closeQuery(query);
 
     // Then:
     assertThat(ksqlEngine.getPersistentQuery(getQueryId(query)), is(Optional.empty()));
@@ -700,7 +700,7 @@ public class KsqlEngineTest {
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
     // When:
-    query.close();
+    ksqlEngine.closeQuery(query);
 
     // Then:
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));

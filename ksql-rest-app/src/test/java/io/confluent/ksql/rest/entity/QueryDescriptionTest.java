@@ -131,8 +131,8 @@ public class QueryDescriptionTest {
         "app id",
         topology,
         streamsProperties,
-        streamsProperties,
-        queryCloseCallback);
+        streamsProperties
+    );
 
     final QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
 
@@ -176,8 +176,8 @@ public class QueryDescriptionTest {
         sinkTopic,
         topology,
         streamsProperties,
-        streamsProperties,
-        queryCloseCallback);
+        streamsProperties
+    );
     final QueryDescription queryDescription = QueryDescription.forQueryMetadata(queryMetadata);
     assertThat(queryDescription.getId().getId(), equalTo("query_id"));
     assertThat(queryDescription.getSinks(), equalTo(Collections.singleton("fake_sink")));

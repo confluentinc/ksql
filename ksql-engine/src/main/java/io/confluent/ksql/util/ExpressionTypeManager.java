@@ -266,8 +266,8 @@ public class ExpressionTypeManager
   }
 
   private static Schema resolveArithmeticType(final Schema leftSchema,
-      final Schema rightSchema) {
-    return SchemaUtil.resolveArithmeticType(leftSchema.type(), rightSchema.type());
+                                              final Schema rightSchema) {
+    return SchemaUtil.resolveBinaryOperatorResultType(leftSchema.type(), rightSchema.type());
   }
 
   private void validateSearchedCaseExpression(final SearchedCaseExpression searchedCaseExpression) {

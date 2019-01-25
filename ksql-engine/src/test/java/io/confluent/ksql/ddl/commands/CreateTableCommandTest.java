@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
@@ -32,6 +34,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.KsqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
@@ -54,6 +57,8 @@ public class CreateTableCommandTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
   @Test
   public void shouldDefaultToStringKeySerde() {
@@ -135,6 +140,21 @@ public class CreateTableCommandTest {
 
     // When:
     createCmd();
+  }
+
+  @Test
+  public void testCreateAlreadyRegisteredTableThrowsException() {
+    // Given:
+    givenProperties(propsWith(ImmutableMap.of()));
+
+    // When:
+    final CreateTableCommand cmd = createCmd();
+    cmd.run(metaStore, false);
+
+    // Then:
+    expectedException.expectMessage(
+        "Failed to create because a TABLE with name 'name' already exists.");
+    cmd.run(metaStore, false);
   }
 
   private CreateTableCommand createCmd() {

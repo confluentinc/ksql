@@ -127,20 +127,6 @@ public class CreateStreamCommandTest {
   }
 
   @Test
-  public void testCreateAlreadyRegisteredStreamThrowsException() {
-    // Given:
-    givenProperties(propsWith(ImmutableMap.of()));
-
-    // When:
-    final CreateStreamCommand cmd = createCmd();
-    cmd.run(metaStore, false);
-
-    // Then:
-    expectedException.expectMessage("Stream already exists: name");
-    cmd.run(metaStore, false);
-  }
-
-  @Test
   public void shouldThrowOnOldWindowProperty() {
     // Given:
     expectedException.expect(KsqlException.class);
@@ -152,6 +138,21 @@ public class CreateStreamCommandTest {
 
     // When:
     createCmd();
+  }
+
+  @Test
+  public void testCreateAlreadyRegisteredStreamThrowsException() {
+    // Given:
+    givenProperties(propsWith(ImmutableMap.of()));
+
+    // When:
+    final CreateStreamCommand cmd = createCmd();
+    cmd.run(metaStore, false);
+
+    // Then:
+    expectedException.expectMessage(
+        "Failed to create because a STREAM with name 'name' already exists.");
+    cmd.run(metaStore, false);
   }
 
   private CreateStreamCommand createCmd() {

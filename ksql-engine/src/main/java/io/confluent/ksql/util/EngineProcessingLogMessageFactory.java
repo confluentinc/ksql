@@ -49,17 +49,19 @@ public final class EngineProcessingLogMessageFactory {
       if (schema == null || record == null) {
         return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
       }
-      String serialized;
-      try {
-        serialized = JsonMapper.INSTANCE.mapper.writeValueAsString(record.getColumns());
-      } catch (final Throwable t) {
-        LOGGER.error("error serializing record for processing log", t);
-        serialized = null;
-      }
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD,
-          serialized);
+          serializeRow(record));
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
     };
+  }
+
+  private static String serializeRow(final GenericRow record) {
+    try {
+      return JsonMapper.INSTANCE.mapper.writeValueAsString(record.getColumns());
+    } catch (final Throwable t) {
+      LOGGER.error("error serializing record for processing log", t);
+      return null;
+    }
   }
 }

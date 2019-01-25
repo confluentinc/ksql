@@ -15,6 +15,7 @@
 package io.confluent.ksql.streams;
 
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Objects;
 
 public class StreamsFactories {
   private final GroupedFactory groupedFactory;
@@ -22,6 +23,7 @@ public class StreamsFactories {
   private final MaterializedFactory materializedFactory;
 
   public static StreamsFactories create(final KsqlConfig ksqlConfig) {
+    Objects.requireNonNull(ksqlConfig);
     return new StreamsFactories(
         GroupedFactory.create(ksqlConfig),
         JoinedFactory.create(ksqlConfig),
@@ -33,9 +35,9 @@ public class StreamsFactories {
       final GroupedFactory groupedFactory,
       final JoinedFactory joinedFactory,
       final MaterializedFactory materializedFactory) {
-    this.groupedFactory = groupedFactory;
-    this.joinedFactory = joinedFactory;
-    this.materializedFactory = materializedFactory;
+    this.groupedFactory = Objects.requireNonNull(groupedFactory);
+    this.joinedFactory = Objects.requireNonNull(joinedFactory);
+    this.materializedFactory = Objects.requireNonNull(materializedFactory);
   }
 
   public GroupedFactory getGroupedFactory() {

@@ -30,8 +30,8 @@ public final class QueryContext {
   }
 
   private QueryContext(final QueryId queryId, final List<String> context) {
-    this.queryId = queryId;
-    this.context = context;
+    this.queryId = Objects.requireNonNull(queryId);
+    this.context = Objects.requireNonNull(context);
   }
 
   public QueryId getQueryId() {
@@ -56,11 +56,11 @@ public final class QueryContext {
     final QueryContext queryContext;
 
     public Builder(final QueryId queryId) {
-      this.queryContext = new QueryContext(queryId);
+      this.queryContext = Objects.requireNonNull(new QueryContext(queryId));
     }
 
     private Builder(final QueryContext queryContext) {
-      this.queryContext = queryContext;
+      this.queryContext = Objects.requireNonNull(queryContext);
     }
 
     public Builder push(final String ...context) {

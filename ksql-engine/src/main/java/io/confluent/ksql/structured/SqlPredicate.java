@@ -138,7 +138,6 @@ public class SqlPredicate {
         return (Boolean) ee.evaluate(values);
       } catch (final Exception e) {
         logProcessingError(e, row);
-        log.error(e.getMessage(), e);
       }
       log.error("Invalid format: " + key + " : " + row);
       return false;
@@ -174,7 +173,6 @@ public class SqlPredicate {
         return (Boolean) ee.evaluate(values);
       } catch (final Exception e) {
         logProcessingError(e, row);
-        log.error(e.getMessage(), e);
       }
       log.error("Invalid format: " + key + " : " + row);
       return false;

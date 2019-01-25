@@ -93,6 +93,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
+  public static final String KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG =
+      KSQL_CONFIG_PROPERTY_PREFIX + "sink.legacy.properties";
+  private static final String KSQL_SINK_TOPIC_PROPERTIES_LEGACY_DOCS = "Use the default sink topic"
+      + " properties instread of infering from source when the properties are not set in the "
+      + " WITH clause. Until version 5.1.x if the partition number and replicas were not specified"
+      + " in the WITH cluase, KSQL used the default value. After version 5.1.x, KSQL will use the "
+      + " properties from source topic if they are not set in the WITH clause.";
+
   public static final String KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG =
       KSQL_FUNCTIONS_PROPERTY_PREFIX + "substring.legacy.args";
   private static final String
@@ -160,6 +168,13 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               "Suffix for state store names in Tables. For instance if the suffix is "
                   + "_ksql_statestore the state "
                   + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
+          new CompatibilityBreakingConfigDef(
+              KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              KSQL_SINK_TOPIC_PROPERTIES_LEGACY_DOCS),
           new CompatibilityBreakingConfigDef(
               KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
               ConfigDef.Type.BOOLEAN,

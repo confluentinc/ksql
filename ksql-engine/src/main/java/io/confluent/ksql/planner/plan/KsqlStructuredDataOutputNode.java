@@ -142,7 +142,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final SourceTopicProperties sourceTopicProperties = getSourceTopicProperties(
           getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
           outputProperties,
-          serviceContext.getTopicClient()
+          serviceContext.getTopicClient(),
+          ksqlConfig
       );
       createSinkTopic(
           noRowKey.getKafkaTopicName(),
@@ -250,8 +251,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private static SourceTopicProperties getSourceTopicProperties(
       final String kafkaTopicName,
       final Map<String, Object> sinkProperties,
-      final KafkaTopicClient kafkaTopicClient
+      final KafkaTopicClient kafkaTopicClient,
+      final KsqlConfig ksqlConfig
   ) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG)) {
+      return getSinkTopicPropertiesLegacyWay(sinkProperties, ksqlConfig);
+    }
     // Don't request topic properties from Kafka if both are set in WITH clause.
     if (sinkProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)
         && sinkProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
@@ -271,6 +276,19 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
         (short) topicDescription.partitions().get(0).replicas().size());
 
+    return new SourceTopicProperties(partitions, replicas);
+  }
+
+  private static SourceTopicProperties getSinkTopicPropertiesLegacyWay(
+      final Map<String, Object> outputProperties,
+      final KsqlConfig ksqlConfig
+  ) {
+    final int partitions = (Integer) outputProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+        ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
+    final short replicas = (Short) outputProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
+        ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
     return new SourceTopicProperties(partitions, replicas);
   }
 

@@ -358,6 +358,19 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
+  public void shouldUseLegacySinkPropertiesIfLegacyIsTrue() {
+    // Given:
+    createOutputNode(Collections.singletonMap(KsqlConfig.KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG, true), true);
+
+    // When:
+    final SchemaKStream schemaKStream = buildStream();
+
+    // Then:
+    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 4, (short) 1, Collections.emptyMap());
+    assertThat(schemaKStream, instanceOf(SchemaKStream.class));
+  }
+
+  @Test
   public void shouldComputeQueryIdCorrectlyForStream() {
     // When:
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);

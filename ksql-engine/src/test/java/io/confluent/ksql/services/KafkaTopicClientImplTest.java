@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;

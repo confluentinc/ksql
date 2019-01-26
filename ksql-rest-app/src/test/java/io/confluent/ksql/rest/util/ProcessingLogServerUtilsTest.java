@@ -38,9 +38,9 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
@@ -102,7 +102,10 @@ public class ProcessingLogServerUtilsTest {
     return new ImmutableList.Builder<String>().addAll(path).add(elem).build();
   }
 
-  private void assertLogSchema(final Schema expected, final Schema schema, List<String> path) {
+  private void assertLogSchema(
+      final Schema expected,
+      final Schema schema,
+      final List<String> path) {
     final String pathStr = String.join("->", path);
     assertThat("Type mismatch at " + pathStr, schema.type(), equalTo(expected.type()));
     switch (schema.type()) {

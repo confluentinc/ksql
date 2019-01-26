@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.errors.LogAndContinueProductionExceptionHandler;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,6 +77,24 @@ public class KsqlConfigTest {
   public void shouldNotSetDeserializationExceptionHandlerWhenFailOnDeserializationErrorTrue() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, true));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    assertThat(result, nullValue());
+  }
+
+  @Test
+  public void shouldSetLogAndContinueExceptionHandlerWhenFailOnProductionErrorFalse() {
+    final KsqlConfig ksqlConfig =
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_PRODUCTION_ERROR_CONFIG, false));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    assertThat(result, IsEqual.equalTo(LogAndContinueProductionExceptionHandler.class));
+  }
+
+  @Test
+  public void shouldNotSetDeserializationExceptionHandlerWhenFailOnProductionErrorTrue() {
+    final KsqlConfig ksqlConfig =
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_PRODUCTION_ERROR_CONFIG, true));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, nullValue());
   }
 

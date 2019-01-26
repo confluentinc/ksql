@@ -151,7 +151,7 @@ public class SelectValueMapperTest {
     final List<String> selectFieldNames = selectExpressions.stream()
         .map(SelectExpression::getName)
         .collect(Collectors.toList());
-    return new SelectValueMapper(selectFieldNames, metadata, schema, processingLogger);
+    return new SelectValueMapper(selectFieldNames, metadata, processingLogger);
   }
 
   private List<ExpressionMetadata> createExpressionMetadata(

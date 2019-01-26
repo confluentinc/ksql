@@ -193,7 +193,6 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata metadata = buildPhysicalPlan(queryString);
     final String planText = metadata.getExecutionPlan();
     final String[] lines = planText.split("\n");
-    System.err.println(planText);
     assertThat(lines[0], startsWith(
         " > [ SINK ] | Schema: [COL0 : BIGINT, KSQL_COL_1 : DOUBLE, KSQL_COL_2 : BIGINT] |"));
     assertThat(lines[1], startsWith(
@@ -234,7 +233,6 @@ public class PhysicalPlanBuilderTest {
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 3);
-    System.err.println(planText);
     Assert.assertEquals(lines[0],
         " > [ SINK ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] | Logger: InsertQuery_1.S1");
     Assert.assertEquals(lines[1],
@@ -376,7 +374,6 @@ public class PhysicalPlanBuilderTest {
     Assert.assertTrue(queryMetadataList.size() == 2);
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
-    System.err.println(planText);
     assertThat(lines.length, equalTo(4));
     assertThat(lines[0],
         equalTo(" > [ REKEY ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] "

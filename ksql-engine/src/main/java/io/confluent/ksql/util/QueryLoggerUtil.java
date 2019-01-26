@@ -24,18 +24,6 @@ public final class QueryLoggerUtil {
   private QueryLoggerUtil() {
   }
 
-  public static String queryLoggerName(
-      final QueryId queryId,
-      final PlanNodeId nodeId,
-      final String... subHierarchy) {
-    return String.join(
-        ".",
-        new ImmutableList.Builder<String>()
-            .add(queryId.getId(), nodeId.toString())
-            .addAll(Arrays.asList(subHierarchy))
-            .build());
-  }
-
   public static String queryLoggerName(final QueryContext queryContext) {
     return String.join(
         ".",

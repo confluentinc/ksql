@@ -34,7 +34,6 @@ public final class EngineProcessingLogMessageFactory {
 
   public static Supplier<SchemaAndValue> recordProcessingError(
       final String errorMsg,
-      final Schema schema,
       final GenericRow record
   ) {
     return () -> {
@@ -46,7 +45,7 @@ public final class EngineProcessingLogMessageFactory {
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,
           errorMsg);
-      if (schema == null || record == null) {
+      if (record == null) {
         return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
       }
       recordProcessingError.put(

@@ -139,7 +139,6 @@ public class SqlPredicate {
       } catch (final Exception e) {
         logProcessingError(e, row);
       }
-      log.error("Invalid format: " + key + " : " + row);
       return false;
     };
   }
@@ -174,7 +173,6 @@ public class SqlPredicate {
       } catch (final Exception e) {
         logProcessingError(e, row);
       }
-      log.error("Invalid format: " + key + " : " + row);
       return false;
     };
   }
@@ -187,7 +185,6 @@ public class SqlPredicate {
                 filterExpression,
                 e.getMessage()
             ),
-            schema,
             row
         )
     );

@@ -30,7 +30,7 @@ public class QueryContextTest {
       = new QueryContext.Builder(queryId).push("node");
   private final QueryContext queryContext = contextBuilder.getQueryContext();
 
-  private void assertQueryContext(
+  private static void assertQueryContext(
       final QueryContext queryContext,
       final QueryId queryId,
       final String ...context) {

@@ -220,7 +220,6 @@ public class SchemaKStream<K> {
       selectValueMapper = new SelectValueMapper(
           selectFieldNames,
           expressionEvaluators,
-          SchemaKStream.this.getSchema(),
           processingLogger);
     }
 

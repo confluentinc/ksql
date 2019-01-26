@@ -86,6 +86,7 @@ public final class QueryContext {
   @Override
   public boolean equals(final Object o) {
     return o instanceof QueryContext
+        && Objects.equals(queryId ,((QueryContext)o).queryId)
         && Objects.equals(context, ((QueryContext)o).context);
   }
 

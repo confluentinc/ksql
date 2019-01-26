@@ -27,23 +27,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
-
-  private static final Logger LOG = LoggerFactory.getLogger(SelectValueMapper.class);
-
   private final List<String> selectFieldNames;
   private final List<ExpressionMetadata> expressionEvaluators;
-  private final Schema schema;
   private final StructuredLogger processingLogger;
 
   SelectValueMapper(
       final List<String> selectFieldNames,
       final List<ExpressionMetadata> expressionEvaluators,
-      final Schema schema,
       final StructuredLogger processingLogger
   ) {
     this.selectFieldNames = Objects.requireNonNull(selectFieldNames);
     this.expressionEvaluators = Objects.requireNonNull(expressionEvaluators);
-    this.schema = Objects.requireNonNull(schema);
     this.processingLogger = Objects.requireNonNull(processingLogger);
 
     if (selectFieldNames.size() != expressionEvaluators.size()) {
@@ -77,7 +71,7 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
           column,
           e.getMessage());
       processingLogger.error(
-          EngineProcessingLogMessageFactory.recordProcessingError(errorMsg, schema, row));
+          EngineProcessingLogMessageFactory.recordProcessingError(errorMsg, row));
       return null;
     }
   }

@@ -21,10 +21,6 @@ import org.junit.Test;
 public class EngineProcessingLogMessageFactoryTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private final Schema schema = SchemaBuilder.struct()
-      .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
-      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-      .build();
   private final String errorMsg = "error msg";
 
   @Test
@@ -32,7 +28,7 @@ public class EngineProcessingLogMessageFactoryTest {
   public void shouldBuildRecordProcessingErrorCorrectly() throws IOException {
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, schema, new GenericRow(123, "data")
+        errorMsg, new GenericRow(123, "data")
     ).get();
 
     // Then:
@@ -58,27 +54,10 @@ public class EngineProcessingLogMessageFactoryTest {
   }
 
   @Test
-  public void shouldBuildRecordProcessingErrorCorrectlyIfSchemaNull() {
-    // When:
-    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, null, new GenericRow(123, "data")
-    ).get();
-
-    // Then:
-    final Struct msg = (Struct) msgAndSchema.value();
-    final Struct recordProcessingError =
-        msg.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
-    assertThat(
-        recordProcessingError.get(
-            ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD),
-        nullValue());
-  }
-
-  @Test
   public void shouldBuildRecordProcessingErrorCorrectlyIfRowNull() {
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, schema, null
+        errorMsg, null
     ).get();
 
     // Then:

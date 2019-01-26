@@ -21,10 +21,7 @@ import io.confluent.ksql.util.ExpressionMetadata;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.ValueMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
   private final List<String> selectFieldNames;

@@ -15,10 +15,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.structured.QueryContext;
-import java.util.Arrays;
 
 public final class QueryLoggerUtil {
   private QueryLoggerUtil() {

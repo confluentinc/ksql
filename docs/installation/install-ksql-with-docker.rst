@@ -474,16 +474,19 @@ to wait until the a specific phrase occurs in the Docker Compose log:
 Run Custom Code Before Launching a Container’s Program
 ======================================================
 
-overlay a change on an existing image  
+You can run custom code, like downloading a dependency or moving a file, before
+a KSQL process starts in a container. Use Docker Compose to overlay a change on
+an existing image.
 
-discover what command the container is going to run when it launches, which
-will either be through Entrypoint or Cmd:
+Get the Container's Default Command
+-----------------------------------
+
+Discover the default command that the container runs when it launches, which is
+either ``Entrypoint`` or ``Cmd``:
 
 .. codewithvars:: bash
 
    docker inspect --format='{{.Config.Entrypoint}}' confluentinc/cp-ksql-server:|release|
-
-
    docker inspect --format='{{.Config.Cmd}}' confluentinc/cp-ksql-server:|release|
 
 Your output should resemble:
@@ -491,14 +494,17 @@ Your output should resemble:
 ::
 
    []
-
-   or
-
    [/etc/confluent/docker/run]
 
+In this example, the default command is ``/etc/confluent/docker/run``.
 
-In this example, it's ``/etc/confluent/docker/run``.
+Run Custom Commands Before the KSQL Process Starts
+--------------------------------------------------
 
+In a Docker Compose file, add the commands that you want to run before the main
+process starts. Use the ``command`` option to override the default command. In
+the following example, the ``command`` option creates a directory and downloads
+a tar archive into it.
 
 .. codewithvars:: yaml
 
@@ -519,15 +525,15 @@ In this example, it's ``/etc/confluent/docker/run``.
          /etc/confluent/docker/run
 
 
-After the additional ``mkdir``, ``cd``, and ``curl`` commands run, the
-container's intended process, KSQL Server, starts with the specified settings.
+After the ``mkdir``, ``cd``, ``curl``, and ``tar`` commands run,
+the ``/etc/confluent/docker/run`` command starts the ``cp-ksql-server`` image
+with the specified settings.
 
 .. note::
 
-   The literal block scalar, ``- |``, enables passing three arguments to
+   The literal block scalar, ``- |``, enables passing multiple arguments to
    ``command``, by indicating that the following lines are all part of the same
    entry. 
-
 
 
 .. _ksql-execute-script-in-cli:
@@ -535,10 +541,10 @@ container's intended process, KSQL Server, starts with the specified settings.
 Execute a KSQL script in the KSQL CLI
 =====================================
 
-This Docker Compose snippet runs KSQL CLI and passes in a KSQL script for
-execution to it. The manual EXIT is required because of a NPE bug. The advantage
-of this method vs running KSQL Server headless with a queries file passed to it
-is that you can still interact with KSQL this way, but can pre-build the
+This Docker Compose snippet runs KSQL CLI and passes it a KSQL script for
+execution. Currently, the manual EXIT is required because of a NPE bug. The advantage
+of this method vs running KSQL Server headless with a queries file 
+is that you can still interact with KSQL this way, but you can pre-build the
 environment to a certain state.
 
 .. codewithvars:: yaml
@@ -554,21 +560,20 @@ ksql-cli:
     - -c
     - |
       echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"
-      while [ $$(curl -s -o /dev/null -w %{http_code} http://ksql-server:8088/) -eq 000 ]
+      while [ $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) -eq 000 ]
       do 
-        echo -e $$(date) "KSQL Server HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://ksql-server:8088/) " (waiting for 200)"
+        echo -e $$(date) "KSQL Server HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) " (waiting for 200)"
         sleep 5
       done
       echo -e "\n\n-> Running KSQL commands\n"
-      cat /data/scripts/my-ksql-script.sql <(echo 'EXIT')| ksql http://ksql-server:8088
+      cat /data/scripts/my-ksql-script.sql <(echo 'EXIT')| ksql http://<ksql-server-ip>:8088
       echo -e "\n\n-> Sleeping…\n"
       sleep infinity
 
 .. note:
 
    The ``sleep infinity`` command is necessary. Without it, the container exits,
-   because all of the defined ``entrypoint`` will have executed.
-
+   because all of the defined ``entrypoint`` commands will have executed.
 
 
 Next Steps

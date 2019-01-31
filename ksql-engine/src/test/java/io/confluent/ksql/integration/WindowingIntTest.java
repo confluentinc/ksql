@@ -68,10 +68,9 @@ public class WindowingIntTest {
 
   private static final Duration VERIFY_TIMEOUT = Duration.ofSeconds(60);
 
-  private static final long BATCH_0_SENT_MS = 1000000005001L;
-  private static final long BATCH_1_DELAY = 500;
-  private static final long TEN_SEC_WINDOW_START_MS =
-      BATCH_0_SENT_MS - (BATCH_0_SENT_MS % TimeUnit.SECONDS.toMillis(10));
+  private long batch0SentMs;
+  private long batch1Delay;
+  private long tenSecWindowStartMs;
 
   @ClassRule
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
@@ -88,6 +87,13 @@ public class WindowingIntTest {
 
   @Before
   public void before() {
+    final long currentTimeMillis = System.currentTimeMillis();
+
+    // set the batch to be in the middle of a ten second window
+    batch0SentMs = currentTimeMillis - (currentTimeMillis % TimeUnit.SECONDS.toMillis(10)) + (5001);
+    tenSecWindowStartMs = batch0SentMs - (batch0SentMs % TimeUnit.SECONDS.toMillis(10));
+    batch1Delay = 500;
+
     topicClient = ksqlContext.getServiceContext().getTopicClient();
 
     UdfLoaderUtil.load(ksqlContext.getFunctionRegistry());
@@ -99,8 +105,8 @@ public class WindowingIntTest {
     TEST_HARNESS.ensureTopics(sourceTopicName, ORDERS_STREAM.toUpperCase());
 
     final OrderDataProvider dataProvider = new OrderDataProvider();
-    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> BATCH_0_SENT_MS);
-    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> BATCH_0_SENT_MS + BATCH_1_DELAY);
+    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> batch0SentMs);
+    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> batch0SentMs + batch1Delay);
 
     createOrdersStream();
 
@@ -133,7 +139,7 @@ public class WindowingIntTest {
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
-        new Windowed<>("ITEM_1", new TimeWindow(TEN_SEC_WINDOW_START_MS, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, Long.MAX_VALUE)),
         new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 100.0)));
 
     // Then:
@@ -150,7 +156,7 @@ public class WindowingIntTest {
         + "FROM " + ORDERS_STREAM + " WINDOW HOPPING (SIZE 10 SECONDS, ADVANCE BY 5 SECONDS) "
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
-    final long firstWindowStart = TEN_SEC_WINDOW_START_MS;
+    final long firstWindowStart = tenSecWindowStartMs;
     final long secondWindowStart = firstWindowStart + TimeUnit.SECONDS.toMillis(5);
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
@@ -173,21 +179,21 @@ public class WindowingIntTest {
         + "FROM " + ORDERS_STREAM + " WINDOW SESSION (10 SECONDS) "
         + "GROUP BY ORDERID;");
 
-    final long sessionEnd = BATCH_0_SENT_MS + BATCH_1_DELAY;
+    final long sessionEnd = batch0SentMs + batch1Delay;
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap
         .<Windowed<String>, GenericRow>builder()
-        .put(new Windowed<>("ORDER_1", new SessionWindow(BATCH_0_SENT_MS, sessionEnd)),
+        .put(new Windowed<>("ORDER_1", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_1", 2, 20.0)))
-        .put(new Windowed<>("ORDER_2", new SessionWindow(BATCH_0_SENT_MS, sessionEnd)),
+        .put(new Windowed<>("ORDER_2", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_2", 2, 40.0)))
-        .put(new Windowed<>("ORDER_3", new SessionWindow(BATCH_0_SENT_MS, sessionEnd)),
+        .put(new Windowed<>("ORDER_3", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_3", 2, 60.0)))
-        .put(new Windowed<>("ORDER_4", new SessionWindow(BATCH_0_SENT_MS, sessionEnd)),
+        .put(new Windowed<>("ORDER_4", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_4", 2, 80.0)))
-        .put(new Windowed<>("ORDER_5", new SessionWindow(BATCH_0_SENT_MS, sessionEnd)),
+        .put(new Windowed<>("ORDER_5", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_5", 2, 100.0)))
-        .put(new Windowed<>("ORDER_6", new SessionWindow(BATCH_0_SENT_MS, sessionEnd)),
+        .put(new Windowed<>("ORDER_6", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_6", 6, 420.0)))
         .build();
 

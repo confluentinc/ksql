@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
-import io.confluent.ksql.parser.tree.ComparisonExpression.Type;
 import io.confluent.ksql.parser.tree.DefaultAstVisitor;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
@@ -114,7 +113,7 @@ public class ExpressionTypeManager
     final Schema leftSchema = expressionTypeContext.getSchema();
     process(node.getRight(), expressionTypeContext);
     final Schema rightSchema = expressionTypeContext.getSchema();
-    isValidComparison(leftSchema.type(), node.getType(), rightSchema.type());
+    ComparisonUtil.isValidComparison(leftSchema.type(), node.getType(), rightSchema.type());
     expressionTypeContext.setSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     return null;
   }
@@ -274,24 +273,6 @@ public class ExpressionTypeManager
   private static Schema resolveArithmeticType(final Schema leftSchema,
                                               final Schema rightSchema) {
     return SchemaUtil.resolveBinaryOperatorResultType(leftSchema.type(), rightSchema.type());
-  }
-
-  private static void isValidComparison(
-      final Schema.Type leftType,
-      final ComparisonExpression.Type operator,
-      final Schema.Type rightType) {
-    if (ComparisonUtil.areCompatibleTypesForComparison(leftType, rightType)) {
-      if (leftType == Schema.Type.BOOLEAN) {
-        if (operator != Type.EQUAL
-            && operator != Type.NOT_EQUAL) {
-          throw new KsqlException("Operator " + operator + " cannot be used to compare " + leftType
-              + " and " + rightType);
-        }
-      }
-      return;
-    }
-    throw new KsqlException("Operator " + operator + " cannot be used to compare " + leftType
-        + " and " + rightType);
   }
 
   private void validateSearchedCaseExpression(final SearchedCaseExpression searchedCaseExpression) {

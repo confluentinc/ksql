@@ -15,6 +15,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.parser.tree.ComparisonExpression;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
@@ -38,7 +39,20 @@ public final class ComparisonUtil {
 
   }
 
-  public static boolean areCompatibleTypesForComparison(final Type leftType, final Type rightType) {
-    return TYPE_COMPARISON_COMPATIBILITY.get(leftType).apply(rightType);
+  public static boolean isValidComparison(
+      final Schema.Type leftType,
+      final ComparisonExpression.Type operator,
+      final Schema.Type rightType) {
+    if (!TYPE_COMPARISON_COMPATIBILITY.get(leftType).apply(rightType)) {
+      throw new KsqlException("Operator " + operator + " cannot be used to compare " + leftType
+          + " and " + rightType);
+    }
+    if (leftType == Schema.Type.BOOLEAN
+        && operator != ComparisonExpression.Type.EQUAL
+        && operator != ComparisonExpression.Type.NOT_EQUAL) {
+      throw new KsqlException("Operator " + operator + " cannot be used to compare " + leftType
+          + " and " + rightType);
+    }
+    return true;
   }
 }

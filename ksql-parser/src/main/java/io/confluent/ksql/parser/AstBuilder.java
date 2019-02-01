@@ -761,30 +761,35 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitPrintTopic(final SqlBaseParser.PrintTopicContext context) {
-    final boolean fromBeginning = context.FROM() != null;
+    final boolean fromBeginning = context.printClause().FROM() != null;
 
-    QualifiedName topicName = null;
+    final QualifiedName topicName;
     if (context.STRING() != null) {
       topicName = QualifiedName.of(unquote(context.STRING().getText(), "'"));
     } else {
       topicName = getQualifiedName(context.qualifiedName());
     }
-    if (context.number() == null) {
+
+    final Optional<String> limit = getTextIfPresent(context.printClause().limit);
+
+    if (context.printClause().number() == null) {
       return new PrintTopic(
           getLocation(context),
           topicName,
           fromBeginning,
-          Optional.empty()
+          Optional.empty(),
+          limit
       );
-    } else if (context.number() instanceof SqlBaseParser.IntegerLiteralContext) {
+    } else if (context.printClause().number() instanceof SqlBaseParser.IntegerLiteralContext) {
       final SqlBaseParser.IntegerLiteralContext integerLiteralContext =
-          (SqlBaseParser.IntegerLiteralContext) context.number();
+          (SqlBaseParser.IntegerLiteralContext) context.printClause().number();
       final IntegerLiteral literal = (IntegerLiteral) visitIntegerLiteral(integerLiteralContext);
       return new PrintTopic(
           getLocation(context),
           topicName,
           fromBeginning,
-          Optional.of(literal.getValue())
+          Optional.of(literal.getValue()),
+          limit
       );
     } else {
       throw new KsqlException("Interval value should be integer in 'PRINT' command!");

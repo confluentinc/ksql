@@ -188,7 +188,8 @@ public class StreamedQueryResource {
         topicName,
         printTopic.getIntervalValue(),
         disconnectCheckInterval,
-        printTopic.getFromBeginning()
+        printTopic.getFromBeginning(),
+        printTopic.getLimit()
     );
 
     log.info("Printing topic '{}'", topicName);

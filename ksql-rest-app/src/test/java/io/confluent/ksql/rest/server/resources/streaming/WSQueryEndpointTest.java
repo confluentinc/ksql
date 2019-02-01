@@ -398,6 +398,7 @@ public class WSQueryEndpointTest {
         new NodeLocation(0, 1),
         QualifiedName.of(name),
         fromBeginning,
+        Optional.empty(),
         Optional.empty()
     );
   }

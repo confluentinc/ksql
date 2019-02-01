@@ -35,13 +35,13 @@ statement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) TOPICS                                                  #listTopics
     | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
-    | (LIST | SHOW) STREAMS EXTENDED?                                   #listStreams
-    | (LIST | SHOW) TABLES EXTENDED?                                    #listTables
-    | (LIST | SHOW) FUNCTIONS                                            #listFunctions
+    | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
+    | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
+    | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
     | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
-    | PRINT (qualifiedName | STRING) (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
-    | (LIST | SHOW) QUERIES EXTENDED?                                   #listQueries
+    | PRINT (qualifiedName | STRING) printClause                            #printTopic
+    | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
@@ -61,8 +61,8 @@ statement
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
-    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                  #dropStream
-    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                  #dropTable
+    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
+    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
     | EXPLAIN ANALYZE?
             (statement | qualifiedName)         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
@@ -89,6 +89,12 @@ queryNoWith:
       queryTerm
       (LIMIT limit=(INTEGER_VALUE | ALL))?
     ;
+
+printClause
+      : (FROM BEGINNING)?
+      ((INTERVAL | SAMPLE) number)?
+      (LIMIT limit=(INTEGER_VALUE | ALL))?
+      ;
 
 queryTerm
     : queryPrimary                                                             #queryTermDefault

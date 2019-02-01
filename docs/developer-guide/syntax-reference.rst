@@ -793,7 +793,7 @@ The PRINT statement supports the following properties:
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 | INTERVAL                | Print every nth message. The default is 1, meaning that every message is printed.                                |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| LIMIT                   | Stop printing after n messages. The default is to never stop printing and requires ^C to terminate.              |
+| LIMIT                   | Stop printing after n messages. The default is to never stop printing and requires Ctrl+C to terminate.          |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 
 For example:

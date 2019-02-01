@@ -68,9 +68,9 @@ public class WindowingIntTest {
 
   private static final Duration VERIFY_TIMEOUT = Duration.ofSeconds(60);
 
-  private long batch0SentMs;
-  private long batch1Delay;
-  private long tenSecWindowStartMs;
+  private final long batch0SentMs;
+  private final long batch1Delay;
+  private final long tenSecWindowStartMs;
 
   @ClassRule
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
@@ -85,15 +85,17 @@ public class WindowingIntTest {
   private Set<String> preExistingTopics;
   private KafkaTopicClient topicClient;
 
-  @Before
-  public void before() {
+  public WindowingIntTest() {
     final long currentTimeMillis = System.currentTimeMillis();
-
     // set the batch to be in the middle of a ten second window
     batch0SentMs = currentTimeMillis - (currentTimeMillis % TimeUnit.SECONDS.toMillis(10)) + (5001);
     tenSecWindowStartMs = batch0SentMs - (batch0SentMs % TimeUnit.SECONDS.toMillis(10));
     batch1Delay = 500;
 
+  }
+
+  @Before
+  public void before() {
     topicClient = ksqlContext.getServiceContext().getTopicClient();
 
     UdfLoaderUtil.load(ksqlContext.getFunctionRegistry());

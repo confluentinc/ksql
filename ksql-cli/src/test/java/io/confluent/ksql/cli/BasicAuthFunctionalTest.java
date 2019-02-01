@@ -222,7 +222,6 @@ public class BasicAuthFunctionalTest {
 
     @OnWebSocketConnect
     public void onConnect(final Session session) {
-      session.close();
       latch.countDown();
     }
 

@@ -19,15 +19,17 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,6 +50,8 @@ public class JoinNode extends PlanNode {
   public enum JoinType {
     INNER, LEFT, OUTER
   }
+
+  private static final String JOIN_LOGGER_NAME = "join";
 
   private final JoinType joinType;
   private final PlanNode left;
@@ -172,7 +176,8 @@ public class JoinNode extends PlanNode {
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props) {
+      final Map<String, Object> props,
+      final QueryId queryId) {
 
     ensureMatchingPartitionCounts(serviceContext.getTopicClient());
 
@@ -182,7 +187,8 @@ public class JoinNode extends PlanNode {
         serviceContext,
         functionRegistry,
         props,
-        this);
+        this,
+        queryId);
 
     return joinerFactory.getJoiner(leftType, rightType).join();
   }
@@ -225,18 +231,19 @@ public class JoinNode extends PlanNode {
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
-        final JoinNode joinNode
+        final JoinNode joinNode,
+        final QueryId queryId
     ) {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KSTREAM),
           () -> new StreamToStreamJoiner(
-              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode),
+              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId),
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KTABLE),
           () -> new StreamToTableJoiner(
-              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode),
+              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId),
           new Pair<>(DataSource.DataSourceType.KTABLE, DataSource.DataSourceType.KTABLE),
           () -> new TableToTableJoiner(
-              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode)
+              builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId)
       );
     }
 
@@ -257,6 +264,7 @@ public class JoinNode extends PlanNode {
     protected final FunctionRegistry functionRegistry;
     protected final Map<String, Object> props;
     final JoinNode joinNode;
+    final QueryId queryId;
 
     Joiner(
         final StreamsBuilder builder,
@@ -264,7 +272,8 @@ public class JoinNode extends PlanNode {
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
-        final JoinNode joinNode
+        final JoinNode joinNode,
+        final QueryId queryId
     ) {
       this.builder = Objects.requireNonNull(builder, "builder");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -272,6 +281,7 @@ public class JoinNode extends PlanNode {
       this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
       this.props = Objects.requireNonNull(props, "props");
       this.joinNode = Objects.requireNonNull(joinNode, "joinNode");
+      this.queryId = queryId;
     }
 
     String joinOpName() {
@@ -283,7 +293,7 @@ public class JoinNode extends PlanNode {
     protected SchemaKStream buildStream(final PlanNode node, final String keyFieldName) {
 
       return maybeRePartitionByKey(
-          node.buildStream(builder, ksqlConfig, serviceContext, functionRegistry, props),
+          node.buildStream(builder, ksqlConfig, serviceContext, functionRegistry, props, queryId),
           keyFieldName);
     }
 
@@ -300,7 +310,8 @@ public class JoinNode extends PlanNode {
           ksqlConfig,
           serviceContext,
           functionRegistry,
-          joinTableProps);
+          joinTableProps,
+          queryId);
 
       if (!(schemaKStream instanceof SchemaKTable)) {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
@@ -348,8 +359,11 @@ public class JoinNode extends PlanNode {
           .getKsqlTopic()
           .getKsqlTopicSerDe()
           .getGenericRowSerde(
-              dataSourceNode.getSchema(), ksqlConfig, false,
-              serviceContext.getSchemaRegistryClientFactory());
+              dataSourceNode.getSchema(),
+              ksqlConfig,
+              false,
+              serviceContext.getSchemaRegistryClientFactory(), 
+              QueryLoggerUtil.queryLoggerName(queryId, joinNode.getId(), JOIN_LOGGER_NAME));
     }
 
     Field getJoinKey(final String alias, final String keyFieldName) {
@@ -365,9 +379,10 @@ public class JoinNode extends PlanNode {
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
-        final JoinNode joinNode
+        final JoinNode joinNode,
+        final QueryId queryId
     ) {
-      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode);
+      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId);
     }
 
     @SuppressWarnings("unchecked")
@@ -428,9 +443,10 @@ public class JoinNode extends PlanNode {
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
-        final JoinNode joinNode
+        final JoinNode joinNode,
+        final QueryId queryId
     ) {
-      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode);
+      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId);
     }
 
     @SuppressWarnings("unchecked")
@@ -482,9 +498,10 @@ public class JoinNode extends PlanNode {
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
         final Map<String, Object> props,
-        final JoinNode joinNode
+        final JoinNode joinNode,
+        final QueryId queryId
     ) {
-      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode);
+      super(builder, ksqlConfig, serviceContext, functionRegistry, props, joinNode, queryId);
     }
 
     @SuppressWarnings("unchecked")

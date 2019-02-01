@@ -49,8 +49,9 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -298,12 +299,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
-    final ServiceContext serviceContext = ServiceContext.create(ksqlConfig);
+    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
-    UdfLoader.newInstance(ksqlConfig, ksqlEngine.getMetaStore(), ksqlInstallDir).load();
+    UdfLoader.newInstance(ksqlConfig, ksqlEngine.getFunctionRegistry(), ksqlInstallDir).load();
 
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
@@ -323,7 +324,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         QualifiedName.of(COMMANDS_KSQL_TOPIC_NAME),
         false,
         commandTopicProperties
-    )), false);
+    )));
 
     ksqlEngine.getDdlCommandExec().execute(new CreateStreamCommand(
         "statementText",
@@ -341,7 +342,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ),
         serviceContext.getTopicClient(),
         true
-    ), false);
+    ));
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
@@ -380,6 +381,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         commandStore,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime
     );
 

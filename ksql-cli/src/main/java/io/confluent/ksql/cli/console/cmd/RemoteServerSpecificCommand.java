@@ -22,20 +22,33 @@ import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Objects;
 import javax.ws.rs.ProcessingException;
 
-public class RemoteServerSpecificCommand implements CliSpecificCommand {
+public final class RemoteServerSpecificCommand implements CliSpecificCommand {
+
+  private static final String HELP = "server:" + System.lineSeparator()
+      + "\tShow the current server" + System.lineSeparator()
+      + "\nserver <server>:" + System.lineSeparator()
+      + "\tChange the current server to <server>" + System.lineSeparator()
+      + "\t example: \"server http://my.awesome.server.com:9098;\"";
 
   private final KsqlRestClient restClient;
-  private final PrintWriter writer;
+  private final Event resetCliForNewServer;
 
-  public RemoteServerSpecificCommand(
-      final KsqlRestClient restClient,
-      final PrintWriter writer) {
+  public static RemoteServerSpecificCommand create(
+      final KsqlRestClient restClient, final Event resetCliForNewServer) {
+    return new RemoteServerSpecificCommand(restClient, resetCliForNewServer);
+  }
+
+  private RemoteServerSpecificCommand(
+      final KsqlRestClient restClient, final Event resetCliForNewServer) {
     this.restClient = Objects.requireNonNull(restClient, "restClient");
-    this.writer = Objects.requireNonNull(writer, "writer");
+    this.resetCliForNewServer =
+        Objects.requireNonNull(resetCliForNewServer, "resetCliForNewServer");
   }
 
   @Override
@@ -44,25 +57,25 @@ public class RemoteServerSpecificCommand implements CliSpecificCommand {
   }
 
   @Override
-  public void printHelp() {
-    writer.println("server:");
-    writer.println("\tShow the current server");
-    writer.println("\nserver <server>:");
-    writer.println("\tChange the current server to <server>");
-    writer.println("\t example: \"server http://my.awesome.server.com:9098;\"");
+  public String getHelpMessage() {
+    return HELP;
   }
 
   @Override
-  public void execute(final String command) {
-    if (command.isEmpty()) {
-      writer.println(restClient.getServerAddress());
+  public void execute(final List<String> args, final PrintWriter terminal) {
+    CliCmdUtil.ensureArgCountBounds(args, 0, 1, HELP);
+
+    if (args.isEmpty()) {
+      terminal.println(restClient.getServerAddress());
+      return;
     } else {
-      final String serverAddress = command.trim();
+      final String serverAddress = args.get(0);
       restClient.setServerAddress(serverAddress);
-      writer.write("Server now: " + command);
+      terminal.println("Server now: " + serverAddress);
+      resetCliForNewServer.fire();
     }
 
-    validateClient(writer, restClient);
+    validateClient(terminal, restClient);
   }
 
   public static void validateClient(

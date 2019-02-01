@@ -82,7 +82,7 @@ public class CommandIdAssigner {
 
   private CommandId getTopicCommandId(final RegisterTopic registerTopic) {
     final String topicName = registerTopic.getName().toString();
-    if (metaStore.getAllTopicNames().contains(topicName)) {
+    if (metaStore.getAllKsqlTopics().containsKey(topicName)) {
       throw new RuntimeException(String.format("Topic %s already exists", topicName));
     }
     return new CommandId(CommandId.Type.TOPIC, topicName, CommandId.Action.CREATE);
@@ -150,7 +150,7 @@ public class CommandIdAssigner {
   }
 
   private CommandId getSourceCommandId(final CommandId.Type type, final String sourceName) {
-    if (metaStore.getAllStructuredDataSourceNames().contains(sourceName)) {
+    if (metaStore.getAllStructuredDataSources().containsKey(sourceName)) {
       throw new RuntimeException(String.format("Source %s already exists", sourceName));
     }
     return new CommandId(type, sourceName, CommandId.Action.CREATE);

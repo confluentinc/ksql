@@ -64,11 +64,18 @@ public class SqlPredicateTest {
     ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
     final StreamsBuilder builder = new StreamsBuilder();
     kStream = builder.stream(
-        ksqlStream.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String(),
+        ksqlStream.getKsqlTopic().getKafkaTopicName(),
+        Consumed.with(
+            Serdes.String(),
             ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-                ksqlStream.getSchema(), new KsqlConfig(Collections.emptyMap()),
-                false, MockSchemaRegistryClient::new
-            )));
+                ksqlStream.getSchema(),
+                new KsqlConfig(Collections.emptyMap()),
+                false,
+                MockSchemaRegistryClient::new,
+                "test"
+            )
+        )
+    );
   }
 
   private PlanNode buildLogicalPlan(final String queryStr) {

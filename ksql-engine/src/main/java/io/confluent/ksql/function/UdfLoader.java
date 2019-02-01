@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -256,7 +257,11 @@ public class UdfLoader {
           .map(UdfParameter.class::cast)
           .findAny();
 
-      final String name = annotation.map(UdfParameter::value).orElse("");
+      final Parameter param = method.getParameters()[idx];
+      final String name = annotation.map(UdfParameter::value)
+          .filter(val -> !val.isEmpty())
+          .orElse(param.isNamePresent() ? param.getName() : "");
+
       final String doc = annotation.map(UdfParameter::description).orElse("");
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());

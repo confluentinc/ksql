@@ -21,7 +21,6 @@ import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -31,11 +30,11 @@ import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -44,7 +43,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
-
 import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -101,9 +99,15 @@ public class QueryDescriptionTest {
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
-        final Map<String, Object> props
+        final Map<String, Object> props,
+        final QueryId queryId
     ) {
       return null;
+    }
+
+    @Override
+    public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
+      return new QueryId("fake");
     }
   }
 

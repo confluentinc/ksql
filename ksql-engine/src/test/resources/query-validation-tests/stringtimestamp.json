@@ -15,14 +15,14 @@
         "CREATE STREAM TS AS select id, stringtotimestamp(timestamp, 'yyyy-MM-dd''T''HH:mm:ssX') as ts from test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,2018-05-11T21:58:33Z", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,2019-05-11T21:58:33Z", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,2020-05-11T21:58:33Z", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,2018-05-11T21:58:33Z"},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,2019-05-11T21:58:33Z"},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,2020-05-11T21:58:33Z"}
       ],
       "outputs": [
-        {"topic": "TS", "key": 0, "value": "0,1526075913000", "timestamp": 0},
-        {"topic": "TS", "key": 0, "value": "0,1557611913000", "timestamp": 0},
-        {"topic": "TS", "key": 0, "value": "0,1589234313000", "timestamp": 0}
+        {"topic": "TS", "key": 0, "value": "0,1526075913000"},
+        {"topic": "TS", "key": 0, "value": "0,1557611913000"},
+        {"topic": "TS", "key": 0, "value": "0,1589234313000"}
       ]
     }
   ]

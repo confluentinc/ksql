@@ -19,7 +19,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
+import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.KsqlParser;
@@ -34,6 +36,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -44,8 +47,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,13 +58,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Cli implements Closeable {
+public class Cli implements KsqlRequestExecutor, Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
@@ -74,6 +77,7 @@ public class Cli implements Closeable {
 
   private final KsqlRestClient restClient;
   private final Console terminal;
+  private final RemoteServerState remoteServerState;
 
   public static Cli build(
       final Long streamedQueryRowLimit,
@@ -81,7 +85,7 @@ public class Cli implements Closeable {
       final OutputFormat outputFormat,
       final KsqlRestClient restClient
   ) {
-    final Console console = Console.build(outputFormat, restClient);
+    final Console console = Console.build(outputFormat);
     return new Cli(streamedQueryRowLimit, streamedQueryTimeoutMs, restClient, console);
   }
 
@@ -99,9 +103,49 @@ public class Cli implements Closeable {
     this.restClient = restClient;
     this.terminal = terminal;
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
+    this.remoteServerState = new RemoteServerState();
 
-    terminal
-        .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient, terminal.writer()));
+    final Supplier<String> versionSuppler =
+        () -> restClient.getServerInfo().getResponse().getVersion();
+
+    CliCommandRegisterUtil.registerDefaultCommands(
+        this,
+        terminal,
+        versionSuppler,
+        restClient,
+        remoteServerState::reset,
+        remoteServerState::getRequestPipelining,
+        remoteServerState::setRequestPipelining);
+  }
+
+  @Override
+  public void makeKsqlRequest(final String statements) {
+    try {
+      printKsqlResponse(makeKsqlRequest(statements, restClient::makeKsqlRequest));
+    } catch (IOException e) {
+      throw new KsqlException(e);
+    }
+  }
+
+  private <R> RestResponse<R> makeKsqlRequest(
+      final String ksql,
+      final BiFunction<String, Long, RestResponse<R>> requestIssuer) {
+    final Long commandSequenceNumberToWaitFor = remoteServerState.getRequestPipelining()
+        ? null
+        : remoteServerState.getLastCommandSequenceNumber();
+    final RestResponse<R> response = requestIssuer.apply(ksql, commandSequenceNumberToWaitFor);
+
+    if (isSequenceNumberTimeout(response)) {
+      terminal.writer().printf(
+          "Error: command not executed since the server timed out "
+              + "while waiting for prior commands to finish executing.%n"
+              + "If you wish to execute new commands without waiting for "
+              + "prior commands to finish, run the command '%s ON'.%n",
+          RequestPipeliningCommand.NAME);
+    } else if (isKsqlEntityList(response)) {
+      updateLastCommandSequenceNumber((KsqlEntityList)response.getResponse());
+    }
+    return response;
   }
 
   public void runInteractively() {
@@ -222,15 +266,13 @@ public class Cli implements Closeable {
         );
 
       } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
-        listProperties(statementText);
+        makeKsqlRequest(statementText);
 
       } else if (statementContext.statement() instanceof SqlBaseParser.SetPropertyContext) {
         setProperty(statementContext);
 
       } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
         consecutiveStatements = unsetProperty(consecutiveStatements, statementContext);
-      } else if (statementContext.statement() instanceof SqlBaseParser.RunScriptContext) {
-        runScript(statementContext, statementText);
       } else if (statementContext.statement() instanceof SqlBaseParser.RegisterTopicContext) {
         registerTopic(consecutiveStatements, statementContext, statementText);
       } else {
@@ -238,9 +280,7 @@ public class Cli implements Closeable {
       }
     }
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
+      makeKsqlRequest(consecutiveStatements.toString());
     }
   }
 
@@ -256,36 +296,13 @@ public class Cli implements Closeable {
     consecutiveStatements.append(statementText);
   }
 
-  private void runScript(
-      final SqlBaseParser.SingleStatementContext statementContext,
-      final String statementText
-  ) throws IOException {
-    final SqlBaseParser.RunScriptContext runScriptContext =
-        (SqlBaseParser.RunScriptContext) statementContext.statement();
-    final String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
-    final String fileContent;
-    try {
-      fileContent = new String(Files.readAllBytes(Paths.get(schemaFilePath)), UTF_8);
-    } catch (final IOException e) {
-      throw new KsqlException(
-          " Could not read statements from the provided script file " + schemaFilePath + ": "
-          + e + " Make sure the file exists and can be read by KSQL CLI.",
-          e
-      );
-    }
-    setProperty(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
-    printKsqlResponse(
-        restClient.makeKsqlRequest(statementText)
-    );
-  }
-
   private StringBuilder printOrDisplayQueryResults(
       final StringBuilder consecutiveStatements,
       final SqlBaseParser.SingleStatementContext statementContext,
       final String statementText
   ) throws InterruptedException, IOException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+      makeKsqlRequest(consecutiveStatements.toString());
       consecutiveStatements.setLength(0);
     }
     if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
@@ -294,11 +311,6 @@ public class Cli implements Closeable {
       handlePrintedTopic(statementText);
     }
     return consecutiveStatements;
-  }
-
-  private void listProperties(final String statementText) throws IOException {
-    final KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
-    terminal.printKsqlEntityList(ksqlEntityList);
   }
 
   private void printKsqlResponse(final RestResponse<KsqlEntityList> response) throws IOException {
@@ -327,7 +339,7 @@ public class Cli implements Closeable {
   private void handleStreamedQuery(final String query) throws IOException {
 
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
-        restClient.makeQueryRequest(query);
+        makeKsqlRequest(query, restClient::makeQueryRequest);
 
     LOGGER.debug("Handling streamed query");
 
@@ -392,7 +404,7 @@ public class Cli implements Closeable {
   private void handlePrintedTopic(final String printTopic)
       throws InterruptedException, ExecutionException, IOException {
     final RestResponse<InputStream> topicResponse =
-        restClient.makePrintTopicRequest(printTopic);
+        makeKsqlRequest(printTopic, restClient::makePrintTopicRequest);
 
     if (topicResponse.isSuccessful()) {
       try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse(), UTF_8.name());
@@ -458,11 +470,9 @@ public class Cli implements Closeable {
   private StringBuilder unsetProperty(
       final StringBuilder consecutiveStatements,
       final SqlBaseParser.SingleStatementContext statementContext
-  ) throws IOException {
+  ) {
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
+      makeKsqlRequest(consecutiveStatements.toString());
       consecutiveStatements.setLength(0);
     }
     final SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
@@ -481,5 +491,55 @@ public class Cli implements Closeable {
 
     terminal.writer()
         .printf("Successfully unset local property '%s' (value was '%s').%n", property, oldValue);
+    terminal.flush();
+  }
+
+  private static boolean isSequenceNumberTimeout(final RestResponse<?> response) {
+    return response.isErroneous()
+        && (response.getErrorMessage().getErrorCode()
+            == Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT);
+  }
+
+  private static boolean isKsqlEntityList(final RestResponse<?> response) {
+    return response.isSuccessful() && response.getResponse() instanceof KsqlEntityList;
+  }
+
+  private void updateLastCommandSequenceNumber(final KsqlEntityList entities) {
+    entities.stream()
+        .filter(entity -> entity instanceof CommandStatusEntity)
+        .map(entity -> (CommandStatusEntity)entity)
+        .mapToLong(CommandStatusEntity::getCommandSequenceNumber)
+        .max()
+        .ifPresent(remoteServerState::setLastCommandSequenceNumber);
+  }
+
+  private static final class RemoteServerState {
+    private long lastCommandSequenceNumber;
+    private boolean requestPipelining;
+
+    private RemoteServerState() {
+      reset();
+    }
+
+    private void reset() {
+      lastCommandSequenceNumber = -1L;
+      requestPipelining = false;
+    }
+
+    private long getLastCommandSequenceNumber() {
+      return lastCommandSequenceNumber;
+    }
+
+    private boolean getRequestPipelining() {
+      return requestPipelining;
+    }
+
+    private void setLastCommandSequenceNumber(final long seqNum) {
+      lastCommandSequenceNumber = seqNum;
+    }
+
+    private void setRequestPipelining(final boolean newSetting) {
+      requestPipelining = newSetting;
+    }
   }
 }

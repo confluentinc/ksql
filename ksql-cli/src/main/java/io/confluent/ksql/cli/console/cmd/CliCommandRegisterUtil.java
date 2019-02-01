@@ -14,7 +14,11 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
+import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.util.Event;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -26,19 +30,39 @@ public final class CliCommandRegisterUtil {
   }
 
   public static void registerDefaultCommands(
+      final KsqlRequestExecutor requestExecutor,
       final Console console,
-      final Supplier<String> versionSuppler) {
+      final Supplier<String> versionSuppler,
+      final KsqlRestClient restClient,
+      final Event resetCliForNewServer,
+      final Supplier<Boolean> requestPipeliningSupplier,
+      final Consumer<Boolean> requestPipeliningConsumer) {
 
-    console.registerCliSpecificCommand(new Help(console));
+    console.registerCliSpecificCommand(
+        Help.create(() -> console.getCliSpecificCommands().values()));
 
-    console.registerCliSpecificCommand(new Clear(console));
+    console.registerCliSpecificCommand(
+        Clear.create(console::clearScreen));
 
-    console.registerCliSpecificCommand(new Output(console));
+    console.registerCliSpecificCommand(
+        Output.create(console::getOutputFormat, console::setOutputFormat));
 
-    console.registerCliSpecificCommand(new History(console));
+    console.registerCliSpecificCommand(
+        History.create(console::getHistory));
 
-    console.registerCliSpecificCommand(new Version(console, versionSuppler));
+    console.registerCliSpecificCommand(
+        Version.create(versionSuppler));
 
-    console.registerCliSpecificCommand(new Exit(console));
+    console.registerCliSpecificCommand(
+        Exit.create());
+
+    console.registerCliSpecificCommand(
+        RunScript.create(requestExecutor));
+
+    console.registerCliSpecificCommand(
+        RemoteServerSpecificCommand.create(restClient, resetCliForNewServer));
+
+    console.registerCliSpecificCommand(
+        RequestPipeliningCommand.create(requestPipeliningSupplier, requestPipeliningConsumer));
   }
 }

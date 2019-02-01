@@ -19,7 +19,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
@@ -58,9 +58,9 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
+  public DdlCommandResult run(final MetaStore metaStore) {
     if (registerTopicCommand != null) {
-      registerTopicCommand.run(metaStore, isValidatePhase);
+      registerTopicCommand.run(metaStore);
     }
     checkMetaData(metaStore, sourceName, topicName);
     final KsqlTable ksqlTable = new KsqlTable<>(

@@ -29,17 +29,19 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.ExpressionTypeManager;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
@@ -60,6 +62,9 @@ import org.apache.kafka.streams.StreamsBuilder;
 public class AggregateNode extends PlanNode {
 
   private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
+
+  private static final String AGGREGATION_LOGGER_NAME = "aggregation";
+  private static final String GROUP_BY_LOGGER_NAME = "groupby";
 
   private final PlanNode source;
   private final Schema schema;
@@ -179,7 +184,8 @@ public class AggregateNode extends PlanNode {
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props
+      final Map<String, Object> props,
+      final QueryId queryId
   ) {
     final StructuredDataSourceNode streamSourceNode = getTheSourceNode();
     final SchemaKStream sourceSchemaKStream = getSource().buildStream(
@@ -187,7 +193,8 @@ public class AggregateNode extends PlanNode {
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props
+        props,
+        queryId
     );
 
     // Pre aggregate computations
@@ -198,13 +205,13 @@ public class AggregateNode extends PlanNode {
         sourceSchemaKStream.select(internalSchema.getAggArgExpansionList());
 
     final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
-        .getKsqlTopic()
-        .getKsqlTopicSerDe();
+        .getKsqlTopicSerde();
     final Serde<GenericRow> genericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
         aggregateArgExpanded.getSchema(),
         ksqlConfig,
         true,
-        serviceContext.getSchemaRegistryClientFactory()
+        serviceContext.getSchemaRegistryClientFactory(),
+        QueryLoggerUtil.queryLoggerName(queryId, getId(), GROUP_BY_LOGGER_NAME)
     );
 
     final List<Expression> internalGroupByColumns = internalSchema.getInternalExpressionList(
@@ -233,7 +240,8 @@ public class AggregateNode extends PlanNode {
         aggStageSchema,
         ksqlConfig,
         true,
-        serviceContext.getSchemaRegistryClientFactory()
+        serviceContext.getSchemaRegistryClientFactory(),
+        QueryLoggerUtil.queryLoggerName(queryId, getId(), AGGREGATION_LOGGER_NAME)
     );
 
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());

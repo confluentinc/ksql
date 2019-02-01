@@ -20,14 +20,18 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryIdGenerator;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -41,6 +45,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
+  private static final String INTO_LOGGER_NAME = "into";
 
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
@@ -78,6 +83,18 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
+  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
+    final String base = queryIdGenerator.getNextId();
+    if (!doCreateInto) {
+      return new QueryId("InsertQuery_" + base);
+    }
+    if (getNodeOutputType().equals(DataSourceType.KTABLE)) {
+      return new QueryId("CTAS_" + getId().toString() + "_" + base);
+    }
+    return new QueryId("CSAS_" + getId().toString() + "_" + base);
+  }
+
+  @Override
   public Field getKeyField() {
     return keyField;
   }
@@ -88,7 +105,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props
+      final Map<String, Object> props,
+      final QueryId queryId
   ) {
     final PlanNode source = getSource();
     final SchemaKStream schemaKStream = source.buildStream(
@@ -96,7 +114,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props
+        props,
+        queryId
     );
 
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
@@ -139,7 +158,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 noRowKey.getSchema(),
                 ksqlConfig,
                 false,
-                serviceContext.getSchemaRegistryClientFactory()),
+                serviceContext.getSchemaRegistryClientFactory(),
+                QueryLoggerUtil.queryLoggerName(queryId, getId(), INTO_LOGGER_NAME)),
         rowkeyIndexes
     );
 
@@ -290,7 +310,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withLimit(original.getLimit())
           .withDoCreateInto(original.isDoCreateInto());
     }
-
 
     Builder withLimit(final Optional<Integer> limit) {
       this.limit = limit;

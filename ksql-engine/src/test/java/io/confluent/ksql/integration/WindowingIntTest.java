@@ -16,6 +16,8 @@ package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.test.util.ConsumerTestUtil.hasUniqueRecords;
+import static io.confluent.ksql.test.util.MapMatchers.mapHasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
@@ -25,18 +27,17 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
+import java.time.Duration;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -45,9 +46,7 @@ import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
-import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -67,6 +66,12 @@ public class WindowingIntTest {
   private static final SessionWindowedDeserializer<String> SESSION_WINDOWED_DESERIALIZER =
       new SessionWindowedDeserializer<>(STRING_DESERIALIZER);
 
+  private static final Duration VERIFY_TIMEOUT = Duration.ofSeconds(60);
+
+  private final long batch0SentMs;
+  private final long batch1Delay;
+  private final long tenSecWindowStartMs;
+
   @ClassRule
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -80,11 +85,20 @@ public class WindowingIntTest {
   private Set<String> preExistingTopics;
   private KafkaTopicClient topicClient;
 
+  public WindowingIntTest() {
+    final long currentTimeMillis = System.currentTimeMillis();
+    // set the batch to be in the middle of a ten second window
+    batch0SentMs = currentTimeMillis - (currentTimeMillis % TimeUnit.SECONDS.toMillis(10)) + (5001);
+    tenSecWindowStartMs = batch0SentMs - (batch0SentMs % TimeUnit.SECONDS.toMillis(10));
+    batch1Delay = 500;
+
+  }
+
   @Before
   public void before() {
     topicClient = ksqlContext.getServiceContext().getTopicClient();
 
-    UdfLoaderUtil.load(ksqlContext.getMetaStore());
+    UdfLoaderUtil.load(ksqlContext.getFunctionRegistry());
 
     sourceTopicName = TopicTestUtil.uniqueTopicName("orders");
     resultStream0 = KsqlIdentifierTestUtil.uniqueIdentifierName("FIRST");
@@ -92,14 +106,11 @@ public class WindowingIntTest {
 
     TEST_HARNESS.ensureTopics(sourceTopicName, ORDERS_STREAM.toUpperCase());
 
-    final long now = 1438997955143L;
-
     final OrderDataProvider dataProvider = new OrderDataProvider();
-    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> now);
+    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> batch0SentMs);
+    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> batch0SentMs + batch1Delay);
 
     createOrdersStream();
-
-    TEST_HARNESS.produceRows(sourceTopicName, dataProvider, JSON, () -> now + 500);
 
     preExistingTopics = topicClient.listTopicNames();
   }
@@ -116,8 +127,8 @@ public class WindowingIntTest {
         new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 2.0)));
 
     // Then:
-    assertOutputOf(resultStream0, expected, AssertType.EqualTo);
-    assertTableCanBeUsedAsSource(expected, AssertType.EqualTo);
+    assertOutputOf(resultStream0, expected, is(expected));
+    assertTableCanBeUsedAsSource(expected, is(expected));
     assertTopicsCleanedUp(TopicCleanupPolicy.COMPACT);
   }
 
@@ -126,16 +137,16 @@ public class WindowingIntTest {
     // Given:
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10)/COUNT(*) "
-        + "FROM " + ORDERS_STREAM + " WINDOW TUMBLING ( SIZE 10 SECONDS) "
+        + "FROM " + ORDERS_STREAM + " WINDOW TUMBLING (SIZE 10 SECONDS) "
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
-        new Windowed<>("ITEM_1", new TimeWindow(1438997950000L, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, Long.MAX_VALUE)),
         new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 100.0)));
 
     // Then:
-    assertOutputOf(resultStream0, expected, AssertType.EqualTo);
-    assertTableCanBeUsedAsSource(expected, AssertType.EqualTo);
+    assertOutputOf(resultStream0, expected, is(expected));
+    assertTableCanBeUsedAsSource(expected, is(expected));
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
@@ -144,18 +155,21 @@ public class WindowingIntTest {
     // Given:
     givenTable("CREATE TABLE %s AS "
         + "SELECT ITEMID, COUNT(ITEMID), SUM(ORDERUNITS), SUM(ORDERUNITS * 10) "
-        + "FROM " + ORDERS_STREAM + " WINDOW HOPPING ( SIZE 10 SECONDS, ADVANCE BY 5 SECONDS) "
+        + "FROM " + ORDERS_STREAM + " WINDOW HOPPING (SIZE 10 SECONDS, ADVANCE BY 5 SECONDS) "
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
+    final long firstWindowStart = tenSecWindowStartMs;
+    final long secondWindowStart = firstWindowStart + TimeUnit.SECONDS.toMillis(5);
+
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
-        new Windowed<>("ITEM_1", new TimeWindow(1438997950000L, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(firstWindowStart, Long.MAX_VALUE)),
         new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 200.0)),
-        new Windowed<>("ITEM_1", new TimeWindow(1438997955000L, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(secondWindowStart, Long.MAX_VALUE)),
         new GenericRow(Arrays.asList(null, null, "ITEM_1", 2, 20.0, 200.0)));
 
     // Then:
-    assertOutputOf(resultStream0, expected, AssertType.EqualTo);
-    assertTableCanBeUsedAsSource(expected, AssertType.EqualTo);
+    assertOutputOf(resultStream0, expected, is(expected));
+    assertTableCanBeUsedAsSource(expected, is(expected));
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
@@ -167,25 +181,27 @@ public class WindowingIntTest {
         + "FROM " + ORDERS_STREAM + " WINDOW SESSION (10 SECONDS) "
         + "GROUP BY ORDERID;");
 
-    final ImmutableMap<Windowed<String>, GenericRow> expected = ImmutableMap
+    final long sessionEnd = batch0SentMs + batch1Delay;
+
+    final Map<Windowed<String>, GenericRow> expected = ImmutableMap
         .<Windowed<String>, GenericRow>builder()
-        .put(new Windowed<>("ORDER_1", new SessionWindow(1438997955143L, 1438997955643L)),
+        .put(new Windowed<>("ORDER_1", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_1", 2, 20.0)))
-        .put(new Windowed<>("ORDER_2", new SessionWindow(1438997955143L, 1438997955643L)),
+        .put(new Windowed<>("ORDER_2", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_2", 2, 40.0)))
-        .put(new Windowed<>("ORDER_3", new SessionWindow(1438997955143L, 1438997955643L)),
+        .put(new Windowed<>("ORDER_3", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_3", 2, 60.0)))
-        .put(new Windowed<>("ORDER_4", new SessionWindow(1438997955143L, 1438997955643L)),
+        .put(new Windowed<>("ORDER_4", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_4", 2, 80.0)))
-        .put(new Windowed<>("ORDER_5", new SessionWindow(1438997955143L, 1438997955643L)),
+        .put(new Windowed<>("ORDER_5", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_5", 2, 100.0)))
-        .put(new Windowed<>("ORDER_6", new SessionWindow(1438997955143L, 1438997955643L)),
+        .put(new Windowed<>("ORDER_6", new SessionWindow(batch0SentMs, sessionEnd)),
             new GenericRow(Arrays.asList(null, null, "ORDER_6", 6, 420.0)))
         .build();
 
     // Then:
-    assertOutputOf(resultStream0, expected, AssertType.HasItems);
-    assertTableCanBeUsedAsSource(expected, AssertType.HasItems);
+    assertOutputOf(resultStream0, expected, mapHasItems(expected));
+    assertTableCanBeUsedAsSource(expected, mapHasItems(expected));
     assertTopicsCleanedUp(TopicCleanupPolicy.DELETE);
   }
 
@@ -195,68 +211,26 @@ public class WindowingIntTest {
   }
 
   @SuppressWarnings("unchecked")
-  private Map<?, GenericRow> getOutput(
+  private <K> void assertOutputOf(
       final String streamName,
-      final Matcher<Integer> expectedMsgCount,
-      final Deserializer keyDeserializer
-  ) {
-    return TEST_HARNESS.verifyAvailableUniqueRows(
-        streamName, expectedMsgCount, JSON, resultSchema, keyDeserializer);
-  }
-
-  private enum AssertType {
-    EqualTo(Matchers::is, (expected, actual) ->
-        Matchers.is(expected).matches(actual)),
-    HasItems(Matchers::greaterThanOrEqualTo, (expected, actual) ->
-        expected.entrySet().stream().reduce(true,
-            (acc, e) -> acc && Matchers.is(e.getValue()).matches(actual.get(e.getKey())),
-            (b1, b2) -> b1 & b2));
-
-    private final Function<Integer, Matcher<Integer>> sizeMatcher;
-    private final BiFunction<Map<?, GenericRow>, Map<?, GenericRow>, Boolean> rowMatcher;
-
-    AssertType(
-        final Function<Integer, Matcher<Integer>> sizeMatcher,
-        final BiFunction<Map<?, GenericRow>, Map<?, GenericRow>, Boolean> rowMatcher
-    ) {
-      this.sizeMatcher = sizeMatcher;
-      this.rowMatcher = rowMatcher;
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private void assertOutputOf(
-      final String streamName,
-      final Map<?, GenericRow> expected,
-      final AssertType type
+      final Map<K, GenericRow> expected,
+      final Matcher<? super Map<K, GenericRow>> tableRowMatcher
   ) {
     final Deserializer keyDeserializer = getKeyDeserializerFor(expected.keySet().iterator().next());
 
-    final Map<Object, GenericRow> actual = new HashMap<>();
-    try {
-      TestUtils.waitForCondition(() -> {
-        actual.putAll(getOutput(
-            streamName,
-            type.sizeMatcher.apply(expected.size()),
-            keyDeserializer));
-
-        return type.rowMatcher.apply(expected, actual);
-      }, 60000, "didn't receive correct results within timeout.");
-    } catch (final AssertionError e) {
-      throw new AssertionError(e.getMessage() + " Got: " + actual, e);
-    } catch (final InterruptedException e) {
-      throw new AssertionError("Invalid test", e);
-    }
+    TEST_HARNESS.verifyAvailableRows(
+        streamName, hasUniqueRecords(tableRowMatcher), JSON, resultSchema, keyDeserializer,
+        VERIFY_TIMEOUT);
   }
 
-  private void assertTableCanBeUsedAsSource(
-      final Map<?, GenericRow> expected,
-      final AssertType type
+  private <K> void assertTableCanBeUsedAsSource(
+      final Map<K, GenericRow> expected,
+      final Matcher<? super Map<K, GenericRow>> tableRowMatcher
   ) {
     ksqlContext.sql("CREATE TABLE " + resultStream1 + " AS SELECT * FROM " + resultStream0 + ";");
     resultSchema = ksqlContext.getMetaStore().getSource(resultStream1).getSchema();
 
-    assertOutputOf(resultStream1, expected, type);
+    assertOutputOf(resultStream1, expected, tableRowMatcher);
   }
 
   private void assertTopicsCleanedUp(final TopicCleanupPolicy topicCleanupPolicy) {

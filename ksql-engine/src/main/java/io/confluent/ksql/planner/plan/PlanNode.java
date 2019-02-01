@@ -18,10 +18,11 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Map;
@@ -77,5 +78,6 @@ public abstract class PlanNode {
       KsqlConfig ksqlConfig,
       ServiceContext serviceContext,
       FunctionRegistry functionRegistry,
-      Map<String, Object> props);
+      Map<String, Object> props,
+      QueryId queryId);
 }

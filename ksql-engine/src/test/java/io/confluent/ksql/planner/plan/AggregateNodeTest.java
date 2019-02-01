@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -33,11 +34,15 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.structured.LogicalPlanBuilder;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +71,7 @@ public class AggregateNodeTest {
   private ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private final StreamsBuilder builder = new StreamsBuilder();
+  private final QueryId queryId = new QueryId("queryid");
 
   @Test
   public void shouldBuildSourceNode() {
@@ -249,18 +255,52 @@ public class AggregateNodeTest {
         + "GROUP BY col1;", ksqlConfig);
   }
 
+  private void shouldCreateLogger(final String name) {
+    // When:
+    final AggregateNode node = buildAggregateNode(
+        "SELECT col0, sum(col3), count(col3) FROM test1 GROUP BY col0;");
+    buildQuery(node, ksqlConfig);
+
+    // Then:
+    assertThat(
+        ProcessingLoggerFactory.getLoggers(),
+        hasItem(
+            startsWith(
+                ProcessingLoggerUtil.join(
+                    ProcessingLoggerFactory.PREFIX,
+                    QueryLoggerUtil.queryLoggerName(queryId, node.getId(), name)
+                )
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldCreateLoggerForRepartition() {
+    shouldCreateLogger("groupby");
+  }
+
+  @Test
+  public void shouldCreateLoggerForStatestore() {
+    shouldCreateLogger("aggregation");
+  }
+
   private SchemaKStream buildQuery(final String queryString) {
     return buildQuery(queryString, ksqlConfig);
   }
 
   private SchemaKStream buildQuery(final String queryString, final KsqlConfig ksqlConfig) {
-    return buildAggregateNode(queryString)
-        .buildStream(
+    return buildQuery(buildAggregateNode(queryString), ksqlConfig);
+  }
+
+  private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
+        return aggregateNode.buildStream(
             builder,
             ksqlConfig,
             serviceContext,
             new InternalFunctionRegistry(),
-            new HashMap<>());
+            new HashMap<>(),
+            queryId);
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {

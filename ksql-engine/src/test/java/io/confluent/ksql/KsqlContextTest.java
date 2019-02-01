@@ -16,6 +16,7 @@ package io.confluent.ksql;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -81,6 +82,20 @@ public class KsqlContextTest {
   }
 
   @Test
+  public void shouldTryExecuteStatementsReturnedByParser() {
+    // Given:
+    when(ksqlEngine.parseStatements(any()))
+        .thenReturn(ImmutableList.of(statement0, statement1));
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    verify(ksqlEngine)
+        .tryExecute(ImmutableList.of(statement0, statement1), SOME_CONFIG, SOME_PROPERTIES);
+  }
+
+  @Test
   public void shouldExecuteEachStatementReturnedByParser() {
     // Given:
     when(ksqlEngine.parseStatements(any()))
@@ -110,6 +125,20 @@ public class KsqlContextTest {
   }
 
   @Test
+  public void shouldThrowIfTryExecuteThrows() {
+    // Given:
+    when(ksqlEngine.tryExecute(any(), any(), any()))
+        .thenThrow(new KsqlException("Bad tings happen"));
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Bad tings happen");
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+  }
+
+  @Test
   public void shouldThrowIfExecuteThrows() {
     // Given:
     when(ksqlEngine.execute(any(), any(), any()))
@@ -121,6 +150,23 @@ public class KsqlContextTest {
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+  }
+
+  @Test
+  public void shouldNotExecuteAnyStatementsIfTryExecuteThrows() {
+    // Given:
+    when(ksqlEngine.tryExecute(any(), any(), any()))
+        .thenThrow(new KsqlException("Bad tings happen"));
+
+    // When:
+    try {
+      ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+    } catch (final KsqlException e) {
+      // expected
+    }
+
+    // Then:
+    verify(ksqlEngine, never()).execute(any(), any(), any());
   }
 
   @Test

@@ -37,11 +37,7 @@ public interface MetaStore extends FunctionRegistry {
 
   Map<String, StructuredDataSource> getAllStructuredDataSources();
 
-  Set<String> getAllStructuredDataSourceNames();
-
   Map<String, KsqlTopic> getAllKsqlTopics();
-
-  Set<String> getAllTopicNames();
 
   void updateForPersistentQuery(String queryId,
                                        Set<String> sourceNames,
@@ -53,6 +49,5 @@ public interface MetaStore extends FunctionRegistry {
 
   Set<String> getQueriesWithSink(String sourceName);
 
-  MetaStore clone();
-
+  MetaStore copy();
 }

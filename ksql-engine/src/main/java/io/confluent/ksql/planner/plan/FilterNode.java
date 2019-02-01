@@ -19,9 +19,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Map;
@@ -92,9 +93,10 @@ public class FilterNode
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props) {
+      final Map<String, Object> props,
+      final QueryId queryId) {
     return getSource().buildStream(builder, ksqlConfig, serviceContext,
-        functionRegistry, props)
+        functionRegistry, props, queryId)
         .filter(getPredicate());
   }
 }

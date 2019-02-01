@@ -14,22 +14,22 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static java.util.Objects.requireNonNull;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -41,11 +41,8 @@ public class ProjectNode
 
   private final PlanNode source;
   private final Schema schema;
-  private final Field keyField;
   private final List<Expression> projectExpressions;
 
-  // TODO: pass in the "assignments" and the "outputs"
-  // TODO: separately (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
   public ProjectNode(@JsonProperty("id") final PlanNodeId id,
                      @JsonProperty("source") final PlanNode source,
@@ -54,16 +51,15 @@ public class ProjectNode
                        final List<Expression> projectExpressions) {
     super(id, source.getNodeOutputType());
 
-    requireNonNull(source, "source is null");
-    requireNonNull(schema, "schema is null");
-    requireNonNull(projectExpressions, "projectExpressions is null");
+    this.source = Objects.requireNonNull(source, "source");
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.projectExpressions = Objects.requireNonNull(projectExpressions, "projectExpressions");
 
-    this.source = source;
-    this.schema = schema;
-    this.keyField = source.getKeyField();
-    this.projectExpressions = projectExpressions;
+    if (schema.fields().size() != projectExpressions.size()) {
+      throw new KsqlException("Error in projection. Schema fields and expression list are not "
+          + "compatible.");
+    }
   }
-
 
   @Override
   public List<PlanNode> getSources() {
@@ -87,15 +83,10 @@ public class ProjectNode
 
   @Override
   public Field getKeyField() {
-    return keyField;
+    return source.getKeyField();
   }
 
   public List<SelectExpression> getProjectSelectExpressions() {
-    if (schema.fields().size() != projectExpressions.size()) {
-      throw new KsqlException("Error in projection. Schema fields and expression list are not "
-                              + "compatible.");
-    }
-
     final List<SelectExpression> selects = new ArrayList<>();
     for (int i = 0; i < projectExpressions.size(); i++) {
       selects.add(SelectExpression.of(schema.fields().get(i).name(), projectExpressions.get(i)));
@@ -114,9 +105,15 @@ public class ProjectNode
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props) {
-    return getSource()
-        .buildStream(builder, ksqlConfig, serviceContext, functionRegistry, props)
-        .select(getProjectSelectExpressions());
+      final Map<String, Object> props,
+      final QueryId queryId) {
+    return getSource().buildStream(
+        builder,
+        ksqlConfig,
+        serviceContext, 
+        functionRegistry,
+        props,
+        queryId
+    ).select(getProjectSelectExpressions());
   }
 }

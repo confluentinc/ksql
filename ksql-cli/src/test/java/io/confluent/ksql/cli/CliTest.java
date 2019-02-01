@@ -65,6 +65,7 @@ import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -683,7 +684,8 @@ public class CliTest {
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
-    assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
+    assertThat(terminal.getOutputString(),
+               containsString("Please ensure that the URL provided is for an active KSQL server."));
   }
 
   @Test

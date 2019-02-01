@@ -10,10 +10,12 @@ import com.google.common.primitives.Ints;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import java.io.OutputStream;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.Queue;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -52,6 +54,7 @@ public class TopicStreamWriterTest {
 
   @Test
   public void testIntervalOneAndLimitTwo() {
+    // Given:
     final TopicStreamWriter writer = new TopicStreamWriter(
         schemaRegistry,
         kafkaConsumer,
@@ -61,19 +64,22 @@ public class TopicStreamWriterTest {
         OptionalInt.of(2)
     );
 
+    // When:
+    ValidatingOutputStream out = new ValidatingOutputStream();
+    writer.write(out);
+
+    // Then:
     final List<String> expected = ImmutableList.of(
         "Format:STRING",
         "\\x00\\x00\\x00\\x00",
         "\\x00\\x00\\x00\\x01"
     );
-
-    ValidatingOutputStream out = new ValidatingOutputStream(expected);
-    writer.write(out);
-    out.assertNoMore();
+    out.assertWrites(expected);
   }
 
   @Test
   public void testIntervalTwoAndLimitTwo() {
+    // Given:
     final TopicStreamWriter writer = new TopicStreamWriter(
         schemaRegistry,
         kafkaConsumer,
@@ -83,38 +89,42 @@ public class TopicStreamWriterTest {
         OptionalInt.of(2)
     );
 
+    // When:
+    ValidatingOutputStream out = new ValidatingOutputStream();
+    writer.write(out);
+
+    // Then:
     final List<String> expected = ImmutableList.of(
         "Format:STRING",
         "\\x00\\x00\\x00\\x00",
         "\\x00\\x00\\x00\\x02"
     );
-
-    ValidatingOutputStream out = new ValidatingOutputStream(expected);
-    writer.write(out);
-    out.assertNoMore();
+    out.assertWrites(expected);
   }
 
   private static class ValidatingOutputStream extends OutputStream {
 
-    private final List<String> expected;
-    private int numWrites = 0;
+    private final List<byte[]> recordedWrites;
 
-    ValidatingOutputStream(List<String> expected) {
-      this.expected = expected;
+    ValidatingOutputStream() {
+      this.recordedWrites = new ArrayList<>();
     }
 
     @Override public void write(final int b) { /* not called*/ }
 
     @Override
     public void write(final byte[] b) {
-      assertThat(numWrites, Matchers.lessThanOrEqualTo(expected.size()));
-      assertThat(
-          new String(b, Charsets.UTF_8),
-          Matchers.containsString(expected.get(numWrites++)));
+      recordedWrites.add(b);
     }
 
-    void assertNoMore() {
-      assertThat(numWrites, Matchers.equalTo(expected.size() - 1));
+    void assertWrites(List<String> expected) {
+      assertThat(recordedWrites.size(), Matchers.equalTo(expected.size()));
+      for (int i = 0; i < recordedWrites.size(); i++) {
+        final byte[] bytes = recordedWrites.get(i);
+        assertThat(
+            new String(bytes, Charsets.UTF_8),
+            Matchers.containsString(expected.get(i)));
+      }
     }
   }
 

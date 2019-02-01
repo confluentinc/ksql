@@ -112,7 +112,7 @@ public class TopicStreamWriter implements StreamingOutput {
               out.flush();
             }
 
-            if (limit.isPresent() && limit.getAsInt() >= messagesWritten) {
+            if (limit.isPresent() && messagesWritten >= limit.getAsInt()) {
               return;
             }
           }

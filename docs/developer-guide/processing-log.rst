@@ -196,3 +196,6 @@ You can also create the stream yourself by issuing the following DDL:
                      errorMessage STRING, \
                      record STRING>>)\
              WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
+
+Note that processing log stream auto-creation is supported for interactive mode only. Enabling
+this setting in headless mode will cause a warning to be printed to the server log.

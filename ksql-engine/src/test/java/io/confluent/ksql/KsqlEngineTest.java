@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -398,7 +398,7 @@ public class KsqlEngineTest {
     serviceContext.getTopicClient().createTopic("sink", 2, (short) 1);
 
     // Expect:
-    expectedException.expect(KafkaTopicException.class);
+    expectedException.expect(KafkaTopicExistsException.class);
     expectedException.expectMessage("A Kafka topic with the name 'sink' already exists, "
         + "with different partition/replica configuration than required");
 
@@ -419,7 +419,7 @@ public class KsqlEngineTest {
     ksqlEngine.execute(statements.get(0), KSQL_CONFIG, new HashMap<>());
 
     // Expect:
-    expectedException.expect(KafkaTopicException.class);
+    expectedException.expect(KafkaTopicExistsException.class);
     expectedException.expectMessage("A Kafka topic with the name 'sink' already exists, "
         + "with different partition/replica configuration than required");
 
@@ -438,7 +438,7 @@ public class KsqlEngineTest {
     serviceContext.getTopicClient().createTopic("sink", 1, (short) 2);
 
     // Expect:
-    expectedException.expect(KafkaTopicException.class);
+    expectedException.expect(KafkaTopicExistsException.class);
     expectedException.expectMessage("A Kafka topic with the name 'sink' already exists, "
         + "with different partition/replica configuration than required");
 
@@ -459,7 +459,7 @@ public class KsqlEngineTest {
     ksqlEngine.execute(statements.get(0), KSQL_CONFIG, new HashMap<>());
 
     // Expect:
-    expectedException.expect(KafkaTopicException.class);
+    expectedException.expect(KafkaTopicExistsException.class);
     expectedException.expectMessage("A Kafka topic with the name 'sink' already exists, "
         + "with different partition/replica configuration than required");
 

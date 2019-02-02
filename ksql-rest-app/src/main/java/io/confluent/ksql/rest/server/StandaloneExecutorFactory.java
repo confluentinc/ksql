@@ -16,6 +16,7 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -43,6 +44,7 @@ public final class StandaloneExecutorFactory {
 
     return new StandaloneExecutor(
         serviceContext,
+        new ProcessingLogConfig(properties),
         ksqlConfig,
         ksqlEngine,
         queriesFile,

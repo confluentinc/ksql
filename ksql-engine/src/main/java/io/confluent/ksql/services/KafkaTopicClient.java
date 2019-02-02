@@ -15,7 +15,6 @@
 package io.confluent.ksql.services;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.exception.KafkaTopicException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -94,7 +93,7 @@ public interface KafkaTopicClient {
    *
    * @param topicNames topicNames to describe
    * @return map of topic name to description.
-   * @throws KafkaTopicException if any of the topic do not exist.
+   * @throws KafkaTopicExistsException if any of the topic do not exist.
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
 
@@ -103,7 +102,7 @@ public interface KafkaTopicClient {
    *
    * @param topicName topicName to describe
    * @return the description if the topic
-   * @throws KafkaTopicException if the topic does not exist.
+   * @throws KafkaTopicExistsException if the topic does not exist.
    */
   default TopicDescription describeTopic(String topicName) {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);

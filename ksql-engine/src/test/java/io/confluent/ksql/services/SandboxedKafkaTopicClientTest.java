@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.util.Collection;
@@ -187,7 +187,7 @@ public class SandboxedKafkaTopicClientTest {
       sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
 
       // Expect:
-      expectedException.expect(KafkaTopicException.class);
+      expectedException.expect(KafkaTopicExistsException.class);
       expectedException.expectMessage("A Kafka topic with the name 'some topic' already "
           + "exists, with different partition/replica configuration than required");
 
@@ -201,7 +201,7 @@ public class SandboxedKafkaTopicClientTest {
       sandboxedClient.createTopic("some topic", 2, (short) 1, configs);
 
       // Expect:
-      expectedException.expect(KafkaTopicException.class);
+      expectedException.expect(KafkaTopicExistsException.class);
       expectedException.expectMessage("A Kafka topic with the name 'some topic' already "
           + "exists, with different partition/replica configuration than required");
 
@@ -215,7 +215,7 @@ public class SandboxedKafkaTopicClientTest {
       givenTopicExists("some topic", 2, 3);
 
       // Expect:
-      expectedException.expect(KafkaTopicException.class);
+      expectedException.expect(KafkaTopicExistsException.class);
       expectedException.expectMessage("A Kafka topic with the name 'some topic' already "
           + "exists, with different partition/replica configuration than required");
 
@@ -229,7 +229,7 @@ public class SandboxedKafkaTopicClientTest {
       givenTopicExists("some topic", 2, 1);
 
       // Expect:
-      expectedException.expect(KafkaTopicException.class);
+      expectedException.expect(KafkaTopicExistsException.class);
       expectedException.expectMessage("A Kafka topic with the name 'some topic' already "
           + "exists, with different partition/replica configuration than required");
 

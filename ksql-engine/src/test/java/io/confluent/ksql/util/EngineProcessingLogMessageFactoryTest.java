@@ -12,9 +12,7 @@ import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import java.io.IOException;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
@@ -36,7 +34,7 @@ public class EngineProcessingLogMessageFactoryTest {
     final Struct msg = (Struct) msgAndSchema.value();
     assertThat(
         msg.get(ProcessingLogMessageSchema.TYPE),
-        equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal()));
+        equalTo(MessageType.RECORD_PROCESSING_ERROR.getTypeId()));
     assertThat(msg.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR), notNullValue());
     final Struct recordProcessingError =
         msg.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);

@@ -72,8 +72,8 @@ public abstract class PlanNode {
     return null;
   }
 
-  QueryContext.Builder buildNodeContext(final QueryId queryId) {
-    return new QueryContext.Builder(queryId).push(id.toString());
+  QueryContext.Stacker buildNodeContext(final QueryId queryId) {
+    return new QueryContext.Stacker(queryId).push(id.toString());
   }
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);

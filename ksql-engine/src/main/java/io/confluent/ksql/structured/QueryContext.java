@@ -52,19 +52,19 @@ public final class QueryContext {
     );
   }
 
-  public static class Builder {
+  public static class Stacker {
     final QueryContext queryContext;
 
-    public Builder(final QueryId queryId) {
+    public Stacker(final QueryId queryId) {
       this.queryContext = Objects.requireNonNull(new QueryContext(queryId));
     }
 
-    private Builder(final QueryContext queryContext) {
+    private Stacker(final QueryContext queryContext) {
       this.queryContext = Objects.requireNonNull(queryContext);
     }
 
-    public Builder push(final String ...context) {
-      return new Builder(queryContext.push(context));
+    public Stacker push(final String ...context) {
+      return new Stacker(queryContext.push(context));
     }
 
     public QueryContext getQueryContext() {
@@ -73,8 +73,8 @@ public final class QueryContext {
 
     @Override
     public boolean equals(final Object o) {
-      return o instanceof QueryContext.Builder
-          && Objects.equals(queryContext, ((Builder)o).queryContext);
+      return o instanceof Stacker
+          && Objects.equals(queryContext, ((Stacker)o).queryContext);
     }
 
     @Override

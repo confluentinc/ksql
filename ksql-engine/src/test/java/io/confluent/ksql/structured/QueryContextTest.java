@@ -26,9 +26,9 @@ import org.junit.Test;
 
 public class QueryContextTest {
   private final QueryId queryId = new QueryId("query");
-  private final QueryContext.Builder contextBuilder
-      = new QueryContext.Builder(queryId).push("node");
-  private final QueryContext queryContext = contextBuilder.getQueryContext();
+  private final QueryContext.Stacker contextStacker
+      = new QueryContext.Stacker(queryId).push("node");
+  private final QueryContext queryContext = contextStacker.getQueryContext();
 
   private static void assertQueryContext(
       final QueryContext queryContext,
@@ -45,9 +45,9 @@ public class QueryContextTest {
   @Test
   public void shouldGenerateNewContextOnPush() {
     // When:
-    final QueryContext.Builder childContextBuilder = contextBuilder.push("child");
-    final QueryContext childContext = childContextBuilder.getQueryContext();
-    final QueryContext grandchildContext = childContextBuilder.push("grandchild").getQueryContext();
+    final QueryContext.Stacker childContextStacker = contextStacker.push("child");
+    final QueryContext childContext = childContextStacker.getQueryContext();
+    final QueryContext grandchildContext = childContextStacker.push("grandchild").getQueryContext();
 
     // Then:
     assertThat(ImmutableSet.of(queryContext, childContext, grandchildContext), hasSize(3));

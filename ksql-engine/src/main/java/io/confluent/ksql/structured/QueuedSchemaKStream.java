@@ -72,14 +72,14 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<K> filter(
       final Expression filterExpression,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public SchemaKStream<K> select(
       final List<SelectExpression> expressions,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 
@@ -89,7 +89,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       final Schema joinSchema,
       final Field joinKey,
       final Serde<GenericRow> joinSerde,
-      final QueryContext.Builder contextBuilder
+      final QueryContext.Stacker contextStacker
   ) {
     throw new UnsupportedOperationException();
   }
@@ -98,7 +98,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   public SchemaKStream<K> selectKey(
       final Field newKeyField,
       final boolean updateRowKey,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 
@@ -106,7 +106,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 

@@ -118,8 +118,8 @@ public class SchemaKStream<K> {
     this.queryContext = Objects.requireNonNull(queryContext);
   }
 
-  public QueuedSchemaKStream toQueue(final QueryContext.Builder contextBuilder) {
-    return new QueuedSchemaKStream<>(this, contextBuilder.getQueryContext());
+  public QueuedSchemaKStream toQueue(final QueryContext.Stacker contextStacker) {
+    return new QueuedSchemaKStream<>(this, contextStacker.getQueryContext());
   }
 
   public Serde<K> getKeySerde() {
@@ -155,7 +155,7 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<K> filter(
       final Expression filterExpression,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
@@ -164,7 +164,7 @@ public class SchemaKStream<K> {
         functionRegistry,
         ProcessingLoggerFactory.getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextBuilder.push(Type.FILTER.name()).getQueryContext())
+                contextStacker.push(Type.FILTER.name()).getQueryContext())
         )
     );
 
@@ -178,18 +178,18 @@ public class SchemaKStream<K> {
         Type.FILTER,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 
   public SchemaKStream<K> select(
       final List<SelectExpression> selectExpressions,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     final Selection selection = new Selection(
         selectExpressions,
         ProcessingLoggerFactory.getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextBuilder.push(Type.PROJECT.name()).getQueryContext())));
+                contextStacker.push(Type.PROJECT.name()).getQueryContext())));
     return new SchemaKStream<>(
         selection.getProjectedSchema(),
         kstream.mapValues(selection.getSelectValueMapper()),
@@ -199,7 +199,7 @@ public class SchemaKStream<K> {
         Type.PROJECT,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 
@@ -300,7 +300,7 @@ public class SchemaKStream<K> {
       final Schema joinSchema,
       final Field joinKey,
       final Serde<GenericRow> leftValueSerDe,
-      final QueryContext.Builder contextBuilder
+      final QueryContext.Stacker contextStacker
   ) {
 
     final KStream<K, GenericRow> joinedKStream =
@@ -311,7 +311,7 @@ public class SchemaKStream<K> {
                 keySerde,
                 leftValueSerDe,
                 null,
-                StreamsUtil.buildOpName(contextBuilder.getQueryContext()))
+                StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
 
     return new SchemaKStream(
@@ -323,7 +323,7 @@ public class SchemaKStream<K> {
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 
@@ -335,7 +335,7 @@ public class SchemaKStream<K> {
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
 
     final KStream<K, GenericRow> joinStream =
         kstream
@@ -347,7 +347,7 @@ public class SchemaKStream<K> {
                     keySerde,
                     leftSerde,
                     rightSerde,
-                    StreamsUtil.buildOpName(contextBuilder.getQueryContext()))
+                    StreamsUtil.buildOpName(contextStacker.getQueryContext()))
             );
 
     return new SchemaKStream<>(
@@ -359,7 +359,7 @@ public class SchemaKStream<K> {
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 
@@ -369,7 +369,7 @@ public class SchemaKStream<K> {
       final Schema joinSchema,
       final Field joinKey,
       final Serde<GenericRow> joinSerDe,
-      final QueryContext.Builder contextBuilder
+      final QueryContext.Stacker contextStacker
   ) {
     final KStream<K, GenericRow> joinedKStream =
         kstream.join(
@@ -379,7 +379,7 @@ public class SchemaKStream<K> {
                 keySerde,
                 joinSerDe,
                 null,
-                StreamsUtil.buildOpName(contextBuilder.getQueryContext()))
+                StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
 
     return new SchemaKStream<>(
@@ -391,7 +391,7 @@ public class SchemaKStream<K> {
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 
@@ -403,7 +403,7 @@ public class SchemaKStream<K> {
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     final KStream<K, GenericRow> joinStream =
         kstream
             .join(
@@ -414,7 +414,7 @@ public class SchemaKStream<K> {
                     keySerde,
                     leftSerde,
                     rightSerde,
-                    StreamsUtil.buildOpName(contextBuilder.getQueryContext()))
+                    StreamsUtil.buildOpName(contextStacker.getQueryContext()))
             );
 
     return new SchemaKStream<>(
@@ -426,7 +426,7 @@ public class SchemaKStream<K> {
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 
@@ -437,7 +437,7 @@ public class SchemaKStream<K> {
       final JoinWindows joinWindows,
       final Serde<GenericRow> leftSerde,
       final Serde<GenericRow> rightSerde,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     final KStream<K, GenericRow> joinStream = kstream
         .outerJoin(
             otherSchemaKStream.kstream,
@@ -447,7 +447,7 @@ public class SchemaKStream<K> {
                 keySerde,
                 leftSerde,
                 rightSerde,
-                StreamsUtil.buildOpName(contextBuilder.getQueryContext()))
+                StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
 
     return new SchemaKStream<>(
@@ -459,7 +459,7 @@ public class SchemaKStream<K> {
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 
@@ -468,7 +468,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<?> selectKey(
       final Field newKeyField,
       final boolean updateRowKey,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     if (keyField != null && keyField.name().equals(newKeyField.name())) {
       return this;
     }
@@ -493,7 +493,7 @@ public class SchemaKStream<K> {
         Type.REKEY,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 
@@ -528,12 +528,12 @@ public class SchemaKStream<K> {
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     final boolean rekey = rekeyRequired(groupByExpressions);
     if (!rekey) {
       final KGroupedStream kgroupedStream = kstream.groupByKey(
           streamsFactories.getGroupedFactory().create(
-              StreamsUtil.buildOpName(contextBuilder.getQueryContext()),
+              StreamsUtil.buildOpName(contextStacker.getQueryContext()),
               keySerde,
               valSerde)
       );
@@ -554,7 +554,7 @@ public class SchemaKStream<K> {
         .groupBy(
             groupBy.mapper,
             streamsFactories.getGroupedFactory().create(
-                StreamsUtil.buildOpName(contextBuilder.getQueryContext()),
+                StreamsUtil.buildOpName(contextStacker.getQueryContext()),
                 Serdes.String(),
                 valSerde)
         );

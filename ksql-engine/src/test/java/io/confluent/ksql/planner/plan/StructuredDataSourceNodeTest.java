@@ -222,7 +222,7 @@ public class StructuredDataSourceNodeTest {
                 ProcessingLoggerUtil.join(
                     ProcessingLoggerFactory.PREFIX,
                     QueryLoggerUtil.queryLoggerName(
-                        new QueryContext.Builder(queryId)
+                        new QueryContext.Stacker(queryId)
                             .push(node.getId().toString(), "source")
                             .getQueryContext()
                     )

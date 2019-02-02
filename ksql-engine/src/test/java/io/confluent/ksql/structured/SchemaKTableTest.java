@@ -39,7 +39,6 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -93,10 +92,10 @@ public class SchemaKTableTest {
   private SchemaKTable firstSchemaKTable;
   private SchemaKTable secondSchemaKTable;
   private Schema joinSchema;
-  private final QueryContext.Builder queryContext
-      = new QueryContext.Builder(new QueryId("query")).push("node");
+  private final QueryContext.Stacker queryContext
+      = new QueryContext.Stacker(new QueryId("query")).push("node");
   private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
-  private final QueryContext.Builder childContextBuilder = queryContext.push("child");
+  private final QueryContext.Stacker childContextStacker = queryContext.push("child");
 
   @Before
   public void init() {
@@ -184,7 +183,7 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
-        childContextBuilder
+        childContextStacker
     );
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -223,7 +222,7 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
-        childContextBuilder
+        childContextStacker
     );
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -264,7 +263,7 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
-        childContextBuilder
+        childContextStacker
     );
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 7);
@@ -316,7 +315,7 @@ public class SchemaKTableTest {
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde,
         groupByExpressions,
-        childContextBuilder);
+        childContextStacker);
 
     assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     assertThat(groupedSchemaKTable.getKeyField().name(), equalTo("TEST2.COL2|+|TEST2.COL1"));
@@ -328,7 +327,7 @@ public class SchemaKTableTest {
     final Serde<GenericRow> valSerde = getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema());
     expect(
         groupedFactory.create(
-            eq(StreamsUtil.buildOpName(childContextBuilder.getQueryContext())),
+            eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
             anyObject(Serdes.String().getClass()),
             same(valSerde))
     ).andReturn(grouped);
@@ -342,7 +341,7 @@ public class SchemaKTableTest {
     final SchemaKTable schemaKTable = buildSchemaKTable(ksqlTable, mockKTable, groupedFactory);
 
     // When:
-    schemaKTable.groupBy(valSerde, groupByExpressions, childContextBuilder);
+    schemaKTable.groupBy(valSerde, groupByExpressions, childContextStacker);
 
     // Then:
     verify(mockKTable, groupedFactory);
@@ -389,7 +388,7 @@ public class SchemaKTableTest {
         "test");
 
     // Call groupBy and extract the captured mapper
-    initialSchemaKTable.groupBy(rowSerde, groupByExpressions, childContextBuilder);
+    initialSchemaKTable.groupBy(rowSerde, groupByExpressions, childContextStacker);
     verify(mockKTable, mockKGroupedTable);
     final KeyValueMapper keySelector = capturedKeySelector.getValue();
     final GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));
@@ -415,7 +414,7 @@ public class SchemaKTableTest {
             secondSchemaKTable,
             joinSchema,
             joinSchema.fields().get(0),
-            childContextBuilder);
+            childContextStacker);
 
     verify(mockKTable);
 
@@ -437,7 +436,7 @@ public class SchemaKTableTest {
     replay(mockKTable);
 
     final SchemaKStream joinedKStream = firstSchemaKTable
-        .join(secondSchemaKTable, joinSchema, joinSchema.fields().get(0), childContextBuilder);
+        .join(secondSchemaKTable, joinSchema, joinSchema.fields().get(0), childContextStacker);
 
     verify(mockKTable);
 
@@ -459,7 +458,7 @@ public class SchemaKTableTest {
     replay(mockKTable);
 
     final SchemaKStream joinedKStream = firstSchemaKTable
-        .outerJoin(secondSchemaKTable, joinSchema, joinSchema.fields().get(0), childContextBuilder);
+        .outerJoin(secondSchemaKTable, joinSchema, joinSchema.fields().get(0), childContextStacker);
 
     verify(mockKTable);
 

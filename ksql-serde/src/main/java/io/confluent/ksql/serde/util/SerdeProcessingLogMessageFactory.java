@@ -33,8 +33,7 @@ public final class SerdeProcessingLogMessageFactory {
     Objects.requireNonNull(exception);
     return () -> {
       final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
-      final Struct deserializationError = new Struct(
-          ProcessingLogMessageSchema.DESERIALIZATION_ERROR_SCHEMA);
+      final Struct deserializationError = new Struct(MessageType.DESERIALIZATION_ERROR.getSchema());
       deserializationError.put(
           ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE,
           exception.getMessage());
@@ -43,7 +42,7 @@ public final class SerdeProcessingLogMessageFactory {
           record.map(Base64.getEncoder()::encodeToString).orElse(null)
       );
       struct.put(ProcessingLogMessageSchema.DESERIALIZATION_ERROR, deserializationError);
-      struct.put(ProcessingLogMessageSchema.TYPE, MessageType.DESERIALIZATION_ERROR.ordinal());
+      struct.put(ProcessingLogMessageSchema.TYPE, MessageType.DESERIALIZATION_ERROR.getTypeId());
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
     };
   }

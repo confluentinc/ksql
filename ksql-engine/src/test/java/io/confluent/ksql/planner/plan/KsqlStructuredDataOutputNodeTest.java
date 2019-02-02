@@ -342,7 +342,7 @@ public class KsqlStructuredDataOutputNodeTest {
             any(),
             startsWith(
                 QueryLoggerUtil.queryLoggerName(
-                    new QueryContext.Builder(QUERY_ID)
+                    new QueryContext.Stacker(QUERY_ID)
                         .push(outputNode.getId().toString())
                         .getQueryContext()))
         );

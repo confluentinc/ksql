@@ -108,8 +108,8 @@ public class JoinNodeTest {
 
   private static final PlanNodeId nodeId = new PlanNodeId("join");
   private static final QueryId queryId = new QueryId("join-query");
-  private static final QueryContext.Builder contextBuilder =
-      new QueryContext.Builder(queryId).push(nodeId.toString());
+  private static final QueryContext.Stacker CONTEXT_STACKER =
+      new QueryContext.Stacker(queryId).push(nodeId.toString());
 
   private Map<String, Object> properties;
   private StructuredDataSourceNode left;
@@ -295,9 +295,9 @@ public class JoinNodeTest {
   @Test
   public void shouldPerformStreamToStreamLeftJoin() {
     // Given:
-    setupStream(left, contextBuilder, leftSchemaKStream, leftSchema, 2);
+    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
-    setupStream(right, contextBuilder, rightSchemaKStream, rightSchema, 2);
+    setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKStream),
                                       eq(joinSchema),
@@ -305,7 +305,7 @@ public class JoinNodeTest {
                                       eq(withinExpression.joinWindow()),
                                       anyObject(Serde.class),
                                       anyObject(Serde.class),
-                                      eq(contextBuilder)))
+                                      eq(CONTEXT_STACKER)))
         .andReturn(niceMock(SchemaKStream.class));
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
 
@@ -344,9 +344,9 @@ public class JoinNodeTest {
   @Test
   public void shouldPerformStreamToStreamInnerJoin() {
     // Given:
-    setupStream(left, contextBuilder, leftSchemaKStream, leftSchema, 2);
+    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
-    setupStream(right, contextBuilder, rightSchemaKStream, rightSchema, 2);
+    setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
     expect(leftSchemaKStream.join(eq(rightSchemaKStream),
                                   eq(joinSchema),
@@ -354,7 +354,7 @@ public class JoinNodeTest {
                                   eq(withinExpression.joinWindow()),
                                   anyObject(Serde.class),
                                   anyObject(Serde.class),
-                                  eq(contextBuilder)))
+                                  eq(CONTEXT_STACKER)))
         .andReturn(niceMock(SchemaKStream.class));
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
 
@@ -393,9 +393,9 @@ public class JoinNodeTest {
   @Test
   public void shouldPerformStreamToStreamOuterJoin() {
     // Given:
-    setupStream(left, contextBuilder, leftSchemaKStream, leftSchema, 2);
+    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
-    setupStream(right, contextBuilder, rightSchemaKStream, rightSchema, 2);
+    setupStream(right, CONTEXT_STACKER, rightSchemaKStream, rightSchema, 2);
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
     expect(leftSchemaKStream.outerJoin(eq(rightSchemaKStream),
                                        eq(joinSchema),
@@ -403,7 +403,7 @@ public class JoinNodeTest {
                                        eq(withinExpression.joinWindow()),
                                        anyObject(Serde.class),
                                        anyObject(Serde.class),
-                                       eq(contextBuilder)))
+                                       eq(CONTEXT_STACKER)))
         .andReturn(niceMock(SchemaKStream.class));
     replay(left, right, leftSchemaKStream, rightSchemaKStream);
 
@@ -555,7 +555,7 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldFailJoinIfTableCriteriaColumnIsNotKey() {
-    setupStream(left, contextBuilder, leftSchemaKStream, leftSchema, 2);
+    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     expectKeyField(rightSchemaKTable, rightKeyFieldName);
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
@@ -600,14 +600,14 @@ public class JoinNodeTest {
   @Test
   public void shouldPerformStreamToTableLeftJoin() {
     // Given:
-    setupStream(left, contextBuilder, leftSchemaKStream, leftSchema, 2);
+    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     expect(leftSchemaKStream.leftJoin(eq(rightSchemaKTable),
                                       eq(joinSchema),
                                       eq(joinKey),
                                       anyObject(Serde.class),
-                                      eq(contextBuilder)))
+                                      eq(CONTEXT_STACKER)))
         .andReturn(niceMock(SchemaKStream.class));
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
 
@@ -646,14 +646,14 @@ public class JoinNodeTest {
   @Test
   public void shouldPerformStreamToTableInnerJoin() {
     // Given:
-    setupStream(left, contextBuilder, leftSchemaKStream, leftSchema, 2);
+    setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
     expectKeyField(leftSchemaKStream, leftKeyFieldName);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     expect(leftSchemaKStream.join(eq(rightSchemaKTable),
                                   eq(joinSchema),
                                   eq(joinKey),
                                   anyObject(Serde.class),
-                                  eq(contextBuilder)))
+                                  eq(CONTEXT_STACKER)))
         .andReturn(niceMock(SchemaKStream.class));
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
 
@@ -691,7 +691,7 @@ public class JoinNodeTest {
   @Test
   public void shouldNotAllowStreamToTableOuterJoin() {
     // Given:
-    setupStreamWithoutSerde(left, contextBuilder, leftSchemaKStream, leftSchema, 2);
+    setupStreamWithoutSerde(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
     final JoinNode joinNode = new JoinNode(nodeId,
@@ -894,7 +894,7 @@ public class JoinNodeTest {
             eq(rightSchemaKTable),
             eq(joinSchema),
             eq(joinKey),
-            eq(contextBuilder))
+            eq(CONTEXT_STACKER))
     ).andReturn(niceMock(SchemaKTable.class));
     replay(leftSchemaKTable, rightSchemaKTable);
 
@@ -941,7 +941,7 @@ public class JoinNodeTest {
         eq(rightSchemaKTable),
         eq(joinSchema),
         eq(joinKey),
-        eq(contextBuilder))
+        eq(CONTEXT_STACKER))
     ).andReturn(niceMock(SchemaKTable.class));
     replay(leftSchemaKTable, rightSchemaKTable);
 
@@ -988,7 +988,7 @@ public class JoinNodeTest {
         eq(rightSchemaKTable),
         eq(joinSchema),
         eq(joinKey),
-        eq(contextBuilder))
+        eq(CONTEXT_STACKER))
     ).andReturn(niceMock(SchemaKTable.class));
     replay(leftSchemaKTable, rightSchemaKTable);
 
@@ -1087,28 +1087,28 @@ public class JoinNodeTest {
 
   private void setupStream(
       final StructuredDataSourceNode node,
-      final QueryContext.Builder contextBuilder,
+      final QueryContext.Stacker contextStacker,
       final SchemaKStream stream,
       final Schema schema,
       final int partitions) {
-    setupStreamWithoutSerde(node, contextBuilder, stream, schema, partitions);
+    setupStreamWithoutSerde(node, contextStacker, stream, schema, partitions);
     expectGetSerde(
         node,
         schema,
         QueryLoggerUtil.queryLoggerName(
-            new QueryContext.Builder(queryId).push(nodeId.toString(), "join").getQueryContext())
+            new QueryContext.Stacker(queryId).push(nodeId.toString(), "join").getQueryContext())
     );
   }
 
   private void setupStreamWithoutSerde(
       final StructuredDataSourceNode node,
-      final QueryContext.Builder contextBuilder,
+      final QueryContext.Stacker contextStacker,
       final SchemaKStream stream,
       final Schema schema,
       final int partitions) {
     expect(node.getSchema()).andReturn(schema);
     expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
-    expectBuildStream(node, contextBuilder, stream, schema, properties);
+    expectBuildStream(node, contextStacker, stream, schema, properties);
   }
 
 
@@ -1162,7 +1162,7 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   private void expectBuildStream(
       final StructuredDataSourceNode node,
-      final QueryContext.Builder contextBuilder,
+      final QueryContext.Stacker contextStacker,
       final SchemaKStream result,
       final Schema schema,
       final Map<String, Object> properties) {
@@ -1178,7 +1178,7 @@ public class JoinNodeTest {
     expect(result.getSchema()).andReturn(schema);
     expect(
         result.selectKey(
-            anyObject(Field.class), eq(true), eq(contextBuilder))
+            anyObject(Field.class), eq(true), eq(contextStacker))
     ).andReturn(result);
   }
 

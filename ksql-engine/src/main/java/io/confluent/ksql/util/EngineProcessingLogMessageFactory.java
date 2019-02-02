@@ -37,9 +37,9 @@ public final class EngineProcessingLogMessageFactory {
   ) {
     return () -> {
       final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
-      struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.ordinal());
+      struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId());
       final Struct recordProcessingError =
-          new Struct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_SCHEMA);
+          new Struct(MessageType.RECORD_PROCESSING_ERROR.getSchema());
       struct.put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR, recordProcessingError);
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,

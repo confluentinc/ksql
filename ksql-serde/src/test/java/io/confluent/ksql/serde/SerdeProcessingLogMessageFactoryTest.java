@@ -74,7 +74,7 @@ public class SerdeProcessingLogMessageFactoryTest {
     final Struct struct = (Struct) msg.value();
     assertThat(
         struct.get(ProcessingLogMessageSchema.TYPE),
-        equalTo(MessageType.DESERIALIZATION_ERROR.ordinal()));
+        equalTo(MessageType.DESERIALIZATION_ERROR.getTypeId()));
     final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
     assertThat(
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_MESSAGE),

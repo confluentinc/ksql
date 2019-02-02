@@ -82,7 +82,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
     if (windowExpression != null) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
@@ -114,7 +114,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         materializedFactory.create(
             Serdes.String(),
             topicValueSerDe,
-            StreamsUtil.buildOpName(contextBuilder.getQueryContext()));
+            StreamsUtil.buildOpName(contextStacker.getQueryContext()));
     final KTable<String, GenericRow> aggKtable = kgroupedTable.aggregate(
         initializer,
         aggregator,
@@ -129,7 +129,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 }

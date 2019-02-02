@@ -100,7 +100,7 @@ public class SchemaKGroupedStream {
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
 
     final KTable table;
     final Serde<?> keySerde;
@@ -112,7 +112,7 @@ public class SchemaKGroupedStream {
           aggValToValColumnMap,
           windowExpression,
           topicValueSerDe,
-          contextBuilder);
+          contextStacker);
     } else {
       keySerde = Serdes.String();
 
@@ -121,7 +121,7 @@ public class SchemaKGroupedStream {
           aggValToFunctionMap,
           aggValToValColumnMap,
           topicValueSerDe,
-          contextBuilder);
+          contextStacker);
     }
 
     return new SchemaKTable(
@@ -133,7 +133,7 @@ public class SchemaKGroupedStream {
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext());
+        contextStacker.getQueryContext());
   }
 
   @SuppressWarnings("unchecked")
@@ -142,7 +142,7 @@ public class SchemaKGroupedStream {
       final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
       final Map<Integer, Integer> indexToValueMap,
       final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
 
     final UdafAggregator aggregator = new KudafAggregator(
         indexToFunctionMap, indexToValueMap);
@@ -151,7 +151,7 @@ public class SchemaKGroupedStream {
           = materializedFactory.create(
               Serdes.String(),
               topicValueSerDe,
-              StreamsUtil.buildOpName(contextBuilder.getQueryContext()));
+              StreamsUtil.buildOpName(contextStacker.getQueryContext()));
     return kgroupedStream.aggregate(initializer, aggregator, materialized);
   }
 
@@ -162,7 +162,7 @@ public class SchemaKGroupedStream {
       final Map<Integer, Integer> indexToValueMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Builder contextBuilder) {
+      final QueryContext.Stacker contextStacker) {
 
     final UdafAggregator aggregator = new KudafAggregator(
         indexToFunctionMap, indexToValueMap);
@@ -173,7 +173,7 @@ public class SchemaKGroupedStream {
           = materializedFactory.create(
               Serdes.String(),
               topicValueSerDe,
-              StreamsUtil.buildOpName(contextBuilder.getQueryContext()));
+              StreamsUtil.buildOpName(contextStacker.getQueryContext()));
     final KTable aggKtable = ksqlWindowExpression.applyAggregate(
         kgroupedStream, initializer, aggregator, materialized);
 

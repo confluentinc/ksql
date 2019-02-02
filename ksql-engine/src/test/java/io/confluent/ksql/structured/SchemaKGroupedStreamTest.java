@@ -33,7 +33,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
@@ -98,8 +97,8 @@ public class SchemaKGroupedStreamTest {
   private MaterializedFactory materializedFactory;
   @Mock
   private Materialized materialized;
-  private final QueryContext.Builder queryContext
-      = new QueryContext.Builder(new QueryId("query")).push("node");
+  private final QueryContext.Stacker queryContext
+      = new QueryContext.Stacker(new QueryId("query")).push("node");
   private SchemaKGroupedStream schemaGroupedStream;
 
   @Rule

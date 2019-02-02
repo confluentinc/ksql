@@ -23,15 +23,10 @@ public final class ProcessingLogMessageSchema {
 
   private static final String NAMESPACE = "io.confluent.ksql.processing.log.";
 
-  public enum MessageType {
-    DESERIALIZATION_ERROR,
-    RECORD_PROCESSING_ERROR
-  }
-
   public static final String DESERIALIZATION_ERROR_FIELD_MESSAGE = "errorMessage";
   public static final String DESERIALIZATION_ERROR_FIELD_RECORD_B64 = "recordB64";
 
-  public static final Schema DESERIALIZATION_ERROR_SCHEMA = SchemaBuilder.struct()
+  private static final Schema DESERIALIZATION_ERROR_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "DeserializationError")
       .field(DESERIALIZATION_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
       .field(DESERIALIZATION_ERROR_FIELD_RECORD_B64, Schema.OPTIONAL_STRING_SCHEMA)
@@ -41,12 +36,33 @@ public final class ProcessingLogMessageSchema {
   public static final String RECORD_PROCESSING_ERROR_FIELD_MESSAGE = "errorMessage";
   public static final String RECORD_PROCESSING_ERROR_FIELD_RECORD = "record";
 
-  public static final Schema RECORD_PROCESSING_ERROR_SCHEMA = SchemaBuilder.struct()
+  private static final Schema RECORD_PROCESSING_ERROR_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "RecordProcessingError")
       .field(RECORD_PROCESSING_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
       .field(RECORD_PROCESSING_ERROR_FIELD_RECORD, Schema.OPTIONAL_STRING_SCHEMA)
       .optional()
       .build();
+
+  public enum MessageType {
+    DESERIALIZATION_ERROR(0, DESERIALIZATION_ERROR_SCHEMA),
+    RECORD_PROCESSING_ERROR(1, RECORD_PROCESSING_ERROR_SCHEMA);
+
+    private final int typeId;
+    private final Schema schema;
+
+    MessageType(final int typeId, final Schema schema) {
+      this.typeId = typeId;
+      this.schema = schema;
+    }
+
+    public int getTypeId() {
+      return typeId;
+    }
+
+    public Schema getSchema() {
+      return schema;
+    }
+  }
 
   public static final String TYPE = "type";
   public static final String DESERIALIZATION_ERROR = "deserializationError";

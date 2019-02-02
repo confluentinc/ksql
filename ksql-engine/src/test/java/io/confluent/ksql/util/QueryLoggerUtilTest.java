@@ -17,20 +17,18 @@ package io.confluent.ksql.util;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.structured.QueryContext;
-import io.confluent.ksql.structured.QueryContext.Builder;
 import org.junit.Test;
 
 public class QueryLoggerUtilTest {
-  private final QueryContext.Builder contextBuilder = new Builder(new QueryId("queryid"));
+  private final QueryContext.Stacker contextStacker = new QueryContext.Stacker(new QueryId("queryid"));
 
   @Test
   public void shouldBuildCorrectName() {
     // When:
     final String name = QueryLoggerUtil.queryLoggerName(
-        contextBuilder.push("biz", "baz").getQueryContext());
+        contextStacker.push("biz", "baz").getQueryContext());
 
     // Then:
     assertThat(name, equalTo("queryid.biz.baz"));
@@ -39,7 +37,7 @@ public class QueryLoggerUtilTest {
   @Test
   public void shouldBuildCorrectNameWhenNoSubhierarchy() {
     // When:
-    final String name = QueryLoggerUtil.queryLoggerName(contextBuilder.getQueryContext());
+    final String name = QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext());
 
     // Then:
     assertThat(name, equalTo("queryid"));

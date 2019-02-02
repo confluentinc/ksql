@@ -14,10 +14,10 @@
 
 package io.confluent.ksql.structured;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -42,7 +41,6 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -112,10 +110,10 @@ public class SchemaKStreamTest {
       .field("key", Schema.OPTIONAL_STRING_SCHEMA)
       .field("val", Schema.OPTIONAL_INT64_SCHEMA)
       .build();
-  private final QueryContext.Builder queryContext
-      = new QueryContext.Builder(new QueryId("query")).push("node");
+  private final QueryContext.Stacker queryContext
+      = new QueryContext.Stacker(new QueryId("query")).push("node");
   private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
-  private final QueryContext.Builder childContextBuilder = queryContext.push("child");
+  private final QueryContext.Stacker childContextStacker = queryContext.push("child");
 
   @Mock
   private GroupedFactory mockGroupedFactory;
@@ -191,7 +189,7 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextBuilder);
+        childContextStacker);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
@@ -218,7 +216,7 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextBuilder);
+        childContextStacker);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA)));
@@ -234,7 +232,7 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextBuilder);
+        childContextStacker);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(initialSchemaKStream.getKeyField()));
@@ -250,7 +248,7 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextBuilder);
+        childContextStacker);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(new Field("COL0", 1, Schema.OPTIONAL_INT64_SCHEMA)));
@@ -266,7 +264,7 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextBuilder);
+        childContextStacker);
     assertThat(projectedSchemaKStream.getKeyField(), nullValue());
   }
 
@@ -278,7 +276,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         projectNode.getProjectSelectExpressions(),
-        childContextBuilder);
+        childContextStacker);
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
@@ -302,7 +300,7 @@ public class SchemaKStreamTest {
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
-        childContextBuilder);
+        childContextStacker);
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 8);
     Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0") ==
@@ -330,7 +328,7 @@ public class SchemaKStreamTest {
     final SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         initialSchemaKStream.getSchema().fields().get(3),
         true,
-        childContextBuilder);
+        childContextStacker);
     assertThat(rekeyedSchemaKStream.getKeyField().name().toUpperCase(), equalTo("TEST1.COL1"));
   }
 
@@ -349,7 +347,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         rowSerde,
         groupByExpressions,
-        childContextBuilder);
+        childContextStacker);
 
     Assert.assertEquals(groupedSchemaKStream.getKeyField().name(), "COL0");
   }
@@ -374,7 +372,7 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         rowSerde,
         groupByExpressions,
-        childContextBuilder);
+        childContextStacker);
 
     Assert.assertEquals(groupedSchemaKStream.getKeyField().name(), "TEST1.COL1|+|TEST1.COL0");
   }
@@ -397,11 +395,11 @@ public class SchemaKStreamTest {
     initialSchemaKStream.groupBy(
         leftSerde,
         groupByExpressions,
-        childContextBuilder);
+        childContextStacker);
 
     // Then:
     verify(mockGroupedFactory).create(
-        eq(StreamsUtil.buildOpName(childContextBuilder.getQueryContext())),
+        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
         any(StringSerde.class),
         same(leftSerde)
     );
@@ -429,11 +427,11 @@ public class SchemaKStreamTest {
     initialSchemaKStream.groupBy(
         leftSerde,
         groupByExpressions,
-        childContextBuilder);
+        childContextStacker);
 
     // Then:
     verify(mockGroupedFactory).create(
-        eq(StreamsUtil.buildOpName(childContextBuilder.getQueryContext())),
+        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
         any(StringSerde.class),
         same(leftSerde));
     verify(mockKStream).groupBy(any(KeyValueMapper.class), same(grouped));
@@ -454,7 +452,7 @@ public class SchemaKStreamTest {
         any(StringSerde.class),
         same(leftSerde),
         same(rightSerde),
-        eq(StreamsUtil.buildOpName(childContextBuilder.getQueryContext()))
+        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext()))
     );
   }
 
@@ -481,7 +479,7 @@ public class SchemaKStreamTest {
                   joinWindow,
                   leftSerde,
                   rightSerde,
-                  childContextBuilder);
+            childContextStacker);
 
     // Then:
     verifyCreateJoined(rightSerde);
@@ -522,7 +520,7 @@ public class SchemaKStreamTest {
               joinWindow,
               leftSerde,
               rightSerde,
-              childContextBuilder);
+            childContextStacker);
 
     // Then:
     verifyCreateJoined(rightSerde);
@@ -564,7 +562,7 @@ public class SchemaKStreamTest {
                    joinWindow,
                    leftSerde,
                    rightSerde,
-                   childContextBuilder);
+            childContextStacker);
 
     // Then:
     verifyCreateJoined(rightSerde);
@@ -602,7 +600,7 @@ public class SchemaKStreamTest {
             joinSchema,
             joinSchema.fields().get(0),
             leftSerde,
-            childContextBuilder);
+            childContextStacker);
 
     // Then:
     verifyCreateJoined(null);
@@ -638,7 +636,7 @@ public class SchemaKStreamTest {
             joinSchema,
             joinSchema.fields().get(0),
             leftSerde,
-            childContextBuilder);
+            childContextStacker);
 
     // Then:
     verifyCreateJoined(null);

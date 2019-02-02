@@ -183,7 +183,7 @@ public class AggregateNode extends PlanNode {
       final Map<String, Object> props,
       final QueryId queryId
   ) {
-    final QueryContext.Builder contextBuilder = buildNodeContext(queryId);
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
     final StructuredDataSourceNode streamSourceNode = getTheSourceNode();
     final SchemaKStream sourceSchemaKStream = getSource().buildStream(
         builder,
@@ -201,9 +201,9 @@ public class AggregateNode extends PlanNode {
     final SchemaKStream aggregateArgExpanded =
         sourceSchemaKStream.select(
             internalSchema.getAggArgExpansionList(),
-            contextBuilder.push(PREPARE_OP_NAME));
+            contextStacker.push(PREPARE_OP_NAME));
 
-    final QueryContext.Builder groupByContext = contextBuilder.push(GROUP_BY_OP_NAME);
+    final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
     final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
         .getKsqlTopicSerde();
@@ -237,7 +237,7 @@ public class AggregateNode extends PlanNode {
         internalSchema
     );
 
-    final QueryContext.Builder aggregationContext = contextBuilder.push(AGGREGATION_OP_NAME);
+    final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
     final Serde<GenericRow> aggValueGenericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
         aggStageSchema,
@@ -276,12 +276,12 @@ public class AggregateNode extends PlanNode {
     if (getHavingExpressions() != null) {
       result = result.filter(
           getHavingExpressions(),
-          contextBuilder.push(FILTER_OP_NAME));
+          contextStacker.push(FILTER_OP_NAME));
     }
 
     return result.select(
         internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()),
-        contextBuilder.push(PROJECT_OP_NAME));
+        contextStacker.push(PROJECT_OP_NAME));
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {

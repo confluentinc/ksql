@@ -116,7 +116,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         queryId
     );
 
-    final QueryContext.Builder contextBuilder = buildNodeContext(queryId);
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
 
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
     final Builder outputNodeBuilder = Builder.from(this);
@@ -140,7 +140,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         ksqlConfig,
         functionRegistry,
         outputProperties,
-        contextBuilder
+        contextStacker
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
@@ -160,7 +160,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 ksqlConfig,
                 false,
                 serviceContext.getSchemaRegistryClientFactory(),
-                QueryLoggerUtil.queryLoggerName(contextBuilder.getQueryContext())),
+                QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext())),
         rowkeyIndexes
     );
 
@@ -184,7 +184,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> outputProperties,
-      final QueryContext.Builder contextBuilder
+      final QueryContext.Stacker contextStacker
   ) {
 
     if (schemaKStream instanceof SchemaKTable) {
@@ -200,7 +200,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         SchemaKStream.Type.SINK,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
@@ -214,7 +214,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           )));
 
       outputNodeBuilder.withKeyField(keyField);
-      return result.selectKey(keyField, false, contextBuilder);
+      return result.selectKey(keyField, false, contextStacker);
     }
     return result;
   }

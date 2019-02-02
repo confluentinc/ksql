@@ -164,7 +164,7 @@ public class StructuredDataSourceNode
       final Map<String, Object> props,
       final QueryId queryId
   ) {
-    final QueryContext.Builder contextBuilder = buildNodeContext(queryId);
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
     final int timeStampColumnIndex = getTimeStampColumnIndex();
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
@@ -177,12 +177,12 @@ public class StructuredDataSourceNode
             ksqlConfig,
             false,
             serviceContext.getSchemaRegistryClientFactory(), 
-            QueryLoggerUtil.queryLoggerName(contextBuilder.push(SOURCE_OP_NAME).getQueryContext())
+            QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext())
         );
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
-      final QueryContext.Builder reduceContextBuilder = contextBuilder.push(REDUCE_OP_NAME);
+      final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
       final KTable<?, GenericRow> kTable = createKTable(
           builder,
           getAutoOffsetReset(props),
@@ -192,11 +192,11 @@ public class StructuredDataSourceNode
               ksqlConfig,
               true,
               serviceContext.getSchemaRegistryClientFactory(),
-              QueryLoggerUtil.queryLoggerName(reduceContextBuilder.getQueryContext())
+              QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext())
           ),
           timestampExtractor,
           ksqlConfig,
-          reduceContextBuilder.getQueryContext()
+          reduceContextStacker.getQueryContext()
       );
       return new SchemaKTable<>(
           getSchema(),
@@ -207,7 +207,7 @@ public class StructuredDataSourceNode
           SchemaKStream.Type.SOURCE,
           ksqlConfig,
           functionRegistry,
-          contextBuilder.getQueryContext()
+          contextStacker.getQueryContext()
       );
     }
 
@@ -223,7 +223,7 @@ public class StructuredDataSourceNode
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
-        contextBuilder.getQueryContext()
+        contextStacker.getQueryContext()
     );
   }
 

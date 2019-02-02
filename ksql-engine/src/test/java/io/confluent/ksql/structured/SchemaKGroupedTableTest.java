@@ -38,7 +38,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -80,8 +79,8 @@ public class SchemaKGroupedTableTest {
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
-  private final QueryContext.Builder queryContext
-      = new QueryContext.Builder(new QueryId("query")).push("node");
+  private final QueryContext.Stacker queryContext
+      = new QueryContext.Stacker(new QueryId("query")).push("node");
 
   private KTable kTable;
   private KsqlTable ksqlTable;

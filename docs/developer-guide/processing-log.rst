@@ -60,6 +60,8 @@ could write the following into your log4j properties file:
     log4j.logger.processing.CSAS_PAGEVIEWS_UPPER_0=DEBUG
     log4j.additivity.processing=false
 
+Note that the server must be restarted for the config to take effect.
+
 Note On Security
 ================
 

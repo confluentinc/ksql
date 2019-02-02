@@ -22,7 +22,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.processing.log.ProcessingLogMessageFactory;
+import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TypeUtil;
@@ -40,7 +40,7 @@ public final class ProcessingLogServerUtils {
   public static Schema getMessageSchema() {
     return new LogRecordStructBuilder()
         .withMessageSchemaAndValue(
-            new SchemaAndValue(ProcessingLogMessageFactory.PROCESSING_LOG_SCHEMA, null))
+            new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, null))
         .build()
         .schema();
   }

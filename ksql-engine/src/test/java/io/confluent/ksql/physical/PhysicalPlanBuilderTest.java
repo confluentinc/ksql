@@ -453,7 +453,8 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldConfigureProductionExceptionHandlerName() {
     // Given:
-    final OutputNode spyNode = spy((OutputNode) planBuilder.buildLogicalPlan(simpleSelectFilter));
+    final OutputNode spyNode = spy(
+        (OutputNode) LogicalPlanBuilderTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
     doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
 
     // When:

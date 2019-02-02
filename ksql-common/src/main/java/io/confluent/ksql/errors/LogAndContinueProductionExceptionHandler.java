@@ -19,6 +19,7 @@ import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -40,8 +41,13 @@ public class LogAndContinueProductionExceptionHandler implements ProductionExcep
 
   @Override
   public void configure(final Map<String, ?> configs) {
+    configure(configs, ProcessingLoggerFactory::getLogger);
+  }
+
+  void configure(
+      final Map<String, ?> configs, final Function<String, StructuredLogger> loggerFactory) {
     final String loggerName = configs.get(KSQL_PRODUCTION_ERROR_LOGGER_NAME).toString();
-    logger = ProcessingLoggerFactory.getLogger(loggerName);
+    logger = loggerFactory.apply(loggerName);
   }
 
   private static Supplier<SchemaAndValue> productionError(final String errorMsg) {

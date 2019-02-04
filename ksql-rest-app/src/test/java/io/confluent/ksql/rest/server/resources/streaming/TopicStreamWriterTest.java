@@ -1,6 +1,24 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
@@ -15,19 +33,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
-import java.util.Queue;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Bytes;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -40,7 +55,7 @@ public class TopicStreamWriterTest {
   public void setup() {
     final Iterator<ConsumerRecords<String, Bytes>> records = IntStream.iterate(0, i -> i + 1)
         .mapToObj(i -> new ConsumerRecord<>(
-            "topic", 0, i, String.valueOf(i), new Bytes(Ints.toByteArray(i))))
+            "topic", 0, i, "key" + i, new Bytes(("value" + i).getBytes(Charsets.UTF_8))))
         .map(Lists::newArrayList)
         .map(crs -> (List<ConsumerRecord<String, Bytes>>) crs)
         .map(crs -> ImmutableMap.of(new TopicPartition("topic", 0), crs))
@@ -48,7 +63,7 @@ public class TopicStreamWriterTest {
         .map(ConsumerRecords::new)
         .iterator();
 
-    Mockito.when(kafkaConsumer.poll(Mockito.any(Duration.class)))
+    when(kafkaConsumer.poll(any(Duration.class)))
         .thenAnswer(invocation -> records.next());
   }
 
@@ -71,8 +86,8 @@ public class TopicStreamWriterTest {
     // Then:
     final List<String> expected = ImmutableList.of(
         "Format:STRING",
-        "\\x00\\x00\\x00\\x00",
-        "\\x00\\x00\\x00\\x01"
+        "key0 , value0",
+        "key1 , value1"
     );
     out.assertWrites(expected);
   }
@@ -96,8 +111,8 @@ public class TopicStreamWriterTest {
     // Then:
     final List<String> expected = ImmutableList.of(
         "Format:STRING",
-        "\\x00\\x00\\x00\\x00",
-        "\\x00\\x00\\x00\\x02"
+        "key0 , value0",
+        "key2 , value2"
     );
     out.assertWrites(expected);
   }
@@ -118,12 +133,12 @@ public class TopicStreamWriterTest {
     }
 
     void assertWrites(final List<String> expected) {
-      assertThat(recordedWrites.size(), Matchers.equalTo(expected.size()));
+      assertThat(recordedWrites, hasSize(expected.size()));
       for (int i = 0; i < recordedWrites.size(); i++) {
         final byte[] bytes = recordedWrites.get(i);
         assertThat(
             new String(bytes, Charsets.UTF_8),
-            Matchers.containsString(expected.get(i)));
+            containsString(expected.get(i)));
       }
     }
   }

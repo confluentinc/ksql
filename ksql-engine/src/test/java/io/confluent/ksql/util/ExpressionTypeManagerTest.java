@@ -58,7 +58,6 @@ public class ExpressionTypeManagerTest {
   public void testArithmeticExpr() {
     final String simpleQuery = "SELECT col0+col3, col2, col3+10, col0+10, col0*25 FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-
     final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
     final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
     final Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
@@ -79,6 +78,60 @@ public class ExpressionTypeManagerTest {
     Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
     Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
     Assert.assertTrue(exprType2.type() == Schema.Type.BOOLEAN);
+  }
+
+  @Test
+  public void shouldFailIfComparisonOperandsAreIncompatible() {
+    // Given:
+    final String simpleQuery = "SELECT col1 > 10 FROM test1;";
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare STRING and INT32");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+  }
+
+  @Test
+  public void shouldFailIfOperatorCannotBeAppiled() {
+    // Given:
+    final String simpleQuery = "SELECT true > false FROM test1;";
+    final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare BOOLEAN");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+  }
+
+  @Test
+  public void shouldFailForComplexTypeComparison() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT MAPCOL > NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
+        functionRegistry);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare MAP and STRUCT");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
+  }
+
+  @Test
+  public void shouldFailForComparingComplexTypes() {
+    // Given:
+    final Analysis analysis = analyzeQuery("SELECT NESTED_ORDER_COL = NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
+        functionRegistry);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Operator EQUAL cannot be used to compare STRUCT and STRUCT");
+
+    // When:
+    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+
   }
 
   @Test

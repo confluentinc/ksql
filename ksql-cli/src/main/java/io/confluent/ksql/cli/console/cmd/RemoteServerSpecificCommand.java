@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
@@ -36,13 +37,18 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       + "\t example: \"server http://my.awesome.server.com:9098;\"";
 
   private final KsqlRestClient restClient;
+  private final Event resetCliForNewServer;
 
-  public static RemoteServerSpecificCommand create(final KsqlRestClient restClient) {
-    return new RemoteServerSpecificCommand(restClient);
+  public static RemoteServerSpecificCommand create(
+      final KsqlRestClient restClient, final Event resetCliForNewServer) {
+    return new RemoteServerSpecificCommand(restClient, resetCliForNewServer);
   }
 
-  private RemoteServerSpecificCommand(final KsqlRestClient restClient) {
+  private RemoteServerSpecificCommand(
+      final KsqlRestClient restClient, final Event resetCliForNewServer) {
     this.restClient = Objects.requireNonNull(restClient, "restClient");
+    this.resetCliForNewServer =
+        Objects.requireNonNull(resetCliForNewServer, "resetCliForNewServer");
   }
 
   @Override
@@ -66,6 +72,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       final String serverAddress = args.get(0);
       restClient.setServerAddress(serverAddress);
       terminal.println("Server now: " + serverAddress);
+      resetCliForNewServer.fire();
     }
 
     validateClient(terminal, restClient);

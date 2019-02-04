@@ -17,6 +17,8 @@ package io.confluent.ksql.cli.console.cmd;
 import io.confluent.ksql.cli.KsqlRequestExecutor;
 import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.util.Event;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -31,7 +33,10 @@ public final class CliCommandRegisterUtil {
       final KsqlRequestExecutor requestExecutor,
       final Console console,
       final Supplier<String> versionSuppler,
-      final KsqlRestClient restClient) {
+      final KsqlRestClient restClient,
+      final Event resetCliForNewServer,
+      final Supplier<Boolean> requestPipeliningSupplier,
+      final Consumer<Boolean> requestPipeliningConsumer) {
 
     console.registerCliSpecificCommand(
         Help.create(() -> console.getCliSpecificCommands().values()));
@@ -55,6 +60,9 @@ public final class CliCommandRegisterUtil {
         RunScript.create(requestExecutor));
 
     console.registerCliSpecificCommand(
-        RemoteServerSpecificCommand.create(restClient));
+        RemoteServerSpecificCommand.create(restClient, resetCliForNewServer));
+
+    console.registerCliSpecificCommand(
+        RequestPipeliningCommand.create(requestPipeliningSupplier, requestPipeliningConsumer));
   }
 }

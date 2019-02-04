@@ -117,7 +117,7 @@ public class TopicStreamWriterTest {
       recordedWrites.add(b);
     }
 
-    void assertWrites(List<String> expected) {
+    void assertWrites(final List<String> expected) {
       assertThat(recordedWrites.size(), Matchers.equalTo(expected.size()));
       for (int i = 0; i < recordedWrites.size(); i++) {
         final byte[] bytes = recordedWrites.get(i);

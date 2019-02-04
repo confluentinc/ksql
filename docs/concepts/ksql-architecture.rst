@@ -218,9 +218,9 @@ interactive deployments.
 
 .. note::
 
-   You can perform operations listed as "Not with KSQL API" manually, or you can use
-   deployment tools, like Kubernetes and Ansible, or you can use the Kafka tools, like
-   ``kafka-delete-records``.
+   You can perform operations listed as "Not with KSQL API" manually. Also,
+   you can use deployment tools, like Kubernetes or Ansible, and you can use
+   the Kafka tools, like ``kafka-delete-records``.
 
 Dedicating Resources
 ********************

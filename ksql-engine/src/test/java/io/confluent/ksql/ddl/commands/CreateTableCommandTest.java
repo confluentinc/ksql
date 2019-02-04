@@ -149,12 +149,12 @@ public class CreateTableCommandTest {
 
     // When:
     final CreateTableCommand cmd = createCmd();
-    cmd.run(metaStore, false);
+    cmd.run(metaStore);
 
     // Then:
     expectedException.expectMessage(
         "Failed to create because a TABLE with name 'name' already exists.");
-    cmd.run(metaStore, false);
+    cmd.run(metaStore);
   }
 
   private CreateTableCommand createCmd() {

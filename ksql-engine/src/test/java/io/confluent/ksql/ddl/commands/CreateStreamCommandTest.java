@@ -147,12 +147,12 @@ public class CreateStreamCommandTest {
 
     // When:
     final CreateStreamCommand cmd = createCmd();
-    cmd.run(metaStore, false);
+    cmd.run(metaStore);
 
     // Then:
     expectedException.expectMessage(
         "Failed to create because a STREAM with name 'name' already exists.");
-    cmd.run(metaStore, false);
+    cmd.run(metaStore);
   }
 
   private CreateStreamCommand createCmd() {

@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.services;
 
-import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 final class TopicValidationUtil {
@@ -48,7 +48,7 @@ final class TopicValidationUtil {
       final int actualNumReplicas
   ) {
     if (actualNumPartitions != requiredNumPartition || actualNumReplicas < requiredNumReplicas) {
-      throw new KafkaTopicException(String.format(
+      throw new KafkaTopicExistsException(String.format(
           "A Kafka topic with the name '%s' already exists, with different partition/replica "
               + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
               + "replication factor (topic has %d).",

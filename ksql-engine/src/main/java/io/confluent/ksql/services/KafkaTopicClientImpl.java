@@ -77,7 +77,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
 
-    final NewTopic newTopic = new NewTopic(topic, numPartitions, (short)replicationFactor);
+    final NewTopic newTopic = new NewTopic(topic, numPartitions, replicationFactor);
     newTopic.configs(toStringConfigs(configs));
 
     try {
@@ -290,7 +290,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     final TopicDescription existingTopic = describeTopic(topic);
     TopicValidationUtil
         .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
-
     log.debug(
         "Did not create topic {} with {} partitions and replication-factor {} since it exists",
         topic, requiredNumPartition, requiredNumReplicas);

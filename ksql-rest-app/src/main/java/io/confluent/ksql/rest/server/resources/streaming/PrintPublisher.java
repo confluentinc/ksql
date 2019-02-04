@@ -162,7 +162,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
     }
   }
 
-  private static class LimitIntervalCollection<T> extends AbstractCollection<T> {
+  private static final class LimitIntervalCollection<T> extends AbstractCollection<T> {
 
     private final Iterable<T> source;
     private final int limit;

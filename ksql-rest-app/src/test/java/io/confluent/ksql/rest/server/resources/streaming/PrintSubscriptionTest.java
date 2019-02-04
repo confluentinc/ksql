@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.server.resources.streaming.PrintPublisher.PrintSubscription;
@@ -62,10 +63,10 @@ public class PrintSubscriptionTest {
     Collection<String> results = subscription.poll();
 
     // Then:
-    assertThat(results, contains(
+    assertThat(results, contains(Lists.newArrayList(
         containsString("key0 , value0"),
         containsString("key1 , value1"),
-        containsString("key2 , value2")
+        containsString("key2 , value2"))
     ));
   }
 
@@ -86,9 +87,9 @@ public class PrintSubscriptionTest {
     Collection<String> results2 = subscription.poll();
 
     // Then:
-    assertThat(results, contains(
+    assertThat(results, contains(Lists.newArrayList(
         containsString("key0 , value0"),
-        containsString("key1 , value1")
+        containsString("key1 , value1"))
     ));
     assertThat(results2, empty());
   }
@@ -110,14 +111,14 @@ public class PrintSubscriptionTest {
     Collection<String> results2 = subscription.poll();
 
     // Then:
-    assertThat(results, contains(
+    assertThat(results, contains(Lists.newArrayList(
         containsString("key0 , value0"),
         containsString("key1 , value1"),
-        containsString("key2 , value2")
+        containsString("key2 , value2"))
     ));
-    assertThat(results2, contains(
+    assertThat(results2, contains(Lists.newArrayList(
         containsString("key3 , value3"),
-        containsString("key4 , value4")
+        containsString("key4 , value4"))
     ));
   }
 
@@ -138,9 +139,9 @@ public class PrintSubscriptionTest {
     Collection<String> results2 = subscription.poll();
 
     // Then:
-    assertThat(results, contains(
+    assertThat(results, contains(Lists.newArrayList(
         containsString("key0 , value0"),
-        containsString("key2 , value2")
+        containsString("key2 , value2"))
     ));
     assertThat(results2, contains(
         containsString("key4 , value4")
@@ -166,9 +167,9 @@ public class PrintSubscriptionTest {
     Collection<String> results4 = subscription.poll();
 
     // Then:
-    assertThat(results, contains(
+    assertThat(results, contains(Lists.newArrayList(
         containsString("key0 , value0"),
-        containsString("key2 , value2")
+        containsString("key2 , value2"))
     ));
     assertThat(results2, contains(
         containsString("key4 , value4")

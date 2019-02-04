@@ -16,6 +16,7 @@ package io.confluent.ksql.rest.server;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -23,19 +24,20 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
@@ -72,7 +74,9 @@ public class KsqlRestApplicationTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
-  Statement statement;
+  private KsqlExecutionContext sandBox;
+  @Mock
+  private Statement statement;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -110,6 +114,7 @@ public class KsqlRestApplicationTest {
                 new PreparedStatement<>(invocation.getArgument(0), statement)
             )
         );
+    when(ksqlEngine.createSandbox()).thenReturn(sandBox);
     when(commandQueue.isEmpty()).thenReturn(true);
     when(commandQueue.enqueueCommand(any(), any(), any(), any()))
         .thenReturn(queuedCommandStatus);
@@ -228,7 +233,7 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldCreateLogStream() throws InterruptedException {
+  public void shouldCreateLogStream() {
     // When:
     KsqlRestApplication.maybeCreateProcessingLogStream(
         processingLogConfig,
@@ -244,8 +249,7 @@ public class KsqlRestApplicationTest {
         LOG_TOPIC_NAME
     );
     verify(ksqlEngine).parseStatements(statementText);
-    verify(ksqlEngine).tryExecute(ImmutableList.of(
-        new PreparedStatement<>(statementText, statement)),
+    verify(sandBox).execute(new PreparedStatement<>(statementText, statement),
         ksqlConfig,
         Collections.emptyMap());
     verify(commandQueue).enqueueCommand(
@@ -253,7 +257,6 @@ public class KsqlRestApplicationTest {
         statement,
         ksqlConfig,
         Collections.emptyMap());
-    verifyNoMoreInteractions(ksqlEngine, commandQueue);
   }
 
   @Test
@@ -288,14 +291,13 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue).isEmpty();
-    verifyNoMoreInteractions(ksqlEngine, commandQueue);
+    verify(commandQueue, never()).enqueueCommand(any(), any(), any(), any());
   }
 
   @Test
   public void shouldNotCreateLogStreamIfValidationFails() {
     // Given:
-    when(ksqlEngine.tryExecute(any(), any(), any())).thenThrow(new KsqlException("error"));
+    when(sandBox.execute(any(), any(), any())).thenThrow(new KsqlException("error"));
 
     // When:
     KsqlRestApplication.maybeCreateProcessingLogStream(
@@ -306,9 +308,6 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue).isEmpty();
-    verify(ksqlEngine).parseStatements(any());
-    verify(ksqlEngine).tryExecute(any(), any(), any());
-    verifyNoMoreInteractions(ksqlEngine, commandQueue);
+    verify(commandQueue, never()).enqueueCommand(any(), any(), any(), any());
   }
 }

@@ -32,12 +32,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class ProcessingLogServerUtils {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingLogServerUtils.class);
 
   private ProcessingLogServerUtils() {
   }
 
-  public static Schema getMessageSchema() {
+  static Schema getMessageSchema() {
     return new LogRecordStructBuilder()
         .withMessageSchemaAndValue(
             new SchemaAndValue(ProcessingLogMessageFactory.PROCESSING_LOG_SCHEMA, null))
@@ -90,7 +91,8 @@ public final class ProcessingLogServerUtils {
     final PreparedStatement preparedStatement = new KsqlParser().buildAst(
         statementNoSchema,
         new MetaStoreImpl(new InternalFunctionRegistry()),
-        s -> {}).get(0);
+        s -> {
+        }).get(0);
     final AbstractStreamCreateStatement streamCreateStatement
         = (AbstractStreamCreateStatement) preparedStatement.getStatement();
     return SqlFormatter.formatSql(

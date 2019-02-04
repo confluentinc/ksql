@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -103,7 +104,7 @@ public class StandaloneExecutorTest {
   public void before() throws IOException {
     queriesFile = Paths.get(TestUtils.tempFile().getPath());
 
-    when(engine.execute(any(), any(), any())).thenReturn(Optional.of(queryMd));
+    when(engine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(queryMd));
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
 
     standaloneExecutor = new StandaloneExecutor(
@@ -319,7 +320,8 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(engine.execute(any(), any(), any())).thenReturn(Optional.empty());
+    when(engine.execute(any(), any(), any()))
+        .thenReturn(ExecuteResult.of("well, this is unexpected."));
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not build the query");
@@ -333,7 +335,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(engine.execute(any(), any(), any())).thenReturn(Optional.of(nonPeristentQueryMd));
+    when(engine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(nonPeristentQueryMd));
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not build the query");

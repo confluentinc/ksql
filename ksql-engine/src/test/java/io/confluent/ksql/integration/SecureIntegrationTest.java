@@ -298,7 +298,7 @@ public class SecureIntegrationTest {
     consumer.verifyRecordsReceived(outputTopic, greaterThan(0));
   }
 
-  private Map<String, Object> getBaseKsqlConfig() {
+  private static Map<String, Object> getBaseKsqlConfig() {
     final Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SECURE_CLUSTER.bootstrapServers());
     configs.put("commit.interval.ms", 0);
@@ -311,7 +311,7 @@ public class SecureIntegrationTest {
     return configs;
   }
 
-  private Map<String, Object> getKsqlConfig(final Credentials user) {
+  private static Map<String, Object> getKsqlConfig(final Credentials user) {
     final Map<String, Object> configs = getBaseKsqlConfig();
     configs.putAll(SecureKafkaHelper.getSecureCredentialsConfig(user));
     return configs;

@@ -53,16 +53,10 @@ public class TopicStreamWriterTest {
 
   @Before
   public void setup() {
-    final Iterator<ConsumerRecords<String, Bytes>> records = IntStream.iterate(0, i -> i + 1)
-        .mapToObj(i -> new ConsumerRecord<>(
-            "topic", 0, i, "key" + i, new Bytes(("value" + i).getBytes(Charsets.UTF_8))))
-        .map(Lists::newArrayList)
-        .map(crs -> (List<ConsumerRecord<String, Bytes>>) crs)
-        .map(crs -> ImmutableMap.of(new TopicPartition("topic", 0), crs))
-        .map(map -> (Map<TopicPartition, List<ConsumerRecord<String, Bytes>>>) map)
-        .map(ConsumerRecords::new)
-        .iterator();
-
+    final Iterator<ConsumerRecords<String, Bytes>> records = StreamingTestUtils.generate(
+        "topic",
+        i -> "key" + i,
+        i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
     when(kafkaConsumer.poll(any(Duration.class)))
         .thenAnswer(invocation -> records.next());
   }

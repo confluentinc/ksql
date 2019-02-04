@@ -34,9 +34,6 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.NodeLocation;
-import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.Statement;
@@ -322,7 +319,7 @@ public class WSQueryEndpointTest {
   @Test
   public void shouldHandlePrintTopic() {
     // Given:
-    givenRequestIs(printTopic("bob", true));
+    givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
     when(topicClient.isTopicExists("bob")).thenReturn(true);
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("this", "that"));
 
@@ -334,15 +331,14 @@ public class WSQueryEndpointTest {
         eq(exec),
         eq(schemaRegistryClient),
         eq(ImmutableMap.of("this", "that")),
-        eq("bob"),
-        eq(true),
+        eq(StreamingTestUtils.printTopic("bob", true, null, null)),
         any());
   }
 
   @Test
   public void shouldReturnErrorIfTopicDoesNotExist() throws Exception {
     // Given:
-    givenRequestIs(printTopic("bob", true));
+    givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
     when(topicClient.isTopicExists("bob")).thenReturn(false);
 
     // When:
@@ -391,16 +387,6 @@ public class WSQueryEndpointTest {
     // Then:
     verifyClosedWithReason("yikes", CloseCodes.TRY_AGAIN_LATER);
     verify(statementParser, never()).parseSingleStatement(any());
-  }
-
-  private static PrintTopic printTopic(final String name, final boolean fromBeginning) {
-    return new PrintTopic(
-        new NodeLocation(0, 1),
-        QualifiedName.of(name),
-        fromBeginning,
-        Optional.empty(),
-        Optional.empty()
-    );
   }
 
   private void givenVersions(final String... versions) {

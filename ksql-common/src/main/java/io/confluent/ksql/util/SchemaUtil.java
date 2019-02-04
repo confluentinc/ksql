@@ -474,6 +474,13 @@ public final class SchemaUtil {
     return TYPE_TO_SCHEMA.ceilingEntry(ARITHMETIC_TYPE_ORDERING.max(left, right)).getValue();
   }
 
+  static boolean isNumber(final Schema.Type type) {
+    return type == Schema.Type.INT32
+        || type == Schema.Type.INT64
+        || type == Schema.Type.FLOAT64
+        ;
+  }
+
   private static SchemaBuilder handleParametrizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;

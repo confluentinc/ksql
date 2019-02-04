@@ -257,6 +257,23 @@ public class CommandStoreTest {
     inOrder.verify(commandTopic).getNewCommands(any());
   }
 
+  @Test
+  public void shouldComputeNotEmptyCorrectly() {
+    // Given:
+    when(commandTopic.getEndOffset()).thenReturn(1L);
+
+    // When/Then:
+    assertThat(commandStore.isEmpty(), is(false));
+  }
+
+  @Test
+  public void shouldComputeEmptyCorrectly() {
+    // Given:
+    when(commandTopic.getEndOffset()).thenReturn(0L);
+
+    // When/Then:
+    assertThat(commandStore.isEmpty(), is(true));
+  }
 
   private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {
     assertThat(args.length % 2, equalTo(0));

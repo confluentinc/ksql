@@ -27,13 +27,11 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 public final class AvroUtil {
@@ -176,12 +174,7 @@ public final class AvroUtil {
       final Schema schema,
       final int schemaId
   ) {
-    final List<TableElement> elements = new ArrayList<>();
-    for (final Field field : schema.fields()) {
-      final TableElement tableElement = new TableElement(field.name().toUpperCase(),
-                                                   TypeUtil.getKsqlType(field.schema()));
-      elements.add(tableElement);
-    }
+    final List<TableElement> elements = TypeUtil.buildTableElementsForSchema(schema);
     final StringLiteral schemaIdLiteral = new StringLiteral(String.format("%d", schemaId));
     final Map<String, Expression> properties =
         new HashMap<>(abstractStreamCreateStatement.getProperties());

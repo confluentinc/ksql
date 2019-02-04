@@ -26,6 +26,15 @@ configurations.
 * :ref:`ksql-cli-config-file`
 * :ref:`ksql-cli-connect-to-hosted-server`
 
+When your KSQL processes are running in containers, you can
+:ref:`interact <ksql-interact-with-containerized-ksql>` with them
+by using shell scripts and Docker Compose files. 
+
+* :ref:`ksql-wait-for-http-endpoint`
+* :ref:`ksql-wait-for-message-in-container-log`
+* :ref:`ksql-run-custom-code-before-launch`
+* :ref:`ksql-execute-script-in-cli`
+
 Assign Configuration Settings in the Docker Run Command 
 *******************************************************
 
@@ -405,16 +414,19 @@ Your output should resemble:
 
   ksql>
 
+.. _ksql-interact-with-containerized-ksql:
+
 Interact With KSQL Running in a Docker Container
 ***************************************************
 
 You can communicate with KSQL Server and the KSQL CLI when they run in Docker
-containers. 
+containers. The following examples show common tasks with KSQL processes that
+run in containers.
 
-* Wait for an HTTP endpoint to be available
-* Wait for a particular message in a container’s log
-* Run custom code before launching a container’s program
-* Execute a KSQL script in the KSQL CLI
+* :ref:`ksql-wait-for-http-endpoint`
+* :ref:`ksql-wait-for-message-in-container-log`
+* :ref:`ksql-run-custom-code-before-launch`
+* :ref:`ksql-execute-script-in-cli`
 
 .. _ksql-wait-for-http-endpoint:
 
@@ -541,34 +553,34 @@ with the specified settings.
 Execute a KSQL script in the KSQL CLI
 =====================================
 
-This Docker Compose snippet runs KSQL CLI and passes it a KSQL script for
-execution. Currently, the manual EXIT is required because of a NPE bug. The advantage
-of this method vs running KSQL Server headless with a queries file 
-is that you can still interact with KSQL this way, but you can pre-build the
-environment to a certain state.
+The following Docker Compose YAML runs KSQL CLI and passes it a KSQL script
+for execution. The manual EXIT is required. The advantage of this approach,
+compared with running KSQL Server headless with a queries file, is that you can
+still interact with KSQL, and you can pre-build the environment to a desired
+state.
 
 .. codewithvars:: yaml
 
-ksql-cli:
-  image: confluentinc/cp-ksql-cli:|release|
-  depends_on:
-    - ksql-server
-  volumes:
-    - $PWD/ksql-scripts/:/data/scripts/
-  entrypoint: 
-    - /bin/bash
-    - -c
-    - |
-      echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"
-      while [ $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) -eq 000 ]
-      do 
-        echo -e $$(date) "KSQL Server HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) " (waiting for 200)"
-        sleep 5
-      done
-      echo -e "\n\n-> Running KSQL commands\n"
-      cat /data/scripts/my-ksql-script.sql <(echo 'EXIT')| ksql http://<ksql-server-ip>:8088
-      echo -e "\n\n-> Sleeping…\n"
-      sleep infinity
+   ksql-cli:
+     image: confluentinc/cp-ksql-cli:|release|
+     depends_on:
+       - ksql-server
+     volumes:
+       - $PWD/ksql-scripts/:/data/scripts/
+     entrypoint: 
+       - /bin/bash
+       - -c
+       - |
+         echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"
+         while [ $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) -eq 000 ]
+         do 
+           echo -e $$(date) "KSQL Server HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) " (waiting for 200)"
+           sleep 5
+         done
+         echo -e "\n\n-> Running KSQL commands\n"
+         cat /data/scripts/my-ksql-script.sql <(echo 'EXIT')| ksql http://<ksql-server-ip>:8088
+         echo -e "\n\n-> Sleeping…\n"
+         sleep infinity
 
 .. note:
 

@@ -96,7 +96,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG =
       KSQL_CONFIG_PROPERTY_PREFIX + "sink.legacy.properties";
   private static final String KSQL_SINK_TOPIC_PROPERTIES_LEGACY_DOCS = "Use the default sink topic"
-      + " properties instread of infering from source when the properties are not set in the "
+      + " properties instead of inferring from source when the properties are not set in the "
       + " WITH clause. Until version 5.1.x if the partition number and replicas were not specified"
       + " in the WITH cluase, KSQL used the default value. After version 5.1.x, KSQL will use the "
       + " properties from source topic if they are not set in the WITH clause.";

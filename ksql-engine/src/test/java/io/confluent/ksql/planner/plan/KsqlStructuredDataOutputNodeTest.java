@@ -52,6 +52,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
@@ -117,13 +118,13 @@ public class KsqlStructuredDataOutputNodeTest {
       dataSource,
       schema);
 
-  private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder = new StreamsBuilder();
   private KsqlStructuredDataOutputNode outputNode;
 
   private SchemaKStream stream;
   private ServiceContext serviceContext;
-
+  @Mock
+  private KsqlConfig ksqlConfig;
   @Mock
   private KafkaTopicClient mockTopicClient;
   @Mock
@@ -353,20 +354,27 @@ public class KsqlStructuredDataOutputNodeTest {
     expectedException.expect(KafkaTopicException.class);
 
     // When:
-    final SchemaKStream schemaKStream = buildStream();
+    buildStream();
 
   }
 
   @Test
   public void shouldUseLegacySinkPropertiesIfLegacyIsTrue() {
     // Given:
-    createOutputNode(Collections.singletonMap(KsqlConfig.KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG, true), true);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG)).thenReturn(true);
+    when(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)).thenReturn(KsqlConstants.defaultSinkNumberOfPartitions);
+    when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn(KsqlConstants.defaultSinkNumberOfReplications);
+    createOutputNode(Collections.emptyMap(), true);
 
     // When:
     final SchemaKStream schemaKStream = buildStream();
 
     // Then:
-    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 4, (short) 1, Collections.emptyMap());
+    verify(mockTopicClient).createTopic(
+        SINK_KAFKA_TOPIC_NAME,
+        KsqlConstants.defaultSinkNumberOfPartitions,
+        KsqlConstants.defaultSinkNumberOfReplications,
+        Collections.emptyMap());
     assertThat(schemaKStream, instanceOf(SchemaKStream.class));
   }
 

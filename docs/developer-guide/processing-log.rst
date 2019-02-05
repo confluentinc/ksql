@@ -206,7 +206,9 @@ You can also create the stream yourself by issuing the following DDL:
                      recordB64 STRING>, \
                  recordProcessingError STRUCT< \
                      errorMessage STRING, \
-                     record STRING>>)\
+                     record STRING>, \
+                 productionError STRUCT< \
+                     errorMessage STRING>>) \
              WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
 
 Note that processing log stream auto-creation is supported for interactive mode only. Enabling

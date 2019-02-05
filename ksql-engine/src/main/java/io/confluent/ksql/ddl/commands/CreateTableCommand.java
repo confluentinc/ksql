@@ -60,7 +60,12 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   @Override
   public DdlCommandResult run(final MetaStore metaStore) {
     if (registerTopicCommand != null) {
-      registerTopicCommand.run(metaStore);
+      try {
+        registerTopicCommand.run(metaStore);
+      } catch (KsqlException e) {
+        throw new KsqlException(String.format("Cannot create table '%s': %s",
+                topicName, e.getMessage()));
+      }
     }
     checkMetaData(metaStore, sourceName, topicName);
     final KsqlTable ksqlTable = new KsqlTable<>(

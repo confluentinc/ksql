@@ -104,8 +104,9 @@ public class RegisterTopicCommand implements DdlCommand {
       if (notExists) {
         return new DdlCommandResult(true, "Topic already registered.");
       } else {
-        throw new KsqlException(String.format("Failed to create because %s with name '%s' "
-            + "already exists.", getSourceType(metaStore), topicName));
+        final String sourceType = getSourceType(metaStore);
+        throw new KsqlException(String.format("%s with name '%s' already exists",
+                sourceType, topicName));
       }
     }
 
@@ -121,21 +122,21 @@ public class RegisterTopicCommand implements DdlCommand {
   private String getSourceType(final MetaStore metaStore) {
     final StructuredDataSource source = metaStore.getSource(topicName);
     if (source == null) {
-      return "an ENTITY";
+      return "An entity";
     }
 
     switch (source.getDataSourceType()) {
       case KSTREAM:
-        return "a STREAM";
+        return "A stream";
 
       case KTABLE:
-        return "a TABLE";
+        return "A table";
 
       case KTOPIC:
-        return "a TOPIC";
+        return "A topic";
 
       default:
-        return "an ENTITY";
+        return "An entity";
     }
   }
 }

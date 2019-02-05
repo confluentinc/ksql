@@ -166,7 +166,7 @@ public class SchemaKStreamTest {
     whenCreateJoined();
   }
 
-  private Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
+  private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
     return topic.getKsqlTopicSerDe().getGenericRowSerde(
         schema,
         new KsqlConfig(Collections.emptyMap()),
@@ -186,20 +186,23 @@ public class SchemaKStreamTest {
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
         childContextStacker);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
-                      projectedSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL2") ==
-                      projectedSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL3") ==
-                      projectedSchemaKStream.getSchema().fields().get(2));
+    Assert.assertEquals(3, projectedSchemaKStream.getSchema().fields().size());
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0"),
+        projectedSchemaKStream.getSchema().fields().get(0));
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL2"),
+        projectedSchemaKStream.getSchema().fields().get(1));
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL3"),
+        projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL2").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL3").schema().type() == Schema.Type.FLOAT64);
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0").schema().type(),
+        Schema.Type.INT64);
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL2").schema().type(),
+        Schema.Type.STRING);
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL3").schema().type(),
+        Schema.Type.FLOAT64);
 
-    Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) ==
-                      initialSchemaKStream);
+    Assert
+        .assertSame(projectedSchemaKStream.getSourceSchemaKStreams().get(0), initialSchemaKStream);
   }
 
   @Test
@@ -273,19 +276,23 @@ public class SchemaKStreamTest {
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         projectNode.getProjectSelectExpressions(),
         childContextStacker);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
-                      projectedSchemaKStream.getSchema().fields().get(0));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("KSQL_COL_1") ==
-                      projectedSchemaKStream.getSchema().fields().get(1));
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("KSQL_COL_2") ==
-                      projectedSchemaKStream.getSchema().fields().get(2));
+    Assert.assertEquals(3, projectedSchemaKStream.getSchema().fields().size());
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0"),
+        projectedSchemaKStream.getSchema().fields().get(0));
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("KSQL_COL_1"),
+        projectedSchemaKStream.getSchema().fields().get(1));
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("KSQL_COL_2"),
+        projectedSchemaKStream.getSchema().fields().get(2));
 
-    Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(1).schema().type() == Schema.Type.INT32);
-    Assert.assertTrue(projectedSchemaKStream.getSchema().fields().get(2).schema().type() == Schema.Type.FLOAT64);
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0").schema().type(),
+        Schema.Type.INT64);
+    Assert.assertSame(projectedSchemaKStream.getSchema().fields().get(1).schema().type(),
+        Schema.Type.INT32);
+    Assert.assertSame(projectedSchemaKStream.getSchema().fields().get(2).schema().type(),
+        Schema.Type.FLOAT64);
 
-    Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) == initialSchemaKStream);
+    Assert
+        .assertSame(projectedSchemaKStream.getSourceSchemaKStreams().get(0), initialSchemaKStream);
   }
 
   @Test
@@ -298,22 +305,26 @@ public class SchemaKStreamTest {
         filterNode.getPredicate(),
         childContextStacker);
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 8);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0") ==
-                      filteredSchemaKStream.getSchema().fields().get(2));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1") ==
-                      filteredSchemaKStream.getSchema().fields().get(3));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2") ==
-                      filteredSchemaKStream.getSchema().fields().get(4));
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3") ==
-                      filteredSchemaKStream.getSchema().fields().get(5));
+    Assert.assertEquals(8, filteredSchemaKStream.getSchema().fields().size());
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL0"),
+        filteredSchemaKStream.getSchema().fields().get(2));
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL1"),
+        filteredSchemaKStream.getSchema().fields().get(3));
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL2"),
+        filteredSchemaKStream.getSchema().fields().get(4));
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL3"),
+        filteredSchemaKStream.getSchema().fields().get(5));
 
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL0").schema().type() == Schema.Type.INT64);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL2").schema().type() == Schema.Type.STRING);
-    Assert.assertTrue(filteredSchemaKStream.getSchema().field("TEST1.COL3").schema().type() == Schema.Type.FLOAT64);
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL0").schema().type(),
+        Schema.Type.INT64);
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL1").schema().type(),
+        Schema.Type.STRING);
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL2").schema().type(),
+        Schema.Type.STRING);
+    Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL3").schema().type(),
+        Schema.Type.FLOAT64);
 
-    Assert.assertTrue(filteredSchemaKStream.getSourceSchemaKStreams().get(0) == initialSchemaKStream);
+    Assert.assertSame(filteredSchemaKStream.getSourceSchemaKStreams().get(0), initialSchemaKStream);
   }
 
   @Test

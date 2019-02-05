@@ -40,12 +40,12 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlGenericRowAvroSerializerTest {
 
   private final Schema schema = SchemaBuilder.struct()
@@ -65,9 +65,6 @@ public class KsqlGenericRowAvroSerializerTest {
         .build();
 
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-
-  @Rule
-  public MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Test
   public void shouldSerializeRowCorrectly() {

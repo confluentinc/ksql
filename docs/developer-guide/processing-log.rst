@@ -96,10 +96,10 @@ message (STRUCT)
 
 message.type (INT)
   An int that describes the type of the log message. Currently, the following types are
-  defined: 0 (DESERIALIZATION_ERROR), 1 (RECORD_PROCESSING_ERROR).
+  defined: 0 (DESERIALIZATION_ERROR), 1 (RECORD_PROCESSING_ERROR), 2 (PRODUCTION_ERROR).
 
 message.deserializationError (STRUCT)
-  The contents of a message with type 0 (DESERIALZATION_ERROR). Logged when a deserializer
+  The contents of a message with type 0 (DESERIALIZATION_ERROR). Logged when a deserializer
   fails to deserialize a Kafka record.
 
 message.deserializationError.errorMessage (STRING)
@@ -108,13 +108,23 @@ message.deserializationError.errorMessage (STRING)
 message.deserializationError.recordB64 (STRING)
   The Kafka record, encoded in Base64.
 
-message.recordProcessingError.errorMessage (STRING)
+message.recordProcessingError (STRUCT)
   The contents of a message with type 1 (RECORD_PROCESSING_ERROR). Logged when KSQL hits
   an error when processing a record, for example, an unexpected null value when evaluating
   an operator in a SELECT clause.
 
+message.recordProcessingError.errorMessage (STRING)
+  A string containing a human-readable error message detailing the error encountered.
+
 message.recordProcessingError.record (STRING)
   The KSQL record, serialized as a JSON string.
+
+message.productionError (STRUCT)
+  The contents of a message with type 2 (PRODUCTION_ERROR). Logged when a producer fails to
+  publish a Kafka record. These messages will only be logged if ``ksql.fail.on.production.error=false``.
+
+message.productionError.errorMessage (STRING)
+  A string containing a human-readable error message detailing the error encountered.
 
 Log Stream
 ==========

@@ -15,7 +15,6 @@
 package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
-import static io.confluent.ksql.testutils.AnalysisTestUtil.getPreparedStatements;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -24,9 +23,10 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
+import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QuerySpecification;
@@ -37,10 +37,9 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -225,10 +224,7 @@ public class AnalyzerTest {
     final MetaStore testMetastore = jsonMetaStore.copy();
     final KsqlTopic ksqlTopic = new KsqlTopic("FOO", "TEST_TOPIC1", new KsqlJsonTopicSerDe(), true);
     testMetastore.putTopic(ksqlTopic);
-    final List<Statement> statements = getPreparedStatements(simpleQuery, testMetastore)
-        .stream()
-        .map(PreparedStatement::getStatement)
-        .collect(Collectors.toList());
+    final List<Statement> statements = parse(simpleQuery, testMetastore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
     intoTable.setProperties(createStreamAsSelect.getProperties());
@@ -258,10 +254,7 @@ public class AnalyzerTest {
   @Test
   public void shouldUseExplicitNamespaceForAvroSchema() {
     final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='AVRO', VALUE_AVRO_SCHEMA_FULL_NAME='com.custom.schema', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = getPreparedStatements(simpleQuery, jsonMetaStore)
-            .stream()
-            .map(PreparedStatement::getStatement)
-            .collect(Collectors.toList());
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
     intoTable.setProperties(createStreamAsSelect.getProperties());
@@ -287,10 +280,7 @@ public class AnalyzerTest {
   @Test
   public void shouldUseImplicitNamespaceForAvroSchema() {
     final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='AVRO', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = getPreparedStatements(simpleQuery, jsonMetaStore)
-            .stream()
-            .map(PreparedStatement::getStatement)
-            .collect(Collectors.toList());
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
     intoTable.setProperties(createStreamAsSelect.getProperties());
@@ -317,10 +307,7 @@ public class AnalyzerTest {
   public void shouldUseExplicitNamespaceWhenFormatIsInheritedForAvro() {
     final String simpleQuery = "create stream s1 with (VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1') as select * from test1;";
 
-    final List<Statement> statements = getPreparedStatements(simpleQuery, avroMetaStore)
-            .stream()
-            .map(PreparedStatement::getStatement)
-            .collect(Collectors.toList());
+    final List<Statement> statements = parse(simpleQuery, avroMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
     intoTable.setProperties(createStreamAsSelect.getProperties());
@@ -373,10 +360,7 @@ public class AnalyzerTest {
     newAvroMetaStore.putTopic(ksqlTopic);
     newAvroMetaStore.putSource(ksqlStream);
 
-    final List<Statement> statements = getPreparedStatements(simpleQuery, newAvroMetaStore)
-            .stream()
-            .map(PreparedStatement::getStatement)
-            .collect(Collectors.toList());
+    final List<Statement> statements = parse(simpleQuery, newAvroMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
     intoTable.setProperties(createStreamAsSelect.getProperties());
@@ -405,10 +389,7 @@ public class AnalyzerTest {
   public void shouldUseImplicitNamespaceWhenFormatIsInheritedForAvro() {
     final String simpleQuery = "create stream s1 as select * from test1;";
 
-    final List<Statement> statements = getPreparedStatements(simpleQuery, avroMetaStore)
-            .stream()
-            .map(PreparedStatement::getStatement)
-            .collect(Collectors.toList());
+    final List<Statement> statements = parse(simpleQuery, avroMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
     intoTable.setProperties(createStreamAsSelect.getProperties());
@@ -434,10 +415,7 @@ public class AnalyzerTest {
   @Test
   public void shouldFailIfExplicitNamespaceIsProvidedForNonAvroTopic() {
     final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='JSON', VALUE_AVRO_SCHEMA_FULL_NAME='com.custom.schema', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = getPreparedStatements(simpleQuery, jsonMetaStore)
-            .stream()
-            .map(PreparedStatement::getStatement)
-            .collect(Collectors.toList());
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
     intoTable.setProperties(createStreamAsSelect.getProperties());
@@ -464,10 +442,7 @@ public class AnalyzerTest {
   @Test
   public void shouldFailIfExplicitNamespaceIsProvidedButEmpty() {
     final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='AVRO', VALUE_AVRO_SCHEMA_FULL_NAME='', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = getPreparedStatements(simpleQuery, jsonMetaStore)
-            .stream()
-            .map(PreparedStatement::getStatement)
-            .collect(Collectors.toList());
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Table intoTable = new Table(QualifiedName.of(createStreamAsSelect.getName().toString()));
     intoTable.setProperties(createStreamAsSelect.getProperties());
@@ -489,5 +464,12 @@ public class AnalyzerTest {
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("the schema name cannot be empty");
     analyzer.visitQuerySpecification(newQuerySpecification, new AnalysisContext(null));
+  }
+
+  private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {
+    return KsqlParserTestUtil.buildAst(simpleQuery, metaStore)
+        .stream()
+        .map(PreparedStatement::getStatement)
+        .collect(Collectors.toList());
   }
 }

@@ -20,7 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Query;
@@ -35,8 +35,6 @@ import org.junit.Test;
 
 public class SetParentVisitorTest {
 
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
   private MetaStore metaStore;
 
   @Before
@@ -45,7 +43,7 @@ public class SetParentVisitorTest {
   }
 
   private Statement getAstWithParent(final String sql) {
-    final Statement statement = KSQL_PARSER.buildAst(sql, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(sql, metaStore).getStatement();
 
     final SetParentVisitor setParentVisitor = new SetParentVisitor();
     setParentVisitor.process(statement, null);

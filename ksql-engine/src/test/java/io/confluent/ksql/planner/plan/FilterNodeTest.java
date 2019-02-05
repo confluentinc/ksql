@@ -15,6 +15,7 @@
 package io.confluent.ksql.planner.plan;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -66,7 +67,7 @@ public class FilterNodeTest {
     when(sourceNode.buildStream(any(), any(), any(), any(), any(), any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(schemaKStream.filter(any()))
+    when(schemaKStream.filter(any(), any()))
         .thenReturn(schemaKStream);
     node = new FilterNode(nodeId, sourceNode, predicate);
   }
@@ -92,6 +93,8 @@ public class FilterNodeTest {
         same(props),
         same(queryId)
     );
-    verify(schemaKStream).filter(predicate);
+    verify(schemaKStream).filter(
+        same(predicate),
+        eq(node.buildNodeContext(queryId)));
   }
 }

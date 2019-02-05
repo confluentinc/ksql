@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.entity;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.rest.util.JsonMapper;
+import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
 import org.junit.Assert;
 import org.junit.Test;

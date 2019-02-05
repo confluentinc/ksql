@@ -262,7 +262,7 @@ public class WSQueryEndpoint {
     this.subscriber = streamSubscriber;
 
     final PreparedStatement<Query> statement =
-        new PreparedStatement<>(info.request.getKsql(), query);
+        PreparedStatement.of(info.request.getKsql(), query);
 
     queryPublisher.start(ksqlConfig, ksqlEngine, exec, statement,
         clientLocalProperties, streamSubscriber);

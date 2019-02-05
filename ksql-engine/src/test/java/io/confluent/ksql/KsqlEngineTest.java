@@ -502,8 +502,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanupSchemaAndTopicForStream() throws Exception {
     // Given:
-    doReturn(new TopicDescription("test1", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
-        .when(topicClient).describeTopic(any());
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream bar with (value_format = 'avro') as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);

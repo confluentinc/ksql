@@ -207,6 +207,7 @@ public class StandaloneExecutor implements Executable {
 
   private void handlePersistentQuery(final PreparedStatement<?> statement) {
     final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, configProperties)
+        .getQuery()
         .filter(q -> q instanceof PersistentQueryMetadata)
         .orElseThrow((() -> new KsqlException("Could not build the query: "
             + statement.getStatementText())));

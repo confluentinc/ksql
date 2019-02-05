@@ -38,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -46,13 +45,14 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
@@ -147,8 +147,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final TopicPartitionInfo topicPartitionInfo = mock(TopicPartitionInfo.class);
     when(topicPartitionInfo.replicas()).thenReturn(ImmutableList.of(node1, node2));
     when(topicDescription.partitions()).thenReturn(Collections.singletonList(topicPartitionInfo));
-    final Map<String, TopicDescription> topicDescriptionMap = Collections.singletonMap(SOURCE_KAFKA_TOPIC_NAME, topicDescription);
-    when(mockTopicClient.describeTopics(any())).thenReturn(topicDescriptionMap);
+    when(mockTopicClient.describeTopic(any())).thenReturn(topicDescription);
     serviceContext = TestServiceContext.create(mockTopicClient);
     stream = buildStream();
   }
@@ -349,9 +348,9 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldThrowIfSinkTopicHasDifferentPropertiesThanRequested() {
     // Given:
-    doThrow(KafkaTopicException.class).when(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 1, (short) 2, Collections.emptyMap());
+    doThrow(KsqlException.class).when(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 1, (short) 2, Collections.emptyMap());
     createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 2), true);
-    expectedException.expect(KafkaTopicException.class);
+    expectedException.expect(KsqlException.class);
 
     // When:
     buildStream();

@@ -14,13 +14,15 @@
 
 package io.confluent.ksql.rest.server.mock;
 
-import io.confluent.ksql.util.KafkaTopicClient;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.services.KafkaTopicClient;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.
@@ -33,7 +35,6 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
                           final int numPartitions,
                           final short replicationFactor,
                           final Map<String, ?> configs) {
-
   }
 
   @Override
@@ -54,6 +55,14 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   @Override
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     return Collections.emptyMap();
+  }
+
+  @Override
+  public TopicDescription describeTopic(final String topicName) {
+    final Node node = new Node(1, "node", 9092);
+    final TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(1, node, ImmutableList.of(node), ImmutableList.of(node));
+    return new TopicDescription(topicName, true, ImmutableList.of(topicPartitionInfo));
+
   }
 
   @Override

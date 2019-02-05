@@ -72,6 +72,18 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-log4j-appender</artifactId>
+            <version>${kafka.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>confluent-log4j-extensions</artifactId>
+            <version>${confluent.version}</version>
+        </dependency>
+
         <!-- Required for running tests -->
 
         <dependency>

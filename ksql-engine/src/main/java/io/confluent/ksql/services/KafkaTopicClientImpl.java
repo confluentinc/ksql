@@ -12,17 +12,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.services;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.util.ExecutorUtil;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
@@ -41,6 +44,9 @@ import org.apache.kafka.common.errors.TopicExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Note: all calls make cross machine calls and are synchronous.
+ */
 @ThreadSafe
 public class KafkaTopicClientImpl implements KafkaTopicClient {
 
@@ -126,8 +132,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return ExecutorUtil.executeWithRetries(
           () -> adminClient.describeTopics(topicNames).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+    } catch (final ExecutionException e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
     } catch (final Exception e) {
-      throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topics " + topicNames, e);
+      throw new KafkaResponseGetFailedException(
+          "Failed to Describe Kafka Topic(s): " + topicNames, e);
     }
   }
 
@@ -266,39 +276,23 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
-  private boolean isInternalTopic(final String topicName, final String applicationId) {
+  private static boolean isInternalTopic(final String topicName, final String applicationId) {
     return topicName.startsWith(applicationId + "-")
         && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
         || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
   }
 
-  private void validateTopicProperties(final String topic,
-      final int numPartitions,
-      final short replicationFactor) {
-    final Map<String, TopicDescription> topicDescriptions =
-        describeTopics(Collections.singletonList(topic));
-    final TopicDescription topicDescription = topicDescriptions.get(topic);
-    if (topicDescription.partitions().size() != numPartitions
-        || topicDescription.partitions().get(0).replicas().size() < replicationFactor) {
-      throw new KafkaTopicException(String.format(
-          "A Kafka topic with the name '%s' already exists, with different partition/replica "
-              + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
-              + "replication factor (topic has %d).",
-          topic,
-          numPartitions,
-          topicDescription.partitions().size(),
-          replicationFactor,
-          topicDescription.partitions().get(0).replicas().size()
-      ));
-    }
-    // Topic with the partitions and replicas exists, reuse it!
+  private void validateTopicProperties(
+      final String topic,
+      final int requiredNumPartition,
+      final int requiredNumReplicas
+  ) {
+    final TopicDescription existingTopic = describeTopic(topic);
+    TopicValidationUtil
+        .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
     log.debug(
-        "Did not create topic {} with {} partitions and replication-factor {} since it already "
-            + "exists",
-        topic,
-        numPartitions,
-        replicationFactor
-    );
+        "Did not create topic {} with {} partitions and replication-factor {} since it exists",
+        topic, requiredNumPartition, requiredNumReplicas);
   }
 
   private Map<String, String> topicConfig(final String topicName,

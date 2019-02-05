@@ -16,11 +16,13 @@ package io.confluent.ksql;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -28,7 +30,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,6 +54,8 @@ public class KsqlContextTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
+  private KsqlExecutionContext sandbox;
+  @Mock
   private PersistentQueryMetadata persistentQuery;
   @Mock
   private QueuedQueryMetadata transientQuery;
@@ -69,6 +72,10 @@ public class KsqlContextTest {
     when(ksqlEngine.parseStatements(any()))
         .thenReturn(ImmutableList.of(statement0));
 
+    when(ksqlEngine.createSandbox())
+        .thenReturn(sandbox);
+
+    when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
   }
 
   @Test
@@ -81,7 +88,7 @@ public class KsqlContextTest {
   }
 
   @Test
-  public void shouldExecuteEachStatementReturnedByParser() {
+  public void shouldTryExecuteStatementsReturnedByParserBeforeExecute() {
     // Given:
     when(ksqlEngine.parseStatements(any()))
         .thenReturn(ImmutableList.of(statement0, statement1));
@@ -90,7 +97,9 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
-    final InOrder inOrder = inOrder(ksqlEngine);
+    final InOrder inOrder = inOrder(ksqlEngine, sandbox);
+    inOrder.verify(sandbox).execute(statement0, SOME_CONFIG, SOME_PROPERTIES);
+    inOrder.verify(sandbox).execute(statement1, SOME_CONFIG, SOME_PROPERTIES);
     inOrder.verify(ksqlEngine).execute(statement0, SOME_CONFIG, SOME_PROPERTIES);
     inOrder.verify(ksqlEngine).execute(statement1, SOME_CONFIG, SOME_PROPERTIES);
   }
@@ -99,6 +108,20 @@ public class KsqlContextTest {
   public void shouldThrowIfParseFails() {
     // Given:
     when(ksqlEngine.parseStatements(any()))
+        .thenThrow(new KsqlException("Bad tings happen"));
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Bad tings happen");
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+  }
+
+  @Test
+  public void shouldThrowIfSanboxExecuteThrows() {
+    // Given:
+    when(sandbox.execute(any(), any(), any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
     // Expect
@@ -124,10 +147,27 @@ public class KsqlContextTest {
   }
 
   @Test
+  public void shouldNotExecuteAnyStatementsIfTryExecuteThrows() {
+    // Given:
+    when(sandbox.execute(any(), any(), any()))
+        .thenThrow(new KsqlException("Bad tings happen"));
+
+    // When:
+    try {
+      ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+    } catch (final KsqlException e) {
+      // expected
+    }
+
+    // Then:
+    verify(ksqlEngine, never()).execute(any(), any(), any());
+  }
+
+  @Test
   public void shouldStartPersistentQueries() {
     // Given:
     when(ksqlEngine.execute(any(), any(), any()))
-        .thenReturn(Optional.of(persistentQuery));
+        .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
@@ -140,7 +180,7 @@ public class KsqlContextTest {
   public void shouldNotBlowUpOnSqlThatDoesNotResultInPersistentQueries() {
     // Given:
     when(ksqlEngine.execute(any(), any(), any()))
-        .thenReturn(Optional.of(transientQuery));
+        .thenReturn(ExecuteResult.of(transientQuery));
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);

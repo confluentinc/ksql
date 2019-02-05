@@ -16,7 +16,7 @@ package io.confluent.ksql.rest.util;
 
 
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
-import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionKsqlErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -88,7 +88,7 @@ public class CommandStoreUtilTest {
     // Expect:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionKsqlErrorMessage(errorMessage(is("uh oh"))));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is("uh oh"))));
 
     // When:
     CommandStoreUtil.httpWaitForCommandSequenceNumber(commandQueue, request, TIMEOUT);

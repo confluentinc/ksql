@@ -18,17 +18,16 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.exception.KafkaTopicException;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -296,11 +295,9 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final String kafkaTopicName,
       final KafkaTopicClient kafkaTopicClient
   ) {
-    final Map<String, TopicDescription> topicDescriptionMap = kafkaTopicClient
-        .describeTopics(Collections.singletonList(kafkaTopicName));
-    final TopicDescription topicDescription = topicDescriptionMap.get(kafkaTopicName);
+    final TopicDescription topicDescription = kafkaTopicClient.describeTopic(kafkaTopicName);
     if (topicDescription == null) {
-      throw new KafkaTopicException("Could not fetch source topic description: " + kafkaTopicName);
+      throw new KsqlException("Could not fetch source topic description: " + kafkaTopicName);
     }
     return topicDescription;
   }

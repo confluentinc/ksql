@@ -343,8 +343,15 @@
         "CREATE TABLE TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE TEST_TABLE_2 (ID bigint, F3 varchar) WITH (kafka_topic='right_topic_2', value_format='{FORMAT}', key='ID');",
-        "CREATE TABLE INNER_JOIN WITH (PARTITIONS=1) as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
+        "CREATE TABLE INNER_JOIN WITH (PARTITIONS=4) as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
         "CREATE TABLE INNER_JOIN_2 AS SELECT t_id, name, f1, f3 FROM inner_join tt join TEST_TABLE_2 t ON t.id = tt.t_id;"
+      ],
+      "topics": [
+        {
+          "name": "INNER_JOIN",
+          "format": "JSON",
+          "partitions": 4
+        }
       ],
       "inputs": [
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "X", "VALUE": 0, "F1": "yo dawg", "F2": 50}, "timestamp": 0},

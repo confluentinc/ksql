@@ -44,6 +44,7 @@ import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
 import java.io.IOException;
@@ -232,7 +233,7 @@ public class QueryTranslationTest {
     msgTopics.stream()
         .filter(topicName -> !topicsMap.containsKey(topicName))
         .forEach(topicName -> topicsMap
-            .put(topicName, (new Topic(topicName, Optional.empty(), defaultSerdeSupplier))));
+            .put(topicName, (new Topic(topicName, Optional.empty(), defaultSerdeSupplier, 4))));
 
     return topicsMap;
   }
@@ -366,7 +367,7 @@ public class QueryTranslationTest {
       } else {
         avroSchema = Optional.empty();
       }
-      return new Topic(topicName, avroSchema, getSerdeSupplier(format));
+      return new Topic(topicName, avroSchema, getSerdeSupplier(format), KsqlConstants.defaultSinkNumberOfPartitions);
     };
 
     try {
@@ -394,7 +395,11 @@ public class QueryTranslationTest {
 
     final SerdeSupplier serdeSupplier = getSerdeSupplier(node.get("format").asText());
 
-    return new Topic(node.get("name").asText(), schema, serdeSupplier);
+    final int numPartitions = node.has("partitions")
+        ? node.get("partitions").intValue()
+        : 1;
+
+    return new Topic(node.get("name").asText(), schema, serdeSupplier, numPartitions);
   }
 
   private static Record createRecordFromNode(

@@ -222,7 +222,7 @@ public class AnalyzerTest {
   public void shouldCreateCorrectSinkKsqlTopic() {
     final String simpleQuery = "CREATE STREAM FOO WITH (KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     // The following few lines are only needed for this test
-    final MetaStore testMetastore = jsonMetaStore.clone();
+    final MetaStore testMetastore = jsonMetaStore.copy();
     final KsqlTopic ksqlTopic = new KsqlTopic("FOO", "TEST_TOPIC1", new KsqlJsonTopicSerDe(), true);
     testMetastore.putTopic(ksqlTopic);
     final List<Statement> statements = getPreparedStatements(simpleQuery, testMetastore)
@@ -347,7 +347,7 @@ public class AnalyzerTest {
   public void shouldNotInheritNamespaceExplicitlySetUpstreamForAvro() {
     final String simpleQuery = "create stream s1 as select * from S0;";
 
-    final MetaStore newAvroMetaStore = avroMetaStore.clone();
+    final MetaStore newAvroMetaStore = avroMetaStore.copy();
 
     final KsqlTopic ksqlTopic =
             new KsqlTopic(

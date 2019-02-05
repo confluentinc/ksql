@@ -12,7 +12,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.services;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
@@ -28,7 +28,8 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -68,9 +69,7 @@ import org.easymock.EasyMockRunner;
 import org.easymock.IArgumentMatcher;
 import org.easymock.Mock;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(EasyMockRunner.class)
@@ -80,24 +79,21 @@ public class KafkaTopicClientImplTest {
   private static final String topicName2 = "topic2";
   private static final String topicName3 = "topic3";
   private static final String internalTopic1 = String.format("%s%s_%s",
-                                                      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
-                                                      "default",
-                                                      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
-                                                      + "-STATE-STORE-0000000006-repartition");
+      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+      "default",
+      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
+          + "-STATE-STORE-0000000006-repartition");
   private static final String internalTopic2 = String.format("%s%s_%s",
-                                                      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
-                                                      "default",
-                                                      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
-                                                      + "-STATE-STORE-0000000006-changelog");
+      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+      "default",
+      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
+          + "-STATE-STORE-0000000006-changelog");
   private static final String confluentInternalTopic =
       String.format("%s-%s", KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX,
-                    "confluent-control-center");
+          "confluent-control-center");
   private Node node;
   @Mock
   private AdminClient adminClient;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
@@ -129,36 +125,16 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @Test
-  public void shouldFailCreateExistingTopicWithIncompatiblePartitions() {
-    // Given:
-    expectedException.expect(KafkaTopicException.class);
-    expectedException.expectMessage("A Kafka topic with the name 'topic1' already exists, with different partition/replica configuration than required. KSQL expects 2 partitions (topic has 1), and 1 replication factor (topic has 1).");
-
-    // When:
-    createTopicWithProperties(2, (short) 1);
-  }
-
-  @Test
-  public void shouldFailCreateExistingTopicWithIncompatibleReplications() {
-    // Given:
-    expectedException.expect(KafkaTopicException.class);
-    expectedException.expectMessage("A Kafka topic with the name 'topic1' already exists, with different partition/replica configuration than required. KSQL expects 1 partitions (topic has 1), and 2 replication factor (topic has 1).");
-
-    // When:
-    createTopicWithProperties(1, (short) 2);
-  }
-
-  private void createTopicWithProperties(final int partitions, final short replicas) {
+  @Test(expected = KafkaTopicExistsException.class)
+  public void shouldFailCreateExistingTopic() {
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     expect(adminClient.describeTopics(anyObject())).andReturn(getDescribeTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
-    kafkaTopicClient.createTopic(topicName1, partitions, replicas);
+    kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
     verify(adminClient);
   }
-
 
   @Test
   public void shouldNotFailIfTopicAlreadyExistsWhenCreating() {
@@ -263,8 +239,8 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     final String applicationId = String.format("%s%s",
-                                         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
-                                         "default_query_CTAS_USERS_BY_CITY");
+        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        "default_query_CTAS_USERS_BY_CITY");
     kafkaTopicClient.deleteInternalTopics(applicationId);
     verify(adminClient);
   }
@@ -330,9 +306,9 @@ public class KafkaTopicClientImplTest {
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1,
-                                 1,
-                                 (short) 1,
-                                 Collections.singletonMap("cleanup.policy", "compact"));
+        1,
+        (short) 1,
+        Collections.singletonMap("cleanup.policy", "compact"));
     verify(adminClient);
   }
 
@@ -374,7 +350,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(topicConfigResponse(
             "peter",
             overriddenConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG,
-                                  TopicConfig.CLEANUP_POLICY_COMPACT)
+                TopicConfig.CLEANUP_POLICY_COMPACT)
         ));
 
     replay(adminClient);
@@ -485,8 +461,8 @@ public class KafkaTopicClientImplTest {
   private ListTopicsResult getListTopicsResultWithInternalTopics() {
     final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
-                                                internalTopic1, internalTopic2,
-                                                confluentInternalTopic);
+        internalTopic1, internalTopic2,
+        confluentInternalTopic);
     expect(listTopicsResult.names())
         .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
     replay(listTopicsResult);
@@ -551,7 +527,7 @@ public class KafkaTopicClientImplTest {
   }
 
   private static DescribeConfigsResult topicConfigResponse(final String topicName,
-                                                           final ConfigEntry... entries) {
+      final ConfigEntry... entries) {
 
     final Map<ConfigResource, Config> config = ImmutableMap.of(
         new ConfigResource(ConfigResource.Type.TOPIC, topicName),
@@ -603,7 +579,7 @@ public class KafkaTopicClientImplTest {
    * https://issues.apache.org/jira/browse/KAFKA-6727
    */
   private static Map<ConfigResource, Config> withResourceConfig(final ConfigResource resource,
-                                                                final ConfigEntry... entries) {
+      final ConfigEntry... entries) {
     final Set<ConfigEntry> expected = Arrays.stream(entries)
         .collect(Collectors.toSet());
 
@@ -647,9 +623,9 @@ public class KafkaTopicClientImplTest {
 
         final NewTopic actual = newTopics.iterator().next();
         return Objects.equals(actual.name(), expected.name())
-               && Objects.equals(actual.replicationFactor(), expected.replicationFactor())
-               && Objects.equals(actual.numPartitions(), expected.numPartitions())
-               && Objects.equals(actual.configs(), expected.configs());
+            && Objects.equals(actual.replicationFactor(), expected.replicationFactor())
+            && Objects.equals(actual.numPartitions(), expected.numPartitions())
+            && Objects.equals(actual.configs(), expected.configs());
       }
 
       @Override

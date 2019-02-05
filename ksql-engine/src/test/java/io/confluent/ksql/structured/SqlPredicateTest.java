@@ -14,10 +14,10 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +54,7 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
+
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());

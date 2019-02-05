@@ -39,7 +39,7 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -95,7 +95,6 @@ public class PhysicalPlanBuilderTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private ServiceContext serviceContext;
-  private LogicalPlanBuilder planBuilder;
   @Mock
   private Consumer<QueryMetadata> queryCloseCallback;
 
@@ -140,7 +139,6 @@ public class PhysicalPlanBuilderTest {
 
     testKafkaStreamsBuilder = new TestKafkaStreamsBuilder(serviceContext);
     physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
-    planBuilder = new LogicalPlanBuilder(metaStore);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry())
@@ -170,7 +168,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {
-    final PlanNode logical = planBuilder.buildLogicalPlan(query);
+    final PlanNode logical = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
     return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
   }
 

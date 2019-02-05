@@ -191,7 +191,7 @@ public class KsqlResource {
 
     try {
       result.add(distributeStatement(
-          new PreparedStatement<>(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+          PreparedStatement.of(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
               new TerminateCluster()),
           request.getStreamsProperties()
       ));
@@ -482,7 +482,7 @@ public class KsqlResource {
     }
 
     final QueryMetadata metadata = executionContext.createSandbox().execute(
-        new PreparedStatement<>(statementText, statement),
+        PreparedStatement.of(statementText, statement),
         ksqlConfig, propertyOverrides)
         .getQuery()
         .orElseThrow(() ->

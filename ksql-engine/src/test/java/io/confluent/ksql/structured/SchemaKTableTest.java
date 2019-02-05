@@ -43,6 +43,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
@@ -73,13 +74,11 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import io.confluent.ksql.streams.GroupedFactory;
 
 @SuppressWarnings("unchecked")
 public class SchemaKTableTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private final GroupedFactory groupedFactory = mock(GroupedFactory.class);
   private final Grouped grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
@@ -168,7 +167,7 @@ public class SchemaKTableTest {
   @Test
   public void testSelectSchemaKStream() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable<>(
@@ -208,7 +207,7 @@ public class SchemaKTableTest {
   @Test
   public void testSelectWithExpression() {
     final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
@@ -248,7 +247,7 @@ public class SchemaKTableTest {
   @Test
   public void testFilter() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     initialSchemaKTable = new SchemaKTable<>(
@@ -292,7 +291,7 @@ public class SchemaKTableTest {
   @Test
   public void testGroupBy() {
     final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
@@ -362,7 +361,7 @@ public class SchemaKTableTest {
 
     // Build our test object from the mocks
     final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         mockKTable,
@@ -487,4 +486,7 @@ public class SchemaKTableTest {
     return schemaBuilder.build();
   }
 
+  private PlanNode buildLogicalPlan(final String query) {
+    return LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
+  }
 }

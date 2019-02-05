@@ -45,14 +45,16 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.streams.GroupedFactory;
+import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.SelectExpression;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.SelectExpression;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,22 +78,19 @@ import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import io.confluent.ksql.streams.GroupedFactory;
-import io.confluent.ksql.streams.JoinedFactory;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
 
   private final Grouped grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
@@ -121,9 +120,6 @@ public class SchemaKStreamTest {
   private JoinedFactory mockJoinedFactory;
   @Mock
   private KStream mockKStream;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void init() {
@@ -182,7 +178,7 @@ public class SchemaKStreamTest {
   @Test
   public void testSelectSchemaKStream() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -209,7 +205,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldUpdateKeyIfRenamed() {
     final String selectQuery = "SELECT col0 as NEWKEY, col2, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -225,7 +221,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldPreserveKeyOnSelectStar() {
     final String selectQuery = "SELECT * FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -241,7 +237,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldUpdateKeyIfMovedToDifferentIndex() {
     final String selectQuery = "SELECT col2, col0, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -257,7 +253,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldDropKeyIfNotSelected() {
     final String selectQuery = "SELECT col2, col3 FROM test1;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
 
@@ -271,7 +267,7 @@ public class SchemaKStreamTest {
   @Test
   public void testSelectWithExpression() {
     final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
@@ -295,7 +291,7 @@ public class SchemaKStreamTest {
   @Test
   public void testFilter() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
@@ -323,7 +319,7 @@ public class SchemaKStreamTest {
   @Test
   public void testSelectKey() {
     final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         initialSchemaKStream.getSchema().fields().get(3),
@@ -355,7 +351,7 @@ public class SchemaKStreamTest {
   @Test
   public void testGroupByMultipleColumns() {
     final String selectQuery = "SELECT col0, col1 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(selectQuery);
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final Expression col0Expression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
@@ -674,7 +670,7 @@ public class SchemaKStreamTest {
     // When/Then:
     final String expected =
         " > [ SOURCE ] | Schema: [key : VARCHAR, val : BIGINT] | Logger: query.node.source\n\t"
-        + "parent plan";
+            + "parent plan";
     assertThat(schemaKtream.getExecutionPlan(""), equalTo(expected));
   }
 
@@ -800,5 +796,9 @@ public class SchemaKStreamTest {
       schemaBuilder.field(fieldName, field.schema());
     }
     return schemaBuilder.build();
+  }
+
+  private PlanNode buildLogicalPlan(final String query) {
+    return LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
   }
 }

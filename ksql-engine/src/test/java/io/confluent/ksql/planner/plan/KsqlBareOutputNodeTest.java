@@ -24,10 +24,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -58,7 +58,6 @@ public class KsqlBareOutputNodeTest {
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private LogicalPlanBuilder planBuilder;
   private ServiceContext serviceContext;
   private final QueryId queryId = new QueryId("output-test");
 
@@ -66,7 +65,6 @@ public class KsqlBareOutputNodeTest {
   public void before() {
     builder = new StreamsBuilder();
     serviceContext = TestServiceContext.create();
-    planBuilder = new LogicalPlanBuilder(metaStore);
     stream = build();
   }
 
@@ -127,7 +125,8 @@ public class KsqlBareOutputNodeTest {
   public void shouldComputeQueryIdCorrectly() {
     // Given:
     final KsqlBareOutputNode node
-        = (KsqlBareOutputNode) planBuilder.buildLogicalPlan("select col0 from test1;");
+        = (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+        .buildLogicalPlan("select col0 from test1;", metaStore);
     final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
 
     // When:
@@ -147,7 +146,8 @@ public class KsqlBareOutputNodeTest {
 
   private SchemaKStream build() {
     final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) planBuilder.buildLogicalPlan(simpleSelectFilter);
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+        .buildLogicalPlan(simpleSelectFilter, metaStore);
     return planNode.buildStream(
         builder,
         new KsqlConfig(Collections.emptyMap()),

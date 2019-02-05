@@ -111,7 +111,7 @@ public class KsqlRestApplicationTest {
     when(ksqlEngine.parseStatements(any()))
         .then(
             invocation -> ImmutableList.of(
-                new PreparedStatement<>(invocation.getArgument(0), statement)
+                PreparedStatement.of(invocation.getArgument(0), statement)
             )
         );
     when(ksqlEngine.createSandbox()).thenReturn(sandBox);
@@ -249,7 +249,7 @@ public class KsqlRestApplicationTest {
         LOG_TOPIC_NAME
     );
     verify(ksqlEngine).parseStatements(statementText);
-    verify(sandBox).execute(new PreparedStatement<>(statementText, statement),
+    verify(sandBox).execute(PreparedStatement.of(statementText, statement),
         ksqlConfig,
         Collections.emptyMap());
     verify(commandQueue).enqueueCommand(

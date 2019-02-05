@@ -132,7 +132,8 @@ public class CodeGenRunner {
           columnIndexes,
           kudfObjects,
           expressionType,
-          new GenericRowValueTypeEnforcer(schema));
+          new GenericRowValueTypeEnforcer(schema),
+          expression);
     } catch (final KsqlException | CompileException e) {
       throw new KsqlException("Code generation failed for " + type
           + ": " + e.getMessage()

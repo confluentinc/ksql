@@ -31,7 +31,9 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.ReadonlyMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
+import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
@@ -465,6 +467,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private static final class EngineParser {
 
     private final EngineContext engineContext;
+    private final KsqlParser ksqlParser = new DefaultKsqlParser();
 
     private EngineParser(final EngineContext engineContext) {
       this.engineContext = Objects.requireNonNull(engineContext, "engineContext");
@@ -476,19 +479,23 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     private List<PreparedStatement<?>> buildAst(final String sql) {
       try {
-        final KsqlParser ksqlParser = new KsqlParser();
-
-        return ksqlParser.buildAst(
-            sql,
-            engineContext.metaStore,
-            this::postProcessAstStatement
-        );
+        return ksqlParser.parse(sql).stream()
+            .map(this::prepareStatement)
+            .collect(Collectors.toList());
       } catch (final KsqlException e) {
         throw e;
       } catch (final Exception e) {
         throw new KsqlStatementException(
             "Exception while processing statements: " + e.getMessage(), sql, e);
       }
+    }
+
+    private PreparedStatement<?> prepareStatement(final ParsedStatement parsedStatement) {
+      final PreparedStatement<?> stmt = ksqlParser
+          .prepare(parsedStatement, engineContext.metaStore);
+
+      postProcessAstStatement(stmt);
+      return stmt;
     }
 
     @SuppressWarnings("unchecked")
@@ -656,7 +663,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           true
       );
 
-      return new PreparedStatement<>(statement.getStatementText(), query);
+      return PreparedStatement.of(statement.getStatementText(), query);
     }
 
     private static PreparedStatement<?> postProcessInsertIntoStatement(
@@ -676,7 +683,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           false
       );
 
-      return new PreparedStatement<>(statement.getStatementText(), query);
+      return PreparedStatement.of(statement.getStatementText(), query);
     }
 
     private void validateQuery(final QueryMetadata query, final PreparedStatement<?> statement) {

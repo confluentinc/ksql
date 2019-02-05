@@ -27,8 +27,8 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -38,7 +38,6 @@ import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -46,7 +45,6 @@ import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,7 +56,6 @@ public class QueryAnalyzerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final KsqlParser ksqlParser = new KsqlParser();
   private final QueryAnalyzer queryAnalyzer =
       new QueryAnalyzer(metaStore, new KsqlConfig(Collections.emptyMap()));
 
@@ -83,9 +80,9 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldCreateAnalysisForInserInto() {
     // Given:
-    final List<PreparedStatement<?>> statements = ksqlParser.buildAst(
+    final PreparedStatement<InsertInto> statement = KsqlParserTestUtil.buildSingleAst(
         "insert into test2 select col1 from test1;", metaStore);
-    final Query query = ((InsertInto) statements.get(0).getStatement()).getQuery();
+    final Query query = statement.getStatement().getQuery();
 
     // When:
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
@@ -222,8 +219,7 @@ public class QueryAnalyzerTest {
   }
 
   private Query givenQuery(final String sql) {
-    final List<PreparedStatement<?>> statements = ksqlParser.buildAst(sql, metaStore);
-    return (Query) statements.get(0).getStatement();
+    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore).getStatement();
   }
 
   private static Expression dereferenceExpression(final String table, final String field) {

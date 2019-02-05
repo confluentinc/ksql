@@ -33,7 +33,9 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
@@ -59,8 +61,6 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
 public class SchemaKGroupedStreamTest {
-  private static final String AGGREGATE_OP_NAME = "AGGREGATE";
-
   @Mock
   private Schema schema;
   @Mock
@@ -97,6 +97,8 @@ public class SchemaKGroupedStreamTest {
   private MaterializedFactory materializedFactory;
   @Mock
   private Materialized materialized;
+  private final QueryContext.Stacker queryContext
+      = new QueryContext.Stacker(new QueryId("query")).push("node");
   private SchemaKGroupedStream schemaGroupedStream;
 
   @Rule
@@ -115,7 +117,6 @@ public class SchemaKGroupedStreamTest {
     when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
     when(config.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
     when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
-
   }
 
   @Test
@@ -162,7 +163,7 @@ public class SchemaKGroupedStreamTest {
     // When:
     final SchemaKTable result = schemaGroupedStream
         .aggregate(
-            initializer,emptyMap(), emptyMap(), null, topicValueSerDe, "GROUP");
+            initializer,emptyMap(), emptyMap(), null, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKeySerde(), instanceOf(Serdes.String().getClass()));
@@ -172,7 +173,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldUseWindowExpressionKeySerde() {
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, "AGG");
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKeySerde(), is(sameInstance(windowedKeySerde)));
@@ -188,7 +189,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, "GROUP");
+        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKeySerde(),
@@ -215,7 +216,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, "AGG");
+        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table)));
@@ -233,7 +234,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, "AGG");
+        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table2)));
@@ -267,7 +268,7 @@ public class SchemaKGroupedStreamTest {
         Collections.emptyMap(),
         null,
         topicValueSerDe,
-        AGGREGATE_OP_NAME
+        queryContext
     );
 
     // Then:
@@ -275,7 +276,7 @@ public class SchemaKGroupedStreamTest {
         .create(
             any(Serdes.String().getClass()),
             same(topicValueSerDe),
-            eq(AGGREGATE_OP_NAME));
+            eq(StreamsUtil.buildOpName(queryContext.getQueryContext())));
     verify(groupedStream, times(1)).aggregate(any(), any(), same(materialized));
   }
 
@@ -295,14 +296,14 @@ public class SchemaKGroupedStreamTest {
         Collections.emptyMap(),
         windowExp,
         topicValueSerDe,
-        AGGREGATE_OP_NAME);
+        queryContext);
 
     // Then:
     verify(materializedFactory)
         .create(
             any(Serdes.String().getClass()),
             same(topicValueSerDe),
-            eq(AGGREGATE_OP_NAME));
+            eq(StreamsUtil.buildOpName(queryContext.getQueryContext())));
     verify(ksqlWindowExp, times(1)).applyAggregate(any(), any(), any(), same(materialized));
   }
 }

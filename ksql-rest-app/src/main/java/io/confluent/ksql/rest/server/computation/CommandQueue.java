@@ -16,7 +16,6 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;

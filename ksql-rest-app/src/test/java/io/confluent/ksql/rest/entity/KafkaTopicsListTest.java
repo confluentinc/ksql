@@ -23,8 +23,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;

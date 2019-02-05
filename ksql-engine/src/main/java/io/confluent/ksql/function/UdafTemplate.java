@@ -34,10 +34,9 @@ import org.apache.kafka.connect.data.Schema;
 @SuppressWarnings("unused") // Used from generated code
 public final class UdafTemplate {
 
-  private UdafTemplate() { /* private constructor for utility class */ }
+  private UdafTemplate() { }
 
-  @SuppressWarnings("WeakerAccess")
-  public static String generateCode(
+  static String generateCode(
       final Method udaf,
       final String className,
       final String udafName,
@@ -58,8 +57,7 @@ public final class UdafTemplate {
             .addParameter(ParameterizedTypeName.get(List.class, Schema.class), "args")
             .addParameter(Schema.class, "returnType")
             .addParameter(ParameterizedTypeName.get(Optional.class, Metrics.class), "metrics")
-            .addStatement("super($S, returnType, args, $S)", udafName, description)
-            .addStatement("initMetrics(metrics, $S, $S)", udafName, udaf.getName())
+            .addStatement("super($S, returnType, args, $S, metrics)", udafName, description)
             .build());
 
     udafTypeSpec.addMethod(
@@ -75,6 +73,14 @@ public final class UdafTemplate {
                 "super($S, index, supplier(udaf), returnType, args, $S, aggSensor, mergeSensor)",
                 udafName, description)
             .addStatement("this.udaf = udaf")
+            .build());
+
+    udafTypeSpec.addMethod(
+        MethodSpec.methodBuilder("getSourceMethodName")
+            .addAnnotation(Override.class)
+            .addModifiers(Modifier.PROTECTED)
+            .addStatement("return $S", udaf.getName())
+            .returns(String.class)
             .build());
 
     final String udafArgs = IntStream.range(0, udaf.getParameterTypes().length)
@@ -102,7 +108,8 @@ public final class UdafTemplate {
 
     return JavaFile.builder("io.confluent.ksql.function.udaf", udafTypeSpec.build())
         .addStaticImport(UdafTemplate.class, "coerce")
-        .build().toString();
+        .build()
+        .toString();
   }
 
   @SuppressWarnings("unchecked")

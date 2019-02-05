@@ -111,7 +111,7 @@ public class UdfCompiler {
           method,
           functionName,
           description);
-      LOGGER.info("Generated class for functionName={}, method={} class\n{}\n",
+      LOGGER.trace("Generated class for functionName={}, method={} class\n{}\n",
           functionName,
           method.getName(),
           udafClass);

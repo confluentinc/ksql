@@ -1,8 +1,9 @@
 package io.confluent.ksql.function;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,24 +23,18 @@ public class UdfTemplateTest {
   @Test
   public void testCoerceNumbers() {
     // Given:
-    Object[] args = new Object[]{1, 1d, 1f};
+    Object[] args = new Object[]{1, 1L, 1d, 1f};
 
     // Then:
     for (int i = 0; i < args.length; i++) {
-      assertEquals(1, (int) UdfTemplate.coerce(args, int.class, i));
-      assertEquals(1, (int) UdfTemplate.coerce(args, Integer.class, i));
-      assertEquals((Integer) 1, UdfTemplate.coerce(args, int.class, i));
-      assertEquals((Integer) 1, UdfTemplate.coerce(args, Integer.class, i));
+      assertThat(UdfTemplate.coerce(args, int.class, i), equalTo(1));
+      assertThat(UdfTemplate.coerce(args, Integer.class, i), equalTo(1));
 
-      assertEquals(1, (long) UdfTemplate.coerce(args, long.class, i));
-      assertEquals(1, (long) UdfTemplate.coerce(args, Long.class, i));
-      assertEquals((Long) 1L, UdfTemplate.coerce(args, long.class, i));
-      assertEquals((Long) 1L, UdfTemplate.coerce(args, Long.class, i));
+      assertThat(UdfTemplate.coerce(args, long.class, i), equalTo(1L));
+      assertThat(UdfTemplate.coerce(args, Long.class, i), equalTo(1L));
 
-      assertEquals(1d, UdfTemplate.coerce(args, double.class, i), 0.1);
-      assertEquals(1d, UdfTemplate.coerce(args, Double.class, i), 0.1);
-      assertEquals(1d, UdfTemplate.coerce(args, double.class, i), 0.1);
-      assertEquals(1d, UdfTemplate.coerce(args, Double.class, i), 0.1);
+      assertThat(UdfTemplate.coerce(args, double.class, i), equalTo(1.0));
+      assertThat(UdfTemplate.coerce(args, Double.class, i), equalTo(1.0));
     }
   }
 
@@ -49,16 +44,17 @@ public class UdfTemplateTest {
     Object[] args = new Object[]{"1", "1.2", "true"};
 
     // Then:
-    assertEquals(1, (int) UdfTemplate.coerce(args, int.class, 0));
-    assertEquals((Integer) 1, UdfTemplate.coerce(args, Integer.class, 0));
-    assertEquals(1, (long) UdfTemplate.coerce(args, long.class, 0));
-    assertEquals((Long) 1L, UdfTemplate.coerce(args, Long.class, 0));
+    assertThat(UdfTemplate.coerce(args, int.class, 0), equalTo(1));
+    assertThat(UdfTemplate.coerce(args, Integer.class, 0), equalTo(1));
 
-    assertEquals(1.2d, (double) UdfTemplate.coerce(args, double.class, 1), .1);
-    assertEquals((Double) 1.2, UdfTemplate.coerce(args, Double.class, 1), .1);
+    assertThat(UdfTemplate.coerce(args, long.class, 0), equalTo(1L));
+    assertThat(UdfTemplate.coerce(args, Long.class, 0), equalTo(1L));
 
-    assertTrue(UdfTemplate.coerce(args, boolean.class, 2));
-    assertTrue(UdfTemplate.coerce(args, boolean.class, 2));
+    assertThat(UdfTemplate.coerce(args, double.class, 1), equalTo(1.2));
+    assertThat(UdfTemplate.coerce(args, Double.class, 1), equalTo(1.2));
+
+    assertThat(UdfTemplate.coerce(args, boolean.class, 2), is(true));
+    assertThat(UdfTemplate.coerce(args, boolean.class, 2), is(true));
   }
 
   @Test
@@ -67,13 +63,13 @@ public class UdfTemplateTest {
     Object[] args = new Object[]{null};
 
     // Then:
-    assertNull(UdfTemplate.coerce(args, Integer.class, 0));
-    assertNull(UdfTemplate.coerce(args, Long.class, 0));
-    assertNull(UdfTemplate.coerce(args, Double.class, 0));
-    assertNull(UdfTemplate.coerce(args, String.class, 0));
-    assertNull(UdfTemplate.coerce(args, Boolean.class, 0));
-    assertNull(UdfTemplate.coerce(args, Map.class, 0));
-    assertNull(UdfTemplate.coerce(args, List.class, 0));
+    assertThat(UdfTemplate.coerce(args, Integer.class, 0), nullValue());
+    assertThat(UdfTemplate.coerce(args, Long.class, 0), nullValue());
+    assertThat(UdfTemplate.coerce(args, Double.class, 0), nullValue());
+    assertThat(UdfTemplate.coerce(args, String.class, 0), nullValue());
+    assertThat(UdfTemplate.coerce(args, Boolean.class, 0), nullValue());
+    assertThat(UdfTemplate.coerce(args, Map.class, 0), nullValue());
+    assertThat(UdfTemplate.coerce(args, List.class, 0), nullValue());
   }
 
   @Test
@@ -95,9 +91,9 @@ public class UdfTemplateTest {
     Object[] args = new Object[]{new ArrayList<>(), new HashMap<>(), ""};
 
     // Then:
-    assertEquals(new ArrayList<>(), UdfTemplate.coerce(args, List.class, 0));
-    assertEquals(new HashMap<>(), UdfTemplate.coerce(args, Map.class, 1));
-    assertEquals("", UdfTemplate.coerce(args, String.class, 2));
+    assertThat(UdfTemplate.coerce(args, List.class, 0), equalTo(new ArrayList<>()));
+    assertThat(UdfTemplate.coerce(args, Map.class, 1), equalTo(new HashMap<>()));
+    assertThat(UdfTemplate.coerce(args, String.class, 2), equalTo(""));
   }
 
   @Test

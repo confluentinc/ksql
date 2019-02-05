@@ -16,36 +16,41 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.udaf.TableUdaf;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("unused") // used in generated code
-public abstract class GeneratedTableAggregateFunction
-    extends GeneratedAggregateFunction implements TableAggregationFunction {
+public abstract class GeneratedTableAggregateFunction<V, A>
+    extends GeneratedAggregateFunction<V, A> implements TableAggregationFunction<V, A> {
 
-  public GeneratedTableAggregateFunction(final String functionName,
-                                         final Schema returnType,
-                                         final List<Schema> arguments,
-                                         final String description) {
-    super(functionName, returnType, arguments, description);
+  public GeneratedTableAggregateFunction(
+      final String functionName,
+      final Schema returnType,
+      final List<Schema> arguments,
+      final String description,
+      final Optional<Metrics> metrics) {
+    super(functionName, returnType, arguments, description, metrics);
   }
 
-  protected GeneratedTableAggregateFunction(final String functionName, final int udafIndex,
-                                            final Supplier udafSupplier,
-                                            final Schema returnType,
-                                            final List<Schema> arguments,
-                                            final String description,
-                                            final Sensor aggregateSensor,
-                                            final Sensor mergeSensor) {
+  protected GeneratedTableAggregateFunction(
+      final String functionName,
+      final int udafIndex,
+      final Supplier<A> udafSupplier,
+      final Schema returnType,
+      final List<Schema> arguments,
+      final String description,
+      final Sensor aggregateSensor,
+      final Sensor mergeSensor) {
     super(functionName, udafIndex, udafSupplier, returnType, arguments, description,
           aggregateSensor,
           mergeSensor);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public Object undo(final Object valueToUndo, final Object aggregateValue) {
-    return ((TableUdaf) getUdaf()).undo(valueToUndo, aggregateValue);
+  public A undo(final V valueToUndo, final A aggregateValue) {
+    return ((TableUdaf<V, A>) getUdaf()).undo(valueToUndo, aggregateValue);
   }
 }

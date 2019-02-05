@@ -44,6 +44,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
@@ -208,7 +209,7 @@ public class StructuredDataSourceNodeTest {
 
     // Then:
     verify(materializedFactorySupplier).apply(realConfig);
-    verify(materializedFactory).create(keySerde, rowSerde, "source-REDUCE");
+    verify(materializedFactory).create(keySerde, rowSerde, "source-reduce");
     verify(kGroupedStream).aggregate(any(), any(), same(materialized));
   }
 
@@ -221,9 +222,9 @@ public class StructuredDataSourceNodeTest {
                 ProcessingLoggerUtil.join(
                     ProcessingLoggerFactory.PREFIX,
                     QueryLoggerUtil.queryLoggerName(
-                        queryId,
-                        node.getId(),
-                        "source"
+                        new QueryContext.Stacker(queryId)
+                            .push(node.getId().toString(), "source")
+                            .getQueryContext()
                     )
                 )
             )

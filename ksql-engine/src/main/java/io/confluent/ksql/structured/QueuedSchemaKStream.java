@@ -38,7 +38,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       new LinkedBlockingQueue<>(100);
 
   @SuppressWarnings("unchecked") // needs investigating
-  QueuedSchemaKStream(final SchemaKStream<K> schemaKStream) {
+  QueuedSchemaKStream(final SchemaKStream<K> schemaKStream, final QueryContext queryContext) {
     super(
         schemaKStream.schema,
         schemaKStream.getKstream(),
@@ -47,7 +47,8 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
         schemaKStream.keySerde,
         Type.SINK,
         schemaKStream.ksqlConfig,
-        schemaKStream.functionRegistry
+        schemaKStream.functionRegistry,
+        queryContext
     );
 
     final OutputNode output = schemaKStream.outputNode();
@@ -69,12 +70,16 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public SchemaKStream<K> filter(final Expression filterExpression) {
+  public SchemaKStream<K> filter(
+      final Expression filterExpression,
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream<K> select(final List<SelectExpression> expressions) {
+  public SchemaKStream<K> select(
+      final List<SelectExpression> expressions,
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 
@@ -84,13 +89,16 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       final Schema joinSchema,
       final Field joinKey,
       final Serde<GenericRow> joinSerde,
-      final String opName
+      final QueryContext.Stacker contextStacker
   ) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream<K> selectKey(final Field newKeyField, final boolean updateRowKey) {
+  public SchemaKStream<K> selectKey(
+      final Field newKeyField,
+      final boolean updateRowKey,
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 
@@ -98,7 +106,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions,
-      final String opName) {
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 

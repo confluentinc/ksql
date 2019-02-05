@@ -22,6 +22,7 @@ import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -81,7 +82,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final String opName) {
+      final QueryContext.Stacker contextStacker) {
     if (windowExpression != null) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
@@ -110,7 +111,10 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     final KudafUndoAggregator subtractor = new KudafUndoAggregator(
         aggValToUndoFunctionMap, aggValToValColumnMap);
     final Materialized<String, GenericRow, ?> materialized =
-        materializedFactory.create(Serdes.String(), topicValueSerDe, opName);
+        materializedFactory.create(
+            Serdes.String(),
+            topicValueSerDe,
+            StreamsUtil.buildOpName(contextStacker.getQueryContext()));
     final KTable<String, GenericRow> aggKtable = kgroupedTable.aggregate(
         initializer,
         aggregator,
@@ -124,7 +128,8 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         Serdes.String(),
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 }

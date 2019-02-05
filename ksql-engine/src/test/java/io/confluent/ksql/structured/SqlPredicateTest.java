@@ -14,68 +14,63 @@
 
 package io.confluent.ksql.structured;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static org.mockito.Mockito.verify;
 
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.common.logging.StructuredLogger;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
+import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.KStream;
-import org.junit.Assert;
+import java.util.function.Supplier;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
+import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  private SchemaKStream initialSchemaKStream;
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   private MetaStore metaStore;
-  private KStream kStream;
-  private KsqlStream ksqlStream;
   private InternalFunctionRegistry functionRegistry;
+
+  @Mock
+  private StructuredLogger processingLogger;
+
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     functionRegistry = new InternalFunctionRegistry();
-    ksqlStream = (KsqlStream) metaStore.getSource("TEST1");
-    final StreamsBuilder builder = new StreamsBuilder();
-    kStream = builder.stream(
-        ksqlStream.getKsqlTopic().getKafkaTopicName(),
-        Consumed.with(
-            Serdes.String(),
-            ksqlStream.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-                ksqlStream.getSchema(),
-                new KsqlConfig(Collections.emptyMap()),
-                false,
-                MockSchemaRegistryClient::new,
-                "test"
-            )
-        )
-    );
   }
 
   private PlanNode buildLogicalPlan(final String queryStr) {
@@ -91,70 +86,88 @@ public class SqlPredicateTest {
   }
 
   @Test
-  public void testFilter() throws Exception {
-    final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
-    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
+  public void testFilter() {
+    // Given:
+    final SqlPredicate predicate = givenSqlPredicateFor(
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
 
-    initialSchemaKStream = new SchemaKStream<>(logicalPlan.getTheSourceNode().getSchema(),
-                                             kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-                                             SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry);
-    final SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
-        .getSchema(), false, ksqlConfig, functionRegistry);
-
-    Assert.assertTrue(predicate.getFilterExpression()
-                          .toString().equalsIgnoreCase("(TEST1.COL0 > 100)"));
-    Assert.assertTrue(predicate.getColumnIndexes().length == 1);
+    // When/Then:
+    assertThat(
+        predicate.getFilterExpression().toString().toUpperCase(),
+        equalTo("(TEST1.COL0 > 100)"));
+    assertThat(predicate.getColumnIndexes().length, equalTo(1));
 
   }
 
   @Test
-  public void testFilterBiggerExpression() throws Exception {
-    final String selectQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 AND LEN(col2) = 5;";
-    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
-    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
+  public void testFilterBiggerExpression() {
+    // Given:
+    final SqlPredicate predicate =
+        givenSqlPredicateFor(
+            "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 AND LEN(col2) = 5;");
 
-    initialSchemaKStream = new SchemaKStream<>(logicalPlan.getTheSourceNode().getSchema(),
-                                             kStream,
-                                             ksqlStream.getKeyField(), new ArrayList<>(), Serdes.String(),
-                                             SchemaKStream.Type.SOURCE, ksqlConfig,
-                                             functionRegistry);
-    final SqlPredicate predicate = new SqlPredicate(filterNode.getPredicate(), initialSchemaKStream
-        .getSchema(), false, ksqlConfig, functionRegistry);
-
-    Assert.assertTrue(predicate
-                          .getFilterExpression()
-                          .toString()
-                          .equalsIgnoreCase("((TEST1.COL0 > 100) AND"
-                                            + " (LEN(TEST1.COL2) = 5))"));
-    Assert.assertTrue(predicate.getColumnIndexes().length == 3);
-
+    // When/Then:
+    assertThat(
+        predicate.getFilterExpression().toString().toUpperCase(),
+        equalTo("((TEST1.COL0 > 100) AND (LEN(TEST1.COL2) = 5))"));
+    assertThat(predicate.getColumnIndexes().length, equalTo(3));
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldIgnoreNullRows() {
-    final String selectQuery = "SELECT col0 FROM test1 WHERE col0 > 100;";
-    final List<PreparedStatement<?>> statements = KSQL_PARSER.buildAst(selectQuery, metaStore);
-    final QuerySpecification querySpecification = (QuerySpecification)((Query) statements.get(0)
-        .getStatement()).getQueryBody();
-    final Expression filterExpr = querySpecification.getWhere().get();
-    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    // Given:
+    final SqlPredicate sqlPredicate =
+        givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100;");
 
-    initialSchemaKStream = new SchemaKStream<>(
+    // When/Then:
+    assertThat(sqlPredicate.getPredicate().test("key", null), is(false));
+  }
+
+  @Test
+  public void shouldWriteProcessingLogOnError() throws IOException {
+    // Given:
+    final SqlPredicate sqlPredicate =
+        givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100;");
+
+    // When:
+    sqlPredicate.getPredicate().test(
+        "key",
+        new GenericRow(0L, "key", Collections.emptyList()));
+
+    // Then:
+    final ArgumentCaptor<Supplier<SchemaAndValue>> captor
+        = ArgumentCaptor.forClass(Supplier.class);
+    verify(processingLogger).error(captor.capture());
+    final SchemaAndValue schemaAndValue = captor.getValue().get();
+    assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
+    final Struct struct = (Struct) schemaAndValue.value();
+    assertThat(
+        struct.get(ProcessingLogMessageSchema.TYPE),
+        equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal()));
+    final Struct errorStruct
+        = struct.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
+    assertThat(
+        errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
+        equalTo(
+            "Error evaluating predicate (TEST1.COL0 > 100): "
+                + "Invalid field type. Value must be Long.")
+    );
+    final String rowString =
+        errorStruct.getString(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD);
+    final List<Object> row = (List) MAPPER.readValue(rowString, List.class);
+    assertThat(row, Matchers.contains(0, "key", Collections.emptyList()));
+  }
+
+  private SqlPredicate givenSqlPredicateFor(final String statement) {
+    final PlanNode logicalPlan = buildLogicalPlan(statement);
+    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
+    return new SqlPredicate(
+        filterNode.getPredicate(),
         logicalPlan.getTheSourceNode().getSchema(),
-        kStream,
-        ksqlStream.getKeyField(),
-        new ArrayList<>(),
-        Serdes.String(),
-        SchemaKStream.Type.SOURCE,
+        false,
         ksqlConfig,
-        functionRegistry);
-
-    final SqlPredicate sqlPredicate = new SqlPredicate(filterExpr, initialSchemaKStream.getSchema(), false, ksqlConfig, functionRegistry);
-    final boolean result = sqlPredicate.getPredicate().test("key", null);
-    Assert.assertFalse(result);
+        functionRegistry,
+        processingLogger);
   }
 }

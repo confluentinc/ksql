@@ -18,9 +18,11 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.streams.GroupedFactory;
-import io.confluent.ksql.streams.JoinedFactory;
+import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.streams.StreamsFactories;
+import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +51,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Serde<K> keySerde,
       final Type type,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final QueryContext queryContext
   ) {
     this(
         schema,
@@ -60,8 +63,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         type,
         ksqlConfig,
         functionRegistry,
-        GroupedFactory.create(ksqlConfig),
-        JoinedFactory.create(ksqlConfig)
+        StreamsFactories.create(ksqlConfig),
+        queryContext
     );
   }
 
@@ -74,8 +77,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final GroupedFactory groupedFactory,
-      final JoinedFactory joinedFactory
+      final StreamsFactories streamsFactories,
+      final QueryContext queryContext
   ) {
     super(
         schema,
@@ -86,8 +89,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         type,
         ksqlConfig,
         functionRegistry,
-        groupedFactory,
-        joinedFactory
+        streamsFactories,
+        queryContext
     );
     this.ktable = ktable;
   }
@@ -119,19 +122,24 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public QueuedSchemaKStream toQueue() {
-    return new QueuedSchemaKStream<>(this);
+  public QueuedSchemaKStream toQueue(final QueryContext.Stacker contextStacker) {
+    return new QueuedSchemaKStream<>(this, contextStacker.getQueryContext());
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable<K> filter(final Expression filterExpression) {
+  public SchemaKTable<K> filter(
+      final Expression filterExpression,
+      final QueryContext.Stacker contextStacker) {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
         hasWindowedKey(),
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        ProcessingLoggerFactory.getLogger(
+            QueryLoggerUtil.queryLoggerName(
+                contextStacker.push(Type.FILTER.name()).getQueryContext()))
     );
     final KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable<>(
@@ -142,22 +150,30 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.FILTER,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 
   @Override
-  public SchemaKTable<K> select(final List<SelectExpression> selectExpressions) {
-    final Selection selection = new Selection(selectExpressions);
+  public SchemaKTable<K> select(
+      final List<SelectExpression> selectExpressions,
+      final QueryContext.Stacker contextStacker) {
+    final Selection selection = new Selection(
+        selectExpressions,
+        ProcessingLoggerFactory.getLogger(
+            QueryLoggerUtil.queryLoggerName(
+                contextStacker.push(Type.PROJECT.name()).getQueryContext())));
     return new SchemaKTable<>(
-        selection.getSchema(),
+        selection.getProjectedSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),
         selection.getKey(),
         Collections.singletonList(this),
         keySerde,
         Type.PROJECT,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 
@@ -175,14 +191,18 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions,
-      final String opName) {
+      final QueryContext.Stacker contextStacker) {
 
     final GroupBy groupBy = new GroupBy(groupByExpressions);
 
     final KGroupedTable kgroupedTable = ktable
         .filter((key, value) -> value != null)
-        .groupBy((key, value) -> new KeyValue<>(groupBy.mapper.apply(key, value), value),
-            groupedFactory.create(opName, Serdes.String(), valSerde));
+        .groupBy(
+            (key, value) -> new KeyValue<>(groupBy.mapper.apply(key, value), value),
+            streamsFactories.getGroupedFactory().create(
+                StreamsUtil.buildOpName(
+                    contextStacker.getQueryContext()), Serdes.String(), valSerde)
+        );
 
     final Field newKeyField = new Field(
         groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
@@ -199,7 +219,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey
+      final Field joinKey,
+      final QueryContext.Stacker contextStacker
   ) {
     final KTable<K, GenericRow> joinedKTable = ktable.join(
         schemaKTable.getKtable(),
@@ -214,7 +235,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 
@@ -222,7 +244,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey
+      final Field joinKey,
+      final QueryContext.Stacker contextStacker
   ) {
     final KTable<K, GenericRow> joinedKTable =
         ktable.leftJoin(
@@ -238,7 +261,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 
@@ -246,7 +270,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
-      final Field joinKey
+      final Field joinKey,
+      final QueryContext.Stacker contextStacker
   ) {
     final KTable<K, GenericRow> joinedKTable =
         ktable.outerJoin(
@@ -262,7 +287,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         keySerde,
         Type.JOIN,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 }

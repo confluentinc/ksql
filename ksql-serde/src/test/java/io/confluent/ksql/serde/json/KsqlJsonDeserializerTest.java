@@ -24,8 +24,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogMessageFactory;
 import io.confluent.ksql.serde.SerdeTestUtils;
+import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -190,6 +190,6 @@ public class KsqlJsonDeserializerTest {
     // Then:
     SerdeTestUtils.shouldLogError(
         recordLogger,
-        ProcessingLogMessageFactory.deserializationErrorMsg(cause, Optional.ofNullable(data)).get());
+        SerdeProcessingLogMessageFactory.deserializationErrorMsg(cause, Optional.ofNullable(data)).get());
   }
 }

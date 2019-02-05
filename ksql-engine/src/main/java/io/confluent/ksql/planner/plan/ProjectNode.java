@@ -38,7 +38,6 @@ import org.apache.kafka.streams.StreamsBuilder;
 @Immutable
 public class ProjectNode
     extends PlanNode {
-
   private final PlanNode source;
   private final Schema schema;
   private final List<Expression> projectExpressions;
@@ -114,6 +113,8 @@ public class ProjectNode
         functionRegistry,
         props,
         queryId
-    ).select(getProjectSelectExpressions());
+    ).select(
+        getProjectSelectExpressions(),
+        buildNodeContext(queryId));
   }
 }

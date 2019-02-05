@@ -32,25 +32,14 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io.confluent.ksql.parser.SqlBaseParser.*"/>
     </Match>
 
-
     <!-- false positive in Java 11, see https://github.com/spotbugs/spotbugs/issues/756 -->
     <Match>
         <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE"/>
     </Match>
 
-    <!-- other issues we should fix in the future -->
-    <Match>
-        <Class name="io.confluent.ksql.util.KsqlConfig"/>
-        <Method name="clone"/>
-        <Bug pattern="CN_IDIOM_NO_SUPER_CALL"/>
-    </Match>
-    <Match>
-        <Class name="io.confluent.ksql.util.ExpressionMetadata"/>
-        <Bug pattern="EI_EXPOSE_REP2"/>
-    </Match>
-    <Match>
-        <Class name="io.confluent.ksql.util.GenericRowValueTypeEnforcer"/>
-        <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
-        <Method name="enforceBoolean"/>
-    </Match>
+    <!--
+      DO NOT USE THIS EXCLUSION FILE FOR NON-GENERATED CODE
+
+      If you really MUST suppress an error warning, do so using the @SuppressFBWarnings annotation.
+  -->
 </FindBugsFilter>

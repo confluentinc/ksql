@@ -14,10 +14,11 @@
 
 package io.confluent.ksql.streams;
 
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 
-final class StreamsUtil {
+public final class StreamsUtil {
   private StreamsUtil() {
   }
 
@@ -26,5 +27,9 @@ final class StreamsUtil {
         ksqlConfig.getString(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS),
         KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON
     );
+  }
+
+  public static String buildOpName(final QueryContext opContext) {
+    return String.join("-", opContext.getContext());
   }
 }

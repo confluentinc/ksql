@@ -25,22 +25,20 @@ import io.confluent.ksql.metrics.TopicSensors.SensorMetric;
 import io.confluent.ksql.metrics.TopicSensors.Stat;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Sensor;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TopicSensorsTest {
-  @Mock
-  Sensor sensor;
-  @Mock
-  KafkaMetric metric;
-  @Mock
-  Time time;
 
-  @Rule
-  public MockitoRule mockitoRule = MockitoJUnit.rule();
+  @Mock
+  private Sensor sensor;
+  @Mock
+  private KafkaMetric metric;
+  @Mock
+  private Time time;
 
   @Test
   public void shouldFormatTimestampInUnambiguousFormatAndUTC() {

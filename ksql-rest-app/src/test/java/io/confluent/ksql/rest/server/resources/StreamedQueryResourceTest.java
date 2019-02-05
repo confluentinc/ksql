@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
@@ -50,7 +51,6 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
-import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -124,7 +124,7 @@ public class StreamedQueryResourceTest {
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     expect(serviceContext.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
-    statement = new PreparedStatement<>("s", mock(Statement.class));
+    statement = PreparedStatement.of("s", mock(Statement.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(statement);
     replay(mockKsqlEngine, mockStatementParser);
@@ -274,7 +274,7 @@ public class StreamedQueryResourceTest {
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
 
     reset(mockStatementParser);
-    statement = new PreparedStatement<>("query", mock(Query.class));
+    statement = PreparedStatement.of("query", mock(Query.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(statement);
 

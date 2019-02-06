@@ -111,7 +111,7 @@ corrupt messages are encountered, add this to your properties file:
 
     ksql.fail.on.deserialization.error=true
 
-.. _ksql-fail-on-deserialization-error:
+.. _ksql-fail-on-production-error:
 
 -----------------------------
 ksql.fail.on.production.error

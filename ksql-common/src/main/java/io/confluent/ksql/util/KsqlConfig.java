@@ -460,7 +460,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
           LogMetricAndContinueExceptionHandler.class
       );
     }
-    if (!getBooleanConfig(FAIL_ON_PRODUCTION_ERROR_CONFIG, false)) {
+    if (!getBooleanConfig(FAIL_ON_PRODUCTION_ERROR_CONFIG, true)) {
       streamsConfigDefaults.put(
           StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
           LogAndContinueProductionExceptionHandler.class

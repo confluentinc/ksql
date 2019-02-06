@@ -26,31 +26,43 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.errors.ProductionExceptionHandler;
 
-public abstract class LogAndXProductionExceptionHandler implements ProductionExceptionHandler {
+public final class ProductionExceptionHandlerUtil {
   public static final String KSQL_PRODUCTION_ERROR_LOGGER_NAME =
       "ksql.logger.production.error.name";
 
-  private StructuredLogger logger;
-
-  @Override
-  public ProductionExceptionHandlerResponse handle(
-      final ProducerRecord<byte[], byte[]> record, final Exception exception) {
-    logger.error(productionError(exception.getMessage()));
-    return getResponse();
+  private ProductionExceptionHandlerUtil() {
   }
 
-  @Override
-  public void configure(final Map<String, ?> configs) {
-    configure(configs, ProcessingLoggerFactory::getLogger);
+  public static Class<?> getHandler(final boolean failOnError) {
+    return failOnError
+        ? LogAndFailProductionExceptionHandler.class
+        : LogAndContinueProductionExceptionHandler.class;
   }
 
-  void configure(
-      final Map<String, ?> configs, final Function<String, StructuredLogger> loggerFactory) {
-    final String loggerName = configs.get(KSQL_PRODUCTION_ERROR_LOGGER_NAME).toString();
-    logger = loggerFactory.apply(loggerName);
-  }
+  abstract static class LogAndXProductionExceptionHandler implements ProductionExceptionHandler {
 
-  abstract ProductionExceptionHandlerResponse getResponse();
+    private StructuredLogger logger;
+
+    @Override
+    public ProductionExceptionHandlerResponse handle(
+        final ProducerRecord<byte[], byte[]> record, final Exception exception) {
+      logger.error(productionError(exception.getMessage()));
+      return getResponse();
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs) {
+      configure(configs, ProcessingLoggerFactory::getLogger);
+    }
+
+    void configure(
+        final Map<String, ?> configs, final Function<String, StructuredLogger> loggerFactory) {
+      final String loggerName = configs.get(KSQL_PRODUCTION_ERROR_LOGGER_NAME).toString();
+      logger = loggerFactory.apply(loggerName);
+    }
+
+    abstract ProductionExceptionHandlerResponse getResponse();
+  }
 
   private static Supplier<SchemaAndValue> productionError(final String errorMsg) {
     return () -> {
@@ -66,3 +78,5 @@ public abstract class LogAndXProductionExceptionHandler implements ProductionExc
     };
   }
 }
+
+

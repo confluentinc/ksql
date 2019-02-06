@@ -28,8 +28,7 @@ import static org.mockito.Mockito.spy;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
-import io.confluent.ksql.errors.LogAndContinueProductionExceptionHandler;
-import io.confluent.ksql.errors.LogAndXProductionExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -466,7 +465,7 @@ public class PhysicalPlanBuilderTest {
     assertThat(calls.size(), equalTo(1));
     final Properties props = calls.get(0).props;
     assertThat(
-        props.get(LogAndXProductionExceptionHandler.KSQL_PRODUCTION_ERROR_LOGGER_NAME),
+        props.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER_NAME),
         equalTo("foo"));
   }
 

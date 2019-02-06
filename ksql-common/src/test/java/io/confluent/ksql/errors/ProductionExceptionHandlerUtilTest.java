@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.logging.StructuredLogger;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndXProductionExceptionHandler;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import java.util.Map;
@@ -41,11 +42,11 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class LogAndXProductionExceptionHandlerTest {
+public class ProductionExceptionHandlerUtilTest {
 
   private final static String LOGGER_NAME = "loggerName";
   private final static Map<String, ?> CONFIGS = ImmutableMap.of(
-      LogAndXProductionExceptionHandler.KSQL_PRODUCTION_ERROR_LOGGER_NAME, LOGGER_NAME);
+      ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER_NAME, LOGGER_NAME);
 
   @Mock
   private Function<String, StructuredLogger> loggerFactory;

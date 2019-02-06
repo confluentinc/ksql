@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.errors;
 
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndXProductionExceptionHandler;
+
 public class LogAndFailProductionExceptionHandler extends LogAndXProductionExceptionHandler {
 
   @Override

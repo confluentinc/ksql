@@ -36,7 +36,7 @@ public class LogAndFailProductionExceptionHandlerTest {
 
   private final static String LOGGER_NAME = "loggerName";
   private final static Map<String, ?> CONFIGS = ImmutableMap.of(
-      LogAndXProductionExceptionHandler.KSQL_PRODUCTION_ERROR_LOGGER_NAME, LOGGER_NAME);
+      ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER_NAME, LOGGER_NAME);
 
   @Mock
   private Function<String, StructuredLogger> loggerFactory;

@@ -17,11 +17,14 @@ package io.confluent.ksql.errors;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.logging.StructuredLogger;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndContinueProductionExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndFailProductionExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndXProductionExceptionHandler;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
@@ -63,11 +66,24 @@ public class ProductionExceptionHandlerUtilTest {
 
   @Before
   public void setUp() {
-
     when(loggerFactory.apply(ArgumentMatchers.anyString())).thenReturn(logger);
 
     exceptionHandler = new TestLogAndXProductionExceptionHandler(mockResponse);
     exceptionHandler.configure(CONFIGS, loggerFactory);
+  }
+
+  @Test
+  public void shouldReturnLogAndFailHandler() {
+    assertThat(
+        ProductionExceptionHandlerUtil.getHandler(true),
+        equalTo(LogAndFailProductionExceptionHandler.class));
+  }
+
+  @Test
+  public void shouldReturnLogAndContinueHandler() {
+    assertThat(
+        ProductionExceptionHandlerUtil.getHandler(false),
+        equalTo(LogAndContinueProductionExceptionHandler.class));
   }
 
   @Test
@@ -99,12 +115,36 @@ public class ProductionExceptionHandlerUtilTest {
 
   @Test
   public void shouldReturnCorrectResponse() {
+    assertResponseIs(mockResponse);
+  }
+
+  @Test
+  public void shouldReturnFailFromLogAndFailHandler() {
+    // Given:
+    exceptionHandler = new LogAndFailProductionExceptionHandler();
+    exceptionHandler.configure(CONFIGS, loggerFactory);
+
+    // Then:
+    assertResponseIs(ProductionExceptionHandlerResponse.FAIL);
+  }
+
+  @Test
+  public void shouldReturnContinueFromLogAndContinueHandler() {
+    // Given:
+    exceptionHandler = new LogAndContinueProductionExceptionHandler();
+    exceptionHandler.configure(CONFIGS, loggerFactory);
+
+    // Then:
+    assertResponseIs(ProductionExceptionHandlerResponse.CONTINUE);
+  }
+
+  private void assertResponseIs(Object o) {
     // When:
     final ProductionExceptionHandlerResponse response =
         exceptionHandler.handle(record, new Exception());
 
     // Then:
-    assertThat(response, is(mockResponse));
+    assertThat(response, is(o));
   }
 
   private static class TestLogAndXProductionExceptionHandler extends LogAndXProductionExceptionHandler {

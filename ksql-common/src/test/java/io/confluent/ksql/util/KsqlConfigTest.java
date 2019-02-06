@@ -24,9 +24,9 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.errors.LogAndContinueProductionExceptionHandler;
-import io.confluent.ksql.errors.LogAndFailProductionExceptionHandler;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndContinueProductionExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndFailProductionExceptionHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;

@@ -77,6 +77,24 @@ public final class ProductionExceptionHandlerUtil {
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
     };
   }
+
+  public static class LogAndFailProductionExceptionHandler
+      extends LogAndXProductionExceptionHandler {
+
+    @Override
+    ProductionExceptionHandlerResponse getResponse() {
+      return ProductionExceptionHandlerResponse.FAIL;
+    }
+  }
+
+  public static class LogAndContinueProductionExceptionHandler
+      extends LogAndXProductionExceptionHandler {
+
+    @Override
+    ProductionExceptionHandlerResponse getResponse() {
+      return ProductionExceptionHandlerResponse.CONTINUE;
+    }
+  }
 }
 
 

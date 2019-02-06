@@ -121,7 +121,7 @@ message.recordProcessingError.record (STRING)
 
 message.productionError (STRUCT)
   The contents of a message with type 2 (PRODUCTION_ERROR). Logged when a producer fails to
-  publish a Kafka record. These messages will only be logged if ``ksql.fail.on.production.error=false``.
+  publish a Kafka record.
 
 message.productionError.errorMessage (STRING)
   A string containing a human-readable error message detailing the error encountered.

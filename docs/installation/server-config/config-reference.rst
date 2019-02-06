@@ -119,7 +119,7 @@ ksql.fail.on.production.error
 
 Indicates whether to fail if KSQL fails to publish a record to an output topic due to a Kafka producer exception.
 The default value in KSQL is ``true``, which means if a producer error occurs, then the Kafka Streams thread that
-encountered the error will shut down. To instead log the error message to the
+encountered the error will shut down. To log the error message to the
 :ref:`ksql_processing_log` and have KSQL continue processing as normal, add this to your properties file:
 
 ::

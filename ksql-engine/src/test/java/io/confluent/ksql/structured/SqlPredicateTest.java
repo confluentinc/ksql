@@ -54,9 +54,6 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
-
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   private MetaStore metaStore;
@@ -154,10 +151,6 @@ public class SqlPredicateTest {
             "Error evaluating predicate (TEST1.COL0 > 100): "
                 + "Invalid field type. Value must be Long.")
     );
-    final String rowString =
-        errorStruct.getString(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD);
-    final List<Object> row = (List) MAPPER.readValue(rowString, List.class);
-    assertThat(row, Matchers.contains(0, "key", Collections.emptyList()));
   }
 
   private SqlPredicate givenSqlPredicateFor(final String statement) {

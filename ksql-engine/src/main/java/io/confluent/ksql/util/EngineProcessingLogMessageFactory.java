@@ -16,6 +16,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import java.util.function.Supplier;
@@ -35,6 +36,18 @@ public final class EngineProcessingLogMessageFactory {
       final String errorMsg,
       final GenericRow record
   ) {
+    return recordProcessingError(
+        errorMsg,
+        record,
+        ProcessingLogConfig.getInstance()
+    );
+  }
+
+  static Supplier<SchemaAndValue> recordProcessingError(
+      final String errorMsg,
+      final GenericRow record,
+      final ProcessingLogConfig config
+  ) {
     return () -> {
       final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId());
@@ -49,12 +62,15 @@ public final class EngineProcessingLogMessageFactory {
       }
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD,
-          serializeRow(record));
+          serializeRow(config, record));
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
     };
   }
 
-  private static String serializeRow(final GenericRow record) {
+  private static String serializeRow(final ProcessingLogConfig config, final GenericRow record) {
+    if (!config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
+      return null;
+    }
     try {
       return JsonMapper.INSTANCE.mapper.writeValueAsString(record.getColumns());
     } catch (final Throwable t) {

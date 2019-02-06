@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
@@ -392,13 +393,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
-    final ProcessingLogConfig processingLogConfig =
-        new ProcessingLogConfig(restConfig.getOriginals());
-    final Optional<String> processingLogTopic =
-        ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
-            serviceContext.getTopicClient(),
-            processingLogConfig,
-            ksqlConfig);
+    ProcessingLogConfig.configure(restConfig.getOriginals());
+    final ProcessingLogConfig processingLogConfig = ProcessingLogConfig.getInstance();
+    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+        serviceContext.getTopicClient(),
+        processingLogConfig,
+        ksqlConfig);
     maybeCreateProcessingLogStream(
         processingLogConfig,
         ksqlConfig,

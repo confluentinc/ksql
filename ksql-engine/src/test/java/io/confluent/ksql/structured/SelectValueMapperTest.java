@@ -53,8 +53,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class SelectValueMapperTest {
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-
   private final MetaStore metaStore =
       MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
@@ -108,7 +106,7 @@ public class SelectValueMapperTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void shouldWriteProcessingLogOnError() throws IOException {
+  public void shouldWriteProcessingLogOnError() {
     // Given:
     final SelectValueMapper selectMapper = givenSelectMapperFor(
         "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
@@ -135,10 +133,6 @@ public class SelectValueMapperTest {
             "Error computing expression CEIL(TEST1.COL3) "
                 + "for column KSQL_COL_3 with index 3: null")
     );
-    final String rowString =
-        errorStruct.getString(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD);
-    final List<Object> row = (List) MAPPER.readValue(rowString, List.class);
-    assertThat(row, Matchers.contains(0, "key", 2, "foo", "whatever", null, "boo", "hoo"));
   }
 
   private SelectValueMapper givenSelectMapperFor(final String query) {

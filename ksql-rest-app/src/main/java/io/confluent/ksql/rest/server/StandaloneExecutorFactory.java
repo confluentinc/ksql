@@ -16,7 +16,7 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
-import io.confluent.ksql.rest.util.ProcessingLogConfig;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -42,9 +42,12 @@ public final class StandaloneExecutorFactory {
     final UdfLoader udfLoader =
         UdfLoader.newInstance(ksqlConfig, ksqlEngine.getFunctionRegistry(), installDir);
 
+    ProcessingLogConfig.configure(properties);
+    final ProcessingLogConfig processingLogConfig = ProcessingLogConfig.getInstance();
+
     return new StandaloneExecutor(
         serviceContext,
-        new ProcessingLogConfig(properties),
+        processingLogConfig,
         ksqlConfig,
         ksqlEngine,
         queriesFile,

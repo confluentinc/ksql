@@ -14,10 +14,10 @@
 
 package io.confluent.ksql.errors;
 
-public class LogAndContinueProductionExceptionHandler extends LogAndXProductionExceptionHandler {
+public class LogAndFailProductionExceptionHandler extends LogAndXProductionExceptionHandler {
 
   @Override
   ProductionExceptionHandlerResponse getResponse() {
-    return ProductionExceptionHandlerResponse.CONTINUE;
+    return ProductionExceptionHandlerResponse.FAIL;
   }
 }

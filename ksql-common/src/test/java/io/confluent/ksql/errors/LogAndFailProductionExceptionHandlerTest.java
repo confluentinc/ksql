@@ -32,7 +32,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class LogAndContinueProductionExceptionHandlerTest {
+public class LogAndFailProductionExceptionHandlerTest {
 
   private final static String LOGGER_NAME = "loggerName";
   private final static Map<String, ?> CONFIGS = ImmutableMap.of(
@@ -45,23 +45,23 @@ public class LogAndContinueProductionExceptionHandlerTest {
   @Mock
   private ProducerRecord<byte[], byte[]> record;
 
-  private LogAndContinueProductionExceptionHandler exceptionHandler;
+  private LogAndFailProductionExceptionHandler exceptionHandler;
 
   @Before
   public void setUp() {
     when(loggerFactory.apply(ArgumentMatchers.anyString())).thenReturn(logger);
 
-    exceptionHandler = new LogAndContinueProductionExceptionHandler();
+    exceptionHandler = new LogAndFailProductionExceptionHandler();
     exceptionHandler.configure(CONFIGS, loggerFactory);
   }
 
   @Test
-  public void shouldContinueOnError() {
+  public void shouldFailOnError() {
     // When:
     final ProductionExceptionHandlerResponse response =
         exceptionHandler.handle(record, new Exception());
 
     // Then:
-    assertThat(response, is(ProductionExceptionHandlerResponse.CONTINUE));
+    assertThat(response, is(ProductionExceptionHandlerResponse.FAIL));
   }
 }

@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.physical;
 
-import io.confluent.ksql.errors.LogAndContinueProductionExceptionHandler;
+import io.confluent.ksql.errors.LogAndXProductionExceptionHandler;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -366,7 +366,7 @@ public class PhysicalPlanBuilder {
     newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     newStreamsProperties.put(
-        LogAndContinueProductionExceptionHandler.KSQL_PRODUCTION_ERROR_LOGGER_NAME,
+        LogAndXProductionExceptionHandler.KSQL_PRODUCTION_ERROR_LOGGER_NAME,
         queryId.toString());
 
     updateListProperty(

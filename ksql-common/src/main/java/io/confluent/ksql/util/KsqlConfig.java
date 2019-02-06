@@ -20,6 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogAndContinueProductionExceptionHandler;
+import io.confluent.ksql.errors.LogAndFailProductionExceptionHandler;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import java.util.Collection;
 import java.util.Collections;
@@ -460,7 +461,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
           LogMetricAndContinueExceptionHandler.class
       );
     }
-    if (!getBooleanConfig(FAIL_ON_PRODUCTION_ERROR_CONFIG, true)) {
+    if (getBooleanConfig(FAIL_ON_PRODUCTION_ERROR_CONFIG, true)) {
+      streamsConfigDefaults.put(
+          StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
+          LogAndFailProductionExceptionHandler.class
+      );
+    } else {
       streamsConfigDefaults.put(
           StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
           LogAndContinueProductionExceptionHandler.class

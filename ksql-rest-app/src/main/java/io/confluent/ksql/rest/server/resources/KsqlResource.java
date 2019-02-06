@@ -100,11 +100,14 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
@@ -123,7 +126,6 @@ import org.apache.kafka.connect.data.Schema;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class KsqlResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-
 
   private static final Map<Class<? extends Statement>, Handler<Statement>> CUSTOM_EXECUTORS =
       ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
@@ -276,10 +278,13 @@ public class KsqlResource {
   private <T extends Statement> KsqlEntity executeStatement(
       final PreparedStatement<T> statement,
       final Map<String, Object> propertyOverrides,
-      final KsqlEntityList entities) {
+      final KsqlEntityList entities
+  ) {
     try {
       final Handler<T> handler = getCustomExecutor(statement);
       if (handler != null) {
+        waitForPreviousDistributedStatementToBeHandled(entities);
+
         return handler.handle(this, statement, propertyOverrides);
       }
 
@@ -293,6 +298,26 @@ public class KsqlResource {
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, statement.getStatementText(), entities));
     }
+  }
+
+  private void waitForPreviousDistributedStatementToBeHandled(final KsqlEntityList entities) {
+    final ArrayList<KsqlEntity> reversed = new ArrayList<>(entities);
+    Collections.reverse(reversed);
+
+    reversed.stream()
+        .filter(e -> e instanceof CommandStatusEntity)
+        .map(cs -> ((CommandStatusEntity) cs).getCommandSequenceNumber())
+        .filter(Objects::nonNull)
+        .findFirst()
+        .ifPresent(seqNum -> {
+          try {
+            commandQueue.ensureConsumedPast(seqNum, distributedCmdResponseTimeout);
+          } catch (final InterruptedException e) {
+            throw new KsqlRestException(Errors.serverShuttingDown());
+          } catch (final TimeoutException e) {
+            throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(seqNum));
+          }
+        });
   }
 
   private KsqlEntity executeDdlImmediately(

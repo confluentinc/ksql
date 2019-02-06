@@ -14,8 +14,23 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.test.util.TestKsqlRestApp;
+import io.confluent.ksql.util.PageViewDataProvider;
+import java.util.Collections;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -23,24 +38,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-
-import java.util.Collections;
-
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.util.PageViewDataProvider;
-
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 @Category({IntegrationTest.class})
 public class RestApiTest {
@@ -113,7 +110,8 @@ public class RestApiTest {
       final RestResponse createStreamResponse = ksqlRestClient
               .makeKsqlRequest(String.format(
                   "CREATE STREAM %s (viewtime bigint, pageid varchar, userid varchar)"
-                      + " WITH (kafka_topic='pageviews', value_format='json');", PAGE_VIEW_STREAM));
+                      + " WITH (kafka_topic='pageviews', value_format='json');", PAGE_VIEW_STREAM),
+                  null);
       assertTrue(createStreamResponse.isSuccessful());
     }
   }

@@ -64,7 +64,7 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     final QueuedQueryMetadata queryMetadata = (QueuedQueryMetadata) ksqlEngine.execute(
         query,
         ksqlConfig,
-        clientLocalProperties).get();
+        clientLocalProperties).getQuery().get();
 
     final StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
 

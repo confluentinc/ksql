@@ -15,9 +15,11 @@
 package io.confluent.ksql.rest.server.resources;
 
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
+import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import static io.confluent.ksql.rest.server.computation.CommandId.Action.CREATE;
 import static io.confluent.ksql.rest.server.computation.CommandId.Type.TOPIC;
-import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionKsqlErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -34,12 +36,12 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -51,6 +53,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -133,6 +136,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -160,6 +164,8 @@ public class KsqlResourceTest {
   private FakeKafkaTopicClient kafkaTopicClient;
   private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
+  @Mock
+  private KsqlExecutionContext sandbox;
   @Mock
   private CommandStore commandStore;
   @Mock
@@ -376,45 +382,47 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectCSASStatementResultType() {
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM s1 AS SELECT * FROM test_table;", Code.BAD_REQUEST);
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+        "Invalid result type. Your SELECT query produces a TABLE. "
+            + "Please use CREATE TABLE AS SELECT statement instead."))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+        "CREATE STREAM s1 AS SELECT * FROM test_table;"))));
 
-    // Then:
-    assertThat(result.getMessage(), is(
-        "Invalid result type. Your SELECT query produces a TABLE. " +
-            "Please use CREATE TABLE AS SELECT statement instead.\n"
-            + "Statement: "
-            + "CREATE STREAM s1 AS SELECT * FROM test_table;"));
+    // When:
+    makeRequest("CREATE STREAM s1 AS SELECT * FROM test_table;");
   }
 
   @Test
   public void shouldFailForIncorrectCSASStatementResultTypeWithGroupBy() {
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;",
-        Code.BAD_REQUEST);
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+        "Invalid result type. Your SELECT query produces a TABLE. "
+            + "Please use CREATE TABLE AS SELECT statement instead."))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+        "CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;"))));
 
-    // Then:
-    assertThat(result.getMessage(), is(
-        "Invalid result type. Your SELECT query produces a TABLE. " +
-            "Please use CREATE TABLE AS SELECT statement instead.\n"
-            + "Statement: "
-            + "CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;"));
+    // When:
+    makeRequest("CREATE STREAM s2 AS SELECT S2_F1, count(S2_F1) FROM test_stream group by s2_f1;");
   }
 
   @Test
   public void shouldFailForIncorrectCTASStatementResultType() {
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-        "CREATE TABLE s1 AS SELECT * FROM test_stream;", Code.BAD_REQUEST);
-
-    // Then:
-    assertThat(result.getMessage(), containsString(
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is(
         "Invalid result type. Your SELECT query produces a STREAM. "
-            + "Please use CREATE STREAM AS SELECT statement instead.\n"
-            + "Statement: "
-            + "CREATE TABLE s1 AS SELECT * FROM test_stream;"));
+            + "Please use CREATE STREAM AS SELECT statement instead."))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+        "CREATE TABLE s1 AS SELECT * FROM test_stream;"))));
+
+    // When:
+    makeRequest("CREATE TABLE s1 AS SELECT * FROM test_stream;");
   }
 
   @Test
@@ -454,23 +462,30 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailBareQuery() {
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest(
-        "SELECT * FROM test_table;", Code.BAD_REQUEST);
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
+            "SELECT and PRINT queries must use the /query endpoint"))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+        "SELECT * FROM test_table;"))));
 
-    // Then:
-    assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
-    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_QUERY_ENDPOINT));
+    // When:
+    makeRequest("SELECT * FROM test_table;");
   }
 
   @Test
   public void shouldFailPrintTopic() {
-    // When:
-    final KsqlErrorMessage result = makeFailingRequest("PRINT 'orders-topic';", Code.BAD_REQUEST);
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
+        "SELECT and PRINT queries must use the /query endpoint"))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+        "PRINT 'orders-topic';"))));
 
-    // Then:
-    assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
-    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_QUERY_ENDPOINT));
+    // When:
+    makeRequest("PRINT 'orders-topic';");
   }
 
   @Test
@@ -543,12 +558,10 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException
-        .expect(exceptionKsqlErrorMessage(errorMessage(is("Kafka topic does not exist: unknown"))));
+        .expect(exceptionErrorMessage(errorMessage(is("Kafka topic does not exist: unknown"))));
 
     // When:
-    makeSingleRequest(
-        "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='unknown');",
-        CommandStatusEntity.class);
+    makeRequest("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON', KAFKA_TOPIC='unknown');");
   }
 
   @Test
@@ -613,6 +626,23 @@ public class KsqlResourceTest {
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(result.getMessage(),
         containsString("Cannot register avro schema for S1 as the schema registry rejected it"));
+  }
+
+  @Test
+  public void shouldDistributeMultipleInterDependantStatements() {
+    // When:
+    makeMultipleRequest(
+        "CREATE STREAM S AS SELECT * FROM test_stream; "
+            + "CREATE STREAM S2 AS SELECT * FROM S;",
+        CommandStatusEntity.class
+    );
+
+    // Then:
+    final InOrder inOrder = inOrder(commandStore);
+    inOrder.verify(commandStore).enqueueCommand(
+        eq("CREATE STREAM S AS SELECT * FROM test_stream;"), any(), any(), any());
+    inOrder.verify(commandStore).enqueueCommand(
+        eq("CREATE STREAM S2 AS SELECT * FROM S;"), any(), any(), any());
   }
 
   @Test
@@ -754,7 +784,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(ksqlEngine.tryExecute(anyList(), any(), any()))
+    when(sandbox.execute(any(), any(), any()))
         .thenThrow(new RuntimeException("internal error"));
 
     // When:
@@ -1110,8 +1140,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shoudlHandleTerminateRequestCorrectly() throws InterruptedException {
-
+  public void shouldHandleTerminateRequestCorrectly() {
     // When:
     final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
 
@@ -1133,7 +1162,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shoudlFailIfCannotWriteTerminateCommand() throws InterruptedException {
+  public void shouldFailIfCannotWriteTerminateCommand() {
     // Given:
     when(commandStore.enqueueCommand(any(), any(), any(), any())).thenThrow(new KsqlException(""));
 
@@ -1148,14 +1177,14 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailTerminateOnInvalidDeleteTopicPattern() throws InterruptedException {
+  public void shouldFailTerminateOnInvalidDeleteTopicPattern() {
     // Given:
     final ClusterTerminateRequest request = new ClusterTerminateRequest(
         ImmutableList.of("[Invalid Regex"));
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException
-        .expect(exceptionKsqlErrorMessage(errorMessage(is("Invalid pattern: [Invalid Regex"))));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+        "Invalid pattern: [Invalid Regex"))));
 
     // When:
     ksqlResource.terminateCluster(request);
@@ -1178,6 +1207,7 @@ public class KsqlResourceTest {
     when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
     when(ksqlEngine.parseStatements(any()))
         .thenAnswer(invocation -> realEngine.parseStatements(invocation.getArgument(0)));
+    when(ksqlEngine.createSandbox()).thenReturn(sandbox);
     setUpKsqlResource();
   }
 
@@ -1233,6 +1263,10 @@ public class KsqlResourceTest {
     }
   }
 
+  private void makeRequest(final String sql) {
+    makeMultipleRequest(sql, KsqlEntity.class);
+  }
+
   private <T extends KsqlEntity> T makeSingleRequest(
       final String sql,
       final Class<T> expectedEntityType) {
@@ -1268,10 +1302,11 @@ public class KsqlResourceTest {
       final Class<T> expectedEntityType) {
 
     final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
+    if (response.getStatus() != Response.Status.OK.getStatusCode()) {
+      throw new KsqlRestException(response);
+    }
 
     final Object entity = response.getEntity();
-    assertThat(String.valueOf(entity), response.getStatus(),
-        is(Response.Status.OK.getStatusCode()));
     assertThat(entity, instanceOf(KsqlEntityList.class));
     final KsqlEntityList entityList = (KsqlEntityList) entity;
     entityList.forEach(e -> assertThat(e, instanceOf(expectedEntityType)));
@@ -1378,7 +1413,7 @@ public class KsqlResourceTest {
 
   private static void registerSchema(final SchemaRegistryClient schemaRegistryClient)
       throws IOException, RestClientException {
-    final String ordersAveroSchemaStr = "{"
+    final String ordersAvroSchemaStr = "{"
         + "\"namespace\": \"kql\","
         + " \"name\": \"orders\","
         + " \"type\": \"record\","
@@ -1392,7 +1427,7 @@ public class KsqlResourceTest {
         + " ]"
         + "}";
     final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-    final org.apache.avro.Schema avroSchema = parser.parse(ordersAveroSchemaStr);
+    final org.apache.avro.Schema avroSchema = parser.parse(ordersAvroSchemaStr);
     schemaRegistryClient.register("orders-topic" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
         avroSchema);
   }

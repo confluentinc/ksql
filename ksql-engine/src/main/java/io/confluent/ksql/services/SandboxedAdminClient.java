@@ -55,6 +55,8 @@ import org.apache.kafka.clients.admin.DescribeReplicaLogDirsOptions;
 import org.apache.kafka.clients.admin.DescribeReplicaLogDirsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
+import org.apache.kafka.clients.admin.ElectPreferredLeadersOptions;
+import org.apache.kafka.clients.admin.ElectPreferredLeadersResult;
 import org.apache.kafka.clients.admin.ExpireDelegationTokenOptions;
 import org.apache.kafka.clients.admin.ExpireDelegationTokenResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
@@ -263,6 +265,14 @@ class SandboxedAdminClient extends AdminClient {
   public DeleteConsumerGroupsResult deleteConsumerGroups(
       final Collection<String> groupIds,
       final DeleteConsumerGroupsOptions options
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public ElectPreferredLeadersResult electPreferredLeaders(
+      final Collection<TopicPartition> partitions,
+      final  ElectPreferredLeadersOptions options
   ) {
     throw new UnsupportedOperationException();
   }

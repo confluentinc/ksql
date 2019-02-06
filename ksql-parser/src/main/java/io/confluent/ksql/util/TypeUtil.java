@@ -18,9 +18,11 @@ import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -98,5 +100,11 @@ public final class TypeUtil {
       structSchemaBuilder.field(field.getLeft(), getTypeSchema(field.getRight()));
     }
     return structSchemaBuilder.optional().build();
+  }
+
+  public static List<TableElement> buildTableElementsForSchema(final Schema schema) {
+    return schema.fields().stream()
+        .map(f -> new TableElement(f.name().toUpperCase(), getKsqlType(f.schema())))
+        .collect(Collectors.toList());
   }
 }

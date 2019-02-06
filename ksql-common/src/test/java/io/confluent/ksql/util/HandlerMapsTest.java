@@ -374,6 +374,7 @@ public class HandlerMapsTest {
     verify(handler2_1).handle("A", 2, LEAF_A);
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
   public void shouldWorkWithSuppliersR2() {
     // Given:

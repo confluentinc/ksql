@@ -29,8 +29,8 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.Map;
@@ -39,7 +39,6 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import java.io.IOException;
-import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
@@ -251,12 +250,12 @@ public class AvroUtilTest {
   }
 
   private static AbstractStreamCreateStatement createStreamCreateSql() {
-    final List<PreparedStatement<?>> statementList = new KsqlParser()
-        .buildAst(
+    final PreparedStatement<AbstractStreamCreateStatement> statementList = KsqlParserTestUtil
+        .buildSingleAst(
             "CREATE STREAM S1 WITH (kafka_topic='s1_topic', value_format='avro');",
             new MetaStoreImpl(new InternalFunctionRegistry())
         );
 
-    return (AbstractStreamCreateStatement) statementList.get(0).getStatement();
+    return statementList.getStatement();
   }
 }

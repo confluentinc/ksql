@@ -28,7 +28,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KafkaTopicException;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -125,7 +125,7 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
-  @Test(expected = KafkaTopicException.class)
+  @Test(expected = KafkaTopicExistsException.class)
   public void shouldFailCreateExistingTopic() {
     expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());

@@ -84,8 +84,6 @@ import org.junit.rules.ExpectedException;
 
 public class KsqlParserTest {
 
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -163,8 +161,7 @@ public class KsqlParserTest {
   @Test
   public void testSimpleQuery() {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final PreparedStatement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0);
-
+    final PreparedStatement<?> statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
 
     assertThat(statement.getStatementText(), is(simpleQuery));
     Assert.assertTrue("testSimpleQuery fails", statement.getStatement() instanceof Query);
@@ -183,7 +180,7 @@ public class KsqlParserTest {
   @Test
   public void testProjection() {
     final String queryStr = "SELECT col0, col2, col3 FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testProjection fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
@@ -198,7 +195,7 @@ public class KsqlParserTest {
   @Test
   public void testProjectionWithArrayMap() {
     final String queryStr = "SELECT col0, col2, col3, col4[0], col5['key1'] FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testProjectionWithArrayMap fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testProjectionWithArrayMap fails", query.getQueryBody() instanceof QuerySpecification);
@@ -221,7 +218,7 @@ public class KsqlParserTest {
   @Test
   public void testProjectFilter() {
     final String queryStr = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testProjectFilter fails", query.getQueryBody() instanceof QuerySpecification);
@@ -237,7 +234,7 @@ public class KsqlParserTest {
   @Test
   public void testBinaryExpression() {
     final String queryStr = "SELECT col0+10, col2, col3-col1 FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testBinaryExpression fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testBinaryExpression fails", query.getQueryBody() instanceof QuerySpecification);
@@ -250,7 +247,7 @@ public class KsqlParserTest {
   @Test
   public void testBooleanExpression() {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testBooleanExpression fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
@@ -263,7 +260,7 @@ public class KsqlParserTest {
   @Test
   public void testLiterals() {
     final String queryStr = "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testLiterals fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testLiterals fails", query.getQueryBody() instanceof QuerySpecification);
@@ -296,7 +293,7 @@ public class KsqlParserTest {
   private <T, L extends Literal> void shouldParseNumericLiteral(final T value,
                                                                 final L expectedValue) {
     final String queryStr = String.format("SELECT " + value.toString() + " FROM test1;", value);
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     assertThat(statement, instanceOf(Query.class));
     final Query query = (Query) statement;
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
@@ -323,7 +320,7 @@ public class KsqlParserTest {
   @Test
   public void shouldParseNegativeInteger() {
     final String queryStr = String.format("SELECT -12345 FROM test1;");
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     assertThat(statement, instanceOf(Query.class));
     final Query query = (Query) statement;
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
@@ -343,7 +340,7 @@ public class KsqlParserTest {
     final String
         queryStr =
         "SELECT 10, col2, 'test', 2.5, true, -5 FROM test1 WHERE col1 = 10 AND col2 LIKE 'val' OR col4 > 2.6 ;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
@@ -365,7 +362,7 @@ public class KsqlParserTest {
   @Test
   public void shouldParseStructFieldAccessCorrectly() {
     final String simpleQuery = "SELECT iteminfo->category->name, address->street FROM orders WHERE address->state = 'CA';";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
 
 
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
@@ -390,7 +387,7 @@ public class KsqlParserTest {
         queryStr =
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
         + "t1.col1 = t2.col1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testSimpleLeftJoin fails", query.getQueryBody() instanceof QuerySpecification);
@@ -410,7 +407,7 @@ public class KsqlParserTest {
         queryStr =
         "SELECT t1.col1, t2.col1, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = "
         + "t2.col1 WHERE t2.col2 = 'test';";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testLeftJoinWithFilter fails", query.getQueryBody() instanceof QuerySpecification);
@@ -428,7 +425,7 @@ public class KsqlParserTest {
   @Test
   public void testSelectAll() {
     final String queryStr = "SELECT * FROM test1 t1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSelectAll fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testSelectAll fails", query.getQueryBody() instanceof QuerySpecification);
@@ -449,7 +446,7 @@ public class KsqlParserTest {
     expectedException.expectMessage(containsString(
         "ROWTIME is a reserved token for implicit column. You cannot use it as an alias for a column."));
 
-    KSQL_PARSER.buildAst("SELECT C1 as ROWTIME FROM test1 t1;", metaStore);
+    KsqlParserTestUtil.buildSingleAst("SELECT C1 as ROWTIME FROM test1 t1;", metaStore);
   }
 
   @Test
@@ -458,7 +455,7 @@ public class KsqlParserTest {
     expectedException.expectMessage(containsString(
         "ROWKEY is a reserved token for implicit column. You cannot use it as an alias for a column."));
 
-    KSQL_PARSER.buildAst("SELECT C2 as ROWKEY FROM test1 t1;", metaStore);
+    KsqlParserTestUtil.buildSingleAst("SELECT C2 as ROWKEY FROM test1 t1;", metaStore);
   }
 
   @Test
@@ -466,7 +463,7 @@ public class KsqlParserTest {
     final String
         queryStr =
         "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 WHERE t2.col2 = 'test';";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSimpleQuery fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testLeftJoinWithFilter fails", query.getQueryBody() instanceof QuerySpecification);
@@ -482,7 +479,7 @@ public class KsqlParserTest {
   @Test
   public void testUDF() {
     final String queryStr = "SELECT lcase(col1), concat(col2,'hello'), floor(abs(col3)) FROM test1 t1;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSelectAll fails", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testSelectAll fails", query.getQueryBody() instanceof QuerySpecification);
@@ -507,7 +504,7 @@ public class KsqlParserTest {
         queryStr =
         "REGISTER TOPIC orders_topic WITH (value_format = 'avro', "
         + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof RegisterTopic);
     final RegisterTopic registerTopic = (RegisterTopic)statement;
     Assert.assertTrue("testRegisterTopic failed.", registerTopic
@@ -522,7 +519,7 @@ public class KsqlParserTest {
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
         + "double) WITH (registered_topic = 'orders_topic' , key='ordertime');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
@@ -539,7 +536,7 @@ public class KsqlParserTest {
         + "double, arraycol array<double>, mapcol map<varchar, double>, "
         + "order_address STRUCT< number VARCHAR, street VARCHAR, zip INTEGER, city "
         + "VARCHAR, state VARCHAR >) WITH (registered_topic = 'orders_topic' , key='ordertime');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
@@ -560,7 +557,7 @@ public class KsqlParserTest {
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
         + "double) WITH (value_format = 'avro', "
         + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
     Assert.assertTrue("testCreateStream failed.", createStream.getName().toString().equalsIgnoreCase("ORDERS"));
@@ -577,7 +574,7 @@ public class KsqlParserTest {
     final String
         queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) WITH (registered_topic = 'users_topic', key='userid', statestore='user_statestore');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
     final CreateTable createTable = (CreateTable)statement;
     Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
@@ -592,7 +589,7 @@ public class KsqlParserTest {
         queryStr =
         "CREATE TABLE users (usertime bigint, userid varchar, regionid varchar, gender varchar) "
         + "WITH (kafka_topic = 'users_topic', value_format='json', key = 'userid');";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof CreateTable);
     final CreateTable createTable = (CreateTable)statement;
     Assert.assertTrue("testCreateTable failed.", createTable.getName().toString().equalsIgnoreCase("USERS"));
@@ -609,7 +606,7 @@ public class KsqlParserTest {
     final String queryStr =
         "CREATE STREAM bigorders_json WITH (value_format = 'json', "
         + "kafka_topic='bigorders_topic') AS SELECT * FROM orders WHERE orderunits > 5 ;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     assertThat( statement, instanceOf(CreateStreamAsSelect.class));
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)statement;
     assertThat(createStreamAsSelect.getName().toString().toLowerCase(), equalTo("bigorders_json"));
@@ -637,7 +634,7 @@ public class KsqlParserTest {
         format,
         kafkaTopic
     );
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue(statement instanceof RegisterTopic);
     final RegisterTopic registerTopic = (RegisterTopic) statement;
     Assert.assertTrue(registerTopic.getName().toString().equalsIgnoreCase(ksqlTopic));
@@ -651,7 +648,7 @@ public class KsqlParserTest {
   public void testShouldFailIfWrongKeyword() {
     try {
       final String simpleQuery = "SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-      KSQL_PARSER.buildAst(simpleQuery, metaStore);
+      KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
       fail(format("Expected query: %s to fail", simpleQuery));
     } catch (final ParseFailedException e) {
       final String errorMessage = e.getMessage();
@@ -665,7 +662,7 @@ public class KsqlParserTest {
     final String
         queryStr =
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) where orderunits > 5 group by itemid;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSelectTumblingWindow failed.", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testSelectTumblingWindow failed.", query.getQueryBody() instanceof QuerySpecification);
@@ -690,7 +687,7 @@ public class KsqlParserTest {
         + "where "
         + "orderunits"
         + " > 5 group by itemid;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     assertThat(statement, instanceOf(Query.class));
     final Query query = (Query) statement;
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
@@ -711,7 +708,7 @@ public class KsqlParserTest {
         queryStr =
         "select itemid, sum(orderunits) from orders window SESSION ( 30 second) where "
         + "orderunits > 5 group by itemid;";
-    final Statement statement = KSQL_PARSER.buildAst(queryStr, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testSelectSessionWindow failed.", statement instanceof Query);
     final Query query = (Query) statement;
     Assert.assertTrue("testSelectSessionWindow failed.", query.getQueryBody() instanceof QuerySpecification);
@@ -730,7 +727,7 @@ public class KsqlParserTest {
   @Test
   public void testShowTopics() {
     final String simpleQuery = "SHOW TOPICS;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListTopics);
     final ListTopics listTopics = (ListTopics) statement;
     Assert.assertTrue(listTopics.toString().equalsIgnoreCase("ListTopics{}"));
@@ -739,7 +736,7 @@ public class KsqlParserTest {
   @Test
   public void testShowStreams() {
     final String simpleQuery = "SHOW STREAMS;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListStreams);
     final ListStreams listStreams = (ListStreams) statement;
     Assert.assertTrue(listStreams.toString().equalsIgnoreCase("ListStreams{}"));
@@ -749,7 +746,7 @@ public class KsqlParserTest {
   @Test
   public void testShowTables() {
     final String simpleQuery = "SHOW TABLES;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListTables);
     final ListTables listTables = (ListTables) statement;
     Assert.assertTrue(listTables.toString().equalsIgnoreCase("ListTables{}"));
@@ -759,7 +756,7 @@ public class KsqlParserTest {
   @Test
   public void shouldReturnListQueriesForShowQueries() {
     final String statementString = "SHOW QUERIES;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     Assert.assertThat(statement, instanceOf(ListQueries.class));
     final ListQueries listQueries = (ListQueries)statement;
@@ -769,7 +766,7 @@ public class KsqlParserTest {
   @Test
   public void testShowProperties() {
     final String simpleQuery = "SHOW PROPERTIES;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListProperties);
     final ListProperties listProperties = (ListProperties) statement;
     Assert.assertTrue(listProperties.toString().equalsIgnoreCase("ListProperties{}"));
@@ -778,7 +775,7 @@ public class KsqlParserTest {
   @Test
   public void testSetProperties() {
     final String simpleQuery = "set 'auto.offset.reset'='earliest';";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof SetProperty);
     final SetProperty setProperty = (SetProperty) statement;
     Assert.assertTrue(setProperty.toString().equalsIgnoreCase("SetProperty{}"));
@@ -792,7 +789,7 @@ public class KsqlParserTest {
                          + "col1, col2"
                          + " from orders where col2 is null and col3 is not null or (col3*col2 = "
                          + "12);";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue("testSelectTumblingWindow failed.", statement instanceof CreateStreamAsSelect);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
     Assert.assertTrue("testSelectTumblingWindow failed.", createStreamAsSelect.getQuery().getQueryBody()
@@ -805,7 +802,7 @@ public class KsqlParserTest {
   @Test
   public void shouldParseDropStream() {
     final String simpleQuery = "DROP STREAM STREAM1;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     assertThat(statement, instanceOf(DropStream.class));
     final DropStream dropStream = (DropStream)  statement;
     assertThat(dropStream.getName().toString().toUpperCase(), equalTo("STREAM1"));
@@ -815,7 +812,7 @@ public class KsqlParserTest {
   @Test
   public void shouldParseDropTable() {
     final String simpleQuery = "DROP TABLE TABLE1;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     assertThat(statement, instanceOf(DropTable.class));
     final DropTable dropTable = (DropTable)  statement;
     assertThat(dropTable.getName().toString().toUpperCase(), equalTo("TABLE1"));
@@ -825,7 +822,7 @@ public class KsqlParserTest {
   @Test
   public void shouldParseDropStreamIfExists() {
     final String simpleQuery = "DROP STREAM IF EXISTS STREAM1;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     assertThat(statement, instanceOf(DropStream.class));
     final DropStream dropStream = (DropStream)  statement;
     assertThat(dropStream.getName().toString().toUpperCase(), equalTo("STREAM1"));
@@ -835,7 +832,7 @@ public class KsqlParserTest {
   @Test
   public void shouldParseDropTableIfExists() {
     final String simpleQuery = "DROP TABLE IF EXISTS TABLE1;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     assertThat(statement, instanceOf(DropTable.class));
     final DropTable dropTable = (DropTable)  statement;
     assertThat(dropTable.getName().toString().toUpperCase(), equalTo("TABLE1"));
@@ -846,7 +843,7 @@ public class KsqlParserTest {
   public void testInsertInto() {
     final String insertIntoString = "INSERT INTO test2 SELECT col0, col2, col3 FROM test1 WHERE col0 > "
                             + "100;";
-    final Statement statement = KSQL_PARSER.buildAst(insertIntoString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(insertIntoString, metaStore)
         .getStatement();
 
 
@@ -868,7 +865,7 @@ public class KsqlParserTest {
   @Test
   public void shouldSetShowDescriptionsForShowStreamsDescriptions() {
     final String statementString = "SHOW STREAMS EXTENDED;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     Assert.assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams)statement;
@@ -878,7 +875,7 @@ public class KsqlParserTest {
   @Test
   public void shouldSetShowDescriptionsForShowTablesDescriptions() {
     final String statementString = "SHOW TABLES EXTENDED;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     Assert.assertThat(statement, instanceOf(ListTables.class));
     final ListTables listTables = (ListTables)statement;
@@ -888,7 +885,7 @@ public class KsqlParserTest {
   @Test
   public void shouldSetShowDescriptionsForShowQueriesDescriptions() {
     final String statementString = "SHOW QUERIES EXTENDED;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     Assert.assertThat(statement, instanceOf(ListQueries.class));
     final ListQueries listQueries = (ListQueries)statement;
@@ -896,7 +893,7 @@ public class KsqlParserTest {
   }
   
   private void assertQuerySucceeds(final String sql) {
-    final Statement statement = KSQL_PARSER.buildAst(sql, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(sql, metaStore).getStatement();
     assertThat(statement, instanceOf(Query.class));
   }
 
@@ -905,7 +902,7 @@ public class KsqlParserTest {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN "
                                    + "10 SECONDS ON TEST1.col1 = ORDERS.ORDERID ;";
 
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
@@ -938,7 +935,7 @@ public class KsqlParserTest {
                                    + "WITHIN (10 seconds, 20 minutes) "
                                    + "ON TEST1.col1 = ORDERS.ORDERID ;";
 
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
@@ -970,7 +967,7 @@ public class KsqlParserTest {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 INNER JOIN TEST2 "
                                    + "ON TEST1.col1 = TEST2.col1;";
 
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
@@ -994,7 +991,7 @@ public class KsqlParserTest {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 LEFT OUTER JOIN "
                                    + "TEST2 ON TEST1.col1 = TEST2.col1;";
 
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
@@ -1018,7 +1015,7 @@ public class KsqlParserTest {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 LEFT JOIN "
                                    + "TEST2 ON TEST1.col1 = TEST2.col1;";
 
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
@@ -1042,7 +1039,7 @@ public class KsqlParserTest {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 FULL JOIN "
                                    + "TEST2 ON TEST1.col1 = TEST2.col1;";
 
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
@@ -1066,7 +1063,7 @@ public class KsqlParserTest {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 FULL OUTER JOIN "
                                    + "TEST2 ON TEST1.col1 = TEST2.col1;";
 
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
@@ -1089,7 +1086,7 @@ public class KsqlParserTest {
   public void shouldAddPrefixEvenIfColumnNameIsTheSameAsStream() {
     final String statementString =
         "CREATE STREAM S AS SELECT address FROM address a;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
@@ -1103,8 +1100,8 @@ public class KsqlParserTest {
   public void shouldNotAddPrefixIfStreamNameIsPrefix() {
     final String statementString =
         "CREATE STREAM S AS SELECT address.orderid FROM address a;";
-    KSQL_PARSER.buildAst(statementString, metaStore);
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    KsqlParserTestUtil.buildSingleAst(statementString, metaStore);
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
@@ -1118,7 +1115,7 @@ public class KsqlParserTest {
   public void shouldPassIfStreamColumnNameWithAliasIsNotAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
@@ -1132,7 +1129,7 @@ public class KsqlParserTest {
   public void shouldPassIfStreamColumnNameIsNotAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT address.address->city FROM address a;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
@@ -1146,14 +1143,14 @@ public class KsqlParserTest {
   public void shouldFailJoinQueryParseIfStreamColumnNameWithNoAliasIsAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT itemid FROM address a JOIN itemid on a.itemid = itemid.itemid;";
-    KSQL_PARSER.buildAst(statementString, metaStore);
+    KsqlParserTestUtil.buildSingleAst(statementString, metaStore);
   }
 
   @Test
   public void shouldPassJoinQueryParseIfStreamColumnNameWithAliasIsNotAmbiguous() {
     final String statementString =
         "CREATE STREAM S AS SELECT itemid.itemid FROM address a JOIN itemid on a.itemid = itemid.itemid;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
@@ -1168,7 +1165,7 @@ public class KsqlParserTest {
     expectedException.expectMessage("line 1:21: extraneous input ';' expecting {',', 'FROM', 'INTO'}");
 
     final String simpleQuery = "SELECT ONLY, COLUMNS;";
-    KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);;
   }
 
   @Test
@@ -1177,7 +1174,7 @@ public class KsqlParserTest {
     expectedException.expectMessage(containsString("line 1:12: extraneous input 'C' expecting"));
 
     final String simpleQuery = "SELECT A B C FROM address;";
-    KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
   }
 
   @Test
@@ -1186,7 +1183,7 @@ public class KsqlParserTest {
     expectedException.expectMessage(containsString("line 1:22: mismatched input ',' expecting"));
 
     final String simpleQuery = "SELECT * FROM address, itemid;";
-    KSQL_PARSER.buildAst(simpleQuery, metaStore);
+    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);;
   }
 
   @Test
@@ -1194,7 +1191,7 @@ public class KsqlParserTest {
     final String statementString = "--this is a comment.\n"
         + "SHOW STREAMS;";
 
-    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+    final List<PreparedStatement<?>> statements =  KsqlParserTestUtil.buildAst(statementString, metaStore);
 
     assertThat(statements, hasSize(1));
     assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
@@ -1206,7 +1203,7 @@ public class KsqlParserTest {
         + "SHOW STREAMS;"
         + "/*another comment!*/";
 
-    final List<PreparedStatement<?>> statements = KSQL_PARSER.buildAst(statementString, metaStore);
+    final List<PreparedStatement<?>> statements = KsqlParserTestUtil.buildAst(statementString, metaStore);
 
     assertThat(statements, hasSize(1));
     assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
@@ -1218,7 +1215,7 @@ public class KsqlParserTest {
         "SHOW -- inline comment\n"
         + "STREAMS;";
 
-    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+    final List<PreparedStatement<?>> statements =  KsqlParserTestUtil.buildAst(statementString, metaStore);
 
     assertThat(statements, hasSize(1));
     assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
@@ -1231,7 +1228,7 @@ public class KsqlParserTest {
             + "comment */\n"
             + "STREAMS;";
 
-    final List<PreparedStatement<?>> statements =  KSQL_PARSER.buildAst(statementString, metaStore);
+    final List<PreparedStatement<?>> statements =  KsqlParserTestUtil.buildAst(statementString, metaStore);
 
     assertThat(statements, hasSize(1));
     assertThat(statements.get(0).getStatement(), is(instanceOf(ListStreams.class)));
@@ -1244,7 +1241,7 @@ public class KsqlParserTest {
         "CREATE STREAM S AS SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE 'large' END FROM orders;";
 
     // When:
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     // Then:
@@ -1265,7 +1262,7 @@ public class KsqlParserTest {
         "CREATE STREAM S AS SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' END FROM orders;";
 
     // When:
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
 
     // Then:

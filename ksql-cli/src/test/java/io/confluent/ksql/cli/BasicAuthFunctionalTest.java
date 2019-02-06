@@ -30,7 +30,6 @@ import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
@@ -46,7 +45,6 @@ import org.eclipse.jetty.websocket.api.UpgradeException;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import org.eclipse.jetty.websocket.api.util.WSURI;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.glassfish.jersey.internal.util.Base64;
@@ -222,7 +220,6 @@ public class BasicAuthFunctionalTest {
 
     @OnWebSocketConnect
     public void onConnect(final Session session) {
-      session.close();
       latch.countDown();
     }
 

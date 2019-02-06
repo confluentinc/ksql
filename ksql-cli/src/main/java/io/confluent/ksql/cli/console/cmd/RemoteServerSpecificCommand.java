@@ -22,10 +22,13 @@ import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 import javax.ws.rs.ProcessingException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.WordUtils;
 
 public final class RemoteServerSpecificCommand implements CliSpecificCommand {
 
@@ -36,13 +39,18 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       + "\t example: \"server http://my.awesome.server.com:9098;\"";
 
   private final KsqlRestClient restClient;
+  private final Event resetCliForNewServer;
 
-  public static RemoteServerSpecificCommand create(final KsqlRestClient restClient) {
-    return new RemoteServerSpecificCommand(restClient);
+  public static RemoteServerSpecificCommand create(
+      final KsqlRestClient restClient, final Event resetCliForNewServer) {
+    return new RemoteServerSpecificCommand(restClient, resetCliForNewServer);
   }
 
-  private RemoteServerSpecificCommand(final KsqlRestClient restClient) {
+  private RemoteServerSpecificCommand(
+      final KsqlRestClient restClient, final Event resetCliForNewServer) {
     this.restClient = Objects.requireNonNull(restClient, "restClient");
+    this.resetCliForNewServer =
+        Objects.requireNonNull(resetCliForNewServer, "resetCliForNewServer");
   }
 
   @Override
@@ -66,6 +74,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       final String serverAddress = args.get(0);
       restClient.setServerAddress(serverAddress);
       terminal.println("Server now: " + serverAddress);
+      resetCliForNewServer.fire();
     }
 
     validateClient(terminal, restClient);
@@ -91,11 +100,16 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
     } catch (final KsqlRestClientException exception) {
       if (exception.getCause() instanceof ProcessingException) {
         writer.println();
-        writer.println("**************** ERROR ********************");
-        writer.println("Remote server address may not be valid.");
-        writer.println("Address: " + restClient.getServerAddress());
+        writer.println(StringUtils.repeat('*', 36) + " ERROR " + StringUtils.repeat('*', 37));
+        writer.println(WordUtils.wrap(
+            "Remote server at "
+                + restClient.getServerAddress()
+                + " does not appear to be a valid KSQL server. Please ensure that the URL provided "
+                + "is for an active KSQL server.", 80));
+        writer.println("");
+        writer.println("The server responded with the following error: ");
         writer.println(ErrorMessageUtil.buildErrorMessage(exception));
-        writer.println("*******************************************");
+        writer.println(StringUtils.repeat('*', 80));
         writer.println();
       } else {
         throw exception;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -12,11 +12,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.exception;
+package io.confluent.ksql.util;
 
-public class KafkaTopicException extends KafkaTopicClientException {
-  public KafkaTopicException(final String message) {
-    super(message);
-  }
+@FunctionalInterface
+public interface Event {
 
+  void fire();
 }

@@ -297,9 +297,9 @@ public class KsqlEngineTest {
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
-        "Exception while processing statement: Cannot drop FOO. \n"
-            + "The following queries read from this source: []. \n"
-            + "The following queries write into this source: [CTAS_FOO_1]. \n"
+        "Exception while processing statement: Cannot drop FOO.\n"
+            + "The following queries read from this source: [].\n"
+            + "The following queries write into this source: [CTAS_FOO_1].\n"
             + "You need to terminate them before dropping FOO.")));
     expectedException.expect(statementText(is("drop table foo;")));
 

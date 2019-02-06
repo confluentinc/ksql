@@ -26,7 +26,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Map;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,6 +38,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
 @RunWith(MockitoJUnitRunner.class)
 public class MetaStoreImplTest {
 
@@ -155,5 +159,148 @@ public class MetaStoreImplTest {
 
     // When
     topics.keySet().clear();
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateTopic() {
+    // Given:
+    metaStore.putTopic(topic);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Another topic with the same name already exists");
+
+    // When:
+    metaStore.putTopic(topic);
+  }
+
+  @Test
+  public void shouldThrowOnRemoveUnknownTopic() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("No topic with name bob was registered");
+
+    // When:
+    metaStore.deleteTopic("bob");
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateSource() {
+    // Given:
+    metaStore.putSource(dataSource);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Another data source with the same name already exists");
+
+    // When:
+    metaStore.putSource(dataSource);
+  }
+
+  @Test
+  public void shouldThrowOnRemoveUnknownSource() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("No data source with name bob exists");
+
+    // When:
+    metaStore.deleteSource("bob");
+  }
+
+  @Test
+  public void shouldThrowOnDropSourceIfUsedAsSourceOfQueries() {
+    // Given:
+    metaStore.putSource(dataSource);
+    metaStore.updateForPersistentQuery(
+        "source query",
+        ImmutableSet.of(dataSource.getName()),
+        ImmutableSet.of());
+
+    // Then:
+    expectedException.expect(KsqlReferentialIntegrityException.class);
+    expectedException.expectMessage("The following queries read from this source: [source query]");
+
+    // When:
+    metaStore.deleteSource(dataSource.getName());
+  }
+
+  @Test
+  public void shouldThrowOnUpdateForPersistentQueryOnUnknownSource() {
+    // Then:
+    expectedException.expect(IllegalStateException.class);
+    expectedException.expectMessage("Unknown source: unknown");
+
+    // When:
+    metaStore.updateForPersistentQuery(
+        "source query",
+        ImmutableSet.of("unknown"),
+        ImmutableSet.of());
+  }
+
+  @Test
+  public void shouldThrowOnUpdateForPersistentQueryOnUnknownSink() {
+    // Then:
+    expectedException.expect(IllegalStateException.class);
+    expectedException.expectMessage("Unknown sink: unknown");
+
+    // When:
+    metaStore.updateForPersistentQuery(
+        "sink query",
+        ImmutableSet.of(),
+        ImmutableSet.of("unknown"));
+  }
+
+  @Test
+  public void shouldThrowOnDropSourceIfUsedAsSinkOfQueries() {
+    // Given:
+    metaStore.putSource(dataSource);
+    metaStore.updateForPersistentQuery(
+        "sink query",
+        ImmutableSet.of(),
+        ImmutableSet.of(dataSource.getName()));
+
+    // Then:
+    expectedException.expect(KsqlReferentialIntegrityException.class);
+    expectedException.expectMessage("The following queries write into this source: [sink query]");
+
+    // When:
+    metaStore.deleteSource(dataSource.getName());
+  }
+
+  @Test
+  public void shouldBeThreadSafe() {
+    IntStream.range(0, 5_000)
+        .parallel()
+        .forEach(idx -> {
+          final KsqlTopic topic = mock(KsqlTopic.class);
+          when(topic.getName()).thenReturn("topic" + idx);
+          metaStore.putTopic(topic);
+          metaStore.getTopic(topic.getName());
+
+          final StructuredDataSource source = mock(StructuredDataSource.class);
+          when(source.getName()).thenReturn("source" + idx);
+          metaStore.putSource(source);
+          metaStore.getSource(source.getName());
+
+          metaStore.getAllStructuredDataSources();
+
+          final String queryId = "query" + idx;
+          metaStore.updateForPersistentQuery(
+              queryId,
+              ImmutableSet.of(source.getName()),
+              ImmutableSet.of(source.getName()));
+
+          metaStore.getQueriesWithSource(source.getName());
+          metaStore.getQueriesWithSink(source.getName());
+
+          metaStore.copy();
+
+          metaStore.removePersistentQuery(queryId);
+          metaStore.deleteTopic(topic.getName());
+          metaStore.deleteSource(source.getName());
+        });
+
+    assertThat(metaStore.getAllKsqlTopics().keySet(), is(empty()));
+    assertThat(metaStore.getAllStructuredDataSources().keySet(), is(empty()));
   }
 }

@@ -15,13 +15,15 @@
 package io.confluent.ksql.metastore;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.concurrent.ThreadSafe;
 
+@ThreadSafe
 final class ReferentialIntegrityTableEntry {
 
-  private final Set<String> sourceForQueries = new HashSet<>();
-  private final Set<String> sinkForQueries = new HashSet<>();
+  private final Set<String> sourceForQueries = ConcurrentHashMap.newKeySet();
+  private final Set<String> sinkForQueries = ConcurrentHashMap.newKeySet();
 
   ReferentialIntegrityTableEntry() {
   }

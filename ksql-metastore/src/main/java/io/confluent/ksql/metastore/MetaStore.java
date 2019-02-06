@@ -39,9 +39,10 @@ public interface MetaStore extends FunctionRegistry {
 
   Map<String, KsqlTopic> getAllKsqlTopics();
 
-  void updateForPersistentQuery(String queryId,
-                                       Set<String> sourceNames,
-                                       Set<String> sinkNames);
+  void updateForPersistentQuery(
+      String queryId,
+      Set<String> sourceNames,
+      Set<String> sinkNames);
 
   void removePersistentQuery(String queryId);
 

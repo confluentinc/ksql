@@ -22,19 +22,21 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.connect.data.Schema;
 
+@ThreadSafe
 public final class MetaStoreImpl implements MetaStore {
 
-  private final Map<String, KsqlTopic> topicMap = new HashMap<>();
-  private final Map<String, SourceInfo> dataSourceMap = new HashMap<>();
+  private final Map<String, KsqlTopic> topics = new ConcurrentHashMap<>();
+  private final Map<String, SourceInfo> dataSources = new ConcurrentHashMap<>();
   private final FunctionRegistry functionRegistry;
 
   public MetaStoreImpl(final FunctionRegistry functionRegistry) {
@@ -42,26 +44,24 @@ public final class MetaStoreImpl implements MetaStore {
   }
 
   private MetaStoreImpl(
-      final Map<String, KsqlTopic> topicMap,
-      final Map<String, SourceInfo> dataSourceMap,
+      final Map<String, KsqlTopic> topics,
+      final Map<String, SourceInfo> dataSources,
       final FunctionRegistry functionRegistry
   ) {
-    this.topicMap.putAll(topicMap);
+    this.topics.putAll(topics);
     this.functionRegistry = functionRegistry.copy();
 
-    dataSourceMap.forEach((name, info) -> this.dataSourceMap.put(name, info.copy()));
+    dataSources.forEach((name, info) -> this.dataSources.put(name, info.copy()));
   }
 
   @Override
   public KsqlTopic getTopic(final String topicName) {
-    return topicMap.get(topicName);
+    return topics.get(topicName);
   }
 
   @Override
   public void putTopic(final KsqlTopic topic) {
-    if (topicMap.get(topic.getName()) == null) {
-      topicMap.put(topic.getName(), topic);
-    } else {
+    if (topics.putIfAbsent(topic.getName(), topic) != null) {
       throw new KsqlException(
           "Cannot add the new topic. Another topic with the same name already exists: "
           + topic.getName());
@@ -70,7 +70,7 @@ public final class MetaStoreImpl implements MetaStore {
 
   @Override
   public StructuredDataSource getSource(final String sourceName) {
-    final SourceInfo source = dataSourceMap.get(sourceName);
+    final SourceInfo source = dataSources.get(sourceName);
     if (source == null) {
       return null;
     }
@@ -79,7 +79,7 @@ public final class MetaStoreImpl implements MetaStore {
 
   @Override
   public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
-    return dataSourceMap.values()
+    return dataSources.values()
         .stream()
         .filter(p -> p.source.getKsqlTopic().getName() != null
             && p.source.getKsqlTopic().getName().equals(ksqlTopicName))
@@ -89,51 +89,53 @@ public final class MetaStoreImpl implements MetaStore {
 
   @Override
   public void putSource(final StructuredDataSource dataSource) {
-
-    if (dataSourceMap.containsKey(dataSource.getName())) {
+    if (dataSources.putIfAbsent(dataSource.getName(), new SourceInfo(dataSource)) != null) {
       throw new KsqlException(
           "Cannot add the new data source. Another data source with the same name already exists: "
               + dataSource.toString());
     }
-
-    dataSourceMap.put(dataSource.getName(), new SourceInfo(dataSource));
   }
 
   @Override
   public void deleteTopic(final String topicName) {
-    if (!topicMap.containsKey(topicName)) {
+    if (topics.remove(topicName) == null) {
       throw new KsqlException(String.format("No topic with name %s was registered.", topicName));
     }
-    topicMap.remove(topicName);
   }
 
   @Override
   public void deleteSource(final String sourceName) {
-    if (!dataSourceMap.containsKey(sourceName)) {
-      throw new KsqlException(String.format("No data source with name %s exists.", sourceName));
-    }
-    if (!isSafeToDrop(sourceName)) {
-      final String sourceForQueriesMessage = dataSourceMap.get(sourceName).referentialIntegrity
-          .getSourceForQueries()
-          .stream()
-          .collect(Collectors.joining(", "));
-      final String sinkForQueriesMessage = dataSourceMap.get(sourceName).referentialIntegrity
-          .getSinkForQueries()
-          .stream()
-          .collect(Collectors.joining(", "));
-      throw new KsqlReferentialIntegrityException(
-          String.format("Cannot drop %s. %nThe following queries "
-                        + "read from this source: [%s]. %nThe following "
-                        + "queries write into this source: [%s]. %nYou need to "
-                        + "terminate them before dropping %s.",
-                        sourceName, sourceForQueriesMessage, sinkForQueriesMessage, sourceName));
-    }
-    dataSourceMap.remove(sourceName);
+    dataSources.compute(sourceName, (ignored, source) -> {
+      if (source == null) {
+        throw new KsqlException(String.format("No data source with name %s exists.", sourceName));
+      }
+
+      final String sourceForQueriesMessage = source.referentialIntegrity
+            .getSourceForQueries()
+            .stream()
+            .collect(Collectors.joining(", "));
+
+      final String sinkForQueriesMessage = source.referentialIntegrity
+            .getSinkForQueries()
+            .stream()
+            .collect(Collectors.joining(", "));
+
+      if (!sourceForQueriesMessage.isEmpty() || !sinkForQueriesMessage.isEmpty()) {
+        throw new KsqlReferentialIntegrityException(
+            String.format("Cannot drop %s.%n"
+                    + "The following queries read from this source: [%s].%n"
+                    + "The following queries write into this source: [%s].%n"
+                    + "You need to terminate them before dropping %s.",
+                sourceName, sourceForQueriesMessage, sinkForQueriesMessage, sourceName));
+      }
+
+      return null;
+    });
   }
 
   @Override
   public Map<String, StructuredDataSource> getAllStructuredDataSources() {
-    return dataSourceMap
+    return dataSources
         .entrySet()
         .stream()
         .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().source));
@@ -141,7 +143,7 @@ public final class MetaStoreImpl implements MetaStore {
 
   @Override
   public Map<String, KsqlTopic> getAllKsqlTopics() {
-    return Collections.unmodifiableMap(topicMap);
+    return Collections.unmodifiableMap(topics);
   }
 
   @Override
@@ -154,56 +156,55 @@ public final class MetaStoreImpl implements MetaStore {
   }
 
   private void addSourceNames(final Set<String> sourceNames, final String queryId) {
-    for (final String sourceName: sourceNames) {
-      final ReferentialIntegrityTableEntry referentialIntegrity =
-          dataSourceMap.get(sourceName).referentialIntegrity;
+    sourceNames.forEach(sourceName -> {
+      final SourceInfo sourceInfo = dataSources.get(sourceName);
+      if (sourceInfo == null) {
+        throw new IllegalStateException("Unknown source: " + sourceName);
+      }
 
-      referentialIntegrity.addSourceForQueries(queryId);
-    }
+      sourceInfo.referentialIntegrity.addSourceForQueries(queryId);
+    });
   }
 
   private void addSinkNames(final Set<String> sinkNames, final String queryId) {
-    for (final String sinkName: sinkNames) {
-      final ReferentialIntegrityTableEntry referentialIntegrity =
-          dataSourceMap.get(sinkName).referentialIntegrity;
+    sinkNames.forEach(sinkName -> {
+      final SourceInfo sourceInfo = dataSources.get(sinkName);
+      if (sourceInfo == null) {
+        throw new IllegalStateException("Unknown sink: " + sinkName);
+      }
 
-      referentialIntegrity.addSinkForQueries(queryId);
-    }
+      sourceInfo.referentialIntegrity.addSinkForQueries(queryId);
+    });
   }
 
   @Override
   public void removePersistentQuery(final String queryId) {
-    for (final SourceInfo sourceInfo : dataSourceMap.values()) {
+    for (final SourceInfo sourceInfo : dataSources.values()) {
       sourceInfo.referentialIntegrity.removeQuery(queryId);
     }
   }
 
-  private boolean isSafeToDrop(final String sourceName) {
-    final SourceInfo sourceInfo = dataSourceMap.get(sourceName);
-    if (sourceInfo == null) {
-      return true;
-    }
-
-    final ReferentialIntegrityTableEntry referentialIntegrity =
-        sourceInfo.referentialIntegrity;
-
-    return (referentialIntegrity.getSinkForQueries().isEmpty()
-        && referentialIntegrity.getSourceForQueries().isEmpty());
-  }
-
   @Override
   public Set<String> getQueriesWithSource(final String sourceName) {
-    return dataSourceMap.get(sourceName).referentialIntegrity.getSourceForQueries();
+    final SourceInfo sourceInfo = dataSources.get(sourceName);
+    if (sourceInfo == null) {
+      throw new KsqlException("Unknown source: " + sourceName);
+    }
+    return sourceInfo.referentialIntegrity.getSourceForQueries();
   }
 
   @Override
   public Set<String> getQueriesWithSink(final String sourceName) {
-    return dataSourceMap.get(sourceName).referentialIntegrity.getSinkForQueries();
+    final SourceInfo sourceInfo = dataSources.get(sourceName);
+    if (sourceInfo == null) {
+      throw new KsqlException("Unknown source: " + sourceName);
+    }
+    return sourceInfo.referentialIntegrity.getSinkForQueries();
   }
 
   @Override
   public MetaStore copy() {
-    return new MetaStoreImpl(topicMap, dataSourceMap, functionRegistry);
+    return new MetaStoreImpl(topics, dataSources, functionRegistry);
   }
 
   @Override

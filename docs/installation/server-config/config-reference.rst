@@ -243,6 +243,82 @@ You can access KSQL Server by using |c3|. For more information, see
 You can connect KSQL Server to |ccloud|. For more information, see
 :ref:`install_ksql-ccloud`.
 
+KSQL Processing Log Settings
+----------------------------
+
+These configurations control the behavior of the :ref:`KSQL processing log <ksql_processing_log>`.
+
+.. _ksql-processing-log-topic-auto-create:
+
+-------------------------------------
+ksql.processing.log.topic.auto.create
+-------------------------------------
+
+Toggles automatic processing log topic creation. If set to true, then KSQL will automatically try
+to create a processing log topic at startup. The name of the topic is the value of the
+:ref:`ksql-processing-log-topic-name` property. The number of partitions is taken from the
+:ref:`ksql-processing-log-topic-partitions` property , and the replication factor is taken from the
+:ref:`ksql-processing-log-topic-replication-factor` property. By default, this property has the value
+``false``.
+
+.. _ksql-processing-log-topic-name:
+
+------------------------------
+ksql.processing.log.topic.name
+------------------------------
+
+If automatic processing log topic creation is enabled, KSQL sets the name of the topic to the value of
+this property. If automatic processing log stream creation is enabled, KSQL uses this topic to back the
+stream. By default, this property has the value ``<service id>ksql_processing_log``, where ``<service id>``
+is the value of the :ref:`ksql-service-id` property.
+
+.. _ksql-processing-log-topic-partitions:
+
+------------------------------------
+ksql.processing.log.topic.partitions
+------------------------------------
+
+If automatic processing log topic creation is enabled, KSQL creates the topic with number of partitions set
+to the value of this property. By default, this property has the value ``1``.
+
+.. _ksql-processing-log-replication-factor:
+
+--------------------------------------------
+ksql.processing.log.topic.replication.factor
+--------------------------------------------
+
+If automatic processing log topic creation is enabled, KSQL creates the topic with  number of replicas set
+to the value of this property. By default, this property has the value ``1``.
+
+.. _ksql-processing-log-stream-auto-create:
+
+--------------------------------------
+ksql.processing.log.stream.auto.create
+--------------------------------------
+
+Toggles automatic processing log stream creation. If set to true, and running interactive mode on a new cluster,
+then KSQL will automatically create a processing log stream when it starts up. The name for the stream is the
+value of the :ref:`ksql-processing-log-stream-name` property. The stream will be created over the topic set in
+the :ref:`ksql-processing-log-topic-name` property. By default, this property has the value ``false``.
+
+.. _ksql-processing-log-stream-name:
+
+-------------------------------
+ksql.processing.log.stream.name
+-------------------------------
+
+If automatic processing log stream creation is enabled, KSQL sets the name of the stream to the value of this
+property. By default, this property has the value ``KSQL_PROCESSING_LOG``.
+
+.. _ksql-processing-log-include-rows:
+
+--------------------------------
+ksql.processing.log.include.rows
+--------------------------------
+
+Toggles whether or not the processing log should include rows in log messages. By default, this property has the
+value ``false``.
+
 .. _ksql-production-settings:
 
 Recommended KSQL Production Settings

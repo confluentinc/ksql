@@ -31,7 +31,7 @@ public class QuerySpecification
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
   private final Optional<Expression> having;
-  private final Optional<String> limit;
+  private final Optional<Integer> limit;
 
   public QuerySpecification(
       final Select select,
@@ -42,7 +42,7 @@ public class QuerySpecification
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
-      final Optional<String> limit) {
+      final Optional<Integer> limit) {
     this(Optional.empty(), select, into, shouldCreateInto, from, windowExpression, where, groupBy,
          having, limit);
   }
@@ -57,7 +57,7 @@ public class QuerySpecification
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
-      final Optional<String> limit) {
+      final Optional<Integer> limit) {
     this(Optional.of(location), select, into, shouldCreateInto, from, windowExpression, where,
          groupBy,
          having, limit);
@@ -73,7 +73,7 @@ public class QuerySpecification
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
-      final Optional<String> limit) {
+      final Optional<Integer> limit) {
     super(location);
     requireNonNull(select, "select is null");
     requireNonNull(into, "into is null");
@@ -127,7 +127,7 @@ public class QuerySpecification
     return having;
   }
 
-  public Optional<String> getLimit() {
+  public Optional<Integer> getLimit() {
     return limit;
   }
 

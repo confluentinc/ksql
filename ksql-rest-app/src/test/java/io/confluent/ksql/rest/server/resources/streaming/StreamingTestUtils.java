@@ -85,7 +85,7 @@ class StreamingTestUtils {
         QualifiedName.of(name),
         fromBeginning,
         Optional.ofNullable(interval),
-        Optional.ofNullable(limit == null ? null : String.valueOf(limit))
+        Optional.ofNullable(limit)
     );
   }
 

@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
-import org.apache.commons.lang3.StringUtils;
 
 public class PrintTopic extends Statement {
 
@@ -35,9 +34,9 @@ public class PrintTopic extends Statement {
       final QualifiedName topic,
       final boolean fromBeginning,
       final Optional<Integer> intervalValue,
-      final Optional<String> limit
+      final Optional<Integer> limitValue
   ) {
-    this(Optional.of(location), topic, fromBeginning, intervalValue, limit);
+    this(Optional.of(location), topic, fromBeginning, intervalValue, limitValue);
   }
 
   private PrintTopic(
@@ -45,15 +44,13 @@ public class PrintTopic extends Statement {
       final QualifiedName topic,
       final boolean fromBeginning,
       final Optional<Integer> intervalValue,
-      final Optional<String> limit
+      final Optional<Integer> limit
   ) {
     super(location);
     this.topic = requireNonNull(topic, "table is null");
     this.fromBeginning = fromBeginning;
     this.intervalValue = intervalValue.orElse(1);
-    this.limit = limit.filter(StringUtils::isNumeric)
-        .map(Integer::parseInt)
-        .orElse(null);
+    this.limit = limit.orElse(null);
   }
 
   public QualifiedName getTopic() {

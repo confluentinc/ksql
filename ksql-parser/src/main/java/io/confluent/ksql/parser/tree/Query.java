@@ -24,25 +24,25 @@ public class Query
     extends Statement {
 
   private final QueryBody queryBody;
-  private final Optional<String> limit;
+  private final Optional<Integer> limit;
 
   public Query(
       final QueryBody queryBody,
-      final Optional<String> limit) {
+      final Optional<Integer> limit) {
     this(Optional.empty(), queryBody, limit);
   }
 
   public Query(
       final NodeLocation location,
       final QueryBody queryBody,
-      final Optional<String> limit) {
+      final Optional<Integer> limit) {
     this(Optional.of(location), queryBody, limit);
   }
 
   private Query(
       final Optional<NodeLocation> location,
       final QueryBody queryBody,
-      final Optional<String> limit) {
+      final Optional<Integer> limit) {
     super(location);
     requireNonNull(queryBody, "queryBody is null");
     requireNonNull(limit, "limit is null");
@@ -55,7 +55,7 @@ public class Query
     return queryBody;
   }
 
-  public Optional<String> getLimit() {
+  public Optional<Integer> getLimit() {
     return limit;
   }
 

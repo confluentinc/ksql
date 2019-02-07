@@ -87,14 +87,22 @@ tableProperty
 
 queryNoWith:
       queryTerm
-      (LIMIT limit=(INTEGER_VALUE | ALL))?
+      limitClause
     ;
 
 printClause
       : (FROM BEGINNING)?
-      ((INTERVAL | SAMPLE) number)?
-      (LIMIT limit=(INTEGER_VALUE | ALL))?
+      intervalClause
+      limitClause
       ;
+
+intervalClause
+    : ((INTERVAL | SAMPLE) number)?
+    ;
+
+limitClause
+    : (LIMIT number)?
+    ;
 
 queryTerm
     : queryPrimary                                                             #queryTermDefault
@@ -334,7 +342,6 @@ nonReserved
 SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';
-ALL: 'ALL';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
 WITHIN: 'WITHIN';

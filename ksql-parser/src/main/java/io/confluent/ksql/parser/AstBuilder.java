@@ -22,6 +22,8 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
+import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -324,6 +326,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     final QueryBody term = (QueryBody) visit(context.queryTerm());
 
+    final NumberContext limitContext = context.limitClause().number();
+    final Optional<Integer> limit = (limitContext == null)
+        ? Optional.empty()
+        : Optional.of(processIntegerNumber(limitContext, "QUERY"));
+
     if (term instanceof QuerySpecification) {
       // When we have a simple query specification
       // followed by order by limit, fold the order by and limit
@@ -343,16 +350,16 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
               query.getWhere(),
               query.getGroupBy(),
               query.getHaving(),
-              getTextIfPresent(context.limit)
+              limit
           ),
-          Optional.<String>empty()
+          Optional.empty()
       );
     }
 
     return new Query(
         getLocation(context),
         term,
-        getTextIfPresent(context.limit)
+        limit
     );
   }
 
@@ -392,7 +399,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         visitIfPresent(context.where, Expression.class),
         visitIfPresent(context.groupBy(), GroupBy.class),
         visitIfPresent(context.having, Expression.class),
-        Optional.<String>empty()
+        Optional.empty()
     );
   }
 
@@ -770,31 +777,30 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       topicName = getQualifiedName(context.qualifiedName());
     }
 
-    final Optional<String> limit = getTextIfPresent(context.printClause().limit);
+    final NumberContext intervalContext = context.printClause().intervalClause().number();
+    final Optional<Integer> interval = (intervalContext == null)
+        ? Optional.empty()
+        : Optional.of(processIntegerNumber(intervalContext, "PRINT"));
 
-    if (context.printClause().number() == null) {
-      return new PrintTopic(
-          getLocation(context),
-          topicName,
-          fromBeginning,
-          Optional.empty(),
-          limit
-      );
-    } else if (context.printClause().number() instanceof SqlBaseParser.IntegerLiteralContext) {
-      final SqlBaseParser.IntegerLiteralContext integerLiteralContext =
-          (SqlBaseParser.IntegerLiteralContext) context.printClause().number();
-      final IntegerLiteral literal = (IntegerLiteral) visitIntegerLiteral(integerLiteralContext);
-      return new PrintTopic(
-          getLocation(context),
-          topicName,
-          fromBeginning,
-          Optional.of(literal.getValue()),
-          limit
-      );
-    } else {
-      throw new KsqlException("Interval value should be integer in 'PRINT' command!");
+    final NumberContext limitContext = context.printClause().limitClause().number();
+    final Optional<Integer> limit = (limitContext == null)
+        ? Optional.empty()
+        : Optional.of(processIntegerNumber(limitContext, "PRINT"));
+
+    return new PrintTopic(
+        getLocation(context),
+        topicName,
+        fromBeginning,
+        interval,
+        limit
+    );
+  }
+
+  private Integer processIntegerNumber(final NumberContext number, final String context) {
+    if (number instanceof SqlBaseParser.IntegerLiteralContext) {
+      return ((IntegerLiteral) visitIntegerLiteral((IntegerLiteralContext) number)).getValue();
     }
-
+    throw new KsqlException("Interval value must be integer in for command: '" + context);
   }
 
   @Override

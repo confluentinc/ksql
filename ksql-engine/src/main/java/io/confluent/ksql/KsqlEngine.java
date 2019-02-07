@@ -728,7 +728,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private static Query addInto(
         final QuerySpecification querySpecification,
         final String intoName,
-        final Optional<String> limit,
+        final Optional<Integer> limit,
         final Map<String, Expression> intoProperties,
         final Optional<Expression> partitionByExpression,
         final boolean doCreateTable) {

@@ -66,8 +66,7 @@ public final class ProcessingLogServerUtils {
       final KafkaTopicClient topicClient,
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig) {
-    if (!config.getString(ProcessingLogConfig.TOPIC_AUTO_CREATE).equals(
-        ProcessingLogConfig.AUTO_CREATE_ON)) {
+    if (!config.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
       return;
     }
     final String topicName = getTopicName(config, ksqlConfig);
@@ -82,7 +81,17 @@ public final class ProcessingLogServerUtils {
     }
   }
 
-  public static String processingLogStreamCreateStatement(
+  public static PreparedStatement<AbstractStreamCreateStatement> processingLogStreamCreateStatement(
+      final ProcessingLogConfig config,
+      final KsqlConfig ksqlConfig) {
+    return processingLogStreamCreateStatement(
+        config.getString(ProcessingLogConfig.STREAM_NAME),
+        getTopicName(config, ksqlConfig)
+    );
+  }
+
+  private static
+  PreparedStatement<AbstractStreamCreateStatement> processingLogStreamCreateStatement(
       final String name,
       final String topicName) {
     final Schema schema = getMessageSchema();
@@ -96,9 +105,12 @@ public final class ProcessingLogServerUtils {
 
     final AbstractStreamCreateStatement streamCreateStatement
         = (AbstractStreamCreateStatement) preparedStatement.getStatement();
-    return SqlFormatter.formatSql(
+    final AbstractStreamCreateStatement streamCreateStatementWithSchema =
         streamCreateStatement.copyWith(
             TypeUtil.buildTableElementsForSchema(schema),
-            streamCreateStatement.getProperties()));
+            streamCreateStatement.getProperties());
+    return PreparedStatement.of(
+        SqlFormatter.formatSql(streamCreateStatementWithSchema),
+        streamCreateStatementWithSchema);
   }
 }

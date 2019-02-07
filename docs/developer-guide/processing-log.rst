@@ -137,10 +137,11 @@ log entries as JSON:
 
 ::
 
-    log4j.appender.kafka=org.apache.kafka.log4jappender.KafkaLog4jAppender
-    log4j.appender.kafka.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
-    log4j.appender.kafka.BrokerList=<list of kafka brokers>
-    log4j.appender.kafka.Topic=<kafka topic>
+    log4j.appender.kafka_appender=org.apache.kafka.log4jappender.KafkaLog4jAppender
+    log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
+    log4j.appender.kafka_appender.BrokerList=<list of kafka brokers>
+    log4j.appender.kafka_appender.Topic=<kafka topic>
+    log4j.logger.processing=ERROR, kafka_appender
 
 The ``list of kafka brokers`` setting is a comma-separated list of brokers in the Kafka cluster, and
 ``kafka topic`` is the name of the Kafka topic to log to.
@@ -150,19 +151,21 @@ properties file:
 
 ::
 
-    ksql.processing.log.topic.auto.create=on
-    ksql.processing.log.topic.name=<kafka topic>  # defaults to processing_log
+    ksql.processing.log.topic.auto.create=true
+    ksql.processing.log.topic.name=<kafka topic>  # defaults to <ksql service id>processing_log
 
 The replication factor and partition count are configurable
 using the ``ksql.processing.log.topic.replication.factor`` and ``ksql.processing.log.topic.partitions`` properties,
 respectively.
+
+If the ``ksql.processing.log.topic.name`` property is not specified, the processing log topic name will default to ``<ksql service id>processing_log``, where ``ksql service id`` is the value from the ``ksql.service.id`` property. This ensures each KSQL cluster gets its own processing log topic by default.
 
 If you are bringing up a new interactive mode KSQL cluster, you can configure KSQL to set up
 a log stream automatically by including the following in your KSQL properties file:
 
 ::
 
-    ksql.processing.log.stream.auto.create=on
+    ksql.processing.log.stream.auto.create=true
     ksql.processing.log.stream.name=<stream name>  # defaults to PROCESSING_LOG
 
 When you start KSQL, you should see the stream in your list of streams:

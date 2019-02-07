@@ -20,8 +20,6 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
-import org.apache.kafka.common.config.ConfigDef.ValidString;
-import org.apache.kafka.common.config.ConfigDef.Validator;
 
 public class ProcessingLogConfig extends AbstractConfig {
   private static final String PROPERTY_PREFIX = "processing.log.";
@@ -29,9 +27,6 @@ public class ProcessingLogConfig extends AbstractConfig {
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;
   }
-
-  public static final String AUTO_CREATE_ON = "on";
-  public static final String AUTO_CREATE_OFF = "off";
 
   public static final String STREAM_NAME = propertyName("stream.name");
   private static final String STREAM_NAME_DEFAULT = "KSQL_PROCESSING_LOG";
@@ -61,36 +56,30 @@ public class ProcessingLogConfig extends AbstractConfig {
 
   public static final String STREAM_AUTO_CREATE = propertyName("stream.auto.create");
   private static final String STREAM_AUTO_CREATE_DOC = String.format(
-      "Toggles automatic processing log stream creation. If set to \"%s\", and "
+      "Toggles automatic processing log stream creation. If set to true, and "
           + "running interactive mode on a new cluster, then KSQL will automatically "
           + "create a processing log stream when it starts up. The name for the stream "
           + "is the value of the \"%s\" property. The stream will be created over the topic "
           + "set in the \"%s\" property",
-      AUTO_CREATE_ON,
       STREAM_NAME,
       TOPIC_NAME);
 
   public static final String TOPIC_AUTO_CREATE = propertyName("topic.auto.create");
   private static final String TOPIC_AUTO_CREATE_DOC = String.format(
-      "Toggles automatic processing log topic creation. If set to \"%s\", then "
+      "Toggles automatic processing log topic creation. If set to true, then "
           + "KSQL will automatically try to create a processing log topic at startup. "
           + "The name of the topic is the value of the \"%s\" property. The number of "
           + "partitions is taken from the \"%s\" property , and the replication factor "
           + "is taken from the \"%s\" property",
-      AUTO_CREATE_ON,
       TOPIC_NAME,
       TOPIC_PARTITIONS,
       TOPIC_REPLICATION_FACTOR);
 
-  private static final Validator AUTO_CREATE_VALIDATOR
-      = ValidString.in(AUTO_CREATE_ON, AUTO_CREATE_OFF);
-
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
           STREAM_AUTO_CREATE,
-          Type.STRING,
-          AUTO_CREATE_OFF,
-          AUTO_CREATE_VALIDATOR,
+          Type.BOOLEAN,
+          false,
           Importance.MEDIUM,
           STREAM_AUTO_CREATE_DOC)
       .define(
@@ -101,9 +90,8 @@ public class ProcessingLogConfig extends AbstractConfig {
           STREAM_NAME_DOC)
       .define(
           TOPIC_AUTO_CREATE,
-          Type.STRING,
-          AUTO_CREATE_OFF,
-          AUTO_CREATE_VALIDATOR,
+          Type.BOOLEAN,
+          false,
           Importance.MEDIUM,
           TOPIC_AUTO_CREATE_DOC)
       .define(

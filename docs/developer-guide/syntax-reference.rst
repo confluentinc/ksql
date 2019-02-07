@@ -793,8 +793,7 @@ The PRINT statement supports the following properties:
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 | INTERVAL interval       | Print every ``interval``th message. The default is 1, meaning that every message is printed.                     |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| LIMIT limit             | Stop printing after ``limit`` messages. The default value, ``ALL``, will never stop printing and requires Ctrl+C |
-|                         | to terminate.                                                                                                    |
+| LIMIT limit             | Stop printing after ``limit`` messages. The default value is unlimited, requiring Ctrl+C to terminate the query. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 
 For example:

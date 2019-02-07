@@ -330,6 +330,8 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
       }
 
 
+.. _ksql_cluster_terminate:
+
 Terminate A Cluster
 -------------------
 

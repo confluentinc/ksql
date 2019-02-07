@@ -22,10 +22,15 @@ import static org.hamcrest.Matchers.is;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.stream.IntStream;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
-@SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+@SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT", "RV_RETURN_VALUE_IGNORED_INFERRED"})
 public class ReferentialIntegrityTableEntryTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private ReferentialIntegrityTableEntry entry;
 
@@ -82,6 +87,32 @@ public class ReferentialIntegrityTableEntryTest {
     // Then:
     assertThat(copy.getSourceForQueries(), contains("sourceId"));
     assertThat(copy.getSinkForQueries(), contains("sinkId"));
+  }
+
+  @Test
+  public void shouldThrowIfAlreadyRegisteredAsSource() {
+    // Given:
+    entry.addSourceForQueries("id");
+
+    // Then:
+    expectedException.expect(IllegalStateException.class);
+    expectedException.expectMessage("Already source for query: id");
+
+    // When:
+    entry.addSourceForQueries("id");
+  }
+
+  @Test
+  public void shouldThrowIfAlreadyRegisteredAsSink() {
+    // Given:
+    entry.addSinkForQueries("id");
+
+    // Then:
+    expectedException.expect(IllegalStateException.class);
+    expectedException.expectMessage("Already sink for query: id");
+
+    // When:
+    entry.addSinkForQueries("id");
   }
 
   @SuppressWarnings("ResultOfMethodCallIgnored")

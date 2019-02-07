@@ -45,11 +45,15 @@ final class ReferentialIntegrityTableEntry {
   }
 
   void addSourceForQueries(final String queryId) {
-    sourceForQueries.add(queryId);
+    if (!sourceForQueries.add(queryId)) {
+      throw new IllegalStateException("Already source for query: " + queryId);
+    }
   }
 
   void addSinkForQueries(final String queryId) {
-    sinkForQueries.add(queryId);
+    if (!sinkForQueries.add(queryId)) {
+      throw new IllegalStateException("Already sink for query: " + queryId);
+    }
   }
 
   void removeQuery(final String queryId) {

@@ -17,6 +17,7 @@ package io.confluent.ksql.metastore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -29,7 +30,14 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,7 +59,10 @@ public class MetaStoreImplTest {
   private KsqlTopic topic;
   @Mock
   private StructuredDataSource dataSource;
-  private MetaStore metaStore;
+  @Mock
+  private StructuredDataSource dataSource1;
+  private MetaStoreImpl metaStore;
+  private ExecutorService executor;
 
   @Before
   public void setUp() {
@@ -59,6 +70,15 @@ public class MetaStoreImplTest {
 
     when(topic.getName()).thenReturn("some registered topic");
     when(dataSource.getName()).thenReturn("some source");
+    when(dataSource1.getName()).thenReturn("some other source");
+
+    executor = Executors.newSingleThreadExecutor();
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    executor.shutdownNow();
+    executor.awaitTermination(1, TimeUnit.MINUTES);
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -227,7 +247,7 @@ public class MetaStoreImplTest {
   @Test
   public void shouldThrowOnUpdateForPersistentQueryOnUnknownSource() {
     // Then:
-    expectedException.expect(IllegalStateException.class);
+    expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Unknown source: unknown");
 
     // When:
@@ -240,8 +260,8 @@ public class MetaStoreImplTest {
   @Test
   public void shouldThrowOnUpdateForPersistentQueryOnUnknownSink() {
     // Then:
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage("Unknown sink: unknown");
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Unknown source: unknown");
 
     // When:
     metaStore.updateForPersistentQuery(
@@ -268,8 +288,82 @@ public class MetaStoreImplTest {
   }
 
   @Test
+  public void shouldFailToUpdateForPersistentQueryAtomicallyForUnknownSource() {
+    // When:
+    try {
+      metaStore.updateForPersistentQuery(
+          "some query",
+          ImmutableSet.of(dataSource.getName(), "unknown"),
+          ImmutableSet.of(dataSource.getName()));
+    } catch (final KsqlException e) {
+      // Expected
+    }
+
+    // Then:
+    assertThat(metaStore.getQueriesWithSource(dataSource.getName()), is(empty()));
+    assertThat(metaStore.getQueriesWithSink(dataSource.getName()), is(empty()));
+  }
+
+  @Test
+  public void shouldFailToUpdateForPersistentQueryAtomicallyForUnknownSink() {
+    // When:
+    try {
+      metaStore.updateForPersistentQuery(
+          "some query",
+          ImmutableSet.of(dataSource.getName()),
+          ImmutableSet.of(dataSource.getName(), "unknown"));
+    } catch (final KsqlException e) {
+      // Expected
+    }
+
+    // Then:
+    assertThat(metaStore.getQueriesWithSource(dataSource.getName()), is(empty()));
+    assertThat(metaStore.getQueriesWithSink(dataSource.getName()), is(empty()));
+  }
+
+  @Test
+  public void shouldDefaultToEmptySetOfQueriesForUnknownSource() {
+    assertThat(metaStore.getQueriesWithSource("unknown"), is(empty()));
+  }
+
+  @Test
+  public void shouldDefaultToEmptySetOfQueriesForUnknownSink() {
+    assertThat(metaStore.getQueriesWithSink("unknown"), is(empty()));
+  }
+
+  @Test
+  public void shouldRegisterQuerySources() {
+    // Given:
+    metaStore.putSource(dataSource);
+
+    // When:
+    metaStore.updateForPersistentQuery(
+        "some query",
+        ImmutableSet.of(dataSource.getName()),
+        ImmutableSet.of());
+
+    // Then:
+    assertThat(metaStore.getQueriesWithSource(dataSource.getName()), contains("some query"));
+  }
+
+  @Test
+  public void shouldRegisterQuerySinks() {
+    // Given:
+    metaStore.putSource(dataSource);
+
+    // When:
+    metaStore.updateForPersistentQuery(
+        "some query",
+        ImmutableSet.of(),
+        ImmutableSet.of(dataSource.getName()));
+
+    // Then:
+    assertThat(metaStore.getQueriesWithSink(dataSource.getName()), contains("some query"));
+  }
+
+  @Test
   public void shouldBeThreadSafe() {
-    IntStream.range(0, 5_000)
+    IntStream.range(0, 1_000)
         .parallel()
         .forEach(idx -> {
           final KsqlTopic topic = mock(KsqlTopic.class);
@@ -302,5 +396,63 @@ public class MetaStoreImplTest {
 
     assertThat(metaStore.getAllKsqlTopics().keySet(), is(empty()));
     assertThat(metaStore.getAllStructuredDataSources().keySet(), is(empty()));
+  }
+
+  @Test(timeout = 10_000)
+  public void shouldBeThreadSafeAroundRefIntegrity() throws Exception {
+    // Given:
+    final int iterations = 1_000;
+    final AtomicInteger remaining = new AtomicInteger(iterations);
+    final Set<String> sources = ImmutableSet.of(dataSource1.getName(), dataSource.getName());
+
+    metaStore.putSource(dataSource1);
+
+    final Future<?> mainThread = executor.submit(() -> {
+      while (remaining.get() > 0) {
+        metaStore.putSource(dataSource);
+
+        while (true) {
+          try {
+            metaStore.deleteSource(dataSource.getName());
+            break;
+          } catch (final KsqlReferentialIntegrityException e) {
+            // Expected
+          }
+        }
+      }
+    });
+
+    // When:
+    IntStream.range(0, iterations)
+        .parallel()
+        .forEach(idx -> {
+          try {
+            final String queryId = "query" + idx;
+
+            while (true) {
+              try {
+                metaStore.updateForPersistentQuery(queryId, sources, sources);
+                break;
+              } catch (final KsqlException e) {
+                // Expected
+              }
+            }
+
+            assertThat(metaStore.getQueriesWithSource(dataSource.getName()), hasItem(queryId));
+            assertThat(metaStore.getQueriesWithSink(dataSource.getName()), hasItem(queryId));
+
+            metaStore.removePersistentQuery(queryId);
+
+            remaining.decrementAndGet();
+          } catch (final Throwable t) {
+            remaining.set(0);
+            throw t;
+          }
+        });
+
+    // Then:
+    assertThat(metaStore.getQueriesWithSource(dataSource1.getName()), is(empty()));
+    assertThat(metaStore.getQueriesWithSink(dataSource1.getName()), is(empty()));
+    mainThread.get(1, TimeUnit.MINUTES);
   }
 }

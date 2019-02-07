@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.connect.data.Schema;
 
@@ -37,6 +38,7 @@ public final class MetaStoreImpl implements MetaStore {
 
   private final Map<String, KsqlTopic> topics = new ConcurrentHashMap<>();
   private final Map<String, SourceInfo> dataSources = new ConcurrentHashMap<>();
+  private final Object referentialIntegrityLock = new Object();
   private final FunctionRegistry functionRegistry;
 
   public MetaStoreImpl(final FunctionRegistry functionRegistry) {
@@ -105,32 +107,34 @@ public final class MetaStoreImpl implements MetaStore {
 
   @Override
   public void deleteSource(final String sourceName) {
-    dataSources.compute(sourceName, (ignored, source) -> {
-      if (source == null) {
-        throw new KsqlException(String.format("No data source with name %s exists.", sourceName));
-      }
+    synchronized (referentialIntegrityLock) {
+      dataSources.compute(sourceName, (ignored, source) -> {
+        if (source == null) {
+          throw new KsqlException(String.format("No data source with name %s exists.", sourceName));
+        }
 
-      final String sourceForQueriesMessage = source.referentialIntegrity
+        final String sourceForQueriesMessage = source.referentialIntegrity
             .getSourceForQueries()
             .stream()
             .collect(Collectors.joining(", "));
 
-      final String sinkForQueriesMessage = source.referentialIntegrity
+        final String sinkForQueriesMessage = source.referentialIntegrity
             .getSinkForQueries()
             .stream()
             .collect(Collectors.joining(", "));
 
-      if (!sourceForQueriesMessage.isEmpty() || !sinkForQueriesMessage.isEmpty()) {
-        throw new KsqlReferentialIntegrityException(
-            String.format("Cannot drop %s.%n"
-                    + "The following queries read from this source: [%s].%n"
-                    + "The following queries write into this source: [%s].%n"
-                    + "You need to terminate them before dropping %s.",
-                sourceName, sourceForQueriesMessage, sinkForQueriesMessage, sourceName));
-      }
+        if (!sourceForQueriesMessage.isEmpty() || !sinkForQueriesMessage.isEmpty()) {
+          throw new KsqlReferentialIntegrityException(
+              String.format("Cannot drop %s.%n"
+                      + "The following queries read from this source: [%s].%n"
+                      + "The following queries write into this source: [%s].%n"
+                      + "You need to terminate them before dropping %s.",
+                  sourceName, sourceForQueriesMessage, sinkForQueriesMessage, sourceName));
+        }
 
-      return null;
-    });
+        return null;
+      });
+    }
   }
 
   @Override
@@ -147,34 +151,34 @@ public final class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public void updateForPersistentQuery(final String queryId,
-                                       final Set<String> sourceNames,
-                                       final Set<String> sinkNames) {
-    addSourceNames(sourceNames, queryId);
-    addSinkNames(sinkNames, queryId);
+  public void updateForPersistentQuery(
+      final String queryId,
+      final Set<String> sourceNames,
+      final Set<String> sinkNames
+  ) {
+    synchronized (referentialIntegrityLock) {
+      final String sourceAlreadyRegistered = streamSources(sourceNames)
+          .filter(source -> source.referentialIntegrity.getSourceForQueries().contains(queryId))
+          .map(source -> source.source.getName())
+          .collect(Collectors.joining(","));
 
-  }
+      final String sinkAlreadyRegistered = streamSources(sinkNames)
+          .filter(source -> source.referentialIntegrity.getSinkForQueries().contains(queryId))
+          .map(source -> source.source.getName())
+          .collect(Collectors.joining(","));
 
-  private void addSourceNames(final Set<String> sourceNames, final String queryId) {
-    sourceNames.forEach(sourceName -> {
-      final SourceInfo sourceInfo = dataSources.get(sourceName);
-      if (sourceInfo == null) {
-        throw new IllegalStateException("Unknown source: " + sourceName);
+      if (!sourceAlreadyRegistered.isEmpty() || !sinkAlreadyRegistered.isEmpty()) {
+        throw new KsqlException("query already registered."
+            + " queryId: " + queryId
+            + ", registeredAgainstSource: " + sourceAlreadyRegistered
+            + ", registeredAgainstSink: " + sinkAlreadyRegistered);
       }
 
-      sourceInfo.referentialIntegrity.addSourceForQueries(queryId);
-    });
-  }
-
-  private void addSinkNames(final Set<String> sinkNames, final String queryId) {
-    sinkNames.forEach(sinkName -> {
-      final SourceInfo sourceInfo = dataSources.get(sinkName);
-      if (sourceInfo == null) {
-        throw new IllegalStateException("Unknown sink: " + sinkName);
-      }
-
-      sourceInfo.referentialIntegrity.addSinkForQueries(queryId);
-    });
+      streamSources(sourceNames)
+          .forEach(source -> source.referentialIntegrity.addSourceForQueries(queryId));
+      streamSources(sinkNames)
+          .forEach(source -> source.referentialIntegrity.addSinkForQueries(queryId));
+    }
   }
 
   @Override
@@ -188,7 +192,7 @@ public final class MetaStoreImpl implements MetaStore {
   public Set<String> getQueriesWithSource(final String sourceName) {
     final SourceInfo sourceInfo = dataSources.get(sourceName);
     if (sourceInfo == null) {
-      throw new KsqlException("Unknown source: " + sourceName);
+      return Collections.emptySet();
     }
     return sourceInfo.referentialIntegrity.getSourceForQueries();
   }
@@ -197,7 +201,7 @@ public final class MetaStoreImpl implements MetaStore {
   public Set<String> getQueriesWithSink(final String sourceName) {
     final SourceInfo sourceInfo = dataSources.get(sourceName);
     if (sourceInfo == null) {
-      throw new KsqlException("Unknown source: " + sourceName);
+      return Collections.emptySet();
     }
     return sourceInfo.referentialIntegrity.getSinkForQueries();
   }
@@ -249,6 +253,18 @@ public final class MetaStoreImpl implements MetaStore {
   @Override
   public List<AggregateFunctionFactory> listAggregateFunctions() {
     return functionRegistry.listAggregateFunctions();
+  }
+
+  private Stream<SourceInfo> streamSources(final Set<String> sourceNames) {
+    return sourceNames.stream()
+        .map(sourceName -> {
+          final SourceInfo sourceInfo = dataSources.get(sourceName);
+          if (sourceInfo == null) {
+            throw new KsqlException("Unknown source: " + sourceName);
+          }
+
+          return sourceInfo;
+        });
   }
 
   private static final class SourceInfo {

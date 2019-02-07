@@ -44,7 +44,7 @@ final class UrlParser {
     try {
       return extract.apply(new URI(url));
     } catch (final URISyntaxException e) {
-      throw new KsqlFunctionException("URL parameter has invalid syntax: " + url, e);
+      throw new KsqlFunctionException("URL input has invalid syntax: " + url, e);
     }
   }
 }

@@ -55,7 +55,7 @@ public class UrlExtractPathKudfTest {
   public void shouldThrowExceptionForMalformedURL() {
     // Given:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("The passed in URL http://257.1/bogus/[url has invalid syntax!");
+    expectedException.expectMessage("URL input has invalid syntax: http://257.1/bogus/[url");
 
     // When:
     extractUdf.extractPath("http://257.1/bogus/[url");

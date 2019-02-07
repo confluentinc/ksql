@@ -103,12 +103,28 @@ Indicates whether to fail if corrupt messages are read. KSQL decodes messages at
 decoding that KSQL uses depends on what's defined in STREAM's or TABLE's data definition as the data format for the
 topic. If a message in the topic can't be decoded according to that data format, KSQL considers this message to be
 corrupt. For example, a message is corrupt if KSQL expects message values to be in JSON format, but they are in
-DELIMITED format. The default value in KSQL is ``true``. For example, to ignore corrupt messages, add this to your
-properties file:
+DELIMITED format. The default value in KSQL is ``false``, which means a corrupt message will result in a log entry,
+and KSQL will continue processing. To change this default behavior and instead have Kafka Streams threads shut down when
+corrupt messages are encountered, add this to your properties file:
 
 ::
 
-    fail.on.deserialization.error=false
+    ksql.fail.on.deserialization.error=true
+
+.. _ksql-fail-on-production-error:
+
+-----------------------------
+ksql.fail.on.production.error
+-----------------------------
+
+Indicates whether to fail if KSQL fails to publish a record to an output topic due to a Kafka producer exception.
+The default value in KSQL is ``true``, which means if a producer error occurs, then the Kafka Streams thread that
+encountered the error will shut down. To log the error message to the
+:ref:`ksql_processing_log` and have KSQL continue processing as normal, add this to your properties file:
+
+::
+
+    ksql.fail.on.production.error=false
 
 .. _ksql-schema-registry-url:
 

@@ -37,6 +37,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -63,6 +65,8 @@ public class ProcessingLogServerUtilsTest {
   private static final String CLUSTER_ID = "ksql_cluster.";
   private static final int PARTITIONS = 10;
   private static final short REPLICAS = 3;
+  private static final String DEFAULT_TOPIC =
+      CLUSTER_ID + ProcessingLogConfig.TOPIC_NAME_DEFAULT_SUFFIX;
 
   private final ServiceContext serviceContext = TestServiceContext.create();
   private final KafkaTopicClient spyTopicClient = spy(serviceContext.getTopicClient());
@@ -74,13 +78,15 @@ public class ProcessingLogServerUtilsTest {
   private final ProcessingLogConfig config = new ProcessingLogConfig(
       ImmutableMap.of(
           ProcessingLogConfig.TOPIC_AUTO_CREATE,
-          ProcessingLogConfig.AUTO_CREATE_ON,
+          true,
           ProcessingLogConfig.TOPIC_NAME,
           TOPIC,
           ProcessingLogConfig.TOPIC_PARTITIONS,
           PARTITIONS,
           ProcessingLogConfig.TOPIC_REPLICATION_FACTOR,
-          REPLICAS
+          REPLICAS,
+          ProcessingLogConfig.STREAM_NAME,
+          STREAM
       )
   );
   private final KsqlConfig ksqlConfig = new KsqlConfig(
@@ -140,13 +146,13 @@ public class ProcessingLogServerUtilsTest {
     }
   }
 
-  private void assertLogStream() {
+  private void assertLogStream(final String topicName) {
     final StructuredDataSource dataSource = metaStore.getSource(STREAM);
     assertThat(dataSource, instanceOf(KsqlStream.class));
     final KsqlStream stream = (KsqlStream) dataSource;
     final Schema expected = ProcessingLogServerUtils.getMessageSchema();
     assertThat(stream.getKsqlTopicSerde(), instanceOf(KsqlJsonTopicSerDe.class));
-    assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(TOPIC));
+    assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
     assertThat(stream.getSchema().type(), equalTo(Type.STRUCT));
     assertThat(
         stream.getSchema().fields().stream().map(Field::name).collect(toList()),
@@ -174,28 +180,54 @@ public class ProcessingLogServerUtilsTest {
     serviceContext.getTopicClient().createTopic(TOPIC, 1, (short) 1);
 
     // When:
-    final String statementText = ProcessingLogServerUtils.processingLogStreamCreateStatement(
-        STREAM,
-        TOPIC);
+    final PreparedStatement<AbstractStreamCreateStatement> statement =
+        ProcessingLogServerUtils.processingLogStreamCreateStatement(
+            config,
+            ksqlConfig);
 
     // Then:
-    final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(statementText);
-    assertThat(statements, hasSize(1));
+    assertThat(
+        statement.getStatementText(),
+        equalTo(SqlFormatter.formatSql(statement.getStatement())));
     ksqlEngine.execute(
-        ksqlEngine.parseStatements(statementText).get(0),
+        statement,
         ksqlConfig,
         Collections.emptyMap());
-    assertLogStream();
+    assertLogStream(TOPIC);
+  }
+
+  @Test
+  public void shouldBuildCorrectStreamCreateDDLWithDefaultTopicName() {
+    // Given:
+    serviceContext.getTopicClient().createTopic(DEFAULT_TOPIC, 1, (short)1);
+
+    // When:
+    final PreparedStatement<AbstractStreamCreateStatement> statement =
+        ProcessingLogServerUtils.processingLogStreamCreateStatement(
+            new ProcessingLogConfig(
+                ImmutableMap.of(
+                    ProcessingLogConfig.STREAM_AUTO_CREATE, true,
+                    ProcessingLogConfig.STREAM_NAME, STREAM
+                )
+            ),
+            ksqlConfig);
+
+    // Then:
+    assertThat(
+        statement.getStatementText(),
+        equalTo(SqlFormatter.formatSql(statement.getStatement())));
+    ksqlEngine.execute(
+        statement,
+        ksqlConfig,
+        Collections.emptyMap());
+    assertLogStream(DEFAULT_TOPIC);
   }
 
   @Test
   public void shouldNotCreateLogTopicIfNotConfigured() {
     // Given:
     final ProcessingLogConfig config = new ProcessingLogConfig(
-        ImmutableMap.of(
-            ProcessingLogConfig.TOPIC_AUTO_CREATE,
-            ProcessingLogConfig.AUTO_CREATE_OFF
-        )
+        ImmutableMap.of(ProcessingLogConfig.TOPIC_AUTO_CREATE, false)
     );
 
     // When:
@@ -231,7 +263,7 @@ public class ProcessingLogServerUtilsTest {
     final ProcessingLogConfig config = new ProcessingLogConfig(
         ImmutableMap.of(
             ProcessingLogConfig.TOPIC_AUTO_CREATE,
-            ProcessingLogConfig.AUTO_CREATE_ON,
+            true,
             ProcessingLogConfig.TOPIC_PARTITIONS,
             PARTITIONS,
             ProcessingLogConfig.TOPIC_REPLICATION_FACTOR,
@@ -243,9 +275,6 @@ public class ProcessingLogServerUtilsTest {
     ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config, ksqlConfig);
 
     // Then:
-    verify(mockTopicClient).createTopic(
-        CLUSTER_ID + ProcessingLogConfig.TOPIC_NAME_DEFAULT_SUFFIX,
-        PARTITIONS,
-        REPLICAS);
+    verify(mockTopicClient).createTopic(DEFAULT_TOPIC, PARTITIONS, REPLICAS);
   }
 }

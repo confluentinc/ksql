@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -71,7 +72,7 @@ public class StandaloneExecutorTest {
   private static final String PROCESSING_LOG_TOPIC_NAME = "proclogtop";
   private static final ProcessingLogConfig processingLogConfig =
       new ProcessingLogConfig(ImmutableMap.of(
-          ProcessingLogConfig.TOPIC_AUTO_CREATE, ProcessingLogConfig.AUTO_CREATE_ON,
+          ProcessingLogConfig.TOPIC_AUTO_CREATE, true,
           ProcessingLogConfig.TOPIC_NAME, PROCESSING_LOG_TOPIC_NAME
       ));
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
@@ -166,6 +167,31 @@ public class StandaloneExecutorTest {
 
     // Then
     verify(kafkaTopicClient).createTopic(eq(PROCESSING_LOG_TOPIC_NAME), anyInt(), anyShort());
+  }
+
+  @Test
+  public void shouldNotCreateProcessingLogTopicIfNotConfigured() {
+    // Given:
+    standaloneExecutor = new StandaloneExecutor(
+        serviceContext,
+        new ProcessingLogConfig(ImmutableMap.of(
+            ProcessingLogConfig.TOPIC_AUTO_CREATE, false,
+            ProcessingLogConfig.TOPIC_NAME, PROCESSING_LOG_TOPIC_NAME
+        )),
+        ksqlConfig,
+        engine,
+        queriesFile.toString(),
+        udfLoader,
+        false,
+        versionCheckerAgent
+    );
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then
+    verify(kafkaTopicClient, times(0))
+        .createTopic(eq(PROCESSING_LOG_TOPIC_NAME), anyInt(), anyShort());
   }
 
   @Test

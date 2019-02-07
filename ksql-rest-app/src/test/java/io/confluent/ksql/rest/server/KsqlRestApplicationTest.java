@@ -27,6 +27,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -102,18 +103,12 @@ public class KsqlRestApplicationTest {
   @Before
   public void setUp() {
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("default_id_");
-    when(processingLogConfig.getString(ProcessingLogConfig.STREAM_AUTO_CREATE))
-        .thenReturn(ProcessingLogConfig.AUTO_CREATE_ON);
+    when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
+        .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))
         .thenReturn(LOG_STREAM_NAME);
     when(processingLogConfig.getString(ProcessingLogConfig.TOPIC_NAME))
         .thenReturn(LOG_TOPIC_NAME);
-    when(ksqlEngine.parseStatements(any()))
-        .then(
-            invocation -> ImmutableList.of(
-                PreparedStatement.of(invocation.getArgument(0), statement)
-            )
-        );
     when(ksqlEngine.createSandbox()).thenReturn(sandBox);
     when(commandQueue.isEmpty()).thenReturn(true);
     when(commandQueue.enqueueCommand(any(), any(), any(), any()))
@@ -244,17 +239,18 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(commandQueue).isEmpty();
-    final String statementText = ProcessingLogServerUtils.processingLogStreamCreateStatement(
-        LOG_STREAM_NAME,
-        LOG_TOPIC_NAME
-    );
-    verify(ksqlEngine).parseStatements(statementText);
-    verify(sandBox).execute(PreparedStatement.of(statementText, statement),
+    final PreparedStatement<AbstractStreamCreateStatement> statement =
+        ProcessingLogServerUtils.processingLogStreamCreateStatement(
+            processingLogConfig,
+            ksqlConfig
+        );
+    verify(sandBox).execute(
+        statement,
         ksqlConfig,
         Collections.emptyMap());
     verify(commandQueue).enqueueCommand(
-        statementText,
-        statement,
+        statement.getStatementText(),
+        statement.getStatement(),
         ksqlConfig,
         Collections.emptyMap());
   }
@@ -262,8 +258,8 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldNotCreateLogStreamIfAutoCreateNotConfigured() {
     // Given:
-    when(processingLogConfig.getString(ProcessingLogConfig.STREAM_AUTO_CREATE))
-        .thenReturn(ProcessingLogConfig.AUTO_CREATE_OFF);
+    when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
+        .thenReturn(false);
 
     // When:
     KsqlRestApplication.maybeCreateProcessingLogStream(

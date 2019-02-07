@@ -114,8 +114,7 @@ public class StandaloneExecutor implements Executable {
           serviceContext.getTopicClient(),
           processingLogConfig,
           ksqlConfig);
-      if (processingLogConfig.getString(ProcessingLogConfig.STREAM_AUTO_CREATE)
-          .equals(ProcessingLogConfig.AUTO_CREATE_ON)) {
+      if (processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
         log.warn("processing log auto-create is enabled, but this is not supported "
             + "for headless mode.");
       }

@@ -51,6 +51,11 @@ questions.
 
   <artifactId>ksql-benchmark</artifactId>
 
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <jmh.version>1.21</jmh.version>
+  </properties>
+
   <dependencies>
     <!-- JMH dependencies -->
     <dependency>
@@ -86,10 +91,6 @@ questions.
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
 
   <build>
     <plugins>

@@ -25,6 +25,8 @@ import static org.hamcrest.Matchers.empty;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndContinueProductionExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndFailProductionExceptionHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +36,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
-import org.hamcrest.core.IsEqual;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -62,14 +63,14 @@ public class KsqlConfigTest {
   public void shouldSetLogAndContinueExceptionHandlerByDefault() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
-    assertThat(result, IsEqual.equalTo(LogMetricAndContinueExceptionHandler.class));
+    assertThat(result, equalTo(LogMetricAndContinueExceptionHandler.class));
   }
 
   @Test
   public void shouldSetLogAndContinueExceptionHandlerWhenFailOnDeserializationErrorFalse() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
-    assertThat(result, IsEqual.equalTo(LogMetricAndContinueExceptionHandler.class));
+    assertThat(result, equalTo(LogMetricAndContinueExceptionHandler.class));
   }
 
   @Test
@@ -77,6 +78,32 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, true));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, nullValue());
+  }
+
+  @Test
+  public void shouldSetLogAndContinueExceptionHandlerWhenFailOnProductionErrorFalse() {
+    final KsqlConfig ksqlConfig =
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_PRODUCTION_ERROR_CONFIG, false));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    assertThat(result, equalTo(LogAndContinueProductionExceptionHandler.class));
+  }
+
+  @Test
+  public void shouldNotSetDeserializationExceptionHandlerWhenFailOnProductionErrorTrue() {
+    final KsqlConfig ksqlConfig =
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_PRODUCTION_ERROR_CONFIG, true));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    assertThat(result, equalTo(LogAndFailProductionExceptionHandler.class));
+  }
+
+  @Test
+  public void shouldFailOnProductionErrorByDefault() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    assertThat(result, equalTo(LogAndFailProductionExceptionHandler.class));
   }
 
   @Test

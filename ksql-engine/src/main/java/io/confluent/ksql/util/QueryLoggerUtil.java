@@ -15,23 +15,19 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.planner.plan.PlanNodeId;
-import io.confluent.ksql.query.QueryId;
-import java.util.Arrays;
+import io.confluent.ksql.structured.QueryContext;
 
 public final class QueryLoggerUtil {
   private QueryLoggerUtil() {
   }
 
-  public static String queryLoggerName(
-      final QueryId queryId,
-      final PlanNodeId nodeId,
-      final String... subHierarchy) {
+  public static String queryLoggerName(final QueryContext queryContext) {
     return String.join(
         ".",
         new ImmutableList.Builder<String>()
-            .add(queryId.getId(), nodeId.toString())
-            .addAll(Arrays.asList(subHierarchy))
-            .build());
+            .add(queryContext.getQueryId().getId())
+            .addAll(queryContext.getContext())
+            .build()
+    );
   }
 }

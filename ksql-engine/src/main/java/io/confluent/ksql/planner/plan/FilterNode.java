@@ -34,7 +34,6 @@ import org.apache.kafka.streams.StreamsBuilder;
 @Immutable
 public class FilterNode
     extends PlanNode {
-
   private final PlanNode source;
   private final Expression predicate;
   private final Schema schema;
@@ -95,8 +94,13 @@ public class FilterNode
       final FunctionRegistry functionRegistry,
       final Map<String, Object> props,
       final QueryId queryId) {
-    return getSource().buildStream(builder, ksqlConfig, serviceContext,
-        functionRegistry, props, queryId)
-        .filter(getPredicate());
+    return getSource().buildStream(
+        builder,
+        ksqlConfig,
+        serviceContext,
+        functionRegistry,
+        props,
+        queryId
+    ).filter(getPredicate(), buildNodeContext(queryId));
   }
 }

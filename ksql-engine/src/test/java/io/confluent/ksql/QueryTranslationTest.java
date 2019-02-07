@@ -36,6 +36,7 @@ import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -337,14 +338,14 @@ public class QueryTranslationTest {
   }
 
   private static Topic createTopicFromStatement(final String sql) {
-    final KsqlParser parser = new KsqlParser();
+    final KsqlParser parser = new DefaultKsqlParser();
     final MetaStoreImpl metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
 
-    final Predicate<ParsedStatement> filter = stmt ->
+    final Predicate<ParsedStatement> onlyCSandCT = stmt ->
         stmt.getStatement().statement() instanceof SqlBaseParser.CreateStreamContext
             || stmt.getStatement().statement() instanceof SqlBaseParser.CreateTableContext;
 
-    final Function<PreparedStatement<?>, Topic> mapper = stmt -> {
+    final Function<PreparedStatement<?>, Topic> extractTopic = stmt -> {
       final AbstractStreamCreateStatement statement = (AbstractStreamCreateStatement) stmt
           .getStatement();
 
@@ -370,7 +371,17 @@ public class QueryTranslationTest {
     };
 
     try {
-      final List<Topic> topics = parser.buildAst(sql, metaStore, filter, mapper);
+      final List<ParsedStatement> parsed = parser.parse(sql);
+      if (parsed.size() > 1) {
+        throw new IllegalArgumentException("SQL contains more than one statement: " + sql);
+      }
+
+      final List<Topic> topics = parsed.stream()
+          .filter(onlyCSandCT)
+          .map(stmt -> parser.prepare(stmt, metaStore))
+          .map(extractTopic)
+          .collect(Collectors.toList());
+
       return topics.isEmpty() ? null : topics.get(0);
     } catch (final ParseFailedException e) {
       // Statement won't parse:

@@ -390,6 +390,7 @@
                     <effort>Max</effort>
                     <threshold>Max</threshold>
                     <failOnError>true</failOnError>
+                    <includeTests>true</includeTests>
                 </configuration>
                 <executions>
                     <!--

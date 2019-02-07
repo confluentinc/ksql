@@ -19,11 +19,16 @@ import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -32,13 +37,15 @@ import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -78,6 +85,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PhysicalPlanBuilderTest {
 
+  private static final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
+      + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
   private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -94,7 +103,6 @@ public class PhysicalPlanBuilderTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private ServiceContext serviceContext;
-  private LogicalPlanBuilder planBuilder;
   @Mock
   private Consumer<QueryMetadata> queryCloseCallback;
 
@@ -139,7 +147,6 @@ public class PhysicalPlanBuilderTest {
 
     testKafkaStreamsBuilder = new TestKafkaStreamsBuilder(serviceContext);
     physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
-    planBuilder = new LogicalPlanBuilder(metaStore);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry())
@@ -169,7 +176,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {
-    final PlanNode logical = planBuilder.buildLogicalPlan(query);
+    final PlanNode logical = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
     return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
   }
 
@@ -192,26 +199,29 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata metadata = buildPhysicalPlan(queryString);
     final String planText = metadata.getExecutionPlan();
     final String[] lines = planText.split("\n");
-    Assert.assertEquals(" > [ SINK ] Schema: [COL0 : BIGINT, KSQL_COL_1 : DOUBLE"
-        + ", KSQL_COL_2 : BIGINT].", lines[0]);
-    Assert.assertEquals(
-        "\t\t > [ AGGREGATE ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_AGG_VARIABLE_0 : DOUBLE, KSQL_AGG_VARIABLE_1 : BIGINT].",
-        lines[1]);
-    Assert.assertEquals(
-        "\t\t\t\t > [ PROJECT ] Schema: [KSQL_INTERNAL_COL_0 : BIGINT, KSQL_INTERNAL_COL_1 : DOUBLE].",
-        lines[2]);
-    Assert.assertEquals(
-        "\t\t\t\t\t\t > [ FILTER ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, TEST1.COL5 : MAP<VARCHAR,DOUBLE>].",
-        lines[3]);
-    Assert.assertEquals(
-        "\t\t\t\t\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, TEST1.COL5 : MAP<VARCHAR,DOUBLE>].",
-        lines[4]);
+    assertThat(lines[0], startsWith(
+        " > [ SINK ] | Schema: [COL0 : BIGINT, KSQL_COL_1 : DOUBLE, KSQL_COL_2 : BIGINT] |"));
+    assertThat(lines[1], startsWith(
+        "\t\t > [ AGGREGATE ] | Schema: [KSQL_INTERNAL_COL_0 : BIGINT, "
+            + "KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_AGG_VARIABLE_0 : DOUBLE, "
+            + "KSQL_AGG_VARIABLE_1 : BIGINT] |"));
+    assertThat(lines[2], startsWith(
+        "\t\t\t\t > [ PROJECT ] | Schema: [KSQL_INTERNAL_COL_0 : BIGINT, "
+            + "KSQL_INTERNAL_COL_1 : DOUBLE] |"));
+    assertThat(lines[3], startsWith(
+        "\t\t\t\t\t\t > [ FILTER ] | Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, "
+            + "TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, "
+            + "TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, "
+            + "TEST1.COL5 : MAP<VARCHAR,DOUBLE>] |"));
+    assertThat(lines[4], startsWith(
+        "\t\t\t\t\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : BIGINT, "
+            + "TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : VARCHAR, "
+            + "TEST1.COL3 : DOUBLE, TEST1.COL4 : ARRAY<DOUBLE>, "
+            + "TEST1.COL5 : MAP<VARCHAR,DOUBLE>] |"));
   }
 
   @Test
   public void shouldCreateExecutionPlanForInsert() {
-    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
-        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
         + "col2 FROM "
         + "test1;";
@@ -228,11 +238,11 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     Assert.assertTrue(lines.length == 3);
     Assert.assertEquals(lines[0],
-        " > [ SINK ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE].");
+        " > [ SINK ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] | Logger: InsertQuery_1.S1");
     Assert.assertEquals(lines[1],
-        "\t\t > [ PROJECT ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE].");
+        "\t\t > [ PROJECT ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] | Logger: InsertQuery_1.Project");
     Assert.assertEquals(lines[2],
-        "\t\t\t\t > [ SOURCE ] Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : DOUBLE].");
+        "\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : DOUBLE] | Logger: InsertQuery_1.KsqlTopic");
     assertThat(queryMetadataList.get(1).getOutputNode(),
         instanceOf(KsqlStructuredDataOutputNode.class));
     final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
@@ -245,8 +255,6 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldFailIfInsertSinkDoesNotExist() {
-    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
-        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
 
     expectedException.expect(KsqlStatementException.class);
@@ -267,12 +275,8 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldFailInsertIfTheResultSchemaDoesNotMatch() {
-    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
-        + "DOUBLE) "
-        + "WITH ( "
-        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
-    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
-    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2, col3  FROM test1;";
+    final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1 FROM test1;";
+    final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
@@ -284,7 +288,7 @@ public class PhysicalPlanBuilderTest {
     } catch (final KsqlException ksqlException) {
       assertThat(ksqlException.getMessage(),
           equalTo("Incompatible schema between results and sink. Result schema is [COL0 :"
-              + " BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE], but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
+              + " BIGINT, COL1 : VARCHAR, COL2 : DOUBLE], but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR]."));
       return;
     } finally {
       ksqlEngine.close();
@@ -311,12 +315,12 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(2));
     assertThat(lines[0],
-        equalTo(" > [ PROJECT ] Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : "
-            + "BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE]."));
+        equalTo(" > [ PROJECT ] | Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : "
+            + "BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE] | Logger: InsertQuery_1.Project"));
     assertThat(lines[1],
-        equalTo("\t\t > [ SOURCE ] Schema: [T1.ROWTIME : BIGINT, T1.ROWKEY : VARCHAR, "
+        equalTo("\t\t > [ SOURCE ] | Schema: [T1.ROWTIME : BIGINT, T1.ROWKEY : VARCHAR, "
             + "T1.COL0 : BIGINT, T1.COL1 : VARCHAR, T1.COL2 : DOUBLE, T1.COL3 : "
-            + "DOUBLE]."));
+            + "DOUBLE] | Logger: InsertQuery_1.KsqlTopic"));
     closeQueries(queryMetadataList);
     ksqlEngine.close();
   }
@@ -327,15 +331,11 @@ public class PhysicalPlanBuilderTest {
         + "DOUBLE) "
         + "WITH ( "
         + "KAFKA_TOPIC = 't1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
-    final String createStream = "CREATE STREAM S1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
-        + "DOUBLE) "
-        + "WITH ( "
-        + "KAFKA_TOPIC = 's1', VALUE_FORMAT = 'JSON' );";
-    final String csasQuery = "CREATE STREAM S2 AS SELECT * FROM S1;";
+    final String csasQuery = "CREATE STREAM S2 AS SELECT * FROM TEST1;";
     final String insertIntoQuery = "INSERT INTO S2 SELECT col0, col1, col2, col3 FROM T1;";
     // No need for setting the correct clean up policy in test.
     kafkaTopicClient.createTopic("t1", 1, (short) 1, Collections.emptyMap());
-    kafkaTopicClient.createTopic("s1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     try {
       KsqlEngineTestUtil.execute(ksqlEngine,
@@ -354,8 +354,6 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldCheckSinkAndResultKeysDoNotMatch() {
-    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
-        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
@@ -370,19 +368,18 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
     assertThat(lines[0],
-        equalTo(" > [ REKEY ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE]."));
-    assertThat(lines[1], equalTo("\t\t > [ SINK ] Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 "
-        + ": DOUBLE]."));
-    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] Schema: [COL0 : BIGINT, COL1 : VARCHAR"
-        + ", COL2 : DOUBLE]."));
+        equalTo(" > [ REKEY ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] "
+            + "| Logger: InsertQuery_1.S1"));
+    assertThat(lines[1], equalTo("\t\t > [ SINK ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 "
+        + ": DOUBLE] | Logger: InsertQuery_1.S1"));
+    assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR"
+        + ", COL2 : DOUBLE] | Logger: InsertQuery_1.Project"));
     closeQueries(queryMetadataList);
     ksqlEngine.close();
   }
 
   @Test
   public void shouldFailIfSinkAndResultKeysDoNotMatch() {
-    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
-        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
@@ -444,13 +441,32 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldUseOptimizationConfigProvidedWhenOn() throws Exception {
+  public void shouldUseOptimizationConfigProvidedWhenOn() {
     shouldUseProvidedOptimizationConfig(StreamsConfig.OPTIMIZE);
   }
 
   @Test
-  public void shouldUseOptimizationConfigProvidedWhenOff() throws Exception {
+  public void shouldUseOptimizationConfigProvidedWhenOff() {
     shouldUseProvidedOptimizationConfig(StreamsConfig.NO_OPTIMIZATION);
+  }
+
+  @Test
+  public void shouldConfigureProductionExceptionHandlerName() {
+    // Given:
+    final OutputNode spyNode = spy(
+        (OutputNode) LogicalPlanBuilderTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
+    doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
+
+    // When:
+    physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(simpleSelectFilter, spyNode));
+
+    // Then:
+    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
+    assertThat(calls.size(), equalTo(1));
+    final Properties props = calls.get(0).props;
+    assertThat(
+        props.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER_NAME),
+        equalTo("foo"));
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {
@@ -602,8 +618,6 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldHaveOptionalFieldsInResultSchema() {
-    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
-        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 WITH (value_format = 'delimited') AS SELECT col0, col1, "
         + "col2 FROM "
         + "test1;";
@@ -625,10 +639,6 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldSetIsKSQLSinkInMetastoreCorrectly() {
-    final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
-        + "DOUBLE) "
-        + "WITH ( "
-        + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());

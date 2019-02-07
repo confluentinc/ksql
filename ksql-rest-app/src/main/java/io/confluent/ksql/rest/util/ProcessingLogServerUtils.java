@@ -18,11 +18,12 @@ import io.confluent.common.logging.LogRecordStructBuilder;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.processing.log.ProcessingLogMessageFactory;
+import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TypeUtil;
@@ -32,15 +33,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class ProcessingLogServerUtils {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingLogServerUtils.class);
 
   private ProcessingLogServerUtils() {
   }
 
-  public static Schema getMessageSchema() {
+  static Schema getMessageSchema() {
     return new LogRecordStructBuilder()
         .withMessageSchemaAndValue(
-            new SchemaAndValue(ProcessingLogMessageFactory.PROCESSING_LOG_SCHEMA, null))
+            new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, null))
         .build()
         .schema();
   }
@@ -87,10 +89,11 @@ public final class ProcessingLogServerUtils {
     final String statementNoSchema =
         String.format(
             "CREATE STREAM %s WITH(KAFKA_TOPIC='%s', VALUE_FORMAT='JSON');", name, topicName);
-    final PreparedStatement preparedStatement = new KsqlParser().buildAst(
-        statementNoSchema,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        s -> {}).get(0);
+    final DefaultKsqlParser parser = new DefaultKsqlParser();
+    final ParsedStatement parsed = parser.parse(statementNoSchema).get(0);
+    final PreparedStatement preparedStatement = parser
+        .prepare(parsed, new MetaStoreImpl(new InternalFunctionRegistry()));
+
     final AbstractStreamCreateStatement streamCreateStatement
         = (AbstractStreamCreateStatement) preparedStatement.getStatement();
     return SqlFormatter.formatSql(

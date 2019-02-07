@@ -135,7 +135,7 @@ public class WSQueryEndpointTest {
 
     when(session.getId()).thenReturn("session-id");
     when(statementParser.parseSingleStatement(anyString()))
-        .thenAnswer(invocation -> new PreparedStatement<>(invocation.getArgument(0).toString(), query));
+        .thenAnswer(invocation -> PreparedStatement.of(invocation.getArgument(0).toString(), query));
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
@@ -314,7 +314,7 @@ public class WSQueryEndpointTest {
         eq(ksqlConfig),
         eq(ksqlEngine),
         eq(exec),
-        eq(new PreparedStatement<>(VALID_REQUEST.getKsql(), query)),
+        eq(PreparedStatement.of(VALID_REQUEST.getKsql(), query)),
         eq(VALID_REQUEST.getStreamsProperties()),
         any());
   }
@@ -445,7 +445,7 @@ public class WSQueryEndpointTest {
 
   private void givenRequestIs(final Statement stmt) {
     when(statementParser.parseSingleStatement(anyString()))
-        .thenReturn(new PreparedStatement<>("statement", stmt));
+        .thenReturn(PreparedStatement.of("statement", stmt));
   }
 
   private static String serialize(final KsqlRequest request) {

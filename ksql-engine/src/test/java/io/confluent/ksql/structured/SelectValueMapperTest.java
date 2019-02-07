@@ -14,34 +14,56 @@
 
 package io.confluent.ksql.structured;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
+import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SelectExpression;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
+import org.hamcrest.Matchers;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 public class SelectValueMapperTest {
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private final MetaStore metaStore =
       MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+
+  @Mock
+  private StructuredLogger processingLogger;
+
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Test
   public void shouldSelectChosenColumns() {
@@ -84,8 +106,43 @@ public class SelectValueMapperTest {
     assertThat(row, is(nullValue()));
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldWriteProcessingLogOnError() throws IOException {
+    // Given:
+    final SelectValueMapper selectMapper = givenSelectMapperFor(
+        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
+
+    // When:
+    selectMapper.apply(
+        new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"));
+
+    // Then:
+    final ArgumentCaptor<Supplier<SchemaAndValue>> captor
+        = ArgumentCaptor.forClass(Supplier.class);
+    verify(processingLogger).error(captor.capture());
+    final SchemaAndValue schemaAndValue = captor.getValue().get();
+    assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
+    final Struct struct = (Struct) schemaAndValue.value();
+    assertThat(
+        struct.get(ProcessingLogMessageSchema.TYPE),
+        equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal()));
+    final Struct errorStruct
+        = struct.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
+    assertThat(
+        errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
+        equalTo(
+            "Error computing expression CEIL(TEST1.COL3) "
+                + "for column KSQL_COL_3 with index 3: null")
+    );
+    final String rowString =
+        errorStruct.getString(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD);
+    final List<Object> row = (List) MAPPER.readValue(rowString, List.class);
+    assertThat(row, Matchers.contains(0, "key", 2, "foo", "whatever", null, "boo", "hoo"));
+  }
+
   private SelectValueMapper givenSelectMapperFor(final String query) {
-    final PlanNode planNode = planBuilder.buildLogicalPlan(query);
+    final PlanNode planNode = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final Schema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
@@ -93,7 +150,7 @@ public class SelectValueMapperTest {
     final List<String> selectFieldNames = selectExpressions.stream()
         .map(SelectExpression::getName)
         .collect(Collectors.toList());
-    return new SelectValueMapper(selectFieldNames, metadata);
+    return new SelectValueMapper(selectFieldNames, metadata, processingLogger);
   }
 
   private List<ExpressionMetadata> createExpressionMetadata(

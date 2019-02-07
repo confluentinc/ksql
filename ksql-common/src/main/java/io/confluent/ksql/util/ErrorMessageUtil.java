@@ -18,6 +18,7 @@ import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.text.WordUtils;
 
 public final class ErrorMessageUtil {
 
@@ -45,7 +46,8 @@ public final class ErrorMessageUtil {
     final String msg = messages.remove(0);
 
     final String causeMsg = messages.stream()
-        .map(cause -> PREFIX + cause)
+        .filter(s -> !s.isEmpty())
+        .map(cause -> WordUtils.wrap(PREFIX + cause, 80, "\n\t", true))
         .collect(Collectors.joining(System.lineSeparator()));
 
     return causeMsg.isEmpty() ? msg : msg + System.lineSeparator() + causeMsg;

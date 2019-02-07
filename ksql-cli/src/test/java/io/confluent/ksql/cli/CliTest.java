@@ -683,7 +683,8 @@ public class CliTest {
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
-    assertThat(terminal.getOutputString(), containsString("Remote server address may not be valid"));
+    assertThat(terminal.getOutputString(),
+               containsString("Please ensure that the URL provided is for an active KSQL server."));
   }
 
   @Test

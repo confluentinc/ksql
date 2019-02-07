@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -21,16 +21,17 @@ import java.net.URI;
 
 @UdfDescription(
         name = UrlExtractProtocolKudf.NAME,
-        description = "Extracts the Scheme Component (protocol) of an application/x-www-form-"
-                      + "urlencoded encoded String input")
+        description = UrlExtractProtocolKudf.DESCRIPTION)
 public class UrlExtractProtocolKudf {
 
+  static final String DESCRIPTION =
+      "Extracts the Scheme Component (protocol) of an application/x-www-form-urlencoded "
+          + "encoded String input";
   static final String NAME = "url_extract_protocol";
 
-  @Udf(description = "Extracts the Scheme Component (protocol) of an application/x-www-form-"
-                     + "urlencoded encoded String input")
+  @Udf(description = DESCRIPTION)
   public String extractProtocol(
-      @UdfParameter(value = "input", description = "a valid URL to extract a protocl from")
+      @UdfParameter(description = "a valid URL to extract a protocl from")
       final String input) {
     return UrlParser.extract(input, URI::getScheme);
   }

@@ -1379,34 +1379,39 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | URL_EXTRACT_FRAGMENT   |  ``URL_EXTRACT_FRAGMENT(url)``                                            | Extract the fragment portion of the specified     |
 |                        |                                                                           | value. Returns NULL if ``url`` is not a valid URL |
+|                        |                                                                           | or if the fragment does not exist. Any encoded    |
+|                        |                                                                           | value will be decoded.                            |
 |                        |                                                                           |                                                   |
-|                        |                                                                           | Input: ``http://test.com?query#frag``,            |
+|                        |                                                                           | Input: ``http://test.com#frag``,                  |
 |                        |                                                                           | Output: ``frag``                                  |
+|                        |                                                                           | Input: ``http://test.com#frag%20space``,          |
+|                        |                                                                           | Output: ``frag space``                            |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | URL_EXTRACT_HOST       |  ``URL_EXTRACT_HOST(url)``                                                | Extract the host-name portion of the specified    |
 |                        |                                                                           | value. Returns NULL if the ``url`` is not a valid |
 |                        |                                                                           | URI according to RFC-2396.                        |
 |                        |                                                                           |                                                   |
-|                        |                                                                           | Input: ``http://test.com?query#frag``,            |
+|                        |                                                                           | Input: ``http://test.com:8080/path``,             |
 |                        |                                                                           | Output: ``test.com``                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | URL_EXTRACT_PARAMETER  |  ``URL_EXTRACT_PARAMETER(url, parameter_name)``                           | Extract the value of the requested parameter from |
 |                        |                                                                           | the query-string of ``url``. Returns NULL         |
 |                        |                                                                           | if the parameter is not present, has no value     |
 |                        |                                                                           | specified for it in the query-string, or ``url``  |
-|                        |                                                                           | is not a valid URI.                               |
+|                        |                                                                           | is not a valid URI. Encodes the param and decodes |
+|                        |                                                                           | the output (see examples).                        |
 |                        |                                                                           |                                                   |
 |                        |                                                                           | To get all of the parameter values from a         |
 |                        |                                                                           | URL as a single string, see ``URL_EXTRACT_QUERY.``|
 |                        |                                                                           |                                                   |
-|                        |                                                                           | Input: ``http://test.com?a=foo&b=bar``, `a`       |
-|                        |                                                                           | Output: ``foo``                                   |
+|                        |                                                                           | Input: ``http://test.com?a%20b=c%20d``, ``a b``   |
+|                        |                                                                           | Output: ``c d``                                   |
 |                        |                                                                           | Input: ``http://test.com?a=foo&b=bar``, `b`       |
 |                        |                                                                           | Output: ``bar``                                   |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | URL_EXTRACT_PATH       |  ``URL_EXTRACT_PATH(url)``                                                | Extracts the path from ``url``.                   |
 |                        |                                                                           | Returns NULL if ``url`` is not a valid URI but    |
-|                        |                                                                           | returns "" if the path is empty.                  |
+|                        |                                                                           | returns an empty string if the path is empty.     |
 |                        |                                                                           |                                                   |
 |                        |                                                                           | Input: ``http://test.com/path/to#a``              |
 |                        |                                                                           | Output: ``path/to``                               |
@@ -1415,7 +1420,7 @@ Scalar functions
 |                        |                                                                           | Returns NULL if ``url`` is not a valid URI or does|
 |                        |                                                                           | not contain an explicit port number.              |
 |                        |                                                                           |                                                   |
-|                        |                                                                           | Input: ``http://test@localhost:8080``             |
+|                        |                                                                           | Input: ``http://localhost:8080/path``             |
 |                        |                                                                           | Output: ``8080``                                  |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | URL_EXTRACT_PROTOCOL   |  ``URL_EXTRACT_PROTOCOL(url)``                                            | Extract the protocol from ``url``. Returns NULL if|
@@ -1428,8 +1433,8 @@ Scalar functions
 |                        |                                                                           | ``url``. Returns NULL if no query-string is       |
 |                        |                                                                           | present or ``url`` is not a valid URI.            |
 |                        |                                                                           |                                                   |
-|                        |                                                                           | e.g. for the url ``http://test.com?a=foo&b=bar``, |
-|                        |                                                                           | this UDF will return ``a=foo&b=bar``              |
+|                        |                                                                           | Input: ``http://test.com?a=foo%20bar&b=baz``,     |
+|                        |                                                                           | Output: ``a=foo bar&b=baz``                       |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 
 .. _URL-param-encoded:

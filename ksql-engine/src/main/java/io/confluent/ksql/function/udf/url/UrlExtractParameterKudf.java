@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -22,25 +22,22 @@ import java.net.URI;
 import java.util.List;
 
 @UdfDescription(
-        name = UrlExtractParameterKudf.NAME,
-        description = "Extracts a parameter with a specified name encoded inside an "
-                      + "application/x-www-form-urlencoded String.")
+    name = UrlExtractParameterKudf.NAME,
+    description = UrlExtractParameterKudf.DESCRIPTION)
 public class UrlExtractParameterKudf {
 
+  static final String DESCRIPTION =
+      "Extracts a parameter with a specified name encoded inside an "
+      + "application/x-www-form-urlencoded String.";
   static final String NAME = "url_extract_parameter";
 
   private static final Splitter PARAM_SPLITTER = Splitter.on('&');
   private static final Splitter KV_SPLITTER = Splitter.on('=').limit(2);
 
-  @Udf(description = "Extracts a parameter with a specified name encoded inside an "
-          + "application/x-www-form-urlencoded String.")
+  @Udf(description = DESCRIPTION)
   public String extractParam(
-      @UdfParameter(value = "input", description = "a vald URL")
-      final String input,
-      @UdfParameter(
-          value = "paramToFind",
-          description = "the query parameter whose value will be extracted")
-      final String paramToFind) {
+      @UdfParameter(description = "a valid URL") final String input,
+      @UdfParameter(description = "the parameter key") final String paramToFind) {
     final String query = UrlParser.extract(input, URI::getQuery);
     if (query == null) {
       return null;
@@ -48,7 +45,9 @@ public class UrlExtractParameterKudf {
 
     for (final String param : PARAM_SPLITTER.split(query)) {
       final List<String> kvParam = KV_SPLITTER.splitToList(param);
-      if (kvParam.size() == 2 && kvParam.get(0).equals(paramToFind)) {
+      if (kvParam.size() == 1 && kvParam.get(0).equals(paramToFind)) {
+        return "";
+      } else if (kvParam.size() == 2 && kvParam.get(0).equals(paramToFind)) {
         return kvParam.get(1);
       }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -38,7 +38,7 @@ public class UrlExtractParameterKudfTest {
 
   @Test
   public void shouldExtractParamValueIfPresent() {
-    assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz&blank#scalar-functions", "foo bar"), equalTo("baz"));
+    assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz%20zab&blank#scalar-functions", "foo bar"), equalTo("baz zab"));
   }
 
   @Test
@@ -47,8 +47,8 @@ public class UrlExtractParameterKudfTest {
   }
 
   @Test
-  public void shouldReturnNullIfParamHasNoValue() {
-    assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz&blank#scalar-functions", "blank"), nullValue());
+  public void shouldReturnEmptyStringIfParamHasNoValue() {
+    assertThat(extractUdf.extractParam("https://docs.confluent.io?foo%20bar=baz&blank#scalar-functions", "blank"), equalTo(""));
   }
 
   @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -20,18 +20,17 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 
-@UdfDescription(
-        name = UrlEncodeParamKudf.NAME,
-        description = "Returns a version of the input with all URL sensitive characters encoded "
-                      + "using the application/x-www-form-urlencoded standard.")
+@UdfDescription(name = UrlEncodeParamKudf.NAME, description = UrlEncodeParamKudf.DESCRIPTION)
 public class UrlEncodeParamKudf {
 
+  static final String DESCRIPTION =
+      "Returns a version of the input with all URL sensitive characters encoded "
+          + "using the application/x-www-form-urlencoded standard.";
   static final String NAME = "url_encode_param";
 
-  @Udf(description = "Returns a version of 'input' with all URL sensitive characters encoded using"
-                     + "the aplpication/x-www-form-urlencoded standard.")
+  @Udf(description = DESCRIPTION)
   public String encodeParam(
-      @UdfParameter(value = "input", description = "the value to encode") final String input) {
+      @UdfParameter(description = "the value to encode") final String input) {
     final Escaper escaper = UrlEscapers.urlFormParameterEscaper();
     return escaper.escape(input);
   }

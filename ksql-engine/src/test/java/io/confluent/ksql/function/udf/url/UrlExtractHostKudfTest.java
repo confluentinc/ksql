@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -38,7 +38,7 @@ public class UrlExtractHostKudfTest {
 
   @Test
   public void shouldExtractHostIfPresent() {
-    assertThat(extractUdf.extractHost("https://docs.confluent.io/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("docs.confluent.io"));
+    assertThat(extractUdf.extractHost("https://docs.confluent.io:8080/current/ksql/docs/syntax-reference.html#scalar-functions"), equalTo("docs.confluent.io"));
   }
 
   @Test

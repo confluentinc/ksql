@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -24,16 +24,16 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
 
-@UdfDescription(
-        name = UrlDecodeParamKudf.NAME,
-        description = "Decodes a previously encoded application/x-www-form-urlencoded String")
+@UdfDescription(name = UrlDecodeParamKudf.NAME, description = UrlDecodeParamKudf.DESCRIPTION)
 public class UrlDecodeParamKudf {
 
+  static final String DESCRIPTION =
+      "Decodes a previously encoded application/x-www-form-urlencoded String";
   static final String NAME = "url_decode_param";
 
-  @Udf(description = "Decodes a previously encoded application/x-www-form-urlencoded String")
+  @Udf(description = DESCRIPTION)
   public String decodeParam(
-      @UdfParameter(value = "input", description = "the value to decode") final String input) {
+      @UdfParameter(description = "the value to decode") final String input) {
     try {
       return URLDecoder.decode(input, UTF_8.name());
     } catch (final UnsupportedEncodingException e) {

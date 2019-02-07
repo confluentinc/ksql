@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -26,7 +26,7 @@ import javax.annotation.Nonnull;
  */
 final class UrlParser {
 
-  private UrlParser() { /* private constructor for utility class*/ }
+  private UrlParser() { }
 
   /**
    * @param url       an application/x-www-form-urlencoded string
@@ -44,7 +44,7 @@ final class UrlParser {
     try {
       return extract.apply(new URI(url));
     } catch (final URISyntaxException e) {
-      throw new KsqlFunctionException("The passed in URL " + url + " has invalid syntax!", e);
+      throw new KsqlFunctionException("URL parameter has invalid syntax: " + url, e);
     }
   }
 }

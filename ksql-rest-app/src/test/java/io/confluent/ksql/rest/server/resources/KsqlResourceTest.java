@@ -803,13 +803,13 @@ public class KsqlResourceTest {
 
     // When:
     final List<CommandStatusEntity> results = makeMultipleRequest(
-        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '2';\n"
+        "SET '" + KsqlConfig.KSQL_ENABLE_UDFS + "' = 'false';\n"
             + csas,
         CommandStatusEntity.class);
 
     // Then:
     verify(commandStore).enqueueCommand(eq(csas), any(), any(),
-        eq(ImmutableMap.of(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2")));
+        eq(ImmutableMap.of(KsqlConfig.KSQL_ENABLE_UDFS, "false")));
 
     assertThat(results, hasSize(1));
     assertThat(results.get(0).getStatementText(), is(csas));

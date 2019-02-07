@@ -256,7 +256,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KafkaTopicClient kafkaTopicClient,
       final KsqlConfig ksqlConfig
   ) {
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG)) {
+    final Map ksqlProperties = ksqlConfig.values();
+    if ((ksqlProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)
+          && ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY) != null)
+        || (ksqlProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
+          && ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) != null)) {
       return getSinkTopicPropertiesLegacyWay(sinkProperties, ksqlConfig);
     }
     // Don't request topic properties from Kafka if both are set in WITH clause.

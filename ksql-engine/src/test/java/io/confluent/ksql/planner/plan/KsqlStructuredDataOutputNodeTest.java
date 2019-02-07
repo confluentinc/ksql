@@ -83,6 +83,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
@@ -361,7 +362,10 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldUseLegacySinkPropertiesIfLegacyIsTrue() {
     // Given:
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SINK_TOPIC_PROPERTIES_LEGACY_CONFIG)).thenReturn(true);
+    Mockito.<Object>when(ksqlConfig.values()).thenReturn((Map<String, ?>) ImmutableMap.of(
+        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, KsqlConstants.defaultSinkNumberOfPartitions,
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, KsqlConstants.defaultSinkNumberOfReplications
+    ));
     when(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)).thenReturn(KsqlConstants.defaultSinkNumberOfPartitions);
     when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn(KsqlConstants.defaultSinkNumberOfReplications);
     createOutputNode(Collections.emptyMap(), true);

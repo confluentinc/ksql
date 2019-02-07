@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -269,7 +270,10 @@ public class SecureIntegrationTest {
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
     serviceContext = DefaultServiceContext.create(ksqlConfig);
-    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
+    ksqlEngine = new KsqlEngine(
+        serviceContext,
+        new InternalFunctionRegistry(),
+        ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
 
     execInitCreateStreamQueries();
   }

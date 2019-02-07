@@ -105,10 +105,7 @@ final class EndToEndEngineTestUtil {
   private static final String KSQL_TEST_FILES = "ksql.test.files";
 
   static {
-    // don't use the actual metastore, aim is just to get the functions into the registry.
-    // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
-    // test
-    UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
+    UdfLoaderUtil.load(functionRegistry);
   }
 
   private EndToEndEngineTestUtil(){}

@@ -26,6 +26,8 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -304,10 +306,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
-    UdfLoader.newInstance(ksqlConfig, ksqlEngine.getFunctionRegistry(), ksqlInstallDir).load();
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        serviceContext, functionRegistry, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+
+    UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);

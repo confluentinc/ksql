@@ -17,7 +17,6 @@ package io.confluent.ksql.metastore;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
@@ -51,7 +50,7 @@ public final class MetaStoreImpl implements MetaStore {
       final FunctionRegistry functionRegistry
   ) {
     this.topics.putAll(topics);
-    this.functionRegistry = functionRegistry.copy();
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
 
     dataSources.forEach((name, info) -> this.dataSources.put(name, info.copy()));
   }
@@ -216,16 +215,6 @@ public final class MetaStoreImpl implements MetaStore {
     return functionRegistry.getUdfFactory(functionName);
   }
 
-  @Override
-  public void addFunction(final KsqlFunction ksqlFunction) {
-    functionRegistry.addFunction(ksqlFunction);
-  }
-
-  @Override
-  public boolean addFunctionFactory(final UdfFactory factory) {
-    return functionRegistry.addFunctionFactory(factory);
-  }
-
   public boolean isAggregate(final String functionName) {
     return functionRegistry.isAggregate(functionName);
   }
@@ -233,11 +222,6 @@ public final class MetaStoreImpl implements MetaStore {
   public KsqlAggregateFunction getAggregate(final String functionName,
                                             final Schema argumentType) {
     return functionRegistry.getAggregate(functionName, argumentType);
-  }
-
-  @Override
-  public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
-    functionRegistry.addAggregateFunctionFactory(aggregateFunctionFactory);
   }
 
   @Override

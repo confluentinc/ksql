@@ -75,7 +75,7 @@ class FunctionNameValidator implements Predicate<String> {
 
   }
 
-  private boolean isValidJavaIdentifier(final String functionName) {
+  private static boolean isValidJavaIdentifier(final String functionName) {
     final char [] characters = functionName.toCharArray();
     if (!Character.isJavaIdentifierStart((int)characters[0])) {
       return false;

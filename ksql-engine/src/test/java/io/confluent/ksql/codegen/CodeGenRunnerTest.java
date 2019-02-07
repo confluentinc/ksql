@@ -95,23 +95,27 @@ public class CodeGenRunnerTest {
 
     @Before
     public void init() {
-        final KsqlFunction whenCondition = new KsqlFunction(
+        final KsqlFunction whenCondition = KsqlFunction.createLegacyBuiltIn(
             Schema.OPTIONAL_BOOLEAN_SCHEMA,
             ImmutableList.of(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
             "WHENCONDITION",
             WhenCondition.class
         );
-        final KsqlFunction whenResult = new KsqlFunction(
+        final KsqlFunction whenResult = KsqlFunction.createLegacyBuiltIn(
             Schema.OPTIONAL_INT32_SCHEMA,
             ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
             "WHENRESULT",
             WhenResult.class
         );
+        functionRegistry.ensureFunctionFactory(
+            InternalFunctionRegistry.createBuiltInUdfFactory(whenCondition));
         functionRegistry.addFunction(whenCondition);
+        functionRegistry.ensureFunctionFactory(
+            InternalFunctionRegistry.createBuiltInUdfFactory(whenResult));
         functionRegistry.addFunction(whenResult);
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
         // load substring function
-        UdfLoaderUtil.load(metaStore);
+        UdfLoaderUtil.load(functionRegistry);
 
         final Schema arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build();
 

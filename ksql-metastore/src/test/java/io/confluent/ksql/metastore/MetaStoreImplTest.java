@@ -20,8 +20,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -79,22 +77,6 @@ public class MetaStoreImplTest {
   public void tearDown() throws Exception {
     executor.shutdownNow();
     executor.awaitTermination(1, TimeUnit.MINUTES);
-  }
-
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
-  @Test
-  public void shouldCopyFunctionRegistryOnCopy() {
-    // Given:
-    final FunctionRegistry functionRegistryCopy = mock(FunctionRegistry.class);
-    when(functionRegistry.copy()).thenReturn(functionRegistryCopy);
-
-    // When:
-    final MetaStore copy = metaStore.copy();
-    copy.listFunctions();
-
-    // Then:
-    verify(functionRegistryCopy).listFunctions();
-    verify(functionRegistry, never()).listFunctions();
   }
 
   @Test

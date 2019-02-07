@@ -16,7 +16,6 @@ package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import java.util.List;
 import java.util.Map;
@@ -112,16 +111,6 @@ public final class ReadonlyMetaStore implements MetaStore {
   }
 
   @Override
-  public void addFunction(final KsqlFunction ksqlFunction) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean addFunctionFactory(final UdfFactory factory) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public boolean isAggregate(final String functionName) {
     return delegate.isAggregate(functionName);
   }
@@ -129,11 +118,6 @@ public final class ReadonlyMetaStore implements MetaStore {
   @Override
   public KsqlAggregateFunction getAggregate(final String functionName, final Schema argumentType) {
     return delegate.getAggregate(functionName, argumentType);
-  }
-
-  @Override
-  public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
-    throw new UnsupportedOperationException();
   }
 
   @Override

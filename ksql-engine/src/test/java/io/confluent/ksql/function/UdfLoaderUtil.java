@@ -14,14 +14,13 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.metastore.MetaStore;
 import java.util.Optional;
 import org.apache.kafka.test.TestUtils;
 
 public final class UdfLoaderUtil {
   private UdfLoaderUtil() {}
 
-  public static FunctionRegistry load(final FunctionRegistry functionRegistry) {
+  public static FunctionRegistry load(final MutableFunctionRegistry functionRegistry) {
     new UdfLoader(functionRegistry,
         TestUtils.tempDirectory(),
         UdfLoaderUtil.class.getClassLoader(),

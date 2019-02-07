@@ -53,6 +53,7 @@
         <module>ksql-etc</module>
         <module>ksql-package</module>
         <module>ksql-test-util</module>
+        <module>ksql-benchmark</module>
     </modules>
 
     <repositories>
@@ -98,7 +99,7 @@
         <jsr305.version>3.0.2</jsr305.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
-        <avro.random.generator.version>0.2.1</avro.random.generator.version>
+        <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>2.9.0</apache.curator.version>
     </properties>
 

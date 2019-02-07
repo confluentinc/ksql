@@ -23,12 +23,12 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
-final class SchemaUtil {
+public final class DataGenSchemaUtil {
 
-  private SchemaUtil() {
+  private DataGenSchemaUtil() {
   }
 
-  static Schema getOptionalSchema(final Schema schema) {
+  public static Schema getOptionalSchema(final Schema schema) {
     switch (schema.type()) {
       case BOOLEAN:
         return Schema.OPTIONAL_BOOLEAN_SCHEMA;

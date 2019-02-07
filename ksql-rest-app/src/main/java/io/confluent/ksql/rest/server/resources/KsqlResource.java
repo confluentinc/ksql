@@ -307,7 +307,6 @@ public class KsqlResource {
     reversed.stream()
         .filter(e -> e instanceof CommandStatusEntity)
         .map(cs -> ((CommandStatusEntity) cs).getCommandSequenceNumber())
-        .filter(Objects::nonNull)
         .findFirst()
         .ifPresent(seqNum -> {
           try {

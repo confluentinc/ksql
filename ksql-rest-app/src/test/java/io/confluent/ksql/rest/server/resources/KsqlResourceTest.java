@@ -665,7 +665,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldWaitForLastDistributedStatementBeforeExecutingAnyNoneDistributed()
+  public void shouldWaitForLastDistributedStatementBeforeExecutingAnyNonDistributed()
       throws Exception
   {
     // Given:

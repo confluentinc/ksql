@@ -63,8 +63,9 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       try {
         registerTopicCommand.run(metaStore);
       } catch (KsqlException e) {
-        throw new KsqlException(String.format("Cannot create table '%s': %s",
-                topicName, e.getMessage()));
+        final String errorMessage =
+                String.format("Cannot create table '%s': %s", topicName, e.getMessage());
+        throw new KsqlException(errorMessage, e);
       }
     }
     checkMetaData(metaStore, sourceName, topicName);

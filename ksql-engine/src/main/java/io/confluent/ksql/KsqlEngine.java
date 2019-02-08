@@ -50,6 +50,7 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
@@ -509,6 +510,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           validateInsertIntoStatement((PreparedStatement<InsertInto>) statement);
         } else if (statement.getStatement() instanceof ExecutableDdlStatement) {
           postProcessDdlStatement(statement);
+        } else if (statement.getStatement() instanceof TerminateQuery) {
+          postProcessTerminateStatement((TerminateQuery)statement.getStatement());
         }
       } catch (final KsqlStatementException e) {
         throw e;
@@ -564,6 +567,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           false);
 
       engineContext.ddlCommandExec.execute(ddlCmd);
+    }
+
+    private void postProcessTerminateStatement(final TerminateQuery statement) {
+      engineContext.metaStore.removePersistentQuery(statement.getQueryId().getId());
     }
   }
 

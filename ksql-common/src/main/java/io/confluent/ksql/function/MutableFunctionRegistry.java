@@ -14,12 +14,20 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.util.KsqlException;
+
 public interface MutableFunctionRegistry extends FunctionRegistry {
 
   /**
-   * Ensure the supplied function factory is registered
+   * Ensure the supplied function factory is registered.
+   *
+   * <p>The method will register the factory if a factory with the same name is not already
+   * registered. If a factory with the same name is already registered the method will throw
+   * if the two factories not are equivalent, (see {@link UdfFactory#matches(UdfFactory)}.
    *
    * @param factory the factory to register.
+   * @throws KsqlException if a UDAF function with the same name exists, or if an incompatible UDF
+   *     function factory already exists.
    */
   void ensureFunctionFactory(UdfFactory factory);
 
@@ -27,9 +35,10 @@ public interface MutableFunctionRegistry extends FunctionRegistry {
    * Register the supplied {@code ksqlFunction}.
    *
    * <p>Note: a suitable function factory must already have been register via
-   * {@link #ensureFunctionFactory(UdfFactory)}
+   * {@link #ensureFunctionFactory(UdfFactory)}.
    *
    * @param ksqlFunction the function to register.
+   * @throws KsqlException if a function, (of any type), with the same name exists.
    */
   void addFunction(KsqlFunction ksqlFunction);
 
@@ -37,6 +46,7 @@ public interface MutableFunctionRegistry extends FunctionRegistry {
    * Register an aggregate function factory.
    *
    * @param aggregateFunctionFactory the factory to register.
+   * @throws KsqlException if a function, (of any type), with the same name exists.
    */
   void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory);
 }

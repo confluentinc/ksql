@@ -182,8 +182,10 @@ public final class MetaStoreImpl implements MetaStore {
 
   @Override
   public void removePersistentQuery(final String queryId) {
-    for (final SourceInfo sourceInfo : dataSources.values()) {
-      sourceInfo.referentialIntegrity.removeQuery(queryId);
+    synchronized (referentialIntegrityLock) {
+      for (final SourceInfo sourceInfo : dataSources.values()) {
+        sourceInfo.referentialIntegrity.removeQuery(queryId);
+      }
     }
   }
 

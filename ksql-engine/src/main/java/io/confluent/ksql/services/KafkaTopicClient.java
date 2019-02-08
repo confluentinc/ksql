@@ -15,6 +15,7 @@
 package io.confluent.ksql.services;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;

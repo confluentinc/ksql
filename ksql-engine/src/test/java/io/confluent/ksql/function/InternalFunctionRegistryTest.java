@@ -120,7 +120,7 @@ public class InternalFunctionRegistryTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("a function with the same name exists on a different class");
+    expectedException.expectMessage("a function with the same name exists in a different class");
 
     // When:
     functionRegistry.addFunction(func2);

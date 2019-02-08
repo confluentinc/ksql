@@ -52,6 +52,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 public class InternalFunctionRegistry implements MutableFunctionRegistry {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private final Object lock = new Object();
   private final Map<String, UdfFactory> udfs = new ConcurrentHashMap<>();
   private final Map<String, AggregateFunctionFactory> udafs = new ConcurrentHashMap<>();
   private final FunctionNameValidator functionNameValidator = new FunctionNameValidator();
@@ -91,16 +92,19 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   public void ensureFunctionFactory(final UdfFactory factory) {
     validateFunctionName(factory.getName());
 
-    final String functionName = factory.getName().toUpperCase();
-    if (udafs.containsKey(functionName)) {
-      throw new KsqlException("UdfFactory already registered as aggregate: " + functionName);
-    }
+    synchronized (lock) {
+      final String functionName = factory.getName().toUpperCase();
+      if (udafs.containsKey(functionName)) {
+        throw new KsqlException("UdfFactory already registered as aggregate: " + functionName);
+      }
 
-    final UdfFactory existing = udfs.putIfAbsent(functionName, factory);
-    if (existing != null && !existing.matches(factory)) {
-      throw new KsqlException("UdfFactory not compatible with existing factory."
-          + " existing: " + existing
-          + ", factory: " + factory);
+      final UdfFactory existing = udfs.putIfAbsent(functionName, factory);
+      if (existing != null && !existing.matches(factory)) {
+        throw new KsqlException("UdfFactory not compatible with existing factory."
+            + " function: " + functionName
+            + " existing: " + existing
+            + ", factory: " + factory);
+      }
     }
   }
 
@@ -127,13 +131,15 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     final String functionName = aggregateFunctionFactory.getName().toUpperCase();
     validateFunctionName(functionName);
 
-    if (udfs.containsKey(functionName)) {
-      throw new KsqlException(
-          "Aggregate function already registered as non-aggregate: " + functionName);
-    }
+    synchronized (lock) {
+      if (udfs.containsKey(functionName)) {
+        throw new KsqlException(
+            "Aggregate function already registered as non-aggregate: " + functionName);
+      }
 
-    if (udafs.putIfAbsent(functionName, aggregateFunctionFactory) != null) {
-      throw new KsqlException("Aggregate function already registered: " + functionName);
+      if (udafs.putIfAbsent(functionName, aggregateFunctionFactory) != null) {
+        throw new KsqlException("Aggregate function already registered: " + functionName);
+      }
     }
   }
 

@@ -57,7 +57,7 @@ public class UdfFactory {
                                final List<FunctionParameter> paramTypes) {
     if (udfClass != ksqlFunction.getKudfClass()) {
       throw new KsqlException("Can't add function " + ksqlFunction
-          + " as a function with the same name exists on a different " + udfClass);
+          + " as a function with the same name exists in a different " + udfClass);
     }
     if (functions.containsKey(paramTypes)) {
       throw new KsqlException("Can't add function " + ksqlFunction
@@ -100,8 +100,8 @@ public class UdfFactory {
   }
 
   public boolean matches(final UdfFactory that) {
-    return this.udfClass.equals(that.udfClass)
-        && this.metadata.equals(that.metadata);
+    return this == that
+        || (this.udfClass.equals(that.udfClass) && this.metadata.equals(that.metadata));
   }
 
   @Override

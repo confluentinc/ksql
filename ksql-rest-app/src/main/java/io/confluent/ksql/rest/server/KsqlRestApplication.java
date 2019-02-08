@@ -29,6 +29,7 @@ import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -517,21 +518,17 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue) {
-    if (!config.getString(ProcessingLogConfig.STREAM_AUTO_CREATE)
-        .equals(ProcessingLogConfig.AUTO_CREATE_ON)) {
+    if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
       return;
     }
-    final String name = config.getString(ProcessingLogConfig.STREAM_NAME);
-    final String topicName = config.getString(ProcessingLogConfig.TOPIC_NAME);
-    final String statementText = ProcessingLogServerUtils.processingLogStreamCreateStatement(
-        name,
-        topicName);
+    final PreparedStatement<AbstractStreamCreateStatement> statement =
+        ProcessingLogServerUtils.processingLogStreamCreateStatement(
+            config,
+            ksqlConfig);
     if (!commandQueue.isEmpty()) {
       return;
     }
-    final PreparedStatement<?> statement;
     try {
-      statement = ksqlEngine.parseStatements(statementText).get(0);
       ksqlEngine.createSandbox().execute(statement, ksqlConfig, Collections.emptyMap());
     } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);

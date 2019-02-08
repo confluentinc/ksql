@@ -92,7 +92,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("ConstantConditions")
+@SuppressWarnings({"ConstantConditions", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
 
@@ -1021,6 +1021,19 @@ public class KsqlEngineTest {
         is(instanceOf(ReadonlyMetaStore.class)));
   }
 
+  @Test
+  public void shouldBeAbleToParseTerminateAndDrop() {
+    // Given:
+    givenSqlAlreadyExecuted("CREATE STREAM FOO AS SELECT * FROM TEST1;");
+
+    // When:
+    ksqlEngine.parseStatements(
+        "TERMINATE CSAS_FOO_0;"
+        + "DROP STREAM FOO;");
+
+    // Then: did not throw.
+  }
+
   private void givenTopicsExist(final String... topics) {
     givenTopicsExist(1, topics);
   }
@@ -1051,6 +1064,12 @@ public class KsqlEngineTest {
       final PreparedStatement<?> statement
   ) {
     ksqlEngine.execute(statement, KSQL_CONFIG, new HashMap<>());
+    sandbox = ksqlEngine.createSandbox();
+  }
+
+  private void givenSqlAlreadyExecuted(final String sql) {
+    ksqlEngine.parseStatements(sql)
+        .forEach(stmt -> ksqlEngine.execute(stmt, KSQL_CONFIG, new HashMap<>()));
     sandbox = ksqlEngine.createSandbox();
   }
 }

@@ -76,6 +76,10 @@ public abstract class StructuredDataSource implements DataSource {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
+  public boolean isAvroSerialized() {
+    return getKsqlTopicSerde().getSerDe() == DataSource.DataSourceSerDe.AVRO;
+  }
+
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return timestampExtractionPolicy;
   }

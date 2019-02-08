@@ -20,10 +20,10 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.ExecutorUtil;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
@@ -100,16 +100,6 @@ public class DropSourceCommand implements DdlCommand {
           + dataSource.getKsqlTopic().getKafkaTopicName(), e);
     }
 
-    if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
-        == DataSource.DataSourceSerDe.AVRO) {
-      try {
-        final String subject = sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-
-        ExecutorUtil.executeWithRetries(() -> schemaRegistryClient.deleteSubject(subject), ALWAYS);
-      } catch (final Exception e) {
-        throw new KsqlException("Could not clean up the schema registry for topic: "
-            + sourceName, e);
-      }
-    }
+    SchemaRegistryUtil.maybeCleanUpSourceTopicAvroSchema(dataSource, schemaRegistryClient);
   }
 }

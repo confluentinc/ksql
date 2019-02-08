@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,17 +30,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,6 +64,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ClusterTerminatorTest {
 
+  private static final String SOURCE_SUFFIX = "_source";
+
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -71,6 +80,8 @@ public class ClusterTerminatorTest {
   private MetaStore metaStore;
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private SchemaRegistryClient schemaRegistryClient;
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -80,6 +91,7 @@ public class ClusterTerminatorTest {
   @Before
   public void setup() {
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("command_topic");
@@ -124,7 +136,7 @@ public class ClusterTerminatorTest {
   }
 
   @Test
-  public void shouldDeleteTopicListWithExplicitTopicName() {
+  public void shouldDeleteTopicListWithExplicitTopicName() throws Exception {
     //Given:
     givenTopicsExistInKafka("K_Foo");
     givenSinkTopicsExistInMetastore("K_Foo");
@@ -134,10 +146,11 @@ public class ClusterTerminatorTest {
 
     // Then:
     verify(kafkaTopicClient).deleteTopics(Collections.singletonList("K_Foo"));
+    verifySchemaDeletedForTopics("K_Foo");
   }
 
   @Test
-  public void shouldOnlyDeleteExistingTopics() {
+  public void shouldOnlyDeleteExistingTopics() throws Exception {
     //Given:
     givenTopicsExistInKafka("K_Bar");
     givenSinkTopicsExistInMetastore("K_Foo", "K_Bar");
@@ -147,22 +160,24 @@ public class ClusterTerminatorTest {
 
     // Then:
     verify(kafkaTopicClient).deleteTopics(ImmutableList.of("K_Bar"));
+    verifySchemaDeletedForTopics("K_Foo", "K_Bar");
   }
 
   @Test
-  public void shouldNotDeleteNonSinkTopic() {
+  public void shouldNotDeleteNonSinkTopic() throws Exception {
     // Given:
-    givenNoneSinkTopicsExistInMetastore("bar");
+    givenNonSinkTopicsExistInMetastore("bar");
 
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("bar"));
 
     // Then:
     verify(kafkaTopicClient, never()).deleteTopics(Collections.singletonList("bar"));
+    verifySchemaNotDeletedForTopic("bar");
   }
 
   @Test
-  public void shouldNotDeleteNonMatchingCaseSensitiveTopics() {
+  public void shouldNotDeleteNonMatchingCaseSensitiveTopics() throws Exception {
     // Given:
     givenTopicsExistInKafka("K_FOO");
     givenSinkTopicsExistInMetastore("K_FOO");
@@ -172,12 +187,13 @@ public class ClusterTerminatorTest {
 
     // Then:
     verify(kafkaTopicClient, times(2)).deleteTopics(Collections.emptyList());
+    verifySchemaNotDeletedForTopic("K_FOO");
   }
 
 
   @Test
   @SuppressWarnings("unchecked")
-  public void shouldDeleteTopicListWithPattern() {
+  public void shouldDeleteTopicListWithPattern() throws Exception {
     //Given:
     givenTopicsExistInKafka("K_Fo", "K_Foo", "K_Fooo", "NotMatched");
     givenSinkTopicsExistInMetastore("K_Fo", "K_Foo", "K_Fooo", "NotMatched");
@@ -191,6 +207,8 @@ public class ClusterTerminatorTest {
     final Set<String> expectedArgs = ImmutableSet.of("K_Foo", "K_Fooo", "K_Fo");
     assertThat(argumentCaptor.getAllValues().get(0).size(), equalTo(expectedArgs.size()));
     assertTrue(expectedArgs.containsAll(argumentCaptor.getAllValues().get(0)));
+    verifySchemaDeletedForTopics("K_Foo", "K_Fooo", "K_Fo");
+    verifySchemaNotDeletedForTopic("NotMatched");
   }
 
   @Test
@@ -282,16 +300,42 @@ public class ClusterTerminatorTest {
             kafkaTopicName -> "KSQL_" + kafkaTopicName,
             kafkaTopicName -> getKsqlTopic("KSQL_" + kafkaTopicName, kafkaTopicName, true)));
     when(metaStore.getAllKsqlTopics()).thenReturn(ksqlTopicMap);
+    givenTopicsUseAvroSerdes(kafkaTopicNames);
   }
 
   @SuppressWarnings("SameParameterValue")
-  private void givenNoneSinkTopicsExistInMetastore(final String kafkaTopicName) {
+  private void givenNonSinkTopicsExistInMetastore(final String kafkaTopicName) {
     when(metaStore.getAllKsqlTopics()).thenReturn(ImmutableMap.of(
         "KSQL_" + kafkaTopicName, getKsqlTopic("KSQL_" + kafkaTopicName, kafkaTopicName, false)));
+    givenTopicsUseAvroSerdes(kafkaTopicName);
+  }
+
+  private void givenTopicsUseAvroSerdes(final String... topicNames) {
+    for (final String topicName : topicNames) {
+      final StructuredDataSource dataSource = mock(StructuredDataSource.class);
+      final KsqlTopicSerDe ksqlTopicSerDe = mock(KsqlTopicSerDe.class);
+
+      when(metaStore.getSourceForTopic(topicName)).thenReturn(Optional.of(dataSource));
+      when(dataSource.getName()).thenReturn(topicName + SOURCE_SUFFIX);
+      when(dataSource.getKsqlTopicSerde()).thenReturn(ksqlTopicSerDe);
+      when(ksqlTopicSerDe.getSerDe()).thenReturn(DataSourceSerDe.AVRO);
+    }
   }
 
   private void givenTopicsExistInKafka(final String... topicNames) {
     when(kafkaTopicClient.listTopicNames())
         .thenReturn(Stream.of(topicNames).collect(Collectors.toSet()));
+  }
+
+  private void verifySchemaDeletedForTopics(final String... topicNames) throws Exception {
+    for (final String topicName : topicNames) {
+      verify(schemaRegistryClient).deleteSubject(
+          topicName + SOURCE_SUFFIX + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    }
+  }
+
+  private void verifySchemaNotDeletedForTopic(final String topicName) throws Exception {
+    verify(schemaRegistryClient, never()).deleteSubject(
+        topicName + SOURCE_SUFFIX + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 }

@@ -14,8 +14,6 @@
 
 package io.confluent.ksql.schema.registry;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,7 +21,11 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KsqlConstants;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -33,9 +35,20 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SchemaRegistryUtilTest {
 
   private static final String APP_ID = "_my_app_id";
+  private static final String SOURCE_NAME = "my_source";
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+  @Mock
+  private StructuredDataSource source;
+  @Mock
+  private KsqlTopicSerDe ksqlTopicSerDe;
+
+  @Before
+  public void setUp() {
+    when(source.getKsqlTopicSerde()).thenReturn(ksqlTopicSerDe);
+    when(source.getName()).thenReturn(SOURCE_NAME);
+  }
 
   @Test
   public void shouldDeleteChangeLogTopicSchema() throws Exception {
@@ -119,5 +132,31 @@ public class SchemaRegistryUtilTest {
 
     // Then not exception:
     verify(schemaRegistryClient).deleteSubject(any());
+  }
+
+  @Test
+  public void shouldCleanUpSchemaForAvroSource() throws Exception {
+    // Given:
+    when(ksqlTopicSerDe.getSerDe()).thenReturn(DataSourceSerDe.AVRO);
+
+    // When:
+    SchemaRegistryUtil.maybeCleanUpSourceTopicAvroSchema(source, schemaRegistryClient);
+
+    // Then:
+    verify(schemaRegistryClient)
+        .deleteSubject(SOURCE_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+  }
+
+  @Test
+  public void shouldNotCleanUpSchemaForNonAvroSource() throws Exception {
+    // Given:
+    when(ksqlTopicSerDe.getSerDe()).thenReturn(DataSourceSerDe.JSON);
+
+    // When:
+    SchemaRegistryUtil.maybeCleanUpSourceTopicAvroSchema(source, schemaRegistryClient);
+
+    // Then:
+    verify(schemaRegistryClient, never())
+        .deleteSubject(SOURCE_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 }

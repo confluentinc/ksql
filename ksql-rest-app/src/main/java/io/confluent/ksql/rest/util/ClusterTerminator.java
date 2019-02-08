@@ -18,6 +18,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -76,6 +77,7 @@ public class ClusterTerminator {
         .filter(topicName -> topicShouldBeDeleted(topicName, patterns))
         .collect(Collectors.toList());
     deleteTopics(toDelete);
+    cleanUpSinkAvroSchemas(toDelete);
   }
 
   private List<String> filterNonExistingTopics(final List<String> topicList) {
@@ -106,5 +108,14 @@ public class ClusterTerminator {
       throw new KsqlException(
           "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ","));
     }
+  }
+
+  private void cleanUpSinkAvroSchemas(final List<String> topicsToBeDeleted) {
+    final MetaStore metaStore = ksqlEngine.getMetaStore();
+    topicsToBeDeleted.stream()
+        .map(metaStore::getSourceForTopic)
+        .forEach(source -> source.ifPresent(
+            s -> SchemaRegistryUtil.maybeCleanUpSourceTopicAvroSchema(
+                s, serviceContext.getSchemaRegistryClient())));
   }
 }

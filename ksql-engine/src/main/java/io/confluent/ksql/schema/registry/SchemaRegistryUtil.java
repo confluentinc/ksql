@@ -14,8 +14,14 @@
 
 package io.confluent.ksql.schema.registry;
 
+import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +45,22 @@ public final class SchemaRegistryUtil {
   ) {
     getInternalSubjectNameSet(applicationId, schemaRegistryClient)
         .forEach(subject -> tryDeleteSubject(applicationId, schemaRegistryClient, subject));
+  }
+
+  public static void maybeCleanUpSourceTopicAvroSchema(
+      final StructuredDataSource dataSource, final SchemaRegistryClient schemaRegistryClient) {
+    if (dataSource.getKsqlTopicSerde().getSerDe()
+        == DataSource.DataSourceSerDe.AVRO) {
+      final String sourceName = dataSource.getName();
+      try {
+        final String subject = sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+        ExecutorUtil.executeWithRetries(() -> schemaRegistryClient.deleteSubject(subject), ALWAYS);
+      } catch (final Exception e) {
+        throw new KsqlException("Could not clean up the schema registry for topic: "
+            + sourceName, e);
+      }
+    }
   }
 
   private static Stream<String> getInternalSubjectNameSet(

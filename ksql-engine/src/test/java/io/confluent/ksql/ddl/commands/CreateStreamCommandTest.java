@@ -142,16 +142,18 @@ public class CreateStreamCommandTest {
 
   @Test
   public void testCreateAlreadyRegisteredStreamThrowsException() {
+    final CreateStreamCommand cmd;
+
     // Given:
     givenProperties(propsWith(ImmutableMap.of()));
-
-    // When:
-    final CreateStreamCommand cmd = createCmd();
+    cmd = createCmd();
     cmd.run(metaStore);
 
     // Then:
     expectedException.expectMessage("Cannot create stream 'name': A stream " +
             "with name 'name' already exists");
+
+    // When:
     cmd.run(metaStore);
   }
 

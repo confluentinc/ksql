@@ -144,16 +144,18 @@ public class CreateTableCommandTest {
 
   @Test
   public void testCreateAlreadyRegisteredTableThrowsException() {
+    final CreateTableCommand cmd;
+
     // Given:
     givenProperties(propsWith(ImmutableMap.of()));
-
-    // When:
-    final CreateTableCommand cmd = createCmd();
+    cmd = createCmd();
     cmd.run(metaStore);
 
     // Then:
     expectedException.expectMessage("Cannot create table 'name': A table " +
             "with name 'name' already exists");
+
+    // When:
     cmd.run(metaStore);
   }
 

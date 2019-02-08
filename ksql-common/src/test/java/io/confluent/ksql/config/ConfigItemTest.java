@@ -128,7 +128,6 @@ public class ConfigItemTest {
 
   @Test
   public void shouldBeDefaultValue() {
-    boolean b = RESOLVED_NO_VALIDATOR.isDefaultValue("default_");
     assertThat(RESOLVED_NO_VALIDATOR.isDefaultValue("default_"),
         is(true));
   }

@@ -188,7 +188,7 @@ bind to the default interface. For example:
 -------------
 
 You can access KSQL Server by using |c3|. For more information, see
-:ref:`controlcenter_configuration`.
+:ref:`controlcenter_ksql_settings`.
 
 .. _ksql-production-settings:
 

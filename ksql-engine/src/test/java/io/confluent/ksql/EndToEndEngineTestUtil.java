@@ -518,16 +518,16 @@ final class EndToEndEngineTestUtil {
       this.expectedException = expectedException;
     }
 
-    static TestCase copyWithName(TestCase t, String newName) {
+    TestCase copyWithName(String newName) {
       return new TestCase(
-          t.testPath,
+          testPath,
           newName,
-          t.properties,
-          t.topics,
-          t.inputRecords,
-          t.outputRecords,
-          t.statements,
-          t.expectedException);
+          properties,
+          topics,
+          inputRecords,
+          outputRecords,
+          statements,
+          expectedException);
     }
 
     void setGeneratedTopology(final String generatedTopology) {
@@ -737,7 +737,7 @@ final class EndToEndEngineTestUtil {
     return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
   }
 
-  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) throws IOException {
+  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) {
     final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
     final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
     final List<String> topologyFiles = findExpectedTopologyFiles(dir);
@@ -774,8 +774,24 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static List<String> findExpectedTopologyFiles(final String dir) throws IOException {
-       final List<String> topologyFiles = new ArrayList<>();
+  static List<String> findExpectedTopologyDirectories(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology directories.", e);
+    }
+  }
+
+  private static List<String> findExpectedTopologyFiles(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology files. dir: " + dir, e);
+    }
+  }
+
+  private static List<String> findContentsOfDirectory(final String dir) throws IOException {
+    final List<String> contents = new ArrayList<>();
     try (final BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
@@ -783,10 +799,10 @@ final class EndToEndEngineTestUtil {
 
       String topology;
       while ((topology = reader.readLine()) != null) {
-          topologyFiles.add(topology);
+        contents.add(topology);
       }
     }
-    return topologyFiles;
+    return contents;
   }
 
   private static List<Path> findTests(final Path dir) {

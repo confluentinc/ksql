@@ -21,6 +21,7 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findExpectedTopologyDirectories;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 
@@ -84,9 +85,8 @@ import org.junit.runners.Parameterized;
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
-  private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
+  private static final String TOPOLOGY_CHECKS_DIR = "expected_topology/";
   private static final String TOPOLOGY_VERSIONS_DELIMITER = ",";
-  private static final String CURRENT_TOPOLOGY_VERSIONS = "5_0,5_1";
   private static final String TOPOLOGY_VERSIONS_PROP = "topology.versions";
 
   private final TestCase testCase;
@@ -107,27 +107,31 @@ public class QueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    final String[] topologyVersions =
-        System.getProperty(TOPOLOGY_VERSIONS_PROP, CURRENT_TOPOLOGY_VERSIONS)
-            .split(TOPOLOGY_VERSIONS_DELIMITER);
-    final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions(topologyVersions);
+    final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions();
     return buildTestCases()
           .flatMap(q -> buildVersionedTestCases(q, expectedTopologies))
           .map(testCase -> new Object[]{testCase.getName(), testCase})
           .collect(Collectors.toCollection(ArrayList::new));
   }
 
-  private static List<TopologiesAndVersion> loadTopologiesAndVersions(final String[] topologyVersions) {
-    return Stream.of(topologyVersions)
-        .map(topologyVersion -> {
-          final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
-          try {
-            return new TopologiesAndVersion(topologyVersion, loadExpectedTopologies(topologyDirectory));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        })
+  private static List<TopologiesAndVersion> loadTopologiesAndVersions() {
+    return Stream.of(getTopologyVersions())
+        .map(version ->
+            new TopologiesAndVersion(version, loadExpectedTopologies(TOPOLOGY_CHECKS_DIR + version)))
         .collect(Collectors.toList());
+  }
+
+  private static String[] getTopologyVersions() {
+    String[] topologyVersions;
+    final String topologyVersionsProp = System.getProperty(TOPOLOGY_VERSIONS_PROP);
+    if (topologyVersionsProp != null) {
+      topologyVersions = topologyVersionsProp.split(TOPOLOGY_VERSIONS_DELIMITER);
+    } else {
+      final List<String> topologyVersionsList = findExpectedTopologyDirectories(TOPOLOGY_CHECKS_DIR);
+      topologyVersions = new String[topologyVersionsList.size()];
+      topologyVersions = topologyVersionsList.toArray(topologyVersions);
+    }
+    return topologyVersions;
   }
 
   private static Stream<TestCase> buildVersionedTestCases(
@@ -140,8 +144,8 @@ public class QueryTranslationTest {
           topologies.getTopology(formatQueryName(testCase.getName()));
       // could be null if the testCase has expected errors, no topology or configs saved
       if (topologyAndConfigs != null) {
-        final TestCase versionedTestCase = TestCase.copyWithName(
-            testCase, testCase.getName() + "-" + topologies.getVersion());
+        final TestCase versionedTestCase = testCase.copyWithName(
+            testCase.getName() + "-" + topologies.getVersion());
         versionedTestCase.setExpectedTopology(topologyAndConfigs.topology);
         versionedTestCase.setPersistedProperties(topologyAndConfigs.configs);
         builder = builder.add(versionedTestCase);

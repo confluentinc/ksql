@@ -19,12 +19,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressFBWarnings("NP_BOOLEAN_RETURN_NULL")
 public class SearchedCaseFunctionTest {
 
   @Rule
@@ -58,7 +60,6 @@ public class SearchedCaseFunctionTest {
         SearchedCaseFunction.whenClause(() -> true, () -> 3),
         SearchedCaseFunction.whenClause(() -> true, () -> 4)
     );
-
 
     // When:
     final Integer result = SearchedCaseFunction.searchedCaseFunction(

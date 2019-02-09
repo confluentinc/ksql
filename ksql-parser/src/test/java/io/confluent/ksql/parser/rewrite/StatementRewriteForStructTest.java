@@ -20,7 +20,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -39,8 +39,6 @@ import org.junit.Test;
 
 public class StatementRewriteForStructTest {
 
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
-
   private MetaStore metaStore;
 
   @Before
@@ -51,7 +49,8 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldCreateCorrectFunctionCallExpression() {
     final String simpleQuery = "SELECT iteminfo->category->name, address->state FROM orders;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+        .getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
     assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
@@ -72,7 +71,8 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldNotCreateFunctionCallIfNotNeeded() {
     final String simpleQuery = "SELECT orderid FROM orders;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+        .getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
     assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(1));
@@ -87,7 +87,8 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscript() {
     final String simpleQuery = "SELECT arraycol[0]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+        .getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
     assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
@@ -108,7 +109,8 @@ public class StatementRewriteForStructTest {
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscriptWithExpressionIndex() {
     final String simpleQuery = "SELECT arraycol[CAST (item->id AS INTEGER)]->name as n0, mapcol['key']->name as n1 FROM nested_stream;";
-    final Statement statement = KSQL_PARSER.buildAst(simpleQuery, metaStore).get(0).getStatement();
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore)
+        .getStatement();
 
     final QuerySpecification querySpecification = getQuerySpecification(statement);
     assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
@@ -126,14 +128,6 @@ public class StatementRewriteForStructTest {
         equalTo("FETCH_FIELD_FROM_STRUCT(NESTED_STREAM.MAPCOL['key'], 'NAME')"));
   }
 
-  private QuerySpecification getQuerySpecification(final Statement statement) {
-    assertThat(statement, instanceOf(Query.class));
-    final Query query = (Query) statement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    return (QuerySpecification) query.getQueryBody();
-  }
-
-
   @Test
   public void shouldEnsureRewriteRequirementCorrectly() {
     assertThat("Query should be valid for rewrite for struct.", StatementRewriteForStruct.requiresRewrite(EasyMock.mock(Query.class)));
@@ -147,4 +141,10 @@ public class StatementRewriteForStructTest {
     assertThat("Incorrect rewrite requirement enforcement.", !StatementRewriteForStruct.requiresRewrite(EasyMock.mock(CreateTable.class)));
   }
 
+  private static QuerySpecification getQuerySpecification(final Statement statement) {
+    assertThat(statement, instanceOf(Query.class));
+    final Query query = (Query) statement;
+    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
+    return (QuerySpecification) query.getQueryBody();
+  }
 }

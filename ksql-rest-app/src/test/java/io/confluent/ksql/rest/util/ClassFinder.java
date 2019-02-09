@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -74,6 +75,7 @@ public final class ClassFinder {
     }
   }
 
+  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private static Class<?> parseClass(final String packageName, final Path path) {
     try {
       Objects.requireNonNull(path.getFileName(), "path must not be empty");

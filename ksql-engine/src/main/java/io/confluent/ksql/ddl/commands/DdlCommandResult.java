@@ -14,6 +14,10 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import java.util.Objects;
+import javax.annotation.concurrent.Immutable;
+
+@Immutable
 public class DdlCommandResult {
 
   private final boolean success;
@@ -21,7 +25,7 @@ public class DdlCommandResult {
 
   public DdlCommandResult(final boolean success, final String message) {
     this.success = success;
-    this.message = message;
+    this.message = Objects.requireNonNull(message, "message");
   }
 
   public boolean isSuccess() {

@@ -27,6 +27,8 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.util.ProcessingLogConfig;
+import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -74,6 +76,7 @@ public class StandaloneExecutor implements Executable {
           .build();
 
   private final ServiceContext serviceContext;
+  private final ProcessingLogConfig processingLogConfig;
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final String queriesFile;
@@ -85,6 +88,7 @@ public class StandaloneExecutor implements Executable {
 
   StandaloneExecutor(
       final ServiceContext serviceContext,
+      final ProcessingLogConfig processingLogConfig,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final String queriesFile,
@@ -93,6 +97,7 @@ public class StandaloneExecutor implements Executable {
       final VersionCheckerAgent versionCheckerAgent
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.processingLogConfig = Objects.requireNonNull(processingLogConfig, "processingLogConfig");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile");
@@ -105,6 +110,14 @@ public class StandaloneExecutor implements Executable {
   public void start() {
     try {
       udfLoader.load();
+      ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+          serviceContext.getTopicClient(),
+          processingLogConfig,
+          ksqlConfig);
+      if (processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
+        log.warn("processing log auto-create is enabled, but this is not supported "
+            + "for headless mode.");
+      }
       executeStatements(readQueriesFile(queriesFile));
       showWelcomeMessage();
       final Properties properties = new Properties();
@@ -193,6 +206,7 @@ public class StandaloneExecutor implements Executable {
 
   private void handlePersistentQuery(final PreparedStatement<?> statement) {
     final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, configProperties)
+        .getQuery()
         .filter(q -> q instanceof PersistentQueryMetadata)
         .orElseThrow((() -> new KsqlException("Could not build the query: "
             + statement.getStatementText())));

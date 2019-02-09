@@ -12,11 +12,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.exception;
+package io.confluent.ksql.json;
 
-public class KafkaTopicException extends KafkaTopicClientException {
-  public KafkaTopicException(final String message) {
-    super(message);
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+
+public enum JsonMapper {
+  INSTANCE;
+
+  public final ObjectMapper mapper =
+      new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+
+  JsonMapper() {
+    mapper.registerModule(new Jdk8Module());
+    mapper.registerModule(new StructSerializationModule());
   }
-
 }

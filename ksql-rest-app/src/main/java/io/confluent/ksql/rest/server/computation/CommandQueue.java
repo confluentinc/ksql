@@ -16,7 +16,6 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
@@ -37,6 +36,8 @@ public interface CommandQueue extends Closeable {
 
   void ensureConsumedPast(long seqNum, Duration timeout)
       throws InterruptedException, TimeoutException;
+
+  boolean isEmpty();
 
   @Override
   void close();

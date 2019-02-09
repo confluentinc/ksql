@@ -21,7 +21,6 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -257,6 +256,23 @@ public class CommandStoreTest {
     inOrder.verify(commandTopic).getNewCommands(any());
   }
 
+  @Test
+  public void shouldComputeNotEmptyCorrectly() {
+    // Given:
+    when(commandTopic.getEndOffset()).thenReturn(1L);
+
+    // When/Then:
+    assertThat(commandStore.isEmpty(), is(false));
+  }
+
+  @Test
+  public void shouldComputeEmptyCorrectly() {
+    // Given:
+    when(commandTopic.getEndOffset()).thenReturn(0L);
+
+    // When/Then:
+    assertThat(commandStore.isEmpty(), is(true));
+  }
 
   private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {
     assertThat(args.length % 2, equalTo(0));

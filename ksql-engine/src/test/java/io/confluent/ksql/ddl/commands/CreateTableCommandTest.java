@@ -14,10 +14,11 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import static org.easymock.MockType.NICE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,34 +33,42 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.KsqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class CreateTableCommandTest {
 
   @Mock
   private KafkaTopicClient topicClient;
-  @Mock(NICE)
+  @Mock
   private CreateTable createTableStatement;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
+  @Before
+  public void setUp() {
+    givenPropertiesWith((Collections.emptyMap()));
+    when(createTableStatement.getName()).thenReturn(QualifiedName.of("name"));
+    when(createTableStatement.getElements()).thenReturn(ImmutableList.of(
+        new TableElement("SOME-KEY", new PrimitiveType(KsqlType.STRING))
+    ));
+    when(topicClient.isTopicExists(any())).thenReturn(true);
+  }
+
   @Test
   public void shouldDefaultToStringKeySerde() {
-    // Given:
-    givenProperties(propsWith(ImmutableMap.of()));
-
     // When:
     final CreateTableCommand cmd = createCmd();
 
@@ -70,8 +79,8 @@ public class CreateTableCommandTest {
   @Test
   public void shouldExtractSessionWindowType() {
     // Given:
-    givenProperties(propsWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion"))));
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("SeSSion")));
 
     // When:
     final CreateTableCommand cmd = createCmd();
@@ -84,8 +93,8 @@ public class CreateTableCommandTest {
   @Test
   public void shouldExtractHoppingWindowType() {
     // Given:
-    givenProperties(propsWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing"))));
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("HoPPing")));
 
     // When:
     final CreateTableCommand cmd = createCmd();
@@ -98,8 +107,8 @@ public class CreateTableCommandTest {
   @Test
   public void shouldExtractTumblingWindowType() {
     // Given:
-    givenProperties(propsWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling"))));
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Tumbling")));
 
     // When:
     final CreateTableCommand cmd = createCmd();
@@ -112,12 +121,13 @@ public class CreateTableCommandTest {
   @Test
   public void shouldThrowOnUnknownWindowType() {
     // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Unknown")));
+
+    // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("WINDOW_TYPE property is not set correctly. "
         + "value: UNKNOWN, validValues: [SESSION, TUMBLING, HOPPING]");
-
-    givenProperties(propsWith(ImmutableMap.of(
-        DdlConfig.WINDOW_TYPE_PROPERTY, new StringLiteral("Unknown"))));
 
     // When:
     createCmd();
@@ -126,12 +136,27 @@ public class CreateTableCommandTest {
   @Test
   public void shouldThrowOnOldWindowProperty() {
     // Given:
+    givenPropertiesWith(ImmutableMap.of(
+        "WINDOWED", new BooleanLiteral("true")));
+
+    // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Invalid config variable in the WITH clause: WINDOWED");
 
-    givenProperties(propsWith(ImmutableMap.of(
-        "WINDOWED", new BooleanLiteral("true"))));
+    // When:
+    createCmd();
+  }
+
+  @Test
+  public void shouldThrowIfTopicDoesNotExist() {
+    // Given:
+    when(topicClient.isTopicExists(any())).thenReturn(false);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Kafka topic does not exist: some-topic");
 
     // When:
     createCmd();
@@ -141,20 +166,11 @@ public class CreateTableCommandTest {
     return new CreateTableCommand("some sql", createTableStatement, topicClient);
   }
 
-  private static Map<String, Expression> propsWith(final Map<String, Expression> props) {
-    Map<String, Expression> valid = new HashMap<>(props);
-    valid.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
-    valid.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
-    valid.putIfAbsent(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("some-key"));
-    return valid;
-  }
-
-  private void givenProperties(final Map<String, Expression> props) {
-    EasyMock.expect(createTableStatement.getProperties()).andReturn(props).anyTimes();
-    EasyMock.expect(createTableStatement.getName()).andReturn(QualifiedName.of("name")).anyTimes();
-    EasyMock.expect(createTableStatement.getElements()).andReturn(ImmutableList.of(
-        new TableElement("SOME-KEY", new PrimitiveType(KsqlType.STRING))
-    ));
-    EasyMock.replay(createTableStatement);
+  private void givenPropertiesWith(final Map<String, Expression> props) {
+    final Map<String, Expression> allProps = new HashMap<>(props);
+    allProps.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
+    allProps.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));
+    allProps.putIfAbsent(DdlConfig.KEY_NAME_PROPERTY, new StringLiteral("some-key"));
+    when(createTableStatement.getProperties()).thenReturn(allProps);
   }
 }

@@ -291,14 +291,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   private static List<ParsedStatement> parseStatements(final String sql) {
-    try {
-      return new DefaultKsqlParser().parse(sql);
-    } catch (final KsqlException e) {
-      throw e;
-    } catch (final Exception e) {
-      throw new KsqlStatementException(
-          "Exception while parsing sql: " + e.getMessage(), sql, e);
-    }
+    return new DefaultKsqlParser().parse(sql);
   }
 
   private static PreparedStatement<?> prepareStatement(

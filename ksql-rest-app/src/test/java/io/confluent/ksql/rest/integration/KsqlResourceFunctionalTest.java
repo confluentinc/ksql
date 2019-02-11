@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.integration;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -82,7 +82,6 @@ public class KsqlResourceFunctionalTest {
   public void setUp() {
     restClient = REST_APP.buildKsqlClient();
 
-
     source = KsqlIdentifierTestUtil.uniqueIdentifierName("source");
 
     createStreams(source);
@@ -110,9 +109,7 @@ public class KsqlResourceFunctionalTest {
         instanceOf(CommandStatusEntity.class)
     ));
 
-    results.stream()
-        .map(CommandStatusEntity.class::cast)
-        .forEach(cse -> assertThat(cse.getCommandStatus().getStatus(), not(Status.ERROR)));
+    assertSuccessful(results);
 
     assertThat(REST_APP.getPersistentQueries(), hasItems(
         startsWith("CSAS_S_"),
@@ -151,12 +148,17 @@ public class KsqlResourceFunctionalTest {
         instanceOf(CommandStatusEntity.class)
     ));
 
+    assertSuccessful(results);
+  }
+
+  private static void assertSuccessful(final List<KsqlEntity> results) {
     results.stream()
+        .filter(e -> e instanceof CommandStatusEntity)
         .map(CommandStatusEntity.class::cast)
         .forEach(r -> assertThat(
             r.getStatementText() + " : " + r.getCommandStatus().getMessage(),
             r.getCommandStatus().getStatus(),
-            not(Status.ERROR)));
+            is(Status.SUCCESS)));
   }
 
   private static List<KsqlEntity> awaitResults(final List<KsqlEntity> pending) {

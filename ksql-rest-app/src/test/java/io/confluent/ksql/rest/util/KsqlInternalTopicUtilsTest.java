@@ -16,8 +16,11 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import org.apache.kafka.common.config.TopicConfig;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 public class KsqlInternalTopicUtilsTest {
   private static final String TOPIC_NAME = "topic";
@@ -31,6 +34,9 @@ public class KsqlInternalTopicUtilsTest {
   private KafkaTopicClient topicClient;
   @Mock
   private KsqlConfig ksqlConfig;
+
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void setUp() {
@@ -74,7 +80,7 @@ public class KsqlInternalTopicUtilsTest {
     KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
 
     // Then:
-    verify(topicClient.addTopicConfig(TOPIC_NAME, retentionConfig));
+    verify(topicClient).addTopicConfig(TOPIC_NAME, retentionConfig);
   }
 
   @SuppressWarnings("unchecked")

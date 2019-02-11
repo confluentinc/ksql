@@ -129,6 +129,10 @@ public class KsqlRestClient implements Closeable {
     return getRequest("/info", ServerInfo.class);
   }
 
+  public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
+    return makeKsqlRequest(ksql, null);
+  }
+
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql, final Long commandSeqNum) {
     final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
     return postRequest("ksql", jsonRequest, Optional.empty(), true,

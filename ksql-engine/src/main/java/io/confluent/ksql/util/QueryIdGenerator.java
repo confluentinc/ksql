@@ -18,12 +18,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class QueryIdGenerator {
 
-  private final AtomicLong queryIdCounter = new AtomicLong(0);
+  private final AtomicLong queryIdCounter;
 
-  public QueryIdGenerator() {
+  public QueryIdGenerator(final long initialValue) {
+    this.queryIdCounter = new AtomicLong(initialValue);
   }
 
   public String getNextId() {
     return String.valueOf(queryIdCounter.getAndIncrement());
+  }
+
+  public long peek() {
+    return queryIdCounter.get();
   }
 }

@@ -58,11 +58,12 @@ class QueryEngine {
 
   QueryEngine(
       final ServiceContext serviceContext,
+      final QueryIdGenerator queryIdGenerator,
       final Consumer<QueryMetadata> queryCloseCallback
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
-    this.queryIdGenerator = new QueryIdGenerator();
+    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
   @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.

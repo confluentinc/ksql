@@ -31,7 +31,7 @@ public class QueryIdGeneratorTest {
 
   @Before
   public void setUp() {
-    generator = new QueryIdGenerator();
+    generator = new QueryIdGenerator(0L);
   }
 
   @Test
@@ -39,6 +39,27 @@ public class QueryIdGeneratorTest {
     assertThat(generator.getNextId(), is("0"));
     assertThat(generator.getNextId(), is("1"));
     assertThat(generator.getNextId(), is("2"));
+  }
+
+  @Test
+  public void shouldPeek() {
+    assertThat(generator.peek(), is(0L));
+    generator.getNextId();
+    assertThat(generator.peek(), is(1L));
+  }
+
+  @Test
+  public void shouldNotIncrementOnPeek() {
+    // When:
+    generator.peek();
+
+    // Then:
+    assertThat(generator.getNextId(), is("0"));
+  }
+
+  @Test
+  public void shouldInitalizeOfPassedValue() {
+    assertThat( new QueryIdGenerator(10L).getNextId(), is("10"));
   }
 
   @Test

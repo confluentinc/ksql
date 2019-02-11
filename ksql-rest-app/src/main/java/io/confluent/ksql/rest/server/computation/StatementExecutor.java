@@ -19,6 +19,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -233,9 +234,10 @@ public class StatementExecutor {
 
       final KsqlConfig mergedConfig = buildMergedConfig(command);
 
-      final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(queries);
+      final List<ParsedStatement> statements = ksqlEngine.parse(queries);
 
       final List<QueryMetadata> queryMetadataList = statements.stream()
+          .map(ksqlEngine::prepare)
           .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
           .map(ExecuteResult::getQuery)
           .filter(Optional::isPresent)

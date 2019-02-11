@@ -17,7 +17,7 @@ package io.confluent.ksql;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -85,13 +85,15 @@ public class KsqlContext {
   }
 
   public List<QueryMetadata> sql(final String sql, final Map<String, Object> overriddenProperties) {
-    final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(sql);
+    final List<ParsedStatement> statements = ksqlEngine.parse(sql);
 
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox();
-    statements.forEach(stmt -> sandbox.execute(stmt, ksqlConfig, overriddenProperties));
+
+    statements.forEach(stmt ->
+        sandbox.execute(sandbox.prepare(stmt), ksqlConfig, overriddenProperties));
 
     final List<QueryMetadata> queries = statements.stream()
-        .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
+        .map(stmt -> ksqlEngine.execute(ksqlEngine.prepare(stmt), ksqlConfig, overriddenProperties))
         .map(ExecuteResult::getQuery)
         .filter(Optional::isPresent)
         .map(Optional::get)

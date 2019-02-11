@@ -135,11 +135,10 @@ public class CreateStreamCommandTest {
   }
 
   private CreateStreamCommand createCmd() {
-    return new CreateStreamCommand("some sql", createStreamStatement,
-        topicClient, false);
+    return new CreateStreamCommand("some sql", createStreamStatement, topicClient);
   }
 
-  private Map<String, Expression> propsWith(final Map<String, Expression> props) {
+  private static Map<String, Expression> propsWith(final Map<String, Expression> props) {
     Map<String, Expression> valid = new HashMap<>(props);
     valid.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     valid.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));

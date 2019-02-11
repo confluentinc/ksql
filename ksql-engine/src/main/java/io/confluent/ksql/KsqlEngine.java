@@ -360,8 +360,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final DdlCommand command = createDdlCommand(
           sqlExpression,
           statement,
-          overriddenProperties,
-          true);
+          overriddenProperties
+      );
 
       final DdlCommandResult result = ddlCommandExec.execute(command);
 
@@ -375,8 +375,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private DdlCommand createDdlCommand(
         final String sqlExpression,
         final ExecutableDdlStatement statement,
-        final Map<String, Object> overriddenProperties,
-        final boolean enforceTopicExistence
+        final Map<String, Object> overriddenProperties
     ) {
       final String resultingSqlExpression;
       final ExecutableDdlStatement resultingStatement;
@@ -402,7 +401,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       }
 
       return ddlCommandFactory.create(
-          resultingSqlExpression, resultingStatement, overriddenProperties, enforceTopicExistence);
+          resultingSqlExpression, resultingStatement, overriddenProperties);
     }
 
     private PreparedStatement<AbstractStreamCreateStatement> maybeAddFieldsFromSchemaRegistry(

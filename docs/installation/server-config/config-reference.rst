@@ -195,6 +195,22 @@ bind to the default interface. For example:
     # Bind only to localhost.
     listeners=http://localhost:8088
 
+.. _ksql-c3-settings:
+
+|c3| Settings
+-------------
+
+You can access KSQL Server by using |c3|. For more information, see
+:ref:`controlcenter_ksql_settings`.
+
+.. _ksql-cloud-settings:
+
+|ccloud| Settings
+-----------------
+
+You can connect KSQL Server to |ccloud|. For more information, see
+:ref:`install_ksql-ccloud`.
+
 .. _ksql-production-settings:
 
 Recommended KSQL Production Settings

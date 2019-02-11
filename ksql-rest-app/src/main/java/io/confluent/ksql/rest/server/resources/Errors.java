@@ -31,13 +31,16 @@ public final class Errors {
 
   static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
   static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
-  static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
+  private static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
 
   public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
 
   public static final int ERROR_CODE_FORBIDDEN = toErrorCode(FORBIDDEN.getStatusCode());
 
   static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
+
+  static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
+      toErrorCode(SERVICE_UNAVAILABLE.getStatusCode());
 
   public static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 1;
@@ -128,10 +131,22 @@ public final class Errors {
         .build();
   }
 
-  public static Response commandQueueCatchUpTimeout(final String msg) {
+  public static Response commandQueueCatchUpTimeout(final long cmdSeqNum) {
+    final String errorMsg = "Timed out while waiting for a previous command to execute. "
+        + "command sequence number: " + cmdSeqNum;
+
     return Response
         .status(SERVICE_UNAVAILABLE)
-        .entity(new KsqlErrorMessage(ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT, msg))
+        .entity(new KsqlErrorMessage(ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT, errorMsg))
+        .build();
+  }
+
+  static Response serverShuttingDown() {
+    return Response
+        .status(SERVICE_UNAVAILABLE)
+        .entity(new KsqlErrorMessage(
+            ERROR_CODE_SERVER_SHUTTING_DOWN,
+            "The server is shutting down"))
         .build();
   }
 }

@@ -49,7 +49,7 @@ public class CommandStatusEntity extends KsqlEntity {
     return commandStatus;
   }
 
-  public Long getCommandSequenceNumber() {
+  public long getCommandSequenceNumber() {
     return commandSequenceNumber;
   }
 

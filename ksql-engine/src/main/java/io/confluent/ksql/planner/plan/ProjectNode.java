@@ -28,7 +28,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
@@ -104,14 +103,12 @@ public class ProjectNode
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
       final QueryId queryId) {
     return getSource().buildStream(
         builder,
         ksqlConfig,
         serviceContext, 
         functionRegistry,
-        props,
         queryId
     ).select(
         getProjectSelectExpressions(),

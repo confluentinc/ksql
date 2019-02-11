@@ -36,7 +36,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -61,7 +60,6 @@ public class ProjectNodeTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final ServiceContext serviceContext = TestServiceContext.create();
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final HashMap<String, Object> props = new HashMap<>();
   private final QueryId queryId = new QueryId("project-test");
 
   @Rule
@@ -99,7 +97,6 @@ public class ProjectNodeTest {
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props,
         queryId);
   }
 
@@ -119,7 +116,6 @@ public class ProjectNodeTest {
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props,
         queryId);
 
     // Then:
@@ -134,7 +130,6 @@ public class ProjectNodeTest {
         same(ksqlConfig),
         same(serviceContext),
         same(functionRegistry),
-        same(props),
         same(queryId)
     );
   }
@@ -148,7 +143,6 @@ public class ProjectNodeTest {
         any(KsqlConfig.class),
         any(ServiceContext.class),
         any(InternalFunctionRegistry.class),
-        anyMap(),
         same(queryId))
     ).thenReturn(stream);
   }

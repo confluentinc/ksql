@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore.KsqlProperties;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -189,6 +190,7 @@ public class KafkaConfigStoreTest {
   }
 
   @Test
+  @SuppressFBWarnings("DM_DEFAULT_ENCODING")
   public void shouldDeserializeMissingContentsToNull() {
     // When:
     final Deserializer<KafkaConfigStore.KsqlProperties> deserializer

@@ -1,12 +1,12 @@
 Changelog
 =========
 
-Upcoming release
-----------------
-
 Version 5.2.0
 -------------
 
+KSQL 5.2 includes new features, including:
+
+KSQL 5.2 includes bug fixes, including:
 
 Version 5.1.0
 -------------

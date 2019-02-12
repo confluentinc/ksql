@@ -18,6 +18,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -43,11 +44,13 @@ public class KsqlContext {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
 
-  public static KsqlContext create(final KsqlConfig ksqlConfig) {
+  public static KsqlContext create(
+      final KsqlConfig ksqlConfig,
+      final ProcessingLogContext processingLogContext) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final KsqlEngine engine = new KsqlEngine(serviceContext, serviceId);
+    final KsqlEngine engine = new KsqlEngine(serviceContext, processingLogContext, serviceId);
     return new KsqlContext(serviceContext, ksqlConfig, engine);
   }
 

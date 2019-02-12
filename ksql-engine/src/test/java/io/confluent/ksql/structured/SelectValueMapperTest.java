@@ -28,6 +28,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -59,6 +60,8 @@ public class SelectValueMapperTest {
 
   @Mock
   private StructuredLogger processingLogger;
+
+  private ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -144,7 +147,11 @@ public class SelectValueMapperTest {
     final List<String> selectFieldNames = selectExpressions.stream()
         .map(SelectExpression::getName)
         .collect(Collectors.toList());
-    return new SelectValueMapper(selectFieldNames, metadata, processingLogger);
+    return new SelectValueMapper(
+        selectFieldNames,
+        metadata,
+        processingLogger,
+        processingLogContext);
   }
 
   private List<ExpressionMetadata> createExpressionMetadata(

@@ -15,9 +15,7 @@
 package io.confluent.ksql.processing.log;
 
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
@@ -25,23 +23,6 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 
 public class ProcessingLogConfig extends AbstractConfig {
   private static final String PROPERTY_PREFIX = "processing.log.";
-
-  private static ProcessingLogConfig INSTANCE = null;
-
-  public static void configure(final Map<?, ?> properties) {
-    Objects.requireNonNull(properties);
-    if (INSTANCE != null) {
-      throw new IllegalStateException("ProcessingLogConfig instance already set");
-    }
-    INSTANCE = new ProcessingLogConfig(properties);
-  }
-
-  public static ProcessingLogConfig getInstance() {
-    if (INSTANCE == null) {
-      return new ProcessingLogConfig(Collections.emptyMap());
-    }
-    return INSTANCE;
-  }
 
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;

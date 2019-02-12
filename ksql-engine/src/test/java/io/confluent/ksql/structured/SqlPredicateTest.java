@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.KsqlConfig;
@@ -58,6 +59,7 @@ public class SqlPredicateTest {
 
   private MetaStore metaStore;
   private InternalFunctionRegistry functionRegistry;
+  private ProcessingLogContext processingLogContext;
 
   @Mock
   private StructuredLogger processingLogger;
@@ -69,6 +71,7 @@ public class SqlPredicateTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     functionRegistry = new InternalFunctionRegistry();
+    processingLogContext = ProcessingLogContext.create();
   }
 
   private PlanNode buildLogicalPlan(final String queryStr) {
@@ -162,6 +165,7 @@ public class SqlPredicateTest {
         false,
         ksqlConfig,
         functionRegistry,
-        processingLogger);
+        processingLogger,
+        processingLogContext);
   }
 }

@@ -31,6 +31,7 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -53,14 +54,19 @@ class QueryEngine {
   private static final Logger LOG = LoggerFactory.getLogger(QueryEngine.class);
 
   private final ServiceContext serviceContext;
+  private final ProcessingLogContext processingLogContext;
   private final Consumer<QueryMetadata> queryCloseCallback;
   private final QueryIdGenerator queryIdGenerator;
 
   QueryEngine(
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final Consumer<QueryMetadata> queryCloseCallback
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.processingLogContext = Objects.requireNonNull(
+        processingLogContext,
+        "processingLogContext");
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
     this.queryIdGenerator = new QueryIdGenerator();
   }
@@ -102,6 +108,7 @@ class QueryEngine {
         builder,
         ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
         serviceContext,
+        processingLogContext,
         metaStore,
         overriddenProperties,
         metaStore,

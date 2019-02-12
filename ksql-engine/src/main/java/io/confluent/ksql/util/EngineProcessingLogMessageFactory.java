@@ -34,17 +34,6 @@ public final class EngineProcessingLogMessageFactory {
 
   public static Supplier<SchemaAndValue> recordProcessingError(
       final String errorMsg,
-      final GenericRow record
-  ) {
-    return recordProcessingError(
-        errorMsg,
-        record,
-        ProcessingLogConfig.getInstance()
-    );
-  }
-
-  static Supplier<SchemaAndValue> recordProcessingError(
-      final String errorMsg,
       final GenericRow record,
       final ProcessingLogConfig config
   ) {

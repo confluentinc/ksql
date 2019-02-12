@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.processing.log.ProcessingLogConfig;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.SerdeTestUtils;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
@@ -58,6 +59,8 @@ public class KsqlConnectDeserializerTest {
   @Mock
   private GenericRow genericRow;
 
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+
   private KsqlConnectDeserializer connectDeserializer;
 
   @Rule
@@ -68,7 +71,8 @@ public class KsqlConnectDeserializerTest {
     connectDeserializer = new KsqlConnectDeserializer(
         converter,
         dataTranslator,
-        recordLogger
+        recordLogger,
+        processingLogContext
     );
     when(converter.toConnectData(any(), any())).thenReturn(new SchemaAndValue(schema, value));
     when(dataTranslator.toKsqlRow(any(), any())).thenReturn(genericRow);
@@ -101,7 +105,10 @@ public class KsqlConnectDeserializerTest {
    }
     SerdeTestUtils.shouldLogError(
         recordLogger,
-        SerdeProcessingLogMessageFactory.deserializationErrorMsg(error, Optional.ofNullable(BYTES)).get()
+        SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+            error,
+            Optional.ofNullable(BYTES),
+            processingLogContext.getConfig()).get()
     );
   }
 }

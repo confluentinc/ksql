@@ -23,7 +23,7 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
@@ -76,7 +76,8 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
       final KsqlConfig ksqlConfig,
       final boolean isInternal,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final String loggerNamePrefix) {
+      final String loggerNamePrefix,
+      final ProcessingLogContext processingLogContext) {
     final Schema schema = isInternal
         ? schemaMaybeWithSource : SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource);
     final Serializer<GenericRow> genericRowSerializer = new ThreadLocalSerializer(
@@ -87,8 +88,9 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
         () -> new KsqlConnectDeserializer(
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig),
             new AvroDataTranslator(schema, this.fullSchemaName),
-            ProcessingLoggerFactory.getLogger(
-                join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
+            processingLogContext.getLoggerFactory().getLogger(
+                join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME)),
+            processingLogContext
         )
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

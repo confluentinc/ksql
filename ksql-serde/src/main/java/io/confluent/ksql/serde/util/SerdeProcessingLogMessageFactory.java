@@ -30,16 +30,6 @@ public final class SerdeProcessingLogMessageFactory {
 
   public static Supplier<SchemaAndValue> deserializationErrorMsg(
       final Throwable exception,
-      final Optional<byte[]> record) {
-    return deserializationErrorMsg(
-        exception,
-        record,
-        ProcessingLogConfig.getInstance()
-    );
-  }
-
-  static Supplier<SchemaAndValue> deserializationErrorMsg(
-      final Throwable exception,
       final Optional<byte[]> record,
       final ProcessingLogConfig config) {
     Objects.requireNonNull(exception);

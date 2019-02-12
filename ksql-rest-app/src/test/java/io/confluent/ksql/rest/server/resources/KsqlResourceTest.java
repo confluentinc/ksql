@@ -1306,6 +1306,20 @@ public class KsqlResourceTest {
     ksqlResource.terminateCluster(request);
   }
 
+  @Test
+  public void shouldRejectRunScriptStatements() {
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(containsString(
+        "RUN SCRIPT is no longer supported"))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+        "RUN SCRIPT '/some/script.sql';"))));
+
+    // When:
+    makeRequest("RUN SCRIPT '/some/script.sql';");
+  }
+
   private Answer executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, Collections.emptyMap());

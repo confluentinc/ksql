@@ -6,6 +6,22 @@ Upgrading KSQL
 Upgrade one KSQL server at a time (i.e. rolling restart). The remaining KSQL servers should have sufficient spare
 capacity to take over temporarily for unavailable, restarting servers.
 
+Upgrading from KSQL 5.1 to KSQL 5.2
+-----------------------------------
+
+ Notable changes in 5.2:
+
+* KSQL Server
+
+    * Interactive mode:
+
+        * The Rest API no longer supports the ``RUN SCRIPT`` statement,
+          (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
+          Support was dropped as it circumnavigated certain sanity checks.
+          Instead, please include the contents of the script in the main body of your request.
+          Note: there is no change to the CLI, which continues to support ``RUN SCRIPT``.
+
+
 
 Upgrading from KSQL 0.x (Developer Preview) to KSQL 4.1
 -------------------------------------------------------

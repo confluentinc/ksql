@@ -762,6 +762,7 @@ public class KsqlResource {
         });
   }
 
+  @SuppressWarnings("deprecation")
   private static final class RequestValidator {
 
     @FunctionalInterface
@@ -784,6 +785,8 @@ public class KsqlResource {
                 castValidator(RequestValidator::validateShowColumns, ShowColumns.class))
             .put(Explain.class,
                 castValidator(RequestValidator::validateExplain, Explain.class))
+            .put(RunScript.class,
+                castValidator(RequestValidator::rejectRunScript, RunScript.class))
             .put(DescribeFunction.class,
                 castValidator(RequestValidator::validateDescribeFunction, DescribeFunction.class))
             .build();
@@ -898,6 +901,20 @@ public class KsqlResource {
       } else {
         explainQuery(queryId, executionSandbox);
       }
+    }
+
+    /**
+     * @deprecated deprecate since 5.2. `RUN SCRIPT` will be removed from syntax in later release.
+     */
+    @SuppressWarnings({"MethodMayBeStatic", "DeprecatedIsStillUsed"})
+    private void rejectRunScript(final PreparedStatement<RunScript> statement) {
+      throw new KsqlRestException(Errors.badStatement(
+          "RUN SCRIPT is no longer supported by the REST API."
+              + System.lineSeparator()
+              + "The REST API does support multi-line requests:"
+              + "Please resend the request with the script contents in the body of the request.",
+          statement.getStatementText()
+      ));
     }
 
     private void validateDescribeFunction(final PreparedStatement<DescribeFunction> statement) {

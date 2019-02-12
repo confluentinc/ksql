@@ -29,7 +29,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -106,17 +106,17 @@ public class RecoveryTest {
 
     @Override
     public QueuedCommandStatus enqueueCommand(
-        final String statementString,
-        final Statement statement,
+        final PreparedStatement<?> statement,
         final KsqlConfig ksqlConfig,
-        final Map<String, Object> overwriteProperties) {
-      final CommandId commandId = commandIdAssigner.getCommandId(statement);
+        final Map<String, Object> overwriteProperties
+    ) {
+      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
           new QueuedCommand(
               commandId,
               new Command(
-                  statementString,
+                  statement.getStatementText(),
                   Collections.emptyMap(),
                   ksqlConfig.getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));

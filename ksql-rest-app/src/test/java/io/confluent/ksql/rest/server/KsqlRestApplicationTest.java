@@ -21,13 +21,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -111,7 +109,7 @@ public class KsqlRestApplicationTest {
         .thenReturn(LOG_TOPIC_NAME);
     when(ksqlEngine.createSandbox()).thenReturn(sandBox);
     when(commandQueue.isEmpty()).thenReturn(true);
-    when(commandQueue.enqueueCommand(any(), any(), any(), any()))
+    when(commandQueue.enqueueCommand(any(), any(), any()))
         .thenReturn(queuedCommandStatus);
     when(serviceContext.getAdminClient())
         .thenReturn(new FakeKafkaClientSupplier().getAdminClient(Collections.emptyMap()));
@@ -239,20 +237,13 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(commandQueue).isEmpty();
-    final PreparedStatement<AbstractStreamCreateStatement> statement =
+    final PreparedStatement<?> statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             processingLogConfig,
             ksqlConfig
         );
-    verify(sandBox).execute(
-        statement,
-        ksqlConfig,
-        Collections.emptyMap());
-    verify(commandQueue).enqueueCommand(
-        statement.getStatementText(),
-        statement.getStatement(),
-        ksqlConfig,
-        Collections.emptyMap());
+    verify(sandBox).execute(statement, ksqlConfig, Collections.emptyMap());
+    verify(commandQueue).enqueueCommand(statement, ksqlConfig, Collections.emptyMap());
   }
 
   @Test
@@ -287,7 +278,7 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(), any(), any());
+    verify(commandQueue, never()).enqueueCommand(any(), any(), any());
   }
 
   @Test
@@ -304,6 +295,6 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(), any(), any());
+    verify(commandQueue, never()).enqueueCommand(any(), any(), any());
   }
 }

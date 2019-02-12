@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.parser.ParserMatchers.PreparedMatchers.preparedStatement;
+import static io.confluent.ksql.parser.ParserMatchers.PreparedMatchers.preparedStatementText;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
@@ -44,7 +46,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -52,6 +53,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -67,7 +69,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -218,7 +219,7 @@ public class KsqlResourceTest {
 
     setUpKsqlResource();
 
-    when(commandStore.enqueueCommand(any(), any(), any(), any()))
+    when(commandStore.enqueueCommand(any(), any(), any()))
         .thenReturn(commandStatus)
         .thenReturn(commandStatus1)
         .thenReturn(commandStatus2);
@@ -515,7 +516,9 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S AS SELECT * FROM test_stream;"), isA(CreateStreamAsSelect.class),
+        argThat(is(preparedStatement(
+            "CREATE STREAM S AS SELECT * FROM test_stream;",
+            CreateStreamAsSelect.class))),
         any(), any());
   }
 
@@ -525,8 +528,8 @@ public class KsqlResourceTest {
     makeSingleRequest(VALID_EXECUTABLE_REQUEST, KsqlEntity.class);
 
     // Then:
-    verify(commandStore).enqueueCommand(any(), any(),
-        eq(ksqlConfig), eq(VALID_EXECUTABLE_REQUEST.getStreamsProperties()));
+    verify(commandStore).enqueueCommand(
+        any(), eq(ksqlConfig), eq(VALID_EXECUTABLE_REQUEST.getStreamsProperties()));
   }
 
   @Test
@@ -592,8 +595,10 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');"),
-        isA(CreateStream.class), any(), any());
+        argThat(is(preparedStatement(
+            "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
+            CreateStream.class)
+        )), any(), any());
   }
 
   @Test
@@ -611,7 +616,8 @@ public class KsqlResourceTest {
             "WITH (KAFKA_TOPIC='orders-topic', VALUE_FORMAT='avro', " +
             "AVRO_SCHEMA_ID='1', KEY='orderid');";
 
-    verify(commandStore).enqueueCommand(eq(ksqlWithSchema), any(), any(), any());
+    verify(commandStore)
+        .enqueueCommand(argThat(is(preparedStatementText(ksqlWithSchema))), any(), any());
   }
 
   @Test
@@ -659,9 +665,14 @@ public class KsqlResourceTest {
     // Then:
     final InOrder inOrder = inOrder(commandStore);
     inOrder.verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S AS SELECT * FROM test_stream;"), any(), any(), any());
+        argThat(is(preparedStatementText("CREATE STREAM S AS SELECT * FROM test_stream;"))),
+        any(),
+        any());
+
     inOrder.verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S2 AS SELECT * FROM S;"), any(), any(), any());
+        argThat(is(preparedStatementText("CREATE STREAM S2 AS SELECT * FROM S;"))),
+        any(),
+        any());
   }
 
   @Test
@@ -770,7 +781,7 @@ public class KsqlResourceTest {
     );
 
     // Then:
-    verify(commandStore, never()).enqueueCommand(any(), any(), any(), any());
+    verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 
   @Test
@@ -786,7 +797,12 @@ public class KsqlResourceTest {
     final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);
 
     // Then:
-    verify(commandStore).enqueueCommand(eq(terminateSql), isA(TerminateQuery.class), any(), any());
+    verify(commandStore)
+        .enqueueCommand(
+            argThat(is(preparedStatement(terminateSql, TerminateQuery.class))),
+            any(),
+            any());
+
     assertThat(result.getStatementText(), is(terminateSql));
   }
 
@@ -806,7 +822,9 @@ public class KsqlResourceTest {
     final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);
 
     // Then:
-    verify(commandStore).enqueueCommand(eq(terminateSql), isA(TerminateQuery.class), any(), any());
+    verify(commandStore).enqueueCommand(
+        argThat(is(preparedStatement(terminateSql, TerminateQuery.class))), any(), any());
+
     assertThat(result.getStatementText(), is(terminateSql));
   }
 
@@ -922,7 +940,9 @@ public class KsqlResourceTest {
         CommandStatusEntity.class);
 
     // Then:
-    verify(commandStore).enqueueCommand(eq(csas), any(), any(),
+    verify(commandStore).enqueueCommand(
+        argThat(is(preparedStatementText(csas))),
+        any(),
         eq(ImmutableMap.of(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2")));
 
     assertThat(results, hasSize(1));
@@ -972,7 +992,10 @@ public class KsqlResourceTest {
         CommandStatusEntity.class);
 
     // Then:
-    verify(commandStore).enqueueCommand(eq(csas), any(), any(), eq(Collections.emptyMap()));
+    verify(commandStore).enqueueCommand(
+        argThat(is(preparedStatementText(csas))),
+        any(),
+        eq(Collections.emptyMap()));
 
     assertThat(result.getStatementText(), is(csas));
   }
@@ -1002,7 +1025,10 @@ public class KsqlResourceTest {
     makeSingleRequest(csas, KsqlEntity.class);
 
     // Then:
-    verify(commandStore).enqueueCommand(eq(csas), any(), any(), eq(Collections.emptyMap()));
+    verify(commandStore).enqueueCommand(
+        argThat(is(preparedStatementText(csas))),
+        any(),
+        eq(Collections.emptyMap()));
   }
 
   @Test
@@ -1048,7 +1074,7 @@ public class KsqlResourceTest {
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
 
-    verify(commandStore, never()).enqueueCommand(any(), any(), any(), any());
+    verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 
   @Test
@@ -1271,7 +1297,7 @@ public class KsqlResourceTest {
     assertThat(commandStatusEntity.getCommandStatus().getStatus(),
         equalTo(CommandStatus.Status.QUEUED));
     verify(commandStore).enqueueCommand(
-        eq(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT), isA(Statement.class),
+        argThat(is(preparedStatementText(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT))),
         any(),
         eq(Collections.singletonMap(
             ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, ImmutableList.of("Foo"))));
@@ -1280,7 +1306,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailIfCannotWriteTerminateCommand() {
     // Given:
-    when(commandStore.enqueueCommand(any(), any(), any(), any())).thenThrow(new KsqlException(""));
+    when(commandStore.enqueueCommand(any(), any(), any())).thenThrow(new KsqlException(""));
 
     // When:
     final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);

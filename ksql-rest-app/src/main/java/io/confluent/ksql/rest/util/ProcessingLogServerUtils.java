@@ -81,19 +81,20 @@ public final class ProcessingLogServerUtils {
     }
   }
 
-  public static PreparedStatement<AbstractStreamCreateStatement> processingLogStreamCreateStatement(
+  public static PreparedStatement<?> processingLogStreamCreateStatement(
       final ProcessingLogConfig config,
-      final KsqlConfig ksqlConfig) {
+      final KsqlConfig ksqlConfig
+  ) {
     return processingLogStreamCreateStatement(
         config.getString(ProcessingLogConfig.STREAM_NAME),
         getTopicName(config, ksqlConfig)
     );
   }
 
-  private static
-  PreparedStatement<AbstractStreamCreateStatement> processingLogStreamCreateStatement(
+  private static PreparedStatement<?> processingLogStreamCreateStatement(
       final String name,
-      final String topicName) {
+      final String topicName
+  ) {
     final Schema schema = getMessageSchema();
     final String statementNoSchema =
         String.format(

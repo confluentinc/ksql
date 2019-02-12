@@ -592,11 +592,8 @@ public class KsqlResource {
     try {
       final PreparedStatement<?> withSchema = addInferredSchema(statement, serviceContext);
 
-      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(
-          withSchema.getStatementText(),
-          withSchema.getStatement(),
-          ksqlConfig,
-          propertyOverrides);
+      final QueuedCommandStatus queuedCommandStatus = commandQueue
+          .enqueueCommand(withSchema, ksqlConfig, propertyOverrides);
 
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);

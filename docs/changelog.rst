@@ -1,9 +1,6 @@
 Changelog
 =========
 
-Upcoming release
-----------------
-
 Version 5.2.0
 -------------
 

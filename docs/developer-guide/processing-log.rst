@@ -96,10 +96,10 @@ message (STRUCT)
 
 message.type (INT)
   An int that describes the type of the log message. Currently, the following types are
-  defined: 0 (DESERIALIZATION_ERROR), 1 (RECORD_PROCESSING_ERROR).
+  defined: 0 (DESERIALIZATION_ERROR), 1 (RECORD_PROCESSING_ERROR), 2 (PRODUCTION_ERROR).
 
 message.deserializationError (STRUCT)
-  The contents of a message with type 0 (DESERIALZATION_ERROR). Logged when a deserializer
+  The contents of a message with type 0 (DESERIALIZATION_ERROR). Logged when a deserializer
   fails to deserialize a Kafka record.
 
 message.deserializationError.errorMessage (STRING)
@@ -108,13 +108,23 @@ message.deserializationError.errorMessage (STRING)
 message.deserializationError.recordB64 (STRING)
   The Kafka record, encoded in Base64.
 
-message.recordProcessingError.errorMessage (STRING)
+message.recordProcessingError (STRUCT)
   The contents of a message with type 1 (RECORD_PROCESSING_ERROR). Logged when KSQL hits
   an error when processing a record, for example, an unexpected null value when evaluating
   an operator in a SELECT clause.
 
+message.recordProcessingError.errorMessage (STRING)
+  A string containing a human-readable error message detailing the error encountered.
+
 message.recordProcessingError.record (STRING)
   The KSQL record, serialized as a JSON string.
+
+message.productionError (STRUCT)
+  The contents of a message with type 2 (PRODUCTION_ERROR). Logged when a producer fails to
+  publish a Kafka record.
+
+message.productionError.errorMessage (STRING)
+  A string containing a human-readable error message detailing the error encountered.
 
 Log Stream
 ==========
@@ -127,10 +137,11 @@ log entries as JSON:
 
 ::
 
-    log4j.appender.kafka=org.apache.kafka.log4jappender.KafkaLog4jAppender
-    log4j.appender.kafka.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
-    log4j.appender.kafka.BrokerList=<list of kafka brokers>
-    log4j.appender.kafka.Topic=<kafka topic>
+    log4j.appender.kafka_appender=org.apache.kafka.log4jappender.KafkaLog4jAppender
+    log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
+    log4j.appender.kafka_appender.BrokerList=<list of kafka brokers>
+    log4j.appender.kafka_appender.Topic=<kafka topic>
+    log4j.logger.processing=ERROR, kafka_appender
 
 The ``list of kafka brokers`` setting is a comma-separated list of brokers in the Kafka cluster, and
 ``kafka topic`` is the name of the Kafka topic to log to.
@@ -140,19 +151,21 @@ properties file:
 
 ::
 
-    ksql.processing.log.topic.auto.create=on
-    ksql.processing.log.topic.name=<kafka topic>  # defaults to processing_log
+    ksql.processing.log.topic.auto.create=true
+    ksql.processing.log.topic.name=<kafka topic>  # defaults to <ksql service id>processing_log
 
 The replication factor and partition count are configurable
 using the ``ksql.processing.log.topic.replication.factor`` and ``ksql.processing.log.topic.partitions`` properties,
 respectively.
+
+If the ``ksql.processing.log.topic.name`` property is not specified, the processing log topic name will default to ``<ksql service id>processing_log``, where ``ksql service id`` is the value from the ``ksql.service.id`` property. This ensures each KSQL cluster gets its own processing log topic by default.
 
 If you are bringing up a new interactive mode KSQL cluster, you can configure KSQL to set up
 a log stream automatically by including the following in your KSQL properties file:
 
 ::
 
-    ksql.processing.log.stream.auto.create=on
+    ksql.processing.log.stream.auto.create=true
     ksql.processing.log.stream.name=<stream name>  # defaults to PROCESSING_LOG
 
 When you start KSQL, you should see the stream in your list of streams:
@@ -196,7 +209,9 @@ You can also create the stream yourself by issuing the following DDL:
                      recordB64 STRING>, \
                  recordProcessingError STRUCT< \
                      errorMessage STRING, \
-                     record STRING>>)\
+                     record STRING>, \
+                 productionError STRUCT< \
+                     errorMessage STRING>>) \
              WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
 
 Note that processing log stream auto-creation is supported for interactive mode only. Enabling

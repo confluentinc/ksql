@@ -25,7 +25,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -92,14 +91,12 @@ public class FilterNode
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
       final QueryId queryId) {
     return getSource().buildStream(
         builder,
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props,
         queryId
     ).filter(getPredicate(), buildNodeContext(queryId));
   }

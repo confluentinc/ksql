@@ -203,7 +203,6 @@ public class StructuredDataSourceNodeTest {
         realConfig,
         serviceContext,
         functionRegistry,
-        Collections.emptyMap(),
         queryId
     );
 
@@ -336,7 +335,6 @@ public class StructuredDataSourceNodeTest {
         realConfig,
         serviceContext,
         new InternalFunctionRegistry(),
-        new HashMap<>(),
         queryId);
   }
 

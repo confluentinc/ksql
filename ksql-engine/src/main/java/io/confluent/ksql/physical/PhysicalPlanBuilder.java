@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
@@ -107,7 +108,6 @@ public class PhysicalPlanBuilder {
             ksqlConfig,
             serviceContext,
             functionRegistry,
-            overriddenProperties,
             queryId
         );
     final OutputNode outputNode = resultStream.outputNode();
@@ -183,7 +183,7 @@ public class PhysicalPlanBuilder {
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         ksqlConfig,
-        overriddenProperties
+        queryId
     );
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
@@ -258,7 +258,7 @@ public class PhysicalPlanBuilder {
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         ksqlConfig,
-        overriddenProperties
+        queryId
     );
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
@@ -352,15 +352,17 @@ public class PhysicalPlanBuilder {
     properties.put(key, valueList);
   }
 
-  private Map<String, Object> buildStreamsProperties(
+  private static Map<String, Object> buildStreamsProperties(
       final String applicationId,
       final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties
+      final QueryId queryId
   ) {
     final Map<String, Object> newStreamsProperties
         = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
-    newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    newStreamsProperties.put(
+        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER_NAME,
+        queryId.toString());
 
     updateListProperty(
         newStreamsProperties,

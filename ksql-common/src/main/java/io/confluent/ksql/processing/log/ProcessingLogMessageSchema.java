@@ -43,9 +43,18 @@ public final class ProcessingLogMessageSchema {
       .optional()
       .build();
 
+  public static final String PRODUCTION_ERROR_FIELD_MESSAGE = "errorMessage";
+
+  private static final Schema PRODUCTION_ERROR_SCHEMA = SchemaBuilder.struct()
+      .name(NAMESPACE + "ProductionError")
+      .field(PRODUCTION_ERROR_FIELD_MESSAGE, Schema.OPTIONAL_STRING_SCHEMA)
+      .optional()
+      .build();
+
   public enum MessageType {
     DESERIALIZATION_ERROR(0, DESERIALIZATION_ERROR_SCHEMA),
-    RECORD_PROCESSING_ERROR(1, RECORD_PROCESSING_ERROR_SCHEMA);
+    RECORD_PROCESSING_ERROR(1, RECORD_PROCESSING_ERROR_SCHEMA),
+    PRODUCTION_ERROR(2, PRODUCTION_ERROR_SCHEMA);
 
     private final int typeId;
     private final Schema schema;
@@ -67,13 +76,14 @@ public final class ProcessingLogMessageSchema {
   public static final String TYPE = "type";
   public static final String DESERIALIZATION_ERROR = "deserializationError";
   public static final String RECORD_PROCESSING_ERROR = "recordProcessingError";
+  public static final String PRODUCTION_ERROR = "productionError";
 
   public static final Schema PROCESSING_LOG_SCHEMA = SchemaBuilder.struct()
       .name(NAMESPACE + "ProcessingLogRecord")
       .field(TYPE, Schema.OPTIONAL_INT32_SCHEMA)
       .field(DESERIALIZATION_ERROR, DESERIALIZATION_ERROR_SCHEMA)
       .field(RECORD_PROCESSING_ERROR, RECORD_PROCESSING_ERROR_SCHEMA)
+      .field(PRODUCTION_ERROR, PRODUCTION_ERROR_SCHEMA)
       .optional()
       .build();
-
 }

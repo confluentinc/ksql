@@ -14,9 +14,14 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import static io.confluent.ksql.rest.server.computation.CommandId.Action.CREATE;
+import static io.confluent.ksql.rest.server.computation.CommandId.Action.DROP;
+import static io.confluent.ksql.rest.server.computation.CommandId.Action.EXECUTE;
+import static io.confluent.ksql.rest.server.computation.CommandId.Type.STREAM;
+import static io.confluent.ksql.rest.server.computation.CommandId.Type.TABLE;
 import static io.confluent.ksql.rest.server.computation.CommandId.Type.TOPIC;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
@@ -40,6 +45,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -139,6 +145,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
@@ -173,6 +180,8 @@ public class KsqlResourceTest {
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
   private QueuedCommandStatus commandStatus;
+  private QueuedCommandStatus commandStatus1;
+  private QueuedCommandStatus commandStatus2;
   private MetaStoreImpl metaStore;
   private ServiceContext serviceContext;
 
@@ -182,6 +191,13 @@ public class KsqlResourceTest {
   public void setUp() throws IOException, RestClientException {
     commandStatus = new QueuedCommandStatus(
         0, new CommandStatusFuture(new CommandId(TOPIC, "whateva", CREATE)));
+
+    commandStatus1 = new QueuedCommandStatus(
+        1, new CommandStatusFuture(new CommandId(TABLE, "something", DROP)));
+
+    commandStatus2 = new QueuedCommandStatus(
+        2, new CommandStatusFuture(new CommandId(STREAM, "something", EXECUTE)));
+
     kafkaTopicClient = new FakeKafkaTopicClient();
     serviceContext = TestServiceContext.create(kafkaTopicClient);
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
@@ -202,7 +218,10 @@ public class KsqlResourceTest {
 
     setUpKsqlResource();
 
-    when(commandStore.enqueueCommand(any(), any(), any(), any())).thenReturn(commandStatus);
+    when(commandStore.enqueueCommand(any(), any(), any(), any()))
+        .thenReturn(commandStatus)
+        .thenReturn(commandStatus1)
+        .thenReturn(commandStatus2);
 
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
   }
@@ -643,6 +662,101 @@ public class KsqlResourceTest {
         eq("CREATE STREAM S AS SELECT * FROM test_stream;"), any(), any(), any());
     inOrder.verify(commandStore).enqueueCommand(
         eq("CREATE STREAM S2 AS SELECT * FROM S;"), any(), any(), any());
+  }
+
+  @Test
+  public void shouldWaitForLastDistributedStatementBeforeExecutingAnyNonDistributed()
+      throws Exception
+  {
+    // Given:
+    final String csasSql = "CREATE STREAM S AS SELECT * FROM test_stream;";
+
+    doAnswer(executeAgainstEngine(csasSql))
+        .when(commandStore)
+        .ensureConsumedPast(
+            commandStatus1.getCommandSequenceNumber(),
+            DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT
+        );
+
+    // When:
+    final List<KsqlEntity> results = makeMultipleRequest(
+        csasSql + "\n"   // <-- commandStatus
+            + "CREATE STREAM S2 AS SELECT * FROM test_stream;\n" // <-- commandStatus1
+            + "DESCRIBE S;",
+        KsqlEntity.class
+    );
+
+    // Then:
+    verify(commandStore).ensureConsumedPast(
+        commandStatus1.getCommandSequenceNumber(), DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT);
+
+    assertThat(results, hasSize(3));
+    assertThat(results.get(2), is(instanceOf(SourceDescriptionEntity.class)));
+  }
+
+  @Test
+  public void shouldNotWaitOnAnyDistributedStatementsBeforeDistributingAnother() throws Exception {
+    // When:
+    makeMultipleRequest(
+        "CREATE STREAM S AS SELECT * FROM test_stream;\n"
+            + "CREATE STREAM S2 AS SELECT * FROM test_stream;",
+        KsqlEntity.class
+    );
+
+    // Then:
+    verify(commandStore, never()).ensureConsumedPast(anyLong(), any());
+  }
+
+  @Test
+  public void shouldThrowShutdownIfInterruptedWhileAwaitingPreviousCmdInMultiStatementRequest()
+      throws Exception
+  {
+    // Given:
+    doThrow(new InterruptedException("oh no!"))
+        .when(commandStore)
+        .ensureConsumedPast(anyLong(), any());
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    expectedException
+        .expect(exceptionErrorMessage(errorMessage(is("The server is shutting down"))));
+    expectedException
+        .expect(exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_SERVER_SHUTTING_DOWN))));
+
+    // When:
+    makeMultipleRequest(
+        "CREATE STREAM S AS SELECT * FROM test_stream;\n"
+            + "DESCRIBE S;",
+        KsqlEntity.class
+    );
+  }
+
+  @Test
+  public void shouldThrowTimeoutOnTimeoutAwaitingPreviousCmdInMultiStatementRequest()
+      throws Exception
+  {
+    // Given:
+    doThrow(new TimeoutException("oh no!"))
+        .when(commandStore)
+        .ensureConsumedPast(anyLong(), any());
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(
+        containsString("Timed out"))));
+    expectedException.expect(exceptionErrorMessage(errorMessage(
+        containsString("sequence number: " + commandStatus.getCommandSequenceNumber()))));
+    expectedException.expect(exceptionErrorMessage(errorCode(
+        is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
+
+    // When:
+    makeMultipleRequest(
+        "CREATE STREAM S AS SELECT * FROM test_stream;\n"
+            + "DESCRIBE S;",
+        KsqlEntity.class
+    );
   }
 
   @Test
@@ -1127,7 +1241,9 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT));
-    assertThat(result.getMessage(), is("timed out!"));
+    assertThat(result.getMessage(),
+        containsString("Timed out while waiting for a previous command to execute"));
+    assertThat(result.getMessage(), containsString("command sequence number: 2"));
   }
 
   @Test
@@ -1188,6 +1304,13 @@ public class KsqlResourceTest {
 
     // When:
     ksqlResource.terminateCluster(request);
+  }
+
+  private Answer executeAgainstEngine(final String sql) {
+    return invocation -> {
+      KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, Collections.emptyMap());
+      return null;
+    };
   }
 
   @SuppressWarnings("SameParameterValue")

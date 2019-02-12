@@ -180,7 +180,6 @@ public class AggregateNode extends PlanNode {
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
       final QueryId queryId
   ) {
     final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
@@ -190,7 +189,6 @@ public class AggregateNode extends PlanNode {
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props,
         queryId
     );
 

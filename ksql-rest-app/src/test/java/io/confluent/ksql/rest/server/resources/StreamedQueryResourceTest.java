@@ -218,7 +218,8 @@ public class StreamedQueryResourceTest {
     // Expect
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is("whoops"))));
+    expectedException.expect(exceptionErrorMessage(errorMessage(
+        containsString("Timed out while waiting for a previous command to execute"))));
     expectedException.expect(
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
 

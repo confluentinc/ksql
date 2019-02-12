@@ -125,10 +125,6 @@ public abstract class OutputNode
     return timestampExtractionPolicy;
   }
 
-  public TimestampExtractionPolicy getSourceTimestampExtractionPolicy() {
-    return source.getTheSourceNode().getTimestampExtractionPolicy();
-  }
-
   private interface InternalCallback extends Callback {
 
     void setLimitHandler(LimitHandler limitHandler);

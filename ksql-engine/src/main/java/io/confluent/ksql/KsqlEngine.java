@@ -24,7 +24,6 @@ import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.ReadonlyMetaStore;
@@ -33,8 +32,6 @@ import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -45,7 +42,6 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.query.QueryId;
@@ -61,8 +57,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.StatementWithSchema;
-import io.confluent.ksql.util.StringUtil;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -350,11 +344,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     ) {
       throwOnImmutableOverride(overriddenProperties);
 
-      final DdlCommand command = createDdlCommand(
-          sqlExpression,
-          statement,
-          overriddenProperties
-      );
+      final DdlCommand command = ddlCommandFactory
+          .create(sqlExpression, statement, overriddenProperties);
 
       final DdlCommandResult result = ddlCommandExec.execute(command);
 
@@ -363,87 +354,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       }
 
       return result.getMessage();
-    }
-
-    private DdlCommand createDdlCommand(
-        final String sqlExpression,
-        final ExecutableDdlStatement statement,
-        final Map<String, Object> overriddenProperties
-    ) {
-      final String resultingSqlExpression;
-      final ExecutableDdlStatement resultingStatement;
-
-      if (statement instanceof AbstractStreamCreateStatement) {
-        final AbstractStreamCreateStatement streamCreateStatement =
-            (AbstractStreamCreateStatement) statement;
-
-        final PreparedStatement<AbstractStreamCreateStatement> statementWithSchema
-            = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
-
-        resultingStatement = (ExecutableDdlStatement) statementWithSchema.getStatement();
-        resultingSqlExpression = statementWithSchema.getStatementText();
-
-        if (((AbstractStreamCreateStatement) resultingStatement).getElements().isEmpty()) {
-          throw new KsqlStatementException(
-              "The statement or topic schema does not define any columns.",
-              sqlExpression);
-        }
-      } else {
-        resultingSqlExpression = sqlExpression;
-        resultingStatement = statement;
-      }
-
-      return ddlCommandFactory.create(
-          resultingSqlExpression, resultingStatement, overriddenProperties);
-    }
-
-    private PreparedStatement<AbstractStreamCreateStatement> maybeAddFieldsFromSchemaRegistry(
-        final AbstractStreamCreateStatement streamCreateStatement,
-        final String statementText
-    ) {
-      if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
-        final String ksqlRegisteredTopicName = StringUtil.cleanQuotes(
-            streamCreateStatement
-                .getProperties()
-                .get(DdlConfig.TOPIC_NAME_PROPERTY)
-                .toString()
-                .toUpperCase()
-        );
-        final KsqlTopic ksqlTopic = metaStore.getTopic(ksqlRegisteredTopicName);
-        if (ksqlTopic == null) {
-          throw new KsqlStatementException(
-              String.format("Could not find %s topic in the metastore.", ksqlRegisteredTopicName),
-              statementText);
-        }
-
-        final Map<String, Expression> newProperties = new HashMap<>();
-        newProperties.put(
-            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(ksqlTopic.getKafkaTopicName())
-        );
-
-        newProperties.put(
-            DdlConfig.VALUE_FORMAT_PROPERTY,
-            new StringLiteral(
-                ksqlTopic.getKsqlTopicSerDe().getSerDe().toString()
-            )
-        );
-
-        final AbstractStreamCreateStatement statementWithProperties =
-            streamCreateStatement.copyWith(
-                streamCreateStatement.getElements(),
-                newProperties);
-
-        return StatementWithSchema.forStatement(
-            statementWithProperties,
-            SqlFormatter.formatSql(statementWithProperties),
-            serviceContext.getSchemaRegistryClient()
-        );
-      }
-
-      return StatementWithSchema.forStatement(
-          streamCreateStatement,
-          statementText,
-          serviceContext.getSchemaRegistryClient());
     }
 
     private void registerQuery(final QueryMetadata query) {

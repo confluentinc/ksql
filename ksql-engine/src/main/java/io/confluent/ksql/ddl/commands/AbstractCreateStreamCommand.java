@@ -117,18 +117,22 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     this.keySerde = extractKeySerde(properties);
   }
 
-  private void checkTopicNameNotNull(final Map<String, Expression> properties) {
+  private static void checkTopicNameNotNull(final Map<String, Expression> properties) {
     // TODO: move the check to grammar
     if (properties.get(DdlConfig.TOPIC_NAME_PROPERTY) == null) {
       throw new KsqlException("Topic name should be set in WITH clause.");
     }
   }
 
-  private SchemaBuilder getStreamTableSchema(final List<TableElement> tableElementList) {
+  private static SchemaBuilder getStreamTableSchema(final List<TableElement> tableElements) {
+    if (tableElements.isEmpty()) {
+      throw new KsqlException("The statement does not define any columns.");
+    }
+
     SchemaBuilder tableSchema = SchemaBuilder.struct();
-    for (final TableElement tableElement : tableElementList) {
-      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME) || tableElement.getName()
-          .equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+    for (final TableElement tableElement : tableElements) {
+      if (tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
+          || tableElement.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         throw new KsqlException(
             SchemaUtil.ROWTIME_NAME + "/" + SchemaUtil.ROWKEY_NAME + " are "
             + "reserved token for implicit column."
@@ -144,7 +148,11 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     return tableSchema;
   }
 
-  void checkMetaData(final MetaStore metaStore, final String sourceName, final String topicName) {
+  static void checkMetaData(
+      final MetaStore metaStore,
+      final String sourceName,
+      final String topicName
+  ) {
     // TODO: move the check to the runtime since it accesses metaStore
     if (metaStore.getSource(sourceName) != null) {
       throw new KsqlException(String.format("Source %s already exists.", sourceName));
@@ -159,24 +167,18 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   private RegisterTopicCommand registerTopicFirst(
       final Map<String, Expression> properties
   ) {
-    if (properties.size() == 0) {
-      throw new KsqlException("Create Stream/Table statement needs WITH clause.");
+    final Expression topicNameExp = properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
+
+    if (topicNameExp == null) {
+      throw new KsqlException("Corresponding Kafka topic ("
+          + DdlConfig.KAFKA_TOPIC_NAME_PROPERTY + ") should be set in WITH clause.");
     }
-    if (!properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
-      throw new KsqlException(
-          "Topic format(" + DdlConfig.VALUE_FORMAT_PROPERTY + ") should be set in WITH clause.");
-    }
-    if (!properties.containsKey(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)) {
-      throw new KsqlException(String.format(
-          "Corresponding Kafka topic (%s) should be set in WITH clause.",
-          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY
-      ));
-    }
-    final String kafkaTopicName = StringUtil.cleanQuotes(
-        properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
+
+    final String kafkaTopicName = StringUtil.cleanQuotes(topicNameExp.toString());
     if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
+
     return new RegisterTopicCommand(this.topicName, false, properties);
   }
 

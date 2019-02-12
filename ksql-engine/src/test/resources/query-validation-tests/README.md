@@ -94,7 +94,7 @@ The following is a template test file:
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement or topic schema does not define any columns."
+        "message": "The statement does not define any columns."
       }
     }
   ]
@@ -198,7 +198,7 @@ A test can define an expected exception in the same way as a JUnit test, e.g.
    ...
    "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement or topic schema does not define any columns."
+        "message": "The statement does not define any columns."
       },
    ...
 ```

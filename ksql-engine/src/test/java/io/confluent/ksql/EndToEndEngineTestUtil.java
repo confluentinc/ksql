@@ -664,8 +664,13 @@ final class EndToEndEngineTestUtil {
     final String sql = testCase.statements().stream()
         .collect(Collectors.joining(System.lineSeparator()));
 
-    final List<QueryMetadata> queries =
-        KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, testCase.properties());
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        sql,
+        ksqlConfig,
+        testCase.properties(),
+        Optional.of(serviceContext.getSchemaRegistryClient())
+    );
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return queries.get(queries.size() - 1);

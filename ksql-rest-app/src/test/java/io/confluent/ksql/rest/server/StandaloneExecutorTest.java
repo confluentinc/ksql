@@ -42,9 +42,12 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type.KsqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -85,6 +88,8 @@ public class StandaloneExecutorTest {
       ));
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
   private static final QualifiedName SOME_NAME = QualifiedName.of("Test");
+  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
+      new TableElement("bob", new PrimitiveType(KsqlType.STRING)));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -251,7 +256,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsStatement() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, emptyMap()));
 
     givenQueryFileParsesTo(cs);
 
@@ -266,7 +271,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCtStatement() {
     // Given:
     final PreparedStatement<CreateTable> ct = PreparedStatement.of("CT",
-        new CreateTable(SOME_NAME, emptyList(), false, emptyMap()));
+        new CreateTable(SOME_NAME, SOME_ELEMENTS, false, emptyMap()));
 
     givenQueryFileParsesTo(ct);
 
@@ -284,7 +289,7 @@ public class StandaloneExecutorTest {
         PreparedStatement.of("SET PROP",
             new SetProperty(Optional.empty(), "name", "value")),
         PreparedStatement.of("CS",
-            new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, emptyMap()))
     );
 
     // When:
@@ -304,7 +309,7 @@ public class StandaloneExecutorTest {
         PreparedStatement.of("UNSET",
             new UnsetProperty(Optional.empty(), "name")),
         PreparedStatement.of("CS",
-            new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, emptyMap()))
     );
 
     // When:
@@ -451,6 +456,23 @@ public class StandaloneExecutorTest {
 
     // Then:
     verify(sandBoxQuery, never()).start();
+  }
+
+  @Test
+  public void shouldThrowOnCreateStatementWithNoElements() {
+    // Given:
+    final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
+        new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
+
+    givenQueryFileParsesTo(cs);
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+    expectedException.expectMessage(
+        "Script contains 'CREATE STREAM' or 'CREATE TABLE' statements without a defined schema");
+
+    // When:
+    standaloneExecutor.start();
   }
 
   private void givenExecutorWillFailOnNoQueries() {

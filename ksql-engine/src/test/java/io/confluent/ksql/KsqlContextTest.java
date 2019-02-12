@@ -14,6 +14,8 @@
 
 package io.confluent.ksql;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -22,10 +24,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -36,11 +45,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.avro.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -51,6 +63,12 @@ public class KsqlContextTest {
   private static final KsqlConfig SOME_CONFIG = new KsqlConfig(Collections.emptyMap());
   private static final ImmutableMap<String, Object> SOME_PROPERTIES = ImmutableMap
       .of("overridden", "props");
+
+  private static final String AVRO_SCHEMA = SchemaBuilder.record("thing").fields()
+      .name("thing1").type().optional().intType()
+      .name("thing2").type().optional().stringType()
+      .endRecord()
+      .toString(true);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -69,6 +87,17 @@ public class KsqlContextTest {
   private PreparedStatement<?> statement0;
   @Mock
   private PreparedStatement<?> statement1;
+  @Mock
+  private Statement nonCreateStatement;
+  @Mock
+  private AbstractStreamCreateStatement createStatement;
+  @Mock
+  private AbstractStreamCreateStatement withSchema;
+  @Mock
+  private SchemaRegistryClient srClient;
+  @Captor
+  private ArgumentCaptor<PreparedStatement<?>> stmtCaptor;
+
   private KsqlContext ksqlContext;
 
   @Before
@@ -82,6 +111,17 @@ public class KsqlContextTest {
         .thenReturn(sandbox);
 
     when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
+
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
+
+    when(((PreparedStatement) statement0).getStatement()).thenReturn(createStatement);
+    when(((PreparedStatement) statement1).getStatement()).thenReturn(nonCreateStatement);
+
+    when(createStatement.copyWith(any(), any())).thenReturn(withSchema);
+
+    when(createStatement.getProperties()).thenReturn(ImmutableMap.of(
+        DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON")
+    ));
 
     givenParserReturns(statement0);
   }
@@ -126,7 +166,7 @@ public class KsqlContextTest {
   }
 
   @Test
-  public void shouldThrowIfSanboxExecuteThrows() {
+  public void shouldThrowIfSandboxExecuteThrows() {
     // Given:
     when(sandbox.execute(any(), any(), any()))
         .thenThrow(new KsqlException("Bad tings happen"));
@@ -205,6 +245,45 @@ public class KsqlContextTest {
     final InOrder inOrder = inOrder(ksqlEngine, serviceContext);
     inOrder.verify(ksqlEngine).close();
     inOrder.verify(serviceContext).close();
+  }
+
+  @Test
+  public void shouldLoadSchemaFromSchemaRegistry() throws Exception {
+    // Given:
+    givenAvroStatement();
+
+    when(srClient.getLatestSchemaMetadata("topic-name-value"))
+        .thenReturn(new SchemaMetadata(1, 1, AVRO_SCHEMA));
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    verify(ksqlEngine).execute(stmtCaptor.capture(), any(), any());
+    assertThat(stmtCaptor.getValue().getStatement(), is(withSchema));
+  }
+
+  @Test
+  public void shouldThrowIfFailedToGetSchemaFromRegistry() throws Exception {
+    // Given:
+    givenAvroStatement();
+
+    when(srClient.getLatestSchemaMetadata(any()))
+        .thenThrow(new RestClientException("oops", 500, 344));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Schema registry fetch for topic topic-name request failed");
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+  }
+
+  private void givenAvroStatement() {
+    when(createStatement.getProperties()).thenReturn(ImmutableMap.of(
+        DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"),
+        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic-name")
+    ));
   }
 
   @SuppressWarnings("unchecked")

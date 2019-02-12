@@ -18,12 +18,14 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StatementWithSchema;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -90,10 +92,10 @@ public class KsqlContext {
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox();
 
     statements.forEach(stmt ->
-        sandbox.execute(sandbox.prepare(stmt), ksqlConfig, overriddenProperties));
+        execute(stmt, sandbox, overriddenProperties));
 
     final List<QueryMetadata> queries = statements.stream()
-        .map(stmt -> ksqlEngine.execute(ksqlEngine.prepare(stmt), ksqlConfig, overriddenProperties))
+        .map(stmt -> execute(stmt, ksqlEngine, overriddenProperties))
         .map(ExecuteResult::getQuery)
         .filter(Optional::isPresent)
         .map(Optional::get)
@@ -130,5 +132,16 @@ public class KsqlContext {
 
   public void terminateQuery(final QueryId queryId) {
     ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::close);
+  }
+
+  private ExecuteResult execute(
+      final ParsedStatement stmt,
+      final KsqlExecutionContext executionContext,
+      final Map<String, Object> overriddenProperties
+  ) {
+    final PreparedStatement<?> prepared = executionContext.prepare(stmt);
+    final PreparedStatement<?> withSchema = StatementWithSchema
+        .forStatement(prepared, serviceContext.getSchemaRegistryClient());
+    return executionContext.execute(withSchema, ksqlConfig, overriddenProperties);
   }
 }

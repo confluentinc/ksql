@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -25,7 +26,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Properties;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.After;
@@ -74,7 +74,12 @@ public class StandaloneExecutorFunctionalTest {
   public void setUp() throws Exception {
     queryFile = TMP.newFile().toPath();
 
-    standalone = StandaloneExecutorFactory.create(defaultProps(), queryFile.toString(), "./");
+    standalone = StandaloneExecutorFactory.create(
+        ImmutableMap.of(
+            CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers()
+        ),
+        queryFile.toString(),
+        "./");
 
     s1 = KsqlIdentifierTestUtil.uniqueIdentifierName("S1");
     s2 = KsqlIdentifierTestUtil.uniqueIdentifierName("S2");
@@ -171,11 +176,5 @@ public class StandaloneExecutorFunctionalTest {
     } catch (IOException e) {
       throw new AssertionError("Failed to save query file", e);
     }
-  }
-
-  private static Properties defaultProps() {
-    final Properties props = new Properties();
-    props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers());
-    return props;
   }
 }

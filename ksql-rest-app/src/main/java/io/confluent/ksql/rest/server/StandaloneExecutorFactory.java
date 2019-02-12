@@ -21,14 +21,14 @@ import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
-import java.util.Properties;
+import java.util.Map;
 
 public final class StandaloneExecutorFactory {
   private StandaloneExecutorFactory(){
   }
 
   public static StandaloneExecutor create(
-      final Properties properties,
+      final Map<?, ?> properties,
       final String queriesFile,
       final String installDir
   ) {

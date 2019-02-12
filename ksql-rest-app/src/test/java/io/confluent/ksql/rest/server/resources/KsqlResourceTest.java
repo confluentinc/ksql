@@ -14,8 +14,8 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import static io.confluent.ksql.parser.ParserMatchers.PreparedMatchers.preparedStatement;
-import static io.confluent.ksql.parser.ParserMatchers.PreparedMatchers.preparedStatementText;
+import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
+import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;

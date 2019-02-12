@@ -29,94 +29,88 @@ public final class ParserMatchers {
   private ParserMatchers() {
   }
 
-  public static final class PreparedMatchers {
+  public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatementText(
+      final Matcher<? super String> textMatcher
+  ) {
+    return StatementTextMatcher.statementWithText(textMatcher);
+  }
 
-    private PreparedMatchers() {
+  public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatementText(
+      final String statementText
+  ) {
+    return StatementTextMatcher.statementWithText(statementText);
+  }
+
+  public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
+      final Matcher<? super Statement> statementMatcher
+  ) {
+    return StatementMatcher.statement(statementMatcher);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
+      final String statementText,
+      final Class<T> statementType
+  ) {
+    return (Matcher) both(StatementTextMatcher.statementWithText(statementText))
+        .and(StatementMatcher.statement(instanceOf(statementType)));
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
+      final Matcher<? super String> statementTextMatcher,
+      final Matcher<? super Statement> statementMatcher
+  ) {
+    return (Matcher) both(StatementTextMatcher.statementWithText(statementTextMatcher))
+        .and(StatementMatcher.statement(statementMatcher));
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  public static final class StatementTextMatcher<T extends Statement>
+      extends FeatureMatcher<PreparedStatement<T>, String> {
+
+    public StatementTextMatcher(Matcher<? super String> textMatcher) {
+      super(textMatcher, "a prepared statement with text", "statement text");
     }
 
-    public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatementText(
+    @Override
+    protected String featureValueOf(final PreparedStatement<T> actual) {
+      return actual.getStatementText();
+    }
+
+    @Factory
+    public static <T extends Statement> Matcher<PreparedStatement<T>> statementWithText(
         final Matcher<? super String> textMatcher
     ) {
-      return StatementTextMatcher.statementWithText(textMatcher);
+      return new StatementTextMatcher<>(textMatcher);
     }
 
-    public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatementText(
-        final String statementText
+    @Factory
+    public static <T extends Statement> Matcher<PreparedStatement<T>> statementWithText(
+        final String text
     ) {
-      return StatementTextMatcher.statementWithText(statementText);
+      return new StatementTextMatcher<>(is(text));
+    }
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  public static final class StatementMatcher<T extends Statement>
+      extends FeatureMatcher<PreparedStatement<T>, Statement> {
+
+    public StatementMatcher(Matcher<? super Statement> textMatcher) {
+      super(textMatcher, "a prepared statement", "statement");
     }
 
-    public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
-        final Matcher<? super Statement> statementMatcher
+    @Override
+    protected Statement featureValueOf(final PreparedStatement<T> actual) {
+      return actual.getStatement();
+    }
+
+    @Factory
+    public static <T extends Statement> Matcher<PreparedStatement<T>> statement(
+        final Matcher<? super Statement> textMatcher
     ) {
-      return StatementMatcher.statement(statementMatcher);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
-        final String statementText,
-        final Class<T> statementType
-    ) {
-      return (Matcher)both(StatementTextMatcher.statementWithText(statementText))
-          .and(StatementMatcher.statement(instanceOf(statementType)));
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
-        final Matcher<? super String> statementTextMatcher,
-        final Matcher<? super Statement> statementMatcher
-    ) {
-      return (Matcher)both(StatementTextMatcher.statementWithText(statementTextMatcher))
-          .and(StatementMatcher.statement(statementMatcher));
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    public static final class StatementTextMatcher<T extends Statement>
-        extends FeatureMatcher<PreparedStatement<T>, String> {
-
-      public StatementTextMatcher(Matcher<? super String> textMatcher) {
-        super(textMatcher, "a prepared statement with text", "statement text");
-      }
-
-      @Override
-      protected String featureValueOf(final PreparedStatement<T> actual) {
-        return actual.getStatementText();
-      }
-
-      @Factory
-      public static <T extends Statement> Matcher<PreparedStatement<T>> statementWithText(
-          final Matcher<? super String> textMatcher
-      ) {
-        return new StatementTextMatcher<>(textMatcher);
-      }
-
-      @Factory
-      public static <T extends Statement> Matcher<PreparedStatement<T>> statementWithText(
-          final String text
-      ) {
-        return new StatementTextMatcher<>(is(text));
-      }
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    public static final class StatementMatcher<T extends Statement>
-        extends FeatureMatcher<PreparedStatement<T>, Statement> {
-
-      public StatementMatcher(Matcher<? super Statement> textMatcher) {
-        super(textMatcher, "a prepared statement", "statement");
-      }
-
-      @Override
-      protected Statement featureValueOf(final PreparedStatement<T> actual) {
-        return actual.getStatement();
-      }
-
-      @Factory
-      public static <T extends Statement> Matcher<PreparedStatement<T>> statement(
-          final Matcher<? super Statement> textMatcher
-      ) {
-        return new StatementMatcher<>(textMatcher);
-      }
+      return new StatementMatcher<>(textMatcher);
     }
   }
 }

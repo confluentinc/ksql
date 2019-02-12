@@ -93,7 +93,7 @@ class QueryEngine {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
-      final MutableMetaStore metaStore  // Todo(ac): Read-only?
+      final MutableMetaStore metaStore
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();

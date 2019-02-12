@@ -41,6 +41,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StatementUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -327,7 +328,9 @@ public class StandaloneExecutor implements Executable {
     }
 
     private void handlePersistentQuery(final PreparedStatement<?> statement) {
-      executionContext.execute(statement, ksqlConfig, configProperties)
+      final PreparedStatement<?> withInferredSinkTopic =
+          StatementUtil.withInferredSinkTopic(statement, configProperties, ksqlConfig);
+      executionContext.execute(withInferredSinkTopic, ksqlConfig, configProperties)
           .getQuery()
           .filter(q -> q instanceof PersistentQueryMetadata)
           .orElseThrow((() -> new KsqlStatementException(

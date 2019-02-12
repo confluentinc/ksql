@@ -565,7 +565,8 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         argThat(is(preparedStatement(
-            "CREATE STREAM S AS SELECT * FROM test_stream;",
+            "CREATE STREAM S WITH (REPLICAS = 1, PARTITIONS = 4, KAFKA_TOPIC = 'S') AS SELECT *\n"
+                + "FROM TEST_STREAM TEST_STREAM;",
             CreateStreamAsSelect.class))),
         any(), any());
   }
@@ -1047,13 +1048,20 @@ public class KsqlResourceTest {
         CommandStatusEntity.class);
 
     // Then:
+    final String csasResolved =
+        "CREATE STREAM " + streamName
+            + " WITH (REPLICAS = 2, PARTITIONS = 4, KAFKA_TOPIC = '" + streamName + "') "
+            + "AS SELECT *\n"
+            + "FROM TEST_STREAM TEST_STREAM;";
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(csas))),
+        argThat(is(preparedStatementText(csasResolved))),
         any(),
         eq(ImmutableMap.of(KsqlConfig.KSQL_ENABLE_UDFS, "false")));
 
     assertThat(results, hasSize(1));
-    assertThat(results.get(0).getStatementText(), is(csas));
+    assertThat(
+        results.get(0).getStatementText(),
+        is(csasResolved));
   }
 
   @Test
@@ -1099,12 +1107,18 @@ public class KsqlResourceTest {
         CommandStatusEntity.class);
 
     // Then:
+    final String resovledCsas =
+        "CREATE STREAM " + streamName
+            + " WITH (REPLICAS = 1, PARTITIONS = 4, KAFKA_TOPIC = '" + streamName + "') "
+            + "AS SELECT *\n"
+            + "FROM TEST_STREAM TEST_STREAM;";
+
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(csas))),
+        argThat(is(preparedStatementText(resovledCsas))),
         any(),
         eq(emptyMap()));
 
-    assertThat(result.getStatementText(), is(csas));
+    assertThat(result.getStatementText(), is(resovledCsas));
   }
 
   @Test
@@ -1132,8 +1146,12 @@ public class KsqlResourceTest {
     makeSingleRequest(csas, KsqlEntity.class);
 
     // Then:
+    final String resolvedCsas = "CREATE STREAM " + streamName
+               + " WITH (REPLICAS = 1, PARTITIONS = 4, KAFKA_TOPIC = '" + streamName + "') "
+               + "AS SELECT *\n"
+               + "FROM TEST_STREAM TEST_STREAM;" ;
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(csas))),
+        argThat(is(preparedStatementText(resolvedCsas))),
         any(),
         eq(emptyMap()));
   }

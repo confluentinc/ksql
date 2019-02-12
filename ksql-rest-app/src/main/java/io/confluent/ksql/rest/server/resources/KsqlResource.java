@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources;
 import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;

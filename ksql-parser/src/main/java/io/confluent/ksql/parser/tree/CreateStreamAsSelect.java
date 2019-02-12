@@ -15,22 +15,14 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.ddl.DdlConfig;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
-public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
-
-  private final QualifiedName name;
-  private final Query query;
-  private final boolean notExists;
-  private final ImmutableMap<String, Expression> properties;
-  private final Optional<Expression> partitionByColumn;
+@Immutable
+public class CreateStreamAsSelect extends CreateAsSelect {
 
   public CreateStreamAsSelect(
       final QualifiedName name,
@@ -48,87 +40,37 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties,
-      final Optional<Expression> partitionByColumn
+      final Optional<Expression> partitionByColumn) {
+    super(location, name, query, notExists, properties, partitionByColumn);
+  }
+
+  private CreateStreamAsSelect(
+      final CreateStreamAsSelect other,
+      final Map<String, Expression> properties
   ) {
-    super(location);
-    this.name = requireNonNull(name, "name");
-    this.query = requireNonNull(query, "query");
-    this.notExists = notExists;
-    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
-    this.partitionByColumn = requireNonNull(partitionByColumn, "partitionByColumn");
-  }
-
-  @Override
-  public QualifiedName getName() {
-    return name;
-  }
-
-  @Override
-  public Query getQuery() {
-    return query;
+    super(other, properties);
   }
 
   @Override
   public Sink getSink() {
-    final Map<String, Expression> sinkProperties = partitionByColumn
+    final Map<String, Expression> sinkProperties = getPartitionByColumn()
         .map(exp -> (Map<String, Expression>)ImmutableMap.<String, Expression>builder()
-            .putAll(properties)
+            .putAll(getProperties())
             .put(DdlConfig.PARTITION_BY_PROPERTY, exp)
             .build()
         )
-        .orElse(properties);
+        .orElse(getProperties());
 
-    return Sink.of(name.getSuffix(), true, sinkProperties);
-  }
-
-  public boolean isNotExists() {
-    return notExists;
+    return Sink.of(getName().getSuffix(), true, sinkProperties);
   }
 
   @Override
-  public Map<String, Expression> getProperties() {
-    return properties;
-  }
-
-  @Override
-  public Optional<Expression> getPartitionByColumn() {
-    return partitionByColumn;
+  public CreateAsSelect copyWith(final Map<String, Expression> properties) {
+    return new CreateStreamAsSelect(this, properties);
   }
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateStreamAsSelect(this, context);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(name, query, notExists, properties, partitionByColumn);
-  }
-
-  @Override
-  public boolean equals(final Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if ((obj == null) || (getClass() != obj.getClass())) {
-      return false;
-    }
-    final CreateStreamAsSelect o = (CreateStreamAsSelect) obj;
-    return Objects.equals(name, o.name)
-           && Objects.equals(query, o.query)
-           && Objects.equals(notExists, o.notExists)
-           && Objects.equals(partitionByColumn, o.partitionByColumn)
-           && Objects.equals(properties, o.properties);
-  }
-
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("name", name)
-        .add("query", query)
-        .add("notExists", notExists)
-        .add("properties", properties)
-        .add("partitionByColumn", partitionByColumn)
-        .toString();
   }
 }

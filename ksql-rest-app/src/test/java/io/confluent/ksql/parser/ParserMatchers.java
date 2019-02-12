@@ -59,6 +59,15 @@ public final class ParserMatchers {
 
   @SuppressWarnings("unchecked")
   public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
+      final Matcher<? super String> statementText,
+      final Class<T> statementType
+  ) {
+    return (Matcher) both(StatementTextMatcher.statementWithText(statementText))
+        .and(StatementMatcher.statement(instanceOf(statementType)));
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
       final Matcher<? super String> statementTextMatcher,
       final Matcher<? super Statement> statementMatcher
   ) {
@@ -98,8 +107,8 @@ public final class ParserMatchers {
   public static final class StatementMatcher<T extends Statement>
       extends FeatureMatcher<PreparedStatement<T>, Statement> {
 
-    public StatementMatcher(Matcher<? super Statement> textMatcher) {
-      super(textMatcher, "a prepared statement", "statement");
+    public StatementMatcher(Matcher<? super Statement> statementMatcher) {
+      super(statementMatcher, "a prepared statement", "statement");
     }
 
     @Override
@@ -109,9 +118,9 @@ public final class ParserMatchers {
 
     @Factory
     public static <T extends Statement> Matcher<PreparedStatement<T>> statement(
-        final Matcher<? super Statement> textMatcher
+        final Matcher<? super Statement> statementMatcher
     ) {
-      return new StatementMatcher<>(textMatcher);
+      return new StatementMatcher<>(statementMatcher);
     }
   }
 }

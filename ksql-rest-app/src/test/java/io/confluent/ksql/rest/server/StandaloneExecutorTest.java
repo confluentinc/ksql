@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -409,14 +412,28 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(csas);
 
-    when(sandBox.execute(eq(csas), any(), any()))
+    when(sandBox
+        .execute(
+            argThat(
+                preparedStatement(
+                    containsString("CREATE STREAM " + SOME_NAME.toString()),
+                    CreateStreamAsSelect.class)),
+            any(),
+            any()))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(csas, ksqlConfig, emptyMap());
+    verify(ksqlEngine)
+        .execute(
+            argThat(
+                preparedStatement(
+                    containsString("CREATE STREAM " + SOME_NAME.toString()),
+                    CreateStreamAsSelect.class)),
+            eq(ksqlConfig),
+            eq(emptyMap()));
   }
 
   @Test
@@ -427,14 +444,28 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(ctas);
 
-    when(sandBox.execute(eq(ctas), any(), any()))
+    when(sandBox
+        .execute(
+            argThat(
+                preparedStatement(
+                    containsString("CREATE TABLE " + SOME_NAME.toString()),
+                    CreateTableAsSelect.class)),
+            any(),
+            any()))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(ctas, ksqlConfig, emptyMap());
+    verify(ksqlEngine)
+        .execute(
+            argThat(
+                preparedStatement(
+                    containsString("CREATE TABLE " + SOME_NAME.toString()),
+                    CreateTableAsSelect.class)),
+            eq(ksqlConfig),
+            eq(emptyMap()));
   }
 
   @Test

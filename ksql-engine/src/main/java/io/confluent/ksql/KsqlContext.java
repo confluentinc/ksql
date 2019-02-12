@@ -34,6 +34,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StatementUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -161,6 +162,8 @@ public class KsqlContext {
   ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
     final PreparedStatement<?> withSchema = schemaInjector.forStatement(prepared);
-    return executionContext.execute(withSchema, ksqlConfig, overriddenProperties);
+    final PreparedStatement<?> withInferredTopic =
+        StatementUtil.withInferredSinkTopic(withSchema, overriddenProperties, ksqlConfig);
+    return executionContext.execute(withInferredTopic, ksqlConfig, overriddenProperties);
   }
 }

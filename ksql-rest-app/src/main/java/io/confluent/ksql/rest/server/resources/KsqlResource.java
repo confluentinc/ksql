@@ -911,7 +911,7 @@ public class KsqlResource {
       throw new KsqlRestException(Errors.badStatement(
           "RUN SCRIPT is no longer supported by the REST API."
               + System.lineSeparator()
-              + "The REST API does support multi-line requests:"
+              + "However, the REST API does support multi-line requests:"
               + "Please resend the request with the script contents in the body of the request.",
           statement.getStatementText()
       ));

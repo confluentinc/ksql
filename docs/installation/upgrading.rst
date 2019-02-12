@@ -12,9 +12,13 @@ Upgrading from KSQL 5.1 to KSQL 5.2
 
 Notable changes in 5.2:
 
-* Non-interactive mode now explicitly rejects ``CREATE STREAM`` and ``CREATE TABLE`` statements that
-  do not define any columns. See `Interactive mode rejects statements without defined columns`_ for
-  more info.
+* KSQL Server
+
+    * Non-interactive mode:
+
+        * Non-interactive mode now explicitly rejects ``CREATE STREAM`` and ``CREATE TABLE``
+          statements that do not define any columns.
+          See `Interactive mode rejects statements without defined columns`_ for more info.
 
 
 Interactive mode rejects statements without defined columns

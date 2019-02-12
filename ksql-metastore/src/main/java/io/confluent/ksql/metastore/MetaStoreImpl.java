@@ -33,7 +33,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.connect.data.Schema;
 
 @ThreadSafe
-public final class MetaStoreImpl implements MetaStore {
+public final class MetaStoreImpl implements MutableMetaStore {
 
   private final Map<String, KsqlTopic> topics = new ConcurrentHashMap<>();
   private final Map<String, SourceInfo> dataSources = new ConcurrentHashMap<>();
@@ -208,7 +208,7 @@ public final class MetaStoreImpl implements MetaStore {
   }
 
   @Override
-  public MetaStore copy() {
+  public MutableMetaStore copy() {
     synchronized (referentialIntegrityLock) {
       return new MetaStoreImpl(topics, dataSources, functionRegistry);
     }

@@ -28,7 +28,7 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.ReadonlyMetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -121,7 +121,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   KsqlEngine(
       final ServiceContext serviceContext,
       final String serviceId,
-      final MetaStore metaStore,
+      final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
     this.primaryContext = EngineContext.create(serviceContext, metaStore, this::unregisterQuery);
@@ -166,7 +166,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public MetaStore getMetaStore() {
-    return ReadonlyMetaStore.readOnlyMetaStore(primaryContext.metaStore);
+    return primaryContext.metaStore;
   }
 
   public DdlCommandExec getDdlCommandExec() {
@@ -324,7 +324,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   private static final class EngineContext {
 
-    private final MetaStore metaStore;
+    private final MutableMetaStore metaStore;
     private final QueryEngine queryEngine;
     private final ServiceContext serviceContext;
     private final CommandFactories ddlCommandFactory;
@@ -332,7 +332,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     private EngineContext(
         final ServiceContext serviceContext,
-        final MetaStore metaStore,
+        final MutableMetaStore metaStore,
         final Consumer<QueryMetadata> onQueryCloseCallback
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
@@ -344,7 +344,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     private static EngineContext create(
         final ServiceContext serviceContext,
-        final MetaStore metaStore,
+        final MutableMetaStore metaStore,
         final Consumer<QueryMetadata> onQueryCloseCallback
     ) {
       return new EngineContext(serviceContext, metaStore, onQueryCloseCallback);
@@ -771,7 +771,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     @Override
     public MetaStore getMetaStore() {
-      return ReadonlyMetaStore.readOnlyMetaStore(engineContext.metaStore);
+      return engineContext.metaStore;
     }
 
     @Override

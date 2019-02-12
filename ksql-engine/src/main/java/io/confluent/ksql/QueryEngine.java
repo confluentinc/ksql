@@ -20,6 +20,7 @@ import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -92,7 +93,7 @@ class QueryEngine {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
-      final MetaStore metaStore
+      final MutableMetaStore metaStore  // Todo(ac): Read-only?
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();

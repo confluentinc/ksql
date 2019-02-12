@@ -15,7 +15,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.SchemaUtil;
@@ -35,7 +35,7 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore) {
+  public DdlCommandResult run(final MutableMetaStore metaStore) {
     if (registerTopicCommand != null) {
       registerTopicCommand.run(metaStore);
     }

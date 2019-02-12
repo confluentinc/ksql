@@ -42,8 +42,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.ReadonlyMetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
@@ -102,7 +101,7 @@ public class KsqlEngineTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private MetaStore metaStore;
+  private MutableMetaStore metaStore;
   @Spy
   private final KsqlTopicSerDe jsonKsqlSerde = new KsqlJsonTopicSerDe();
   @Spy
@@ -1008,17 +1007,6 @@ public class KsqlEngineTest {
     // Then:
     assertThat(result.getCommandResult(),
         is(Optional.of("property:auto.offset.reset set to earliest")));
-  }
-
-  @Test
-  public void shouldNotAllowModificationOfMetaStore() {
-    assertThat(ksqlEngine.getMetaStore(), is(instanceOf(ReadonlyMetaStore.class)));
-  }
-
-  @Test
-  public void shouldNotAllowModificationOfSandboxMetaStore() {
-    assertThat(ksqlEngine.createSandbox().getMetaStore(),
-        is(instanceOf(ReadonlyMetaStore.class)));
   }
 
   private void givenTopicsExist(final String... topics) {

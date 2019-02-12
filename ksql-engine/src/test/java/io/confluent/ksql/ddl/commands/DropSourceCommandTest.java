@@ -20,7 +20,7 @@ import static org.junit.Assert.fail;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -31,7 +31,7 @@ import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class DropSourceCommandTest {
-  private final MetaStore metaStore = MetaStoreFixture
+  private final MutableMetaStore metaStore = MetaStoreFixture
       .getNewMetaStore(new InternalFunctionRegistry());
 
   @Test

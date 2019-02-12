@@ -38,8 +38,8 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -852,7 +852,7 @@ final class EndToEndEngineTestUtil {
   }
 
   private static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
-    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
   }
 

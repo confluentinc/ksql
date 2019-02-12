@@ -33,8 +33,8 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -66,7 +66,7 @@ public class ProcessingLogServerUtilsTest {
 
   private final ServiceContext serviceContext = TestServiceContext.create();
   private final KafkaTopicClient spyTopicClient = spy(serviceContext.getTopicClient());
-  private final MetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+  private final MutableMetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
   private final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
       serviceContext,
       metaStore

@@ -17,7 +17,7 @@ package io.confluent.ksql.physical;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -63,7 +63,7 @@ public class PhysicalPlanBuilder {
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenProperties;
-  private final MetaStore metaStore;
+  private final MutableMetaStore metaStore;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Consumer<QueryMetadata> queryCloseCallback;
@@ -74,7 +74,7 @@ public class PhysicalPlanBuilder {
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenProperties,
-      final MetaStore metaStore,
+      final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final Consumer<QueryMetadata> queryCloseCallback

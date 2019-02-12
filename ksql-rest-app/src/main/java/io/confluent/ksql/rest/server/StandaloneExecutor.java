@@ -75,6 +75,7 @@ public class StandaloneExecutor implements Executable {
       + System.lineSeparator()
       + "\tCREATE STREAM FOO (f0 INT, ...) WITH (...);"
       + System.lineSeparator()
+      + "Statement missing schema:"
       + System.lineSeparator();
 
   private final ServiceContext serviceContext;
@@ -305,10 +306,7 @@ public class StandaloneExecutor implements Executable {
       }
 
       throw new UnsupportedOperationException(MISSING_SCHEMA_MESSAGE
-          + "The following statement require schemas to be added:"
-          + System.lineSeparator()
-          + statement.getStatementText()
-      );
+          + statement.getStatementText());
     }
 
     private void handleSetProperty(final PreparedStatement<SetProperty> statement) {

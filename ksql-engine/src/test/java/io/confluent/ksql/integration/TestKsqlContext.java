@@ -73,7 +73,8 @@ public final class TestKsqlContext extends ExternalResource {
         additionalConfig
     );
 
-    delegate = KsqlContextTestUtil.create(ksqlConfig, testHarness.schemaRegistryClient());
+    delegate = KsqlContextTestUtil
+        .create(ksqlConfig, testHarness.getServiceContext().getSchemaRegistryClient());
   }
 
   @Override

@@ -103,8 +103,8 @@ public class IntegrationTestHarness extends ExternalResource {
     return kafkaCluster.bootstrapServers();
   }
 
-  public SchemaRegistryClient schemaRegistryClient() {
-    return serviceContext.get().getSchemaRegistryClient();
+  public ServiceContext getServiceContext() {
+    return serviceContext.get();
   }
 
   public TestKsqlContext buildKsqlContext() {

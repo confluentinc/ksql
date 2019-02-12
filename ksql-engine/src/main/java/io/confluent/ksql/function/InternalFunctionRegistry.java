@@ -42,15 +42,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @ThreadSafe
 public class InternalFunctionRegistry implements MutableFunctionRegistry {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Object lock = new Object();
   private final Map<String, UdfFactory> udfs = new ConcurrentHashMap<>();
@@ -58,16 +57,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   private final FunctionNameValidator functionNameValidator = new FunctionNameValidator();
 
   public InternalFunctionRegistry() {
-    init();
-  }
-
-  private void init() {
-    addStringFunctions();
-    addMathFunctions();
-    addGeoFunctions();
-    addJsonFunctions();
-    addStructFieldFetcher();
-    addUdafFunctions();
+    new BuiltInInitializer(this).init();
   }
 
   public UdfFactory getUdfFactory(final String functionName) {
@@ -89,7 +79,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public void ensureFunctionFactory(final UdfFactory factory) {
+  public UdfFactory ensureFunctionFactory(final UdfFactory factory) {
     validateFunctionName(factory.getName());
 
     synchronized (lock) {
@@ -105,6 +95,8 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
             + " existing: " + existing
             + ", factory: " + factory);
       }
+
+      return existing == null ? factory : existing;
     }
   }
 
@@ -152,8 +144,8 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   public AggregateFunctionFactory getAggregateFactory(final String functionName) {
     final AggregateFunctionFactory udafFactory = udafs.get(functionName.toUpperCase());
     if (udafFactory == null) {
-      throw new KsqlException("Can't find any aggregate functions with the name '"
-          + functionName + "'");
+      throw new KsqlException(
+          "Can not find any aggregate functions with the name '" + functionName + "'");
     }
 
     return udafFactory;
@@ -164,197 +156,217 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     return new ArrayList<>(udafs.values());
   }
 
-  public static UdfFactory createBuiltInUdfFactory(final KsqlFunction ksqlFunction) {
-    return builtInUdfFactory(ksqlFunction, false);
-  }
-
-  private void addBuiltInFunction(final KsqlFunction ksqlFunction) {
-    addBuiltInFunction(ksqlFunction, false);
-  }
-
-  private void addBuiltInFunction(final KsqlFunction ksqlFunction, final boolean internal) {
-    ensureFunctionFactory(builtInUdfFactory(ksqlFunction, internal));
-
-    final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName().toUpperCase());
-    udfFactory.addFunction(ksqlFunction);
-  }
-
-  private static UdfFactory builtInUdfFactory(
-      final KsqlFunction ksqlFunction,
-      final boolean internal
-  ) {
-    final UdfMetadata metadata = new UdfMetadata(
-        ksqlFunction.getFunctionName(),
-        ksqlFunction.getDescription(),
-        "Confluent",
-        "",
-        KsqlFunction.INTERNAL_PATH,
-        internal);
-
-    return new UdfFactory(ksqlFunction.getKudfClass(), metadata);
-  }
-
-  private void addStringFunctions() {
-
-    final KsqlFunction lcase = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_STRING_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-        "LCASE", LCaseKudf.class);
-    addBuiltInFunction(lcase);
-
-    final KsqlFunction ucase = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_STRING_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-        "UCASE", UCaseKudf.class);
-    addBuiltInFunction(ucase);
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-        ConcatKudf.NAME, ConcatKudf.class));
-
-    final KsqlFunction trim = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_STRING_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-        "TRIM", TrimKudf.class);
-    addBuiltInFunction(trim);
-
-    final KsqlFunction ifNull = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_STRING_SCHEMA,
-        ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA,
-            Schema.OPTIONAL_STRING_SCHEMA),
-        "IFNULL", IfNullKudf.class);
-    addBuiltInFunction(ifNull);
-
-    final KsqlFunction len = KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_INT32_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-        "LEN",
-        LenKudf.class);
-    addBuiltInFunction(len);
-  }
-
-  private void addMathFunctions() {
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_FLOAT64_SCHEMA,
-        ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        AbsKudf.NAME,
-        AbsKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_FLOAT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
-        AbsKudf.NAME,
-        AbsKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_FLOAT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "CEIL",
-        CeilKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_FLOAT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "FLOOR",
-        FloorKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_INT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "ROUND",
-        RoundKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_FLOAT64_SCHEMA,
-        Collections.emptyList(),
-        "RANDOM",
-        RandomKudf.class));
-  }
-
-  private void addGeoFunctions() {
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_FLOAT64_SCHEMA,
-        ImmutableList.of(
-            Schema.OPTIONAL_FLOAT64_SCHEMA,
-            Schema.OPTIONAL_FLOAT64_SCHEMA,
-            Schema.OPTIONAL_FLOAT64_SCHEMA,
-            Schema.OPTIONAL_FLOAT64_SCHEMA,
-            Schema.OPTIONAL_STRING_SCHEMA),
-        "GEO_DISTANCE",
-        GeoDistanceKudf.class));
-  }
-
-  private void addJsonFunctions() {
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-        JsonExtractStringKudf.NAME,
-        JsonExtractStringKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_BOOLEAN_SCHEMA,
-        ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-        "ARRAYCONTAINS",
-        ArrayContainsKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_BOOLEAN_SCHEMA,
-        ImmutableList.of(
-            SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
-            Schema.OPTIONAL_STRING_SCHEMA),
-        "ARRAYCONTAINS",
-        ArrayContainsKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_BOOLEAN_SCHEMA,
-        ImmutableList.of(
-            SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
-            Schema.OPTIONAL_INT32_SCHEMA),
-        "ARRAYCONTAINS",
-        ArrayContainsKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_BOOLEAN_SCHEMA,
-        ImmutableList.of(
-            SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
-            Schema.OPTIONAL_INT64_SCHEMA),
-        "ARRAYCONTAINS",
-        ArrayContainsKudf.class));
-
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_BOOLEAN_SCHEMA,
-        ImmutableList.of(
-            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
-            Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "ARRAYCONTAINS",
-        ArrayContainsKudf.class));
-  }
-
-  private void addStructFieldFetcher() {
-    addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-        SchemaBuilder.struct().optional().build(),
-        ImmutableList.of(
-            SchemaBuilder.struct().optional().build(),
-            Schema.STRING_SCHEMA),
-        FetchFieldFromStruct.FUNCTION_NAME,
-        FetchFieldFromStruct.class),
-        true);
-  }
-
-  private void addUdafFunctions() {
-    addAggregateFunctionFactory(new CountAggFunctionFactory());
-    addAggregateFunctionFactory(new SumAggFunctionFactory());
-
-    addAggregateFunctionFactory(new MaxAggFunctionFactory());
-    addAggregateFunctionFactory(new MinAggFunctionFactory());
-
-    addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
-    addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
-  }
-
   private void validateFunctionName(final String functionName) {
     if (!functionNameValidator.test(functionName)) {
       throw new KsqlException(functionName + " is not a valid function name."
           + " Function names must be valid java identifiers and not a KSQL reserved word"
       );
+    }
+  }
+
+  // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+  private static final class BuiltInInitializer {
+    // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+    private final InternalFunctionRegistry functionRegistry;
+
+    private BuiltInInitializer(
+        final InternalFunctionRegistry functionRegistry
+    ) {
+      this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    }
+
+    private void init() {
+      addStringFunctions();
+      addMathFunctions();
+      addGeoFunctions();
+      addJsonFunctions();
+      addStructFieldFetcher();
+      addUdafFunctions();
+    }
+
+    private void addStringFunctions() {
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_STRING_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+          "LCASE", LCaseKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_STRING_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+          "UCASE", UCaseKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_STRING_SCHEMA,
+          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+          ConcatKudf.NAME, ConcatKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_STRING_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+          "TRIM", TrimKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_STRING_SCHEMA,
+          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA,
+              Schema.OPTIONAL_STRING_SCHEMA),
+          "IFNULL", IfNullKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_INT32_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+          "LEN",
+          LenKudf.class));
+    }
+
+    private void addMathFunctions() {
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA),
+          AbsKudf.NAME,
+          AbsKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+          AbsKudf.NAME,
+          AbsKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+          "CEIL",
+          CeilKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+          "FLOOR",
+          FloorKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_INT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+          "ROUND",
+          RoundKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.emptyList(),
+          "RANDOM",
+          RandomKudf.class));
+    }
+
+    private void addGeoFunctions() {
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          ImmutableList.of(
+              Schema.OPTIONAL_FLOAT64_SCHEMA,
+              Schema.OPTIONAL_FLOAT64_SCHEMA,
+              Schema.OPTIONAL_FLOAT64_SCHEMA,
+              Schema.OPTIONAL_FLOAT64_SCHEMA,
+              Schema.OPTIONAL_STRING_SCHEMA),
+          "GEO_DISTANCE",
+          GeoDistanceKudf.class));
+    }
+
+    private void addJsonFunctions() {
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_STRING_SCHEMA,
+          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+          JsonExtractStringKudf.NAME,
+          JsonExtractStringKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+          "ARRAYCONTAINS",
+          ArrayContainsKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          ImmutableList.of(
+              SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
+              Schema.OPTIONAL_STRING_SCHEMA),
+          "ARRAYCONTAINS",
+          ArrayContainsKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          ImmutableList.of(
+              SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
+              Schema.OPTIONAL_INT32_SCHEMA),
+          "ARRAYCONTAINS",
+          ArrayContainsKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          ImmutableList.of(
+              SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
+              Schema.OPTIONAL_INT64_SCHEMA),
+          "ARRAYCONTAINS",
+          ArrayContainsKudf.class));
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          ImmutableList.of(
+              SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
+              Schema.OPTIONAL_FLOAT64_SCHEMA),
+          "ARRAYCONTAINS",
+          ArrayContainsKudf.class));
+    }
+
+    private void addStructFieldFetcher() {
+
+      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+          SchemaBuilder.struct().optional().build(),
+          ImmutableList.of(
+              SchemaBuilder.struct().optional().build(),
+              Schema.STRING_SCHEMA),
+          FetchFieldFromStruct.FUNCTION_NAME,
+          FetchFieldFromStruct.class),
+          true);
+    }
+
+    private void addUdafFunctions() {
+
+      functionRegistry.addAggregateFunctionFactory(new CountAggFunctionFactory());
+      functionRegistry.addAggregateFunctionFactory(new SumAggFunctionFactory());
+
+      functionRegistry.addAggregateFunctionFactory(new MaxAggFunctionFactory());
+      functionRegistry.addAggregateFunctionFactory(new MinAggFunctionFactory());
+
+      functionRegistry.addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
+      functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
+    }
+
+    private void addBuiltInFunction(final KsqlFunction ksqlFunction) {
+      addBuiltInFunction(ksqlFunction, false);
+    }
+
+    private void addBuiltInFunction(final KsqlFunction ksqlFunction, final boolean internal) {
+      functionRegistry
+          .ensureFunctionFactory(builtInUdfFactory(ksqlFunction, internal))
+          .addFunction(ksqlFunction);
+    }
+
+    private static UdfFactory builtInUdfFactory(
+        final KsqlFunction ksqlFunction,
+        final boolean internal
+    ) {
+      final UdfMetadata metadata = new UdfMetadata(
+          ksqlFunction.getFunctionName(),
+          ksqlFunction.getDescription(),
+          "Confluent",
+          "",
+          KsqlFunction.INTERNAL_PATH,
+          internal);
+
+      return new UdfFactory(ksqlFunction.getKudfClass(), metadata);
     }
   }
 }

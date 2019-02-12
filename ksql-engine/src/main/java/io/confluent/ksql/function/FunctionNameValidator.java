@@ -19,12 +19,14 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Predicate;
+import javax.annotation.concurrent.ThreadSafe;
 import org.antlr.v4.runtime.Vocabulary;
 
 /**
  * Check that a function name is valid. It is valid if it is not a Java reserved word
  * and not a ksql reserved word and is a valid java identifier.
  */
+@ThreadSafe
 class FunctionNameValidator implements Predicate<String> {
   private static final Set<String> JAVA_RESERVED_WORDS
       = ImmutableSet.<String>builder()
@@ -44,24 +46,6 @@ class FunctionNameValidator implements Predicate<String> {
       = ImmutableSet.copyOf(Arrays.asList("concat", "substring"));
 
   private static final Set<String> KSQL_RESERVED_WORDS = createFromVocabulary();
-
-
-  private static Set<String> createFromVocabulary() {
-    final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
-    final int tokens = vocabulary.getMaxTokenType();
-    final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-
-    for (int i = 0; i < tokens; i++) {
-      final String symbolicName = vocabulary.getSymbolicName(i);
-      if (symbolicName != null) {
-        final String keyWord = symbolicName.toLowerCase();
-        if (!ALLOWED_KSQL_WORDS.contains(keyWord)) {
-          builder.add(keyWord);
-        }
-      }
-    }
-    return builder.build();
-  }
 
   @Override
   public boolean test(final String functionName) {
@@ -87,5 +71,22 @@ class FunctionNameValidator implements Predicate<String> {
       }
     }
     return true;
+  }
+
+  private static Set<String> createFromVocabulary() {
+    final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
+    final int tokens = vocabulary.getMaxTokenType();
+    final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+
+    for (int i = 0; i < tokens; i++) {
+      final String symbolicName = vocabulary.getSymbolicName(i);
+      if (symbolicName != null) {
+        final String keyWord = symbolicName.toLowerCase();
+        if (!ALLOWED_KSQL_WORDS.contains(keyWord)) {
+          builder.add(keyWord);
+        }
+      }
+    }
+    return builder.build();
   }
 }

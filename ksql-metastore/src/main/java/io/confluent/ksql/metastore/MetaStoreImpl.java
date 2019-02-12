@@ -209,7 +209,9 @@ public final class MetaStoreImpl implements MetaStore {
 
   @Override
   public MetaStore copy() {
-    return new MetaStoreImpl(topics, dataSources, functionRegistry);
+    synchronized (referentialIntegrityLock) {
+      return new MetaStoreImpl(topics, dataSources, functionRegistry);
+    }
   }
 
   @Override

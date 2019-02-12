@@ -45,8 +45,8 @@ public class TestFunctionRegistry implements MutableFunctionRegistry {
     udfFactory.addFunction(ksqlFunction);  }
 
   @Override
-  public void ensureFunctionFactory(final UdfFactory factory) {
-    udfs.putIfAbsent(factory.getName().toUpperCase(), factory);
+  public UdfFactory ensureFunctionFactory(final UdfFactory factory) {
+    return udfs.putIfAbsent(factory.getName().toUpperCase(), factory);
   }
 
   @Override

@@ -395,6 +395,6 @@ public class InternalFunctionRegistryTest {
   }
 
   private void givenUdfFactoryRegistered() {
-    functionRegistry.ensureFunctionFactory(InternalFunctionRegistry.createBuiltInUdfFactory(func));
+    functionRegistry.ensureFunctionFactory(UdfLoaderUtil.createTestUdfFactory(func));
   }
 }

@@ -26,10 +26,11 @@ public interface MutableFunctionRegistry extends FunctionRegistry {
    * if the two factories not are equivalent, (see {@link UdfFactory#matches(UdfFactory)}.
    *
    * @param factory the factory to register.
+   * @return the udf factory.
    * @throws KsqlException if a UDAF function with the same name exists, or if an incompatible UDF
    *     function factory already exists.
    */
-  void ensureFunctionFactory(UdfFactory factory);
+  UdfFactory ensureFunctionFactory(UdfFactory factory);
 
   /**
    * Register the supplied {@code ksqlFunction}.

@@ -108,10 +108,10 @@ public class CodeGenRunnerTest {
             WhenResult.class
         );
         functionRegistry.ensureFunctionFactory(
-            InternalFunctionRegistry.createBuiltInUdfFactory(whenCondition));
+            UdfLoaderUtil.createTestUdfFactory(whenCondition));
         functionRegistry.addFunction(whenCondition);
         functionRegistry.ensureFunctionFactory(
-            InternalFunctionRegistry.createBuiltInUdfFactory(whenResult));
+            UdfLoaderUtil.createTestUdfFactory(whenResult));
         functionRegistry.addFunction(whenResult);
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
         // load substring function

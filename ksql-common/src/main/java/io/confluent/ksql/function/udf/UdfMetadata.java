@@ -24,6 +24,9 @@ public class UdfMetadata {
   private final String path;
   private final boolean internal;
 
+  /**
+   * @param internal indicates the Udf is an impl detail, e.g. the UDF for handling structs.
+   */
   public UdfMetadata(final String name,
                      final String description,
                      final String author,

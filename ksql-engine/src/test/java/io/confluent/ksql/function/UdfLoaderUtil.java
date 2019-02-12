@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.udf.UdfMetadata;
 import java.util.Optional;
 import org.apache.kafka.test.TestUtils;
 
@@ -28,5 +29,17 @@ public final class UdfLoaderUtil {
         .load();
 
     return functionRegistry;
+  }
+
+  public static UdfFactory createTestUdfFactory(final KsqlFunction udf) {
+    final UdfMetadata metadata = new UdfMetadata(
+        udf.getFunctionName(),
+        udf.getDescription(),
+        "Test Author",
+        "",
+        KsqlFunction.INTERNAL_PATH,
+        false);
+
+    return new UdfFactory(udf.getKudfClass(), metadata);
   }
 }

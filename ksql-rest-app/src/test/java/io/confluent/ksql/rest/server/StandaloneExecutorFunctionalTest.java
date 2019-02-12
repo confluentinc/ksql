@@ -121,6 +121,27 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   @Test
+  public void shouldFailOnAvroWithoutSchemas() {
+    // Given:
+    givenScript(""
+        + "SET 'auto.offset.reset' = 'earliest';"
+        + ""
+        + "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
+        + ""
+        + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
+
+    // Then:
+    expectedException.expect(UnsupportedOperationException.class);
+    expectedException.expectMessage(
+        "Script contains 'CREATE STREAM' or 'CREATE TABLE' statements without a defined schema.");
+    expectedException.expectMessage(
+        "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');");
+
+    // When:
+    standalone.start();
+  }
+
+  @Test
   public void shouldHandleComments() {
     // Given:
     givenScript(""

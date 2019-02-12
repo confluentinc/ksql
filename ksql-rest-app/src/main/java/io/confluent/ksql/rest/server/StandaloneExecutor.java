@@ -20,6 +20,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -60,6 +61,21 @@ import org.slf4j.LoggerFactory;
 public class StandaloneExecutor implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
+
+  private static final String MISSING_SCHEMA_MESSAGE = ""
+      + "Script contains 'CREATE STREAM' or 'CREATE TABLE' statements without a defined schema. "
+      + "Headless mode does not currently support schema inference via the Schema Registry. "
+      + "(See https://github.com/confluentinc/ksql/issues/1530 for more info)."
+      + System.lineSeparator()
+      + "Please update the script to include the schema, e.g. switch from:"
+      + System.lineSeparator()
+      + "\tCREATE STREAM FOO WITH (...);"
+      + System.lineSeparator()
+      + "to:"
+      + System.lineSeparator()
+      + "\tCREATE STREAM FOO (f0 INT, ...) WITH (...);"
+      + System.lineSeparator()
+      + System.lineSeparator();
 
   private final ServiceContext serviceContext;
   private final ProcessingLogConfig processingLogConfig;
@@ -238,7 +254,7 @@ public class StandaloneExecutor implements Executable {
                 "INSERT INTO"))
             .build();
 
-    private static String SUPPORTED_STATEMENTS = generateSupportedMessage();
+    private static final String SUPPORTED_STATEMENTS = generateSupportedMessage();
 
     private final KsqlExecutionContext executionContext;
     private final Map<String, Object> configProperties;
@@ -262,6 +278,7 @@ public class StandaloneExecutor implements Executable {
     private <T extends Statement> void execute(
         final PreparedStatement<T> statement
     ) {
+      throwOnMissingSchema(statement);
       final Handler<Statement> handler = HANDLERS.get(statement.getStatement().getClass());
       if (handler == null) {
         throw new KsqlException(String.format("Unsupported statement: %s%n"
@@ -271,6 +288,27 @@ public class StandaloneExecutor implements Executable {
       }
 
       handler.handle(this, (PreparedStatement) statement);
+    }
+
+    /**
+     * Standalone mode does not _yet_ support schema discovery via the schema registry.
+     *
+     * @see <a href="https://github.com/confluentinc/ksql/issues/1530">GitHub issue 1530</a>
+     */
+    private static void throwOnMissingSchema(final PreparedStatement<?> statement) {
+      if (!(statement.getStatement() instanceof AbstractStreamCreateStatement)) {
+        return;
+      }
+
+      if (!((AbstractStreamCreateStatement) statement.getStatement()).getElements().isEmpty()) {
+        return;
+      }
+
+      throw new UnsupportedOperationException(MISSING_SCHEMA_MESSAGE
+          + "The following statement require schemas to be added:"
+          + System.lineSeparator()
+          + statement.getStatementText()
+      );
     }
 
     private void handleSetProperty(final PreparedStatement<SetProperty> statement) {

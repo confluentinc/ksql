@@ -46,7 +46,7 @@ public class ClusterTerminator {
     Objects.requireNonNull(ksqlEngine, "ksqlEngine is null.");
     this.ksqlEngine = ksqlEngine;
     this.serviceContext = Objects.requireNonNull(serviceContext);
-    this.managedTopics = ImmutableList.copyOf(Objects.requireNonNull(managedTopics));
+    this.managedTopics = ImmutableList.copyOf(Objects.requireNonNull(managedTopics, "managedTopics"));
   }
 
   public void terminateCluster(final List<String> deleteTopicPatterns) {

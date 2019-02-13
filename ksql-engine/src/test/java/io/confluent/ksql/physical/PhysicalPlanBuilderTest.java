@@ -170,7 +170,7 @@ public class PhysicalPlanBuilderTest {
         functionRegistry,
         overrideProperties,
         metaStore,
-        new QueryIdGenerator(0L),
+        new QueryIdGenerator(),
         testKafkaStreamsBuilder,
         queryCloseCallback
     );
@@ -263,7 +263,7 @@ public class PhysicalPlanBuilderTest {
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(statementText(is("INSERT INTO s1 SELECT col0, col1, col2 FROM test1;")));
     expectedException.expect(rawMessage(is(
-        "Sink 'S1' does not exist for the INSERT INTO statement.")));
+        "Sink does not exist for the INSERT INTO statement: S1")));
 
     // When:
     KsqlEngineTestUtil.execute(

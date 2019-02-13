@@ -59,7 +59,7 @@ public @interface UdfDescription {
    *
    * @return function author.
    */
-  String author() default "built in";
+  String author();
 
   /**
    * The version of the function.

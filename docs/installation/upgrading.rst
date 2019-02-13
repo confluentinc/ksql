@@ -7,6 +7,11 @@ Upgrade one KSQL server at a time (i.e. rolling restart). The remaining KSQL ser
 capacity to take over temporarily for unavailable, restarting servers.
 
 
+Upgrading from KSQL 5.1 to KSQL 5.2
+-------------------------------------------------------
+
+Notable changes in 5.2:
+
 Upgrading from KSQL 0.x (Developer Preview) to KSQL 4.1
 -------------------------------------------------------
 

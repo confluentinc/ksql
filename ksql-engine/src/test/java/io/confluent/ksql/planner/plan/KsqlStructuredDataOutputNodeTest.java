@@ -154,7 +154,6 @@ public class KsqlStructuredDataOutputNodeTest {
         ksqlConfig,
         serviceContext,
         new InternalFunctionRegistry(),
-        new HashMap<>(),
         QUERY_ID);
   }
 

@@ -174,7 +174,6 @@ public class OutputNodeTest {
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
-        final Map<String, Object> props,
         final QueryId queryId
     ) {
       return null;

@@ -57,7 +57,6 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -93,6 +92,7 @@ public class JoinNodeTest {
 
   private StreamsBuilder mockStreamsBuilder;
   private KsqlConfig mockKsqlConfig;
+  private KsqlConfig mockKsqlConfigClonedWithOffsetReset;
   private KafkaTopicClient mockKafkaTopicClient;
   private FunctionRegistry mockFunctionRegistry;
   private Supplier<SchemaRegistryClient> mockSchemaRegistryClientFactory;
@@ -111,7 +111,6 @@ public class JoinNodeTest {
   private static final QueryContext.Stacker CONTEXT_STACKER =
       new QueryContext.Stacker(queryId).push(nodeId.toString());
 
-  private Map<String, Object> properties;
   private StructuredDataSourceNode left;
   private StructuredDataSourceNode right;
   private SchemaKStream leftSchemaKStream;
@@ -126,11 +125,10 @@ public class JoinNodeTest {
   public void setUp() {
     mockStreamsBuilder = niceMock(StreamsBuilder.class);
     mockKsqlConfig = niceMock(KsqlConfig.class);
+    mockKsqlConfigClonedWithOffsetReset = niceMock(KsqlConfig.class);
     mockKafkaTopicClient = niceMock(KafkaTopicClient.class);
     mockFunctionRegistry = niceMock(FunctionRegistry.class);
     mockSchemaRegistryClientFactory = niceMock(Supplier.class);
-
-    properties = new HashMap<>();
 
     left = niceMock(StructuredDataSourceNode.class);
     right = niceMock(StructuredDataSourceNode.class);
@@ -146,8 +144,11 @@ public class JoinNodeTest {
     EasyMock.expect(serviceContext.getSchemaRegistryClientFactory())
         .andReturn(mockSchemaRegistryClientFactory)
         .anyTimes();
+    EasyMock.expect(mockKsqlConfig.cloneWithPropertyOverwrite(
+        Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
+        .andStubReturn(mockKsqlConfigClonedWithOffsetReset);
 
-    EasyMock.replay(serviceContext);
+    EasyMock.replay(serviceContext, mockKsqlConfig);
 
     joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
 
@@ -187,7 +188,6 @@ public class JoinNodeTest {
         ksqlConfig,
         serviceContext,
         new InternalFunctionRegistry(),
-        new HashMap<>(),
         queryId);
   }
 
@@ -329,7 +329,6 @@ public class JoinNodeTest {
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId
     );
 
@@ -378,7 +377,6 @@ public class JoinNodeTest {
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId
     );
 
@@ -427,7 +425,6 @@ public class JoinNodeTest {
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId
     );
 
@@ -469,7 +466,6 @@ public class JoinNodeTest {
           mockKsqlConfig,
           serviceContext,
           mockFunctionRegistry,
-          properties,
           queryId
       );
       fail("Should have raised an exception since no join window was specified");
@@ -521,7 +517,6 @@ public class JoinNodeTest {
           mockKsqlConfig,
           serviceContext,
           mockFunctionRegistry,
-          properties,
           queryId
       );
       fail("should have raised an exception since the number of partitions on the input sources "
@@ -581,7 +576,6 @@ public class JoinNodeTest {
           mockKsqlConfig,
           serviceContext,
           mockFunctionRegistry,
-          properties,
           queryId);
     } catch (final KsqlException e) {
       assertThat(
@@ -631,7 +625,6 @@ public class JoinNodeTest {
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId
     );
 
@@ -677,7 +670,6 @@ public class JoinNodeTest {
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId);
 
     // Then:
@@ -715,7 +707,6 @@ public class JoinNodeTest {
           mockKsqlConfig,
           serviceContext,
           mockFunctionRegistry,
-          properties,
           queryId);
       fail("Should have failed to build the stream since stream-table outer joins are not "
            + "supported");
@@ -765,7 +756,6 @@ public class JoinNodeTest {
           mockKsqlConfig,
           serviceContext,
           mockFunctionRegistry,
-          properties,
           queryId);
       fail("should have raised an exception since a join window was provided for a stream-table "
            + "join");
@@ -810,7 +800,6 @@ public class JoinNodeTest {
           mockKsqlConfig,
           serviceContext,
           mockFunctionRegistry,
-          properties,
           queryId);
     } catch (final KsqlException e) {
       assertThat(
@@ -855,7 +844,6 @@ public class JoinNodeTest {
           mockKsqlConfig,
           serviceContext,
           mockFunctionRegistry,
-          properties,
           queryId);
     } catch (final KsqlException e) {
       assertThat(
@@ -906,7 +894,6 @@ public class JoinNodeTest {
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId);
 
     // Then:
@@ -953,7 +940,6 @@ public class JoinNodeTest {
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId);
 
     // Then:
@@ -1000,7 +986,6 @@ public class JoinNodeTest {
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId);
 
     // Then:
@@ -1043,7 +1028,6 @@ public class JoinNodeTest {
           mockKsqlConfig,
           serviceContext,
           mockFunctionRegistry,
-          properties,
           queryId);
       fail("should have raised an exception since a join window was provided for a stream-table "
            + "join");
@@ -1067,14 +1051,12 @@ public class JoinNodeTest {
                           final Schema schema, final int partitions) {
     expect(node.getSchema()).andReturn(schema);
     expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
-    properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
     expect(node.buildStream(
         mockStreamsBuilder,
-        mockKsqlConfig,
+        mockKsqlConfigClonedWithOffsetReset,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId))
         .andReturn(table);
   }
@@ -1110,7 +1092,7 @@ public class JoinNodeTest {
       final int partitions) {
     expect(node.getSchema()).andReturn(schema);
     expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
-    expectBuildStream(node, contextStacker, stream, schema, properties);
+    expectBuildStream(node, contextStacker, stream, schema);
   }
 
 
@@ -1166,14 +1148,12 @@ public class JoinNodeTest {
       final StructuredDataSourceNode node,
       final QueryContext.Stacker contextStacker,
       final SchemaKStream result,
-      final Schema schema,
-      final Map<String, Object> properties) {
+      final Schema schema) {
     expect(node.buildStream(
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
         mockFunctionRegistry,
-        properties,
         queryId))
         .andReturn(result);
 

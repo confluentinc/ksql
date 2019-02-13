@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessag
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
@@ -88,7 +89,10 @@ public class CommandStoreUtilTest {
     // Expect:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is("uh oh"))));
+    expectedException.expect(exceptionErrorMessage(errorMessage(
+        containsString("Timed out while waiting for a previous command to execute"))));
+    expectedException.expect(exceptionErrorMessage(errorMessage(
+        containsString("command sequence number: 2"))));
 
     // When:
     CommandStoreUtil.httpWaitForCommandSequenceNumber(commandQueue, request, TIMEOUT);

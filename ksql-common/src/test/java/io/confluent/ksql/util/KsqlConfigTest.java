@@ -260,6 +260,27 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldCloneWithMultipleOverwrites() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "123",
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest"
+    ));
+    final KsqlConfig clone = ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG, "2",
+        ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "456"
+    ));
+    final KsqlConfig cloneClone = clone.cloneWithPropertyOverwrite(ImmutableMap.of(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+        StreamsConfig.METADATA_MAX_AGE_CONFIG, "13"
+    ));
+    final Map<String, ?> props = cloneClone.getKsqlStreamConfigProps();
+    assertThat(props.get(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG), equalTo(456));
+    assertThat(props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), equalTo("earliest"));
+    assertThat(props.get(StreamsConfig.NUM_STREAM_THREADS_CONFIG), equalTo(2));
+    assertThat(props.get(StreamsConfig.METADATA_MAX_AGE_CONFIG), equalTo(13L));
+  }
+
+  @Test
   public void shouldCloneWithPrefixedStreamPropertyOverwrite() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
         KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.FETCH_MIN_BYTES_CONFIG, "100"));

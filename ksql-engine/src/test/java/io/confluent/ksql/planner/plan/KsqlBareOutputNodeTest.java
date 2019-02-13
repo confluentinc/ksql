@@ -153,7 +153,6 @@ public class KsqlBareOutputNodeTest {
         new KsqlConfig(Collections.emptyMap()),
         serviceContext,
         new InternalFunctionRegistry(),
-        new HashMap<>(),
         queryId);
   }
 

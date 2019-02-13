@@ -161,7 +161,6 @@ public class StructuredDataSourceNode
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
       final QueryId queryId
   ) {
     final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
@@ -185,7 +184,7 @@ public class StructuredDataSourceNode
       final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
       final KTable<?, GenericRow> kTable = createKTable(
           builder,
-          getAutoOffsetReset(props),
+          getAutoOffsetReset(ksqlConfig.getKsqlStreamConfigProps()),
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
               getSchema(),

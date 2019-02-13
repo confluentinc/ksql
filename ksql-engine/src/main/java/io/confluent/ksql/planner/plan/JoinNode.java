@@ -33,7 +33,7 @@ import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -178,7 +178,6 @@ public class JoinNode extends PlanNode {
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
       final QueryId queryId) {
 
     ensureMatchingPartitionCounts(serviceContext.getTopicClient());
@@ -188,7 +187,6 @@ public class JoinNode extends PlanNode {
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props,
         this,
         queryId,
         buildNodeContext(queryId));
@@ -233,7 +231,6 @@ public class JoinNode extends PlanNode {
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
-        final Map<String, Object> props,
         final JoinNode joinNode,
         final QueryId queryId,
         final QueryContext.Stacker contextStacker
@@ -245,7 +242,6 @@ public class JoinNode extends PlanNode {
               ksqlConfig,
               serviceContext,
               functionRegistry,
-              props,
               joinNode,
               queryId,
               contextStacker),
@@ -255,7 +251,6 @@ public class JoinNode extends PlanNode {
               ksqlConfig,
               serviceContext,
               functionRegistry,
-              props,
               joinNode,
               queryId,
               contextStacker),
@@ -265,7 +260,6 @@ public class JoinNode extends PlanNode {
               ksqlConfig,
               serviceContext,
               functionRegistry,
-              props,
               joinNode,
               queryId,
               contextStacker)
@@ -287,7 +281,6 @@ public class JoinNode extends PlanNode {
     protected final KsqlConfig ksqlConfig;
     private final ServiceContext serviceContext;
     protected final FunctionRegistry functionRegistry;
-    protected final Map<String, Object> props;
     final JoinNode joinNode;
     final QueryContext.Stacker contextStacker;
     final QueryId queryId;
@@ -297,7 +290,6 @@ public class JoinNode extends PlanNode {
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
-        final Map<String, Object> props,
         final JoinNode joinNode,
         final QueryId queryId,
         final QueryContext.Stacker contextStacker
@@ -306,7 +298,6 @@ public class JoinNode extends PlanNode {
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-      this.props = Objects.requireNonNull(props, "props");
       this.joinNode = Objects.requireNonNull(joinNode, "joinNode");
       this.queryId = Objects.requireNonNull(queryId, "queryId");
       this.contextStacker = Objects.requireNonNull(contextStacker, "contextStacker");
@@ -322,7 +313,6 @@ public class JoinNode extends PlanNode {
               ksqlConfig,
               serviceContext,
               functionRegistry,
-              props,
               queryId),
           keyFieldName,
           contextStacker);
@@ -332,16 +322,12 @@ public class JoinNode extends PlanNode {
     protected SchemaKTable buildTable(final PlanNode node,
                                       final String keyFieldName,
                                       final String tableName) {
-
-      final Map<String, Object> joinTableProps = new HashMap<>(props);
-      joinTableProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
       final SchemaKStream schemaKStream = node.buildStream(
           builder,
-          ksqlConfig,
+          ksqlConfig.cloneWithPropertyOverwrite(
+              Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
           serviceContext,
           functionRegistry,
-          joinTableProps,
           queryId);
 
       if (!(schemaKStream instanceof SchemaKTable)) {
@@ -413,7 +399,6 @@ public class JoinNode extends PlanNode {
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
-        final Map<String, Object> props,
         final JoinNode joinNode,
         final QueryId queryId,
         final QueryContext.Stacker contextStacker
@@ -423,7 +408,6 @@ public class JoinNode extends PlanNode {
           ksqlConfig,
           serviceContext,
           functionRegistry,
-          props,
           joinNode,
           queryId,
           contextStacker);
@@ -498,7 +482,6 @@ public class JoinNode extends PlanNode {
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
-        final Map<String, Object> props,
         final JoinNode joinNode,
         final QueryId queryId,
         final QueryContext.Stacker contextStacker
@@ -508,7 +491,6 @@ public class JoinNode extends PlanNode {
           ksqlConfig,
           serviceContext,
           functionRegistry,
-          props,
           joinNode,
           queryId,
           contextStacker);
@@ -566,7 +548,6 @@ public class JoinNode extends PlanNode {
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
         final FunctionRegistry functionRegistry,
-        final Map<String, Object> props,
         final JoinNode joinNode,
         final QueryId queryId,
         final QueryContext.Stacker contextStacker
@@ -576,7 +557,6 @@ public class JoinNode extends PlanNode {
           ksqlConfig,
           serviceContext,
           functionRegistry,
-          props,
           joinNode,
           queryId,
           contextStacker);

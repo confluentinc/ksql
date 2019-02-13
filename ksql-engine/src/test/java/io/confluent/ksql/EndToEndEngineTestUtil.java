@@ -519,7 +519,7 @@ final class EndToEndEngineTestUtil {
     }
 
     TestCase copyWithName(String newName) {
-      return new TestCase(
+      final TestCase copy = new TestCase(
           testPath,
           newName,
           properties,
@@ -528,6 +528,10 @@ final class EndToEndEngineTestUtil {
           outputRecords,
           statements,
           expectedException);
+      copy.setGeneratedTopology(generatedTopology);
+      copy.setExpectedTopology(expectedTopology);
+      copy.setPersistedProperties(persistedProperties);
+      return copy;
     }
 
     void setGeneratedTopology(final String generatedTopology) {
@@ -797,9 +801,9 @@ final class EndToEndEngineTestUtil {
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
                 getResourceAsStream(dir), StandardCharsets.UTF_8))) {
 
-      String topology;
-      while ((topology = reader.readLine()) != null) {
-        contents.add(topology);
+      String file;
+      while ((file = reader.readLine()) != null) {
+        contents.add(file);
       }
     }
     return contents;

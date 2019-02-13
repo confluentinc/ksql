@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.math.DoubleMath;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("metric")
@@ -35,7 +35,7 @@ public class Metric {
       @JsonProperty("value") final double value,
       @JsonProperty("timestamp") final long timestamp,
       @JsonProperty("isError") final boolean isError) {
-    this.name = name;
+    this.name = Objects.requireNonNull(name, "name");
     this.value = value;
     this.timestamp = timestamp;
     this.isError = isError;
@@ -55,12 +55,6 @@ public class Metric {
 
   public boolean isError() {
     return isError;
-  }
-
-  public String formatted() {
-    return (DoubleMath.isMathematicalInteger(value))
-        ? String.format("%16s:%10.0f", name, value)
-        : String.format("%16s:%10.2f", name, value);
   }
 
   @Override

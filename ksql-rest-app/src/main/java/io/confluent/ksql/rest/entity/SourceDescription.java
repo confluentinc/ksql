@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.rest.util.ClientMetricUtils;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -123,8 +124,8 @@ public class SourceDescription {
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
             .map(TimestampExtractionPolicy::timestampField).orElse(""),
-        metrics.formatted(false),
-        metrics.formatted(true),
+        ClientMetricUtils.format(metrics.getMetrics(), false),
+        ClientMetricUtils.format(metrics.getErrorMetrics(), true),
         metrics,
         extended,
         format,

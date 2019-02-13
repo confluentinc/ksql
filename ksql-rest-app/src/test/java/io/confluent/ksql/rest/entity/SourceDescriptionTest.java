@@ -186,7 +186,7 @@ public class SourceDescriptionTest {
 
       @Override
       public void describeTo(final Description description) {
-        description.appendText(expected.format());
+        description.appendText(expected.toString());
       }
     };
   }

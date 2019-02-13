@@ -63,6 +63,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.util.ClientMetricUtils;
 import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
@@ -509,7 +510,7 @@ public class Console implements Closeable {
     printWriteQueries(source);
 
     if (source.getMetrics() != null) {
-      writer().println(source.getMetrics().format());
+      writer().println(ClientMetricUtils.format(source.getMetrics()));
     } else {
       writer().println(String.format(
           "%n%-20s%n%s",

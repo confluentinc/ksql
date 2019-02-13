@@ -75,18 +75,20 @@ public class SourceDescription {
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = name;
-    this.readQueries = Collections.unmodifiableList(readQueries);
-    this.writeQueries = Collections.unmodifiableList(writeQueries);
-    this.fields = Collections.unmodifiableList(fields);
-    this.type = type;
-    this.key = key;
-    this.timestamp = timestamp;
-    this.statistics = statistics;
-    this.errorStats = errorStats;
-    this.metrics = metrics;
+    this.readQueries = Collections.unmodifiableList(
+        Objects.requireNonNull(readQueries, "readQueries"));
+    this.writeQueries = Collections.unmodifiableList(
+        Objects.requireNonNull(writeQueries, "writeQueries"));
+    this.fields = Collections.unmodifiableList(Objects.requireNonNull(fields, "fields"));
+    this.type = Objects.requireNonNull(type, "type");
+    this.key = Objects.requireNonNull(key);
+    this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
+    this.statistics = Objects.requireNonNull(statistics, "statistics");
+    this.errorStats = Objects.requireNonNull(errorStats, "errorStats");
+    this.metrics = Objects.requireNonNull(metrics, "metrics");
     this.extended = extended;
-    this.format = format;
-    this.topic = topic;
+    this.format = Objects.requireNonNull(format, "format");
+    this.topic = Objects.requireNonNull(topic, "topic");
     this.partitions = partitions;
     this.replication = replication;
   }

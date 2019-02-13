@@ -518,6 +518,22 @@ final class EndToEndEngineTestUtil {
       this.expectedException = expectedException;
     }
 
+    TestCase copyWithName(String newName) {
+      final TestCase copy = new TestCase(
+          testPath,
+          newName,
+          properties,
+          topics,
+          inputRecords,
+          outputRecords,
+          statements,
+          expectedException);
+      copy.setGeneratedTopology(generatedTopology);
+      copy.setExpectedTopology(expectedTopology);
+      copy.setPersistedProperties(persistedProperties);
+      return copy;
+    }
+
     void setGeneratedTopology(final String generatedTopology) {
       this.generatedTopology = generatedTopology;
     }
@@ -692,48 +708,48 @@ final class EndToEndEngineTestUtil {
         0);
   }
 
-    private static void writeExpectedTopologyFile(final String queryName,
-                                                  final Topology topology,
-                                                  final Map<String, String> configs,
-                                                  final ObjectWriter objectWriter,
-                                                  final String topologyDir) {
+  private static void writeExpectedTopologyFile(final String queryName,
+                                                final Topology topology,
+                                                final Map<String, String> configs,
+                                                final ObjectWriter objectWriter,
+                                                final String topologyDir) {
 
-        final Path newTopologyDataPath = Paths.get(topologyDir);
-        try {
-            final String updatedQueryName = formatQueryName(queryName);
-            final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
-            final String configString = objectWriter.writeValueAsString(configs);
-            final String topologyString = topology.describe().toString();
+      final Path newTopologyDataPath = Paths.get(topologyDir);
+      try {
+          final String updatedQueryName = formatQueryName(queryName);
+          final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
+          final String configString = objectWriter.writeValueAsString(configs);
+          final String topologyString = topology.describe().toString();
 
-          final byte[] topologyBytes =
-              (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
-                  .getBytes(StandardCharsets.UTF_8);
+        final byte[] topologyBytes =
+            (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
+                .getBytes(StandardCharsets.UTF_8);
 
-            Files.write(topologyFile,
-                        topologyBytes,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
+          Files.write(topologyFile,
+                      topologyBytes,
+                      StandardOpenOption.CREATE,
+                      StandardOpenOption.WRITE,
+                      StandardOpenOption.TRUNCATE_EXISTING);
 
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+      } catch (IOException e) {
+          throw new RuntimeException(e);
+      }
+  }
 
   static String formatQueryName(final String originalQueryName) {
     return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
   }
 
-  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) throws IOException {
-         final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
-         final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
-         final List<String> topologyFiles = findExpectedTopologyFiles(dir);
-         topologyFiles.forEach(fileName -> {
-             final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
-             expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
-         });
-      return expectedTopologyAndConfigs;
+  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) {
+    final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
+    final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
+    final List<String> topologyFiles = findExpectedTopologyFiles(dir);
+    topologyFiles.forEach(fileName -> {
+      final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
+      expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
+    });
+    return expectedTopologyAndConfigs;
   }
 
   private static TopologyAndConfigs readTopologyFile(final String file, final ObjectReader objectReader) {
@@ -762,19 +778,35 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static List<String> findExpectedTopologyFiles(final String dir) throws IOException {
-       final List<String> topologyFiles = new ArrayList<>();
+  static List<String> findExpectedTopologyDirectories(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology directories.", e);
+    }
+  }
+
+  private static List<String> findExpectedTopologyFiles(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology files. dir: " + dir, e);
+    }
+  }
+
+  private static List<String> findContentsOfDirectory(final String dir) throws IOException {
+    final List<String> contents = new ArrayList<>();
     try (final BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
                 getResourceAsStream(dir), StandardCharsets.UTF_8))) {
 
-      String topology;
-      while ((topology = reader.readLine()) != null) {
-          topologyFiles.add(topology);
+      String file;
+      while ((file = reader.readLine()) != null) {
+        contents.add(file);
       }
     }
-    return topologyFiles;
+    return contents;
   }
 
   private static List<Path> findTests(final Path dir) {

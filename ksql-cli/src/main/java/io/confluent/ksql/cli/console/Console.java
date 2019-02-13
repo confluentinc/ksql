@@ -508,13 +508,17 @@ public class Console implements Closeable {
 
     printWriteQueries(source);
 
-    writer().println(String.format(
-        "%n%-20s%n%s",
-        "Local runtime statistics",
-        "------------------------"
-    ));
-    writer().println(source.getStatistics());
-    writer().println(source.getErrorStats());
+    if (source.getMetrics() != null) {
+      writer().println(source.getMetrics().format());
+    } else {
+      writer().println(String.format(
+          "%n%-20s%n%s",
+          "Local runtime statistics",
+          "------------------------"
+      ));
+      writer().println(source.getStatistics());
+      writer().println(source.getErrorStats());
+    }
     writer().println(String.format(
         "(%s)",
         "Statistics of the local KSQL server interaction with the Kafka topic "

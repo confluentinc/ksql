@@ -650,7 +650,7 @@ public class KsqlResource {
       ));
     }
 
-    return new SourceDescription(
+    return SourceDescription.of(
         dataSource,
         extended,
         dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),

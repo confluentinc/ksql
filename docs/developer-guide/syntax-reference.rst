@@ -599,7 +599,7 @@ Extended descriptions provide the following metrics for the topic backing the so
 * last-message: The time that the last message was produced to or consumed from the topic by the server
 * failed-messages-per-sec: The number of failures during message consumption (for example, deserialization failures) per second on the server
 * consumer-failed-messages: The total number of failures during message consumption on the server
-* last-failed: The time that the last failure occured when a message was consumed from the topic by the server
+* last-failed: The time that the last failure occurred when a message was consumed from the topic by the server
 
 Example of describing a table:
 

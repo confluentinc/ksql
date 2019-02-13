@@ -24,10 +24,12 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -44,6 +46,7 @@ public class SourceDescription {
   private final String timestamp;
   private final String statistics;
   private final String errorStats;
+  private final Metrics metrics;
   private final boolean extended;
   private final String format;
   private final String topic;
@@ -62,6 +65,7 @@ public class SourceDescription {
       @JsonProperty("timestamp") final String timestamp,
       @JsonProperty("statistics") final String statistics,
       @JsonProperty("errorStats") final String errorStats,
+      @JsonProperty("metrics") final Metrics metrics,
       @JsonProperty("extended") final boolean extended,
       @JsonProperty("format") final String format,
       @JsonProperty("topic") final String topic,
@@ -78,6 +82,7 @@ public class SourceDescription {
     this.timestamp = timestamp;
     this.statistics = statistics;
     this.errorStats = errorStats;
+    this.metrics = metrics;
     this.extended = extended;
     this.format = format;
     this.topic = topic;
@@ -85,7 +90,7 @@ public class SourceDescription {
     this.replication = replication;
   }
 
-  public SourceDescription(
+  public static SourceDescription of(
       final StructuredDataSource dataSource,
       final boolean extended,
       final String format,
@@ -93,7 +98,23 @@ public class SourceDescription {
       final List<RunningQuery> writeQueries,
       final KafkaTopicClient topicClient
   ) {
-    this(
+    final Collection<Metric> successMetrics =
+        MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), false)
+            .values()
+            .stream()
+            .map(stat -> new Metric(stat.name(), stat.getValue(), stat.getTimestamp(), false))
+            .collect(Collectors.toList());
+
+    final Collection<Metric> errorMetrics =
+        MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), true)
+            .values()
+            .stream()
+            .map(stat -> new Metric(stat.name(), stat.getValue(), stat.getTimestamp(), true))
+            .collect(Collectors.toList());
+
+    final Metrics metrics = new Metrics(successMetrics, errorMetrics);
+
+    return new SourceDescription(
         dataSource.getName(),
         readQueries,
         writeQueries,
@@ -102,12 +123,9 @@ public class SourceDescription {
         Optional.ofNullable(dataSource.getKeyField()).map(Field::name).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
             .map(TimestampExtractionPolicy::timestampField).orElse(""),
-        (extended
-            ? MetricCollectors.getAndFormatStatsFor(
-                dataSource.getKafkaTopicName(), false) : ""),
-        (extended
-            ? MetricCollectors.getAndFormatStatsFor(
-                dataSource.getKafkaTopicName(), true) : ""),
+        metrics.formatted(false),
+        metrics.formatted(true),
+        metrics,
         extended,
         format,
         dataSource.getKafkaTopicName(),
@@ -201,6 +219,10 @@ public class SourceDescription {
 
   public String getErrorStats() {
     return errorStats;
+  }
+
+  public Metrics getMetrics() {
+    return metrics;
   }
 
   private boolean equals2(final SourceDescription that) {

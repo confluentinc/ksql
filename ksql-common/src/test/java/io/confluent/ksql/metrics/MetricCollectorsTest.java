@@ -15,17 +15,21 @@
 package io.confluent.ksql.metrics;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.math.DoubleMath;
+import io.confluent.ksql.metrics.TopicSensors.Stat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -33,6 +37,9 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,6 +66,7 @@ public class MetricCollectorsTest {
     assertThat(aggregateMetrics.values().iterator().next().getValue(), equalTo(3.0));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldKeepWorkingWhenDuplicateTopicConsumerIsRemoved() {
 
@@ -79,19 +87,43 @@ public class MetricCollectorsTest {
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
-    final String firstPassStats = MetricCollectors.getAndFormatStatsFor(TEST_TOPIC, false);
+    final Map<String, Stat> firstPassStats = MetricCollectors.getStatsFor(TEST_TOPIC, false);
 
-    assertTrue("Missed stats, got:" + firstPassStats, firstPassStats.contains("total-messages:         2"));
-
+    assertThat(
+        firstPassStats.values(),
+        containsInAnyOrder(
+            matchesStat(new Stat(ConsumerCollector.CONSUMER_TOTAL_MESSAGES, 2.0d, 0L)),
+            matchesStat(new Stat(ConsumerCollector.CONSUMER_TOTAL_BYTES, 40.0d, 0L)),
+            matchesStat(new Stat(ConsumerCollector.CONSUMER_MESSAGES_PER_SEC, 0.0d, 0L))
+        ));
     collector2.close();
 
     collector1.onConsume(consumerRecords);
 
-    final String statsForTopic2 =  MetricCollectors.getAndFormatStatsFor(TEST_TOPIC, false);
-
-    assertTrue("Missed stats, got:" + statsForTopic2, statsForTopic2.contains("total-messages:         2"));
+    final Map<String, Stat> statsForTopic2 =  MetricCollectors.getStatsFor(TEST_TOPIC, false);
+    assertThat(
+        statsForTopic2.values(),
+        containsInAnyOrder(
+            matchesStat(new Stat(ConsumerCollector.CONSUMER_TOTAL_MESSAGES, 2.0d, 0L)),
+            matchesStat(new Stat(ConsumerCollector.CONSUMER_TOTAL_BYTES, 40.0d, 0L)),
+            matchesStat(new Stat(ConsumerCollector.CONSUMER_MESSAGES_PER_SEC, 0.0d, 0L))
+        ));
   }
 
+  private Matcher<Stat> matchesStat(Stat expected) {
+    return new TypeSafeMatcher<Stat>() {
+      @Override
+      protected boolean matchesSafely(final Stat metric) {
+        return Objects.equals(expected.name(), metric.name())
+            && DoubleMath.fuzzyCompare(expected.getValue(), metric.getValue(), .1) == 0;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(expected.toString());
+      }
+    };
+  }
 
   @Test
   public void shouldAggregateStatsAcrossAllProducers() {

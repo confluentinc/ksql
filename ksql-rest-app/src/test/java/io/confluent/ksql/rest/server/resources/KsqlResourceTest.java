@@ -304,11 +304,11 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        new SourceDescription(
+        SourceDescription.of(
             ksqlEngine.getMetaStore().getSource("TEST_STREAM"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             kafkaTopicClient),
-        new SourceDescription(
+        SourceDescription.of(
             ksqlEngine.getMetaStore().getSource("new_stream"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             kafkaTopicClient)));
@@ -331,11 +331,11 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        new SourceDescription(
+        SourceDescription.of(
             ksqlEngine.getMetaStore().getSource("TEST_TABLE"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             kafkaTopicClient),
-        new SourceDescription(
+        SourceDescription.of(
             ksqlEngine.getMetaStore().getSource("new_table"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             kafkaTopicClient)));
@@ -374,7 +374,7 @@ public class KsqlResourceTest {
         "DESCRIBE DESCRIBED_STREAM;", SourceDescriptionEntity.class);
 
     // Then:
-    final SourceDescription expectedDescription = new SourceDescription(
+    final SourceDescription expectedDescription = SourceDescription.of(
         ksqlEngine.getMetaStore().getSource("DESCRIBED_STREAM"), false, "JSON",
         Collections.singletonList(queries.get(1)), Collections.singletonList(queries.get(0)), null);
 

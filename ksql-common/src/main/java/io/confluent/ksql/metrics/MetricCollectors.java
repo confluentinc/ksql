@@ -93,19 +93,15 @@ public final class MetricCollectors {
     collectorMap.remove(id);
   }
 
-  static Map<String, TopicSensors.Stat> getStatsFor(
-      final String topic, final boolean isError) {
+  public static Map<String, TopicSensors.Stat> getStatsFor(
+      final String topic,
+      final boolean isError
+  ) {
     return getAggregateMetrics(
         collectorMap.values().stream()
             .flatMap(c -> c.stats(topic.toLowerCase(), isError).stream())
             .collect(Collectors.toList())
     );
-  }
-
-  public static String getAndFormatStatsFor(final String topic, final boolean isError) {
-    return format(
-        getStatsFor(topic, isError).values(),
-        isError ? "last-failed" : "last-message");
   }
 
   static Map<String, TopicSensors.Stat> getAggregateMetrics(
@@ -120,19 +116,6 @@ public final class MetricCollectors {
       results.get(stat.name()).aggregate(stat.getValue());
     });
     return results;
-  }
-
-  private static String format(
-      final Collection<TopicSensors.Stat> stats,
-      final String lastEventTimestampMsg) {
-    final StringBuilder results = new StringBuilder();
-    stats.forEach(stat -> results.append(stat.formatted()).append(" "));
-    if (stats.size() > 0) {
-      results
-          .append(String.format("%16s: ", lastEventTimestampMsg))
-          .append(String.format("%9s", stats.iterator().next().timestamp()));
-    }
-    return results.toString();
   }
 
   public static Collection<Double> currentConsumptionRateByQuery() {

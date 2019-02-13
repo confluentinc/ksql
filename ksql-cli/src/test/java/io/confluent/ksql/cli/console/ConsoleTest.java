@@ -44,6 +44,8 @@ import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.rest.entity.Metric;
+import io.confluent.ksql.rest.entity.Metrics;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -151,7 +153,10 @@ public class ConsoleTest {
               new SourceDescription(
                   "TestSource", Collections.emptyList(), Collections.emptyList(), buildTestSchema(i),
                   DataSource.DataSourceType.KTABLE.getKqlType(), "key", "2000-01-01", "stats",
-                  "errors", false, "avro", "kadka-topic", 1, 1)),
+                  "errors",
+                  new Metrics(ImmutableList.of(new Metric("stat", 1.0d, 123, false)),
+                              ImmutableList.of(new Metric("stat", 1.0d, 123, true))),
+                  false, "avro", "kadka-topic", 1, 1)),
           new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString"),
           new StreamsList("e", ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO"))),
           new TablesList("e", ImmutableList.of(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false))),
@@ -171,7 +176,10 @@ public class ConsoleTest {
             new SourceDescription(
                 "TestSource", Collections.emptyList(), Collections.emptyList(),
                 buildTestSchema(2), DataSource.DataSourceType.KTABLE.getKqlType(),
-                "key", "2000-01-01", "stats", "errors", true, "avro", "kadka-topic",
+                "key", "2000-01-01", "stats", "errors",
+                new Metrics(ImmutableList.of(new Metric("stat", 1.0d, 123, false)),
+                            ImmutableList.of(new Metric("stat", 1.0d, 123, true))),
+                true, "avro", "kadka-topic",
                 2, 1))));
 
     console.printKsqlEntityList(entityList);

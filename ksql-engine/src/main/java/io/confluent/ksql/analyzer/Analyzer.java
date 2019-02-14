@@ -637,25 +637,15 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     analysis.setIntoFormat(serde);
     analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
-    if ("AVRO".equals(serde)) {
-      String avroSchemaFilePath = "/tmp/" + into.getName() + ".avro";
-      if (node.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE) != null) {
-        avroSchemaFilePath = node.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString();
-        if (!avroSchemaFilePath.startsWith("'") && !avroSchemaFilePath.endsWith("'")) {
-          throw new KsqlException(
-              avroSchemaFilePath + " value is string and should be enclosed between "
-              + "\"'\".");
-        }
-        avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
-      }
-      analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
 
-      final Expression avroSchemaFullName =
-              node.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
+    final Expression avroSchemaFullName =
+        node.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
+
+    if ("AVRO".equals(serde)) {
       analysis.getIntoProperties().put(
               DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
               ? avroSchemaFullName : KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
-    } else if (node.getProperties().containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)) {
+    } else if (avroSchemaFullName != null) {
       throw new KsqlException(
               DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
@@ -684,7 +674,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
           properties.get(DdlConfig.TIMESTAMP_FORMAT_PROPERTY).toString());
       analysis.getIntoProperties().put(DdlConfig.TIMESTAMP_FORMAT_PROPERTY, timestampFormat);
     }
-
   }
 
   private void validateWithClause(final Set<String> withClauseVariables) {

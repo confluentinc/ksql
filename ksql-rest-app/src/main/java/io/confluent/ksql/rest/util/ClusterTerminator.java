@@ -14,16 +14,15 @@
 
 package io.confluent.ksql.rest.util;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -33,26 +32,28 @@ import org.apache.commons.lang3.StringUtils;
 
 public class ClusterTerminator {
 
-  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
+  private final List<String> managedTopics;
 
   public ClusterTerminator(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final List<String> managedTopics
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig is null.");
     Objects.requireNonNull(ksqlEngine, "ksqlEngine is null.");
-    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.serviceContext = Objects.requireNonNull(serviceContext);
+    this.managedTopics = ImmutableList.copyOf(
+        Objects.requireNonNull(managedTopics, "managedTopics"));
   }
 
   public void terminateCluster(final List<String> deleteTopicPatterns) {
     terminatePersistentQueries();
     deleteSinkTopics(deleteTopicPatterns);
-    deleteCommandTopic();
+    deleteTopics(managedTopics);
     ksqlEngine.close();
   }
 
@@ -90,12 +91,6 @@ public class ClusterTerminator {
         .anyMatch(pattern -> pattern.matcher(topicName).matches());
   }
 
-  private void deleteCommandTopic() {
-    final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
-    deleteTopics(Collections.singletonList(commandTopic));
-  }
-
   private void deleteTopics(final List<String> topicsToBeDeleted) {
     try {
       ExecutorUtil.executeWithRetries(
@@ -104,7 +99,7 @@ public class ClusterTerminator {
           ExecutorUtil.RetryBehaviour.ALWAYS);
     } catch (final Exception e) {
       throw new KsqlException(
-          "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ","));
+          "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
     }
   }
 }

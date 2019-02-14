@@ -241,7 +241,6 @@ public class InternalFunctionRegistry implements FunctionRegistry {
         "RANDOM", RandomKudf.class);
     addFunction(random);
 
-
   }
 
   private void addGeoFunctions() {

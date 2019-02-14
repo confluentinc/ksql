@@ -127,6 +127,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -327,9 +328,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     final QueryBody term = (QueryBody) visit(context.queryTerm());
 
     final NumberContext limitContext = context.limitClause().number();
-    final Optional<Integer> limit = (limitContext == null)
-        ? Optional.empty()
-        : Optional.of(processIntegerNumber(limitContext, "QUERY"));
+    final OptionalInt limit = (limitContext == null)
+        ? OptionalInt.empty()
+        : OptionalInt.of(processIntegerNumber(limitContext, "LIMIT"));
 
     if (term instanceof QuerySpecification) {
       // When we have a simple query specification
@@ -352,7 +353,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
               query.getHaving(),
               limit
           ),
-          Optional.empty()
+          OptionalInt.empty()
       );
     }
 
@@ -399,7 +400,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         visitIfPresent(context.where, Expression.class),
         visitIfPresent(context.groupBy(), GroupBy.class),
         visitIfPresent(context.having, Expression.class),
-        Optional.empty()
+        OptionalInt.empty()
     );
   }
 
@@ -778,14 +779,14 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     final NumberContext intervalContext = context.printClause().intervalClause().number();
-    final Optional<Integer> interval = (intervalContext == null)
-        ? Optional.empty()
-        : Optional.of(processIntegerNumber(intervalContext, "PRINT"));
+    final OptionalInt interval = (intervalContext == null)
+        ? OptionalInt.empty()
+        : OptionalInt.of(processIntegerNumber(intervalContext, "INTERVAL"));
 
     final NumberContext limitContext = context.printClause().limitClause().number();
-    final Optional<Integer> limit = (limitContext == null)
-        ? Optional.empty()
-        : Optional.of(processIntegerNumber(limitContext, "PRINT"));
+    final OptionalInt limit = (limitContext == null)
+        ? OptionalInt.empty()
+        : OptionalInt.of(processIntegerNumber(limitContext, "LIMIT"));
 
     return new PrintTopic(
         getLocation(context),
@@ -796,11 +797,11 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     );
   }
 
-  private Integer processIntegerNumber(final NumberContext number, final String context) {
+  private int processIntegerNumber(final NumberContext number, final String context) {
     if (number instanceof SqlBaseParser.IntegerLiteralContext) {
       return ((IntegerLiteral) visitIntegerLiteral((IntegerLiteralContext) number)).getValue();
     }
-    throw new KsqlException("Interval value must be integer in for command: '" + context);
+    throw new KsqlException("Value must be integer in for command: " + context);
   }
 
   @Override

@@ -50,6 +50,7 @@ public class TopicStreamWriterTest {
 
   @Mock public KafkaConsumer<String, Bytes> kafkaConsumer;
   @Mock public SchemaRegistryClient schemaRegistry;
+  private ValidatingOutputStream out;
 
   @Before
   public void setup() {
@@ -59,6 +60,7 @@ public class TopicStreamWriterTest {
         i -> new Bytes(("value" + i).getBytes(Charsets.UTF_8)));
     when(kafkaConsumer.poll(any(Duration.class)))
         .thenAnswer(invocation -> records.next());
+    out = new ValidatingOutputStream();
   }
 
   @Test
@@ -74,7 +76,6 @@ public class TopicStreamWriterTest {
     );
 
     // When:
-    ValidatingOutputStream out = new ValidatingOutputStream();
     writer.write(out);
 
     // Then:

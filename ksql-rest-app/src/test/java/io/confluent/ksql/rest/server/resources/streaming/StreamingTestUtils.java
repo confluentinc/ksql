@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -84,8 +85,8 @@ class StreamingTestUtils {
         new NodeLocation(0, 1),
         QualifiedName.of(name),
         fromBeginning,
-        Optional.ofNullable(interval),
-        Optional.ofNullable(limit)
+        interval == null ? OptionalInt.empty() : OptionalInt.of(interval),
+        limit == null ? OptionalInt.empty() : OptionalInt.of(limit)
     );
   }
 

@@ -48,8 +48,6 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
 
   private final ListeningScheduledExecutorService exec;
   private final SchemaRegistryClient schemaRegistryClient;
-  private final String topicName;
-  private final boolean fromBeginning;
   private final Map<String, Object> consumerProperties;
   private final PrintTopic printTopic;
 
@@ -59,11 +57,9 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
       final Map<String, Object> consumerProperties,
       final PrintTopic printTopic) {
     this.exec = exec;
-    this.schemaRegistryClient = schemaRegistryClient;
-    this.consumerProperties = consumerProperties;
-    this.printTopic = printTopic;
-    this.topicName = printTopic.getTopic().toString();
-    this.fromBeginning = printTopic.getFromBeginning();
+    this.schemaRegistryClient = Objects.requireNonNull(schemaRegistryClient, "schemaRegistry");
+    this.consumerProperties = Objects.requireNonNull(consumerProperties, "consumerProperties");
+    this.printTopic = Objects.requireNonNull(printTopic, "printTopic");
   }
 
   @Override
@@ -74,14 +70,15 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
         new BytesDeserializer()
     );
 
-    log.info("Running consumer for topic {}", topicName);
-    final List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(topicName)
+    log.info("Running consumer for topic {}", printTopic.getTopic());
+    final List<TopicPartition> topicPartitions =
+        topicConsumer.partitionsFor(printTopic.getTopic().toString())
         .stream()
         .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
         .collect(Collectors.toList());
     topicConsumer.assign(topicPartitions);
 
-    if (fromBeginning) {
+    if (printTopic.getFromBeginning()) {
       topicConsumer.seekToBeginning(topicPartitions);
     }
 
@@ -91,7 +88,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
             printTopic,
             subscriber,
             topicConsumer,
-            new RecordFormatter(schemaRegistryClient, topicName)
+            new RecordFormatter(schemaRegistryClient, printTopic.getTopic().toString())
         )
     );
   }
@@ -101,7 +98,6 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
     private final PrintTopic printTopic;
     private final KafkaConsumer<String, Bytes> topicConsumer;
     private final RecordFormatter formatter;
-    private final String topicName;
     private boolean closed = false;
 
     private int numPolled = 0;
@@ -115,10 +111,9 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
         final RecordFormatter formatter
     ) {
       super(exec, subscriber, null);
-      this.printTopic = printTopic;
-      this.topicName = printTopic.getTopic().toString();
-      this.topicConsumer = topicConsumer;
-      this.formatter = formatter;
+      this.printTopic = Objects.requireNonNull(printTopic, "printTopic");
+      this.topicConsumer = Objects.requireNonNull(topicConsumer, "topicConsumer");
+      this.formatter = Objects.requireNonNull(formatter, "formatter");
     }
 
     @Override
@@ -155,7 +150,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
     @Override
     public synchronized void close() {
       if (!closed) {
-        log.info("Closing consumer for topic {}", topicName);
+        log.info("Closing consumer for topic {}", printTopic.getTopic());
         closed = true;
         topicConsumer.close();
       }
@@ -175,6 +170,8 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
         final int interval,
         final int start) {
       Preconditions.checkArgument(interval > 0, "interval must be greater than 0");
+      Preconditions.checkArgument(start >= 0, "start must be greater than or equal to 0");
+      Preconditions.checkArgument(limit >= 0, "limit must be greater than or equal to 0");
       Objects.requireNonNull(source, "source");
 
       this.source = Iterables.skip(source, start);

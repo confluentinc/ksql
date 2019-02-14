@@ -19,30 +19,31 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public class Query
     extends Statement {
 
   private final QueryBody queryBody;
-  private final Optional<Integer> limit;
+  private final OptionalInt limit;
 
   public Query(
       final QueryBody queryBody,
-      final Optional<Integer> limit) {
+      final OptionalInt limit) {
     this(Optional.empty(), queryBody, limit);
   }
 
   public Query(
       final NodeLocation location,
       final QueryBody queryBody,
-      final Optional<Integer> limit) {
+      final OptionalInt limit) {
     this(Optional.of(location), queryBody, limit);
   }
 
   private Query(
       final Optional<NodeLocation> location,
       final QueryBody queryBody,
-      final Optional<Integer> limit) {
+      final OptionalInt limit) {
     super(location);
     requireNonNull(queryBody, "queryBody is null");
     requireNonNull(limit, "limit is null");
@@ -55,7 +56,7 @@ public class Query
     return queryBody;
   }
 
-  public Optional<Integer> getLimit() {
+  public OptionalInt getLimit() {
     return limit;
   }
 
@@ -68,7 +69,7 @@ public class Query
   public String toString() {
     return toStringHelper(this)
         .add("queryBody", queryBody)
-        .add("limit", limit.orElse(null))
+        .add("limit", limit)
         .omitNullValues()
         .toString();
   }

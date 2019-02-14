@@ -52,7 +52,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
@@ -128,7 +128,7 @@ public class WSQueryEndpointTest {
 
   @Before
   public void setUp() {
-    query = new Query(queryBody, Optional.empty());
+    query = new Query(queryBody, OptionalInt.empty());
 
     when(session.getId()).thenReturn("session-id");
     when(statementParser.parseSingleStatement(anyString()))

@@ -15,6 +15,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 import java.io.EOFException;
 import java.io.IOException;
@@ -52,19 +53,17 @@ public class TopicStreamWriter implements StreamingOutput {
   public TopicStreamWriter(
       final SchemaRegistryClient schemaRegistryClient,
       final Map<String, Object> consumerProperties,
-      final String topicName,
-      final long interval,
-      final Duration disconnectCheckInterval,
-      final boolean fromBeginning,
-      final OptionalInt limit
+      final PrintTopic printTopic,
+      final Duration disconnectCheckInterval
   ) {
     this(
         schemaRegistryClient,
-        createTopicConsumer(consumerProperties, topicName, fromBeginning),
-        topicName,
-        interval,
+        createTopicConsumer(
+            consumerProperties, printTopic.getTopic().toString(), printTopic.getFromBeginning()),
+        printTopic.getTopic().toString(),
+        printTopic.getIntervalValue(),
         disconnectCheckInterval,
-        limit);
+        printTopic.getLimit());
   }
 
 

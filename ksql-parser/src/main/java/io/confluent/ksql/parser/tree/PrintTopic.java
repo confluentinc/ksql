@@ -26,15 +26,15 @@ public class PrintTopic extends Statement {
   private final QualifiedName topic;
   private final boolean fromBeginning;
   private final int intervalValue;
-  private final Integer limit;
+  private final OptionalInt limit;
 
 
   public PrintTopic(
       final NodeLocation location,
       final QualifiedName topic,
       final boolean fromBeginning,
-      final Optional<Integer> intervalValue,
-      final Optional<Integer> limitValue
+      final OptionalInt intervalValue,
+      final OptionalInt limitValue
   ) {
     this(Optional.of(location), topic, fromBeginning, intervalValue, limitValue);
   }
@@ -43,14 +43,14 @@ public class PrintTopic extends Statement {
       final Optional<NodeLocation> location,
       final QualifiedName topic,
       final boolean fromBeginning,
-      final Optional<Integer> intervalValue,
-      final Optional<Integer> limit
+      final OptionalInt intervalValue,
+      final OptionalInt limit
   ) {
     super(location);
     this.topic = requireNonNull(topic, "table is null");
     this.fromBeginning = fromBeginning;
     this.intervalValue = intervalValue.orElse(1);
-    this.limit = limit.orElse(null);
+    this.limit = limit;
   }
 
   public QualifiedName getTopic() {
@@ -66,7 +66,7 @@ public class PrintTopic extends Statement {
   }
 
   public OptionalInt getLimit() {
-    return (limit == null) ? OptionalInt.empty() : OptionalInt.of(limit);
+    return limit;
   }
 
   @Override
@@ -78,15 +78,15 @@ public class PrintTopic extends Statement {
       return false;
     }
     final PrintTopic that = (PrintTopic) o;
-    return getFromBeginning() == that.getFromBeginning()
-        && Objects.equals(getTopic(), that.getTopic())
-        && getIntervalValue() == that.getIntervalValue()
-        && Objects.equals(getLimit(), that.getLimit());
+    return fromBeginning == that.fromBeginning
+        && Objects.equals(topic, that.topic)
+        && intervalValue == that.intervalValue
+        && Objects.equals(limit, that.limit);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getTopic(), getFromBeginning(), getIntervalValue(), getLimit());
+    return Objects.hash(topic, fromBeginning, intervalValue, limit);
   }
 
   @Override

@@ -185,11 +185,8 @@ public class StreamedQueryResource {
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         serviceContext.getSchemaRegistryClient(),
         ksqlConfig.getKsqlStreamConfigProps(),
-        topicName,
-        printTopic.getIntervalValue(),
-        disconnectCheckInterval,
-        printTopic.getFromBeginning(),
-        printTopic.getLimit()
+        printTopic,
+        disconnectCheckInterval
     );
 
     log.info("Printing topic '{}'", topicName);

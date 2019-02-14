@@ -13,6 +13,8 @@
  */
 package io.confluent.ksql.ddl.commands;
 
+import static org.easymock.MockType.NICE;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -22,6 +24,8 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.HashMap;
+import java.util.Map;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
@@ -29,11 +33,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.easymock.MockType.NICE;
 
 @RunWith(EasyMockRunner.class)
 public class RegisterTopicCommandTest {

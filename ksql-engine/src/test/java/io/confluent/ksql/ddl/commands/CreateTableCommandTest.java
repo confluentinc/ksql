@@ -35,8 +35,8 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.KsqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
@@ -169,11 +169,8 @@ public class CreateTableCommandTest {
 
   @Test
   public void testCreateAlreadyRegisteredTableThrowsException() {
-    final CreateTableCommand cmd;
-
     // Given:
-    givenProperties(propsWith(ImmutableMap.of()));
-    cmd = createCmd();
+    final CreateTableCommand cmd = createCmd();
     cmd.run(metaStore);
 
     // Then:

@@ -15,7 +15,6 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,8 +32,8 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
@@ -165,11 +164,8 @@ public class CreateStreamCommandTest {
 
   @Test
   public void testCreateAlreadyRegisteredStreamThrowsException() {
-    final CreateStreamCommand cmd;
-
     // Given:
-    givenProperties(propsWith(ImmutableMap.of()));
-    cmd = createCmd();
+    final CreateStreamCommand cmd = createCmd();
     cmd.run(metaStore);
 
     // Then:

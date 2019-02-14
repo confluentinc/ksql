@@ -62,7 +62,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 /**
  *  Runs JMH microbenchmarks against KSQL serdes.
- *
  *  See `ksql-benchmark/README.md` for more info, including benchmark results
  *  and how to run the benchmarks.
  */

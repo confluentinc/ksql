@@ -1,18 +1,16 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -29,6 +27,7 @@ import io.confluent.ksql.rest.server.computation.KafkaConfigStore.KsqlProperties
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -39,21 +38,21 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KafkaConfigStoreTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(
       ImmutableMap.of(
@@ -74,11 +73,6 @@ public class KafkaConfigStoreTest {
   @Mock
   private KafkaTopicClient topicClient;
 
-  private KafkaConfigStore configStore;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
   @Before
   @SuppressWarnings("unchecked")
   public void setUp() {
@@ -88,8 +82,9 @@ public class KafkaConfigStoreTest {
     when(producerSupplier.get()).thenReturn(producer);
   }
 
-  private void initConfigStore() {
-    configStore = new KafkaConfigStore(ksqlConfig, topicClient, consumerSupplier, producerSupplier);
+  private KsqlConfig getKsqlConfig() {
+    return new KafkaConfigStore(ksqlConfig, topicClient, consumerSupplier, producerSupplier)
+        .getKsqlConfig();
   }
 
   @SuppressWarnings("unchecked")
@@ -144,8 +139,7 @@ public class KafkaConfigStoreTest {
     when(consumerSupplier.get()).thenReturn(consumerBefore).thenReturn(consumerAfter);
 
     // When:
-    initConfigStore();
-    final KsqlConfig resolvedConfig = configStore.getKsqlConfig();
+    final KsqlConfig resolvedConfig = getKsqlConfig();
 
     // Then:
     assertThat(resolvedConfig.values(), equalTo(ksqlConfig.values()));
@@ -179,8 +173,7 @@ public class KafkaConfigStoreTest {
     when(consumerSupplier.get()).thenReturn(consumer);
 
     // When:
-    initConfigStore();
-    final KsqlConfig resolvedConfig = configStore.getKsqlConfig();
+    final KsqlConfig resolvedConfig = getKsqlConfig();
 
     // Then:
     assertThat(
@@ -190,13 +183,12 @@ public class KafkaConfigStoreTest {
   }
 
   @Test
-  @SuppressFBWarnings("DM_DEFAULT_ENCODING")
-  public void shouldDeserializeMissingContentsToNull() {
+  public void shouldDeserializeEmptyContentsToNull() {
     // When:
     final Deserializer<KafkaConfigStore.KsqlProperties> deserializer
         = KafkaConfigStore.createDeserializer();
     final KafkaConfigStore.KsqlProperties ksqlProperties
-        = deserializer.deserialize(topicName, "{}".getBytes());
+        = deserializer.deserialize(topicName, "{}".getBytes(StandardCharsets.UTF_8));
 
     // Then:
     assertThat(ksqlProperties.getKsqlProperties(), equalTo(Collections.emptyMap()));

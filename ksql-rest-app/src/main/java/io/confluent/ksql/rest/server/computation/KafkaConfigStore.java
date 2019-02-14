@@ -1,23 +1,25 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
@@ -48,60 +50,68 @@ import org.slf4j.LoggerFactory;
 public class KafkaConfigStore implements ConfigStore {
   private static final Logger log = LoggerFactory.getLogger(KafkaConfigStore.class);
 
-  private static final String CONFIG_TOPIC_SUFFIX = "configs";
-  private static final String CONFIG_MSG_KEY = "ksql-standalone-configs";
+  public static final String CONFIG_MSG_KEY = "ksql-standalone-configs";
 
   private final KsqlConfig ksqlConfig;
 
-  static Deserializer<KsqlProperties> createDeserializer() {
-    final KafkaJsonDeserializer<KsqlProperties> deserializer = new KafkaJsonDeserializer<>();
+  static <T> Deserializer<T> createDeserializer(Class<T> clazz) {
+    final KafkaJsonDeserializer<T> deserializer = new KafkaJsonDeserializer<>();
     deserializer.configure(
         ImmutableMap.of(
             "json.fail.unknown.properties", false,
-            "json.value.type", KsqlProperties.class
+            "json.value.type", clazz
         ),
         false
     );
     return deserializer;
   }
 
-  private static KafkaConsumer<String, KsqlProperties> createConsumer(
+  static <T> Serializer<T> createSerializer(Class<T> clazz, boolean isKey) {
+    final Serializer<T> serializer = new KafkaJsonSerializer<>();
+    serializer.configure(Collections.emptyMap(), isKey);
+    return serializer;
+  }
+
+  private static KafkaConsumer<Key, KsqlProperties> createConsumer(
       final KsqlConfig ksqlConfig) {
     return new KafkaConsumer<>(
         ksqlConfig.getKsqlStreamConfigProps(),
-        Serdes.String().deserializer(),
-        createDeserializer());
+        createDeserializer(Key.class),
+        createDeserializer(KsqlProperties.class));
   }
 
-  private static KafkaProducer<String, KsqlProperties> createProducer(
+  private static KafkaProducer<Key, KsqlProperties> createProducer(
       final KsqlConfig ksqlConfig) {
-    final Serializer<KsqlProperties> serializer = new KafkaJsonSerializer<>();
-    serializer.configure(Collections.emptyMap(), false);
     return new KafkaProducer<>(
         ksqlConfig.getKsqlStreamConfigProps(),
-        Serdes.String().serializer(),
-        serializer);
+        createSerializer(Key.class, true),
+        createSerializer(KsqlProperties.class, false));
   }
 
-  public KafkaConfigStore(final KsqlConfig currentConfig, final KafkaTopicClient topicClient) {
-    this.ksqlConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(
-        readMaybeWriteProperties(
-            currentConfig,
-            topicClient,
-            () -> createConsumer(currentConfig),
-            () -> createProducer(currentConfig)
-        )
+  public KafkaConfigStore(final String topicName, final KsqlConfig currentConfig) {
+    this(
+        topicName,
+        currentConfig,
+        () -> createConsumer(currentConfig),
+        () -> createProducer(currentConfig)
     );
   }
 
   // for testing
-  KafkaConfigStore(final KsqlConfig currentConfig,
-                   final KafkaTopicClient topicClient,
-                   final Supplier<KafkaConsumer<String, KsqlProperties>> consumer,
-                   final Supplier<KafkaProducer<String, KsqlProperties>> producer) {
+  KafkaConfigStore(
+      final String topicName,
+      final KsqlConfig currentConfig,
+      final Supplier<KafkaConsumer<Key, KsqlProperties>> consumer,
+      final Supplier<KafkaProducer<Key, KsqlProperties>> producer) {
+    final KsqlProperties currentProperties = KsqlProperties.createFor(currentConfig);
+    final KsqlProperties savedProperties = new KafkaWriteOnceStore<>(
+        topicName,
+        new StringKey(CONFIG_MSG_KEY),
+        consumer,
+        producer
+    ).readMaybeWrite(currentProperties);
     this.ksqlConfig = currentConfig.overrideBreakingConfigsWithOriginalValues(
-        readMaybeWriteProperties(currentConfig, topicClient, consumer, producer)
-    );
+        savedProperties.getKsqlProperties());
   }
 
   @Override
@@ -116,17 +126,27 @@ public class KafkaConfigStore implements ConfigStore {
     KsqlProperties(
         @JsonProperty("ksqlProperties") final Map<String, String> ksqlProperties) {
       this.ksqlProperties = ksqlProperties == null
-          ? Collections.emptyMap() : Collections.unmodifiableMap(ksqlProperties);
+          ? Collections.emptyMap() : ImmutableMap.copyOf(ksqlProperties);
     }
 
     public Map<String, String> getKsqlProperties() {
       return ksqlProperties;
     }
 
+    static KsqlProperties createFor(final KsqlConfig ksqlConfig) {
+      return new KsqlProperties(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    }
+
     @Override
-    public boolean equals(final Object o) {
-      return o instanceof KsqlProperties
-          && Objects.equals(ksqlProperties, ((KsqlProperties) o).ksqlProperties);
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final KsqlProperties that = (KsqlProperties) o;
+      return Objects.equals(ksqlProperties, that.ksqlProperties);
     }
 
     @Override
@@ -135,69 +155,107 @@ public class KafkaConfigStore implements ConfigStore {
     }
   }
 
-  private Optional<KsqlProperties> readProperties(
-      final String topicName,
-      final Supplier<KafkaConsumer<String, KsqlProperties>> consumerSupplier) {
-    final TopicPartition topicPartition = new TopicPartition(topicName, 0);
-    final List<TopicPartition> topicPartitionAsList = Collections.singletonList(topicPartition);
+  @JsonTypeInfo(use = Id.NAME, include = As.WRAPPER_OBJECT, property = "type")
+  @JsonSubTypes({
+      @JsonSubTypes.Type(value = StringKey.class, name = "string")
+  })
+  public static class Key {
+  }
 
-    try (KafkaConsumer<String, KsqlProperties> consumer = consumerSupplier.get()) {
-      consumer.assign(topicPartitionAsList);
-      consumer.seekToBeginning(topicPartitionAsList);
+  public final static class StringKey extends Key {
+    private final String key;
 
-      final Map<TopicPartition, Long> offsets = consumer.endOffsets(topicPartitionAsList);
-      final long endOffset = offsets.get(topicPartition);
-      while (consumer.position(topicPartition) < endOffset) {
-        log.debug(
-            "Reading from config topic. Position(%d) End(%d)",
-            consumer.position(topicPartition),
-            endOffset);
-        final ConsumerRecords<String, KsqlProperties> records
-            = consumer.poll(Duration.of(5, ChronoUnit.SECONDS));
-        final Optional<ConsumerRecord<String, KsqlProperties>> record =
-            records.records(topicPartition)
-                .stream()
-                .filter(r -> r.key().equals(CONFIG_MSG_KEY))
-                .findFirst();
-        if (record.isPresent()) {
-          log.info("Found existing config in config topic");
-          return Optional.of(record.get().value());
-        }
+    @JsonCreator
+    public StringKey(@JsonProperty("key") final String key) {
+      this.key = key;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
       }
-      log.info("No config found on config topic");
-      return Optional.empty();
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      StringKey stringKey = (StringKey) o;
+      return Objects.equals(key, stringKey.key);
+    }
+
+    @Override
+    public int hashCode() {
+
+      return Objects.hash(key);
     }
   }
 
-  private void writeProperties(
-      final String topicName,
-      final KsqlProperties properties,
-      final Supplier<KafkaProducer<String, KsqlProperties>> producerSupplier) {
-    try (KafkaProducer<String, KsqlProperties> producer = producerSupplier.get()) {
-      producer.send(new ProducerRecord<>(topicName, CONFIG_MSG_KEY, properties));
-      producer.flush();
-    }
-  }
+  private class KafkaWriteOnceStore<V> {
+    private final String topicName;
+    private final Key key;
+    private final Supplier<KafkaConsumer<Key, V>> consumerSupplier;
+    private final Supplier<KafkaProducer<Key, V>> producerSupplier;
 
-  private Map<String, String> readMaybeWriteProperties(
-      final KsqlConfig ksqlConfig,
-      final KafkaTopicClient topicClient,
-      final Supplier<KafkaConsumer<String, KsqlProperties>> consumerSupplier,
-      final Supplier<KafkaProducer<String, KsqlProperties>> producerSupplier) {
-    final String topicName = KsqlInternalTopicUtils.getTopicName(ksqlConfig, CONFIG_TOPIC_SUFFIX);
-    log.info("Ensure existence of topic %s", topicName);
-    KsqlInternalTopicUtils.ensureTopic(
-        topicName, ksqlConfig, topicClient, TopicConfig.CLEANUP_POLICY_COMPACT);
-
-    final Optional<KsqlProperties> properties = readProperties(topicName, consumerSupplier);
-    if (properties.isPresent()) {
-      return properties.get().getKsqlProperties();
+    KafkaWriteOnceStore(
+        final String topicName,
+        final Key key,
+        final Supplier<KafkaConsumer<Key, V>> consumerSupplier,
+        final Supplier<KafkaProducer<Key, V>> producerSupplier) {
+      this.topicName = topicName;
+      this.key = key;
+      this.consumerSupplier = consumerSupplier;
+      this.producerSupplier = producerSupplier;
     }
 
-    log.info("Writing current config to config topic");
-    writeProperties(topicName, new KsqlProperties(
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()), producerSupplier);
+    private Optional<V> read() {
+      final TopicPartition topicPartition = new TopicPartition(topicName, 0);
+      final List<TopicPartition> topicPartitionAsList = Collections.singletonList(topicPartition);
 
-    return readProperties(topicName, consumerSupplier).get().getKsqlProperties();
+      try (KafkaConsumer<Key, V> consumer = consumerSupplier.get()) {
+        consumer.assign(topicPartitionAsList);
+        consumer.seekToBeginning(topicPartitionAsList);
+
+        final Map<TopicPartition, Long> offsets = consumer.endOffsets(topicPartitionAsList);
+        final long endOffset = offsets.get(topicPartition);
+        while (consumer.position(topicPartition) < endOffset) {
+          log.debug(
+              "Reading from topic %s. Position(%d) End(%d)",
+              topicName,
+              consumer.position(topicPartition),
+              endOffset);
+          final ConsumerRecords<Key, V> records
+              = consumer.poll(Duration.of(5, ChronoUnit.SECONDS));
+          final Optional<ConsumerRecord<Key, V>> record =
+              records.records(topicPartition)
+                  .stream()
+                  .filter(r -> r.key().equals(key))
+                  .findFirst();
+          if (record.isPresent()) {
+            log.info("Found existing value in topic %s", topicName);
+            return Optional.of(record.get().value());
+          }
+        }
+        log.debug("No value found on topic %s", topicName);
+        return Optional.empty();
+      }
+    }
+
+    private void write(final String topicName, final V value) {
+      try (KafkaProducer<Key, V> producer = producerSupplier.get()) {
+        producer.send(new ProducerRecord<>(topicName, key, value));
+        producer.flush();
+      }
+    }
+
+    V readMaybeWrite(final V value) {
+      final Optional<V> properties = read();
+      if (properties.isPresent()) {
+        return properties.get();
+      }
+
+      log.info("Writing current config to config topic");
+      write(topicName, value);
+
+      return read().get();
+    }
   }
 }

@@ -22,6 +22,7 @@ import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
+import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -30,6 +31,8 @@ import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import java.util.Properties;
 
 public final class StandaloneExecutorFactory {
+  private static final String CONFIG_TOPIC_SUFFIX = "configs";
+
   private StandaloneExecutorFactory(){
   }
 
@@ -42,9 +45,14 @@ public final class StandaloneExecutorFactory {
 
     final ServiceContext serviceContext = DefaultServiceContext.create(baseConfig);
 
-    final ConfigStore configStore = new KafkaConfigStore(
+    final String configTopicName
+        = KsqlInternalTopicUtils.getTopicName(baseConfig, CONFIG_TOPIC_SUFFIX);
+    KsqlInternalTopicUtils.ensureTopic(
+        configTopicName,
         baseConfig,
-        serviceContext.getTopicClient());
+        serviceContext.getTopicClient()
+    );
+    final ConfigStore configStore = new KafkaConfigStore(configTopicName, baseConfig);
     final KsqlConfig ksqlConfig = configStore.getKsqlConfig();
 
     final ProcessingLogConfig processingLogConfig

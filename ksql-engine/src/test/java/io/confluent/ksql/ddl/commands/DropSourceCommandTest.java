@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
@@ -46,6 +47,10 @@ public class DropSourceCommandTest {
 
   private static final String STREAM_NAME = "foo";
   private static final String TOPIC_NAME = "foo_topic";
+  private static final boolean WITH_DELETE_TOPIC = true;
+  private static final boolean WITHOUT_DELETE_TOPIC = false;
+  private static final boolean IF_EXISTS = true;
+  private static final boolean ALWAYS = false;
 
   @Mock
   private MetaStore metaStore;
@@ -74,7 +79,7 @@ public class DropSourceCommandTest {
   @Test
   public void shouldSucceedOnMissingSourceWithIfExists() {
     // Given:
-    givenDropSourceCommand(true, true);
+    givenDropSourceCommand(IF_EXISTS, WITH_DELETE_TOPIC);
     givenSourceDoesNotExist();
 
     // When:
@@ -87,7 +92,7 @@ public class DropSourceCommandTest {
   @Test
   public void shouldFailOnMissingSourceWithNoIfExists() {
     // Given:
-    givenDropSourceCommand(false, true);
+    givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
     givenSourceDoesNotExist();
 
     expectedException.expect(KsqlException.class);
@@ -100,7 +105,7 @@ public class DropSourceCommandTest {
   @Test
   public void shouldDeleteTopicIfDeleteTopicTrue() {
     // Given:
-    givenDropSourceCommand(false, true);
+    givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
 
     // When:
     dropSourceCommand.run(metaStore);
@@ -112,7 +117,7 @@ public class DropSourceCommandTest {
   @Test
   public void shouldNotDeleteTopicIfDeleteTopicFalse() {
     // Given:
-    givenDropSourceCommand(false, false);
+    givenDropSourceCommand(ALWAYS, WITHOUT_DELETE_TOPIC);
 
     // When:
     dropSourceCommand.run(metaStore);
@@ -124,8 +129,8 @@ public class DropSourceCommandTest {
   @Test
   public void shouldCleanUpSchemaIfAvroTopic() throws Exception {
     // Given:
-    when(dataSource.isAvroSerialized()).thenReturn(true);
-    givenDropSourceCommand(false, true);
+    when(dataSource.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(true);
+    givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
 
     // When:
     dropSourceCommand.run(metaStore);
@@ -137,8 +142,8 @@ public class DropSourceCommandTest {
   @Test
   public void shouldNotCleanUpSchemaIfNonAvroTopic() throws Exception {
     // Given:
-    when(dataSource.isAvroSerialized()).thenReturn(false);
-    givenDropSourceCommand(false, true);
+    when(dataSource.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(false);
+    givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
 
     // When:
     dropSourceCommand.run(metaStore);

@@ -20,6 +20,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -124,7 +125,7 @@ public class ClusterTerminator {
         .map(metaStore::getSourceForTopic)
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .filter(StructuredDataSource::isAvroSerialized);
+        .filter(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO));
     final Stream<String> subjectsToDelete = avroSourcesToCleanUp
         .map(source -> source.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
     filterNonExistingSubjects(subjectsToDelete).forEach(this::deleteSubject);

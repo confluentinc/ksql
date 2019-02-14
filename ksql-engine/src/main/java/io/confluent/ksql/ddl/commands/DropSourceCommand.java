@@ -101,7 +101,7 @@ public class DropSourceCommand implements DdlCommand {
           + dataSource.getKsqlTopic().getKafkaTopicName(), e);
     }
 
-    if (dataSource.isAvroSerialized()) {
+    if (dataSource.isSerdeFormat(DataSource.DataSourceSerDe.AVRO)) {
       try {
         SchemaRegistryUtil.deleteSubjectWithRetries(
             schemaRegistryClient, sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

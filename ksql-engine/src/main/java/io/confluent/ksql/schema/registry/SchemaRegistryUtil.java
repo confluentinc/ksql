@@ -19,7 +19,6 @@ import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,21 +47,22 @@ public final class SchemaRegistryUtil {
   public static Stream<String> getSubjectNames(final SchemaRegistryClient schemaRegistryClient) {
     return getSubjectNames(
         schemaRegistryClient,
-        () -> "Could not get subject names from schema registry.");
+        "Could not get subject names from schema registry.");
   }
 
   private static Stream<String> getSubjectNames(
-      final SchemaRegistryClient schemaRegistryClient, final Supplier<String> errorMsgSupplier) {
+      final SchemaRegistryClient schemaRegistryClient, final String errorMsg) {
     try {
       return schemaRegistryClient.getAllSubjects().stream();
     } catch (final Exception e) {
-      LOG.warn(errorMsgSupplier.get(), e);
+      LOG.warn(errorMsg, e);
       return Stream.empty();
     }
   }
 
   public static void deleteSubjectWithRetries(
-      final SchemaRegistryClient schemaRegistryClient, final String subject) throws Exception {
+      final SchemaRegistryClient schemaRegistryClient,
+      final String subject) throws Exception {
     ExecutorUtil.executeWithRetries(() -> schemaRegistryClient.deleteSubject(subject), ALWAYS);
   }
 
@@ -72,7 +72,7 @@ public final class SchemaRegistryUtil {
   ) {
     final Stream<String> allSubjectNames = getSubjectNames(
         schemaRegistryClient,
-        () -> "Could not clean up the schema registry for query: " + applicationId);
+        "Could not clean up the schema registry for query: " + applicationId);
     return allSubjectNames
         .filter(subjectName -> subjectName.startsWith(applicationId))
         .filter(subjectName ->

@@ -37,6 +37,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -416,7 +417,7 @@ public class ClusterTerminatorTest {
 
       when(metaStore.getSourceForTopic(topicName)).thenReturn(Optional.of(dataSource));
       when(dataSource.getName()).thenReturn(topicName + SOURCE_SUFFIX);
-      when(dataSource.isAvroSerialized()).thenReturn(true);
+      when(dataSource.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(true);
     }
   }
 

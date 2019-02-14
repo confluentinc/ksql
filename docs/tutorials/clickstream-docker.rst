@@ -152,7 +152,7 @@ used to enrich the click data.
 Load the Streaming Data to KSQL
 -------------------------------
 
-#.  Launch the KSQL CLI
+#.  Launch the KSQL CLI:
 
     .. code:: bash
 

@@ -159,7 +159,7 @@ Create the Clickstream Data
 Load the Streaming Data to KSQL
 -------------------------------
 
-#.  Launch the KSQL CLI
+#.  Launch the KSQL CLI:
 
     .. code:: bash
 

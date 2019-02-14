@@ -16,7 +16,9 @@ package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.serde.DataSource;
@@ -101,11 +103,12 @@ public class RegisterTopicCommand implements DdlCommand {
     if (metaStore.getTopic(topicName) != null) {
       // Check IF NOT EXIST is set, if set, do not create topic if one exists.
       if (notExists) {
-        return new DdlCommandResult(true,
-                                    "Topic is not registered because it already registered"
-                                          + ".");
+        return new DdlCommandResult(true, "Topic already registered.");
       } else {
-        throw new KsqlException("Topic already registered: " + topicName);
+        final String sourceType = getSourceType(metaStore);
+        final String errorMessage =
+            String.format("%s with name '%s' already exists", sourceType, topicName);
+        throw new KsqlException(errorMessage);
       }
     }
 
@@ -116,5 +119,26 @@ public class RegisterTopicCommand implements DdlCommand {
     metaStore.putTopic(ksqlTopic);
 
     return new DdlCommandResult(true, "Topic registered");
+  }
+
+  private String getSourceType(final MetaStore metaStore) {
+    final StructuredDataSource source = metaStore.getSource(topicName);
+    if (source == null) {
+      return "A topic";
+    }
+
+    switch (source.getDataSourceType()) {
+      case KSTREAM:
+        return "A stream";
+
+      case KTABLE:
+        return "A table";
+
+      case KTOPIC:
+        return "A topic";
+
+      default:
+        return "An entity";
+    }
   }
 }

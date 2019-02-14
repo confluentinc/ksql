@@ -18,6 +18,7 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
 public class CreateStreamCommand extends AbstractCreateStreamCommand {
@@ -37,7 +38,13 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
   @Override
   public DdlCommandResult run(final MutableMetaStore metaStore) {
     if (registerTopicCommand != null) {
-      registerTopicCommand.run(metaStore);
+      try {
+        registerTopicCommand.run(metaStore);
+      } catch (KsqlException e) {
+        final String errorMessage =
+                String.format("Cannot create stream '%s': %s", topicName, e.getMessage());
+        throw new KsqlException(errorMessage, e);
+      }
     }
     checkMetaData(metaStore, sourceName, topicName);
     final KsqlStream ksqlStream = new KsqlStream<>(

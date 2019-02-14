@@ -15,6 +15,7 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +24,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
@@ -31,6 +34,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
+import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
@@ -53,6 +57,8 @@ public class CreateStreamCommandTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
   @Before
   public void setUp() {
@@ -155,6 +161,23 @@ public class CreateStreamCommandTest {
 
     // When:
     createCmd();
+  }
+
+  @Test
+  public void testCreateAlreadyRegisteredStreamThrowsException() {
+    final CreateStreamCommand cmd;
+
+    // Given:
+    givenProperties(propsWith(ImmutableMap.of()));
+    cmd = createCmd();
+    cmd.run(metaStore);
+
+    // Then:
+    expectedException.expectMessage("Cannot create stream 'name': A stream " +
+            "with name 'name' already exists");
+
+    // When:
+    cmd.run(metaStore);
   }
 
   private CreateStreamCommand createCmd() {

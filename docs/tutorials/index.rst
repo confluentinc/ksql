@@ -17,10 +17,28 @@ KSQL Basics
 
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
 
-Get started with these instructions:
+Write Streaming Queries with the KSQL CLI
+-----------------------------------------
+
+.. include:: ../includes/ksql-includes.rst
+  :start-after: CLI_welcome_start
+  :end-before: CLI_welcome_end
+
+Get started with the KSQL CLI:
 
 - :ref:`ksql_quickstart-docker`
 - :ref:`ksql_quickstart-local`
+
+Write Streaming Queries with KSQL and |c3|
+------------------------------------------
+
+.. image:: ../../../images/ksql-interface-create-stream.png
+     :width: 600px
+
+Get started with KSQL and |c3|:
+
+- |c3-short| :ref:`deployed with Docker <ce-docker-ksql-quickstart>` 
+- |c3-short| :ref:`deployed locally <ce-ksql-quickstart>`
 
 Stream Processing Cookbook
 **************************

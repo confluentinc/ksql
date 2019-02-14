@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Version 5.2.0
+-------------
+
+KSQL 5.2 includes new features, including:
+
+* Added a new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
+
+KSQL 5.2 includes bug fixes, including:
+
 Version 5.1.0
 -------------
 

@@ -64,7 +64,7 @@ public class FilterNodeTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    when(sourceNode.buildStream(any(), any(), any(), any(), any(), any()))
+    when(sourceNode.buildStream(any(), any(), any(), any(), any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(schemaKStream.filter(any(), any()))
@@ -80,7 +80,6 @@ public class FilterNodeTest {
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        props,
         queryId
     );
 
@@ -90,7 +89,6 @@ public class FilterNodeTest {
         same(ksqlConfig),
         same(serviceContext),
         same(functionRegistry),
-        same(props),
         same(queryId)
     );
     verify(schemaKStream).filter(

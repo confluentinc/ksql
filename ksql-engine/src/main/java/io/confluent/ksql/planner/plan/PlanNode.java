@@ -26,7 +26,6 @@ import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Map;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -83,6 +82,5 @@ public abstract class PlanNode {
       KsqlConfig ksqlConfig,
       ServiceContext serviceContext,
       FunctionRegistry functionRegistry,
-      Map<String, Object> props,
       QueryId queryId);
 }

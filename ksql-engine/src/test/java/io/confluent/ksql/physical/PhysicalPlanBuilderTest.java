@@ -164,7 +164,7 @@ public class PhysicalPlanBuilderTest {
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     return new PhysicalPlanBuilder(
         streamsBuilder,
-        ksqlConfig,
+        ksqlConfig.cloneWithPropertyOverwrite(overrideProperties),
         serviceContext,
         functionRegistry,
         overrideProperties,

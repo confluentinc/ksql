@@ -46,6 +46,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -64,6 +65,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ClusterTerminatorTest {
+  private final static String MANAGED_TOPIC_1 = "MANAGED_TOPIC_1";
+  private final static String MANAGED_TOPIC_2 = "MANAGED_TOPIC_2";
+  private final static List<String> MANAGED_TOPICS = ImmutableList.of(
+      MANAGED_TOPIC_1,
+      MANAGED_TOPIC_2
+  );
+
 
   private static final String SOURCE_SUFFIX = "_source";
 
@@ -93,9 +101,12 @@ public class ClusterTerminatorTest {
   public void setup() {
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
-    clusterTerminator = new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext);
+    clusterTerminator = new ClusterTerminator(
+        ksqlConfig,
+        ksqlEngine,
+        serviceContext,
+        MANAGED_TOPICS);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
-    when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("command_topic");
     when(ksqlEngine.getPersistentQueries())
         .thenReturn(ImmutableList.of(persistentQuery0, persistentQuery1));
   }
@@ -327,9 +338,9 @@ public class ClusterTerminatorTest {
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   @Test
-  public void shouldDeleteCommandTopic() {
+  public void shouldDeleteManagedTopics() {
     // Given:
-    givenTopicsExistInKafka("_confluent-ksql-command_topic_command_topic", "topic1", "topic2");
+    givenTopicsExistInKafka(MANAGED_TOPIC_1, MANAGED_TOPIC_2);
 
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());
@@ -337,24 +348,23 @@ public class ClusterTerminatorTest {
     // Then:
     final InOrder inOrder = Mockito.inOrder(kafkaTopicClient, ksqlEngine);
     inOrder.verify(kafkaTopicClient).listTopicNames();
-    inOrder.verify(kafkaTopicClient)
-        .deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
+    inOrder.verify(kafkaTopicClient).deleteTopics(MANAGED_TOPICS);
   }
 
   @Test
-  public void shouldThrowIfCannotDeleteCommandTopic() {
+  public void shouldThrowIfCannotDeleteManagedTopic() {
     // Given:
-    givenTopicsExistInKafka("_confluent-ksql-command_topic_command_topic");
+    givenTopicsExistInKafka(MANAGED_TOPIC_1, MANAGED_TOPIC_2);
     doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .doThrow(KsqlException.class)
         .when(kafkaTopicClient)
-        .deleteTopics(Collections.singletonList("_confluent-ksql-command_topic_command_topic"));
+        .deleteTopics(MANAGED_TOPICS);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Exception while deleting topics: _confluent-ksql-command_topic_command_topic");
+        "Exception while deleting topics: MANAGED_TOPIC_1, MANAGED_TOPIC_2");
 
     // When:
     clusterTerminator.terminateCluster(Collections.emptyList());

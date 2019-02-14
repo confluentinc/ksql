@@ -24,25 +24,25 @@ Notable changes in 5.2:
 Interactive mode rejects statements without defined columns
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-With this release Non-interactive mode, a.k.a. Headless, explicitly rejects ``CREATE STREAM`` and
+With this release, non-interactive, "headless" mode explicitly rejects ``CREATE STREAM`` and
 ``CREATE TABLE`` statements that do not define any columns, for example:
 
 ``CREATE STREAM FOO /*no columns defined here*/ WITH (...);``
 
 Interactive mode supports building the column set from a schema retrieved from the Schema Registry,
-should a ``CREATE STREAM`` or ``CREATE TABLE`` statement does not provide them. This is known as
+if a ``CREATE STREAM`` or ``CREATE TABLE`` statement does not provide them. This is known as
 *schema inference*.
 
 Interactive mode captures the column set at the time the statement was submitted via the CLI or
 RESTful API and persists it to Kafka. This ensures each node within the cluster is using a
-consistent column set and will continue to do so should the schema in the Schema Registry change
-and node restarted.
+consistent column set and will continue to do so if the schema in the Schema Registry change
+and the node is restarted.
 
-Headless mode does not currently support storing the column set in Kafka.
-Hence schema inteference has been explicitly disabled in this mode to avoid inconsistencies between
-cluster nodes and undefined behaviour should the schema in the Schema Registry change.
+Headless mode does not currently support storing the column set in Kafka, so
+schema inference has been disabled in this mode to avoid inconsistencies between
+cluster nodes and undefined behavior if the schema in the Schema Registry changes.
 (`Github issue 1530 <https://github.com/confluentinc/ksql/issues/1530>`_ looks to add support for
-schema inference to Headless mode).
+schema inference to headless mode).
 
 To resolve the issue, add the required column definition to the statement, for example:
 

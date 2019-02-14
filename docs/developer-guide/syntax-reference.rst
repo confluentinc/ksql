@@ -936,7 +936,7 @@ The ``KEY`` property is:
 
 In either case, when setting ``KEY`` you must be sure that *both* of the following conditions are true:
 
-1. For every record, the contents of the Kafka message key must be the same as the contents of the columm set in ``KEY`` (which is derived from a field in the Kafka message value).
+1. For every record, the contents of the Kafka message key must be the same as the contents of the column set in ``KEY`` (which is derived from a field in the Kafka message value).
 2. ``KEY`` must be set to a column of type ``VARCHAR`` aka ``STRING``.
 
 If these conditions are not met, then the results of aggregations and joins may be incorrect. However, if your data doesn't meet these requirements, you can still use KSQL with a few extra steps. The following section explains how.

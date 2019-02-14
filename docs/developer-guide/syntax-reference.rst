@@ -776,7 +776,7 @@ PRINT
 
 .. code:: sql
 
-    PRINT qualifiedName [FROM BEGINNING] [INTERVAL]
+    PRINT qualifiedName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
 
 **Description**
 
@@ -791,7 +791,9 @@ The PRINT statement supports the following properties:
 +=========================+==================================================================================================================+
 | FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| INTERVAL                | Print every nth message. The default is 1, meaning that every message is printed.                                |
+| INTERVAL interval       | Print every ``interval``th message. The default is 1, meaning that every message is printed.                     |
++-------------------------+------------------------------------------------------------------------------------------------------------------+
+| LIMIT limit             | Stop printing after ``limit`` messages. The default value is unlimited, requiring Ctrl+C to terminate the query. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 
 For example:

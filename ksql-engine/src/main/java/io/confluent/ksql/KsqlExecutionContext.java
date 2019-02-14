@@ -32,7 +32,7 @@ import java.util.Optional;
 public interface KsqlExecutionContext {
 
   /**
-   * Create an execution context in which statements can be run without affected the state
+   * Create an execution context in which statements can be run without affecting the state
    * of the system.
    *
    * @return a sand boxed execution context.

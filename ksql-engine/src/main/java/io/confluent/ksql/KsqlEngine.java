@@ -116,7 +116,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
     this.primaryContext = EngineContext
-        .create(serviceContext, metaStore, 0L, this::unregisterQuery);
+        .create(serviceContext, metaStore, new QueryIdGenerator(), this::unregisterQuery);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.allLiveQueries = new HashSet<>();
@@ -316,12 +316,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private EngineContext(
         final ServiceContext serviceContext,
         final MetaStore metaStore,
-        final long startingQueryId,
+        final QueryIdGenerator queryIdGenerator,
         final Consumer<QueryMetadata> onQueryCloseCallback
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-      this.queryIdGenerator = new QueryIdGenerator(startingQueryId);
+      this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
       this.ddlCommandFactory = new CommandFactories(serviceContext);
       this.queryEngine = new QueryEngine(serviceContext, queryIdGenerator, onQueryCloseCallback);
       this.ddlCommandExec = new DdlCommandExec(metaStore);
@@ -331,10 +331,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private static EngineContext create(
         final ServiceContext serviceContext,
         final MetaStore metaStore,
-        final long startingQueryId,
+        final QueryIdGenerator queryIdGenerator,
         final Consumer<QueryMetadata> onQueryCloseCallback
     ) {
-      return new EngineContext(serviceContext, metaStore, startingQueryId, onQueryCloseCallback);
+      return new EngineContext(serviceContext, metaStore, queryIdGenerator, onQueryCloseCallback);
     }
 
     private String executeDdlStatement(
@@ -493,8 +493,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final String targetName = insertInto.getTarget().getSuffix();
       final StructuredDataSource target = engineContext.metaStore.getSource(targetName);
       if (target == null) {
-        throw new KsqlStatementException(String.format(
-            "Sink '%s' does not exist for the INSERT INTO statement.", targetName),
+        throw new KsqlStatementException(
+            "Sink does not exist for the INSERT INTO statement: " + targetName,
             statement.getStatementText());
       }
 
@@ -593,7 +593,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       this.engineContext = EngineContext.create(
           SandboxedServiceContext.create(sourceContext.serviceContext),
           sourceContext.metaStore.copy(),
-          sourceContext.queryIdGenerator.peek(),
+          sourceContext.queryIdGenerator.copy(),
           this::unregisterQuery
       );
 

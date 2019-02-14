@@ -20,7 +20,11 @@ public class QueryIdGenerator {
 
   private final AtomicLong queryIdCounter;
 
-  public QueryIdGenerator(final long initialValue) {
+  public QueryIdGenerator() {
+    this(0L);
+  }
+
+  private QueryIdGenerator(final long initialValue) {
     this.queryIdCounter = new AtomicLong(initialValue);
   }
 
@@ -28,7 +32,7 @@ public class QueryIdGenerator {
     return String.valueOf(queryIdCounter.getAndIncrement());
   }
 
-  public long peek() {
-    return queryIdCounter.get();
+  public QueryIdGenerator copy() {
+    return new QueryIdGenerator(queryIdCounter.get());
   }
 }

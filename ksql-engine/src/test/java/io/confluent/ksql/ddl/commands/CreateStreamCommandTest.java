@@ -16,7 +16,6 @@ package io.confluent.ksql.ddl.commands;
 
 import static org.easymock.MockType.NICE;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -24,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
@@ -56,7 +55,8 @@ public class CreateStreamCommandTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MutableMetaStore metaStore = MetaStoreFixture
+      .getNewMetaStore(new InternalFunctionRegistry());
 
   @Test
   public void shouldDefaultToStringKeySerde() {
@@ -162,7 +162,7 @@ public class CreateStreamCommandTest {
         topicClient, false);
   }
 
-  private Map<String, Expression> propsWith(final Map<String, Expression> props) {
+  private static Map<String, Expression> propsWith(final Map<String, Expression> props) {
     Map<String, Expression> valid = new HashMap<>(props);
     valid.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
     valid.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));

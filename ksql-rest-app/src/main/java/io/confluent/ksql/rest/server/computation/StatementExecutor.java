@@ -33,7 +33,6 @@ import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -55,6 +54,7 @@ import org.slf4j.LoggerFactory;
 public class StatementExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
+  private static final String LEGACY_RUN_SCRIPT_STATEMENT_PROPERTY = "ksql.run.script.statements";
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
@@ -176,7 +176,7 @@ public class StatementExecutor {
     }
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "deprecation"})
   private void executeStatement(
       final PreparedStatement<?> statement,
       final Command command,
@@ -198,7 +198,7 @@ public class StatementExecutor {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
       successMessage = "Query terminated.";
     } else if (statement.getStatement() instanceof RunScript) {
-      handleRunScript(command, mode);
+      handleLegacyRunScript(command, mode);
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",
@@ -222,43 +222,48 @@ public class StatementExecutor {
         .get();
   }
 
-  private void handleRunScript(final Command command, final Mode mode) {
+  /**
+   * @deprecated deprecate since 5.2. `RUN SCRIPT` will be removed from syntax in later release.
+   */
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated
+  private void handleLegacyRunScript(final Command command, final Mode mode) {
 
-    if (command.getOverwriteProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-      final String queries =
-          (String) command.getOverwriteProperties().get(
-              KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
-      final Map<String, Object> overriddenProperties = new HashMap<>(
-          command.getOverwriteProperties());
+    final String queries = (String) command.getOverwriteProperties()
+        .get(LEGACY_RUN_SCRIPT_STATEMENT_PROPERTY);
 
-      final KsqlConfig mergedConfig = buildMergedConfig(command);
+    if (queries == null) {
+      throw new KsqlException("No statements received for LOAD FROM FILE.");
+    }
 
-      final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(queries);
+    final Map<String, Object> overriddenProperties = new HashMap<>(
+        command.getOverwriteProperties());
 
-      final List<QueryMetadata> queryMetadataList = statements.stream()
-          .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
-          .map(ExecuteResult::getQuery)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .collect(Collectors.toList());
+    final KsqlConfig mergedConfig = buildMergedConfig(command);
 
-      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
-        queryMetadataList.forEach(QueryMetadata::close);
-        QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-            ksqlEngine, mergedConfig, command.getStatement());
-      }
+    final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(queries);
 
-      if (mode == Mode.EXECUTE) {
-        for (final QueryMetadata queryMetadata : queryMetadataList) {
-          if (queryMetadata instanceof PersistentQueryMetadata) {
-            final PersistentQueryMetadata persistentQueryMd =
-                (PersistentQueryMetadata) queryMetadata;
-            persistentQueryMd.start();
-          }
+    final List<QueryMetadata> queryMetadataList = statements.stream()
+        .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
+        .map(ExecuteResult::getQuery)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toList());
+
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
+      queryMetadataList.forEach(QueryMetadata::close);
+      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+          ksqlEngine, mergedConfig, command.getStatement());
+    }
+
+    if (mode == Mode.EXECUTE) {
+      for (final QueryMetadata queryMetadata : queryMetadataList) {
+        if (queryMetadata instanceof PersistentQueryMetadata) {
+          final PersistentQueryMetadata persistentQueryMd =
+              (PersistentQueryMetadata) queryMetadata;
+          persistentQueryMd.start();
         }
       }
-    } else {
-      throw new KsqlException("No statements received for LOAD FROM FILE.");
     }
   }
 

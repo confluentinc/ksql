@@ -27,7 +27,6 @@ import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.Before;
@@ -85,24 +84,6 @@ public class LocalPropertyParserTest {
 
     // Then:
     verify(validator).validate(DdlConfig.AVRO_SCHEMA, "something");
-  }
-
-  @Test
-  public void shouldNotCallResolverForRunScriptConstant() {
-    // When:
-    parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "100");
-
-    // Then:
-    verify(resolver, never()).resolve(anyString(), anyBoolean());
-  }
-
-  @Test
-  public void shouldCallValidatorForRunScriptConstant() {
-    // When:
-    parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
-
-    // Then:
-    verify(validator).validate(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
   }
 
   @Test

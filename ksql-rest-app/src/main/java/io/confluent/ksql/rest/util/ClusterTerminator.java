@@ -18,19 +18,29 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClusterTerminator {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTerminator.class);
 
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
@@ -77,6 +87,7 @@ public class ClusterTerminator {
         .filter(topicName -> topicShouldBeDeleted(topicName, patterns))
         .collect(Collectors.toList());
     deleteTopics(toDelete);
+    cleanUpSinkAvroSchemas(toDelete);
   }
 
   private List<String> filterNonExistingTopics(final List<String> topicList) {
@@ -100,6 +111,34 @@ public class ClusterTerminator {
     } catch (final Exception e) {
       throw new KsqlException(
           "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
+    }
+  }
+
+  private void cleanUpSinkAvroSchemas(final List<String> topicsToBeDeleted) {
+    final MetaStore metaStore = ksqlEngine.getMetaStore();
+    final Stream<StructuredDataSource> avroSourcesToCleanUp = topicsToBeDeleted.stream()
+        .map(metaStore::getSourceForTopic)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .filter(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO));
+    final Stream<String> subjectsToDelete = avroSourcesToCleanUp
+        .map(source -> source.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    filterNonExistingSubjects(subjectsToDelete).forEach(this::deleteSubject);
+  }
+
+  private Stream<String> filterNonExistingSubjects(final Stream<String> subjects) {
+    final Set<String> existingSubjects =
+        SchemaRegistryUtil.getSubjectNames(serviceContext.getSchemaRegistryClient())
+            .collect(Collectors.toSet());
+    return subjects.filter(existingSubjects::contains);
+  }
+
+  private void deleteSubject(final String subject) {
+    try {
+      SchemaRegistryUtil.deleteSubjectWithRetries(
+          serviceContext.getSchemaRegistryClient(), subject);
+    } catch (final Exception e) {
+      LOGGER.warn("Failed to clean up Avro schema for subject: " + subject, e);
     }
   }
 }

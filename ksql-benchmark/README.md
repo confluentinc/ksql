@@ -58,7 +58,7 @@ java -jar ./target/benchmarks.jar -h
 
 ### Benchmark results
 
-The following results were obtained from 10 runs of `SerdeBenchmark.java` on a different
+The following results were obtained from 10 runs of `SerdeBenchmark.java` on different
 r5.xlarge EC2 instances, for KSQL code as of the 5.2 release (compiled and run with Java 11),
 using the default benchmark parameters.
 
@@ -74,5 +74,7 @@ using the default benchmark parameters.
 |  serialize  |        Avro         |   metrics   |     9.904        |   0.300                                |
 
 Time per operation is quite consistent from run to run, and from iteration to iteration within runs.
+(The cross-instance variance was found to be greater than the run-to-run variance on a single
+instance for many of the benchmarks.)
 Don't be surprised if running on your laptop produces better results than those reported here for
 an r5.xlarge EC2 instance, since that is consistently the case.

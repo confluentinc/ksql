@@ -17,8 +17,8 @@ package io.confluent.ksql.rest.server.computation;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.serializers.KafkaJsonDeserializer;
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
+import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
+import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -34,9 +34,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,38 +47,20 @@ public class KafkaConfigStore implements ConfigStore {
 
   private final KsqlConfig ksqlConfig;
 
-  static Deserializer<KsqlProperties> createDeserializer() {
-    final KafkaJsonDeserializer<KsqlProperties> deserializer = new KafkaJsonDeserializer<>();
-    deserializer.configure(
-        ImmutableMap.of(
-            "json.fail.unknown.properties", false,
-            "json.value.type", KsqlProperties.class
-        ),
-        false
-    );
-    return deserializer;
-  }
-
-  static Serializer<KsqlProperties> createSerializer() {
-    final Serializer<KsqlProperties> serializer = new KafkaJsonSerializer<>();
-    serializer.configure(Collections.emptyMap(), false);
-    return serializer;
-  }
-
-  private static KafkaConsumer<String, byte[]> createConsumer(
+  private static KafkaConsumer<byte[], byte[]> createConsumer(
       final KsqlConfig ksqlConfig) {
     return new KafkaConsumer<>(
         ksqlConfig.getKsqlStreamConfigProps(),
-        Serdes.String().deserializer(),
+        Serdes.ByteArray().deserializer(),
         Serdes.ByteArray().deserializer());
   }
 
-  private static KafkaProducer<String, KsqlProperties> createProducer(
+  private static KafkaProducer<StringKey, KsqlProperties> createProducer(
       final KsqlConfig ksqlConfig) {
     return new KafkaProducer<>(
         ksqlConfig.getKsqlStreamConfigProps(),
-        Serdes.String().serializer(),
-        createSerializer()
+        InternalTopicJsonSerdeUtil.getJsonSerializer(true),
+        InternalTopicJsonSerdeUtil.getJsonSerializer(false)
     );
   }
 
@@ -106,13 +88,14 @@ public class KafkaConfigStore implements ConfigStore {
   KafkaConfigStore(
       final String topicName,
       final KsqlConfig currentConfig,
-      final Supplier<KafkaConsumer<String, byte[]>> consumer,
-      final Supplier<KafkaProducer<String, KsqlProperties>> producer) {
+      final Supplier<KafkaConsumer<byte[], byte[]>> consumer,
+      final Supplier<KafkaProducer<StringKey, KsqlProperties>> producer) {
     final KsqlProperties currentProperties = KsqlProperties.createFor(currentConfig);
     final KsqlProperties savedProperties = new KafkaWriteOnceStore<>(
         topicName,
-        CONFIG_MSG_KEY,
-        createDeserializer(),
+        new StringKey(CONFIG_MSG_KEY),
+        InternalTopicJsonSerdeUtil.getJsonDeserializer(ConfigTopicKey.class, true),
+        InternalTopicJsonSerdeUtil.getJsonDeserializer(KsqlProperties.class, false),
         consumer,
         producer
     ).readMaybeWrite(currentProperties);
@@ -163,29 +146,41 @@ public class KafkaConfigStore implements ConfigStore {
 
   private static class KafkaWriteOnceStore<V> {
     private final String topicName;
-    private final String key;
+    private final StringKey key;
+    private final Deserializer<ConfigTopicKey> keyDeserializer;
     private final Deserializer<V> deserializer;
-    private final Supplier<KafkaConsumer<String, byte[]>> consumerSupplier;
-    private final Supplier<KafkaProducer<String, V>> producerSupplier;
+    private final Supplier<KafkaConsumer<byte[], byte[]>> consumerSupplier;
+    private final Supplier<KafkaProducer<StringKey, V>> producerSupplier;
 
     KafkaWriteOnceStore(
         final String topicName,
-        final String key,
+        final StringKey key,
+        final Deserializer<ConfigTopicKey> keyDeserializer,
         final Deserializer<V> deserializer,
-        final Supplier<KafkaConsumer<String, byte[]>> consumerSupplier,
-        final Supplier<KafkaProducer<String, V>> producerSupplier) {
+        final Supplier<KafkaConsumer<byte[], byte[]>> consumerSupplier,
+        final Supplier<KafkaProducer<StringKey, V>> producerSupplier) {
       this.topicName = topicName;
       this.key = key;
+      this.keyDeserializer = keyDeserializer;
       this.deserializer = deserializer;
       this.consumerSupplier = consumerSupplier;
       this.producerSupplier = producerSupplier;
+    }
+
+    private boolean matchKey(final ConsumerRecord<byte[], byte[]> record) {
+      try {
+        final ConfigTopicKey recordKey = keyDeserializer.deserialize(topicName, record.key());
+        return this.key.equals(recordKey);
+      } catch (final SerializationException e) {
+        return false;
+      }
     }
 
     private Optional<V> read() {
       final TopicPartition topicPartition = new TopicPartition(topicName, 0);
       final List<TopicPartition> topicPartitionAsList = Collections.singletonList(topicPartition);
 
-      try (KafkaConsumer<String, byte[]> consumer = consumerSupplier.get()) {
+      try (KafkaConsumer<byte[], byte[]> consumer = consumerSupplier.get()) {
         consumer.assign(topicPartitionAsList);
         consumer.seekToBeginning(topicPartitionAsList);
 
@@ -197,12 +192,12 @@ public class KafkaConfigStore implements ConfigStore {
               topicName,
               consumer.position(topicPartition),
               endOffset);
-          final ConsumerRecords<String, byte[]> records
+          final ConsumerRecords<byte[], byte[]> records
               = consumer.poll(Duration.of(5, ChronoUnit.SECONDS));
-          final Optional<ConsumerRecord<String, byte[]>> record =
+          final Optional<ConsumerRecord<byte[], byte[]>> record =
               records.records(topicPartition)
                   .stream()
-                  .filter(r -> r.key().equals(key))
+                  .filter(this::matchKey)
                   .findFirst();
           if (!record.isPresent()) {
             continue;
@@ -217,7 +212,7 @@ public class KafkaConfigStore implements ConfigStore {
     }
 
     private void write(final String topicName, final V value) {
-      try (KafkaProducer<String, V> producer = producerSupplier.get()) {
+      try (KafkaProducer<ConfigTopicKey.StringKey, V> producer = producerSupplier.get()) {
         producer.send(new ProducerRecord<>(topicName, key, value));
         producer.flush();
       }
@@ -229,7 +224,7 @@ public class KafkaConfigStore implements ConfigStore {
         return properties.get();
       }
 
-      log.info("Writing current config to config topic");
+      log.debug("Writing current config to config topic");
       write(topicName, value);
 
       return read().get();

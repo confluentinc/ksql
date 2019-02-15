@@ -37,8 +37,10 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.MockitoRule;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlInternalTopicUtilsTest {
   private static final String TOPIC_NAME = "topic";
   private static final short NREPLICAS = 1;
@@ -52,8 +54,6 @@ public class KsqlInternalTopicUtilsTest {
   @Mock
   private KsqlConfig ksqlConfig;
 
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 

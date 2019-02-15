@@ -23,7 +23,9 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore.KsqlProperties;
+import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -78,19 +80,22 @@ public class KafkaConfigStoreTest {
   private final TopicPartition topicPartition = new TopicPartition(TOPIC_NAME, 0);
   private final List<TopicPartition> topicPartitionAsList
       = Collections.singletonList(topicPartition);
-  private final List<ConsumerRecords<String, byte[]>> log = new LinkedList<>();
-  private final Serializer<KsqlProperties> serializer = KafkaConfigStore.createSerializer();
+  private final List<ConsumerRecords<byte[], byte[]>> log = new LinkedList<>();
+  private final Serializer<StringKey> keySerializer
+      = InternalTopicJsonSerdeUtil.getJsonSerializer(true);
+  private final Serializer<KsqlProperties> serializer
+      = InternalTopicJsonSerdeUtil.getJsonSerializer(false);
 
   @Mock
-  private KafkaConsumer<String, byte[]> consumerBefore;
+  private KafkaConsumer<byte[], byte[]> consumerBefore;
   @Mock
-  private KafkaConsumer<String, byte[]> consumerAfter;
+  private KafkaConsumer<byte[], byte[]> consumerAfter;
   @Mock
-  private Supplier<KafkaConsumer<String, byte[]>> consumerSupplier;
+  private Supplier<KafkaConsumer<byte[], byte[]>> consumerSupplier;
   @Mock
-  private Supplier<KafkaProducer<String, KsqlProperties>> producerSupplier;
+  private Supplier<KafkaProducer<StringKey, KsqlProperties>> producerSupplier;
   @Mock
-  private KafkaProducer<String, KsqlProperties> producer;
+  private KafkaProducer<StringKey, KsqlProperties> producer;
   @Mock
   private KsqlConfig currentConfigProxy;
   @Mock
@@ -118,7 +123,7 @@ public class KafkaConfigStoreTest {
     ).getKsqlConfig();
   }
 
-  private long endOffset(final List<ConsumerRecords<String, byte[]>> log) {
+  private long endOffset(final List<ConsumerRecords<byte[], byte[]>> log) {
     return log.stream().mapToLong(ConsumerRecords::count).sum();
   }
 
@@ -127,14 +132,14 @@ public class KafkaConfigStoreTest {
   }
 
   private void addPollResult(
-      final String key,
-      final byte[]... properties) {
-    final List<ConsumerRecord<String, byte[]>> records
+      final byte[] key,
+      final byte[]... values) {
+    final List<ConsumerRecord<byte[], byte[]>> records
         = new LinkedList<>();
     final long start = endOffset();
-    for (int i = 0; i < properties.length; i++) {
+    for (int i = 0; i < values.length; i++) {
       records.add(
-          new ConsumerRecord<>(TOPIC_NAME, 0, start + i, key, properties[i])
+          new ConsumerRecord<>(TOPIC_NAME, 0, start + i, key, values[i])
       );
     }
     log.add(new ConsumerRecords<>(Collections.singletonMap(topicPartition, records)));
@@ -142,31 +147,50 @@ public class KafkaConfigStoreTest {
 
   private void addPollResult(
       final String key,
+      final byte[]... values) {
+    addPollResult(keySerializer.serialize("", new StringKey(key)), values);
+  }
+
+  private void addPollResult(
+      final String key,
       final KsqlProperties... properties) {
     addPollResult(
-        key,
+        keySerializer.serialize("", new StringKey(key)),
         Arrays.stream(properties)
             .map(p -> serializer.serialize("", p))
             .collect(Collectors.toList())
             .toArray(new byte[properties.length][]));
   }
 
-  private void addPollResult(final String key1, byte[] value1, final String key2, byte[] value2) {
+  private void addPollResult(
+      final String key1, final byte[] value1,
+      final String key2, final byte[] value2) {
     final long start = endOffset();
     log.add(new ConsumerRecords<>(Collections.singletonMap(
         topicPartition,
-        Collections.singletonList(new ConsumerRecord<>(TOPIC_NAME, 0, start, key1, value1)
+        Collections.singletonList(new ConsumerRecord<>(
+            TOPIC_NAME,
+            0,
+            start,
+            keySerializer.serialize("", new StringKey(key1)),
+            value1)
     ))));
     log.add(new ConsumerRecords<>(Collections.singletonMap(
         topicPartition,
-        Collections.singletonList(new ConsumerRecord<>(TOPIC_NAME, 0, start + 1, key2, value2)
+        Collections.singletonList(
+            new ConsumerRecord<>(
+                TOPIC_NAME,
+                0,
+                start + 1,
+                keySerializer.serialize("", new StringKey(key2)),
+                value2)
     ))));
   }
 
-  private void expectRead(final KafkaConsumer<String, byte[]> consumer) {
+  private void expectRead(final KafkaConsumer<byte[], byte[]> consumer) {
     final long endOff = endOffset();
     when(consumer.endOffsets(any())).thenReturn(ImmutableMap.of(topicPartition, endOff));
-    final ListIterator<ConsumerRecords<String, byte[]>> iterator
+    final ListIterator<ConsumerRecords<byte[], byte[]>> iterator
         = ImmutableList.copyOf(log).listIterator();
     when(consumer.position(topicPartition)).thenAnswer(
         invocation -> endOffset(log.subList(0, iterator.nextIndex()))
@@ -175,7 +199,7 @@ public class KafkaConfigStoreTest {
         invocation -> iterator.hasNext() ? iterator.next() : ConsumerRecords.empty());
   }
 
-  private void verifyDrainLog(final KafkaConsumer<String, byte[]> consumer, final int nPolls) {
+  private void verifyDrainLog(final KafkaConsumer<byte[], byte[]> consumer, final int nPolls) {
     inOrder.verify(consumer).assign(topicPartitionAsList);
     inOrder.verify(consumer).seekToBeginning(topicPartitionAsList);
     inOrder.verify(consumer, times(nPolls)).poll(any());
@@ -184,9 +208,11 @@ public class KafkaConfigStoreTest {
 
   private void verifyProduce() {
     @SuppressWarnings("unchecked")
-    final ArgumentCaptor<ProducerRecord<String, KafkaConfigStore.KsqlProperties>> msgCaptor
+    final ArgumentCaptor<ProducerRecord<StringKey, KafkaConfigStore.KsqlProperties>> msgCaptor
         = ArgumentCaptor.forClass(ProducerRecord.class);
     inOrder.verify(producer).send(msgCaptor.capture());
+    assertThat(
+        msgCaptor.getValue().key().getValue(), equalTo(KafkaConfigStore.CONFIG_MSG_KEY));
     assertThat(
         msgCaptor.getValue().value().getKsqlProperties(),
         equalTo(currentConfig.getAllConfigPropsWithSecretsObfuscated()));
@@ -202,7 +228,24 @@ public class KafkaConfigStoreTest {
   @Test
   public void shouldIgnoreRecordsWithDifferentKey() {
     // Given:
-    addPollResult("foo", "val".getBytes());
+    addPollResult("foo", "val".getBytes(StandardCharsets.UTF_8));
+    addPollResult(KafkaConfigStore.CONFIG_MSG_KEY, serializer.serialize("", savedProperties));
+    expectRead(consumerBefore);
+
+    // When:
+    getKsqlConfig();
+
+    // Then:
+    verifyDrainLog(consumerBefore, 2);
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldIgnoreRecordsWithUnparseableKey() {
+    // Given:
+    addPollResult(
+        "badkey".getBytes(StandardCharsets.UTF_8),
+        "whocares".getBytes(StandardCharsets.UTF_8));
     addPollResult(KafkaConfigStore.CONFIG_MSG_KEY, serializer.serialize("", savedProperties));
     expectRead(consumerBefore);
 
@@ -218,7 +261,7 @@ public class KafkaConfigStoreTest {
   public void shouldIgnoreRecordsWithDifferentKeyWithinPoll() {
     // Given:
     addPollResult(
-        "foo", "val".getBytes(),
+        "foo", "val".getBytes(StandardCharsets.UTF_8),
         KafkaConfigStore.CONFIG_MSG_KEY, serializer.serialize("", savedProperties)
     );
     expectRead(consumerBefore);
@@ -234,8 +277,8 @@ public class KafkaConfigStoreTest {
   @Test
   public void shouldPollToEndOfTopic() {
     // Given:
-    addPollResult("foo", "val".getBytes());
-    addPollResult("bar", "baz".getBytes());
+    addPollResult("foo", "val".getBytes(StandardCharsets.UTF_8));
+    addPollResult("bar", "baz".getBytes(StandardCharsets.UTF_8));
     expectRead(consumerBefore);
     addPollResult(KafkaConfigStore.CONFIG_MSG_KEY, savedProperties);
     expectRead(consumerAfter);
@@ -321,10 +364,10 @@ public class KafkaConfigStoreTest {
   }
 
   @Test
-  public void shouldDeserializeEmptyContentsToNull() {
+  public void shouldDeserializeEmptyContentsToEmptyProps() {
     // When:
     final Deserializer<KafkaConfigStore.KsqlProperties> deserializer
-        = KafkaConfigStore.createDeserializer();
+        = InternalTopicJsonSerdeUtil.getJsonDeserializer(KsqlProperties.class, false);
     final KafkaConfigStore.KsqlProperties ksqlProperties
         = deserializer.deserialize(TOPIC_NAME, "{}".getBytes(StandardCharsets.UTF_8));
 

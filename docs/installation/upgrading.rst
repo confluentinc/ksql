@@ -20,6 +20,7 @@ Upgrading from KSQL 5.1 to KSQL 5.2
           Support was dropped as it circumnavigated certain correctness checks.
           Instead, include the contents of the script in the main body of your request.
           Note: there is no change to the CLI, which continues to support ``RUN SCRIPT``.
+          The server will continue to honour previously submitted ``RUN SCRIPT`` statements.
 
 Upgrading from KSQL 0.x (Developer Preview) to KSQL 4.1
 -------------------------------------------------------

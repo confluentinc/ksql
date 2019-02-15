@@ -8,6 +8,15 @@ KSQL 5.2 includes new features, including:
 
 KSQL 5.2 includes bug fixes, including:
 
+KSQL 5.2 deprecates or removes some features, including:
+
+* The REST API no longer supports the ``RUN SCRIPT`` statement,
+  (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
+  Support was dropped as it circumnavigated certain correctness checks.
+  Instead, include the contents of the script in the main body of your request.
+  Note: there is no change to the CLI, which continues to support ``RUN SCRIPT``.
+  The 5.2 server will continue to honour previously submitted ``RUN SCRIPT`` statements.
+
 Version 5.1.0
 -------------
 

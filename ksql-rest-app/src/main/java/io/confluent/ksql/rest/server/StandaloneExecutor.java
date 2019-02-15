@@ -182,13 +182,13 @@ public class StandaloneExecutor implements Executable {
       final List<ParsedStatement> statements,
       final StatementExecutor executor
   ) {
-    return statements.stream()
-        .map(stmt -> {
-          final PreparedStatement<?> prepared = executor.prepare(stmt);
-          executor.execute(prepared);
-          return prepared.getStatement() instanceof QueryContainer;
-        })
-        .reduce(false, Boolean::logicalOr);
+    boolean hasQueries = false;
+
+    for (final ParsedStatement parsed : statements) {
+      hasQueries |= executor.execute(parsed);
+    }
+
+    return hasQueries;
   }
 
   private static String readQueriesFile(final String queryFilePath) {
@@ -254,15 +254,14 @@ public class StandaloneExecutor implements Executable {
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
 
-    private PreparedStatement<?> prepare(final ParsedStatement stmt) {
-      return executionContext.prepare(stmt);
-    }
-
+    /**
+     * @return true if the statement contained a query, false otherwise
+     */
     @SuppressWarnings("unchecked")
-    private <T extends Statement> void execute(
-        final PreparedStatement<T> statement
-    ) {
-      final Handler<Statement> handler = HANDLERS.get(statement.getStatement().getClass());
+    private <T extends Statement> boolean execute(final ParsedStatement statement) {
+      final PreparedStatement<?> prepared = executionContext.prepare(statement);
+
+      final Handler<Statement> handler = HANDLERS.get(prepared.getStatement().getClass());
       if (handler == null) {
         throw new KsqlException(String.format("Unsupported statement: %s%n"
                 + "Only the following statements are supporting in standalone mode:%n"
@@ -270,7 +269,8 @@ public class StandaloneExecutor implements Executable {
             statement.getStatementText()));
       }
 
-      handler.handle(this, (PreparedStatement) statement);
+      handler.handle(this, (PreparedStatement) prepared);
+      return prepared.getStatement() instanceof QueryContainer;
     }
 
     private void handleSetProperty(final PreparedStatement<SetProperty> statement) {

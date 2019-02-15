@@ -58,20 +58,20 @@ java -jar ./target/benchmarks.jar -h
 
 ### Benchmark results
 
-The following results were obtained from 20 runs of `SerdeBenchmark.java` on an
-r5.xlarge EC2 instance, for KSQL code as of the 5.2 release (compiled and run with Java 11),
+The following results were obtained from 10 runs of `SerdeBenchmark.java` on a different
+r5.xlarge EC2 instances, for KSQL code as of the 5.2 release (compiled and run with Java 11),
 using the default benchmark parameters.
 
-|  Benchmark  | serializationFormat | schemaName  | time per op (us) | standard deviation across 20 runs (us) |
+|  Benchmark  | serializationFormat | schemaName  | time per op (us) | standard deviation across 10 runs (us) |
 |:-----------:|:-------------------:|:-----------:|:----------------:|:--------------------------------------:|
-| deserialize |        JSON         | impressions |     2.840        |   0.070                                |
-| deserialize |        Avro         | impressions |     4.748        |   0.062                                |
-| deserialize |        JSON         |   metrics   |     16.309       |   0.162                                |
-| deserialize |        Avro         |   metrics   |     17.423       |   1.045                                |
-|  serialize  |        JSON         | impressions |     1.782        |   0.071                                |
-|  serialize  |        Avro         | impressions |     2.848        |   0.172                                |
-|  serialize  |        JSON         |   metrics   |     6.620        |   0.149                                |
-|  serialize  |        Avro         |   metrics   |     10.056       |   0.099                                |
+| deserialize |        JSON         | impressions |     2.794        |   0.059                                |
+| deserialize |        Avro         | impressions |     4.708        |   0.162                                |
+| deserialize |        JSON         |   metrics   |     16.077       |   0.501                                |
+| deserialize |        Avro         |   metrics   |     16.993       |   0.401                                |
+|  serialize  |        JSON         | impressions |     1.741        |   0.065                                |
+|  serialize  |        Avro         | impressions |     2.774        |   0.097                                |
+|  serialize  |        JSON         |   metrics   |     6.530        |   0.258                                |
+|  serialize  |        Avro         |   metrics   |     9.904        |   0.300                                |
 
 Time per operation is quite consistent from run to run, and from iteration to iteration within runs.
 Don't be surprised if running on your laptop produces better results than those reported here for

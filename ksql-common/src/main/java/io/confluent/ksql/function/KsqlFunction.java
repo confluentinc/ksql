@@ -17,10 +17,12 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.apache.kafka.connect.data.Schema;
 
 public class KsqlFunction {
@@ -118,7 +120,8 @@ public class KsqlFunction {
   public String toString() {
     return "KsqlFunction{"
         + "returnType=" + returnType
-        + ", arguments=" + arguments.stream().map(Schema::type).collect(Collectors.toList())
+        + ", arguments="
+        + arguments.stream().map(SchemaUtil::getSqlTypeName).collect(Collectors.toList())
         + ", functionName='" + functionName + '\''
         + ", kudfClass=" + kudfClass
         + ", description='" + description + "'"

@@ -103,6 +103,7 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -158,6 +159,8 @@ public class KsqlResourceTest {
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG, true),
       0L);
+  private static final Schema SINGLE_FIELD_SCHEMA = SchemaBuilder.struct()
+      .field("val", Schema.OPTIONAL_STRING_SCHEMA);
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
@@ -292,7 +295,7 @@ public class KsqlResourceTest {
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA);
 
-    ensureSource(
+    givenSource(
         DataSource.DataSourceType.KSTREAM, "new_stream", "new_topic",
         "new_ksql_topic", schema);
 
@@ -319,7 +322,7 @@ public class KsqlResourceTest {
         .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA);
 
-    ensureSource(
+    givenSource(
         DataSource.DataSourceType.KTABLE, "new_table", "new_topic",
         "new_ksql_topic", schema);
 
@@ -620,7 +623,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldFailWhenAvroSchemaCanNotBeDetermined() {
     // Given:
-    givenTopicExists("topicWithUnknownSchema");
+    givenKafkaTopicExists("topicWithUnknownSchema");
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -935,6 +938,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
+    when(sandbox.getMetaStore()).thenReturn(metaStore);
     when(sandbox.execute(any(), any(), any()))
         .thenThrow(new RuntimeException("internal error"));
 
@@ -1351,6 +1355,114 @@ public class KsqlResourceTest {
     ksqlResource.terminateCluster(request);
   }
 
+  @Test
+  public void shouldNeverEnqueueIfErrorIsThrown() {
+    // Given:
+    givenMockEngine();
+    when(ksqlEngine.execute(any(), any(), any())).thenThrow(new KsqlException("Fail"));
+
+    // When:
+    makeFailingRequest(
+        "REGISTER TOPIC X WITH (kafka_topic='bar', value_format='json';",
+        Code.BAD_REQUEST);
+
+    // Then:
+    verify(commandStore, never()).enqueueCommand(any(), any(), any());
+  }
+
+  @Test
+  public void shouldFailIfRegisterTopicAlreadyExists() {
+    // Given:
+    final String registerSql = "REGISTER TOPIC FOO WITH (kafka_topic='bar', value_format='json');";
+    givenKsqlTopicRegistered("foo");
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(
+        errorMessage(is("A topic with name 'FOO' already exists"))));
+
+    // When:
+    makeSingleRequest(registerSql, CommandStatusEntity.class);
+  }
+
+  @Test
+  public void shouldFailIfCreateExistingSourceStream() {
+    // Given:
+    givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
+    givenKafkaTopicExists("topic2");
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(
+        errorMessage(containsString("Source already exists: SOURCE"))));
+
+    // When:
+    final String createSql =
+        "CREATE STREAM SOURCE (val int) WITH (kafka_topic='topic2', value_format='json');";
+    makeSingleRequest(createSql, CommandStatusEntity.class);
+  }
+
+  @Test
+  public void shouldFailIfCreateExistingSourceTable() {
+    // Given:
+    givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
+    givenKafkaTopicExists("topic2");
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(
+        errorMessage(containsString("Source already exists: SOURCE"))));
+
+    // When:
+    final String createSql =
+        "CREATE TABLE SOURCE (val int) "
+            + "WITH (kafka_topic='topic2', value_format='json', key='val');";
+    makeSingleRequest(createSql, CommandStatusEntity.class);
+  }
+
+  @Test
+  public void shouldFailIfCreateAsSelectExistingSourceStream() {
+    // Given:
+    givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KSTREAM, "SINK", "topic2", "ksqlTopic2", SINGLE_FIELD_SCHEMA);
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(
+        errorMessage(containsString(
+            "Cannot add the new data source. Another data source with the "
+                + "same name already exists: KsqlStream name:SINK"))));
+
+    // When:
+    final String createSql =
+        "CREATE STREAM SINK AS SELECT * FROM SOURCE;";
+    makeSingleRequest(createSql, CommandStatusEntity.class);
+  }
+
+  @Test
+  public void shouldFailIfCreateAsSelectExistingSourceTable() {
+    // Given:
+    givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", "ksqlTopic1", SINGLE_FIELD_SCHEMA);
+    givenSource(DataSourceType.KTABLE, "SINK", "topic2", "ksqlTopic2", SINGLE_FIELD_SCHEMA);
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(
+        errorMessage(containsString(
+            "Cannot add the new data source. Another data source with the "
+                + "same name already exists: KsqlStream name:SINK"))));
+
+    // When:
+    final String createSql =
+        "CREATE TABLE SINK AS SELECT * FROM SOURCE;";
+    makeSingleRequest(createSql, CommandStatusEntity.class);
+  }
+
   private Answer executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, Collections.emptyMap());
@@ -1524,17 +1636,17 @@ public class KsqlResourceTest {
 
   private void addTestTopicAndSources() {
     final Schema schema1 = SchemaBuilder.struct().field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA);
-    ensureSource(
+    givenSource(
         DataSource.DataSourceType.KTABLE,
         "TEST_TABLE", "KAFKA_TOPIC_1", "KSQL_TOPIC_1", schema1);
     final Schema schema2 = SchemaBuilder.struct().field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA);
-    ensureSource(
+    givenSource(
         DataSource.DataSourceType.KSTREAM,
         "TEST_STREAM", "KAFKA_TOPIC_2", "KSQL_TOPIC_2", schema2);
-    givenTopicExists("orders-topic");
+    givenKafkaTopicExists("orders-topic");
   }
 
-  private void ensureSource(
+  private void givenSource(
       final DataSource.DataSourceType type,
       final String sourceName,
       final String topicName,
@@ -1550,7 +1662,7 @@ public class KsqlResourceTest {
         topicName,
         new KsqlJsonTopicSerDe(),
         false);
-    givenTopicExists(topicName);
+    givenKafkaTopicExists(topicName);
     metaStore.putTopic(ksqlTopic);
     if (type == DataSource.DataSourceType.KSTREAM) {
       metaStore.putSource(
@@ -1613,8 +1725,12 @@ public class KsqlResourceTest {
     }
   }
 
-  private void givenTopicExists(final String name) {
+  private void givenKafkaTopicExists(final String name) {
     kafkaTopicClient.preconditionTopicExists(name, 1, (short) 1, Collections.emptyMap());
+  }
+
+  private void givenKsqlTopicRegistered(final String name) {
+    metaStore.putTopic(new KsqlTopic(name.toUpperCase(), name, new KsqlJsonTopicSerDe(), true));
   }
 
   private void givenPersistentQueryCount(final int value) {

@@ -42,7 +42,6 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -367,8 +366,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final CommandStore commandStore = new CommandStore(
         commandTopic,
         restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties(),
-        new CommandIdAssigner(ksqlEngine.getMetaStore()));
+        restConfig.getCommandProducerProperties());
 
     final StatementExecutor statementExecutor = new StatementExecutor(
         ksqlConfig,

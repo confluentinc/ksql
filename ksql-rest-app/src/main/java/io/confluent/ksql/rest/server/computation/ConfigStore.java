@@ -17,5 +17,10 @@ package io.confluent.ksql.rest.server.computation;
 import io.confluent.ksql.util.KsqlConfig;
 
 public interface ConfigStore {
+
+  /**
+   * Gets the KSQL config to be used by a headless mode KSQL server.
+   * @return the KSQL config.
+   */
   KsqlConfig getKsqlConfig();
 }

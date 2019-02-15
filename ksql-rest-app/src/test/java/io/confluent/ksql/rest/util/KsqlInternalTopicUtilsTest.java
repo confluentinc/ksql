@@ -33,6 +33,8 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -52,6 +54,8 @@ public class KsqlInternalTopicUtilsTest {
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -63,7 +67,7 @@ public class KsqlInternalTopicUtilsTest {
   }
 
   @Test
-  public void shouldCreateCommandTopicIfItDoesNotExist() {
+  public void shouldCreateInternalTopicIfItDoesNotExist() {
     // When:
     KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
 
@@ -72,7 +76,7 @@ public class KsqlInternalTopicUtilsTest {
   }
 
   @Test
-  public void shouldNotAttemptToCreateCommandTopicIfItExists() {
+  public void shouldNotAttemptToCreateInternalTopicIfItExists() {
     // Given:
     when(topicClient.isTopicExists(TOPIC_NAME)).thenReturn(true);
 
@@ -85,7 +89,7 @@ public class KsqlInternalTopicUtilsTest {
 
   @Test
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
-  public void shouldEnsureCommandTopicHasInfiniteRetention() {
+  public void shouldEnsureInternalTopicHasInfiniteRetention() {
     // Given:
     final Map<String, Object> retentionConfig = ImmutableMap.of(
         TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE
@@ -101,7 +105,7 @@ public class KsqlInternalTopicUtilsTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void shouldCreateCommandTopicWithNumReplicasFromConfig() {
+  public void shouldCreateInternalTopicWithNumReplicasFromConfig() {
     // Given:
     when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn((short)3);
 
@@ -113,13 +117,14 @@ public class KsqlInternalTopicUtilsTest {
   }
 
   @Test
-  public void shouldNotFailIfTopicExistsOnCreation() {
+  public void shouldFailIfTopicExistsOnCreationWithDifferentConfigs() {
     // Given:
     doThrow(new KafkaTopicExistsException("exists"))
         .when(topicClient)
         .createTopic(any(), anyInt(), anyShort(), anyMap());
 
-    // When/Then(no throw):
+    // When/Then:
+    expectedException.expect(KafkaTopicExistsException.class);
     KsqlInternalTopicUtils.ensureTopic(TOPIC_NAME, ksqlConfig, topicClient);
   }
 }

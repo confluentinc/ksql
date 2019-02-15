@@ -29,9 +29,11 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import java.util.Properties;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public final class StandaloneExecutorFactory {
-  private static final String CONFIG_TOPIC_SUFFIX = "configs";
+  static final String CONFIG_TOPIC_SUFFIX = "configs";
 
   private StandaloneExecutorFactory(){
   }
@@ -41,9 +43,25 @@ public final class StandaloneExecutorFactory {
       final String queriesFile,
       final String installDir
   ) {
+    return create(
+        properties,
+        queriesFile,
+        installDir,
+        DefaultServiceContext::create,
+        KafkaConfigStore::new
+    );
+  }
+
+  static StandaloneExecutor create(
+      final Properties properties,
+      final String queriesFile,
+      final String installDir,
+      final Function<KsqlConfig, ServiceContext> serviceContextFactory,
+      final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory
+  ) {
     final KsqlConfig baseConfig = new KsqlConfig(properties);
 
-    final ServiceContext serviceContext = DefaultServiceContext.create(baseConfig);
+    final ServiceContext serviceContext = serviceContextFactory.apply(baseConfig);
 
     final String configTopicName
         = KsqlInternalTopicUtils.getTopicName(baseConfig, CONFIG_TOPIC_SUFFIX);
@@ -52,7 +70,7 @@ public final class StandaloneExecutorFactory {
         baseConfig,
         serviceContext.getTopicClient()
     );
-    final ConfigStore configStore = new KafkaConfigStore(configTopicName, baseConfig);
+    final ConfigStore configStore = configStoreFactory.apply(configTopicName, baseConfig);
     final KsqlConfig ksqlConfig = configStore.getKsqlConfig();
 
     final ProcessingLogConfig processingLogConfig

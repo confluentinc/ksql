@@ -23,11 +23,25 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * KsqlInternalTopicUtils provides some utility functions for working with internal topics.
+ * An internal topic is a topic that the KSQL server uses to manage its own internal state.
+ * This is separate from KSQL sink topics, and topics internal to individual queries
+ * (e.g. repartition and changelog topics). Some examples are the command topic used by
+ * interactive KSQL, and the config topic used by headless KSQL.
+ */
 public class KsqlInternalTopicUtils {
   private static final Logger log = LoggerFactory.getLogger(KsqlInternalTopicUtils.class);
 
   private static final int NPARTITIONS = 1;
 
+  /**
+   * Compute a name for an internal topic.
+   *
+   * @param ksqlConfig The KSQL config, which is used to extract the internal topic prefix.
+   * @param topicSuffix A suffix that is appended to the topic name.
+   * @return The computed topic name.
+   */
   public static String getTopicName(final KsqlConfig ksqlConfig, final String topicSuffix) {
     return String.format(
         "%s%s_%s",
@@ -37,16 +51,19 @@ public class KsqlInternalTopicUtils {
     );
   }
 
+  /**
+   * Ensure that an internal topic exists with the requested configuration, creating it
+   * if necessary. This function will also fix the retention time on topics if it detects
+   * that retention is not infinite.
+   *
+   * @param name The name of the internal topic to ensure.
+   * @param ksqlConfig The KSQL config, which contains properties that are translated
+   *                   to topic configs.
+   * @param topicClient A topic client used to query topic configs and create the topic.
+   */
   public static void ensureTopic(final String name,
                                  final KsqlConfig ksqlConfig,
                                  final KafkaTopicClient topicClient) {
-    ensureTopic(name, ksqlConfig, topicClient, TopicConfig.CLEANUP_POLICY_DELETE);
-  }
-
-  public static void ensureTopic(final String name,
-                                 final KsqlConfig ksqlConfig,
-                                 final KafkaTopicClient topicClient,
-                                 final String cleanupPolicy) {
     final long requiredTopicRetention = Long.MAX_VALUE;
     if (topicClient.isTopicExists(name)) {
       final ImmutableMap<String, Object> requiredConfig =
@@ -62,26 +79,22 @@ public class KsqlInternalTopicUtils {
       return;
     }
 
-    try {
-      final short replicationFactor =
-          ksqlConfig.originals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
+    final short replicationFactor =
+        ksqlConfig.originals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
             ? ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) : 1;
-      if (replicationFactor < 2) {
-        log.warn("Creating topic {} with replication factor of {} which is less than 2. "
-                + "This is not advisable in a production environment. ",
-            name, replicationFactor);
-      }
-
-      topicClient.createTopic(
-          name,
-          NPARTITIONS,
-          replicationFactor,
-          ImmutableMap.of(
-              TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention,
-              TopicConfig.CLEANUP_POLICY_CONFIG, cleanupPolicy)
-      );
-    } catch (final KafkaTopicExistsException e) {
-      log.info("Internal Topic {} Exists: {}", name, e.getMessage());
+    if (replicationFactor < 2) {
+      log.warn("Creating topic {} with replication factor of {} which is less than 2. "
+              + "This is not advisable in a production environment. ",
+          name, replicationFactor);
     }
+
+    topicClient.createTopic(
+        name,
+        NPARTITIONS,
+        replicationFactor,
+        ImmutableMap.of(
+            TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention,
+            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
+    );
   }
 }

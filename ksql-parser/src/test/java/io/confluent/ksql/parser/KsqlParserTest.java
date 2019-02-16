@@ -32,7 +32,7 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -87,7 +87,7 @@ public class KsqlParserTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private MetaStore metaStore;
+  private MutableMetaStore metaStore;
 
 
   @Before

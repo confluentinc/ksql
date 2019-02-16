@@ -26,10 +26,11 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -314,12 +315,15 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final ProcessingLogContext processingLogContext
         = ProcessingLogContext.create(processingLogConfig);
 
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
+        functionRegistry,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
-    UdfLoader.newInstance(ksqlConfig, ksqlEngine.getFunctionRegistry(), ksqlInstallDir).load();
+    UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
@@ -533,7 +537,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
       return;
     }
-    final PreparedStatement<AbstractStreamCreateStatement> statement =
+    final PreparedStatement<?> statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             config,
             ksqlConfig);

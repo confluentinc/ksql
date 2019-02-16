@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import java.util.Map;
 
@@ -29,7 +29,7 @@ public class UnsetPropertyCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore) {
+  public DdlCommandResult run(final MutableMetaStore metaStore) {
     return new DdlCommandResult(true, "property:"
         + unsetProperty.getPropertyName()
         + " was removed. "

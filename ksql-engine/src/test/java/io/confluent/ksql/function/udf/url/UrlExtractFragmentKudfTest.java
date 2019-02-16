@@ -14,17 +14,15 @@
 
 package io.confluent.ksql.function.udf.url;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import io.confluent.ksql.util.KsqlException;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 public class UrlExtractFragmentKudfTest {
 

@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -53,7 +53,7 @@ public class DropSourceCommandTest {
   private static final boolean ALWAYS = false;
 
   @Mock
-  private MetaStore metaStore;
+  private MutableMetaStore metaStore;
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
@@ -136,7 +136,8 @@ public class DropSourceCommandTest {
     dropSourceCommand.run(metaStore);
 
     // Then:
-    verify(schemaRegistryClient).deleteSubject(STREAM_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    verify(schemaRegistryClient)
+        .deleteSubject(STREAM_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 
   @Test

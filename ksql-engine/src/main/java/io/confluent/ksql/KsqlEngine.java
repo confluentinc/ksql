@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource;
@@ -112,10 +113,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   public KsqlEngine(
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final String serviceId
   ) {
     this(
         serviceContext,
+        processingLogContext,
         serviceId,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         KsqlEngineMetrics::new);
@@ -123,11 +126,16 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   KsqlEngine(
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final String serviceId,
       final MetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
-    this.primaryContext = EngineContext.create(serviceContext, metaStore, this::unregisterQuery);
+    this.primaryContext = EngineContext.create(
+        serviceContext,
+        processingLogContext,
+        metaStore,
+        this::unregisterQuery);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.persistentQueries = new HashMap<>();
@@ -208,7 +216,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    */
   @Override
   public KsqlExecutionContext createSandbox() {
-    return SandboxedExecutionContext.create(primaryContext, persistentQueries);
+    return SandboxedExecutionContext.create(
+        primaryContext,
+        persistentQueries);
   }
 
   /**
@@ -340,25 +350,36 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private final ServiceContext serviceContext;
     private final CommandFactories ddlCommandFactory;
     private final DdlCommandExec ddlCommandExec;
+    private final ProcessingLogContext processingLogContext;
 
     private EngineContext(
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final MetaStore metaStore,
         final Consumer<QueryMetadata> onQueryCloseCallback
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
       this.ddlCommandFactory = new CommandFactories(serviceContext);
-      this.queryEngine = new QueryEngine(serviceContext, onQueryCloseCallback);
+      this.queryEngine = new QueryEngine(
+          serviceContext,
+          processingLogContext,
+          onQueryCloseCallback);
       this.ddlCommandExec = new DdlCommandExec(metaStore);
+      this.processingLogContext = processingLogContext;
     }
 
     private static EngineContext create(
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final MetaStore metaStore,
         final Consumer<QueryMetadata> onQueryCloseCallback
     ) {
-      return new EngineContext(serviceContext, metaStore, onQueryCloseCallback);
+      return new EngineContext(
+          serviceContext,
+          processingLogContext,
+          metaStore,
+          onQueryCloseCallback);
     }
 
     private String executeDdlStatement(
@@ -770,6 +791,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     ) {
       final EngineContext sandboxed = EngineContext.create(
           SandboxedServiceContext.create(engineContext.serviceContext),
+          engineContext.processingLogContext,
           engineContext.metaStore.copy(),
           query -> {
           } // Do nothing on query close.

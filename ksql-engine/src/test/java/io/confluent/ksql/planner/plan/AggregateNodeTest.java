@@ -33,7 +33,8 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.processing.log.ProcessingLogConstants;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -72,6 +73,7 @@ public class AggregateNodeTest {
   private ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private final StreamsBuilder builder = new StreamsBuilder();
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
 
   @Test
@@ -264,11 +266,11 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(
-        ProcessingLoggerFactory.getLoggers(),
+        processingLogContext.getLoggerFactory().getLoggers(),
         hasItem(
             startsWith(
                 ProcessingLoggerUtil.join(
-                    ProcessingLoggerFactory.PREFIX,
+                    ProcessingLogConstants.PREFIX,
                     QueryLoggerUtil.queryLoggerName(
                         new QueryContext.Stacker(queryId)
                             .push(node.getId().toString(), name)
@@ -302,6 +304,7 @@ public class AggregateNodeTest {
             builder,
             ksqlConfig,
             serviceContext,
+            processingLogContext,
             new InternalFunctionRegistry(),
             queryId);
   }

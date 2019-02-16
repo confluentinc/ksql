@@ -65,11 +65,15 @@ Note that the server must be restarted for the config to take effect.
 Note On Security
 ================
 
-Entries in the record-processing log may include data from the rows processed by KSQL.
-Be careful to ensure that the log is configured to write to a destination
-where it is safe to write the data being processed. It's also important to set
-``log4j.additivity.processing=false`` as shown in the previous example, to ensure that processing log
-events are not forwarded to appenders configured for the other KSQL loggers.
+By default, the record-processing log doesn't log any actual row data. To help
+you debug, you can enable including row data in log messages by setting the
+KSQL property ``ksql.processing.log.include.rows`` to ``true``.
+
+If you do this, ensure that the log is configured to
+write to a destination where it is safe to write the data being processed. It's
+also important to set ``log4j.additivity.processing=false`` as shown in the previous
+example, to ensure that processing log events are not forwarded to appenders
+configured for the other KSQL loggers.
 
 You can disable the log completely by setting the level to OFF:
 

@@ -19,7 +19,6 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.logging.StructuredLogger;
@@ -29,7 +28,6 @@ import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndXProduction
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -39,7 +37,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -47,12 +44,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ProductionExceptionHandlerUtilTest {
 
-  private final static String LOGGER_NAME = "loggerName";
-  private final static Map<String, ?> CONFIGS = ImmutableMap.of(
-      ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER_NAME, LOGGER_NAME);
+  private Map<String, ?> CONFIGS;
 
-  @Mock
-  private Function<String, StructuredLogger> loggerFactory;
   @Mock
   private StructuredLogger logger;
   @Captor
@@ -66,10 +59,11 @@ public class ProductionExceptionHandlerUtilTest {
 
   @Before
   public void setUp() {
-    when(loggerFactory.apply(ArgumentMatchers.anyString())).thenReturn(logger);
+    CONFIGS = ImmutableMap.of(
+        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER, logger);
 
     exceptionHandler = new TestLogAndXProductionExceptionHandler(mockResponse);
-    exceptionHandler.configure(CONFIGS, loggerFactory);
+    exceptionHandler.configure(CONFIGS);
   }
 
   @Test
@@ -84,12 +78,6 @@ public class ProductionExceptionHandlerUtilTest {
     assertThat(
         ProductionExceptionHandlerUtil.getHandler(false),
         equalTo(LogAndContinueProductionExceptionHandler.class));
-  }
-
-  @Test
-  public void shouldSetLoggerNameCorrectly() {
-    // Then:
-    verify(loggerFactory).apply(LOGGER_NAME);
   }
 
   @Test
@@ -122,7 +110,7 @@ public class ProductionExceptionHandlerUtilTest {
   public void shouldReturnFailFromLogAndFailHandler() {
     // Given:
     exceptionHandler = new LogAndFailProductionExceptionHandler();
-    exceptionHandler.configure(CONFIGS, loggerFactory);
+    exceptionHandler.configure(CONFIGS);
 
     // Then:
     assertResponseIs(ProductionExceptionHandlerResponse.FAIL);
@@ -132,7 +120,7 @@ public class ProductionExceptionHandlerUtilTest {
   public void shouldReturnContinueFromLogAndContinueHandler() {
     // Given:
     exceptionHandler = new LogAndContinueProductionExceptionHandler();
-    exceptionHandler.configure(CONFIGS, loggerFactory);
+    exceptionHandler.configure(CONFIGS);
 
     // Then:
     assertResponseIs(ProductionExceptionHandlerResponse.CONTINUE);

@@ -18,6 +18,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
@@ -37,6 +38,7 @@ public final class KsqlEngineTestUtil {
   ) {
     return new KsqlEngine(
         serviceContext,
+        ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
         KsqlEngineMetrics::new
@@ -50,6 +52,7 @@ public final class KsqlEngineTestUtil {
   ) {
     return new KsqlEngine(
         serviceContext,
+        ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
         ignored -> engineMetrics

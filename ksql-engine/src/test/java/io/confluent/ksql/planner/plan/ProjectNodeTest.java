@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.ServiceContext;
@@ -59,6 +60,7 @@ public class ProjectNodeTest {
   private final StreamsBuilder builder = new StreamsBuilder();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final ServiceContext serviceContext = TestServiceContext.create();
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final QueryId queryId = new QueryId("project-test");
 
@@ -96,6 +98,7 @@ public class ProjectNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
         queryId);
   }
@@ -106,7 +109,7 @@ public class ProjectNodeTest {
     // Given:
     final BooleanLiteral trueExpression = new BooleanLiteral("true");
     final BooleanLiteral falseExpression = new BooleanLiteral("false");
-    when(stream.select(anyList(), any())).thenReturn(stream);
+    when(stream.select(anyList(), any(), any())).thenReturn(stream);
     final ProjectNode node = buildNode(
         Arrays.asList(trueExpression, falseExpression));
 
@@ -115,6 +118,7 @@ public class ProjectNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
         queryId);
 
@@ -123,12 +127,14 @@ public class ProjectNodeTest {
         eq(Arrays.asList(
             SelectExpression.of("field1", trueExpression),
             SelectExpression.of("field2", falseExpression))),
-        eq(node.buildNodeContext(queryId))
+        eq(node.buildNodeContext(queryId)),
+        same(processingLogContext)
     );
     verify(source, times(1)).buildStream(
         same(builder),
         same(ksqlConfig),
         same(serviceContext),
+        same(processingLogContext),
         same(functionRegistry),
         same(queryId)
     );
@@ -142,6 +148,7 @@ public class ProjectNodeTest {
         any(StreamsBuilder.class),
         any(KsqlConfig.class),
         any(ServiceContext.class),
+        any(ProcessingLogContext.class),
         any(InternalFunctionRegistry.class),
         same(queryId))
     ).thenReturn(stream);

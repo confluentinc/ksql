@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -102,6 +103,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final QueryId queryId
   ) {
@@ -110,6 +112,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
         queryId
     );
@@ -158,7 +161,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 ksqlConfig,
                 false,
                 serviceContext.getSchemaRegistryClientFactory(),
-                QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext())),
+                QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
+                processingLogContext),
         rowkeyIndexes
     );
 

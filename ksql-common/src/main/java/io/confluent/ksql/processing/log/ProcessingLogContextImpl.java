@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -14,17 +14,22 @@
 
 package io.confluent.ksql.processing.log;
 
-import java.util.Arrays;
+import io.confluent.common.logging.StructuredLoggerFactory;
 
-public final class ProcessingLoggerUtil {
-  private ProcessingLoggerUtil() {
+public final class ProcessingLogContextImpl implements ProcessingLogContext {
+  private final ProcessingLogConfig config;
+  private final StructuredLoggerFactory loggerFactory;
+
+  ProcessingLogContextImpl(final ProcessingLogConfig config) {
+    this.config = config;
+    this.loggerFactory = new StructuredLoggerFactory(ProcessingLogConstants.PREFIX);
   }
 
-  public static String join(final String... levels) {
-    return join(Arrays.asList(levels));
+  public ProcessingLogConfig getConfig() {
+    return config;
   }
 
-  public static String join(final Iterable<String> levels) {
-    return String.join(ProcessingLogConstants.DELIMITER, levels);
+  public StructuredLoggerFactory getLoggerFactory() {
+    return loggerFactory;
   }
 }

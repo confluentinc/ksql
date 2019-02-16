@@ -15,6 +15,7 @@
 package io.confluent.ksql.embedded;
 
 import io.confluent.ksql.KsqlContext;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 
@@ -23,9 +24,11 @@ public final class EmbeddedKsql {
   private EmbeddedKsql() {
   }
 
-  public static void main(final String[] args) throws Exception {
+  public static void main(final String[] args) {
 
-    final KsqlContext ksqlContext = KsqlContext.create(new KsqlConfig(Collections.emptyMap()));
+    final KsqlContext ksqlContext = KsqlContext.create(
+        new KsqlConfig(Collections.emptyMap()),
+        ProcessingLogContext.create());
 
     ksqlContext.sql("REGISTER TOPIC orders_topic WITH (format = 'json', "
                     + "kafka_topic='orders_topic_json');");

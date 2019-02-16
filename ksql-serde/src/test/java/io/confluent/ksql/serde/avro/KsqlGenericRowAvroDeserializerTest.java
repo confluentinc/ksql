@@ -26,6 +26,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -205,7 +206,8 @@ public class KsqlGenericRowAvroDeserializerTest {
             ksqlConfig,
             false,
             () -> schemaRegistryClient,
-            "loggerName").deserializer();
+            "loggerName",
+            ProcessingLogContext.create()).deserializer();
 
     return deserializer.deserialize(topicName, bytes);
   }
@@ -507,7 +509,8 @@ public class KsqlGenericRowAvroDeserializerTest {
             ksqlConfig,
             false,
             () -> schemaRegistryClient,
-            "loggerName").deserializer();
+            "loggerName",
+            ProcessingLogContext.create()).deserializer();
 
     final GenericRow row = deserializer.deserialize("topic", bytes);
 

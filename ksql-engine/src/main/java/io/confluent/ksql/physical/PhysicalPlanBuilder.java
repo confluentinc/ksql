@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -27,6 +28,7 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.ServiceContext;
@@ -62,6 +64,7 @@ public class PhysicalPlanBuilder {
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final ServiceContext serviceContext;
+  private final ProcessingLogContext processingLogContext;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenProperties;
   private final MutableMetaStore metaStore;
@@ -73,6 +76,7 @@ public class PhysicalPlanBuilder {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenProperties,
       final MutableMetaStore metaStore,
@@ -83,6 +87,9 @@ public class PhysicalPlanBuilder {
     this.builder = Objects.requireNonNull(builder, "builder");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.processingLogContext = Objects.requireNonNull(
+        processingLogContext,
+        "processingLogContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.overriddenProperties =
         Objects.requireNonNull(overriddenProperties, "overriddenProperties");
@@ -107,6 +114,7 @@ public class PhysicalPlanBuilder {
             builder,
             ksqlConfig,
             serviceContext,
+            processingLogContext,
             functionRegistry,
             queryId
         );
@@ -183,7 +191,8 @@ public class PhysicalPlanBuilder {
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         ksqlConfig,
-        queryId
+        queryId,
+        processingLogContext
     );
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
@@ -258,7 +267,8 @@ public class PhysicalPlanBuilder {
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         ksqlConfig,
-        queryId
+        queryId,
+        processingLogContext
     );
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
@@ -355,14 +365,17 @@ public class PhysicalPlanBuilder {
   private static Map<String, Object> buildStreamsProperties(
       final String applicationId,
       final KsqlConfig ksqlConfig,
-      final QueryId queryId
+      final QueryId queryId,
+      final ProcessingLogContext processingLogContext
   ) {
     final Map<String, Object> newStreamsProperties
         = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    final StructuredLogger logger
+        = processingLogContext.getLoggerFactory().getLogger(queryId.toString());
     newStreamsProperties.put(
-        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER_NAME,
-        queryId.toString());
+        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
+        logger);
 
     updateListProperty(
         newStreamsProperties,

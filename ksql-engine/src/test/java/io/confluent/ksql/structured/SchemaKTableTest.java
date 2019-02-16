@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -95,6 +96,7 @@ public class SchemaKTableTest {
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   @Before
   public void init() {
@@ -161,7 +163,8 @@ public class SchemaKTableTest {
         new KsqlConfig(Collections.emptyMap()),
         false,
         MockSchemaRegistryClient::new,
-        "test");
+        "test",
+        processingLogContext);
   }
 
   @Test
@@ -182,7 +185,8 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
-        childContextStacker
+        childContextStacker,
+        processingLogContext
     );
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -221,7 +225,8 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
-        childContextStacker
+        childContextStacker,
+        processingLogContext
     );
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -262,7 +267,8 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
-        childContextStacker
+        childContextStacker,
+        processingLogContext
     );
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 7);
@@ -309,7 +315,12 @@ public class SchemaKTableTest {
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, () -> null, "test");
+        initialSchemaKTable.getSchema(),
+        null,
+        false,
+        () -> null,
+        "test",
+        processingLogContext);
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde,
@@ -384,7 +395,8 @@ public class SchemaKTableTest {
         null,
         false,
         () -> null,
-        "test");
+        "test",
+        processingLogContext);
 
     // Call groupBy and extract the captured mapper
     initialSchemaKTable.groupBy(rowSerde, groupByExpressions, childContextStacker);

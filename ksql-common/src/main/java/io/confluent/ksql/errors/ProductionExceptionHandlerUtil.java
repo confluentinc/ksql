@@ -17,9 +17,7 @@ package io.confluent.ksql.errors;
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -27,8 +25,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.errors.ProductionExceptionHandler;
 
 public final class ProductionExceptionHandlerUtil {
-  public static final String KSQL_PRODUCTION_ERROR_LOGGER_NAME =
-      "ksql.logger.production.error.name";
+  public static final String KSQL_PRODUCTION_ERROR_LOGGER = "ksql.logger.production.error";
 
   private ProductionExceptionHandlerUtil() {
   }
@@ -52,13 +49,11 @@ public final class ProductionExceptionHandlerUtil {
 
     @Override
     public void configure(final Map<String, ?> configs) {
-      configure(configs, ProcessingLoggerFactory::getLogger);
-    }
-
-    void configure(
-        final Map<String, ?> configs, final Function<String, StructuredLogger> loggerFactory) {
-      final String loggerName = configs.get(KSQL_PRODUCTION_ERROR_LOGGER_NAME).toString();
-      logger = loggerFactory.apply(loggerName);
+      final Object logger = configs.get(KSQL_PRODUCTION_ERROR_LOGGER);
+      if (! (logger instanceof StructuredLogger)) {
+        throw new IllegalArgumentException("Invalid value for logger: " + logger.toString());
+      }
+      this.logger = (StructuredLogger) logger;
     }
 
     abstract ProductionExceptionHandlerResponse getResponse();

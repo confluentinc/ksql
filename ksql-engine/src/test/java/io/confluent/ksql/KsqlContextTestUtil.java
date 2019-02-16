@@ -16,6 +16,7 @@ package io.confluent.ksql;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
@@ -58,6 +59,7 @@ public final class KsqlContextTestUtil {
 
     final KsqlEngine engine = new KsqlEngine(
         serviceContext,
+        ProcessingLogContext.create(),
         functionRegistry,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
     );

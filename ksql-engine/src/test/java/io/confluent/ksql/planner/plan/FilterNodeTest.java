@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.ServiceContext;
@@ -55,6 +56,8 @@ public class FilterNodeTest {
   private SchemaKStream schemaKStream;
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private ProcessingLogContext processingLogContext;
 
   private FilterNode node;
 
@@ -64,10 +67,10 @@ public class FilterNodeTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    when(sourceNode.buildStream(any(), any(), any(), any(), any()))
+    when(sourceNode.buildStream(any(), any(), any(), any(), any(), any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(schemaKStream.filter(any(), any()))
+    when(schemaKStream.filter(any(), any(), any()))
         .thenReturn(schemaKStream);
     node = new FilterNode(nodeId, sourceNode, predicate);
   }
@@ -79,6 +82,7 @@ public class FilterNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
         queryId
     );
@@ -88,11 +92,13 @@ public class FilterNodeTest {
         same(builder),
         same(ksqlConfig),
         same(serviceContext),
+        same(processingLogContext),
         same(functionRegistry),
         same(queryId)
     );
     verify(schemaKStream).filter(
         same(predicate),
-        eq(node.buildNodeContext(queryId)));
+        eq(node.buildNodeContext(queryId)),
+        same(processingLogContext));
   }
 }

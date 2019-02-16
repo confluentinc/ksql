@@ -39,6 +39,8 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
@@ -53,7 +55,6 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ClusterTerminator;
-import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -309,10 +310,18 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
+    final ProcessingLogConfig processingLogConfig
+        = new ProcessingLogConfig(restConfig.getOriginals());
+    final ProcessingLogContext processingLogContext
+        = ProcessingLogContext.create(processingLogConfig);
+
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
     final KsqlEngine ksqlEngine = new KsqlEngine(
-        serviceContext, functionRegistry, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+        serviceContext,
+        processingLogContext,
+        functionRegistry,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
@@ -395,8 +404,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
-    final ProcessingLogConfig processingLogConfig =
-        new ProcessingLogConfig(restConfig.getOriginals());
     final Optional<String> processingLogTopic =
         ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
             serviceContext.getTopicClient(),

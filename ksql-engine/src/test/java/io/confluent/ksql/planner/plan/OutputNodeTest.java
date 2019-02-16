@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.ServiceContext;
@@ -173,6 +174,7 @@ public class OutputNodeTest {
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final FunctionRegistry functionRegistry,
         final QueryId queryId
     ) {

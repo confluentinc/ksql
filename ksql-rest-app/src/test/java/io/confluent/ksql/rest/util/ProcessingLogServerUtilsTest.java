@@ -16,7 +16,6 @@ package io.confluent.ksql.rest.util;
 
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -39,7 +38,6 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -182,7 +180,7 @@ public class ProcessingLogServerUtilsTest {
     serviceContext.getTopicClient().createTopic(TOPIC, 1, (short) 1);
 
     // When:
-    final PreparedStatement<AbstractStreamCreateStatement> statement =
+    final PreparedStatement<?> statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             config,
             ksqlConfig);
@@ -204,7 +202,7 @@ public class ProcessingLogServerUtilsTest {
     serviceContext.getTopicClient().createTopic(DEFAULT_TOPIC, 1, (short)1);
 
     // When:
-    final PreparedStatement<AbstractStreamCreateStatement> statement =
+    final PreparedStatement<?> statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             new ProcessingLogConfig(
                 ImmutableMap.of(

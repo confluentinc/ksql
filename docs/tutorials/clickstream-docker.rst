@@ -144,7 +144,7 @@ populated. They hold information about the HTTP status codes, and users.
 Load the Streaming Data to KSQL
 -------------------------------
 
-#.  Launch the KSQL CLI
+#.  Launch the KSQL CLI:
 
     .. code:: bash
 

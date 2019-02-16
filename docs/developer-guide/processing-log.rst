@@ -158,6 +158,8 @@ The replication factor and partition count are configurable
 using the ``ksql.processing.log.topic.replication.factor`` and ``ksql.processing.log.topic.partitions`` properties,
 respectively.
 
+If ``ksql.processing.log.topic.auto.create`` is set to ``true``, the created topic will be deleted as part of :ref:`cluster termination<ksql_cluster_terminate>`.
+
 If the ``ksql.processing.log.topic.name`` property is not specified, the processing log topic name will default to ``<ksql service id>processing_log``, where ``ksql service id`` is the value from the ``ksql.service.id`` property. This ensures each KSQL cluster gets its own processing log topic by default.
 
 If you are bringing up a new interactive mode KSQL cluster, you can configure KSQL to set up

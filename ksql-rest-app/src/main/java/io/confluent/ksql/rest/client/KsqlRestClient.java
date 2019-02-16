@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.client;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.client.properties.LocalProperties;
@@ -37,9 +38,11 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -48,6 +51,8 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import javax.naming.AuthenticationException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
@@ -80,7 +85,7 @@ public class KsqlRestClient implements Closeable {
 
   private final Client client;
 
-  private URI serverAddress;
+  private List<URI> serverAddresses;
 
   private final LocalProperties localProperties;
 
@@ -101,7 +106,7 @@ public class KsqlRestClient implements Closeable {
                  final String serverAddress,
                  final Map<String, Object> localProperties) {
     this.client = Objects.requireNonNull(client, "client");
-    this.serverAddress = parseServerAddress(serverAddress);
+    this.serverAddresses = parseServerAddresses(serverAddress);
     this.localProperties = new LocalProperties(localProperties);
   }
 
@@ -114,11 +119,11 @@ public class KsqlRestClient implements Closeable {
   }
 
   public URI getServerAddress() {
-    return serverAddress;
+    return serverAddresses.get(0);
   }
 
   public void setServerAddress(final String serverAddress) {
-    this.serverAddress = parseServerAddress(serverAddress);
+    this.serverAddresses = parseServerAddresses(serverAddress);
   }
 
   public RestResponse<ServerInfo> makeRootRequest() {
@@ -163,7 +168,7 @@ public class KsqlRestClient implements Closeable {
 
   private <T> RestResponse<T> getRequest(final String path, final Class<T> type) {
 
-    try (Response response = client.target(serverAddress)
+    try (Response response = client.target(getServerAddress())
         .path(path)
         .request(MediaType.APPLICATION_JSON_TYPE)
         .get()) {
@@ -187,7 +192,7 @@ public class KsqlRestClient implements Closeable {
     Response response = null;
 
     try {
-      final WebTarget target = client.target(serverAddress)
+      final WebTarget target = client.target(getServerAddress())
           .path(path);
 
       readTimeoutMs.ifPresent(timeout -> target.property(ClientProperties.READ_TIMEOUT, timeout));
@@ -371,6 +376,15 @@ public class KsqlRestClient implements Closeable {
         prop -> propertiesMap.put(prop, properties.getProperty(prop)));
 
     return propertiesMap;
+  }
+
+  private static List<URI> parseServerAddresses(final String serverAddresses) {
+    Objects.requireNonNull(serverAddresses, "serverAddress");
+    return ImmutableList.copyOf(
+      Arrays.stream(serverAddresses.split(","))
+         .map(String::trim)
+         .map(KsqlRestClient::parseServerAddress)
+         .collect(Collectors.toList()));
   }
 
   private static URI parseServerAddress(final String serverAddress) {

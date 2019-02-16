@@ -117,7 +117,7 @@ public final class SqlFormatter {
       processRelation(node.getQueryBody(), indent);
 
       if (node.getLimit().isPresent()) {
-        append(indent, "LIMIT " + node.getLimit().get())
+        append(indent, "LIMIT " + node.getLimit().getAsInt())
                 .append('\n');
       }
 
@@ -155,7 +155,7 @@ public final class SqlFormatter {
       }
 
       if (node.getLimit().isPresent()) {
-        append(indent, "LIMIT " + node.getLimit().get())
+        append(indent, "LIMIT " + node.getLimit().getAsInt())
                 .append('\n');
       }
       return null;

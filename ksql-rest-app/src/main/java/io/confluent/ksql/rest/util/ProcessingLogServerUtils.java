@@ -27,6 +27,7 @@ import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TypeUtil;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.slf4j.Logger;
@@ -62,12 +63,12 @@ public final class ProcessingLogServerUtils {
     }
   }
 
-  public static void maybeCreateProcessingLogTopic(
+  public static Optional<String> maybeCreateProcessingLogTopic(
       final KafkaTopicClient topicClient,
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig) {
     if (!config.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
-      return;
+      return Optional.empty();
     }
     final String topicName = getTopicName(config, ksqlConfig);
     final int nPartitions =
@@ -79,6 +80,7 @@ public final class ProcessingLogServerUtils {
     } catch (final KafkaTopicExistsException e) {
       LOGGER.info(String.format("Log topic %s already exists", topicName), e);
     }
+    return Optional.of(topicName);
   }
 
   public static PreparedStatement<AbstractStreamCreateStatement> processingLogStreamCreateStatement(

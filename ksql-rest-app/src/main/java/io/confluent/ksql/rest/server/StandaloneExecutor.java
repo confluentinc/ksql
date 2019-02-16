@@ -34,6 +34,7 @@ import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
@@ -290,8 +291,9 @@ public class StandaloneExecutor implements Executable {
       executionContext.execute(statement, ksqlConfig, configProperties)
           .getQuery()
           .filter(q -> q instanceof PersistentQueryMetadata)
-          .orElseThrow((() -> new KsqlException("Could not build the query: "
-              + statement.getStatementText())));
+          .orElseThrow((() -> new KsqlStatementException(
+              "Could not build the query",
+              statement.getStatementText())));
     }
 
     private static String generateSupportedMessage() {

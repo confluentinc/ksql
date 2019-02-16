@@ -109,7 +109,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final ScheduledExecutorService aggregateMetricsCollector;
   private final String serviceId;
   private final ServiceContext serviceContext;
-  private final ProcessingLogContext processingLogContext;
   private final EngineContext primaryContext;
 
   public KsqlEngine(
@@ -138,8 +137,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         metaStore,
         this::unregisterQuery);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.processingLogContext
-        = Objects.requireNonNull(processingLogContext, "processingLogContext");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.persistentQueries = new HashMap<>();
     this.allLiveQueries = new HashSet<>();
@@ -221,7 +218,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   public KsqlExecutionContext createSandbox() {
     return SandboxedExecutionContext.create(
         primaryContext,
-        processingLogContext,
         persistentQueries);
   }
 
@@ -235,7 +231,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    */
   public List<PreparedStatement<?>> parseStatements(final String sql) {
     final SandboxedExecutionContext sandbox = SandboxedExecutionContext
-        .create(primaryContext, processingLogContext, persistentQueries);
+        .create(primaryContext, persistentQueries);
 
     return EngineParser.create(sandbox.engineContext).buildAst(sql);
   }
@@ -354,6 +350,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private final ServiceContext serviceContext;
     private final CommandFactories ddlCommandFactory;
     private final DdlCommandExec ddlCommandExec;
+    private final ProcessingLogContext processingLogContext;
 
     private EngineContext(
         final ServiceContext serviceContext,
@@ -369,6 +366,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           processingLogContext,
           onQueryCloseCallback);
       this.ddlCommandExec = new DdlCommandExec(metaStore);
+      this.processingLogContext = processingLogContext;
     }
 
     private static EngineContext create(
@@ -785,34 +783,28 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private static final class SandboxedExecutionContext implements KsqlExecutionContext {
 
     private final EngineContext engineContext;
-    private final ProcessingLogContext processingLogContext;
     private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
 
     private static SandboxedExecutionContext create(
         final EngineContext engineContext,
-        final ProcessingLogContext processingLogContext,
         final Map<QueryId, PersistentQueryMetadata> persistentQueries
     ) {
       final EngineContext sandboxed = EngineContext.create(
           SandboxedServiceContext.create(engineContext.serviceContext),
-          processingLogContext,
+          engineContext.processingLogContext,
           engineContext.metaStore.copy(),
           query -> {
           } // Do nothing on query close.
       );
 
-      return new SandboxedExecutionContext(sandboxed, processingLogContext, persistentQueries);
+      return new SandboxedExecutionContext(sandboxed, persistentQueries);
     }
 
     private SandboxedExecutionContext(
         final EngineContext engineContext,
-        final ProcessingLogContext processingLogContext,
         final Map<QueryId, PersistentQueryMetadata> persistentQueries
     ) {
       this.engineContext = Objects.requireNonNull(engineContext, "engineContext");
-      this.processingLogContext = Objects.requireNonNull(
-          processingLogContext,
-          "processingLogContext");
       this.persistentQueries = ImmutableMap.copyOf(persistentQueries);
     }
 
@@ -823,7 +815,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     @Override
     public KsqlExecutionContext createSandbox() {
-      return create(engineContext, processingLogContext, persistentQueries);
+      return create(engineContext, persistentQueries);
     }
 
     @Override

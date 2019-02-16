@@ -126,7 +126,7 @@ public class SqlPredicateTest {
   }
 
   @Test
-  public void shouldWriteProcessingLogOnError() throws IOException {
+  public void shouldWriteProcessingLogOnError() {
     // Given:
     final SqlPredicate sqlPredicate =
         givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100;");

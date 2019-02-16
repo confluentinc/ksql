@@ -54,7 +54,6 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ClusterTerminator;
-import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -401,10 +400,11 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
-        serviceContext.getTopicClient(),
-        processingLogConfig,
-        ksqlConfig);
+    final Optional<String> processingLogTopic =
+        ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+            serviceContext.getTopicClient(),
+            processingLogConfig,
+            ksqlConfig);
     maybeCreateProcessingLogStream(
         processingLogConfig,
         ksqlConfig,

@@ -28,16 +28,12 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 public class SerdeProcessingLogMessageFactoryTest {

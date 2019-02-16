@@ -33,7 +33,7 @@ public interface ProcessingLogContext {
    * @param config the processing log config
    * @return: A processing log context that uses the supplied config.
    */
-  static ProcessingLogContextImpl create(final ProcessingLogConfig config) {
+  static ProcessingLogContext create(final ProcessingLogConfig config) {
     return new ProcessingLogContextImpl(config);
   }
 
@@ -41,7 +41,7 @@ public interface ProcessingLogContext {
    * Creates a processing log context that uses the default processing log config.
    * @return A processing log context that uses the default config
    */
-  static ProcessingLogContextImpl create() {
+  static ProcessingLogContext create() {
     return new ProcessingLogContextImpl(new ProcessingLogConfig(Collections.emptyMap()));
   }
 }

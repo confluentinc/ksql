@@ -58,7 +58,7 @@ public class KsqlDelimitedDeserializerTest {
     delimitedDeserializer = new KsqlDelimitedDeserializer(
         orderSchema,
         recordLogger,
-        ProcessingLogContext.create());
+        processingLogContext);
   }
 
   @Test

@@ -364,7 +364,7 @@ public class SchemaKStreamTest {
         false,
         () -> null,
         "test",
-        ProcessingLogContext.create());
+        processingLogContext);
     final List<Expression> groupByExpressions = Collections.singletonList(keyExpression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         rowSerde,
@@ -390,7 +390,7 @@ public class SchemaKStreamTest {
         false,
         () -> null,
         "test",
-        ProcessingLogContext.create());
+        processingLogContext);
     final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         rowSerde,

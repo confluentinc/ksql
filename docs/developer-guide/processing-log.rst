@@ -65,11 +65,11 @@ Note that the server must be restarted for the config to take effect.
 Note On Security
 ================
 
-By default, the record-processing log won't log any actual row data. To help
+By default, the record-processing log doesn't log any actual row data. To help
 you debug, you can enable including row data in log messages by setting the
 KSQL property ``ksql.processing.log.include.rows`` to ``true``.
 
-If you do this, you should be careful to ensure that the log is configured to
+If you do this, ensure that the log is configured to
 write to a destination where it is safe to write the data being processed. It's
 also important to set ``log4j.additivity.processing=false`` as shown in the previous
 example, to ensure that processing log events are not forwarded to appenders

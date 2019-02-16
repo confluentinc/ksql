@@ -296,9 +296,9 @@ to the value of this property. By default, this property has the value ``1``.
 ksql.processing.log.stream.auto.create
 --------------------------------------
 
-Toggles automatic processing log stream creation. If set to true, and running interactive mode on a new cluster,
-then KSQL will automatically create a processing log stream when it starts up. The name for the stream is the
-value of the :ref:`ksql-processing-log-stream-name` property. The stream will be created over the topic set in
+Toggles automatic processing log stream creation. If set to true, and KSQL is running in interactive mode on a new cluster,
+KSQL automatically creates a processing log stream when it starts up. The name for the stream is the
+value of the :ref:`ksql-processing-log-stream-name` property. The stream is created over the topic set in
 the :ref:`ksql-processing-log-topic-name` property. By default, this property has the value ``false``.
 
 .. _ksql-processing-log-stream-name:

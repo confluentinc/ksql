@@ -262,8 +262,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       return;
     }
 
-    primaryContext.unregisterQuery(query);
-
     if (query.hasEverBeenStarted()) {
       SchemaRegistryUtil
           .cleanUpInternalTopicAvroSchemas(applicationId, serviceContext.getSchemaRegistryClient());
@@ -317,6 +315,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private final CommandFactories ddlCommandFactory;
     private final DdlCommandExec ddlCommandExec;
     private final QueryIdGenerator queryIdGenerator;
+    private final Consumer<QueryMetadata> outerOnQueryCloseCallback;
     private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
 
     private EngineContext(
@@ -329,7 +328,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
       this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
       this.ddlCommandFactory = new CommandFactories(serviceContext);
-      this.queryEngine = new QueryEngine(serviceContext, queryIdGenerator, onQueryCloseCallback);
+      this.queryEngine = new QueryEngine(serviceContext, queryIdGenerator, this::unregisterQuery);
+      this.outerOnQueryCloseCallback = Objects
+          .requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
       this.ddlCommandExec = new DdlCommandExec(metaStore);
       this.persistentQueries = new ConcurrentHashMap<>();
     }
@@ -463,6 +464,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         persistentQueries.remove(persistentQuery.getQueryId());
         metaStore.removePersistentQuery(persistentQuery.getQueryId().getId());
       }
+
+      outerOnQueryCloseCallback.accept(query);
     }
 
     private int numberOfPersistentQueries() {
@@ -684,11 +687,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           SandboxedServiceContext.create(sourceContext.serviceContext),
           sourceContext.metaStore.copy(),
           sourceContext.queryIdGenerator.copy(),
-          this::unregisterQuery
+          query -> {
+            // No-op
+          }
       );
 
       sourceContext.persistentQueries.forEach((queryId, query) ->
-          engineContext.registerQuery(query.copyWith(this::unregisterQuery)));
+          engineContext.registerQuery(query.copyWith(engineContext::unregisterQuery)));
     }
 
     @Override
@@ -731,10 +736,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           EngineExecutor.create(engineContext, ksqlConfig, overriddenProperties);
 
       return executor.execute(statement);
-    }
-
-    private void unregisterQuery(final QueryMetadata query) {
-      engineContext.unregisterQuery(query);
     }
   }
 }

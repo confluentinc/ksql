@@ -92,7 +92,6 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
     }
   }
 
-
   protected void setError(final Throwable e) {
     exception = e;
     done = true;

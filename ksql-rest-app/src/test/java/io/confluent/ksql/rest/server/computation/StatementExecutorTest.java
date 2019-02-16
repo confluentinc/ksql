@@ -67,6 +67,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
 import org.hamcrest.CoreMatchers;
@@ -476,7 +477,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final QuerySpecification mockQuerySpec = mock(QuerySpecification.class);
     final Table mockRelation = mock(Table.class);
     expect(mockQuery.getQueryBody()).andStubReturn(mockQuerySpec);
-    expect(mockQuery.getLimit()).andStubReturn(Optional.empty());
+    expect(mockQuery.getLimit()).andStubReturn(OptionalInt.empty());
     expect(mockQuerySpec.getInto()).andStubReturn(mockRelation);
     expect(mockRelation.getName()).andStubReturn(QualifiedName.of(name));
     return mockQuery;

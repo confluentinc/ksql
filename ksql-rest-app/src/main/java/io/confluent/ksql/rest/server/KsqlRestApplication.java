@@ -53,6 +53,7 @@ import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
+import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
@@ -76,9 +77,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -366,15 +369,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statementParser
     );
 
-    final CommandRunner commandRunner = new CommandRunner(
-        statementExecutor,
-        commandStore,
-        ksqlConfig,
-        ksqlEngine,
-        maxStatementRetries,
-        serviceContext
-    );
-
     final RootDocument rootDocument = new RootDocument();
 
     final StatusResource statusResource = new StatusResource(statementExecutor);
@@ -404,15 +398,27 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final ProcessingLogConfig processingLogConfig =
         new ProcessingLogConfig(restConfig.getOriginals());
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
-        serviceContext.getTopicClient(),
-        processingLogConfig,
-        ksqlConfig);
+    final Optional<String> processingLogTopic =
+        ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+            serviceContext.getTopicClient(),
+            processingLogConfig,
+            ksqlConfig);
     maybeCreateProcessingLogStream(
         processingLogConfig,
         ksqlConfig,
         ksqlEngine,
         commandStore
+    );
+
+    final List<String> managedTopics = new LinkedList<>();
+    managedTopics.add(commandTopic);
+    processingLogTopic.ifPresent(managedTopics::add);
+    final CommandRunner commandRunner = new CommandRunner(
+        statementExecutor,
+        commandStore,
+        ksqlEngine,
+        maxStatementRetries,
+        new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext, managedTopics)
     );
 
     commandRunner.processPriorCommands();

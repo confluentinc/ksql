@@ -74,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -719,7 +720,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private static Query addInto(
         final QuerySpecification querySpecification,
         final String intoName,
-        final Optional<String> limit,
+        final OptionalInt limit,
         final Map<String, Expression> intoProperties,
         final Optional<Expression> partitionByExpression,
         final boolean doCreateTable) {

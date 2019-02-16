@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyShort;
@@ -46,6 +47,7 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -231,9 +233,13 @@ public class ProcessingLogServerUtilsTest {
     );
 
     // When:
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(spyTopicClient, config, ksqlConfig);
+    final Optional<String> createdTopic = ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+        spyTopicClient,
+        config,
+        ksqlConfig);
 
     // Then:
+    assertThat(createdTopic.isPresent(), is(false));
     verifyZeroInteractions(spyTopicClient);
   }
 
@@ -251,9 +257,14 @@ public class ProcessingLogServerUtilsTest {
   @Test
   public void shouldCreateProcessingLogTopic() {
     // When:
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config, ksqlConfig);
+    final Optional<String> createdTopic = ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+        mockTopicClient,
+        config,
+        ksqlConfig);
 
     // Then:
+    assertThat(createdTopic.isPresent(), is(true));
+    assertThat(createdTopic.get(), equalTo(TOPIC));
     verify(mockTopicClient).createTopic(TOPIC, PARTITIONS, REPLICAS);
   }
 
@@ -272,9 +283,14 @@ public class ProcessingLogServerUtilsTest {
     );
 
     // When:
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(mockTopicClient, config, ksqlConfig);
+    final Optional<String> createdTopic = ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+        mockTopicClient,
+        config,
+        ksqlConfig);
 
     // Then:
+    assertThat(createdTopic.isPresent(), is(true));
+    assertThat(createdTopic.get(), equalTo(DEFAULT_TOPIC));
     verify(mockTopicClient).createTopic(DEFAULT_TOPIC, PARTITIONS, REPLICAS);
   }
 }

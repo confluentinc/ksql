@@ -15,7 +15,9 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
@@ -46,8 +48,10 @@ public class KsqlContext {
   public static KsqlContext create(final KsqlConfig ksqlConfig) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    UdfLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final KsqlEngine engine = new KsqlEngine(serviceContext, serviceId);
+    final KsqlEngine engine = new KsqlEngine(serviceContext, functionRegistry, serviceId);
     return new KsqlContext(serviceContext, ksqlConfig, engine);
   }
 
@@ -71,10 +75,6 @@ public class KsqlContext {
 
   public MetaStore getMetaStore() {
     return ksqlEngine.getMetaStore();
-  }
-
-  public FunctionRegistry getFunctionRegistry() {
-    return ksqlEngine.getFunctionRegistry();
   }
 
   /**

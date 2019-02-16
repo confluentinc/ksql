@@ -52,7 +52,6 @@ import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.naming.AuthenticationException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;

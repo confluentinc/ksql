@@ -16,7 +16,7 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -33,7 +33,7 @@ public final class KsqlEngineTestUtil {
 
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
-      final MetaStore metaStore
+      final MutableMetaStore metaStore
   ) {
     return new KsqlEngine(
         serviceContext,
@@ -45,7 +45,7 @@ public final class KsqlEngineTestUtil {
 
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
-      final MetaStore metaStore,
+      final MutableMetaStore metaStore,
       final KsqlEngineMetrics engineMetrics
   ) {
     return new KsqlEngine(

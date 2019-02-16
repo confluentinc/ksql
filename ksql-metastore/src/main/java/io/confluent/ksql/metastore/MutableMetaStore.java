@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -14,26 +14,24 @@
 
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.function.FunctionRegistry;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
-public interface MetaStore extends FunctionRegistry {
+public interface MutableMetaStore extends MetaStore {
 
-  KsqlTopic getTopic(String topicName);
+  void putTopic(KsqlTopic topic);
 
-  StructuredDataSource getSource(String sourceName);
+  void putSource(StructuredDataSource dataSource);
 
-  Optional<StructuredDataSource> getSourceForTopic(String ksqlTopicName);
+  void deleteTopic(String topicName);
 
-  Map<String, StructuredDataSource> getAllStructuredDataSources();
+  void deleteSource(String sourceName);
 
-  Map<String, KsqlTopic> getAllKsqlTopics();
+  void updateForPersistentQuery(
+      String queryId,
+      Set<String> sourceNames,
+      Set<String> sinkNames);
 
-  Set<String> getQueriesWithSource(String sourceName);
+  void removePersistentQuery(String queryId);
 
-  Set<String> getQueriesWithSink(String sourceName);
-
-  MetaStore copy();
+  MutableMetaStore copy();
 }

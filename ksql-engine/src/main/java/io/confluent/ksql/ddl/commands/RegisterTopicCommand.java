@@ -17,6 +17,7 @@ package io.confluent.ksql.ddl.commands;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.RegisterTopic;
@@ -98,7 +99,7 @@ public class RegisterTopicCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore) {
+  public DdlCommandResult run(final MutableMetaStore metaStore) {
     if (metaStore.getTopic(topicName) != null) {
       // Check IF NOT EXIST is set, if set, do not create topic if one exists.
       if (notExists) {
@@ -106,7 +107,7 @@ public class RegisterTopicCommand implements DdlCommand {
       } else {
         final String sourceType = getSourceType(metaStore);
         final String errorMessage =
-                String.format("%s with name '%s' already exists", sourceType, topicName);
+            String.format("%s with name '%s' already exists", sourceType, topicName);
         throw new KsqlException(errorMessage);
       }
     }

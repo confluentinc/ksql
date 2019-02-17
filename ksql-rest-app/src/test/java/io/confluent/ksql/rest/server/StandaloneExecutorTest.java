@@ -98,7 +98,7 @@ public class StandaloneExecutorTest {
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
 
   private static final CreateStream CREATE_STREAM = new CreateStream(
-      SOME_NAME, Collections.emptyList(), true, Collections.emptyMap());
+      SOME_NAME, SOME_ELEMENTS, true, Collections.emptyMap());
 
   private final static ParsedStatement PARSED_STMT_0 = ParsedStatement
       .of("sql 0", mock(SingleStatementContext.class));

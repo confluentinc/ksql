@@ -54,7 +54,6 @@ import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;

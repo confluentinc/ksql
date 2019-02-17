@@ -29,7 +29,6 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Map;
 import java.util.Optional;
 import junit.framework.AssertionFailedError;
 import org.apache.kafka.connect.data.Field;

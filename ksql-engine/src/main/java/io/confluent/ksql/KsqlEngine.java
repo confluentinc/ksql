@@ -15,7 +15,6 @@
 package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -32,6 +31,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -66,7 +66,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.util.StringUtil;
 import java.io.Closeable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,8 +128,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
-        new QueryIdGenerator(),
         metaStore,
+        new QueryIdGenerator(),
         this::unregisterQuery);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
@@ -204,12 +203,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public List<ParsedStatement> parse(final String sql) {
-    return parseStatements(sql);
+    return primaryContext.parse(sql);
   }
 
   @Override
   public PreparedStatement<?> prepare(final ParsedStatement stmt) {
-    return prepareStatement(stmt, primaryContext.metaStore);
+    return primaryContext.prepare(stmt);
   }
 
   @Override
@@ -289,34 +288,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  private static List<ParsedStatement> parseStatements(final String sql) {
-    return new DefaultKsqlParser().parse(sql);
-  }
-
-  private static PreparedStatement<?> prepareStatement(
-      final ParsedStatement stmt,
-      final MetaStore metaStore
-  ) {
-    try {
-      return new DefaultKsqlParser()
-          .prepare(stmt, ReadonlyMetaStore.readOnlyMetaStore(metaStore));
-    } catch (final KsqlException e) {
-      throw e;
-    } catch (final Exception e) {
-      throw new KsqlStatementException(
-          "Exception while preparing statement: " + e.getMessage(), stmt.getStatementText(), e);
-    }
-  }
-
   private static final class EngineContext {
 
     private final MutableMetaStore metaStore;
-    private final QueryEngine queryEngine;
     private final ServiceContext serviceContext;
     private final CommandFactories ddlCommandFactory;
     private final DdlCommandExec ddlCommandExec;
     private final QueryIdGenerator queryIdGenerator;
     private final ProcessingLogContext processingLogContext;
+    private final KsqlParser parser = new DefaultKsqlParser();
     private final Consumer<QueryMetadata> outerOnQueryCloseCallback;
     private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
 
@@ -331,11 +311,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
       this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
       this.ddlCommandFactory = new CommandFactories(serviceContext);
-      this.queryEngine = new QueryEngine(
-          serviceContext,
-          processingLogContext,
-          queryIdGenerator,
-          this::unregisterQuery);
       this.outerOnQueryCloseCallback = Objects
           .requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
       this.ddlCommandExec = new DdlCommandExec(metaStore);
@@ -344,7 +319,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           .requireNonNull(processingLogContext, "processingLogContext");
     }
 
-    private static EngineContext create(
+    static EngineContext create(
         final ServiceContext serviceContext,
         final ProcessingLogContext processingLogContext,
         final MutableMetaStore metaStore,
@@ -359,7 +334,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           onQueryCloseCallback);
     }
 
-    private String executeDdlStatement(
+    QueryEngine createQueryEngine() {
+      return new QueryEngine(
+          serviceContext,
+          processingLogContext,
+          queryIdGenerator,
+          this::unregisterQuery);
+    }
+
+    String executeDdlStatement(
         final String sqlExpression,
         final ExecutableDdlStatement statement,
         final Map<String, Object> overriddenProperties
@@ -462,12 +445,17 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           serviceContext.getSchemaRegistryClient());
     }
 
-    private void registerQuery(final QueryMetadata query) {
+    void registerQuery(final QueryMetadata query) {
       if (query instanceof PersistentQueryMetadata) {
         final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
-        persistentQueries.put(persistentQuery.getQueryId(), persistentQuery);
+        final QueryId queryId = persistentQuery.getQueryId();
+
+        if (persistentQueries.putIfAbsent(queryId, persistentQuery) != null) {
+          throw new IllegalStateException("Query already registered:" + queryId);
+        }
+
         metaStore.updateForPersistentQuery(
-            persistentQuery.getQueryId().getId(),
+            queryId.getId(),
             persistentQuery.getSourceNames(),
             persistentQuery.getSinkNames());
       }
@@ -483,12 +471,27 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       outerOnQueryCloseCallback.accept(query);
     }
 
-    private int numberOfPersistentQueries() {
+    int numberOfPersistentQueries() {
       return persistentQueries.size();
     }
 
-    private Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
+    Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
       return Optional.ofNullable(persistentQueries.get(queryId));
+    }
+
+    List<ParsedStatement> parse(final String sql) {
+      return parser.parse(sql);
+    }
+
+    PreparedStatement<?> prepare(final ParsedStatement stmt) {
+      try {
+        return parser.prepare(stmt, metaStore);
+      } catch (final KsqlException e) {
+        throw e;
+      } catch (final Exception e) {
+        throw new KsqlStatementException(
+            "Exception while preparing statement: " + e.getMessage(), stmt.getStatementText(), e);
+      }
     }
   }
 
@@ -511,7 +514,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       throwOnImmutableOverride(overriddenProperties);
     }
 
-    private static EngineExecutor create(
+    static EngineExecutor create(
         final EngineContext engineContext,
         final KsqlConfig ksqlConfig,
         final Map<String, Object> overriddenProperties
@@ -519,13 +522,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       return new EngineExecutor(engineContext, ksqlConfig, overriddenProperties);
     }
 
-    private ExecuteResult execute(final PreparedStatement<?> statement) {
+    ExecuteResult execute(final PreparedStatement<?> statement) {
       try {
         final PreparedStatement<?> postProcessed = preProcessStatement(statement);
 
         throwOnNonExecutableStatement(postProcessed);
 
-        final LogicalPlanNode logicalPlan = engineContext.queryEngine.buildLogicalPlan(
+        final QueryEngine queryEngine = engineContext.createQueryEngine();
+
+        final LogicalPlanNode logicalPlan = queryEngine.buildLogicalPlan(
             engineContext.metaStore,
             postProcessed,
             ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
@@ -541,7 +546,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           return ExecuteResult.of(msg);
         }
 
-        final QueryMetadata query = engineContext.queryEngine.buildPhysicalPlan(
+        final QueryMetadata query = queryEngine.buildPhysicalPlan(
             logicalPlan,
             ksqlConfig,
             overriddenProperties,
@@ -697,7 +702,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     private final EngineContext engineContext;
 
-    private SandboxedExecutionContext(final EngineContext sourceContext) {
+    SandboxedExecutionContext(final EngineContext sourceContext) {
       this.engineContext = EngineContext.create(
           SandboxedServiceContext.create(sourceContext.serviceContext),
           sourceContext.processingLogContext,
@@ -709,7 +714,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       );
 
       sourceContext.persistentQueries.forEach((queryId, query) ->
-          engineContext.registerQuery(query.copyWith(engineContext::unregisterQuery)));
+          engineContext.persistentQueries.put(
+              query.getQueryId(),
+              query.copyWith(engineContext::unregisterQuery)));
     }
 
     @Override
@@ -734,12 +741,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     @Override
     public List<ParsedStatement> parse(final String sql) {
-      return parseStatements(sql);
+      return engineContext.parse(sql);
     }
 
     @Override
     public PreparedStatement<?> prepare(final ParsedStatement stmt) {
-      return prepareStatement(stmt, engineContext.metaStore);
+      return engineContext.prepare(stmt);
     }
 
     @Override

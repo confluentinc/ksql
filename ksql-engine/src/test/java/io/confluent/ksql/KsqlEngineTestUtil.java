@@ -17,9 +17,10 @@ package io.confluent.ksql;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
@@ -36,10 +37,11 @@ public final class KsqlEngineTestUtil {
 
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
-      final MetaStore metaStore
+      final MutableMetaStore metaStore
   ) {
     return new KsqlEngine(
         serviceContext,
+        ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
         KsqlEngineMetrics::new
@@ -48,11 +50,12 @@ public final class KsqlEngineTestUtil {
 
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
-      final MetaStore metaStore,
+      final MutableMetaStore metaStore,
       final KsqlEngineMetrics engineMetrics
   ) {
     return new KsqlEngine(
         serviceContext,
+        ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
         ignored -> engineMetrics
@@ -102,7 +105,7 @@ public final class KsqlEngineTestUtil {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
     final PreparedStatement<?> withSchema = srClient.
         map(client -> StatementWithSchema.forStatement(prepared, client))
-        .orElse((PreparedStatement)prepared);
+        .orElse((PreparedStatement) prepared);
     return executionContext.execute(withSchema, ksqlConfig, overriddenProperties);
   }
 }

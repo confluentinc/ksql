@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -179,6 +180,7 @@ public class AggregateNode extends PlanNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final QueryId queryId
   ) {
@@ -188,6 +190,7 @@ public class AggregateNode extends PlanNode {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
         queryId
     );
@@ -199,7 +202,8 @@ public class AggregateNode extends PlanNode {
     final SchemaKStream aggregateArgExpanded =
         sourceSchemaKStream.select(
             internalSchema.getAggArgExpansionList(),
-            contextStacker.push(PREPARE_OP_NAME));
+            contextStacker.push(PREPARE_OP_NAME),
+            processingLogContext);
 
     final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
@@ -210,7 +214,8 @@ public class AggregateNode extends PlanNode {
         ksqlConfig,
         true,
         serviceContext.getSchemaRegistryClientFactory(),
-        QueryLoggerUtil.queryLoggerName(groupByContext.getQueryContext())
+        QueryLoggerUtil.queryLoggerName(groupByContext.getQueryContext()),
+        processingLogContext
     );
 
     final List<Expression> internalGroupByColumns = internalSchema.getInternalExpressionList(
@@ -242,7 +247,8 @@ public class AggregateNode extends PlanNode {
         ksqlConfig,
         true,
         serviceContext.getSchemaRegistryClientFactory(),
-        QueryLoggerUtil.queryLoggerName(aggregationContext.getQueryContext())
+        QueryLoggerUtil.queryLoggerName(aggregationContext.getQueryContext()),
+        processingLogContext
     );
 
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
@@ -274,12 +280,14 @@ public class AggregateNode extends PlanNode {
     if (getHavingExpressions() != null) {
       result = result.filter(
           getHavingExpressions(),
-          contextStacker.push(FILTER_OP_NAME));
+          contextStacker.push(FILTER_OP_NAME),
+          processingLogContext);
     }
 
     return result.select(
         internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()),
-        contextStacker.push(PROJECT_OP_NAME));
+        contextStacker.push(PROJECT_OP_NAME),
+        processingLogContext);
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {

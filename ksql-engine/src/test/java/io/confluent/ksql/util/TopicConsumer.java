@@ -19,7 +19,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
@@ -42,6 +42,7 @@ public class TopicConsumer {
   private static final Duration RESULTS_EXTRA_POLL_TIME = Duration.ofMillis(250);
 
   private final EmbeddedSingleNodeKafkaCluster cluster;
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   public TopicConsumer(final EmbeddedSingleNodeKafkaCluster cluster) {
     this.cluster = cluster;
@@ -92,7 +93,8 @@ public class TopicConsumer {
         new KsqlJsonDeserializer(
             schema,
             false,
-            ProcessingLoggerFactory.getLogger("consumer")),
+            processingLogContext.getLoggerFactory().getLogger("consumer"),
+            processingLogContext),
         keyDeserializer
     );
   }

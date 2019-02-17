@@ -19,12 +19,14 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Predicate;
+import javax.annotation.concurrent.ThreadSafe;
 import org.antlr.v4.runtime.Vocabulary;
 
 /**
  * Check that a function name is valid. It is valid if it is not a Java reserved word
  * and not a ksql reserved word and is a valid java identifier.
  */
+@ThreadSafe
 class FunctionNameValidator implements Predicate<String> {
   private static final Set<String> JAVA_RESERVED_WORDS
       = ImmutableSet.<String>builder()
@@ -45,6 +47,31 @@ class FunctionNameValidator implements Predicate<String> {
 
   private static final Set<String> KSQL_RESERVED_WORDS = createFromVocabulary();
 
+  @Override
+  public boolean test(final String functionName) {
+    if (functionName == null
+        || functionName.trim().isEmpty()
+        || JAVA_RESERVED_WORDS.contains(functionName.toLowerCase())
+        || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
+      return false;
+    }
+    return isValidJavaIdentifier(functionName);
+
+  }
+
+  private static boolean isValidJavaIdentifier(final String functionName) {
+    final char [] characters = functionName.toCharArray();
+    if (!Character.isJavaIdentifierStart((int)characters[0])) {
+      return false;
+    }
+
+    for (int i = 1; i < characters.length; i++) {
+      if (!Character.isJavaIdentifierPart((int)characters[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   private static Set<String> createFromVocabulary() {
     final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
@@ -61,31 +88,5 @@ class FunctionNameValidator implements Predicate<String> {
       }
     }
     return builder.build();
-  }
-
-  @Override
-  public boolean test(final String functionName) {
-    if (functionName == null
-        || functionName.trim().isEmpty()
-        || JAVA_RESERVED_WORDS.contains(functionName.toLowerCase())
-        || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
-      return false;
-    }
-    return isValidJavaIdentifier(functionName);
-
-  }
-
-  private boolean isValidJavaIdentifier(final String functionName) {
-    final char [] characters = functionName.toCharArray();
-    if (!Character.isJavaIdentifierStart((int)characters[0])) {
-      return false;
-    }
-
-    for (int i = 1; i < characters.length; i++) {
-      if (!Character.isJavaIdentifierPart((int)characters[i])) {
-        return false;
-      }
-    }
-    return true;
   }
 }

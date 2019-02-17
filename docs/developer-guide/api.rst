@@ -330,7 +330,9 @@ If a CREATE, DROP, or TERMINATE statement returns a command status with state QU
       }
 
 
-Terminate A Cluster
+.. _ksql_cluster_terminate:
+
+Terminate a Cluster
 -------------------
 
 If you don't need your KSQL cluster anymore, you can terminate the cluster and clean up the resources using this endpoint. To terminate a KSQL cluster, first shutdown all the servers except one.

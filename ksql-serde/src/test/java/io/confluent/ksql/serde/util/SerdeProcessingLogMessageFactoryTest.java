@@ -12,7 +12,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde;
+package io.confluent.ksql.serde.util;
 
 import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.DESERIALIZATION_ERROR;
 import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE;
@@ -25,33 +25,32 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
-import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.Before;
 import org.junit.Test;
 
 public class SerdeProcessingLogMessageFactoryTest {
   private final byte[] record = new byte[256];
   private final Exception error = new Exception("error message");
 
-  @Before
-  public void setup() {
-    IntStream.range(0, 256).forEach(i -> record[i] = (byte) (Byte.MIN_VALUE + i));
-  }
+  private final ProcessingLogConfig config = new ProcessingLogConfig(
+      Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS,  true)
+  );
 
   @Test
   public void shouldSetNullRecordToNull() {
     // When:
     final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
         error,
-        Optional.empty()
+        Optional.empty(),
+        config
     ).get();
 
     // Then:
@@ -65,7 +64,8 @@ public class SerdeProcessingLogMessageFactoryTest {
     // When:
     final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
         error,
-        Optional.of(record)
+        Optional.of(record),
+        config
     ).get();
 
     // Then:
@@ -91,5 +91,28 @@ public class SerdeProcessingLogMessageFactoryTest {
           }
         }
     );
+  }
+
+  @Test
+  public void shouldBuildDeserializationErrorWithNullRecordIfIncludeRowFalse() {
+    // Given:
+    final ProcessingLogConfig config = new ProcessingLogConfig(
+        Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS, false)
+    );
+
+    // When:
+    final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+        error,
+        Optional.of(record),
+        config
+    ).get();
+
+    // Then:
+    final Struct struct = (Struct) msg.value();
+    assertThat(
+        struct.get(ProcessingLogMessageSchema.TYPE),
+        equalTo(MessageType.DESERIALIZATION_ERROR.getTypeId()));
+    final Struct deserializationError = struct.getStruct(DESERIALIZATION_ERROR);
+    assertThat(deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64), nullValue());
   }
 }

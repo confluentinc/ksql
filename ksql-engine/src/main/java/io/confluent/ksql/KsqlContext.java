@@ -15,10 +15,13 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -26,14 +29,13 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StatementWithSchema;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,11 +47,16 @@ public class KsqlContext {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
 
-  public static KsqlContext create(final KsqlConfig ksqlConfig) {
+  public static KsqlContext create(
+      final KsqlConfig ksqlConfig,
+      final ProcessingLogContext processingLogContext) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    UdfLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final KsqlEngine engine = new KsqlEngine(serviceContext, serviceId);
+    final KsqlEngine engine =
+        new KsqlEngine(serviceContext, processingLogContext, functionRegistry, serviceId);
     return new KsqlContext(serviceContext, ksqlConfig, engine);
   }
 
@@ -75,10 +82,6 @@ public class KsqlContext {
     return ksqlEngine.getMetaStore();
   }
 
-  public FunctionRegistry getFunctionRegistry() {
-    return ksqlEngine.getFunctionRegistry();
-  }
-
   /**
    * Execute the ksql statement in this context.
    */
@@ -91,15 +94,14 @@ public class KsqlContext {
 
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox();
 
-    statements.forEach(stmt ->
-        execute(stmt, sandbox, overriddenProperties));
+    statements.forEach(stmt -> execute(sandbox, stmt, ksqlConfig, overriddenProperties));
 
-    final List<QueryMetadata> queries = statements.stream()
-        .map(stmt -> execute(stmt, ksqlEngine, overriddenProperties))
-        .map(ExecuteResult::getQuery)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .collect(Collectors.toList());
+    final List<QueryMetadata> queries = new ArrayList<>();
+    for (final ParsedStatement parsed : statements) {
+      execute(ksqlEngine, parsed, ksqlConfig, overriddenProperties)
+          .getQuery()
+          .ifPresent(queries::add);
+    }
 
     for (final QueryMetadata queryMetadata : queries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -135,8 +137,9 @@ public class KsqlContext {
   }
 
   private ExecuteResult execute(
-      final ParsedStatement stmt,
       final KsqlExecutionContext executionContext,
+      final ParsedStatement stmt,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);

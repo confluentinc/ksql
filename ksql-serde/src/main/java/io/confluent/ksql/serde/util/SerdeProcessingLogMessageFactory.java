@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.serde.util;
 
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import java.util.Base64;
@@ -29,7 +30,8 @@ public final class SerdeProcessingLogMessageFactory {
 
   public static Supplier<SchemaAndValue> deserializationErrorMsg(
       final Throwable exception,
-      final Optional<byte[]> record) {
+      final Optional<byte[]> record,
+      final ProcessingLogConfig config) {
     Objects.requireNonNull(exception);
     return () -> {
       final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
@@ -37,10 +39,12 @@ public final class SerdeProcessingLogMessageFactory {
       deserializationError.put(
           ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE,
           exception.getMessage());
-      deserializationError.put(
-          ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64,
-          record.map(Base64.getEncoder()::encodeToString).orElse(null)
-      );
+      if (config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
+        deserializationError.put(
+            ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64,
+            record.map(Base64.getEncoder()::encodeToString).orElse(null)
+        );
+      }
       struct.put(ProcessingLogMessageSchema.DESERIALIZATION_ERROR, deserializationError);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.DESERIALIZATION_ERROR.getTypeId());
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);

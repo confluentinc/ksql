@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -493,7 +494,8 @@ public class IntegrationTestHarness extends ExternalResource {
         new KsqlConfig(Collections.emptyMap()),
         false,
         serviceContext.get().getSchemaRegistryClientFactory(),
-        "producer"
+        "producer",
+        ProcessingLogContext.create()
     ).serializer();
   }
 
@@ -505,7 +507,8 @@ public class IntegrationTestHarness extends ExternalResource {
         new KsqlConfig(Collections.emptyMap()),
         false,
         serviceContext.get().getSchemaRegistryClientFactory(),
-        "consumer"
+        "consumer",
+        ProcessingLogContext.create()
     ).deserializer();
   }
 

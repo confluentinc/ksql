@@ -30,11 +30,12 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.rest.util.ProcessingLogConfig;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
@@ -199,13 +200,13 @@ public class StandaloneExecutor implements Executable {
       final List<ParsedStatement> statements,
       final StatementExecutor executor
   ) {
-    return statements.stream()
-        .map(stmt -> {
-          final PreparedStatement<?> prepared = executor.prepare(stmt);
-          executor.execute(prepared);
-          return prepared.getStatement() instanceof QueryContainer;
-        })
-        .reduce(false, Boolean::logicalOr);
+    boolean hasQueries = false;
+
+    for (final ParsedStatement parsed : statements) {
+      hasQueries |= executor.execute(parsed);
+    }
+
+    return hasQueries;
   }
 
   private static String readQueriesFile(final String queryFilePath) {
@@ -271,16 +272,16 @@ public class StandaloneExecutor implements Executable {
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
 
-    private PreparedStatement<?> prepare(final ParsedStatement stmt) {
-      return executionContext.prepare(stmt);
-    }
-
+    /**
+     * @return true if the statement contained a query, false otherwise
+     */
     @SuppressWarnings("unchecked")
-    private <T extends Statement> void execute(
-        final PreparedStatement<T> statement
-    ) {
-      throwOnMissingSchema(statement);
-      final Handler<Statement> handler = HANDLERS.get(statement.getStatement().getClass());
+    private <T extends Statement> boolean execute(final ParsedStatement statement) {
+      final PreparedStatement<?> prepared = executionContext.prepare(statement);
+
+      throwOnMissingSchema(prepared);
+
+      final Handler<Statement> handler = HANDLERS.get(prepared.getStatement().getClass());
       if (handler == null) {
         throw new KsqlException(String.format("Unsupported statement: %s%n"
                 + "Only the following statements are supporting in standalone mode:%n"
@@ -288,7 +289,8 @@ public class StandaloneExecutor implements Executable {
             statement.getStatementText()));
       }
 
-      handler.handle(this, (PreparedStatement) statement);
+      handler.handle(this, (PreparedStatement) prepared);
+      return prepared.getStatement() instanceof QueryContainer;
     }
 
     /**
@@ -326,8 +328,9 @@ public class StandaloneExecutor implements Executable {
       executionContext.execute(statement, ksqlConfig, configProperties)
           .getQuery()
           .filter(q -> q instanceof PersistentQueryMetadata)
-          .orElseThrow((() -> new KsqlException("Could not build the query: "
-              + statement.getStatementText())));
+          .orElseThrow((() -> new KsqlStatementException(
+              "Could not build the query",
+              statement.getStatementText())));
     }
 
     private static String generateSupportedMessage() {

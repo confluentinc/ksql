@@ -18,7 +18,7 @@ import static org.easymock.MockType.NICE;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
@@ -43,7 +43,8 @@ public class RegisterTopicCommandTest {
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
 
-    private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MutableMetaStore metaStore = MetaStoreFixture
+      .getNewMetaStore(new InternalFunctionRegistry());
 
     @Test
     public void testRegisterAlreadyRegisteredTopicThrowsException() {
@@ -65,7 +66,7 @@ public class RegisterTopicCommandTest {
         return new RegisterTopicCommand(registerTopicStatement);
     }
 
-    private Map<String, Expression> propsWith(final Map<String, Expression> props) {
+    private static Map<String, Expression> propsWith(final Map<String, Expression> props) {
         Map<String, Expression> valid = new HashMap<>(props);
         valid.putIfAbsent(DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("Json"));
         valid.putIfAbsent(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some-topic"));

@@ -65,11 +65,15 @@ Note that the server must be restarted for the config to take effect.
 Note On Security
 ================
 
-Entries in the record-processing log may include data from the rows processed by KSQL.
-Be careful to ensure that the log is configured to write to a destination
-where it is safe to write the data being processed. It's also important to set
-``log4j.additivity.processing=false`` as shown in the previous example, to ensure that processing log
-events are not forwarded to appenders configured for the other KSQL loggers.
+By default, the record-processing log doesn't log any actual row data. To help
+you debug, you can enable including row data in log messages by setting the
+KSQL property ``ksql.processing.log.include.rows`` to ``true``.
+
+If you do this, ensure that the log is configured to
+write to a destination where it is safe to write the data being processed. It's
+also important to set ``log4j.additivity.processing=false`` as shown in the previous
+example, to ensure that processing log events are not forwarded to appenders
+configured for the other KSQL loggers.
 
 You can disable the log completely by setting the level to OFF:
 
@@ -157,6 +161,8 @@ properties file:
 The replication factor and partition count are configurable
 using the ``ksql.processing.log.topic.replication.factor`` and ``ksql.processing.log.topic.partitions`` properties,
 respectively.
+
+If ``ksql.processing.log.topic.auto.create`` is set to ``true``, the created topic will be deleted as part of :ref:`cluster termination<ksql_cluster_terminate>`.
 
 If the ``ksql.processing.log.topic.name`` property is not specified, the processing log topic name will default to ``<ksql service id>processing_log``, where ``ksql service id`` is the value from the ``ksql.service.id`` property. This ensures each KSQL cluster gets its own processing log topic by default.
 

@@ -409,7 +409,7 @@ public class KsqlResource {
   }
 
   private KsqlEntity listFunctions(final PreparedStatement<ListFunctions> statement) {
-    final FunctionRegistry functionRegistry = ksqlEngine.getFunctionRegistry();
+    final FunctionRegistry functionRegistry = ksqlEngine.getMetaStore();
 
     final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
         .filter(factory -> !factory.isInternal())
@@ -559,7 +559,7 @@ public class KsqlResource {
   private FunctionDescriptionList describeFunction(final PreparedStatement<DescribeFunction> stmt) {
     final String functionName = stmt.getStatement().getFunctionName();
 
-    if (ksqlEngine.getFunctionRegistry().isAggregate(functionName)) {
+    if (ksqlEngine.getMetaStore().isAggregate(functionName)) {
       return describeAggregateFunction(functionName, stmt.getStatementText());
     }
 
@@ -571,7 +571,7 @@ public class KsqlResource {
       final String statementText
   ) {
     final AggregateFunctionFactory aggregateFactory
-        = ksqlEngine.getFunctionRegistry().getAggregateFactory(functionName);
+        = ksqlEngine.getMetaStore().getAggregateFactory(functionName);
 
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
@@ -594,7 +594,7 @@ public class KsqlResource {
       final String functionName,
       final String statementText
   ) {
-    final UdfFactory udfFactory = ksqlEngine.getFunctionRegistry().getUdfFactory(functionName);
+    final UdfFactory udfFactory = ksqlEngine.getMetaStore().getUdfFactory(functionName);
 
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 

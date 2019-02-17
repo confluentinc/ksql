@@ -18,7 +18,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -130,16 +130,18 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> filter(
       final Expression filterExpression,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
         hasWindowedKey(),
         ksqlConfig,
         functionRegistry,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.FILTER.name()).getQueryContext()))
+                contextStacker.push(Type.FILTER.name()).getQueryContext())),
+        processingLogContext
     );
     final KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable<>(
@@ -158,12 +160,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> select(
       final List<SelectExpression> selectExpressions,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     final Selection selection = new Selection(
         selectExpressions,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.PROJECT.name()).getQueryContext())));
+                contextStacker.push(Type.PROJECT.name()).getQueryContext())),
+        processingLogContext
+    );
     return new SchemaKTable<>(
         selection.getProjectedSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),

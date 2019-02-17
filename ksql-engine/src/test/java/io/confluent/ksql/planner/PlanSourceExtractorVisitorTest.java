@@ -52,7 +52,7 @@ public class PlanSourceExtractorVisitorTest {
   public void shouldExtractCorrectSourceForJoinQuery() {
     final PlanNode planNode = buildLogicalPlan(
         "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN "
-                          + "test2 t2 ON t1.col1 = t2.col1;", metaStore);
+                          + "test2 t2 ON t1.col1 = t2.col1;");
     final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(planNode, null);
     final Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();

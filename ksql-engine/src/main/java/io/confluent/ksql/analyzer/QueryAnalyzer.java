@@ -49,7 +49,7 @@ public class QueryAnalyzer {
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     final DereferenceExpression defaultArgument = analysis.getDefaultArgument();
     final AggregateAnalyzer aggregateAnalyzer =
-        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, functionRegistry);
+        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(metaStore);
 

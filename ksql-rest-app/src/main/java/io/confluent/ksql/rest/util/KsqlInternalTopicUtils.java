@@ -15,7 +15,6 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -31,10 +30,13 @@ import org.slf4j.LoggerFactory;
  * (e.g. repartition and changelog topics). Some examples are the command topic used by
  * interactive KSQL, and the config topic used by headless KSQL.
  */
-public class KsqlInternalTopicUtils {
+public final class KsqlInternalTopicUtils {
   private static final Logger log = LoggerFactory.getLogger(KsqlInternalTopicUtils.class);
 
   private static final int NPARTITIONS = 1;
+
+  private KsqlInternalTopicUtils() {
+  }
 
   /**
    * Compute a name for an internal topic.

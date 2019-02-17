@@ -57,7 +57,7 @@ public class QueryAnalyzerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, metaStore, "prefix-~");
+  private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, "prefix-~");
 
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {

@@ -19,6 +19,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -29,39 +30,39 @@ public final class AnalysisTestUtil {
   private AnalysisTestUtil() {
   }
 
-  public static List<PreparedStatement> parseStatements(
-      final String queryStr,
-      final MetaStore metaStore
-  ) {
-    return KSQL_PARSER.buildAst(queryStr, metaStore);
-  }
-
-  public static Query parseQuery(final String queryStr, final MetaStore metaStore) {
-    final List<PreparedStatement> statements = parseStatements(queryStr, metaStore);
-    return (Query) statements.get(0).getStatement();
-  }
-
   public static Analysis analyzeQuery(final String queryStr, final MetaStore metaStore) {
-    final Query query = parseQuery(queryStr, metaStore);
-    return analyzeQuery(queryStr, query, metaStore);
+    return new Analyzer(queryStr, metaStore).analysis;
   }
 
   public static PlanNode buildLogicalPlan(final String queryStr, final MetaStore metaStore) {
-    final Query query = parseQuery(queryStr, metaStore);
-    final Analysis analysis = analyzeQuery(queryStr, query, metaStore);
+    final Analyzer analyzer = new Analyzer(queryStr, metaStore);
 
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, metaStore, "");
-    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+    final LogicalPlanner logicalPlanner = new LogicalPlanner(
+        analyzer.analysis,
+        analyzer.aggregateAnalys(),
+        metaStore);
 
-    return new LogicalPlanner(analysis, aggregateAnalysis, metaStore).buildPlan();
+    return logicalPlanner.buildPlan();
   }
 
-  private static Analysis analyzeQuery(
-      final String queryStr,
-      final Query query,
-      final MetaStore metaStore
-  ) {
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, metaStore, "");
-    return queryAnalyzer.analyze(queryStr, query);
+  private static class Analyzer {
+    private final Query query;
+    private final Analysis analysis;
+    private final QueryAnalyzer queryAnalyzer;
+
+    private Analyzer(final String queryStr, final MetaStore metaStore) {
+      this.queryAnalyzer = new QueryAnalyzer(metaStore, "");
+      this.query = parseQuery(queryStr, metaStore);
+      this.analysis = queryAnalyzer.analyze(queryStr, query);
+    }
+
+    private static Query parseQuery(final String queryStr, final MetaStore metaStore) {
+      final List<PreparedStatement<?>> statements = KsqlParserTestUtil.buildAst(queryStr, metaStore);
+      return (Query) statements.get(0).getStatement();
+    }
+
+    AggregateAnalysis aggregateAnalys() {
+      return queryAnalyzer.analyzeAggregate(query, analysis);
+    }
   }
 }

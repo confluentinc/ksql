@@ -458,28 +458,6 @@
         {"topic": "OUTPUT", "key": "d2", "value": "1"},
         {"topic": "OUTPUT", "key": "d1", "value": "2"}
       ]
-    },
-    {
-      "name": "with non aggregate field in select that is not in group by",
-      "statements": [
-        "CREATE STREAM TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT d1, COUNT(*) AS COUNT FROM TEST GROUP BY d2;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Non-aggregate SELECT expression must be part of GROUP BY: [TEST.D1]"
-      }
-    },
-    {
-      "name": "group by with function not in select",
-      "statements": [
-        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 1);"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Non-aggregate SELECT expression must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 2)]"
-      }
     }
   ]
 }

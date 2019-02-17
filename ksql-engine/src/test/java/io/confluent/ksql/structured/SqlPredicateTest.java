@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.KsqlConfig;
@@ -54,13 +55,11 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
-
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   private MetaStore metaStore;
   private InternalFunctionRegistry functionRegistry;
+  private ProcessingLogContext processingLogContext;
 
   @Mock
   private StructuredLogger processingLogger;
@@ -72,6 +71,7 @@ public class SqlPredicateTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     functionRegistry = new InternalFunctionRegistry();
+    processingLogContext = ProcessingLogContext.create();
   }
 
   private PlanNode buildLogicalPlan(final String queryStr) {
@@ -126,7 +126,7 @@ public class SqlPredicateTest {
   }
 
   @Test
-  public void shouldWriteProcessingLogOnError() throws IOException {
+  public void shouldWriteProcessingLogOnError() {
     // Given:
     final SqlPredicate sqlPredicate =
         givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100;");
@@ -154,10 +154,6 @@ public class SqlPredicateTest {
             "Error evaluating predicate (TEST1.COL0 > 100): "
                 + "Invalid field type. Value must be Long.")
     );
-    final String rowString =
-        errorStruct.getString(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD);
-    final List<Object> row = (List) MAPPER.readValue(rowString, List.class);
-    assertThat(row, Matchers.contains(0, "key", Collections.emptyList()));
   }
 
   private SqlPredicate givenSqlPredicateFor(final String statement) {
@@ -169,6 +165,7 @@ public class SqlPredicateTest {
         false,
         ksqlConfig,
         functionRegistry,
-        processingLogger);
+        processingLogger,
+        processingLogContext);
   }
 }

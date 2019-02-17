@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -102,16 +103,19 @@ public class ProjectNode
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final QueryId queryId) {
     return getSource().buildStream(
         builder,
         ksqlConfig,
-        serviceContext, 
+        serviceContext,
+        processingLogContext,
         functionRegistry,
         queryId
     ).select(
         getProjectSelectExpressions(),
-        buildNodeContext(queryId));
+        buildNodeContext(queryId),
+        processingLogContext);
   }
 }

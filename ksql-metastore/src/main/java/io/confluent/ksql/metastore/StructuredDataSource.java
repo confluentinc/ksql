@@ -76,6 +76,10 @@ public abstract class StructuredDataSource implements DataSource {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
+  public boolean isSerdeFormat(final DataSource.DataSourceSerDe format) {
+    return getKsqlTopicSerde() != null && getKsqlTopicSerde().getSerDe() == format;
+  }
+
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return timestampExtractionPolicy;
   }

@@ -58,7 +58,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -67,6 +69,9 @@ public class KsqlRestClientTest {
 
   private MockApplication mockApplication;
   private KsqlRestClient ksqlRestClient;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() throws Exception {
@@ -191,6 +196,34 @@ public class KsqlRestClientTest {
   @Test(expected = KsqlRestClientException.class)
   public void shouldThrowOnInvalidServerAddress() {
     new KsqlRestClient("not-valid-address");
+  }
+
+  @Test
+  public void shouldParseSingleServerAddress() throws Exception {
+    final String singleServerAddress = "http://singleServer:8088";
+    final URI singleServerURI = new URI (singleServerAddress);
+    try (KsqlRestClient client = new KsqlRestClient(singleServerAddress)) {
+      assertThat(client.getServerAddress(), is(singleServerURI));
+    }
+  }
+
+  @Test
+  public void shouldParseMultipleServerAddresses() throws Exception {
+    final String firstServerAddress = "http://firstServer:8088";
+    final String multipleServerAddresses = firstServerAddress + ",http://secondServer:8088";
+    final URI firstServerURI = new URI (firstServerAddress);
+    try (KsqlRestClient client = new KsqlRestClient(multipleServerAddresses)) {
+      assertThat(client.getServerAddress(), is(firstServerURI));
+    }
+  }
+
+  @Test
+  public void shouldThrowIfAnyServerAddressIsInvalid() {
+    expectedException.expect(KsqlRestClientException.class);
+    expectedException.expectMessage("The supplied serverAddress is invalid: secondBuggyServer.8088");
+    try (KsqlRestClient client = new KsqlRestClient("http://firstServer:8088,secondBuggyServer.8088")) {
+      // Meh
+    }
   }
 
   @Test

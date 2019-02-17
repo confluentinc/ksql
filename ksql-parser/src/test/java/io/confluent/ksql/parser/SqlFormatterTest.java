@@ -25,7 +25,7 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -63,7 +63,7 @@ public class SqlFormatterTest {
   private JoinCriteria criteria;
   private NodeLocation location;
 
-  private MetaStore metaStore;
+  private MutableMetaStore metaStore;
 
   private static final Schema addressSchema = SchemaBuilder.struct()
       .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)

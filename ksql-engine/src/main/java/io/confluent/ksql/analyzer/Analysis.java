@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -28,22 +29,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class Analysis {
 
   private StructuredDataSource into;
-  private Map<String, Object> intoProperties = new HashMap<>();
+  private final Map<String, Object> intoProperties = new HashMap<>();
   private String intoFormat = null;
   private boolean doCreateInto;
-  // TODO: Maybe have all as properties. At the moment this will only be set if format is avro.
   private String intoKafkaTopicName = null;
-  private List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
+  private final List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
   private JoinNode join;
   private Expression whereExpression = null;
-  private List<Expression> selectExpressions = new ArrayList<>();
-  private List<String> selectExpressionAlias = new ArrayList<>();
+  private final List<Expression> selectExpressions = new ArrayList<>();
+  private final List<String> selectExpressionAlias = new ArrayList<>();
 
-  private List<Expression> groupByExpressions = new ArrayList<>();
+  private final List<Expression> groupByExpressions = new ArrayList<>();
   private WindowExpression windowExpression = null;
 
   private Expression havingExpression = null;
@@ -115,7 +116,11 @@ public class Analysis {
   }
 
   public List<Expression> getGroupByExpressions() {
-    return groupByExpressions;
+    return ImmutableList.copyOf(groupByExpressions);
+  }
+
+  void addGroupByExpressions(final Set<Expression> expressions) {
+    groupByExpressions.addAll(expressions);
   }
 
   public WindowExpression getWindowExpression() {

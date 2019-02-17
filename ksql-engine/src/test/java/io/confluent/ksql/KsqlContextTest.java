@@ -37,16 +37,12 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.apache.avro.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -305,10 +301,16 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
   }
 
+  @SuppressWarnings("unchecked")
   private void givenAvroStatement() {
     when(createStatement.getProperties()).thenReturn(ImmutableMap.of(
         DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"),
         DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic-name")
     ));
+
+    final PreparedStatement<?> prepared = PreparedStatement
+        .of("sql 0", createStatement);
+
+    when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement) prepared);
   }
 }

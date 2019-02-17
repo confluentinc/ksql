@@ -20,9 +20,11 @@ import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.rest.util.ProcessingLogConfig;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -102,11 +104,20 @@ public class StandaloneExecutorFunctionalTest {
         TEST_HARNESS.getServiceContext().getSchemaRegistryClientFactory()
     );
 
-    final KsqlEngine ksqlEngine = new KsqlEngine(serviceContext, "some-id");
+    final ProcessingLogConfig processingLogConfig = new ProcessingLogConfig(Collections.emptyMap());
+
+    final ProcessingLogContext processingLogContext = ProcessingLogContext
+        .create(processingLogConfig);
+
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        serviceContext,
+        processingLogContext,
+        new InternalFunctionRegistry(),
+        "some-id");
 
     standalone = new StandaloneExecutor(
         serviceContext,
-        new ProcessingLogConfig(Collections.emptyMap()),
+        processingLogConfig,
         ksqlConfig,
         ksqlEngine,
         queryFile.toString(),

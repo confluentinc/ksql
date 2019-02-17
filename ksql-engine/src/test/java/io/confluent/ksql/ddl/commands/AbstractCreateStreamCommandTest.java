@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -144,7 +144,7 @@ public class AbstractCreateStreamCommandTest {
     }
 
     @Override
-    public DdlCommandResult run(final MetaStore metaStore) {
+    public DdlCommandResult run(final MutableMetaStore metaStore) {
       return null;
     }
   }

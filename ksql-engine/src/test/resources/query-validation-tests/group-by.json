@@ -4,7 +4,7 @@
   ],
   "tests": [
     {
-      "name": "group by field",
+      "name": "field (stream->table)",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', KEY='data', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
@@ -25,7 +25,7 @@
       ]
     },
     {
-      "name": "group by fields",
+      "name": "fields (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2, f1;"
@@ -46,7 +46,30 @@
       ]
     },
     {
-      "name": "group by field with re-key",
+      "name": "fields (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2, f1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "1,a"},
+        {"topic": "test_topic", "key": 2, "value": "2,b"},
+        {"topic": "test_topic", "key": 1, "value": "1,b"},
+        {"topic": "test_topic", "key": 2, "value": null},
+        {"topic": "test_topic", "key": 1, "value": "1,a"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1"},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,1"},
+        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,0"},
+        {"topic": "OUTPUT", "key": "b|+|1", "value": "1,b,1"},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,0"},
+        {"topic": "OUTPUT", "key": "b|+|1", "value": "1,b,0"},
+        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1"}
+      ]
+    },
+    {
+      "name": "field with re-key (stream->table)",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
@@ -67,7 +90,29 @@
       ]
     },
     {
-      "name": "group by with aggregate arithmetic",
+      "name": "field with re-key (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY region;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "1,r0"},
+        {"topic": "test_topic", "key": "2", "value": "2,r1"},
+        {"topic": "test_topic", "key": "3", "value": "3,r0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,r0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r0", "value": "1"},
+        {"topic": "OUTPUT", "key": "r1", "value": "1"},
+        {"topic": "OUTPUT", "key": "r0", "value": "2"},
+        {"topic": "OUTPUT", "key": "r0", "value": "1"},
+        {"topic": "OUTPUT", "key": "r1", "value": "0"},
+        {"topic": "OUTPUT", "key": "r0", "value": "2"}
+      ]
+    },
+    {
+      "name": "with aggregate arithmetic (stream->table)",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*)*2 AS COUNT FROM TEST GROUP BY DATA;"
@@ -84,10 +129,32 @@
       ]
     },
     {
-      "name": "group by function",
+      "name": "with aggregate arithmetic (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) * 2 AS COUNT FROM TEST GROUP BY region;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "1,r0"},
+        {"topic": "test_topic", "key": "2", "value": "2,r1"},
+        {"topic": "test_topic", "key": "3", "value": "3,r0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,r0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r0", "value": "2"},
+        {"topic": "OUTPUT", "key": "r1", "value": "2"},
+        {"topic": "OUTPUT", "key": "r0", "value": "4"},
+        {"topic": "OUTPUT", "key": "r0", "value": "2"},
+        {"topic": "OUTPUT", "key": "r1", "value": "0"},
+        {"topic": "OUTPUT", "key": "r0", "value": "4"}
+      ]
+    },
+    {
+      "name": "function (stream->table)",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2), COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
       "inputs": [
         {"topic": "test_topic", "value": "some string"},
@@ -107,53 +174,73 @@
       ]
     },
     {
-      "name": "group by function with select field that is a subset of group by",
+      "name": "function (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 2), COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "1,prefixr0"},
+        {"topic": "test_topic", "key": "2", "value": "2,prefixr1"},
+        {"topic": "test_topic", "key": "3", "value": "3,prefixr0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,prefixr0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r0", "value": "r0,1"},
+        {"topic": "OUTPUT", "key": "r1", "value": "r1,1"},
+        {"topic": "OUTPUT", "key": "r0", "value": "r0,2"},
+        {"topic": "OUTPUT", "key": "r0", "value": "r0,1"},
+        {"topic": "OUTPUT", "key": "r1", "value": "r1,0"},
+        {"topic": "OUTPUT", "key": "r0", "value": "r0,2"}
+      ]
+    },
+    {
+      "name": "function with select field that is a subset of group by (stream->table)",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 1) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
-      "inputs": [
-        {"topic": "test_topic", "key": "-", "value": "some string", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "another string", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "some string again", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "another string again", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "some other string", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "the final string", "timestamp": 0}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": "so", "value": "s,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "an", "value": "a,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "so", "value": "s,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "an", "value": "a,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "so", "value": "s,3", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "th", "value": "t,1", "timestamp": 0}
-      ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 1)]"
+      }
     },
     {
-      "name": "group by function with select field that is a superset of group by",
+      "name": "function with select field that is a subset of group by (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 1), COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 1)]"
+      }
+    },
+    {
+      "name": "function with select field that is a superset of group by (stream->table)",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 3) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 3), COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
-      "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "some string", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "another string", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "soup is different", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "another string again", "timestamp": 0},
-        {"topic": "test_topic", "key": 5, "value": "some other string", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "the final string", "timestamp": 0}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": "so", "value": "som,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "an", "value": "ano,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "so", "value": "sou,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "an", "value": "ano,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "so", "value": "som,3", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "th", "value": "the,1", "timestamp": 0}
-      ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 3)]"
+      }
     },
     {
-      "name": "group by json field",
+      "name": "function with select field that is a superset of group by (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 3), COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 3)]"
+      }
+    },
+    {
+      "name": "json field (stream->table)",
       "statements": [
         "CREATE STREAM TEST (data STRUCT<field VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT data->field AS FIELD, COUNT(*) AS COUNT FROM TEST GROUP BY data->field;"
@@ -174,7 +261,7 @@
       ]
     },
     {
-      "name": "group by ROWKEY",
+      "name": "ROWKEY (stream->table)",
       "statements": [
         "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT ROWKEY, COUNT(*) AS COUNT FROM TEST GROUP BY ROWKEY;"
@@ -195,7 +282,28 @@
       ]
     },
     {
-      "name": "group by constant",
+      "name": "ROWKEY without ROWKEY in projection (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "-"},
+        {"topic": "test_topic", "key": 2, "value": "-"},
+        {"topic": "test_topic", "key": 1, "value": "-"},
+        {"topic": "test_topic", "key": 2, "value": "-"},
+        {"topic": "test_topic", "key": 1, "value": "-"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": "1"},
+        {"topic": "OUTPUT", "key": "2", "value": "1"},
+        {"topic": "OUTPUT", "key": "1", "value": "2"},
+        {"topic": "OUTPUT", "key": "2", "value": "2"},
+        {"topic": "OUTPUT", "key": "1", "value": "3"}
+      ]
+    },
+    {
+      "name": "constant (stream->table)",
       "statements": [
         "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY 1;"
@@ -216,234 +324,457 @@
       ]
     },
     {
-      "name": "with multiple group by clauses",
+      "name": "constant (table->table)",
       "statements": [
-        "CREATE STREAM TEST (f1 INT, f2 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f1, f2;"
+        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY 1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "1,2", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,2", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "1,2", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,1", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,1", "timestamp": 0}
+        {"topic": "test_topic", "key": "1", "value": "1,r0"},
+        {"topic": "test_topic", "key": "2", "value": "2,r1"},
+        {"topic": "test_topic", "key": "3", "value": "3,r0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,r0"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1|+|2", "value": "1,2,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2|+|2", "value": "2,2,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1|+|2", "value": "1,2,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2|+|1", "value": "2,1,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2|+|1", "value": "2,1,2", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "1", "value": "1"},
+        {"topic": "OUTPUT", "key": "1", "value": "2"},
+        {"topic": "OUTPUT", "key": "1", "value": "3"},
+        {"topic": "OUTPUT", "key": "1", "value": "2"},
+        {"topic": "OUTPUT", "key": "1", "value": "1"},
+        {"topic": "OUTPUT", "key": "1", "value": "2"}
       ]
     },
     {
-      "name": "with complex select expression",
+      "name": "field with field used in function in projection (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(f1, 0, 1), COUNT(*) FROM TEST GROUP BY f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "one", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "two", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "three", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "one", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "five", "timestamp": 0}
+        {"topic": "test_topic", "value": "one"},
+        {"topic": "test_topic", "value": "two"},
+        {"topic": "test_topic", "value": "three"},
+        {"topic": "test_topic", "value": "one"},
+        {"topic": "test_topic", "value": "five"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "one", "value": "o,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "two", "value": "t,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "three", "value": "t,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "one", "value": "o,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "five", "value": "f,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "one", "value": "o,1"},
+        {"topic": "OUTPUT", "key": "two", "value": "t,1"},
+        {"topic": "OUTPUT", "key": "three", "value": "t,1"},
+        {"topic": "OUTPUT", "key": "one", "value": "o,2"},
+        {"topic": "OUTPUT", "key": "five", "value": "f,1"}
       ]
     },
     {
-      "name": "group by concat using + op",
+      "name": "field with field used in function in projection (table->table)",
       "statements": [
-        "CREATE STREAM TEST (f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT f1 + f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2 + f1;"
+        "CREATE TABLE TEST (user INT, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 2, 1), COUNT(*) AS COUNT FROM TEST GROUP BY region;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "3,a", "timestamp": 0}
+        {"topic": "test_topic", "key": "1", "value": "1,r0"},
+        {"topic": "test_topic", "key": "2", "value": "2,r1"},
+        {"topic": "test_topic", "key": "3", "value": "3,r0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,r0"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a1", "value": "1a,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b2", "value": "2b,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a1", "value": "1a,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b2", "value": "2b,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a3", "value": "3a,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "r0", "value": "0,1"},
+        {"topic": "OUTPUT", "key": "r1", "value": "1,1"},
+        {"topic": "OUTPUT", "key": "r0", "value": "0,2"},
+        {"topic": "OUTPUT", "key": "r0", "value": "0,1"},
+        {"topic": "OUTPUT", "key": "r1", "value": "1,0"},
+        {"topic": "OUTPUT", "key": "r0", "value": "0,2"}
       ]
     },
     {
-      "name": "with select that has group by + parameters as fields",
+      "name": "string concat using + op (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f2 + f1, COUNT(*) AS COUNT FROM TEST GROUP BY f2 + f1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "1,a"},
+        {"topic": "test_topic", "value": "2,b"},
+        {"topic": "test_topic", "value": "1,a"},
+        {"topic": "test_topic", "value": "2,b"},
+        {"topic": "test_topic", "value": "3,a"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a1", "value": "a1,1"},
+        {"topic": "OUTPUT", "key": "b2", "value": "b2,1"},
+        {"topic": "OUTPUT", "key": "a1", "value": "a1,2"},
+        {"topic": "OUTPUT", "key": "b2", "value": "b2,2"},
+        {"topic": "OUTPUT", "key": "a3", "value": "a3,1"}
+      ]
+    },
+    {
+      "name": "string concat using + op (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY region + subregion;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "1,a,r0"},
+        {"topic": "test_topic", "key": "2", "value": "2,a,r1"},
+        {"topic": "test_topic", "key": "3", "value": "3,a,r0"},
+        {"topic": "test_topic", "key": "4", "value": "4,b,r0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,a,r0"},
+        {"topic": "test_topic", "key": "2", "value": "2,b,r1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r0a", "value": "1"},
+        {"topic": "OUTPUT", "key": "r1a", "value": "1"},
+        {"topic": "OUTPUT", "key": "r0a", "value": "2"},
+        {"topic": "OUTPUT", "key": "r0b", "value": "1"},
+        {"topic": "OUTPUT", "key": "r0a", "value": "1"},
+        {"topic": "OUTPUT", "key": "r1a", "value": "0"},
+        {"topic": "OUTPUT", "key": "r0a", "value": "2"},
+        {"topic": "OUTPUT", "key": "r0a", "value": "1"},
+        {"topic": "OUTPUT", "key": "r1b", "value": "1"}
+      ]
+    },
+    {
+      "name": "string concat using + op with projection field in wrong order (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1 + f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2 + f1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: ???"
+      }
+    },
+    {
+      "name": "string concat using + op with projection field in wrong order (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT subregion + region, COUNT(*) AS COUNT FROM TEST GROUP BY region + subregion;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: ???"
+      }
+    },
+    {
+      "name": "string concat with separate fields in projection (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2 + f1;"
       ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: ???"
+      }
+    },
+    {
+      "name": "string concat with separate fields in projection (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', KEY='user', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT subregion, region, COUNT(*) AS COUNT FROM TEST GROUP BY region + subregion;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: ???"
+      }
+    },
+    {
+      "name": "arithmetic binary expression (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f2 + f1, COUNT(*) AS COUNT FROM TEST GROUP BY f2 + f1;"
+      ],
       "inputs": [
-        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "3,a", "timestamp": 0}
+        {"topic": "test_topic", "value": "1,2"},
+        {"topic": "test_topic", "value": "2,3"},
+        {"topic": "test_topic", "value": "2,1"},
+        {"topic": "test_topic", "value": "2,2"},
+        {"topic": "test_topic", "value": "3,2"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a1", "value": "1,a,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b2", "value": "2,b,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a1", "value": "1,a,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b2", "value": "2,b,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a3", "value": "3,a,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "5", "value": "5,1"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,2"},
+        {"topic": "OUTPUT", "key": "4", "value": "4,1"},
+        {"topic": "OUTPUT", "key": "5", "value": "5,2"}
       ]
     },
     {
-      "name": "group by with arithmetic",
+      "name": "arithmetic binary expression (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f0 + f1, COUNT(*) AS COUNT FROM TEST GROUP BY f0 + f1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "1,0"},
+        {"topic": "test_topic", "key": "2", "value": "2,1"},
+        {"topic": "test_topic", "key": "3", "value": "3,0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": "1,1"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,2"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,0"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "2", "value": "2,1"}
+      ]
+    },
+    {
+      "name": "arithmetic binary expression with inconsistent projection order and consistent result (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1 + f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2 + f1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "1,2"},
+        {"topic": "test_topic", "value": "2,3"},
+        {"topic": "test_topic", "value": "2,1"},
+        {"topic": "test_topic", "value": "2,2"},
+        {"topic": "test_topic", "value": "3,2"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "5", "value": "5,1"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,2"},
+        {"topic": "OUTPUT", "key": "4", "value": "4,1"},
+        {"topic": "OUTPUT", "key": "5", "value": "5,2"}
+      ]
+    },
+    {
+      "name": "arithmetic binary expression with inconsistent projection order and consistent result (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1 + f0, COUNT(*) AS COUNT FROM TEST GROUP BY f0 + f1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "1,0"},
+        {"topic": "test_topic", "key": "2", "value": "2,1"},
+        {"topic": "test_topic", "key": "3", "value": "3,0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": "1,1"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,2"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,0"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "2", "value": "2,1"}
+      ]
+    },
+    {
+      "name": "arithmetic binary expression with inconsistent projection order and inconsistent result (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1 - f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2 - f1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: ???"
+      }
+    },
+    {
+      "name": "arithmetic binary expression with inconsistent projection order and inconsistent result (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1 - f0, COUNT(*) AS COUNT FROM TEST GROUP BY f0 - f1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: ???"
+      }
+    },
+    {
+      "name": "arithmetic binary expression with constant and only field in projection (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, COUNT(*) AS COUNT FROM TEST GROUP BY f1 + 1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "3", "timestamp": 0}
+        {"topic": "test_topic", "key": 1, "value": "1"},
+        {"topic": "test_topic", "key": 2, "value": "2"},
+        {"topic": "test_topic", "key": 1, "value": "1"},
+        {"topic": "test_topic", "key": 2, "value": "2"},
+        {"topic": "test_topic", "key": 3, "value": "3"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "2", "value": "1,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "3", "value": "2,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": "1,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "3", "value": "2,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "4", "value": "3,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "2", "value": "1,1"},
+        {"topic": "OUTPUT", "key": "3", "value": "2,1"},
+        {"topic": "OUTPUT", "key": "2", "value": "1,2"},
+        {"topic": "OUTPUT", "key": "3", "value": "2,2"},
+        {"topic": "OUTPUT", "key": "4", "value": "3,1"}
       ]
     },
     {
-      "name": "with having",
+      "name": "arithmetic binary expression with constant and only field in projection (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1, COUNT(*) AS COUNT FROM TEST GROUP BY f1 + 1 - 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "1,0"},
+        {"topic": "test_topic", "key": "2", "value": "2,1"},
+        {"topic": "test_topic", "key": "3", "value": "3,0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": "0,1"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,1"},
+        {"topic": "OUTPUT", "key": "0", "value": "0,2"},
+        {"topic": "OUTPUT", "key": "0", "value": "0,1"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,0"},
+        {"topic": "OUTPUT", "key": "0", "value": "0,2"}
+      ]
+    },
+    {
+      "name": "with having expression (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, COUNT(*) FROM TEST GROUP BY f1 HAVING SUM(f1) > 1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1", "timestamp": 0},
-        {"topic": "test_topic", "key": "2", "value": "2", "timestamp": 0},
-        {"topic": "test_topic", "key": "1", "value": "1", "timestamp": 0},
-        {"topic": "test_topic", "key": "2", "value": "2", "timestamp": 0},
-        {"topic": "test_topic", "key": "3", "value": "3", "timestamp": 0}
+        {"topic": "test_topic", "key": "1", "value": "1"},
+        {"topic": "test_topic", "key": "2", "value": "2"},
+        {"topic": "test_topic", "key": "1", "value": "1"},
+        {"topic": "test_topic", "key": "2", "value": "2"},
+        {"topic": "test_topic", "key": "3", "value": "3"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": "2,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "1,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": "2,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "3", "value": "3,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "1", "value": null},
+        {"topic": "OUTPUT", "key": "2", "value": "2,1"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
+        {"topic": "OUTPUT", "key": "2", "value": "2,2"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,1"}
       ]
     },
     {
-      "name": "with multiple having clause",
+      "name": "with having expression (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f1, SUM(f0) FROM TEST GROUP BY f1 HAVING COUNT(f1) > 0;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": "1,0"},
+        {"topic": "test_topic", "key": "2", "value": "2,1"},
+        {"topic": "test_topic", "key": "3", "value": "3,0"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": "0,1"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
+        {"topic": "OUTPUT", "key": "0", "value": "0,4"},
+        {"topic": "OUTPUT", "key": "0", "value": "0,3"},
+        {"topic": "OUTPUT", "key": "1", "value": null},
+        {"topic": "OUTPUT", "key": "0", "value": "0,5"}
+      ]
+    },
+    {
+      "name": "with multiple having expressions (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, COUNT(f1) FROM TEST GROUP BY f1 HAVING COUNT(f1) > 1 AND f1=1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "1,test", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,test", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,test", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "1,test", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "1,a"},
+        {"topic": "test_topic", "key": 0, "value": "2,b"},
+        {"topic": "test_topic", "key": 0, "value": "1,test"},
+        {"topic": "test_topic", "key": 0, "value": "2,test"},
+        {"topic": "test_topic", "key": 0, "value": "2,test"},
+        {"topic": "test_topic", "key": 0, "value": "1,test"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "1,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "1,3", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "1", "value": null},
+        {"topic": "OUTPUT", "key": "2", "value": null},
+        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
+        {"topic": "OUTPUT", "key": "2", "value": null},
+        {"topic": "OUTPUT", "key": "2", "value": null},
+        {"topic": "OUTPUT", "key": "1", "value": "1,3"}
       ]
     },
     {
-      "name": "with aggregate having not in group by",
+      "name": "with having expression on non-group-by field (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f2, COUNT(*) FROM TEST GROUP BY f2 HAVING SUM(f1) > 10;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "-", "value": "5,a", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "10,b", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "6,a", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "1,b", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "-1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": "-", "value": "1,a", "timestamp": 0}
+        {"topic": "test_topic", "key": "-", "value": "5,a"},
+        {"topic": "test_topic", "key": "-", "value": "10,b"},
+        {"topic": "test_topic", "key": "-", "value": "6,a"},
+        {"topic": "test_topic", "key": "-", "value": "1,b"},
+        {"topic": "test_topic", "key": "-", "value": "-1,a"},
+        {"topic": "test_topic", "key": "-", "value": "1,a"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a", "value": "a,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b", "value": "b,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a", "value": "a,4", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "a", "value": null},
+        {"topic": "OUTPUT", "key": "b", "value": null},
+        {"topic": "OUTPUT", "key": "a", "value": "a,2"},
+        {"topic": "OUTPUT", "key": "b", "value": "b,2"},
+        {"topic": "OUTPUT", "key": "a", "value": null},
+        {"topic": "OUTPUT", "key": "a", "value": "a,4"}
       ]
     },
     {
-      "name": "with constant having",
+      "name": "with constant having (stream-table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f2, SUM(f1) FROM TEST GROUP BY f2 HAVING f2='test';"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,test", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "3,test", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "1,a"},
+        {"topic": "test_topic", "key": 0, "value": "2,b"},
+        {"topic": "test_topic", "key": 0, "value": "2,test"},
+        {"topic": "test_topic", "key": 0, "value": "2,b"},
+        {"topic": "test_topic", "key": 0, "value": "3,test"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "test", "value": "test,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b", "value": null, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "test", "value": "test,5", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "a", "value": null},
+        {"topic": "OUTPUT", "key": "b", "value": null},
+        {"topic": "OUTPUT", "key": "test", "value": "test,2"},
+        {"topic": "OUTPUT", "key": "b", "value": null},
+        {"topic": "OUTPUT", "key": "test", "value": "test,5"}
       ]
     },
     {
-      "name": "with constant having not in group by",
+      "name": "with constant having expression (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY f1 HAVING f2='test';"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Non-aggregate HAVING expression not part of GROUP BY: [TEST.F2]"
-      },
-      "inputs": [],
-      "outputs": []
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate HAVING expression not part of GROUP BY: [TEST.F2] - Rophan would like this to work?"
+      }
     },
     {
-      "name": "with constants in the projection",
+      "name": "with constants in the projection (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, 'some constant' as f3, COUNT(f1) FROM TEST GROUP BY f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "3", "timestamp": 0}
+        {"topic": "test_topic", "key": 1, "value": "1"},
+        {"topic": "test_topic", "key": 2, "value": "2"},
+        {"topic": "test_topic", "key": 1, "value": "1"},
+        {"topic": "test_topic", "key": 2, "value": "2"},
+        {"topic": "test_topic", "key": 3, "value": "3"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1,some constant,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": "2,some constant,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "1,some constant,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": "2,some constant,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "3", "value": "3,some constant,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "1", "value": "1,some constant,1"},
+        {"topic": "OUTPUT", "key": "2", "value": "2,some constant,1"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,some constant,2"},
+        {"topic": "OUTPUT", "key": "2", "value": "2,some constant,2"},
+        {"topic": "OUTPUT", "key": "3", "value": "3,some constant,1"}
       ]
     },
     {
-      "name": "group by missing matching select element",
+      "name": "missing matching projection field (stream->table)",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY data;"
@@ -460,7 +791,30 @@
       ]
     },
     {
-      "name": "fail when non aggregate field in select that is not in group by",
+      "name": "missing matching projection field (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', KEY='f1', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY f2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "1,a"},
+        {"topic": "test_topic", "key": 2, "value": "2,b"},
+        {"topic": "test_topic", "key": 1, "value": "1,b"},
+        {"topic": "test_topic", "key": 2, "value": null},
+        {"topic": "test_topic", "key": 1, "value": "1,a"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": "1"},
+        {"topic": "OUTPUT", "key": "b", "value": "1"},
+        {"topic": "OUTPUT", "key": "a", "value": "0"},
+        {"topic": "OUTPUT", "key": "b", "value": "2"},
+        {"topic": "OUTPUT", "key": "b", "value": "1"},
+        {"topic": "OUTPUT", "key": "b", "value": "0"},
+        {"topic": "OUTPUT", "key": "a", "value": "1"}
+      ]
+    },
+    {
+      "name": "with non-aggregate projection field not in group by (stream->table)",
       "statements": [
         "CREATE STREAM TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT d1, COUNT(*) AS COUNT FROM TEST GROUP BY d2;"
@@ -468,6 +822,28 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [TEST.D1]"
+      }
+    },
+    {
+      "name": "with non-aggregate projection field not in group by (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', key='d1', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT d1, COUNT(*) AS COUNT FROM TEST GROUP BY d2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [TEST.D1]"
+      }
+    },
+    {
+      "name": "aggregate function (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY SUM(d2);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Code generation failed for Group By: Non-aggregate function required: SUM is an aggregate function."
       }
     }
   ]

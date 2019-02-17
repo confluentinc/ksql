@@ -42,8 +42,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.ReadonlyMetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
@@ -102,7 +101,7 @@ public class KsqlEngineTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private MetaStore metaStore;
+  private MutableMetaStore metaStore;
   @Spy
   private final KsqlTopicSerDe jsonKsqlSerde = new KsqlJsonTopicSerDe();
   @Spy
@@ -297,9 +296,9 @@ public class KsqlEngineTest {
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
-        "Exception while processing statement: Cannot drop FOO. \n"
-            + "The following queries read from this source: []. \n"
-            + "The following queries write into this source: [CTAS_FOO_1]. \n"
+        "Exception while processing statement: Cannot drop FOO.\n"
+            + "The following queries read from this source: [].\n"
+            + "The following queries write into this source: [CTAS_FOO_1].\n"
             + "You need to terminate them before dropping FOO.")));
     expectedException.expect(statementText(is("drop table foo;")));
 
@@ -724,7 +723,7 @@ public class KsqlEngineTest {
 
     // Then:
     verify(jsonKsqlSerde, atLeastOnce()).getGenericRowSerde(
-        any(), any(), anyBoolean(), eq(schemaRegistryClientFactory), any()
+        any(), any(), anyBoolean(), eq(schemaRegistryClientFactory), any(), any()
     );
   }
 
@@ -1008,17 +1007,6 @@ public class KsqlEngineTest {
     // Then:
     assertThat(result.getCommandResult(),
         is(Optional.of("property:auto.offset.reset set to earliest")));
-  }
-
-  @Test
-  public void shouldNotAllowModificationOfMetaStore() {
-    assertThat(ksqlEngine.getMetaStore(), is(instanceOf(ReadonlyMetaStore.class)));
-  }
-
-  @Test
-  public void shouldNotAllowModificationOfSandboxMetaStore() {
-    assertThat(ksqlEngine.createSandbox().getMetaStore(),
-        is(instanceOf(ReadonlyMetaStore.class)));
   }
 
   @Test

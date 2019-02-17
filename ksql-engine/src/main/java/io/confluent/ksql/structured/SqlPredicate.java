@@ -21,6 +21,7 @@ import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -50,6 +51,7 @@ public class SqlPredicate {
   private final FunctionRegistry functionRegistry;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private final StructuredLogger processingLogger;
+  private final ProcessingLogContext processingLogContext;
 
   SqlPredicate(
       final Expression filterExpression,
@@ -57,7 +59,8 @@ public class SqlPredicate {
       final boolean isWindowedKey,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final StructuredLogger processingLogger
+      final StructuredLogger processingLogger,
+      final ProcessingLogContext processingLogContext
   ) {
     this.filterExpression = filterExpression;
     this.schema = schema;
@@ -66,6 +69,7 @@ public class SqlPredicate {
     this.functionRegistry = functionRegistry;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.processingLogger = Objects.requireNonNull(processingLogger);
+    this.processingLogContext = Objects.requireNonNull(processingLogContext);
 
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     final Set<CodeGenRunner.ParameterType> parameters
@@ -185,7 +189,8 @@ public class SqlPredicate {
                 filterExpression,
                 e.getMessage()
             ),
-            row
+            row,
+            processingLogContext.getConfig()
         )
     );
   }

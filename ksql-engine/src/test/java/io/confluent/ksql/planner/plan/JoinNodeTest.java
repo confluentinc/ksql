@@ -40,6 +40,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -119,6 +120,7 @@ public class JoinNodeTest {
   private SchemaKTable rightSchemaKTable;
   private Field joinKey;
   private ServiceContext serviceContext;
+  private ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   @Before
   @SuppressWarnings("unchecked")
@@ -187,6 +189,7 @@ public class JoinNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         new InternalFunctionRegistry(),
         queryId);
   }
@@ -328,6 +331,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId
     );
@@ -376,6 +380,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId
     );
@@ -424,6 +429,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId
     );
@@ -465,6 +471,7 @@ public class JoinNodeTest {
           mockStreamsBuilder,
           mockKsqlConfig,
           serviceContext,
+          processingLogContext,
           mockFunctionRegistry,
           queryId
       );
@@ -516,6 +523,7 @@ public class JoinNodeTest {
           mockStreamsBuilder,
           mockKsqlConfig,
           serviceContext,
+          processingLogContext,
           mockFunctionRegistry,
           queryId
       );
@@ -575,6 +583,7 @@ public class JoinNodeTest {
           mockStreamsBuilder,
           mockKsqlConfig,
           serviceContext,
+          processingLogContext,
           mockFunctionRegistry,
           queryId);
     } catch (final KsqlException e) {
@@ -624,6 +633,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId
     );
@@ -669,6 +679,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId);
 
@@ -706,6 +717,7 @@ public class JoinNodeTest {
           mockStreamsBuilder,
           mockKsqlConfig,
           serviceContext,
+          processingLogContext,
           mockFunctionRegistry,
           queryId);
       fail("Should have failed to build the stream since stream-table outer joins are not "
@@ -755,6 +767,7 @@ public class JoinNodeTest {
           mockStreamsBuilder,
           mockKsqlConfig,
           serviceContext,
+          processingLogContext,
           mockFunctionRegistry,
           queryId);
       fail("should have raised an exception since a join window was provided for a stream-table "
@@ -799,6 +812,7 @@ public class JoinNodeTest {
           mockStreamsBuilder,
           mockKsqlConfig,
           serviceContext,
+          processingLogContext,
           mockFunctionRegistry,
           queryId);
     } catch (final KsqlException e) {
@@ -843,6 +857,7 @@ public class JoinNodeTest {
           mockStreamsBuilder,
           mockKsqlConfig,
           serviceContext,
+          processingLogContext,
           mockFunctionRegistry,
           queryId);
     } catch (final KsqlException e) {
@@ -893,6 +908,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId);
 
@@ -939,6 +955,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId);
 
@@ -985,6 +1002,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId);
 
@@ -1027,6 +1045,7 @@ public class JoinNodeTest {
           mockStreamsBuilder,
           mockKsqlConfig,
           serviceContext,
+          processingLogContext,
           mockFunctionRegistry,
           queryId);
       fail("should have raised an exception since a join window was provided for a stream-table "
@@ -1056,6 +1075,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfigClonedWithOffsetReset,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId))
         .andReturn(table);
@@ -1138,7 +1158,8 @@ public class JoinNodeTest {
         ksqlConfig,
         false,
         mockSchemaRegistryClientFactory,
-        loggerNamePrefix))
+        loggerNamePrefix,
+        processingLogContext))
         .andReturn(serde);
     replay(structuredDataSource, ksqlTopic, ksqlTopicSerde);
   }
@@ -1153,6 +1174,7 @@ public class JoinNodeTest {
         mockStreamsBuilder,
         mockKsqlConfig,
         serviceContext,
+        processingLogContext,
         mockFunctionRegistry,
         queryId))
         .andReturn(result);

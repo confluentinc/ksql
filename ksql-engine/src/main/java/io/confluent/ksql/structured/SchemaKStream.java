@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -155,17 +155,19 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<K> filter(
       final Expression filterExpression,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
         hasWindowedKey(),
         ksqlConfig,
         functionRegistry,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
                 contextStacker.push(Type.FILTER.name()).getQueryContext())
-        )
+        ),
+        processingLogContext
     );
 
     final KStream<K, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
@@ -184,12 +186,14 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> select(
       final List<SelectExpression> selectExpressions,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     final Selection selection = new Selection(
         selectExpressions,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.PROJECT.name()).getQueryContext())));
+                contextStacker.push(Type.PROJECT.name()).getQueryContext())),
+        processingLogContext);
     return new SchemaKStream<>(
         selection.getProjectedSchema(),
         kstream.mapValues(selection.getSelectValueMapper()),
@@ -210,7 +214,8 @@ public class SchemaKStream<K> {
 
     Selection(
         final List<SelectExpression> selectExpressions,
-        final StructuredLogger processingLogger) {
+        final StructuredLogger processingLogger,
+        final ProcessingLogContext processingLogContext) {
       key = findKeyField(selectExpressions);
       final List<ExpressionMetadata> expressionEvaluators = buildExpressions(selectExpressions);
       schema = buildSchema(selectExpressions, expressionEvaluators);
@@ -220,7 +225,8 @@ public class SchemaKStream<K> {
       selectValueMapper = new SelectValueMapper(
           selectFieldNames,
           expressionEvaluators,
-          processingLogger);
+          processingLogger,
+          processingLogContext);
     }
 
     private Field findKeyField(final List<SelectExpression> selectExpressions) {

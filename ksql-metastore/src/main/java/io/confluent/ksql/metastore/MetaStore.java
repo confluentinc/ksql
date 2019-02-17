@@ -23,27 +23,13 @@ public interface MetaStore extends FunctionRegistry {
 
   KsqlTopic getTopic(String topicName);
 
-  void putTopic(KsqlTopic topic);
-
   StructuredDataSource getSource(String sourceName);
 
   Optional<StructuredDataSource> getSourceForTopic(String ksqlTopicName);
 
-  void putSource(StructuredDataSource dataSource);
-
-  void deleteTopic(String topicName);
-
-  void deleteSource(String sourceName);
-
   Map<String, StructuredDataSource> getAllStructuredDataSources();
 
   Map<String, KsqlTopic> getAllKsqlTopics();
-
-  void updateForPersistentQuery(String queryId,
-                                       Set<String> sourceNames,
-                                       Set<String> sinkNames);
-
-  void removePersistentQuery(String queryId);
 
   Set<String> getQueriesWithSource(String sourceName);
 

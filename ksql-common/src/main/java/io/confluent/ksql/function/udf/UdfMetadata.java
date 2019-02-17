@@ -24,6 +24,9 @@ public class UdfMetadata {
   private final String path;
   private final boolean internal;
 
+  /**
+   * @param internal indicates the Udf is an impl detail, e.g. the UDF for handling structs.
+   */
   public UdfMetadata(final String name,
                      final String description,
                      final String author,
@@ -72,5 +75,27 @@ public class UdfMetadata {
         + ", path='" + path + "'"
         + ", internal=" + internal
         + '}';
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final UdfMetadata that = (UdfMetadata) o;
+    return internal == that.internal
+        && Objects.equals(name, that.name)
+        && Objects.equals(description, that.description)
+        && Objects.equals(author, that.author)
+        && Objects.equals(version, that.version)
+        && Objects.equals(path, that.path);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, description, author, version, path, internal);
   }
 }

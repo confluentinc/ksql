@@ -23,15 +23,19 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.common.logging.StructuredLogger;
+import io.confluent.common.logging.StructuredLoggerFactory;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -39,6 +43,7 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -78,6 +83,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -89,7 +95,7 @@ public class PhysicalPlanBuilderTest {
       + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
   private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
   private PhysicalPlanBuilder physicalPlanBuilder;
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final MutableMetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig = new KsqlConfig(
       ImmutableMap.of(
           ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
@@ -98,6 +104,7 @@ public class PhysicalPlanBuilderTest {
           "auto.offset.reset", "earliest"));
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
+  private ProcessingLogContext processingLogContext;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -144,7 +151,7 @@ public class PhysicalPlanBuilderTest {
   @Before
   public void before() {
     serviceContext = TestServiceContext.create(kafkaTopicClient);
-
+    processingLogContext = ProcessingLogContext.create();
     testKafkaStreamsBuilder = new TestKafkaStreamsBuilder(serviceContext);
     physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
@@ -159,13 +166,15 @@ public class PhysicalPlanBuilderTest {
     serviceContext.close();
   }
 
-  private PhysicalPlanBuilder buildPhysicalPlanBuilder(final Map<String, Object> overrideProperties) {
+  private PhysicalPlanBuilder buildPhysicalPlanBuilder(
+      final Map<String, Object> overrideProperties) {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     return new PhysicalPlanBuilder(
         streamsBuilder,
         ksqlConfig.cloneWithPropertyOverwrite(overrideProperties),
         serviceContext,
+        processingLogContext,
         functionRegistry,
         overrideProperties,
         metaStore,
@@ -450,25 +459,6 @@ public class PhysicalPlanBuilderTest {
     shouldUseProvidedOptimizationConfig(StreamsConfig.NO_OPTIMIZATION);
   }
 
-  @Test
-  public void shouldConfigureProductionExceptionHandlerName() {
-    // Given:
-    final OutputNode spyNode = spy(
-        (OutputNode) LogicalPlanBuilderTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
-    doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
-
-    // When:
-    physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(simpleSelectFilter, spyNode));
-
-    // Then:
-    final List<TestKafkaStreamsBuilder.Call> calls = testKafkaStreamsBuilder.getCalls();
-    assertThat(calls.size(), equalTo(1));
-    final Properties props = calls.get(0).props;
-    assertThat(
-        props.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER_NAME),
-        equalTo("foo"));
-  }
-
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {
 
     public ConsumerRecords onConsume(final ConsumerRecords consumerRecords) {
@@ -581,6 +571,32 @@ public class PhysicalPlanBuilderTest {
 
     public void configure(final Map<String, ?> map) {
     }
+  }
+
+  @Test
+  public void shouldConfigureProducerErrorHandlerLogger() {
+    // Given:
+    processingLogContext = mock(ProcessingLogContext.class);
+    final StructuredLoggerFactory loggerFactory = mock(StructuredLoggerFactory.class);
+    final StructuredLogger logger = mock(StructuredLogger.class);
+    when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
+    final OutputNode spyNode = spy(
+        (OutputNode) LogicalPlanBuilderTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
+    doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
+    when(loggerFactory.getLogger("foo")).thenReturn(logger);
+    when(loggerFactory.getLogger(ArgumentMatchers.startsWith("foo.")))
+        .thenReturn(mock(StructuredLogger.class));
+    physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
+
+    // When:
+    physicalPlanBuilder.buildPhysicalPlan(
+        new LogicalPlanNode(simpleSelectFilter, spyNode));
+
+    // Then:
+    final TestKafkaStreamsBuilder.Call call = testKafkaStreamsBuilder.calls.get(0);
+    assertThat(
+        call.props.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER),
+        is(logger));
   }
 
   @Test

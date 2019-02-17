@@ -14,6 +14,7 @@
 
 package io.confluent.ksql;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -23,12 +24,11 @@ import io.confluent.ksql.ddl.commands.DdlCommand;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.ReadonlyMetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource;
@@ -68,15 +69,15 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.util.StringUtil;
 import java.io.Closeable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -100,9 +101,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       .build();
 
   private final AtomicBoolean acceptingStatements = new AtomicBoolean(true);
-
-  private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-  private final Set<QueryMetadata> allLiveQueries;
+  private final Map<QueryId, PersistentQueryMetadata> persistentQueries = new ConcurrentHashMap<>();
+  private final Set<QueryMetadata> allLiveQueries = ConcurrentHashMap.newKeySet();
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
   private final String serviceId;
@@ -111,26 +111,32 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   public KsqlEngine(
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
+      final FunctionRegistry functionRegistry,
       final String serviceId
   ) {
     this(
         serviceContext,
+        processingLogContext,
         serviceId,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
+        new MetaStoreImpl(functionRegistry),
         KsqlEngineMetrics::new);
   }
 
   KsqlEngine(
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final String serviceId,
-      final MetaStore metaStore,
+      final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
   ) {
-    this.primaryContext = EngineContext.create(serviceContext, metaStore, this::unregisterQuery);
+    this.primaryContext = EngineContext.create(
+        serviceContext,
+        processingLogContext,
+        metaStore,
+        this::unregisterQuery);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
-    this.persistentQueries = new HashMap<>();
-    this.allLiveQueries = new HashSet<>();
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     this.aggregateMetricsCollector.scheduleAtFixedRate(
@@ -161,9 +167,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   public List<PersistentQueryMetadata> getPersistentQueries() {
-    return Collections.unmodifiableList(
-        new ArrayList<>(
-            persistentQueries.values()));
+    return ImmutableList.copyOf(persistentQueries.values());
   }
 
   public boolean hasActiveQueries() {
@@ -172,10 +176,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public MetaStore getMetaStore() {
-    return ReadonlyMetaStore.readOnlyMetaStore(primaryContext.metaStore);
-  }
-
-  public FunctionRegistry getFunctionRegistry() {
     return primaryContext.metaStore;
   }
 
@@ -207,7 +207,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    */
   @Override
   public KsqlExecutionContext createSandbox() {
-    return SandboxedExecutionContext.create(primaryContext, persistentQueries);
+    return SandboxedExecutionContext.create(
+        primaryContext,
+        persistentQueries);
   }
 
   /**
@@ -253,9 +255,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public void close() {
-    for (final QueryMetadata queryMetadata : new HashSet<>(allLiveQueries)) {
-      queryMetadata.close();
-    }
+    allLiveQueries.forEach(QueryMetadata::close);
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
   }
@@ -276,7 +276,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
-      persistentQueries.put(persistentQuery.getQueryId(), persistentQuery);
+      if (persistentQueries.putIfAbsent(persistentQuery.getQueryId(), persistentQuery) != null) {
+        throw new IllegalStateException("Query already registered:" + persistentQuery.getQueryId());
+      }
       primaryContext.metaStore.updateForPersistentQuery(
           persistentQuery.getQueryId().getId(),
           persistentQuery.getSourceNames(),
@@ -334,30 +336,41 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   private static final class EngineContext {
 
-    private final MetaStore metaStore;
+    private final MutableMetaStore metaStore;
     private final QueryEngine queryEngine;
     private final ServiceContext serviceContext;
     private final CommandFactories ddlCommandFactory;
     private final DdlCommandExec ddlCommandExec;
+    private final ProcessingLogContext processingLogContext;
 
     private EngineContext(
         final ServiceContext serviceContext,
-        final MetaStore metaStore,
+        final ProcessingLogContext processingLogContext,
+        final MutableMetaStore metaStore,
         final Consumer<QueryMetadata> onQueryCloseCallback
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
       this.ddlCommandFactory = new CommandFactories(serviceContext);
-      this.queryEngine = new QueryEngine(serviceContext, onQueryCloseCallback);
+      this.queryEngine = new QueryEngine(
+          serviceContext,
+          processingLogContext,
+          onQueryCloseCallback);
       this.ddlCommandExec = new DdlCommandExec(metaStore);
+      this.processingLogContext = processingLogContext;
     }
 
     private static EngineContext create(
         final ServiceContext serviceContext,
-        final MetaStore metaStore,
+        final ProcessingLogContext processingLogContext,
+        final MutableMetaStore metaStore,
         final Consumer<QueryMetadata> onQueryCloseCallback
     ) {
-      return new EngineContext(serviceContext, metaStore, onQueryCloseCallback);
+      return new EngineContext(
+          serviceContext,
+          processingLogContext,
+          metaStore,
+          onQueryCloseCallback);
     }
 
     private String executeDdlStatement(
@@ -728,7 +741,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     private static Query addInto(
         final QuerySpecification querySpecification,
         final String intoName,
-        final Optional<String> limit,
+        final OptionalInt limit,
         final Map<String, Expression> intoProperties,
         final Optional<Expression> partitionByExpression,
         final boolean doCreateTable) {
@@ -769,6 +782,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     ) {
       final EngineContext sandboxed = EngineContext.create(
           SandboxedServiceContext.create(engineContext.serviceContext),
+          engineContext.processingLogContext,
           engineContext.metaStore.copy(),
           query -> {
           } // Do nothing on query close.
@@ -787,7 +801,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     @Override
     public MetaStore getMetaStore() {
-      return ReadonlyMetaStore.readOnlyMetaStore(engineContext.metaStore);
+      return engineContext.metaStore;
     }
 
     @Override

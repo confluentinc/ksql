@@ -44,7 +44,7 @@ public class ExpressionTypeManagerTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     // load udfs that are not hardcoded
-    UdfLoaderUtil.load(metaStore);
+    UdfLoaderUtil.load(functionRegistry);
     final Schema schema = SchemaBuilder.struct()
         .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)

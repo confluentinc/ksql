@@ -39,6 +39,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -153,6 +154,7 @@ public class KsqlStructuredDataOutputNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
         QUERY_ID);
   }
@@ -315,7 +317,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     final KsqlTopicSerDe topicSerde = mock(KsqlTopicSerDe.class);
     final Serde serde = mock(Serde.class);
-    when(topicSerde.getGenericRowSerde(any(), any(), anyBoolean(), any(), any()))
+    when(topicSerde.getGenericRowSerde(any(), any(), anyBoolean(), any(), any(), any()))
         .thenReturn(serde);
     outputNode = new KsqlStructuredDataOutputNode(
         new PlanNodeId("0"),
@@ -343,7 +345,8 @@ public class KsqlStructuredDataOutputNodeTest {
                 QueryLoggerUtil.queryLoggerName(
                     new QueryContext.Stacker(QUERY_ID)
                         .push(outputNode.getId().toString())
-                        .getQueryContext()))
+                        .getQueryContext())),
+            any()
         );
   }
 

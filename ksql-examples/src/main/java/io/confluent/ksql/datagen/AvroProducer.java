@@ -18,6 +18,7 @@ package io.confluent.ksql.datagen;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -54,7 +55,8 @@ public class AvroProducer extends DataGenProducer {
             ksqlConfig,
             false,
             () -> schemaRegistryClient,
-            "producer"
+            "producer",
+            ProcessingLogContext.create()
         ).serializer();
   }
 }

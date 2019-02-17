@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -48,6 +49,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AbstractCreateStreamCommandTest {
 
+  private static final String TOPIC_NAME = "some topic";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
       new TableElement("bob", new PrimitiveType(KsqlType.STRING)));
 
@@ -119,10 +121,35 @@ public class AbstractCreateStreamCommandTest {
     new TestCmd("what, no value topic?", statement, kafkaTopicClient);
   }
 
+  @Test
+  public void shouldThrowIfTopicDoesNotExist() {
+    // Given:
+    when(kafkaTopicClient.isTopicExists(any())).thenReturn(false);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
+
+    // When:
+    new TestCmd("what, no value topic?", statement, kafkaTopicClient);
+  }
+
+  @Test
+  public void shouldNotThrowIfTopicDoesExist() {
+    // Given:
+    when(kafkaTopicClient.isTopicExists(TOPIC_NAME)).thenReturn(true);
+
+    // When:
+    new TestCmd("what, no value topic?", statement, kafkaTopicClient);
+
+    // Then:
+    verify(kafkaTopicClient).isTopicExists(TOPIC_NAME);
+  }
+
   private static Map<String, Expression> minValidProps() {
     return ImmutableMap.of(
         DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("json"),
-        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("some topic")
+        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
     );
   }
 

@@ -1,24 +1,22 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql;
 
 import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
+import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
@@ -40,6 +38,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -70,7 +69,9 @@ public class SchemaTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return findTestCases(SCHEMA_VALIDATION_TEST_DIR)
+    final List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
+
+    return findTestCases(SCHEMA_VALIDATION_TEST_DIR, testFiles)
         .map(SchemaTranslationTest::loadTest)
         .map(q -> new Object[]{q.getName(), q})
         .collect(Collectors.toList());
@@ -154,15 +155,15 @@ public class SchemaTranslationTest {
 
     final Topic srcTopic;
     final Topic outputTopic
-        = new Topic(OUTPUT_TOPIC_NAME, null, new ValueSpecAvroSerdeSupplier());
+        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier(), 4);
     final List<Record> inputRecords;
     final List<Record> outputRecords;
     if (node.has("input_records")) {
-      srcTopic = new Topic(TOPIC_NAME, avroSchema, new ValueSpecAvroSerdeSupplier());
+      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new ValueSpecAvroSerdeSupplier(), 1);
       inputRecords = loadRecords(srcTopic, node.get("input_records"));
       outputRecords = loadRecords(outputTopic, node.get("output_records"));
     } else {
-      srcTopic = new Topic(TOPIC_NAME, avroSchema, new AvroSerdeSupplier());
+      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new AvroSerdeSupplier(), 1);
       inputRecords = generateInputRecords(srcTopic, avroSchema);
       outputRecords = getOutputRecords(outputTopic, inputRecords, avroSchema);
     }
@@ -177,7 +178,7 @@ public class SchemaTranslationTest {
         .collect(
             Collectors.joining(
                 ", ",
-                "CREATE STREAM TEST_OUTPUT AS SELECT ",
+                "CREATE STREAM " + OUTPUT_TOPIC_NAME + " AS SELECT ",
                 " FROM " + TOPIC_NAME + ";")
         );
 

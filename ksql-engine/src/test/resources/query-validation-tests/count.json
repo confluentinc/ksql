@@ -12,47 +12,17 @@
       "name": "count",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE STREAM S2 as SELECT id, count(*) FROM test group by id;"
+        "CREATE TABLE S2 as SELECT id, count(*) FROM test group by id;"
       ],
       "inputs": [
-        {
-          "topic": "test_topic",
-          "key": 0,
-          "value": "0,zero,0.0",
-          "timestamp": 0
-        },
-        {
-          "topic": "test_topic",
-          "key": 0,
-          "value": "0,100,0.0",
-          "timestamp": 0
-        },
-        {
-          "topic": "test_topic",
-          "key": 100,
-          "value": "100,100,0.0",
-          "timestamp": 0
-        }
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
+        {"topic": "test_topic", "key": 0, "value": "0,100,0.0"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"}
       ],
       "outputs": [
-        {
-          "topic": "S2",
-          "key": 0,
-          "value": "0,1",
-          "timestamp": 0
-        },
-        {
-          "topic": "S2",
-          "key": 0,
-          "value": "0,2",
-          "timestamp": 0
-        },
-        {
-          "topic": "S2",
-          "key": 100,
-          "value": "100,1",
-          "timestamp": 0
-        }
+        {"topic": "S2", "key": 0, "value": "0,1"},
+        {"topic": "S2", "key": 0, "value": "0,2"},
+        {"topic": "S2", "key": 100, "value": "100,1"}
       ]
     },
     {
@@ -62,17 +32,17 @@
         "CREATE TABLE S2 as SELECT name, count(*) FROM test group by name;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100,100,0.0", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": null, "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100,100,0.0", "timestamp": 0}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"},
+        {"topic": "test_topic", "key": 100, "value": null},
+        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"}
       ],
       "outputs": [
-        {"topic": "S2", "key": "zero", "value": "zero,1", "timestamp": 0},
-        {"topic": "S2", "key": "zero", "value": "zero,2", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,1", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,2", "timestamp": 0}
+        {"topic": "S2", "key": "zero", "value": "zero,1"},
+        {"topic": "S2", "key": "zero", "value": "zero,2"},
+        {"topic": "S2", "key": 100, "value": "100,1"},
+        {"topic": "S2", "key": 100, "value": "100,2"}
       ]
     }
   ]

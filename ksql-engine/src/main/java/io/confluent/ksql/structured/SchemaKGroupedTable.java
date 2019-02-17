@@ -1,22 +1,19 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.structured;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -24,6 +21,8 @@ import io.confluent.ksql.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -48,11 +47,29 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
+      final FunctionRegistry functionRegistry
+  ) {
+    this(
+        schema,
+        kgroupedTable,
+        keyField,
+        sourceSchemaKStreams,
+        ksqlConfig,
+        functionRegistry,
+        MaterializedFactory.create(ksqlConfig));
+  }
+
+  SchemaKGroupedTable(
+      final Schema schema,
+      final KGroupedTable kgroupedTable,
+      final Field keyField,
+      final List<SchemaKStream> sourceSchemaKStreams,
+      final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final SchemaRegistryClient schemaRegistryClient
+      final MaterializedFactory materializedFactory
   ) {
     super(schema, null, keyField, sourceSchemaKStreams,
-        ksqlConfig, functionRegistry, schemaRegistryClient);
+        ksqlConfig, functionRegistry, materializedFactory);
 
     this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
   }
@@ -64,7 +81,8 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
-      final Serde<GenericRow> topicValueSerDe) {
+      final Serde<GenericRow> topicValueSerDe,
+      final QueryContext.Stacker contextStacker) {
     if (windowExpression != null) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
@@ -92,11 +110,16 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
                     k -> ((TableAggregationFunction) aggValToFunctionMap.get(k))));
     final KudafUndoAggregator subtractor = new KudafUndoAggregator(
         aggValToUndoFunctionMap, aggValToValColumnMap);
+    final Materialized<String, GenericRow, ?> materialized =
+        materializedFactory.create(
+            Serdes.String(),
+            topicValueSerDe,
+            StreamsUtil.buildOpName(contextStacker.getQueryContext()));
     final KTable<String, GenericRow> aggKtable = kgroupedTable.aggregate(
         initializer,
         aggregator,
         subtractor,
-        Materialized.with(Serdes.String(), topicValueSerDe));
+        materialized);
     return new SchemaKTable<>(
         schema,
         aggKtable,
@@ -106,7 +129,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
-        schemaRegistryClient
+        contextStacker.getQueryContext()
     );
   }
 }

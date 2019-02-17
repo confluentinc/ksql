@@ -1,26 +1,28 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.cli.console;
 
+import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
+import io.confluent.ksql.cli.console.KsqlTerminal.HistoryEntry;
+import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
@@ -35,7 +37,6 @@ import io.confluent.ksql.cli.console.table.builder.StreamsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
@@ -62,6 +63,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
 import io.confluent.ksql.util.HandlerMaps.Handler1;
@@ -72,21 +74,24 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class Console implements Closeable {
+public class Console implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(Console.class);
 
@@ -152,11 +157,11 @@ public final class Console implements Closeable {
     void addRows(List<List<String>> fields);
   }
 
-  public static Console build(final OutputFormat outputFormat, final KsqlRestClient restClient) {
+  public static Console build(final OutputFormat outputFormat) {
     final AtomicReference<Console> consoleRef = new AtomicReference<>();
     final Predicate<String> isCliCommand = line -> {
       final Console theConsole = consoleRef.get();
-      return theConsole != null && theConsole.isCliCommand(line);
+      return theConsole != null && theConsole.getCliCommand(line).isPresent();
     };
 
     final Path historyFilePath = Paths.get(System.getProperty(
@@ -167,11 +172,8 @@ public final class Console implements Closeable {
 
     final KsqlTerminal terminal = new JLineTerminal(isCliCommand, historyFilePath);
 
-    final Supplier<String> versionSuppler =
-        () -> restClient.getServerInfo().getResponse().getVersion();
-
     final Console console = new Console(
-        outputFormat, versionSuppler, terminal, new NoOpRowCaptor());
+        outputFormat, terminal, new NoOpRowCaptor());
 
     consoleRef.set(console);
     return console;
@@ -179,7 +181,6 @@ public final class Console implements Closeable {
 
   public Console(
       final OutputFormat outputFormat,
-      final Supplier<String> versionSuppler,
       final KsqlTerminal terminal,
       final RowCaptor rowCaptor
   ) {
@@ -188,8 +189,6 @@ public final class Console implements Closeable {
     this.rowCaptor = Objects.requireNonNull(rowCaptor, "rowCaptor");
     this.cliSpecificCommands = Maps.newLinkedHashMap();
     this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
-
-    CliCommandRegisterUtil.registerDefaultCommands(this, versionSuppler);
   }
 
   public PrintWriter writer() {
@@ -206,6 +205,10 @@ public final class Console implements Closeable {
 
   public void clearScreen() {
     terminal.clearScreen();
+  }
+
+  public StatusClosable setStatusMessage(final String message) {
+    return terminal.setStatusMessage(message);
   }
 
   public void handle(final Signal signal, final SignalHandler signalHandler) {
@@ -236,10 +239,8 @@ public final class Console implements Closeable {
     return line;
   }
 
-  public void printHistory() {
-    terminal.getHistory().forEach(historyEntry ->
-        writer().printf("%4d: %s%n", historyEntry.index, historyEntry.line)
-    );
+  public List<HistoryEntry> getHistory() {
+    return Collections.unmodifiableList(terminal.getHistory());
   }
 
   public void printErrorMessage(final KsqlErrorMessage errorMessage) throws IOException {
@@ -286,8 +287,12 @@ public final class Console implements Closeable {
         printAsJson(entityList);
         break;
       case TABULAR:
+        final boolean showStatements = entityList.size() > 1;
         for (final KsqlEntity ksqlEntity : entityList) {
           writer().println();
+          if (showStatements) {
+            writer().println(ksqlEntity.getStatementText());
+          }
           printAsTable(ksqlEntity);
         }
         break;
@@ -300,7 +305,7 @@ public final class Console implements Closeable {
   }
 
   public void registerCliSpecificCommand(final CliSpecificCommand cliSpecificCommand) {
-    cliSpecificCommands.put(cliSpecificCommand.getName(), cliSpecificCommand);
+    cliSpecificCommands.put(cliSpecificCommand.getName().toLowerCase(), cliSpecificCommand);
   }
 
   public void setOutputFormat(final String newFormat) {
@@ -320,13 +325,21 @@ public final class Console implements Closeable {
     return outputFormat;
   }
 
-  private boolean isCliCommand(final String line) {
-    final String[] split = line.split("\\s+", 2);
-    final String command = split[0]
-        .trim()
-        .toLowerCase();
+  private Optional<CliCmdExecutor> getCliCommand(final String line) {
+    final List<String> parts = splitByUnquotedWhitespace(StringUtils.stripEnd(line, ";"));
+    if (parts.isEmpty()) {
+      return Optional.empty();
+    }
 
-    return cliSpecificCommands.containsKey(command);
+    final String reconstructed = parts.stream()
+        .collect(Collectors.joining(" "));
+
+    final String asLowerCase = reconstructed.toLowerCase();
+
+    return cliSpecificCommands.entrySet().stream()
+        .filter(e -> asLowerCase.startsWith(e.getKey()))
+        .map(e -> CliCmdExecutor.of(e.getValue(), parts))
+        .findFirst();
   }
 
   private void printAsTable(final GenericRow row) {
@@ -353,7 +366,7 @@ public final class Console implements Closeable {
   }
 
   @SuppressWarnings("ConstantConditions")
-  private String schemaToTypeString(final SchemaInfo schema) {
+  private static String schemaToTypeString(final SchemaInfo schema) {
     // For now just dump the whole type out into 1 string.
     // In the future we should consider a more readable format
     switch (schema.getType()) {
@@ -378,7 +391,7 @@ public final class Console implements Closeable {
     }
   }
 
-  private String formatFieldType(final FieldInfo field, final String keyField) {
+  private static String formatFieldType(final FieldInfo field, final String keyField) {
 
     if (field.getName().equals("ROWTIME") || field.getName().equals("ROWKEY")) {
       return String.format("%-16s %s", schemaToTypeString(field.getSchema()), "(system)");
@@ -674,16 +687,36 @@ public final class Console implements Closeable {
       return false;
     }
 
-    final String[] split = line.split("\\s+", 2);
-    final String command = split[0].toLowerCase();
+    return getCliCommand(line)
+        .map(cmd -> {
+          cmd.execute(writer());
+          flush();
+          return true;
+        })
+        .orElse(false);
+  }
 
-    final CliSpecificCommand cliSpecificCommand = cliSpecificCommands.get(command);
-    if (cliSpecificCommand == null) {
-      return false;
+  private static final class CliCmdExecutor {
+
+    private final CliSpecificCommand cmd;
+    private final List<String> args;
+
+    private static CliCmdExecutor of(final CliSpecificCommand cmd, final List<String> lineParts) {
+      final String[] nameParts = cmd.getName().split("\\s+");
+      final List<String> argList = lineParts.subList(nameParts.length, lineParts.size()).stream()
+          .map(CmdLineUtil::removeMatchedSingleQuotes)
+          .collect(Collectors.toList());
+
+      return new CliCmdExecutor(cmd, argList);
     }
 
-    final String commandArg = split.length > 1 ? split[1] : "";
-    cliSpecificCommand.execute(commandArg);
-    return true;
+    private CliCmdExecutor(final CliSpecificCommand cmd, final List<String> args) {
+      this.cmd = Objects.requireNonNull(cmd, "cmd");
+      this.args = ImmutableList.copyOf(Objects.requireNonNull(args, "args"));
+    }
+
+    public void execute(final PrintWriter terminal) {
+      cmd.execute(args, terminal);
+    }
   }
 }

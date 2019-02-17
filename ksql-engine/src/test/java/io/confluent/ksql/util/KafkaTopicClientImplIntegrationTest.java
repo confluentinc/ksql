@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.util;
@@ -24,6 +22,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.util.Collections;
 import java.util.Map;
@@ -38,8 +39,10 @@ import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.ExpectedException;
 
 @Category({IntegrationTest.class})
 public class KafkaTopicClientImplIntegrationTest {
@@ -47,6 +50,9 @@ public class KafkaTopicClientImplIntegrationTest {
   @ClassRule
   public static final EmbeddedSingleNodeKafkaCluster KAFKA =
       EmbeddedSingleNodeKafkaCluster.newBuilder().build();
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   private String testTopic;
   private KafkaTopicClient client;
@@ -188,6 +194,17 @@ public class KafkaTopicClientImplIntegrationTest {
     assertThat(configs.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
   }
 
+  @Test
+  public void shouldThrowOnDescribeIfTopicDoesNotExist() {
+    // Expect
+    expectedException.expect(KafkaResponseGetFailedException.class);
+    expectedException.expectMessage("Failed to Describe Kafka Topic(s):");
+    expectedException.expectMessage("i_do_not_exist");
+
+    // When:
+    client.describeTopic("i_do_not_exist");
+  }
+
   private String getTopicConfig(final String configName) {
     final Map<String, String> configs = client.getTopicConfig(testTopic);
     return configs.get(configName);
@@ -198,7 +215,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   private TopicDescription getTopicDescription(final String topicName) {
-    return client.describeTopics(Collections.singletonList(topicName)).get(topicName);
+    return client.describeTopic(topicName);
   }
 
   private void allowForAsyncTopicCreation() {

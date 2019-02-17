@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.codegen;
@@ -35,13 +33,14 @@ public class SqlToJavaVisitorTest {
 
   private MetaStore metaStore;
   private Schema schema;
+  private Schema orderSchema;
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     // load udfs that are not hardcoded
-    UdfLoaderUtil.load(metaStore);
+    UdfLoaderUtil.load(functionRegistry);
 
     final Schema addressSchema = SchemaBuilder.struct()
         .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)
@@ -60,6 +59,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL5", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("TEST1.COL6", addressSchema)
         .build();
+    orderSchema = metaStore.getSource("ORDERS").getSchema();
   }
 
   @Test
@@ -181,5 +181,34 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = new SqlToJavaVisitor(schema, functionRegistry)
         .process(analysis.getWhereExpression());
     assertThat(javaExpression, equalTo("(TEST1_COL1).equals(\"foo\")"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForCaseStatement() {
+    // Given:
+    final Analysis analysis = analyzeQuery(
+        "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE 'large' END FROM orders;", metaStore);
+
+
+    // When:
+    final String javaExpression = new SqlToJavaVisitor(orderSchema, functionRegistry)
+        .process(analysis.getSelectExpressions().get(0));
+
+    // ThenL
+    assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"10\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"10\"))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"100\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"100\"))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"large\"; }}))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForCaseStatementWithNoElse() {
+    // Given:
+    final Analysis analysis = analyzeQuery(
+        "SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' END FROM orders;", metaStore);
+
+    // When:
+    final String javaExpression = new SqlToJavaVisitor(orderSchema, functionRegistry)
+        .process(analysis.getSelectExpressions().get(0));
+
+    // ThenL
+    assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"10\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"10\"))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(ORDERS_ORDERUNITS)) == null || ((Object)(Integer.parseInt(\"100\"))) == null) ? false : (ORDERS_ORDERUNITS < Integer.parseInt(\"100\"))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
   }
 }

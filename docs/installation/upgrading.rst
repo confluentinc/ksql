@@ -7,6 +7,11 @@ Upgrade one KSQL server at a time (i.e. rolling restart). The remaining KSQL ser
 capacity to take over temporarily for unavailable, restarting servers.
 
 
+Upgrading from KSQL 5.1 to KSQL 5.2
+-------------------------------------------------------
+
+Notable changes in 5.2:
+
 Upgrading from KSQL 0.x (Developer Preview) to KSQL 4.1
 -------------------------------------------------------
 
@@ -48,3 +53,7 @@ Upgrading from KSQL 5.0.0 and below to KSQL 5.1
     * The KSQL engine metrics are now prefixed with the ``ksql.service.id``. If you have been using any metric monitoring
       tool you need to update your metric names.
       For instance, assuming ``ksql.service.id`` is set to ``default``, ``messages-produced-per-sec`` will be changed to ``_confluent-ksql-default_messages-consumed-per-sec``.
+
+* Configuration:
+
+    * When upgrading your headless (non-interactive) mode application, you must either update your queries to use the new SUBSTRING indexing semantics, or set ``ksql.functions.substring.legacy.args`` to ``true``. If possible, we recommend that you update your queries accordingly, instead of enabling this configuration setting. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details on how to do so. Note that this is NOT required for interactive mode KSQL.

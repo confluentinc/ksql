@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.test.util;
@@ -114,7 +112,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-    brokerConfig.put("group.initial.rebalance.delay.ms", 0);
+    // Streams runs multiple consumers, so let's give them all a chance to join.
+    // (Tests run quicker and with a more stable consumer group):
+    brokerConfig.put("group.initial.rebalance.delay.ms", 100);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));

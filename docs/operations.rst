@@ -13,8 +13,8 @@ For development and testing purposes, you can use Confluent CLI to spin up servi
 see the :ref:`quickstart`.
 
 .. include:: ../../includes/cli.rst
-    :start-line: 2
-    :end-line: 5
+    :start-after: cli_limitations_start
+    :end-before: cli_limitations_end
 
 ===================================
 Starting and Stopping KSQL Clusters
@@ -38,6 +38,7 @@ Healthchecks
   ``EXPLAIN <name of query>``.
 - Run ``ksql-print-metrics`` on a KSQL server. For example, see this `blog post <https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/>`_.
 
+.. _ksql-monitoring-and-metrics:
 
 ======================
 Monitoring and Metrics

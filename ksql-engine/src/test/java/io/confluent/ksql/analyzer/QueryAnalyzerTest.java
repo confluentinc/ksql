@@ -1,18 +1,15 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2018 Confluent Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.analyzer;
@@ -33,8 +30,8 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -49,7 +46,6 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -61,7 +57,6 @@ public class QueryAnalyzerTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final KsqlParser ksqlParser = new KsqlParser();
   private final QueryAnalyzer queryAnalyzer =  new QueryAnalyzer(metaStore, metaStore, "prefix-~");
 
   @Test
@@ -85,9 +80,9 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldCreateAnalysisForInserInto() {
     // Given:
-    final List<PreparedStatement> statements = ksqlParser.buildAst(
+    final PreparedStatement<InsertInto> statement = KsqlParserTestUtil.buildSingleAst(
         "insert into test2 select col1 from test1;", metaStore);
-    final Query query = ((InsertInto) statements.get(0).getStatement()).getQuery();
+    final Query query = statement.getStatement().getQuery();
 
     // When:
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
@@ -358,7 +353,6 @@ public class QueryAnalyzerTest {
   }
 
   private Query givenQuery(final String sql) {
-    final List<PreparedStatement> statements = ksqlParser.buildAst(sql, metaStore);
-    return (Query) statements.get(0).getStatement();
+    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore).getStatement();
   }
 }

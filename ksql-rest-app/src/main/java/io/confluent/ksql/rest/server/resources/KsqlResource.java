@@ -1,33 +1,28 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.resources;
 
+import static java.util.regex.Pattern.compile;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.KsqlConfigResolver;
-import io.confluent.ksql.ddl.commands.CreateStreamCommand;
-import io.confluent.ksql.ddl.commands.CreateTableCommand;
-import io.confluent.ksql.ddl.commands.DdlCommand;
-import io.confluent.ksql.ddl.commands.DdlCommandExec;
-import io.confluent.ksql.ddl.commands.DdlCommandResult;
-import io.confluent.ksql.ddl.commands.DropSourceCommand;
-import io.confluent.ksql.ddl.commands.DropTopicCommand;
-import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.UdfFactory;
@@ -35,20 +30,14 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
-import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropTopic;
+import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListRegisteredTopics;
@@ -58,16 +47,16 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
-import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -95,38 +84,44 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
+import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
-import io.confluent.ksql.rest.server.computation.ReplayableCommandQueue;
+import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
-import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.AvroUtil;
+import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.connect.data.Schema;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @Path("/ksql")
@@ -135,251 +130,316 @@ import org.slf4j.LoggerFactory;
 public class KsqlResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final org.slf4j.Logger log = LoggerFactory.getLogger(KsqlResource.class);
+  private static final Map<Class<? extends Statement>, Handler<Statement>> CUSTOM_EXECUTORS =
+      ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
+          .put(ListTopics.class,
+              castExecutor(KsqlResource::listTopics, ListTopics.class))
+          .put(ListRegisteredTopics.class,
+              castExecutor(KsqlResource::listRegisteredTopics, ListRegisteredTopics.class))
+          .put(ListStreams.class,
+              castExecutor(KsqlResource::listStreams, ListStreams.class))
+          .put(ListTables.class,
+              castExecutor(KsqlResource::listTables, ListTables.class))
+          .put(ListFunctions.class,
+              castExecutor(KsqlResource::listFunctions, ListFunctions.class))
+          .put(ListQueries.class,
+              castExecutor(KsqlResource::listQueries, ListQueries.class))
+          .put(ShowColumns.class,
+              castExecutor(KsqlResource::showColumns, ShowColumns.class))
+          .put(ListProperties.class,
+              castExecutor(KsqlResource::listProperties, ListProperties.class))
+          .put(Explain.class,
+              castExecutor(KsqlResource::explain, Explain.class))
+          .put(DescribeFunction.class,
+              castExecutor(KsqlResource::describeFunction, DescribeFunction.class))
+          .put(SetProperty.class,
+              castExecutor(KsqlResource::executeDdlImmediately, SetProperty.class))
+          .put(UnsetProperty.class,
+              castExecutor(KsqlResource::executeDdlImmediately, UnsetProperty.class))
+          .put(RunScript.class,
+              castExecutor(KsqlResource::distributeStatement, RunScript.class))
+          .put(TerminateQuery.class,
+              castExecutor(KsqlResource::distributeStatement, TerminateQuery.class))
+          .build();
+
+  private static final Set<Class<? extends Statement>> SYNC_BLACKLIST =
+      ImmutableSet.<Class<? extends Statement>>builder()
+          .add(ListTopics.class)
+          .add(ListFunctions.class)
+          .add(DescribeFunction.class)
+          .add(ListProperties.class)
+          .add(SetProperty.class)
+          .add(UnsetProperty.class)
+      .build();
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final ReplayableCommandQueue replayableCommandQueue;
-  private final long distributedCommandResponseTimeout;
+  private final ServiceContext serviceContext;
+  private final CommandQueue commandQueue;
+  private final Duration distributedCmdResponseTimeout;
+  private final ActivenessRegistrar activenessRegistrar;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ReplayableCommandQueue replayableCommandQueue,
-      final long distributedCommandResponseTimeout
+      final ServiceContext serviceContext,
+      final CommandQueue commandQueue,
+      final Duration distributedCmdResponseTimeout,
+      final ActivenessRegistrar activenessRegistrar
   ) {
-    this.ksqlConfig = ksqlConfig;
-    this.ksqlEngine = ksqlEngine;
-    this.replayableCommandQueue = replayableCommandQueue;
-    this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
-    this.registerKsqlStatementTasks();
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
+    this.distributedCmdResponseTimeout =
+        Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar cannot be null.");
+  }
+
+  @POST
+  @Path("/terminate")
+  public Response terminateCluster(final ClusterTerminateRequest request) {
+    final KsqlEntityList result = new KsqlEntityList();
+
+    ensureValidPatterns(request.getDeleteTopicList());
+
+    try {
+      result.add(distributeStatement(
+          PreparedStatement.of(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+              new TerminateCluster()),
+          request.getStreamsProperties()
+      ));
+
+      return Response.ok(result).build();
+    } catch (final Exception e) {
+      return Errors.serverErrorForStatement(
+          e,
+          TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+          result);
+    }
   }
 
   @POST
   public Response handleKsqlStatements(final KsqlRequest request) {
-    final List<PreparedStatement> parsedStatements;
-    final KsqlEntityList result = new KsqlEntityList();
-
+    if (!ksqlEngine.isAcceptingStatements()) {
+      return Errors.serverErrorForStatement(
+          new KsqlException("The cluster has been terminated. No new request will be accepted."),
+          request.getKsql(),
+          new KsqlEntityList()
+      );
+    }
+    activenessRegistrar.updateLastRequestTime();
     try {
-      parsedStatements = ksqlEngine.parseStatements(request.getKsql());
-      checkPersistentQueryCapacity(parsedStatements, request.getKsql());
-    } catch (final ParseFailedException e) {
-      return Errors.badStatement(e.getCause(), e.getSqlStatement(), result);
+      CommandStoreUtil.httpWaitForCommandSequenceNumber(
+          commandQueue, request, distributedCmdResponseTimeout);
+
+      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+
+      validateStatements(statements, request.getStreamsProperties(), request.getKsql());
+
+      return executeStatements(statements, request.getStreamsProperties());
+    } catch (final KsqlRestException e) {
+      throw e;
+    } catch (final KsqlStatementException e) {
+      return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return Errors.badRequest(e);
+    } catch (final Exception e) {
+      return Errors.serverErrorForStatement(e, request.getKsql());
     }
-
-    final Map<String, Object> streamsProperties = request.getStreamsProperties();
-
-    for (final PreparedStatement parsedStatement : parsedStatements) {
-      final String statementText = parsedStatement.getStatementText();
-      final Statement statement = parsedStatement.getStatement();
-
-      try {
-        validateStatement(result, statementText, statement, streamsProperties);
-      } catch (final KsqlRestException e) {
-        throw e;
-      } catch (final KsqlException e) {
-        return Errors.badStatement(e, statementText, result);
-      } catch (final Exception e) {
-        return Errors.serverErrorForStatement(e, statementText, result);
-      }
-
-      try {
-        result.add(executeStatement(statementText, statement, streamsProperties));
-      } catch (final Exception e) {
-        return Errors.serverErrorForStatement(e, statementText, result);
-      }
-    }
-    return Response.ok(result).build();
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private void validateStatement(
-      final KsqlEntityList entities, final String statementText, final Statement statement,
-      final Map<String, Object> streamsProperties) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    if (statement == null) {
-      throw new KsqlRestException(
-          Errors.badStatement(
-              String.format("Unable to execute statement '%s'", statementText),
-              statementText, entities));
-    }
+  private void validateStatements(
+      final List<ParsedStatement> statements,
+      final Map<String, Object> propertyOverrides,
+      final String sql
+  ) {
+    final RequestValidator requestValidator = new RequestValidator(
+        ksqlEngine.createSandbox(),
+        serviceContext,
+        ksqlConfig,
+        propertyOverrides);
 
-    if (Stream.of(
-        ListTopics.class, ListRegisteredTopics.class, ListStreams.class,
-        ListTables.class, ListQueries.class, ListProperties.class, RunScript.class,
-        ShowFunctions.class, DescribeFunction.class)
-        .anyMatch(c -> c.isInstance(statement))) {
+    statements.forEach(requestValidator::validate);
+
+    requestValidator.checkCapacity(sql);
+  }
+
+  private Response executeStatements(
+      final List<ParsedStatement> statements,
+      final Map<String, Object> propertyOverrides
+  ) {
+    final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
+    final KsqlEntityList entities = new KsqlEntityList();
+    statements.forEach(stmt -> {
+      final KsqlEntity result = executeStatement(stmt, scopedPropertyOverrides, entities);
+      if (result != null) {
+        entities.add(result);
+      }
+    });
+    return Response.ok(entities).build();
+  }
+
+  private <T extends Statement> KsqlEntity executeStatement(
+      final ParsedStatement statement,
+      final Map<String, Object> propertyOverrides,
+      final KsqlEntityList entities
+  ) {
+    try {
+      final PreparedStatement<T> prepared = prepareStatement(statement, ksqlEngine);
+      final Handler<T> handler = getCustomExecutor(prepared);
+      if (handler != null) {
+        waitForPreviousDistributedStatementToBeHandled(prepared, entities);
+
+        return handler.handle(this, prepared, propertyOverrides);
+      }
+
+      return distributeStatement(prepared, propertyOverrides);
+    } catch (final KsqlRestException e) {
+      throw e;
+    } catch (final KsqlException e) {
+      throw new KsqlRestException(
+          Errors.badStatement(e, statement.getStatementText(), entities));
+    } catch (final Exception e) {
+      throw new KsqlRestException(
+          Errors.serverErrorForStatement(e, statement.getStatementText(), entities));
+    }
+  }
+
+  private void waitForPreviousDistributedStatementToBeHandled(
+      final PreparedStatement<?> prepared,
+      final KsqlEntityList entities
+  ) {
+    if (SYNC_BLACKLIST.contains(prepared.getStatement().getClass())) {
       return;
     }
 
-    if (statement instanceof Query || statement instanceof PrintTopic) {
-      throw new KsqlRestException(Errors.queryEndpoint(statementText, entities));
-    }
+    final ArrayList<KsqlEntity> reversed = new ArrayList<>(entities);
+    Collections.reverse(reversed);
 
-    if (statement instanceof ShowColumns) {
-      final ShowColumns showColumns = (ShowColumns) statement;
-      if (showColumns.isTopic()) {
-        describeTopic(statementText, showColumns.getTable().getSuffix());
-      } else {
-        describe(showColumns.getTable().getSuffix(), showColumns.isExtended());
-      }
-    } else if (statement instanceof Explain) {
-      explainQuery((Explain) statement, statementText);
-    } else if (isExecutableDdlStatement(statement)
-        || statement instanceof QueryContainer
-        || statement instanceof TerminateQuery) {
-      final StatementWithSchema statementWithSchema
-          = StatementWithSchema.forStatement(
-              statement, statementText, ksqlEngine.getSchemaRegistryClient());
-      getStatementExecutionPlan(
-          statementWithSchema.getStatement(),
-          statementWithSchema.getStatementText(),
-          streamsProperties);
-    } else {
-      throw new KsqlRestException(
-          Errors.badStatement(
-              String.format("Unable to execute statement '%s'", statementText),
-              statementText, entities));
-    }
+    reversed.stream()
+        .filter(e -> e instanceof CommandStatusEntity)
+        .map(CommandStatusEntity.class::cast)
+        .map(CommandStatusEntity::getCommandSequenceNumber)
+        .findFirst()
+        .ifPresent(seqNum -> {
+          try {
+            commandQueue.ensureConsumedPast(seqNum, distributedCmdResponseTimeout);
+          } catch (final InterruptedException e) {
+            throw new KsqlRestException(Errors.serverShuttingDown());
+          } catch (final TimeoutException e) {
+            throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(seqNum));
+          }
+        });
   }
 
-  public KsqlEngine getKsqlEngine() {
-    return ksqlEngine;
-  }
-
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private KsqlEntity executeStatement(
-      final String statementText,
-      final Statement statement,
-      final Map<String, Object> streamsProperties) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    if (statement instanceof ListTopics) {
-      return listTopics(statementText);
-    } else if (statement instanceof ListRegisteredTopics) {
-      return listRegisteredTopics(statementText);
-    } else if (statement instanceof ListStreams) {
-      return listStreams(statementText, ((ListStreams)statement).getShowExtended());
-    } else if (statement instanceof ListTables) {
-      return listTables(statementText, ((ListTables)statement).getShowExtended());
-    } else if (statement instanceof ListQueries) {
-      return showQueries(statementText, ((ListQueries)statement).getShowExtended());
-    } else if (statement instanceof ShowColumns) {
-      final ShowColumns showColumns = (ShowColumns) statement;
-      if (showColumns.isTopic()) {
-        return describeTopic(statementText, showColumns.getTable().getSuffix());
-      }
-      return new SourceDescriptionEntity(
-          statementText,
-          describe(showColumns.getTable().getSuffix(), showColumns.isExtended()));
-    } else if (statement instanceof ListProperties) {
-      return listProperties(statementText, streamsProperties);
-    } else if (statement instanceof Explain) {
-      final Explain explain = (Explain) statement;
-      return new QueryDescriptionEntity(
-          statementText, explainQuery(explain, statementText));
-    } else if (statement instanceof RunScript) {
-      return distributeStatement(
-          statementText, statement, streamsProperties, ksqlConfig);
-    } else if (isExecutableDdlStatement(statement)
-               || statement instanceof CreateAsSelect
-               || statement instanceof InsertInto
-               || statement instanceof TerminateQuery
-    ) {
-      final StatementWithSchema statementWithSchema
-          = StatementWithSchema.forStatement(
-              statement, statementText, ksqlEngine.getSchemaRegistryClient());
-      return distributeStatement(
-          statementWithSchema.getStatementText(),
-          statementWithSchema.getStatement(),
-          streamsProperties,
-          ksqlConfig);
-    } else if (statement instanceof ShowFunctions) {
-      return listFunctions(statementText);
-    } else if (statement instanceof DescribeFunction) {
-      return describeFunction(statementText, ((DescribeFunction)statement).getFunctionName());
+  private KsqlEntity executeDdlImmediately(
+      final PreparedStatement<?> stmt,
+      final Map<String, Object> propertyOverrides
+  ) {
+    if (!(stmt.getStatement() instanceof ExecutableDdlStatement)) {
+      throw new IllegalArgumentException("statement is not executable");
     }
-    // This line is unreachable. Once we have distinct exception types we won't need a
-    // separate validation phase for each statement and this can go away. For now all
-    // exceptions are KsqlExceptions so we have to use the context to decide if its an
-    // input or system error.
-    throw new RuntimeException(
-        "Unexpected statement of type " + statement.getClass().getSimpleName());
+
+    ksqlEngine.execute(stmt, ksqlConfig, propertyOverrides);
+    return null;
   }
 
-
-
-  private boolean isExecutableDdlStatement(final Statement statement) {
-    return statement instanceof DdlStatement
-        && !((statement instanceof SetProperty) || (statement instanceof UnsetProperty));
+  private static boolean isUnknownPropertyName(final String propertyName) {
+    return !new KsqlConfigResolver()
+        .resolve(propertyName, false)
+        .isPresent();
   }
 
-  private CommandStatusEntity distributeStatement(
-      final String statementText,
-      final Statement statement,
-      final Map<String, Object> propertyOverrides,
-      final KsqlConfig ksqlConfig
-  ) throws KsqlException {
-    final QueuedCommandStatus queuedCommandStatus;
-    try {
-      queuedCommandStatus = replayableCommandQueue.enqueueCommand(
-              statementText,
-              statement,
-              ksqlConfig,
-              propertyOverrides);
-    } catch (final Exception e) {
-      throw new KsqlException(
-          String.format(
-              "Could not write the statement '%s' into the command " + "topic.", statementText
-          ),
-          e
-      );
-    }
-    try {
-      return new CommandStatusEntity(
-          statementText,
-          queuedCommandStatus.getCommandId(),
-          queuedCommandStatus.tryWaitForFinalStatus(
-              Duration.ofMillis(distributedCommandResponseTimeout))
-      );
-    } catch (final Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private KafkaTopicsList listTopics(final String statementText) {
-    final KafkaTopicClient client = ksqlEngine.getTopicClient();
+  private KafkaTopicsList listTopics(final PreparedStatement<ListTopics> statement) {
+    final KafkaTopicClient client = serviceContext.getTopicClient();
     final KafkaConsumerGroupClient kafkaConsumerGroupClient
-        = new KafkaConsumerGroupClientImpl(ksqlEngine.getAdminClient());
+        = new KafkaConsumerGroupClientImpl(serviceContext.getAdminClient());
+
     return KafkaTopicsList.build(
-        statementText,
-        getKsqlTopics(),
+        statement.getStatementText(),
+        ksqlEngine.getMetaStore().getAllKsqlTopics().values(),
         client.describeTopics(client.listNonInternalTopicNames()),
         ksqlConfig,
         kafkaConsumerGroupClient
     );
   }
 
-  private Collection<KsqlTopic> getKsqlTopics() {
-    return ksqlEngine.getMetaStore().getAllKsqlTopics().values();
+  private KsqlTopicsList listRegisteredTopics(final PreparedStatement<ListRegisteredTopics> stmt) {
+    return KsqlTopicsList.build(
+        stmt.getStatementText(),
+        ksqlEngine.getMetaStore().getAllKsqlTopics().values()
+    );
   }
 
-  private KsqlTopicsList listRegisteredTopics(final String statementText) {
-    return KsqlTopicsList.build(statementText, getKsqlTopics());
+  private KsqlEntity listStreams(final PreparedStatement<ListStreams> statement) {
+    final List<KsqlStream> ksqlStreams = getSpecificSources(KsqlStream.class);
+
+    if (statement.getStatement().getShowExtended()) {
+      return new SourceDescriptionList(
+          statement.getStatementText(),
+          ksqlStreams.stream()
+              .map(s -> describeSource(s.getName(), true))
+              .collect(Collectors.toList()));
+    }
+
+    return new StreamsList(
+        statement.getStatementText(),
+        ksqlStreams.stream()
+            .map(SourceInfo.Stream::new)
+            .collect(Collectors.toList()));
+  }
+
+  private KsqlEntity listTables(final PreparedStatement<ListTables> statement) {
+    final List<KsqlTable> ksqlTables = getSpecificSources(KsqlTable.class);
+
+    if (statement.getStatement().getShowExtended()) {
+      return new SourceDescriptionList(
+          statement.getStatementText(),
+          ksqlTables.stream()
+              .map(t -> describeSource(t.getName(), true))
+              .collect(Collectors.toList()));
+    }
+    return new TablesList(
+        statement.getStatementText(),
+        ksqlTables.stream()
+            .map(SourceInfo.Table::new)
+            .collect(Collectors.toList()));
+  }
+
+  private KsqlEntity listFunctions(final PreparedStatement<ListFunctions> statement) {
+    final FunctionRegistry functionRegistry = ksqlEngine.getMetaStore();
+
+    final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
+        .filter(factory -> !factory.isInternal())
+        .map(factory -> new SimpleFunctionInfo(
+            factory.getName().toUpperCase(),
+            FunctionType.scalar))
+        .collect(Collectors.toList());
+
+    all.addAll(functionRegistry.listAggregateFunctions().stream()
+        .filter(factory -> !factory.isInternal())
+        .map(factory -> new SimpleFunctionInfo(
+            factory.getName().toUpperCase(),
+            FunctionType.aggregate))
+        .collect(Collectors.toList()));
+
+    return new FunctionNameList(statement.getStatementText(), all);
   }
 
   // Only shows queries running on the current machine, not across the entire cluster
-  private KsqlEntity showQueries(final String statementText, final boolean descriptions) {
-    if (descriptions) {
+  private KsqlEntity listQueries(final PreparedStatement<ListQueries> statement) {
+    if (statement.getStatement().getShowExtended()) {
       return new QueryDescriptionList(
-          statementText,
+          statement.getStatementText(),
           ksqlEngine.getPersistentQueries().stream()
               .map(QueryDescription::forQueryMetadata)
               .collect(Collectors.toList()));
     }
+
     return new Queries(
-        statementText,
+        statement.getStatementText(),
         ksqlEngine.getPersistentQueries().stream()
             .map(
                 q -> new RunningQuery(
@@ -389,89 +449,29 @@ public class KsqlResource {
             .collect(Collectors.toList()));
   }
 
-  private TopicDescription describeTopic(
-      final String statementText,
-      final String name) throws KsqlException {
-    final KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(name);
-    if (ksqlTopic == null) {
-      throw new KsqlException(String.format(
-          "Could not find Topic '%s' in the Metastore",
-          name
-      ));
-    }
-    final String schemaString = null;
-    final TopicDescription topicDescription = new TopicDescription(
-        statementText,
-        name,
-        ksqlTopic.getKafkaTopicName(),
-        ksqlTopic
-            .getKsqlTopicSerDe()
-            .getSerDe()
-            .toString(),
-        schemaString
-    );
-    return topicDescription;
-  }
-
-  private SourceDescription describe(
-      final String name,
-      final boolean extended) throws KsqlException {
-
-    final StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
-    if (dataSource == null) {
-      throw new KsqlException(String.format(
-          "Could not find STREAM/TABLE '%s' in the Metastore",
-          name
-      ));
+  private KsqlEntity showColumns(final PreparedStatement<ShowColumns> statement) {
+    final ShowColumns showColumns = statement.getStatement();
+    if (showColumns.isTopic()) {
+      return describeTopic(statement.getStatementText(), showColumns.getTable().getSuffix());
     }
 
-    return new SourceDescription(
-        dataSource,
-        extended,
-        dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
-        getQueries(q -> q.getSourceNames().contains(dataSource.getName())),
-        getQueries(q -> q.getSinkNames().contains(dataSource.getName())),
-        ksqlEngine.getTopicClient()
+    return new SourceDescriptionEntity(
+        statement.getStatementText(),
+        describeSource(showColumns.getTable().getSuffix(), showColumns.isExtended())
     );
   }
 
-  private List<RunningQuery> getQueries(final Predicate<PersistentQueryMetadata> predicate) {
-    return ksqlEngine.getPersistentQueries()
-        .stream()
-        .filter(predicate)
-        .map(q -> new RunningQuery(
-            q.getStatementString(), q.getSinkNames(), new EntityQueryId(q.getQueryId())))
-        .collect(Collectors.toList());
-  }
-
-  private ImmutableMap<String, Object> getAllProps(final KsqlConfig ksqlConfig) {
-    final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
-    builder.putAll(ksqlConfig.values().entrySet().stream()
-        .filter(e -> e.getValue() != null)
-        .collect(
-            Collectors.toMap(
-                Map.Entry::getKey,
-                Map.Entry::getValue))
-    );
-    builder.putAll(ksqlConfig.getKsqlStreamConfigProps().entrySet().stream()
-        .filter(e -> e.getValue() != null)
-        .collect(
-            Collectors.toMap(
-                e -> KsqlConfig.KSQL_STREAMS_PREFIX + e.getKey(),
-                Map.Entry::getValue)));
-    return builder.build();
-  }
-
-
-  private PropertiesList listProperties(final String statementText,
-                                        final Map<String, Object> overwriteProperties) {
+  private PropertiesList listProperties(
+      final PreparedStatement<ListProperties> statement,
+      final Map<String, Object> propertyOverrides
+  ) {
     final KsqlConfigResolver resolver = new KsqlConfigResolver();
 
     final Map<String, String> engineProperties
         = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
 
     final Map<String, String> mergedProperties = ksqlConfig
-        .cloneWithPropertyOverwrite(overwriteProperties)
+        .cloneWithPropertyOverwrite(propertyOverrides)
         .getAllConfigPropsWithSecretsObfuscated();
 
     final List<String> overwritten = mergedProperties.entrySet()
@@ -487,93 +487,122 @@ public class KsqlResource {
         .map(Entry::getKey)
         .collect(Collectors.toList());
 
-    return new PropertiesList(statementText, mergedProperties, overwritten, defaultProps);
+    return new PropertiesList(
+        statement.getStatementText(), mergedProperties, overwritten, defaultProps);
   }
 
-  private KsqlEntity listStreams(final String statementText, final boolean showDescriptions) {
-    final List<KsqlStream> ksqlStreams = getSpecificSources(KsqlStream.class);
-    if (showDescriptions) {
-      return new SourceDescriptionList(
-          statementText,
-          ksqlStreams.stream()
-              .map(s -> describe(s.getName(), true))
-              .collect(Collectors.toList()));
+  private QueryDescriptionEntity explain(
+      final PreparedStatement<Explain> statement,
+      final Map<String, Object> propertyOverrides
+  ) {
+    return explain(statement, propertyOverrides, ksqlConfig, ksqlEngine);
+  }
+
+  private static QueryDescriptionEntity explain(
+      final PreparedStatement<Explain> statement,
+      final Map<String, Object> propertyOverrides,
+      final KsqlConfig ksqlConfig,
+      final KsqlExecutionContext executionContext
+  ) {
+    final String queryId = statement.getStatement().getQueryId();
+
+    try {
+      final QueryDescription queryDescription = queryId == null
+          ? explainStatement(
+          statement.getStatement().getStatement(),
+          statement.getStatementText().substring("EXPLAIN ".length()),
+          executionContext,
+          ksqlConfig,
+          propertyOverrides)
+          : explainQuery(queryId, executionContext);
+
+      return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
     }
-    return new StreamsList(
-        statementText,
-        ksqlStreams.stream()
-            .map(SourceInfo.Stream::new)
-            .collect(Collectors.toList()));
   }
 
-  private KsqlEntity listTables(final String statementText, final boolean showDescriptions) {
-    final List<KsqlTable> ksqlTables = getSpecificSources(KsqlTable.class);
-    if (showDescriptions) {
-      return new SourceDescriptionList(
-          statementText,
-          ksqlTables.stream()
-              .map(t -> describe(t.getName(), true))
-              .collect(Collectors.toList()));
+  private static QueryDescription explainStatement(
+      final Statement statement,
+      final String statementText,
+      final KsqlExecutionContext executionContext,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> propertyOverrides
+  ) {
+    if (!(statement instanceof Query || statement instanceof QueryContainer)) {
+      throw new KsqlException("The provided statement does not run a ksql query");
     }
-    return new TablesList(
-        statementText,
-        ksqlTables.stream()
-            .map(SourceInfo.Table::new)
-            .collect(Collectors.toList()));
+
+    final QueryMetadata metadata = executionContext.createSandbox().execute(
+        PreparedStatement.of(statementText, statement),
+        ksqlConfig, propertyOverrides)
+        .getQuery()
+        .orElseThrow(() ->
+            new IllegalStateException("The provided statement did not run a ksql query"));
+
+    return QueryDescription.forQueryMetadata(metadata);
   }
 
-  private KsqlEntity listFunctions(final String statementText) {
-    final List<SimpleFunctionInfo> all = ksqlEngine.listScalarFunctions()
-        .stream()
-        .filter(factory -> !factory.isInternal())
-        .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
-            FunctionType.scalar)).collect(Collectors.toList());
-    all.addAll(ksqlEngine.listAggregateFunctions()
-        .stream()
-        .filter(factory -> !factory.isInternal())
-        .map(factory -> new SimpleFunctionInfo(factory.getName().toUpperCase(),
-            FunctionType.aggregate))
-        .collect(Collectors.toList()));
+  private static QueryDescription explainQuery(
+      final String queryId,
+      final KsqlExecutionContext executionContext
+  ) {
+    final PersistentQueryMetadata metadata = executionContext
+        .getPersistentQuery(new QueryId(queryId))
+        .orElseThrow(() -> new KsqlException(
+            "Query with id:" + queryId + " does not exist, "
+                + "use SHOW QUERIES to view the full set of queries."));
 
-    return new FunctionNameList(statementText, all);
+    return QueryDescription.forQueryMetadata(metadata);
   }
 
-  private FunctionDescriptionList describeFunction(final String statementText,
-                                                   final String functionName) {
+  private FunctionDescriptionList describeFunction(final PreparedStatement<DescribeFunction> stmt) {
+    final String functionName = stmt.getStatement().getFunctionName();
+
+    if (ksqlEngine.getMetaStore().isAggregate(functionName)) {
+      return describeAggregateFunction(functionName, stmt.getStatementText());
+    }
+
+    return describeNonAggregateFunction(functionName, stmt.getStatementText());
+  }
+
+  private FunctionDescriptionList describeAggregateFunction(
+      final String functionName,
+      final String statementText
+  ) {
+    final AggregateFunctionFactory aggregateFactory
+        = ksqlEngine.getMetaStore().getAggregateFactory(functionName);
+
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
-    final FunctionRegistry functionRegistry = ksqlEngine.getFunctionRegistry();
-    if (functionRegistry.isAggregate(functionName)) {
-      final AggregateFunctionFactory aggregateFactory
-          = functionRegistry.getAggregateFactory(functionName);
-      aggregateFactory.eachFunction(function ->
-          listBuilder.add(new FunctionInfo(function.getArgTypes()
-              .stream()
-              .map(s -> new ArgumentInfo(s.name(), SchemaUtil.getSqlTypeName(s), s.doc()))
-              .collect(Collectors.toList()),
-              SchemaUtil.getSqlTypeName(function.getReturnType()),
-              function.getDescription())));
 
-      return new FunctionDescriptionList(statementText,
-          aggregateFactory.getName().toUpperCase(),
-          aggregateFactory.getDescription(),
-          aggregateFactory.getAuthor(),
-          aggregateFactory.getVersion(),
-          aggregateFactory.getPath(),
-          listBuilder.build(),
-          FunctionType.aggregate
-      );
-    }
+    aggregateFactory.eachFunction(func -> listBuilder.add(
+        getFunctionInfo(func.getArgTypes(), func.getReturnType(), func.getDescription())));
 
-    final UdfFactory udfFactory = ksqlEngine.getFunctionRegistry().getUdfFactory(functionName);
-    udfFactory.eachFunction(function ->
-        listBuilder.add(new FunctionInfo(function.getArguments()
-            .stream()
-            .map(s -> new ArgumentInfo(s.name(), SchemaUtil.getSqlTypeName(s), s.doc()))
-            .collect(Collectors.toList()),
-            SchemaUtil.getSqlTypeName(function.getReturnType()),
-            function.getDescription())));
+    return new FunctionDescriptionList(
+        statementText,
+        aggregateFactory.getName().toUpperCase(),
+        aggregateFactory.getDescription(),
+        aggregateFactory.getAuthor(),
+        aggregateFactory.getVersion(),
+        aggregateFactory.getPath(),
+        listBuilder.build(),
+        FunctionType.aggregate
+    );
+  }
 
-    return new FunctionDescriptionList(statementText,
+  private FunctionDescriptionList describeNonAggregateFunction(
+      final String functionName,
+      final String statementText
+  ) {
+    final UdfFactory udfFactory = ksqlEngine.getMetaStore().getUdfFactory(functionName);
+
+    final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
+
+    udfFactory.eachFunction(func -> listBuilder.add(
+        getFunctionInfo(func.getArguments(), func.getReturnType(), func.getDescription())));
+
+    return new FunctionDescriptionList(
+        statementText,
         udfFactory.getName().toUpperCase(),
         udfFactory.getDescription(),
         udfFactory.getAuthor(),
@@ -584,171 +613,85 @@ public class KsqlResource {
     );
   }
 
-  private QueryDescription explainQuery(final Explain explain, final String statementText) {
-    final String queryId = explain.getQueryId();
-    if (queryId != null) {
-      final PersistentQueryMetadata metadata =
-          ksqlEngine.getPersistentQuery(new QueryId(queryId));
-      if (metadata == null) {
-        throw new KsqlException(
-            "Query with id:" + queryId + " does not exist, use SHOW QUERIES to view the full "
-                + "set of queries.");
-      }
-      return QueryDescription.forQueryMetadata(metadata);
+  private CommandStatusEntity distributeStatement(
+      final PreparedStatement<?> statement,
+      final Map<String, Object> propertyOverrides
+  ) {
+    try {
+      final PreparedStatement<?> withSchema = addInferredSchema(statement, serviceContext);
+
+      final QueuedCommandStatus queuedCommandStatus = commandQueue
+          .enqueueCommand(withSchema, ksqlConfig, propertyOverrides);
+
+      final CommandStatus commandStatus = queuedCommandStatus
+          .tryWaitForFinalStatus(distributedCmdResponseTimeout);
+
+      return new CommandStatusEntity(
+          withSchema.getStatementText(),
+          queuedCommandStatus.getCommandId(),
+          commandStatus,
+          queuedCommandStatus.getCommandSequenceNumber()
+      );
+    } catch (final Exception e) {
+      throw new KsqlException(String.format(
+          "Could not write the statement '%s' into the command " + "topic.",
+          statement.getStatementText()), e);
     }
-    final QueryMetadata queryMetadata = getStatementExecutionPlan(
-        explain.getStatement(),
+  }
+
+  private TopicDescription describeTopic(
+      final String statementText,
+      final String name
+  ) {
+    final KsqlTopic ksqlTopic = ksqlEngine.getMetaStore().getTopic(name);
+    if (ksqlTopic == null) {
+      throw new KsqlException(String.format(
+          "Could not find Topic '%s' in the Metastore",
+          name
+      ));
+    }
+
+    return new TopicDescription(
         statementText,
-        Collections.emptyMap()
+        name,
+        ksqlTopic.getKafkaTopicName(),
+        ksqlTopic
+            .getKsqlTopicSerDe()
+            .getSerDe()
+            .toString(),
+        null
     );
-    if (queryMetadata == null) {
-      throw new KsqlException("The provided statement does not run a ksql query");
+  }
+
+  private SourceDescription describeSource(
+      final String name,
+      final boolean extended
+  ) {
+    final StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
+    if (dataSource == null) {
+      throw new KsqlException(String.format(
+          "Could not find STREAM/TABLE '%s' in the Metastore",
+          name
+      ));
     }
-    return QueryDescription.forQueryMetadata(queryMetadata);
-  }
 
-  private QueryMetadata getStatementExecutionPlan(
-      final Statement statement, final String statementText, final Map<String, Object> properties) {
-
-    final KsqlStatementTask ksqlStatementTask = ksqlStatementTasks.get(statement.getClass());
-    if (ksqlStatementTask == null) {
-      throw new KsqlException("Cannot FIND execution plan for this statement:" + statement);
-    }
-    return ksqlStatementTask.execute(statement, statementText, properties);
-  }
-
-  private interface KsqlStatementTask {
-    QueryMetadata execute(Statement statement, String statementText,
-                          Map<String, Object> properties);
-  }
-
-  private final Map<Class, KsqlStatementTask> ksqlStatementTasks = new HashMap<>();
-
-  // CHECKSTYLE_RULES.OFF: JavaNCSS
-  private void registerKsqlStatementTasks() {
-    // CHECKSTYLE_RULES.OFF: JavaNCSS
-    ksqlStatementTasks.put(Query.class,
-        (statement, statementText, properties) ->
-            ksqlEngine.getQueryExecutionPlan((Query)statement, ksqlConfig)
+    return new SourceDescription(
+        dataSource,
+        extended,
+        dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().name(),
+        getQueries(q -> q.getSourceNames().contains(dataSource.getName())),
+        getQueries(q -> q.getSinkNames().contains(dataSource.getName())),
+        serviceContext.getTopicClient()
     );
+  }
 
-    ksqlStatementTasks.put(CreateStreamAsSelect.class, (statement, statementText, properties) -> {
-      final QueryMetadata
-          queryMetadata =
-          ksqlEngine.getQueryExecutionPlan(
-              ((CreateStreamAsSelect) statement).getQuery(),
-              ksqlConfig);
-      if (queryMetadata.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
-        throw new KsqlException("Invalid result type. Your SELECT query produces a TABLE. Please "
-                                + "use CREATE TABLE AS SELECT statement instead.");
-      }
-      if (queryMetadata instanceof PersistentQueryMetadata) {
-        AvroUtil.validatePersistentQueryResults(
-            (PersistentQueryMetadata) queryMetadata,
-            ksqlEngine.getSchemaRegistryClient()
-        );
-      }
-      queryMetadata.close();
-      return queryMetadata;
-    });
-
-    ksqlStatementTasks.put(CreateTableAsSelect.class, (statement, statementText, properties) -> {
-      final QueryMetadata queryMetadata =
-          ksqlEngine.getQueryExecutionPlan(
-              ((CreateTableAsSelect) statement).getQuery(),
-              ksqlConfig);
-      if (queryMetadata.getDataSourceType() != DataSource.DataSourceType.KTABLE) {
-        throw new KsqlException("Invalid result type. Your SELECT query produces a STREAM. Please "
-                                + "use CREATE STREAM AS SELECT statement instead.");
-      }
-      if (queryMetadata instanceof PersistentQueryMetadata) {
-        AvroUtil.validatePersistentQueryResults(
-            (PersistentQueryMetadata) queryMetadata,
-            ksqlEngine.getSchemaRegistryClient()
-        );
-      }
-      queryMetadata.close();
-      return queryMetadata;
-    });
-
-    ksqlStatementTasks.put(InsertInto.class, (statement, statementText, properties) -> {
-      final QueryMetadata queryMetadata =
-          ksqlEngine.getQueryExecutionPlan(((InsertInto) statement).getQuery(), ksqlConfig);
-      if (queryMetadata instanceof PersistentQueryMetadata) {
-        AvroUtil.validatePersistentQueryResults((PersistentQueryMetadata) queryMetadata,
-                                                      ksqlEngine.getSchemaRegistryClient());
-      }
-      queryMetadata.close();
-      return queryMetadata;
-    });
-
-    ksqlStatementTasks.put(RegisterTopic.class, (statement, statementText, properties) -> {
-      final RegisterTopicCommand registerTopicCommand =
-          new RegisterTopicCommand((RegisterTopic) statement);
-      new DdlCommandExec(ksqlEngine.getMetaStore().clone()).execute(registerTopicCommand, true);
-      return null;
-    });
-
-    ksqlStatementTasks.put(CreateStream.class, (statement, statementText, properties) -> {
-      final CreateStreamCommand createStreamCommand =
-          new CreateStreamCommand(
-              statementText,
-              (CreateStream) statement,
-              ksqlEngine.getTopicClient(),
-              true
-          );
-      executeDdlCommand(createStreamCommand);
-      return null;
-    });
-
-    ksqlStatementTasks.put(CreateTable.class, (statement, statementText, properties) -> {
-      final CreateTableCommand createTableCommand =
-          new CreateTableCommand(
-              statementText,
-              (CreateTable) statement,
-              ksqlEngine.getTopicClient(),
-              true
-          );
-      executeDdlCommand(createTableCommand);
-      return null;
-    });
-
-    ksqlStatementTasks.put(DropTopic.class, (statement, statementText, properties) -> {
-      final DropTopicCommand dropTopicCommand = new DropTopicCommand((DropTopic) statement);
-      new DdlCommandExec(ksqlEngine.getMetaStore().clone()).execute(dropTopicCommand, true);
-      return null;
-    });
-
-    ksqlStatementTasks.put(DropStream.class, (statement, statementText, properties) -> {
-      final DropStream dropStream = (DropStream) statement;
-      final DropSourceCommand dropSourceCommand = new DropSourceCommand(
-          dropStream,
-          DataSource.DataSourceType.KSTREAM,
-          ksqlEngine.getTopicClient(),
-          ksqlEngine.getSchemaRegistryClient(),
-          dropStream.isDeleteTopic()
-      );
-      executeDdlCommand(dropSourceCommand);
-      return null;
-    });
-
-    ksqlStatementTasks.put(DropTable.class, (statement, statementText, properties) -> {
-      final DropTable dropTable = (DropTable) statement;
-      final DropSourceCommand dropSourceCommand = new DropSourceCommand(
-          dropTable,
-          DataSource.DataSourceType.KTABLE,
-          ksqlEngine.getTopicClient(),
-          ksqlEngine.getSchemaRegistryClient(),
-          dropTable.isDeleteTopic()
-      );
-      executeDdlCommand(dropSourceCommand);
-      return null;
-    });
-
-    ksqlStatementTasks.put(
-        TerminateQuery.class,
-        (statement, statementText, properties) -> null
-    );
+  private List<RunningQuery> getQueries(final Predicate<PersistentQueryMetadata> predicate) {
+    return ksqlEngine.getPersistentQueries()
+        .stream()
+        .filter(predicate)
+        .map(q -> new RunningQuery(
+            q.getStatementString(), q.getSinkNames(), new EntityQueryId(q.getQueryId())))
+        .collect(Collectors.toList());
   }
 
   private <S extends StructuredDataSource> List<S> getSpecificSources(
@@ -761,32 +704,272 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
-  private void executeDdlCommand(final DdlCommand ddlCommand) {
-    final DdlCommandResult ddlCommandResult = new DdlCommandExec(
-        ksqlEngine
-            .getMetaStore()
-            .clone()).execute(ddlCommand, true);
-    if (!ddlCommandResult.isSuccess()) {
-      throw new KsqlException(ddlCommandResult.getMessage());
-    }
+  @SuppressWarnings("unchecked")
+  private static PreparedStatement<?> addInferredSchema(
+      final PreparedStatement<?> stmt,
+      final ServiceContext serviceContext
+  ) {
+    return StatementWithSchema
+        .forStatement((PreparedStatement) stmt, serviceContext.getSchemaRegistryClient());
   }
 
-  private void checkPersistentQueryCapacity(
-      final List<PreparedStatement> parsedStatements, final String queriesString) {
+  private static FunctionInfo getFunctionInfo(
+      final List<Schema> argTypes,
+      final Schema returnTypeSchema,
+      final String description
+  ) {
+    final List<ArgumentInfo> args = argTypes.stream()
+        .map(s -> new ArgumentInfo(s.name(), SchemaUtil.getSqlTypeName(s), s.doc()))
+        .collect(Collectors.toList());
 
-    final long numPersistentQueries = parsedStatements.stream().filter(parsedStatement -> {
-      final Statement statement = parsedStatement.getStatement();
+    final String returnType = SchemaUtil.getSqlTypeName(returnTypeSchema);
+
+    return new FunctionInfo(args, returnType, description);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T extends Statement> Handler<T> getCustomExecutor(
+      final PreparedStatement<T> statement
+  ) {
+    final Class<? extends Statement> type = statement.getStatement().getClass();
+    return (Handler) CUSTOM_EXECUTORS.get(type);
+  }
+
+  @SuppressWarnings({"unchecked", "unused"})
+  private static <T extends Statement> Handler<Statement> castExecutor(
+      final Handler<? super T> handler,
+      final Class<T> type) {
+    return ((Handler<Statement>) handler);
+  }
+
+  @SuppressWarnings({"unchecked", "unused"})
+  private static <T extends Statement> Handler<Statement> castExecutor(
+      final BiFunction<KsqlResource, PreparedStatement<T>, ? extends KsqlEntity> handler,
+      final Class<T> type) {
+    return (ksqlResource, statement, propertyOverrides) ->
+        (KsqlEntity) ((BiFunction) handler).apply(ksqlResource, statement);
+  }
+
+  @FunctionalInterface
+  private interface Handler<T extends Statement> {
+
+    KsqlEntity handle(
+        KsqlResource ksqlResource,
+        PreparedStatement<T> statement,
+        Map<String, Object> propertyOverrides);
+  }
+
+  private static void ensureValidPatterns(final List<String> deleteTopicList) {
+    deleteTopicList
+        .forEach(pattern -> {
+          try {
+            compile(pattern);
+          } catch (final PatternSyntaxException patternSyntaxException) {
+            throw new KsqlRestException(Errors.badRequest("Invalid pattern: " + pattern));
+          }
+        });
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T extends Statement> PreparedStatement<T> prepareStatement(
+      final ParsedStatement statement, final KsqlExecutionContext executor
+  ) {
+    return (PreparedStatement<T>) executor.prepare(statement);
+  }
+
+  private static final class RequestValidator {
+
+    @FunctionalInterface
+    private interface Validator<T extends Statement> {
+
+      void validate(RequestValidator validator, PreparedStatement<T> statement);
+    }
+
+    private static final Map<Class<? extends Statement>, Validator<Statement>> CUSTOM_VALIDATORS =
+        ImmutableMap.<Class<? extends Statement>, Validator<Statement>>builder()
+            .put(Query.class,
+                castValidator(RequestValidator::validateQueryEndpointStatement, Query.class))
+            .put(PrintTopic.class,
+                castValidator(RequestValidator::validateQueryEndpointStatement, PrintTopic.class))
+            .put(SetProperty.class,
+                castValidator(RequestValidator::validateSetProperty, SetProperty.class))
+            .put(UnsetProperty.class,
+                castValidator(RequestValidator::validateUnsetProperty, UnsetProperty.class))
+            .put(ShowColumns.class,
+                castValidator(RequestValidator::validateShowColumns, ShowColumns.class))
+            .put(Explain.class,
+                castValidator(RequestValidator::validateExplain, Explain.class))
+            .put(DescribeFunction.class,
+                castValidator(RequestValidator::validateDescribeFunction, DescribeFunction.class))
+            .put(TerminateQuery.class,
+                castValidator(RequestValidator::validateTerminateQuery, TerminateQuery.class))
+            .build();
+
+    private final KsqlExecutionContext executionSandbox;
+    private final ServiceContext serviceContext;
+    private final KsqlConfig ksqlConfig;
+    private final Map<String, Object> scopedPropertyOverrides;
+    private int persistentQueryCount;
+
+    private RequestValidator(
+        final KsqlExecutionContext executionSandbox,
+        final ServiceContext serviceContext,
+        final KsqlConfig ksqlConfig,
+        final Map<String, Object> propertyOverrides
+    ) {
+      this.executionSandbox = Objects.requireNonNull(executionSandbox, "executionSandbox");
+      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.scopedPropertyOverrides = new HashMap<>(propertyOverrides);
+    }
+
+    private <T extends Statement> void validate(final ParsedStatement stmt) {
+      try {
+        final PreparedStatement<T> prepared = prepareStatement(stmt, executionSandbox);
+        updatePersistentQueryCount(prepared);
+        final Validator<T> customValidator = getCustomValidator(prepared);
+        if (customValidator != null) {
+          customValidator.validate(this, prepared);
+
+        } else if (KsqlEngine.isExecutableStatement(prepared)) {
+          validateAgainstSandbox(prepared);
+        } else if (getCustomExecutor(prepared) == null) {
+          throw new KsqlRestException(Errors.badStatement(
+              "Do not know how to execute statement", stmt.getStatementText()));
+        }
+      } catch (final KsqlRestException e) {
+        throw e;
+      } catch (final KsqlStatementException e) {
+        throw new KsqlRestException(
+            Errors.badStatement(e.getRawMessage(), stmt.getStatementText()));
+      } catch (final KsqlException e) {
+        throw new KsqlRestException(Errors.badStatement(e, stmt.getStatementText()));
+      } catch (final Exception e) {
+        throw new KsqlRestException(Errors.serverErrorForStatement(e, stmt.getStatementText()));
+      }
+    }
+
+    private void validateAgainstSandbox(final PreparedStatement<?> prepared) {
+      final PreparedStatement<?> withSchemas = addInferredSchema(prepared, serviceContext);
+
+      executionSandbox.execute(withSchemas, ksqlConfig, scopedPropertyOverrides);
+    }
+
+    private <T extends Statement> void updatePersistentQueryCount(
+        final PreparedStatement<T> statement
+    ) {
       // Note: RunScript commands also have the potential to create persistent queries,
       // but we don't count those queries here (to avoid parsing those commands)
-      return statement instanceof CreateAsSelect || statement instanceof InsertInto;
-    }).count();
+      if (statement.getStatement() instanceof CreateAsSelect
+          || statement.getStatement() instanceof InsertInto) {
+        persistentQueryCount++;
+      }
+    }
 
-    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
-        ksqlEngine,
-        ksqlConfig,
-        numPersistentQueries)) {
-      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-          ksqlEngine, ksqlConfig, queriesString);
+    private void checkCapacity(final String sql) {
+      if (QueryCapacityUtil
+          .exceedsPersistentQueryCapacity(executionSandbox, ksqlConfig, persistentQueryCount)) {
+        QueryCapacityUtil
+            .throwTooManyActivePersistentQueriesException(executionSandbox, ksqlConfig, sql);
+      }
+    }
+
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
+    private void validateSetProperty(final PreparedStatement<SetProperty> statement
+    ) {
+      if (isUnknownPropertyName(statement.getStatement().getPropertyName())) {
+        throw new KsqlRestException(Errors.badStatement(
+            "Unknown property", statement.getStatementText()));
+      }
+
+      try {
+        ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
+            statement.getStatement().getPropertyName(),
+            statement.getStatement().getPropertyValue()));
+      } catch (final Exception e) {
+        throw new KsqlRestException(Errors.badStatement(e, statement.getStatementText()));
+      }
+
+      executionSandbox.execute(statement, ksqlConfig, scopedPropertyOverrides);
+    }
+
+    @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
+    private void validateUnsetProperty(final PreparedStatement<UnsetProperty> statement) {
+      if (isUnknownPropertyName(statement.getStatement().getPropertyName())) {
+        throw new KsqlRestException(Errors.badStatement(
+            "Unknown property", statement.getStatementText()));
+      }
+
+      executionSandbox.execute(statement, ksqlConfig, scopedPropertyOverrides);
+    }
+
+    private void validateShowColumns(final PreparedStatement<ShowColumns> statement) {
+      final ShowColumns showColumns = statement.getStatement();
+      final String name = showColumns.getTable().getSuffix();
+
+      if (showColumns.isTopic()) {
+        final KsqlTopic ksqlTopic = executionSandbox.getMetaStore().getTopic(name);
+        if (ksqlTopic == null) {
+          throw new KsqlStatementException(
+              "Could not find Topic '" + name + "' in the Metastore",
+              statement.getStatementText());
+        }
+      } else {
+        final StructuredDataSource dataSource = executionSandbox.getMetaStore().getSource(name);
+        if (dataSource == null) {
+          throw new KsqlStatementException(
+              "Could not find STREAM/TABLE '" + name + "' in the Metastore",
+              statement.getStatementText());
+        }
+      }
+    }
+
+    private void validateExplain(final PreparedStatement<Explain> statement) {
+      explain(statement, scopedPropertyOverrides, ksqlConfig, executionSandbox);
+    }
+
+    private void validateDescribeFunction(final PreparedStatement<DescribeFunction> statement) {
+      try {
+        final String functionName = statement.getStatement().getFunctionName();
+
+        final FunctionRegistry functionRegistry = executionSandbox.getMetaStore();
+        if (!functionRegistry.isAggregate(functionName)) {
+          // Not a known UDAF, see if know UDF. (The below throws on unknown method).
+          functionRegistry.getUdfFactory(functionName);
+        }
+      } catch (final KsqlException e) {
+        throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
+      }
+    }
+
+    private void validateTerminateQuery(final PreparedStatement<TerminateQuery> statement) {
+      final QueryId queryId = statement.getStatement().getQueryId();
+
+      executionSandbox.getPersistentQuery(queryId)
+          .orElseThrow(() -> new KsqlStatementException(
+              "Unknown queryId: " + queryId,
+              statement.getStatementText()))
+          .close();
+    }
+
+    @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
+    private void validateQueryEndpointStatement(final PreparedStatement<?> statement) {
+      throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Statement> Validator<T> getCustomValidator(
+        final PreparedStatement<T> statement
+    ) {
+      final Class<? extends Statement> type = statement.getStatement().getClass();
+      return (Validator) CUSTOM_VALIDATORS.get(type);
+    }
+
+    @SuppressWarnings({"unchecked", "unused", "SameParameterValue"})
+    private static <T extends Statement> Validator<Statement> castValidator(
+        final Validator<? super T> handler,
+        final Class<T> type) {
+      return ((Validator<Statement>) handler);
     }
   }
 }

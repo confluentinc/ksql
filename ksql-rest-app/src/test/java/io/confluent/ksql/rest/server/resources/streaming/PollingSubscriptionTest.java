@@ -1,18 +1,16 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
@@ -27,13 +25,11 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
-import java.util.List;
+import io.confluent.ksql.rest.server.resources.streaming.StreamingTestUtils.TestSubscriber;
 import java.util.Queue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
@@ -43,56 +39,6 @@ public class PollingSubscriptionTest {
   private static final ImmutableList<String> ELEMENTS = ImmutableList.of("a", "b", "c", "d", "e", "f");
   private final ScheduledExecutorService multithreadedExec = Executors.newScheduledThreadPool(8);
   final ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-
-  private static class TestSubscriber implements Subscriber<String> {
-
-    CountDownLatch done = new CountDownLatch(1);
-    Throwable error = null;
-    List<String> elements = Lists.newLinkedList();
-    Schema schema = null;
-    Subscription subscription;
-
-    @Override
-    public void onNext(final String item) {
-      if (done.getCount() == 0) {
-        throw new IllegalStateException("already done");
-      }
-      elements.add(item);
-      subscription.request(1);
-    }
-
-    @Override
-    public void onError(final Throwable e) {
-      if (done.getCount() == 0) {
-        throw new IllegalStateException("already done");
-      }
-      error = e;
-      done.countDown();
-    }
-
-    @Override
-    public void onComplete() {
-      if (done.getCount() == 0) {
-        throw new IllegalStateException("already done");
-      }
-      done.countDown();
-    }
-
-    @Override
-    public void onSchema(final Schema s) {
-      if (done.getCount() == 0) {
-        throw new IllegalStateException("already done");
-      }
-      schema = s;
-    }
-
-    @Override
-    public void onSubscribe(final Subscription subscription) {
-      this.subscription = subscription;
-      subscription.request(1);
-    }
-  }
-
 
   class TestPublisher implements Flow.Publisher<String> {
     TestPollingSubscription subscription;
@@ -143,7 +89,7 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testBasicFlow() throws Exception {
-    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestSubscriber<String> testSubscriber = new TestSubscriber<>();
     final TestPublisher testPublisher = new TestPublisher();
     testPublisher.subscribe(testSubscriber);
 
@@ -158,7 +104,7 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testErrorDrainsNextElement() throws Exception {
-    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestSubscriber<String> testSubscriber = new TestSubscriber<>();
     final TestPublisher testPublisher = new TestPublisher() {
       @Override
       TestPollingSubscription createSubscription(
@@ -191,7 +137,7 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testMultithreaded() throws Exception {
-    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestSubscriber<String> testSubscriber = new TestSubscriber<>();
     final TestPublisher testPublisher = new TestPublisher() {
       @Override
       TestPollingSubscription createSubscription(
@@ -213,7 +159,7 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testReentrantNextElement() throws Exception {
-    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestSubscriber<String> testSubscriber = new TestSubscriber<>();
     final TestPublisher testPublisher = new TestPublisher() {
       @Override
       TestPollingSubscription createSubscription(
@@ -249,7 +195,7 @@ public class PollingSubscriptionTest {
 
   @Test
   public void testEmpty() throws Exception {
-    final TestSubscriber testSubscriber = new TestSubscriber();
+    final TestSubscriber<String> testSubscriber = new TestSubscriber<>();
     final TestPublisher testPublisher = new TestPublisher() {
       @Override
       TestPollingSubscription createSubscription(
@@ -277,7 +223,7 @@ public class PollingSubscriptionTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testExpectsNEqualsOne() {
-    final TestSubscriber testSubscriber = new TestSubscriber() {
+    final TestSubscriber<String> testSubscriber = new TestSubscriber<String>() {
       @Override
       public void onSubscribe(final Subscription subscription) {
         subscription.request(2);

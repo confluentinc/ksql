@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.function;
@@ -50,13 +48,13 @@ public class UdfFactoryTest {
 
   @Test
   public void shouldFindFirstMatchingFunctionWhenNullTypeInArgs() {
-    final KsqlFunction expected = new KsqlFunction(Schema.STRING_SCHEMA,
+    final KsqlFunction expected = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
         functionName,
         TestFunc.class
     );
     factory.addFunction(expected);
-    factory.addFunction(new KsqlFunction(Schema.STRING_SCHEMA,
+    factory.addFunction(KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
         functionName,
         TestFunc.class
@@ -70,7 +68,7 @@ public class UdfFactoryTest {
   public void shouldNotMatchingFunctionWhenNullTypeInArgsIfParamLengthsDiffer() {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("VARCHAR(STRING), null");
-    final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
+    final KsqlFunction function = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
         functionName,
         TestFunc.class
@@ -83,7 +81,7 @@ public class UdfFactoryTest {
   public void shouldThrowExceptionWhenAtLeastOneArgumentOtherThanNullDoesntMatch() {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("BIGINT, null");
-    final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
+    final KsqlFunction function = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         functionName,
         TestFunc.class
@@ -96,7 +94,7 @@ public class UdfFactoryTest {
   public void shouldThrowWhenNullAndPrimitiveTypeArg() {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("VARCHAR(STRING), null");
-    final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
+    final KsqlFunction function = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
         Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA),
         functionName,
         TestFunc.class
@@ -107,7 +105,7 @@ public class UdfFactoryTest {
 
   @Test
   public void shouldMatchNullWithStringSchema() {
-    final KsqlFunction function = new KsqlFunction(Schema.STRING_SCHEMA,
+    final KsqlFunction function = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
         Arrays.asList(Schema.INT64_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
         functionName,
         TestFunc.class
@@ -120,7 +118,7 @@ public class UdfFactoryTest {
   public void shouldThrowExceptionIfAddingFunctionWithDifferentPath() {
     expectedException.expect(KafkaException.class);
     expectedException.expectMessage("as a function with the same name has been loaded from a different jar");
-    factory.addFunction(new KsqlFunction(
+    factory.addFunction(KsqlFunction.create(
         Schema.STRING_SCHEMA,
         Collections.<Schema>emptyList(),
         "TestFunc",

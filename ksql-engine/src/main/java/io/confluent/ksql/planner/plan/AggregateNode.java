@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.planner.plan;
 
@@ -20,7 +18,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -35,16 +32,21 @@ import io.confluent.ksql.parser.tree.Literal;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.ExpressionTypeManager;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
@@ -56,7 +58,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
@@ -68,6 +69,12 @@ import org.apache.kafka.streams.StreamsBuilder;
 public class AggregateNode extends PlanNode {
 
   private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
+
+  private static final String PREPARE_OP_NAME = "prepare";
+  private static final String AGGREGATION_OP_NAME = "aggregate";
+  private static final String GROUP_BY_OP_NAME = "groupby";
+  private static final String FILTER_OP_NAME = "filter";
+  private static final String PROJECT_OP_NAME = "project";
 
   private final PlanNode source;
   private final Schema schema;
@@ -164,7 +171,7 @@ public class AggregateNode extends PlanNode {
     return finalSelectExpressionList;
   }
 
-  public Expression getHavingExpressions() {
+  private Expression getHavingExpressions() {
     return havingExpressions;
   }
 
@@ -178,19 +185,20 @@ public class AggregateNode extends PlanNode {
   public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final QueryId queryId
   ) {
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
     final StructuredDataSourceNode streamSourceNode = getTheSourceNode();
     final SchemaKStream sourceSchemaKStream = getSource().buildStream(
         builder,
         ksqlConfig,
-        kafkaTopicClient,
+        serviceContext,
+        processingLogContext,
         functionRegistry,
-        props,
-        schemaRegistryClientFactory
+        queryId
     );
 
     // Pre aggregate computations
@@ -198,23 +206,31 @@ public class AggregateNode extends PlanNode {
         getAggregateFunctionArguments());
 
     final SchemaKStream aggregateArgExpanded =
-        sourceSchemaKStream.select(internalSchema.getAggArgExpansionList());
+        sourceSchemaKStream.select(
+            internalSchema.getAggArgExpansionList(),
+            contextStacker.push(PREPARE_OP_NAME),
+            processingLogContext);
+
+    final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
     final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
-        .getKsqlTopic()
-        .getKsqlTopicSerDe();
+        .getKsqlTopicSerde();
     final Serde<GenericRow> genericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
         aggregateArgExpanded.getSchema(),
         ksqlConfig,
         true,
-        schemaRegistryClientFactory
+        serviceContext.getSchemaRegistryClientFactory(),
+        QueryLoggerUtil.queryLoggerName(groupByContext.getQueryContext()),
+        processingLogContext
     );
 
     final List<Expression> internalGroupByColumns = internalSchema.getInternalExpressionList(
         getGroupByExpressions());
 
     final SchemaKGroupedStream schemaKGroupedStream =
-        aggregateArgExpanded.groupBy(genericRowSerde, internalGroupByColumns);
+        aggregateArgExpanded.groupBy(
+            genericRowSerde, internalGroupByColumns,
+            groupByContext);
 
     // Aggregate computations
     final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
@@ -230,11 +246,15 @@ public class AggregateNode extends PlanNode {
         internalSchema
     );
 
+    final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
+
     final Serde<GenericRow> aggValueGenericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
         aggStageSchema,
         ksqlConfig,
         true,
-        schemaRegistryClientFactory
+        serviceContext.getSchemaRegistryClientFactory(),
+        QueryLoggerUtil.queryLoggerName(aggregationContext.getQueryContext()),
+        processingLogContext
     );
 
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
@@ -244,8 +264,12 @@ public class AggregateNode extends PlanNode {
         functionRegistry, internalSchema);
 
     final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
-        initializer, aggValToFunctionMap, aggValToValColumnMap, getWindowExpression(),
-        aggValueGenericRowSerde);
+        initializer,
+        aggValToFunctionMap,
+        aggValToValColumnMap,
+        getWindowExpression(),
+        aggValueGenericRowSerde,
+        aggregationContext);
 
     SchemaKTable<?> result = new SchemaKTable<>(
         aggStageSchema,
@@ -256,14 +280,20 @@ public class AggregateNode extends PlanNode {
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,
-        schemaRegistryClientFactory.get()
+        aggregationContext.getQueryContext()
     );
 
     if (havingExpressions != null) {
-      result = result.filter(internalSchema.resolveToInternal(havingExpressions));
+      result = result.filter(
+          internalSchema.resolveToInternal(havingExpressions),
+          contextStacker.push(FILTER_OP_NAME),
+          processingLogContext);
     }
 
-    return result.select(internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()));
+    return result.select(
+        internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()),
+        contextStacker.push(PROJECT_OP_NAME),
+        processingLogContext);
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {

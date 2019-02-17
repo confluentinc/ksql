@@ -1,27 +1,28 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.structured;
 
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
@@ -49,13 +50,17 @@ public class SqlPredicate {
   private final KsqlConfig ksqlConfig;
   private final FunctionRegistry functionRegistry;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
+  private final StructuredLogger processingLogger;
+  private final ProcessingLogContext processingLogContext;
 
   SqlPredicate(
       final Expression filterExpression,
       final Schema schema,
       final boolean isWindowedKey,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final StructuredLogger processingLogger,
+      final ProcessingLogContext processingLogContext
   ) {
     this.filterExpression = filterExpression;
     this.schema = schema;
@@ -63,6 +68,8 @@ public class SqlPredicate {
     this.isWindowedKey = isWindowedKey;
     this.functionRegistry = functionRegistry;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.processingLogger = Objects.requireNonNull(processingLogger);
+    this.processingLogContext = Objects.requireNonNull(processingLogContext);
 
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     final Set<CodeGenRunner.ParameterType> parameters
@@ -81,7 +88,7 @@ public class SqlPredicate {
 
     try {
       ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-      ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
+      ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
       ee.setParameters(parameterNames, parameterTypes);
 
       ee.setExpressionType(boolean.class);
@@ -134,9 +141,8 @@ public class SqlPredicate {
         }
         return (Boolean) ee.evaluate(values);
       } catch (final Exception e) {
-        log.error(e.getMessage(), e);
+        logProcessingError(e, row);
       }
-      log.error("Invalid format: " + key + " : " + row);
       return false;
     };
   }
@@ -169,11 +175,24 @@ public class SqlPredicate {
         }
         return (Boolean) ee.evaluate(values);
       } catch (final Exception e) {
-        log.error(e.getMessage(), e);
+        logProcessingError(e, row);
       }
-      log.error("Invalid format: " + key + " : " + row);
       return false;
     };
+  }
+
+  private void logProcessingError(final Exception e, final GenericRow row) {
+    processingLogger.error(
+        EngineProcessingLogMessageFactory.recordProcessingError(
+            String.format(
+                "Error evaluating predicate %s: %s",
+                filterExpression,
+                e.getMessage()
+            ),
+            row,
+            processingLogContext.getConfig()
+        )
+    );
   }
 
   public Expression getFilterExpression() {

@@ -1,31 +1,49 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.cli.console.cmd;
 
-import io.confluent.ksql.cli.console.Console;
 import io.confluent.ksql.cli.console.OutputFormat;
+import java.io.PrintWriter;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-class Output implements CliSpecificCommand {
+final class Output implements CliSpecificCommand {
 
-  private final Console console;
+  private static final String HELP = "output:" + System.lineSeparator()
+      + "\tView the current output format." + System.lineSeparator()
+      + System.lineSeparator()
+      + "output <format>;" + System.lineSeparator()
+      + System.lineSeparator()
+      + "\tSet the output format to <format> (valid formats: " + OutputFormat.VALID_FORMATS + ")"
+      + System.lineSeparator()
+      + System.lineSeparator()
+      + "\tFor example: \"output JSON;\""
+      + System.lineSeparator();
 
-  Output(final Console console) {
-    this.console = Objects.requireNonNull(console, "console");
+  private final Supplier<OutputFormat> getter;
+  private final Consumer<String> setter;
+
+  private Output(final Supplier<OutputFormat> getter, final Consumer<String> setter) {
+    this.getter = Objects.requireNonNull(getter, "getter");
+    this.setter = Objects.requireNonNull(setter, "setter");
+  }
+
+  static Output create(final Supplier<OutputFormat> getter, final Consumer<String> setter) {
+    return new Output(getter, setter);
   }
 
   @Override
@@ -34,26 +52,20 @@ class Output implements CliSpecificCommand {
   }
 
   @Override
-  public void printHelp() {
-    console.writer().println("output:");
-    console.writer().println("\tView the current output format.");
-    console.writer().println("");
-    console.writer().println("output <format>;");
-    console.writer().println("");
-    console.writer().printf(
-        "\tSet the output format to <format> (valid formats: %s)%n",
-        OutputFormat.VALID_FORMATS
-    );
-    console.writer().println("\tFor example: \"output JSON;\"");
+  public String getHelpMessage() {
+    return HELP;
   }
 
   @Override
-  public void execute(final String commandStrippedLine) {
-    final String newFormat = commandStrippedLine.trim().toUpperCase();
-    if (newFormat.isEmpty()) {
-      console.writer().printf("Current output format: %s%n", console.getOutputFormat().name());
-    } else {
-      console.setOutputFormat(newFormat);
+  public void execute(final List<String> args, final PrintWriter terminal) {
+    CliCmdUtil.ensureArgCountBounds(args, 0, 1, HELP);
+
+    if (args.isEmpty()) {
+      terminal.printf("Current output format: %s%n", getter.get().name());
+      return;
     }
+
+    final String newFormat = args.get(0).toUpperCase();
+    setter.accept(newFormat);
   }
 }

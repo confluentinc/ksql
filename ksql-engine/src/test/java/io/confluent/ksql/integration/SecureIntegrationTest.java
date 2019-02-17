@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.integration;
@@ -19,6 +17,7 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DELETE;
@@ -34,13 +33,18 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -101,6 +105,7 @@ public class SecureIntegrationTest {
   private KafkaTopicClient topicClient;
   private String outputTopic;
   private AdminClient adminClient;
+  private ServiceContext serviceContext;
 
   @Before
   public void before() throws Exception {
@@ -118,7 +123,8 @@ public class SecureIntegrationTest {
   @After
   public void after() {
     if (queryId != null) {
-      ksqlEngine.terminateQuery(queryId, true);
+      ksqlEngine.getPersistentQuery(queryId)
+          .ifPresent(QueryMetadata::close);
     }
     if (ksqlEngine != null) {
       ksqlEngine.close();
@@ -130,6 +136,9 @@ public class SecureIntegrationTest {
         e.printStackTrace(System.err);
       }
       adminClient.close();
+    }
+    if (serviceContext != null) {
+      serviceContext.close();
     }
   }
 
@@ -186,7 +195,7 @@ public class SecureIntegrationTest {
     final String serviceId = "my-service-id_";  // Defaults to "default_"
 
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, serviceId);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
 
     givenAllowAcl(NORMAL_USER,
                   resource(CLUSTER, "kafka-cluster"),
@@ -261,7 +270,12 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    ksqlEngine = KsqlEngine.create(ksqlConfig);
+    serviceContext = DefaultServiceContext.create(ksqlConfig);
+    ksqlEngine = new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        new InternalFunctionRegistry(),
+        ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
 
     execInitCreateStreamQueries();
   }
@@ -272,7 +286,7 @@ public class SecureIntegrationTest {
   }
 
   private void assertCanRunRepartitioningKsqlQuery() throws Exception {
-    assertCanRunKsqlQuery("CREATE STREAM %s AS SELECT itemid, count(*) "
+    assertCanRunKsqlQuery("CREATE TABLE %s AS SELECT itemid, count(*) "
                           + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
                           outputTopic, INPUT_STREAM);
   }
@@ -290,7 +304,7 @@ public class SecureIntegrationTest {
     consumer.verifyRecordsReceived(outputTopic, greaterThan(0));
   }
 
-  private Map<String, Object> getBaseKsqlConfig() {
+  private static Map<String, Object> getBaseKsqlConfig() {
     final Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SECURE_CLUSTER.bootstrapServers());
     configs.put("commit.interval.ms", 0);
@@ -303,7 +317,7 @@ public class SecureIntegrationTest {
     return configs;
   }
 
-  private Map<String, Object> getKsqlConfig(final Credentials user) {
+  private static Map<String, Object> getKsqlConfig(final Credentials user) {
     final Map<String, Object> configs = getBaseKsqlConfig();
     configs.putAll(SecureKafkaHelper.getSecureCredentialsConfig(user));
     return configs;
@@ -335,16 +349,15 @@ public class SecureIntegrationTest {
                                            + "kafka_topic='%s' , "
                                            + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
 
-    ksqlEngine.buildMultipleQueries(
-        ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   private void executePersistentQuery(final String queryString,
                                       final Object... params) {
     final String query = String.format(queryString, params);
 
-    final QueryMetadata queryMetadata = ksqlEngine
-        .buildMultipleQueries(query, ksqlConfig, Collections.emptyMap()).get(0);
+    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+        .execute(ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();

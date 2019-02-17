@@ -1,24 +1,23 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
@@ -40,7 +39,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       new LinkedBlockingQueue<>(100);
 
   @SuppressWarnings("unchecked") // needs investigating
-  QueuedSchemaKStream(final SchemaKStream<K> schemaKStream) {
+  QueuedSchemaKStream(final SchemaKStream<K> schemaKStream, final QueryContext queryContext) {
     super(
         schemaKStream.schema,
         schemaKStream.getKstream(),
@@ -50,7 +49,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
         Type.SINK,
         schemaKStream.ksqlConfig,
         schemaKStream.functionRegistry,
-        schemaKStream.schemaRegistryClient
+        queryContext
     );
 
     final OutputNode output = schemaKStream.outputNode();
@@ -72,12 +71,18 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public SchemaKStream<K> filter(final Expression filterExpression) {
+  public SchemaKStream<K> filter(
+      final Expression filterExpression,
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream<K> select(final List<SelectExpression> expressions) {
+  public SchemaKStream<K> select(
+      final List<SelectExpression> expressions,
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     throw new UnsupportedOperationException();
   }
 
@@ -86,20 +91,25 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       final SchemaKTable<K> schemaKTable,
       final Schema joinSchema,
       final Field joinKey,
-      final Serde<GenericRow> joinSerde
+      final Serde<GenericRow> joinSerde,
+      final QueryContext.Stacker contextStacker
   ) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SchemaKStream<K> selectKey(final Field newKeyField, final boolean updateRowKey) {
+  public SchemaKStream<K> selectKey(
+      final Field newKeyField,
+      final boolean updateRowKey,
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
-      final List<Expression> groupByExpressions) {
+      final List<Expression> groupByExpressions,
+      final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
   }
 

@@ -17,14 +17,14 @@
         "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 6) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"source": "some_string"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "another"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "short"}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"source": "some_string"}},
+        {"topic": "test_topic", "value": {"source": "another"}},
+        {"topic": "test_topic", "value": {"source": "short"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"SUBSTRING":"string", "NULL_STR":null, "NULL_POS":null}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"SUBSTRING":"er", "NULL_STR":null, "NULL_POS":null}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"SUBSTRING":"", "NULL_STR":null, "NULL_POS":null}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"string", "NULL_STR":null, "NULL_POS":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"er", "NULL_STR":null, "NULL_POS":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"", "NULL_STR":null, "NULL_POS":null}}
       ]
     },
     {
@@ -37,14 +37,14 @@
         "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 6, 3) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS, SUBSTRING(source, 6, null) AS NULL_LEN FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"source": "some_string"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "another"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "short"}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"source": "some_string"}},
+        {"topic": "test_topic", "value": {"source": "another"}},
+        {"topic": "test_topic", "value": {"source": "short"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"SUBSTRING":"str", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"SUBSTRING":"er", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"SUBSTRING":"", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"str", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"er", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"", "NULL_STR":null, "NULL_POS":null, "NULL_LEN":null}}
       ]
     },
     {
@@ -58,14 +58,14 @@
         "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 5) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_START FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"source": "some_string"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "another"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "short"}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"source": "some_string"}},
+        {"topic": "test_topic", "value": {"source": "another"}},
+        {"topic": "test_topic", "value": {"source": "short"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"SUBSTRING":"string", "NULL_STR":null, "NULL_START":null}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"SUBSTRING":"er", "NULL_STR":null, "NULL_START":null}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"SUBSTRING":"", "NULL_STR":null, "NULL_START":null}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"string", "NULL_STR":null, "NULL_START":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"er", "NULL_STR":null, "NULL_START":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"", "NULL_STR":null, "NULL_START":null}}
       ]
     },
     {
@@ -79,14 +79,14 @@
         "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 1, 6) AS SUBSTRING, SUBSTRING(null, 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_START, SUBSTRING(source, 6, null) AS NULL_END FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"source": "some_string"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "another"}, "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": {"source": "short"}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"source": "some_string"}},
+        {"topic": "test_topic", "value": {"source": "another"}},
+        {"topic": "test_topic", "value": {"source": "short"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"SUBSTRING":"ome_s", "NULL_STR":null, "NULL_START":null, "NULL_END":null}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"SUBSTRING":"nothe", "NULL_STR":null, "NULL_START":null, "NULL_END":null}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": 2, "value": {"SUBSTRING":null, "NULL_STR":null, "NULL_START":null, "NULL_END":null}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"ome_s", "NULL_STR":null, "NULL_START":null, "NULL_END":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"nothe", "NULL_STR":null, "NULL_START":null, "NULL_END":null}},
+        {"topic": "OUTPUT", "value": {"SUBSTRING":null, "NULL_STR":null, "NULL_START":null, "NULL_END":null}}
       ]
     },
     {
@@ -97,33 +97,33 @@
         "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 6) AS SUBSTRING FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"source": "some_string"}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"source": "some_string"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"SUBSTRING":"string"}, "timestamp": 0}
+        {"topic": "OUTPUT", "value": {"SUBSTRING":"string"}}
       ]
     },
     {
       "name": "in group by",
       "statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS SUBSTRING FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS SUBSTRING FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "some string", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "another string", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "some string again", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "another string again", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "some other string", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "the final string", "timestamp": 0}
+        {"topic": "test_topic", "value": "some string"},
+        {"topic": "test_topic", "value": "another string"},
+        {"topic": "test_topic", "value": "some string again"},
+        {"topic": "test_topic", "value": "another string again"},
+        {"topic": "test_topic", "value": "some other string"},
+        {"topic": "test_topic", "value": "the final string"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "so", "value": "so,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "an", "value": "an,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "so", "value": "so,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "an", "value": "an,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "so", "value": "so,3", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "th", "value": "th,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "so", "value": "so,1"},
+        {"topic": "OUTPUT", "key": "an", "value": "an,1"},
+        {"topic": "OUTPUT", "key": "so", "value": "so,2"},
+        {"topic": "OUTPUT", "key": "an", "value": "an,2"},
+        {"topic": "OUTPUT", "key": "so", "value": "so,3"},
+        {"topic": "OUTPUT", "key": "th", "value": "th,1"}
       ]
     }
   ]

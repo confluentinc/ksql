@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.cli.console;
@@ -95,7 +93,7 @@ public class KsqlLineParserTest {
   }
 
   @Test
-  public void shouldReturnResultIfEmptyLine() {
+  public void shouldAcceptIfEmptyLine() {
     // Given:
     givenDelegateWillReturn("");
 
@@ -107,7 +105,7 @@ public class KsqlLineParserTest {
   }
 
   @Test
-  public void shouldReturnResultIfLineTerminated() {
+  public void shouldAcceptIfLineTerminated() {
     // Given:
     givenDelegateWillReturn(TERMINATED_LINE);
 
@@ -119,7 +117,7 @@ public class KsqlLineParserTest {
   }
 
   @Test
-  public void shouldReturnResultIfPredicateReturnsTrue() {
+  public void shouldAcceptIfPredicateReturnsTrue() {
     // Given:
     givenPredicateWillReturnTrue();
     givenDelegateWillReturn(UNTERMINATED_LINE);
@@ -132,12 +130,48 @@ public class KsqlLineParserTest {
   }
 
   @Test
-  public void shouldThrowIfUnterminatedAcceptLine() {
+  public void shouldNotAcceptUnterminatedAcceptLine() {
     // Given:
     expectedException.expect(EOFError.class);
     expectedException.expectMessage("Missing termination char");
 
     givenDelegateWillReturn(UNTERMINATED_LINE);
+
+    // When:
+    parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+  }
+
+  @Test
+  public void shouldAlwaysAcceptCommentLines() {
+    // Given:
+    givenDelegateWillReturn(" -- this is a comment");
+
+    // When:
+    final ParsedLine result = parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+
+    // Then:
+    assertThat(result, is(parsedLine));
+  }
+
+  @Test
+  public void shouldAcceptTerminatedLineEndingInComment() {
+    // Given:
+    givenDelegateWillReturn(TERMINATED_LINE + " -- this is a comment");
+
+    // When:
+    final ParsedLine result = parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);
+
+    // Then:
+    assertThat(result, is(parsedLine));
+  }
+
+  @Test
+  public void shouldNotAcceptUnterminatedLineEndingInComment() {
+    // Given:
+    givenDelegateWillReturn(UNTERMINATED_LINE + " -- this is a comment");
+
+    expectedException.expect(EOFError.class);
+    expectedException.expectMessage("Missing termination char");
 
     // When:
     parser.parse("what ever", 0, ParseContext.ACCEPT_LINE);

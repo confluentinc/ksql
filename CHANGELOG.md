@@ -1,5 +1,9 @@
 # Change Log
 
+## Later releases
+
+Note: Release notes for releases after 4.1 can be found at [docs/changelog.rst](docs/changelog.rst).
+
 ## [v4.1](https://github.com/confluentinc/ksql/tree/v4.1) (2018-04-17)
 [Full Changelog](https://github.com/confluentinc/ksql/compare/v0.5...v4.1.0)
 

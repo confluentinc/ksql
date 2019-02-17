@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.planner.plan;
 
@@ -20,25 +18,32 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.QueryIdGenerator;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,11 +58,19 @@ public class KsqlBareOutputNodeTest {
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private ServiceContext serviceContext;
+  private final QueryId queryId = new QueryId("output-test");
 
   @Before
   public void before() {
     builder = new StreamsBuilder();
+    serviceContext = TestServiceContext.create();
     stream = build();
+  }
+
+  @After
+  public void tearDown() {
+    serviceContext.close();
   }
 
   @Test
@@ -109,23 +122,43 @@ public class KsqlBareOutputNodeTest {
   }
 
   @Test
+  public void shouldComputeQueryIdCorrectly() {
+    // Given:
+    final KsqlBareOutputNode node
+        = (KsqlBareOutputNode) AnalysisTestUtil
+        .buildLogicalPlan("select col0 from test1;", metaStore);
+    final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
+
+    // When:
+    final Set<QueryId> ids = IntStream.range(0, 100)
+        .mapToObj(i -> node.getQueryId(queryIdGenerator))
+        .collect(Collectors.toSet());;
+
+    // Then:
+    assertThat(ids.size(), equalTo(100));
+    verifyNoMoreInteractions(queryIdGenerator);
+  }
+
+  @Test
   public void shouldSetOutputNode() {
     assertThat(stream.outputNode(), instanceOf(KsqlBareOutputNode.class));
   }
 
   private SchemaKStream build() {
     final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final KsqlBareOutputNode planNode =
-        (KsqlBareOutputNode) AnalysisTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore);
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode)
+        AnalysisTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore);
 
-    return planNode.buildStream(builder, new KsqlConfig(Collections.emptyMap()),
-        new FakeKafkaTopicClient(),
+    return planNode.buildStream(
+        builder,
+        new KsqlConfig(Collections.emptyMap()),
+        serviceContext,
+        ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        new HashMap<>(), new MockSchemaRegistryClientFactory()::get);
+        queryId);
   }
 
   private TopologyDescription.Node getNodeByName(final String nodeName) {
     return PlanTestUtil.getNodeByName(builder.build(), nodeName);
   }
-
 }

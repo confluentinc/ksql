@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.datagen;
@@ -34,7 +32,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
 
-class RowGenerator {
+public class RowGenerator {
 
   private final Set<String> allTokens = new HashSet<>();
   private final Map<String, Integer> sessionMap = new HashMap<>();
@@ -46,7 +44,7 @@ class RowGenerator {
   private final SessionManager sessionManager;
   private final String key;
 
-  RowGenerator(
+  public RowGenerator(
       final Generator generator, final AvroData avroData, final Schema avroSchema,
       final org.apache.kafka.connect.data.Schema ksqlSchema, final SessionManager sessionManager,
       final String key) {
@@ -58,7 +56,7 @@ class RowGenerator {
     this.key = Objects.requireNonNull(key, "key");
   }
 
-  Pair<String, GenericRow> generateRow() {
+  public Pair<String, GenericRow> generateRow() {
 
     final Object generatedObject = generator.generate();
 
@@ -117,8 +115,8 @@ class RowGenerator {
         if (value instanceof Record) {
           final Record record = (Record) value;
           final Object ksqlValue = avroData.toConnectData(record.getSchema(), record).value();
-          genericRowValues.add(
-              SchemaUtil.getOptionalValue(ksqlSchema.field(field.name()).schema(), ksqlValue));
+          genericRowValues.add(DataGenSchemaUtil.getOptionalValue(
+              ksqlSchema.field(field.name()).schema(), ksqlValue));
         } else {
           genericRowValues.add(value);
         }

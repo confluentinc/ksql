@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.parser;
 
@@ -43,6 +41,7 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
+import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
@@ -55,7 +54,6 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetSession;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.ShowCreate;
-import io.confluent.ksql.parser.tree.ShowFunctions;
 import io.confluent.ksql.parser.tree.ShowPartitions;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
@@ -64,7 +62,6 @@ import io.confluent.ksql.parser.tree.TableSubquery;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +117,7 @@ public final class SqlFormatter {
       processRelation(node.getQueryBody(), indent);
 
       if (node.getLimit().isPresent()) {
-        append(indent, "LIMIT " + node.getLimit().get())
+        append(indent, "LIMIT " + node.getLimit().getAsInt())
                 .append('\n');
       }
 
@@ -158,7 +155,7 @@ public final class SqlFormatter {
       }
 
       if (node.getLimit().isPresent()) {
-        append(indent, "LIMIT " + node.getLimit().get())
+        append(indent, "LIMIT " + node.getLimit().getAsInt())
                 .append('\n');
       }
       return null;
@@ -458,7 +455,7 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitShowFunctions(final ShowFunctions node, final Integer context) {
+    protected Void visitShowFunctions(final ListFunctions node, final Integer context) {
       builder.append("SHOW FUNCTIONS");
 
       return null;

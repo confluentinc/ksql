@@ -1,24 +1,24 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.client.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -29,37 +29,47 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.naming.AuthenticationException;
+import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.apache.commons.compress.utils.IOUtils;
+import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlRestClient implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final int MAX_TIMEOUT = (int)TimeUnit.SECONDS.toMillis(32);
 
   private static final KsqlErrorMessage UNAUTHORIZED_ERROR_MESSAGE = new KsqlErrorMessage(
       Errors.ERROR_CODE_UNAUTHORIZED,
@@ -74,7 +84,7 @@ public class KsqlRestClient implements Closeable {
 
   private final Client client;
 
-  private URI serverAddress;
+  private List<URI> serverAddresses;
 
   private final LocalProperties localProperties;
 
@@ -95,7 +105,7 @@ public class KsqlRestClient implements Closeable {
                  final String serverAddress,
                  final Map<String, Object> localProperties) {
     this.client = Objects.requireNonNull(client, "client");
-    this.serverAddress = parseServerAddress(serverAddress);
+    this.serverAddresses = parseServerAddresses(serverAddress);
     this.localProperties = new LocalProperties(localProperties);
   }
 
@@ -108,11 +118,11 @@ public class KsqlRestClient implements Closeable {
   }
 
   public URI getServerAddress() {
-    return serverAddress;
+    return serverAddresses.get(0);
   }
 
   public void setServerAddress(final String serverAddress) {
-    this.serverAddress = parseServerAddress(serverAddress);
+    this.serverAddresses = parseServerAddresses(serverAddress);
   }
 
   public RestResponse<ServerInfo> makeRootRequest() {
@@ -124,8 +134,13 @@ public class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
-    return postRequest("ksql", jsonRequest, true, r -> r.readEntity(KsqlEntityList.class));
+    return makeKsqlRequest(ksql, null);
+  }
+
+  public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
+    return postRequest("ksql", jsonRequest, Optional.empty(), true,
+        r -> r.readEntity(KsqlEntityList.class));
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {
@@ -136,14 +151,17 @@ public class KsqlRestClient implements Closeable {
     return getRequest(String.format("status/%s", commandId), CommandStatus.class);
   }
 
-  public RestResponse<QueryStream> makeQueryRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
-    return postRequest("query", jsonRequest, false, QueryStream::new);
+  public RestResponse<QueryStream> makeQueryRequest(final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
+    final Optional<Integer> readTimeoutMs = Optional.of(QueryStream.READ_TIMEOUT_MS);
+    return postRequest("query", jsonRequest, readTimeoutMs, false, QueryStream::new);
   }
 
-  public RestResponse<InputStream> makePrintTopicRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap());
-    return postRequest("query", jsonRequest, false, r -> (InputStream)r.getEntity());
+  public RestResponse<InputStream> makePrintTopicRequest(
+      final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
+    return postRequest("query", jsonRequest, Optional.empty(), false,
+        r -> (InputStream) r.getEntity());
   }
 
   @Override
@@ -153,7 +171,7 @@ public class KsqlRestClient implements Closeable {
 
   private <T> RestResponse<T> getRequest(final String path, final Class<T> type) {
 
-    try (Response response = client.target(serverAddress)
+    try (Response response = client.target(getServerAddress())
         .path(path)
         .request(MediaType.APPLICATION_JSON_TYPE)
         .get()) {
@@ -170,14 +188,19 @@ public class KsqlRestClient implements Closeable {
   private <T> RestResponse<T> postRequest(
       final String path,
       final Object jsonEntity,
+      final Optional<Integer> readTimeoutMs,
       final boolean closeResponse,
       final Function<Response, T> mapper) {
 
     Response response = null;
 
     try {
-      response = client.target(serverAddress)
-          .path(path)
+      final WebTarget target = client.target(getServerAddress())
+          .path(path);
+
+      readTimeoutMs.ifPresent(timeout -> target.property(ClientProperties.READ_TIMEOUT, timeout));
+
+      response = target
           .request(MediaType.APPLICATION_JSON_TYPE)
           .post(Entity.json(jsonEntity));
 
@@ -185,6 +208,11 @@ public class KsqlRestClient implements Closeable {
           ? RestResponse.successful(mapper.apply(response))
           : createErrorResponse(path, response);
 
+    } catch (final ProcessingException e) {
+      if (shouldRetry(readTimeoutMs, e)) {
+        return postRequest(path, jsonEntity, calcReadTimeout(readTimeoutMs), closeResponse, mapper);
+      }
+      throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
     } catch (final Exception e) {
       throw new KsqlRestClientException("Error issuing POST to KSQL server. path:" + path, e);
     } finally {
@@ -192,6 +220,18 @@ public class KsqlRestClient implements Closeable {
         response.close();
       }
     }
+  }
+
+  private static boolean shouldRetry(
+      final Optional<Integer> readTimeoutMs,
+      final ProcessingException e
+  ) {
+    return readTimeoutMs.map(timeout -> timeout < MAX_TIMEOUT).orElse(false)
+        && e.getCause() instanceof SocketTimeoutException;
+  }
+
+  private static Optional<Integer> calcReadTimeout(final Optional<Integer> previousTimeoutMs) {
+    return previousTimeoutMs.map(timeout -> Math.min(timeout * 2, MAX_TIMEOUT));
   }
 
   private static <T> RestResponse<T> createErrorResponse(
@@ -217,10 +257,14 @@ public class KsqlRestClient implements Closeable {
     }
 
     return RestResponse.erroneous(
-        Errors.toErrorCode(response.getStatus()), "The server returned an unexpected error.");
+        Errors.toErrorCode(response.getStatus()),
+        "The server returned an unexpected error: "
+            + response.getStatusInfo().getReasonPhrase());
   }
 
   public static final class QueryStream implements Closeable, Iterator<StreamedRow> {
+
+    private static final int READ_TIMEOUT_MS = (int)TimeUnit.SECONDS.toMillis(2);
 
     private final Response response;
     private final ObjectMapper objectMapper;
@@ -239,30 +283,23 @@ public class KsqlRestClient implements Closeable {
           StandardCharsets.UTF_8
       );
       this.responseScanner = new Scanner((buf) -> {
-        int wait = 1;
-        // poll the input stream's readiness between interruptable sleeps
-        // this ensures we cannot block indefinitely on read()
         while (true) {
-          if (closed) {
-            throw closedIllegalStateException("hasNext()");
-          }
-          if (isr.ready()) {
-            break;
-          }
-          synchronized (this) {
+          try {
+            return isr.read(buf);
+          } catch (final SocketTimeoutException e) {
+            // Read timeout:
             if (closed) {
-              throw closedIllegalStateException("hasNext()");
+              return -1;
             }
-            try {
-              wait = java.lang.Math.min(wait * 2, 200);
-              wait(wait);
-            } catch (final InterruptedException e) {
-              // this is expected
-              // just check the closed flag
+          } catch (final IOException e) {
+            // Can occur if isr closed:
+            if (closed) {
+              return -1;
             }
+
+            throw e;
           }
         }
-        return isr.read(buf);
       });
 
       this.bufferedRow = null;
@@ -270,37 +307,15 @@ public class KsqlRestClient implements Closeable {
 
     @Override
     public boolean hasNext() {
-      if (closed) {
-        throw closedIllegalStateException("hasNext()");
-      }
-
       if (bufferedRow != null) {
         return true;
       }
 
-      while (responseScanner.hasNextLine()) {
-        final String responseLine = responseScanner.nextLine().trim();
-        if (!responseLine.isEmpty()) {
-          try {
-            bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
-          } catch (final IOException exception) {
-            // TODO: Should the exception be handled somehow else?
-            // Swallowing it silently seems like a bad idea...
-            throw new RuntimeException(exception);
-          }
-          return true;
-        }
-      }
-
-      return false;
+      return bufferNextRow();
     }
 
     @Override
     public StreamedRow next() {
-      if (closed) {
-        throw closedIllegalStateException("next()");
-      }
-
       if (!hasNext()) {
         throw new NoSuchElementException();
       }
@@ -313,20 +328,40 @@ public class KsqlRestClient implements Closeable {
     @Override
     public void close() {
       if (closed) {
-        throw closedIllegalStateException("close()");
+        return;
       }
 
       synchronized (this) {
         closed = true;
-        this.notifyAll();
       }
       responseScanner.close();
       response.close();
       IOUtils.closeQuietly(isr);
     }
 
-    private IllegalStateException closedIllegalStateException(final String methodName) {
-      return new IllegalStateException("Cannot call " + methodName + " when QueryStream is closed");
+    private boolean bufferNextRow() {
+      try {
+        while (responseScanner.hasNextLine()) {
+          final String responseLine = responseScanner.nextLine().trim();
+          if (!responseLine.isEmpty()) {
+            try {
+              bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
+            } catch (final IOException exception) {
+              throw new RuntimeException(exception);
+            }
+            return true;
+          }
+        }
+
+        return false;
+      } catch (final IllegalStateException e) {
+        // Can happen is scanner is closed:
+        if (closed) {
+          return false;
+        }
+
+        throw e;
+      }
     }
   }
 
@@ -344,6 +379,15 @@ public class KsqlRestClient implements Closeable {
         prop -> propertiesMap.put(prop, properties.getProperty(prop)));
 
     return propertiesMap;
+  }
+
+  private static List<URI> parseServerAddresses(final String serverAddresses) {
+    Objects.requireNonNull(serverAddresses, "serverAddress");
+    return ImmutableList.copyOf(
+      Arrays.stream(serverAddresses.split(","))
+         .map(String::trim)
+         .map(KsqlRestClient::parseServerAddress)
+         .collect(Collectors.toList()));
   }
 
   private static URI parseServerAddress(final String serverAddress) {

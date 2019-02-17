@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.function;
@@ -38,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,7 +66,7 @@ public class UdfLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfLoader.class);
   private static final String UDF_METRIC_GROUP = "ksql-udf";
 
-  private final FunctionRegistry functionRegistry;
+  private final MutableFunctionRegistry functionRegistry;
   private final File pluginDir;
   private final ClassLoader parentClassLoader;
   private final Predicate<String> blacklist;
@@ -78,7 +77,7 @@ public class UdfLoader {
 
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public UdfLoader(final FunctionRegistry functionRegistry,
+  public UdfLoader(final MutableFunctionRegistry functionRegistry,
                    final File pluginDir,
                    final ClassLoader parentClassLoader,
                    final Predicate<String> blacklist,
@@ -226,14 +225,14 @@ public class UdfLoader {
     };
   }
 
-  private void addFunction(final UdfDescription classLevelAnnotaion,
+  private void addFunction(final UdfDescription classLevelAnnotation,
                            final Method method,
                            final UdfInvoker udf,
                            final String path) {
     // sanity check
-    instantiateUdfClass(method, classLevelAnnotaion);
+    instantiateUdfClass(method, classLevelAnnotation);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
-    final String functionName = classLevelAnnotaion.name();
+    final String functionName = classLevelAnnotation.name();
     final String sensorName = "ksql-udf-" + functionName;
 
     @SuppressWarnings("unchecked")
@@ -243,11 +242,11 @@ public class UdfLoader {
     addSensor(sensorName, functionName);
 
     LOGGER.info("Adding function " + functionName + " for method " + method);
-    functionRegistry.addFunctionFactory(new UdfFactory(udfClass,
+    functionRegistry.ensureFunctionFactory(new UdfFactory(udfClass,
         new UdfMetadata(functionName,
-            classLevelAnnotaion.description(),
-            classLevelAnnotaion.author(),
-            classLevelAnnotaion.version(),
+            classLevelAnnotation.description(),
+            classLevelAnnotation.author(),
+            classLevelAnnotation.version(),
             path,
             false)));
 
@@ -258,18 +257,22 @@ public class UdfLoader {
           .map(UdfParameter.class::cast)
           .findAny();
 
-      final String name = annotation.map(UdfParameter::value).orElse("");
+      final Parameter param = method.getParameters()[idx];
+      final String name = annotation.map(UdfParameter::value)
+          .filter(val -> !val.isEmpty())
+          .orElse(param.isNamePresent() ? param.getName() : "");
+
       final String doc = annotation.map(UdfParameter::description).orElse("");
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
-    functionRegistry.addFunction(new KsqlFunction(
+    functionRegistry.addFunction(KsqlFunction.create(
         SchemaUtil.getSchemaFromType(method.getGenericReturnType()),
         parameters,
         functionName,
         udfClass,
         ksqlConfig -> {
-          final Object actualUdf = instantiateUdfClass(method, classLevelAnnotaion);
+          final Object actualUdf = instantiateUdfClass(method, classLevelAnnotation);
           if (actualUdf instanceof Configurable) {
             ((Configurable)actualUdf)
                 .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
@@ -316,7 +319,7 @@ public class UdfLoader {
   }
 
   public static UdfLoader newInstance(final KsqlConfig config,
-                                      final FunctionRegistry metaStore,
+                                      final MutableFunctionRegistry metaStore,
                                       final String ksqlInstallDir
   ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
@@ -342,5 +345,4 @@ public class UdfLoader {
         loadCustomerUdfs
     );
   }
-
 }

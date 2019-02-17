@@ -501,6 +501,7 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
                of the ``ksql`` executable. For example, if ``ksql`` is installed at ``/usr/local/bin/ksql``, then it would
                attempt to store its logs in ``/usr/local/logs``. If you are running ``ksql`` from the default |cp|
                location, ``<path-to-confluent>/bin``, you must override this default behavior by using the ``LOG_DIR`` variable.
+.. log_limitations_mid
 .. log_limitations_qs_end
                For example, to store your logs in the ``ksql_logs`` directory within your current working directory, run this
                command when starting the KSQL CLI:
@@ -583,7 +584,7 @@ Your output should resemble:
     3 | City_57
     4 | City_17
 
-Press Ctrl-C to cancel the ``SELECT`` query. 
+Press Ctrl+C to cancel the ``SELECT`` query. 
 
 
 .. struct_support_02_end
@@ -600,13 +601,14 @@ events on a common key. An example of this could be a stream of order
 events, and a stream of shipment events. By joining these on the order
 key, it is possible to see shipment information alongside the order.
 
-First, populate the ``orders`` and ``shipments`` topics:
+In a separate console window, populate the ``orders`` and ``shipments``
+topics by using the kafkacat utility:
 
 .. ss-join_01_end
 
 .. ss-join_02_start
 
-Register both topics with KSQL:
+In the KSQL CLI, register both topics as KSQL streams:
 
 .. code:: sql
 
@@ -616,7 +618,7 @@ Register both topics with KSQL:
     CREATE STREAM SHIPMENTS (ORDER_ID INT, SHIPMENT_ID INT, WAREHOUSE VARCHAR)
     WITH (KAFKA_TOPIC='shipments', VALUE_FORMAT='JSON');
 
-After each ``CREATE STREAM`` statement you should get the message: 
+After both ``CREATE STREAM`` statements, your output should resemble: 
 
 ::
 
@@ -625,7 +627,7 @@ After each ``CREATE STREAM`` statement you should get the message:
      Stream created
     ----------------
 
-Query the data to confirm that it is present in the topics. 
+Query the data to confirm that it's present in the topics. 
 
 .. include:: ../includes/ksql-includes.rst
     :start-after: offsetreset_start
@@ -659,7 +661,7 @@ Your output should resemble:
     3 | 43 | Palo Alto
 
 Run the following query, which will show orders with associated shipments, 
-based on a join window of 1 hours. 
+based on a join window of 1 hour. 
 
 .. code:: sql
 
@@ -682,7 +684,7 @@ Note that message with ``ORDER_ID=2`` has no corresponding
 corresponding row on the shipments stream within the time window
 specified. 
 
-Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
+Press Ctrl+C to cancel the ``SELECT`` query and return to the KSQL prompt.
 
 
 .. ss-join_02_end
@@ -702,13 +704,14 @@ not supported in the current semantic model.
 In this example we have location data about a warehouse from one system,
 being enriched with data about the size of the warehouse from another.
 
-First, populate the two topics:
+In a separate console window, populate the two topics by using the kafkacat
+utility:
 
 .. tt-join_01_end
 
 .. tt-join_02_start
 
-Register both as KSQL tables:
+In the KSQL CLI, register both topics as KSQL tables:
 
 .. code:: sql
 
@@ -722,7 +725,7 @@ Register both as KSQL tables:
           VALUE_FORMAT='JSON',
           KEY='WAREHOUSE_ID');
 
-For each ``CREATE TABLE`` statement, you should get the message: 
+After both ``CREATE TABLE`` statements, your output should resemble: 
 
 ::
 
@@ -739,6 +742,8 @@ they are not, the join will not succeed or behave as expected.
     :start-after: offsetreset_start
     :end-before: offsetreset_end
 
+Inspect the WAREHOUSE_LOCATION table:
+
 .. code:: sql
 
     SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION LIMIT 3;
@@ -752,6 +757,8 @@ Your output should resemble:
     3 | 3
     Limit Reached
     Query terminated
+
+Inspect the WAREHOUSE_SIZE table:
 
 .. code:: sql
 
@@ -903,7 +910,7 @@ topics (denoted by ``LOCAL`` and ``3RD PARTY`` respectively).
     1531736085531 | 1838 | LOCAL | 1497601536360 | 1838 | Item_945 | 4.825111590185673 | {CITY=City_78, STATE=State_13, ZIPCODE=59763}
     …
 
-Press Ctrl-C to cancel the ``SELECT`` query and return to the KSQL prompt.
+Press Ctrl+C to cancel the ``SELECT`` query and return to the KSQL prompt.
 
 You can view the two queries that are running using ``SHOW QUERIES``: 
 
@@ -923,4 +930,3 @@ Your output should resemble:
     -------------------------------------------------------------------------------------------------------------------
 
 .. insert-into_02_end
-

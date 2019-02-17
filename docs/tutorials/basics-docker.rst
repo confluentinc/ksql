@@ -38,10 +38,10 @@ Download the Tutorial and Start KSQL
 
 #. From two separate terminal windows, run the data generator tool to simulate "user" and "pageview" data: 
 
-   .. code:: bash
+   .. codewithvars:: bash
 
       docker run --network tutorials_default --rm --name datagen-pageviews \
-        confluentinc/ksql-examples:5.0.0 \
+        confluentinc/ksql-examples:|release| \
         ksql-datagen \
             bootstrap-server=kafka:39092 \
             quickstart=pageviews \
@@ -49,10 +49,10 @@ Download the Tutorial and Start KSQL
             topic=pageviews \
             maxInterval=500 
 
-   .. code:: bash
+   .. codewithvars:: bash
 
       docker run --network tutorials_default --rm --name datagen-users \
-        confluentinc/ksql-examples:5.0.0 \
+        confluentinc/ksql-examples:|release| \
         ksql-datagen \
             bootstrap-server=kafka:39092 \
             quickstart=users \
@@ -62,10 +62,10 @@ Download the Tutorial and Start KSQL
 
 #. From the host machine, start KSQL CLI
 
-   .. code:: bash
+   .. codewithvars:: bash
 
        docker run --network tutorials_default --rm --interactive --tty \
-          confluentinc/cp-ksql-cli:5.0.0 \
+          confluentinc/cp-ksql-cli:|release| \
           http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst
@@ -86,10 +86,10 @@ Download the Tutorial and Start KSQL
     :start-after: struct_support_01_start
     :end-before: struct_support_01_end
 
-.. code:: bash
+.. codewithvars:: bash
 
     docker run --network tutorials_default --rm  \
-      confluentinc/ksql-examples:5.0.0 \
+      confluentinc/ksql-examples:|release| \
       ksql-datagen \
           quickstart=orders \
           format=avro \
@@ -115,11 +115,6 @@ Download the Tutorial and Start KSQL
               -t new_orders \
               -K: \
               -P <<EOF
-
-Your output should resemble:
-
-::
-
     1:{"order_id":1,"total_amount":10.50,"customer_name":"Bob Smith"}
     2:{"order_id":2,"total_amount":3.32,"customer_name":"Sarah Black"}
     3:{"order_id":3,"total_amount":21.00,"customer_name":"Emma Turner"}
@@ -133,11 +128,6 @@ Your output should resemble:
               -t shipments \
               -K: \
               -P <<EOF
-    
-Your output should resemble:
-
-::
-
     1:{"order_id":1,"shipment_id":42,"warehouse":"Nashville"}
     3:{"order_id":3,"shipment_id":43,"warehouse":"Palo Alto"}
     EOF
@@ -160,11 +150,6 @@ Your output should resemble:
               -t warehouse_location \
               -K: \
               -P <<EOF
-
-Your output should resemble:
-
-::
-
     1:{"warehouse_id":1,"city":"Leeds","country":"UK"}
     2:{"warehouse_id":2,"city":"Sheffield","country":"UK"}
     3:{"warehouse_id":3,"city":"Berlin","country":"Germany"}
@@ -178,11 +163,6 @@ Your output should resemble:
               -t warehouse_size \
               -K: \
               -P <<EOF
-    
-Your output should resemble:
-
-::
-
     1:{"warehouse_id":1,"square_footage":16000}
     2:{"warehouse_id":2,"square_footage":42000}
     3:{"warehouse_id":3,"square_footage":94000}
@@ -198,10 +178,10 @@ Your output should resemble:
     :start-after: insert-into-01-start
     :end-before: insert-into-01-end
 
-.. code:: bash
+.. codewithvars:: bash
 
     docker run --network tutorials_default --rm  --name datagen-orders-local \
-      confluentinc/ksql-examples:5.0.0 \
+      confluentinc/ksql-examples:|release| \
       ksql-datagen \
           quickstart=orders \
           format=avro \
@@ -209,10 +189,10 @@ Your output should resemble:
           bootstrap-server=kafka:39092 \
           schemaRegistryUrl=http://schema-registry:8081
 
-.. code:: bash
+.. codewithvars:: bash
 
     docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-      confluentinc/ksql-examples:5.0.0 \
+      confluentinc/ksql-examples:|release| \
       ksql-datagen \
           quickstart=orders \
           format=avro \

@@ -1,22 +1,21 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.resources.streaming.TopicStream.RecordFormatter;
 import java.io.EOFException;
 import java.io.IOException;
@@ -26,6 +25,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -45,44 +45,48 @@ public class TopicStreamWriter implements StreamingOutput {
   private final KafkaConsumer<String, Bytes> topicConsumer;
   private final SchemaRegistryClient schemaRegistryClient;
   private final String topicName;
+  private final OptionalInt limit;
 
   private long messagesWritten;
+  private long messagesPolled;
 
   public TopicStreamWriter(
       final SchemaRegistryClient schemaRegistryClient,
       final Map<String, Object> consumerProperties,
+      final PrintTopic printTopic,
+      final Duration disconnectCheckInterval
+  ) {
+    this(
+        schemaRegistryClient,
+        createTopicConsumer(
+            consumerProperties, printTopic.getTopic().toString(), printTopic.getFromBeginning()),
+        printTopic.getTopic().toString(),
+        printTopic.getIntervalValue(),
+        disconnectCheckInterval,
+        printTopic.getLimit());
+  }
+
+
+  TopicStreamWriter(
+      final SchemaRegistryClient schemaRegistryClient,
+      final KafkaConsumer<String, Bytes> topicConsumer,
       final String topicName,
       final long interval,
       final Duration disconnectCheckInterval,
-      final boolean fromBeginning
+      final OptionalInt limit
   ) {
+    this.topicConsumer = topicConsumer;
     this.schemaRegistryClient = schemaRegistryClient;
     this.topicName = topicName;
-    this.messagesWritten = 0;
-
+    this.interval = interval;
+    this.limit = limit;
     this.disconnectCheckInterval = Objects
         .requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
 
-    this.topicConsumer = new KafkaConsumer<>(
-        consumerProperties,
-        new StringDeserializer(),
-        new BytesDeserializer()
-    );
-
-    final List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(topicName)
-        .stream()
-        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
-        .collect(Collectors.toList());
-    topicConsumer.assign(topicPartitions);
-
-    if (fromBeginning) {
-      topicConsumer.seekToBeginning(topicPartitions);
-    }
-
-    this.interval = interval;
+    this.messagesWritten = 0;
+    this.messagesPolled = 0;
   }
 
-  @SuppressWarnings("InfiniteLoopStatement")
   @Override
   public void write(final OutputStream out) {
     try {
@@ -101,9 +105,14 @@ public class TopicStreamWriter implements StreamingOutput {
               out.write(("Format:" + formatter.getFormat().name() + "\n")
                             .getBytes(StandardCharsets.UTF_8));
             }
-            if (messagesWritten++ % interval == 0) {
+            if (messagesPolled++ % interval == 0) {
+              messagesWritten++;
               out.write(value.getBytes(StandardCharsets.UTF_8));
               out.flush();
+            }
+
+            if (limit.isPresent() && messagesWritten >= limit.getAsInt()) {
+              return;
             }
           }
         }
@@ -126,5 +135,28 @@ public class TopicStreamWriter implements StreamingOutput {
     } catch (final IOException e) {
       log.debug("Client disconnected while attempting to write an error message");
     }
+  }
+
+  private static KafkaConsumer<String, Bytes> createTopicConsumer(
+      final Map<String, Object> consumerProperties,
+      final String topicName,
+      final boolean fromBeginning) {
+
+    final KafkaConsumer<String, Bytes> topicConsumer = new KafkaConsumer<>(
+        consumerProperties,
+        new StringDeserializer(),
+        new BytesDeserializer()
+    );
+
+    final List<TopicPartition> topicPartitions = topicConsumer.partitionsFor(topicName)
+        .stream()
+        .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
+        .collect(Collectors.toList());
+    topicConsumer.assign(topicPartitions);
+
+    if (fromBeginning) {
+      topicConsumer.seekToBeginning(topicPartitions);
+    }
+    return topicConsumer;
   }
 }

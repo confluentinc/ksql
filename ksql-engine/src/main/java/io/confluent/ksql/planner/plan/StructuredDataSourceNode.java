@@ -1,24 +1,21 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -26,25 +23,30 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.streams.StreamsUtil;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -58,6 +60,7 @@ import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.processor.TimestampExtractor;
+import org.apache.kafka.streams.state.KeyValueStore;
 
 @Immutable
 public class StructuredDataSourceNode
@@ -83,9 +86,12 @@ public class StructuredDataSourceNode
         return row;
       };
 
+  private static final String SOURCE_OP_NAME = "source";
+  private static final String REDUCE_OP_NAME = "reduce";
+
   private final StructuredDataSource structuredDataSource;
   private final Schema schema;
-
+  private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
   // TODO: pass in the "assignments" and the "outputs" separately
   // TODO: (i.e., get rid if the symbol := symbol idiom)
@@ -95,11 +101,21 @@ public class StructuredDataSourceNode
       @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
       @JsonProperty("schema") final Schema schema
   ) {
+    this(id, structuredDataSource, schema, MaterializedFactory::create);
+  }
+
+  public StructuredDataSourceNode(
+      final PlanNodeId id,
+      final StructuredDataSource structuredDataSource,
+      final Schema schema,
+      final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier) {
     super(id, structuredDataSource.getDataSourceType());
-    Objects.requireNonNull(structuredDataSource, "structuredDataSource can't be null");
-    Objects.requireNonNull(schema, "schema can't be null");
-    this.schema = schema;
-    this.structuredDataSource = structuredDataSource;
+    this.schema =
+        Objects.requireNonNull(schema, "schema");
+    this.structuredDataSource =
+        Objects.requireNonNull(structuredDataSource, "structuredDataSource");
+    this.materializedFactorySupplier =
+        Objects.requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
   }
 
   public String getTopicName() {
@@ -123,12 +139,10 @@ public class StructuredDataSourceNode
   @Override
   public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     final String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
-    final Map<String, TopicDescription> descriptions
-        = kafkaTopicClient.describeTopics(Arrays.asList(topicName));
-    if (!descriptions.containsKey(topicName)) {
-      throw new KsqlException("Could not get topic description for " + topicName);
-    }
-    return descriptions.get(topicName).partitions().size();
+
+    return kafkaTopicClient.describeTopic(topicName)
+        .partitions()
+        .size();
   }
 
   @Override
@@ -146,11 +160,12 @@ public class StructuredDataSourceNode
   public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final QueryId queryId
   ) {
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
     final int timeStampColumnIndex = getTimeStampColumnIndex();
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
@@ -160,18 +175,31 @@ public class StructuredDataSourceNode
     final Serde<GenericRow> genericRowSerde =
         ksqlTopicSerDe.getGenericRowSerde(
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
-            ksqlConfig, false, schemaRegistryClientFactory);
+            ksqlConfig,
+            false,
+            serviceContext.getSchemaRegistryClientFactory(), 
+            QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext()),
+            processingLogContext
+        );
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
-
+      final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
       final KTable<?, GenericRow> kTable = createKTable(
           builder,
-          getAutoOffsetReset(props),
+          getAutoOffsetReset(ksqlConfig.getKsqlStreamConfigProps()),
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-              getSchema(), ksqlConfig, true, schemaRegistryClientFactory),
-          timestampExtractor
+              getSchema(),
+              ksqlConfig,
+              true,
+              serviceContext.getSchemaRegistryClientFactory(),
+              QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext()),
+              processingLogContext
+          ),
+          timestampExtractor,
+          ksqlConfig,
+          reduceContextStacker.getQueryContext()
       );
       return new SchemaKTable<>(
           getSchema(),
@@ -182,7 +210,7 @@ public class StructuredDataSourceNode
           SchemaKStream.Type.SOURCE,
           ksqlConfig,
           functionRegistry,
-          schemaRegistryClientFactory.get()
+          contextStacker.getQueryContext()
       );
     }
 
@@ -192,14 +220,17 @@ public class StructuredDataSourceNode
     return new SchemaKStream<>(
         getSchema(),
         kstream,
-        getKeyField(), new ArrayList<>(),
+        getKeyField(),
+        new ArrayList<>(),
         stream.getKeySerde(),
-        SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry,
-        schemaRegistryClientFactory.get()
+        SchemaKStream.Type.SOURCE,
+        ksqlConfig,
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 
-  private Topology.AutoOffsetReset getAutoOffsetReset(final Map<String, Object> props) {
+  private static Topology.AutoOffsetReset getAutoOffsetReset(final Map<String, Object> props) {
     if (props.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
       final String offestReset = props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).toString();
       if (offestReset.equalsIgnoreCase("EARLIEST")) {
@@ -295,7 +326,9 @@ public class StructuredDataSourceNode
       final Topology.AutoOffsetReset autoOffsetReset,
       final Serde<GenericRow> genericRowSerde,
       final Serde<GenericRow> genericRowSerdeAfterRead,
-      final TimestampExtractor timestampExtractor) {
+      final TimestampExtractor timestampExtractor,
+      final KsqlConfig ksqlConfig,
+      final QueryContext reduceContextBuilder) {
     // to build a table we apply the following transformations:
     // 1. Create a KStream on the changelog topic.
     // 2. mapValues to add the ROWKEY column
@@ -315,13 +348,13 @@ public class StructuredDataSourceNode
       return table(
           builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(), windowedMapper,
           (Serde<Windowed<String>>)ksqlTable.getKeySerde(),
-          genericRowSerde, genericRowSerdeAfterRead);
+          genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, reduceContextBuilder);
     }
 
     return table(
         builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(),
         nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerde(),
-        genericRowSerde, genericRowSerdeAfterRead);
+        genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, reduceContextBuilder);
   }
 
   private <K> KTable<?, GenericRow> table(
@@ -332,13 +365,20 @@ public class StructuredDataSourceNode
       final ValueMapperWithKey<K, GenericRow, GenericRow> valueMapper,
       final Serde<K> keySerde,
       final Serde<GenericRow> genericRowSerde,
-      final Serde<GenericRow> genericRowSerdeAfterRead
+      final Serde<GenericRow> genericRowSerdeAfterRead,
+      final KsqlConfig ksqlConfig,
+      final QueryContext reduceContextBuilder
   ) {
     final Consumed<K, GenericRow> consumed = Consumed
         .with(keySerde, genericRowSerde)
         .withOffsetResetPolicy(autoOffsetReset)
         .withTimestampExtractor(timestampExtractor);
 
+    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+        materializedFactorySupplier.apply(ksqlConfig).create(
+            keySerde,
+            genericRowSerdeAfterRead,
+            StreamsUtil.buildOpName(reduceContextBuilder));
     return builder
         .stream(ksqlTopic.getKafkaTopicName(), consumed)
         .mapValues(valueMapper)
@@ -348,14 +388,14 @@ public class StructuredDataSourceNode
         .aggregate(
             () -> null,
             (k, value, oldValue) -> value.orElse(null),
-            Materialized.with(keySerde, genericRowSerdeAfterRead));
+            materialized);
   }
 
   public StructuredDataSource.DataSourceType getDataSourceType() {
     return structuredDataSource.getDataSourceType();
   }
 
-  public TimestampExtractionPolicy getTimestampExtractionPolicy() {
+  TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return structuredDataSource.getTimestampExtractionPolicy();
   }
 }

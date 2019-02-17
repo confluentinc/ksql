@@ -1,56 +1,57 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryIdGenerator;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
+import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
-
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
-
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final Field keyField;
   private final boolean doCreateInto;
   private final Map<String, Object> outputProperties;
-
 
   @JsonCreator
   public KsqlStructuredDataOutputNode(
@@ -81,6 +82,18 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
+  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
+    final String base = queryIdGenerator.getNextId();
+    if (!doCreateInto) {
+      return new QueryId("InsertQuery_" + base);
+    }
+    if (getNodeOutputType().equals(DataSourceType.KTABLE)) {
+      return new QueryId("CTAS_" + getId().toString() + "_" + base);
+    }
+    return new QueryId("CSAS_" + getId().toString() + "_" + base);
+  }
+
+  @Override
   public Field getKeyField() {
     return keyField;
   }
@@ -89,20 +102,22 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   public SchemaKStream<?> buildStream(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient,
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final QueryId queryId
   ) {
     final PlanNode source = getSource();
     final SchemaKStream schemaKStream = source.buildStream(
         builder,
         ksqlConfig,
-        kafkaTopicClient,
+        serviceContext,
+        processingLogContext,
         functionRegistry,
-        props,
-        schemaRegistryClientFactory
+        queryId
     );
+
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
 
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
     final Builder outputNodeBuilder = Builder.from(this);
@@ -126,14 +141,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         ksqlConfig,
         functionRegistry,
         outputProperties,
-        schemaRegistryClientFactory
+        contextStacker
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
     if (doCreateInto) {
       createSinkTopic(
           noRowKey.getKafkaTopicName(),
-          kafkaTopicClient,
+          serviceContext.getTopicClient(),
           shouldBeCompacted(result),
           partitions,
           replicas);
@@ -142,7 +157,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         noRowKey.getKafkaTopicName(),
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
             .getGenericRowSerde(
-                noRowKey.getSchema(), ksqlConfig, false, schemaRegistryClientFactory),
+                noRowKey.getSchema(),
+                ksqlConfig,
+                false,
+                serviceContext.getSchemaRegistryClientFactory(),
+                QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
+                processingLogContext),
         rowkeyIndexes
     );
 
@@ -154,7 +174,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return result;
   }
 
-  private boolean shouldBeCompacted(final SchemaKStream result) {
+  private static boolean shouldBeCompacted(final SchemaKStream result) {
     return (result instanceof SchemaKTable)
            && !((SchemaKTable<?>) result).hasWindowedKey();
   }
@@ -166,7 +186,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> outputProperties,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+      final QueryContext.Stacker contextStacker
   ) {
 
     if (schemaKStream instanceof SchemaKTable) {
@@ -182,7 +202,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         SchemaKStream.Type.SINK,
         ksqlConfig,
         functionRegistry,
-        schemaRegistryClientFactory.get()
+        contextStacker.getQueryContext()
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
@@ -196,14 +216,16 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           )));
 
       outputNodeBuilder.withKeyField(keyField);
-      return result.selectKey(keyField, false);
+      return result.selectKey(keyField, false, contextStacker);
     }
     return result;
   }
 
   private void addAvroSchemaToResultTopic(final Builder builder) {
+    final String schemaFullName = StringUtil.cleanQuotes(
+        outputProperties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
     final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe();
+        new KsqlAvroTopicSerDe(schemaFullName);
     builder.withKsqlTopic(new KsqlTopic(
         getKsqlTopic().getName(),
         getKsqlTopic().getKafkaTopicName(),
@@ -212,7 +234,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     ));
   }
 
-  private void createSinkTopic(
+  private static void createSinkTopic(
       final String kafkaTopicName,
       final KafkaTopicClient kafkaTopicClient,
       final boolean isCompacted,
@@ -234,11 +256,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return ksqlTopic;
   }
 
-  public Map<String, Object> getOutputProperties() {
-    return outputProperties;
-  }
-
-  public KsqlTopicSerDe getTopicSerde() {
+  private KsqlTopicSerDe getTopicSerde() {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
@@ -251,7 +269,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getKeyField(),
         getKsqlTopic(),
         getKafkaTopicName(),
-        getOutputProperties(),
+        outputProperties,
         getLimit(),
         newDoCreateInto
     );
@@ -293,11 +311,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withKeyField(original.getKeyField())
           .withKsqlTopic(original.getKsqlTopic())
           .withKafkaTopicName(original.getKafkaTopicName())
-          .withOutputProperties(original.getOutputProperties())
+          .withOutputProperties(original.outputProperties)
           .withLimit(original.getLimit())
           .withDoCreateInto(original.isDoCreateInto());
     }
-
 
     Builder withLimit(final Optional<Integer> limit) {
       this.limit = limit;

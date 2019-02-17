@@ -1,28 +1,26 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.codegen;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -34,9 +32,11 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
+import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -55,13 +55,6 @@ import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
-
-  public static final List<String> CODEGEN_IMPORTS = ImmutableList.of(
-      "org.apache.kafka.connect.data.Struct",
-      "java.util.HashMap",
-      "java.util.Map",
-      "java.util.List",
-      "java.util.ArrayList");
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
@@ -125,7 +118,7 @@ public class CodeGenRunner {
 
       final IExpressionEvaluator ee =
           CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-      ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
+      ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
       ee.setParameters(parameterNames, parameterTypes);
 
       final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
@@ -134,7 +127,13 @@ public class CodeGenRunner {
 
       ee.cook(javaCode);
 
-      return new ExpressionMetadata(ee, columnIndexes, kudfObjects, expressionType, schema);
+      return new ExpressionMetadata(
+          ee,
+          columnIndexes,
+          kudfObjects,
+          expressionType,
+          new GenericRowValueTypeEnforcer(schema),
+          expression);
     } catch (final KsqlException | CompileException e) {
       throw new KsqlException("Code generation failed for " + type
           + ": " + e.getMessage()
@@ -228,6 +227,14 @@ public class CodeGenRunner {
     }
 
     @Override
+    protected Object visitBetweenPredicate(final BetweenPredicate node, final Object context) {
+      process(node.getValue(), null);
+      process(node.getMax(), null);
+      process(node.getMin(), null);
+      return null;
+    }
+
+    @Override
     protected Object visitNotExpression(final NotExpression node, final Object context) {
       return process(node.getValue(), null);
     }
@@ -248,6 +255,20 @@ public class CodeGenRunner {
     }
 
     @Override
+    protected Object visitSearchedCaseExpression(
+        final SearchedCaseExpression node,
+        final Object context) {
+      node.getWhenClauses().forEach(
+          whenClause -> {
+            process(whenClause.getOperand(), context);
+            process(whenClause.getResult(), context);
+          }
+      );
+      node.getDefaultValue().ifPresent(defaultVal -> process(defaultVal, context));
+      return null;
+    }
+
+    @Override
     protected Object visitCast(final Cast node, final Object context) {
       process(node.getExpression(), context);
       return null;
@@ -263,10 +284,8 @@ public class CodeGenRunner {
         final String arrayBaseName = node.getBase().toString();
         final Field schemaField = SchemaUtil.getFieldByName(schema, arrayBaseName)
             .orElseThrow(
-                () -> {
-                  return new RuntimeException("Cannot find the select "
-                      + "field in the available fields: " + arrayBaseName);
-                });
+                () -> new RuntimeException("Cannot find the select "
+                    + "field in the available fields: " + arrayBaseName));
         addParameter(schemaField);
       } else {
         process(node.getBase(), context);
@@ -295,6 +314,7 @@ public class CodeGenRunner {
   }
 
   public static final class ParameterType {
+
     private final Class type;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<KsqlFunction> function;

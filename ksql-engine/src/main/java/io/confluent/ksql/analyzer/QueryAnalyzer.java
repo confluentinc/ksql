@@ -1,23 +1,20 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.Sets;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -31,14 +28,13 @@ import java.util.Set;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
-  private final FunctionRegistry functionRegistry;
   private final String outputTopicPrefix;
 
-  public QueryAnalyzer(final MetaStore metaStore,
-                       final FunctionRegistry functionRegistry,
-                       final String outputTopicPrefix) {
+  public QueryAnalyzer(
+      final MetaStore metaStore,
+      final String outputTopicPrefix
+  ) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.outputTopicPrefix = Objects.requireNonNull(outputTopicPrefix, "outputTopicPrefix");
   }
 
@@ -53,9 +49,9 @@ public class QueryAnalyzer {
     final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
     final DereferenceExpression defaultArgument = analysis.getDefaultArgument();
     final AggregateAnalyzer aggregateAnalyzer =
-        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, functionRegistry);
+        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
     final AggregateExpressionRewriter aggregateExpressionRewriter =
-        new AggregateExpressionRewriter(functionRegistry);
+        new AggregateExpressionRewriter(metaStore);
 
     processSelectExpressions(
         analysis,
@@ -87,7 +83,7 @@ public class QueryAnalyzer {
     return aggregateAnalysis;
   }
 
-  private void processHavingExpression(
+  private static void processHavingExpression(
       final Analysis analysis,
       final AggregateAnalysis aggregateAnalysis,
       final AggregateAnalyzer aggregateAnalyzer,
@@ -101,7 +97,7 @@ public class QueryAnalyzer {
         ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,exp));
   }
 
-  private void processGroupByExpression(
+  private static void processGroupByExpression(
       final Analysis analysis,
       final AggregateAnalyzer aggregateAnalyzer
   ) {
@@ -110,7 +106,7 @@ public class QueryAnalyzer {
     }
   }
 
-  private void processSelectExpressions(
+  private static void processSelectExpressions(
       final Analysis analysis,
       final AggregateAnalysis aggregateAnalysis,
       final AggregateAnalyzer aggregateAnalyzer,
@@ -124,7 +120,10 @@ public class QueryAnalyzer {
     }
   }
 
-  private void enforceAggregateRules(final Query query, final AggregateAnalysis aggregateAnalysis) {
+  private static void enforceAggregateRules(
+      final Query query,
+      final AggregateAnalysis aggregateAnalysis
+  ) {
     if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
       return;
     }
@@ -138,7 +137,7 @@ public class QueryAnalyzer {
     final Set<DereferenceExpression> selectOnly = Sets.difference(selectColumns, groupByColumns);
     if (!selectOnly.isEmpty()) {
       throw new KsqlException(
-          "Non-aggregate SELECT expression not part of GROUP BY: " + selectOnly);
+          "Non-aggregate SELECT expression(s) must be part of GROUP BY: " + selectOnly);
     }
 
     final Set<DereferenceExpression> havingColumns = aggregateAnalysis

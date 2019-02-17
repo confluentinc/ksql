@@ -1,37 +1,42 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.cli;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.confluent.ksql.cli.console.Console;
+import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
 import io.confluent.ksql.cli.console.OutputFormat;
+import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
+import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
-import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -42,9 +47,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -56,13 +58,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Cli implements Closeable {
+public class Cli implements KsqlRequestExecutor, Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
@@ -73,6 +77,7 @@ public class Cli implements Closeable {
 
   private final KsqlRestClient restClient;
   private final Console terminal;
+  private final RemoteServerState remoteServerState;
 
   public static Cli build(
       final Long streamedQueryRowLimit,
@@ -80,7 +85,7 @@ public class Cli implements Closeable {
       final OutputFormat outputFormat,
       final KsqlRestClient restClient
   ) {
-    final Console console = Console.build(outputFormat, restClient);
+    final Console console = Console.build(outputFormat);
     return new Cli(streamedQueryRowLimit, streamedQueryTimeoutMs, restClient, console);
   }
 
@@ -98,9 +103,49 @@ public class Cli implements Closeable {
     this.restClient = restClient;
     this.terminal = terminal;
     this.queryStreamExecutorService = Executors.newSingleThreadExecutor();
+    this.remoteServerState = new RemoteServerState();
 
-    terminal
-        .registerCliSpecificCommand(new RemoteServerSpecificCommand(restClient, terminal.writer()));
+    final Supplier<String> versionSuppler =
+        () -> restClient.getServerInfo().getResponse().getVersion();
+
+    CliCommandRegisterUtil.registerDefaultCommands(
+        this,
+        terminal,
+        versionSuppler,
+        restClient,
+        remoteServerState::reset,
+        remoteServerState::getRequestPipelining,
+        remoteServerState::setRequestPipelining);
+  }
+
+  @Override
+  public void makeKsqlRequest(final String statements) {
+    try {
+      printKsqlResponse(makeKsqlRequest(statements, restClient::makeKsqlRequest));
+    } catch (IOException e) {
+      throw new KsqlException(e);
+    }
+  }
+
+  private <R> RestResponse<R> makeKsqlRequest(
+      final String ksql,
+      final BiFunction<String, Long, RestResponse<R>> requestIssuer) {
+    final Long commandSequenceNumberToWaitFor = remoteServerState.getRequestPipelining()
+        ? null
+        : remoteServerState.getLastCommandSequenceNumber();
+    final RestResponse<R> response = requestIssuer.apply(ksql, commandSequenceNumberToWaitFor);
+
+    if (isSequenceNumberTimeout(response)) {
+      terminal.writer().printf(
+          "Error: command not executed since the server timed out "
+              + "while waiting for prior commands to finish executing.%n"
+              + "If you wish to execute new commands without waiting for "
+              + "prior commands to finish, run the command '%s ON'.%n",
+          RequestPipeliningCommand.NAME);
+    } else if (isKsqlEntityList(response)) {
+      updateLastCommandSequenceNumber((KsqlEntityList)response.getResponse());
+    }
+    return response;
   }
 
   public void runInteractively() {
@@ -179,9 +224,8 @@ public class Cli implements Closeable {
    *
    * @return The parsed, logical line.
    * @throws EndOfFileException If there is no more input available from the user.
-   * @throws IOException        If any other I/O error occurs.
    */
-  private String readLine() throws IOException {
+  private String readLine() {
     while (true) {
       try {
         final String result = terminal.readLine();
@@ -206,7 +250,7 @@ public class Cli implements Closeable {
       throws InterruptedException, IOException, ExecutionException {
 
     final List<ParsedStatement> statements =
-        new KsqlParser().getStatements(line);
+        new DefaultKsqlParser().parse(line);
 
     StringBuilder consecutiveStatements = new StringBuilder();
     for (final ParsedStatement statement : statements) {
@@ -222,15 +266,13 @@ public class Cli implements Closeable {
         );
 
       } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
-        listProperties(statementText);
+        makeKsqlRequest(statementText);
 
       } else if (statementContext.statement() instanceof SqlBaseParser.SetPropertyContext) {
         setProperty(statementContext);
 
       } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
         consecutiveStatements = unsetProperty(consecutiveStatements, statementContext);
-      } else if (statementContext.statement() instanceof SqlBaseParser.RunScriptContext) {
-        runScript(statementContext, statementText);
       } else if (statementContext.statement() instanceof SqlBaseParser.RegisterTopicContext) {
         registerTopic(consecutiveStatements, statementContext, statementText);
       } else {
@@ -238,9 +280,7 @@ public class Cli implements Closeable {
       }
     }
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
+      makeKsqlRequest(consecutiveStatements.toString());
     }
   }
 
@@ -256,39 +296,13 @@ public class Cli implements Closeable {
     consecutiveStatements.append(statementText);
   }
 
-  private void runScript(
-      final SqlBaseParser.SingleStatementContext statementContext,
-      final String statementText
-  ) throws IOException {
-    final SqlBaseParser.RunScriptContext runScriptContext =
-        (SqlBaseParser.RunScriptContext) statementContext.statement();
-    final String schemaFilePath = AstBuilder.unquote(runScriptContext.STRING().getText(), "'");
-    final String fileContent;
-    try {
-      fileContent = new String(
-          Files.readAllBytes(Paths.get(schemaFilePath)),
-          StandardCharsets.UTF_8
-      );
-    } catch (final IOException e) {
-      throw new KsqlException(
-          " Could not read statements from the provided script file " + schemaFilePath + ": "
-          + e + " Make sure the file exists and can be read by KSQL CLI.",
-          e
-      );
-    }
-    setProperty(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, fileContent);
-    printKsqlResponse(
-        restClient.makeKsqlRequest(statementText)
-    );
-  }
-
   private StringBuilder printOrDisplayQueryResults(
       final StringBuilder consecutiveStatements,
       final SqlBaseParser.SingleStatementContext statementContext,
       final String statementText
   ) throws InterruptedException, IOException, ExecutionException {
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(restClient.makeKsqlRequest(consecutiveStatements.toString()));
+      makeKsqlRequest(consecutiveStatements.toString());
       consecutiveStatements.setLength(0);
     }
     if (statementContext.statement() instanceof SqlBaseParser.QuerystatementContext) {
@@ -297,11 +311,6 @@ public class Cli implements Closeable {
       handlePrintedTopic(statementText);
     }
     return consecutiveStatements;
-  }
-
-  private void listProperties(final String statementText) throws IOException {
-    final KsqlEntityList ksqlEntityList = restClient.makeKsqlRequest(statementText).getResponse();
-    terminal.printKsqlEntityList(ksqlEntityList);
   }
 
   private void printKsqlResponse(final RestResponse<KsqlEntityList> response) throws IOException {
@@ -327,71 +336,80 @@ public class Cli implements Closeable {
     }
   }
 
-  private void handleStreamedQuery(final String query)
-      throws InterruptedException, ExecutionException, IOException {
+  private void handleStreamedQuery(final String query) throws IOException {
+
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
-        restClient.makeQueryRequest(query);
+        makeKsqlRequest(query, restClient::makeQueryRequest);
 
     LOGGER.debug("Handling streamed query");
 
-    if (queryResponse.isSuccessful()) {
-      try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse()) {
-        final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
-          for (long rowsRead = 0; keepReading(rowsRead) && queryStream.hasNext(); rowsRead++) {
-            try {
-              final StreamedRow row = queryStream.next();
-              terminal.printStreamedRow(row);
-              if (row.getFinalMessage() != null || row.getErrorMessage() != null) {
-                break;
-              }
-            } catch (final IOException exception) {
-              throw new RuntimeException(exception);
-            }
-          }
-        });
-
-        terminal.handle(Terminal.Signal.INT, signal -> {
-          terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
-          queryStreamFuture.cancel(true);
-        });
-
-        try {
-          if (streamedQueryTimeoutMs == null) {
-            queryStreamFuture.get();
-            Thread.sleep(1000); // TODO: Make things work without this
-          } else {
-            try {
-              queryStreamFuture.get(streamedQueryTimeoutMs, TimeUnit.MILLISECONDS);
-            } catch (final TimeoutException exception) {
-              queryStreamFuture.cancel(true);
-            }
-          }
-        } catch (final CancellationException exception) {
-          // It's fine
-        }
-      } finally {
-        terminal.writer().println("Query terminated");
-        terminal.flush();
-      }
-    } else {
+    if (!queryResponse.isSuccessful()) {
       terminal.printErrorMessage(queryResponse.getErrorMessage());
+    } else {
+      try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+          StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
+        streamResults(queryStream);
+      }
     }
   }
 
-  private boolean keepReading(final long rowsRead) {
+  private void streamResults(final QueryStream queryStream) {
+
+    final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
+      for (long rowsRead = 0; limitNotReached(rowsRead) && queryStream.hasNext(); rowsRead++) {
+        try {
+          final StreamedRow row = queryStream.next();
+          terminal.printStreamedRow(row);
+          if (row.isTerminal()) {
+            break;
+          }
+        } catch (final IOException exception) {
+          throw new RuntimeException(exception);
+        }
+      }
+    });
+
+    terminal.handle(Terminal.Signal.INT, signal -> {
+      terminal.handle(Terminal.Signal.INT, Terminal.SignalHandler.SIG_IGN);
+      queryStream.close();
+    });
+
+    try {
+      if (streamedQueryTimeoutMs != null) {
+        try {
+          queryStreamFuture.get(streamedQueryTimeoutMs, TimeUnit.MILLISECONDS);
+        } catch (final TimeoutException exception) {
+          queryStream.close();
+        }
+      }
+
+      queryStreamFuture.get();
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+    } catch (final ExecutionException e) {
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException)e.getCause();
+      }
+      throw new RuntimeException(e.getCause());
+    } finally {
+      terminal.writer().println("Query terminated");
+      terminal.flush();
+    }
+  }
+
+  private boolean limitNotReached(final long rowsRead) {
     return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
   }
 
   private void handlePrintedTopic(final String printTopic)
       throws InterruptedException, ExecutionException, IOException {
     final RestResponse<InputStream> topicResponse =
-        restClient.makePrintTopicRequest(printTopic);
+        makeKsqlRequest(printTopic, restClient::makePrintTopicRequest);
 
     if (topicResponse.isSuccessful()) {
-      try (Scanner topicStreamScanner = new Scanner(
-          topicResponse.getResponse(),
-          StandardCharsets.UTF_8.name()
-      )) {
+      try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse(), UTF_8.name());
+          StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")
+      ) {
         final Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
           while (!Thread.currentThread().isInterrupted() && topicStreamScanner.hasNextLine()) {
             final String line = topicStreamScanner.nextLine();
@@ -452,11 +470,9 @@ public class Cli implements Closeable {
   private StringBuilder unsetProperty(
       final StringBuilder consecutiveStatements,
       final SqlBaseParser.SingleStatementContext statementContext
-  ) throws IOException {
+  ) {
     if (consecutiveStatements.length() != 0) {
-      printKsqlResponse(
-          restClient.makeKsqlRequest(consecutiveStatements.toString())
-      );
+      makeKsqlRequest(consecutiveStatements.toString());
       consecutiveStatements.setLength(0);
     }
     final SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
@@ -475,5 +491,55 @@ public class Cli implements Closeable {
 
     terminal.writer()
         .printf("Successfully unset local property '%s' (value was '%s').%n", property, oldValue);
+    terminal.flush();
+  }
+
+  private static boolean isSequenceNumberTimeout(final RestResponse<?> response) {
+    return response.isErroneous()
+        && (response.getErrorMessage().getErrorCode()
+            == Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT);
+  }
+
+  private static boolean isKsqlEntityList(final RestResponse<?> response) {
+    return response.isSuccessful() && response.getResponse() instanceof KsqlEntityList;
+  }
+
+  private void updateLastCommandSequenceNumber(final KsqlEntityList entities) {
+    entities.stream()
+        .filter(entity -> entity instanceof CommandStatusEntity)
+        .map(entity -> (CommandStatusEntity)entity)
+        .mapToLong(CommandStatusEntity::getCommandSequenceNumber)
+        .max()
+        .ifPresent(remoteServerState::setLastCommandSequenceNumber);
+  }
+
+  private static final class RemoteServerState {
+    private long lastCommandSequenceNumber;
+    private boolean requestPipelining;
+
+    private RemoteServerState() {
+      reset();
+    }
+
+    private void reset() {
+      lastCommandSequenceNumber = -1L;
+      requestPipelining = false;
+    }
+
+    private long getLastCommandSequenceNumber() {
+      return lastCommandSequenceNumber;
+    }
+
+    private boolean getRequestPipelining() {
+      return requestPipelining;
+    }
+
+    private void setLastCommandSequenceNumber(final long seqNum) {
+      lastCommandSequenceNumber = seqNum;
+    }
+
+    private void setRequestPipelining(final boolean newSetting) {
+      requestPipelining = newSetting;
+    }
   }
 }

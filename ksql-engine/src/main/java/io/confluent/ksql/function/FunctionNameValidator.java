@@ -1,17 +1,15 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.confluent.ksql.function;
@@ -21,12 +19,14 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Predicate;
+import javax.annotation.concurrent.ThreadSafe;
 import org.antlr.v4.runtime.Vocabulary;
 
 /**
  * Check that a function name is valid. It is valid if it is not a Java reserved word
  * and not a ksql reserved word and is a valid java identifier.
  */
+@ThreadSafe
 class FunctionNameValidator implements Predicate<String> {
   private static final Set<String> JAVA_RESERVED_WORDS
       = ImmutableSet.<String>builder()
@@ -47,6 +47,31 @@ class FunctionNameValidator implements Predicate<String> {
 
   private static final Set<String> KSQL_RESERVED_WORDS = createFromVocabulary();
 
+  @Override
+  public boolean test(final String functionName) {
+    if (functionName == null
+        || functionName.trim().isEmpty()
+        || JAVA_RESERVED_WORDS.contains(functionName.toLowerCase())
+        || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
+      return false;
+    }
+    return isValidJavaIdentifier(functionName);
+
+  }
+
+  private static boolean isValidJavaIdentifier(final String functionName) {
+    final char [] characters = functionName.toCharArray();
+    if (!Character.isJavaIdentifierStart((int)characters[0])) {
+      return false;
+    }
+
+    for (int i = 1; i < characters.length; i++) {
+      if (!Character.isJavaIdentifierPart((int)characters[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   private static Set<String> createFromVocabulary() {
     final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
@@ -63,31 +88,5 @@ class FunctionNameValidator implements Predicate<String> {
       }
     }
     return builder.build();
-  }
-
-  @Override
-  public boolean test(final String functionName) {
-    if (functionName == null
-        || functionName.trim().isEmpty()
-        || JAVA_RESERVED_WORDS.contains(functionName.toLowerCase())
-        || KSQL_RESERVED_WORDS.contains(functionName.toLowerCase())) {
-      return false;
-    }
-    return isValidJavaIdentifier(functionName);
-
-  }
-
-  private boolean isValidJavaIdentifier(final String functionName) {
-    final char [] characters = functionName.toCharArray();
-    if (!Character.isJavaIdentifierStart((int)characters[0])) {
-      return false;
-    }
-
-    for (int i = 1; i < characters.length; i++) {
-      if (!Character.isJavaIdentifierPart((int)characters[i])) {
-        return false;
-      }
-    }
-    return true;
   }
 }

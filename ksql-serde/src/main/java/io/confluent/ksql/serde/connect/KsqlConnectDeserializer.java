@@ -1,23 +1,25 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.serde.connect;
 
+import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.storage.Converter;
@@ -25,12 +27,18 @@ import org.apache.kafka.connect.storage.Converter;
 public class KsqlConnectDeserializer implements Deserializer<GenericRow> {
   final Converter converter;
   final DataTranslator connectToKsqlTranslator;
+  final StructuredLogger recordLogger;
+  final ProcessingLogContext processingLogContext;
 
   public KsqlConnectDeserializer(
       final Converter converter,
-      final DataTranslator connectToKsqlTranslator) {
+      final DataTranslator connectToKsqlTranslator,
+      final StructuredLogger recordLogger,
+      final ProcessingLogContext processingLogContext) {
     this.converter = converter;
     this.connectToKsqlTranslator = connectToKsqlTranslator;
+    this.recordLogger = recordLogger;
+    this.processingLogContext = processingLogContext;
   }
 
   @Override
@@ -40,8 +48,17 @@ public class KsqlConnectDeserializer implements Deserializer<GenericRow> {
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow deserialize(final String topic, final byte[] bytes) {
-    final SchemaAndValue schemaAndValue = converter.toConnectData(topic, bytes);
-    return connectToKsqlTranslator.toKsqlRow(schemaAndValue.schema(), schemaAndValue.value());
+    try {
+      final SchemaAndValue schemaAndValue = converter.toConnectData(topic, bytes);
+      return connectToKsqlTranslator.toKsqlRow(schemaAndValue.schema(), schemaAndValue.value());
+    } catch (final Exception e) {
+      recordLogger.error(
+          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+              e,
+              Optional.ofNullable(bytes),
+              processingLogContext.getConfig()));
+      throw e;
+    }
   }
 
   @Override

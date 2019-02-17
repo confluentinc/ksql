@@ -1,28 +1,18 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.metrics;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.metrics.TopicSensors.Stat;
-import java.util.Map;
-import java.util.stream.IntStream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 import static io.confluent.ksql.metrics.StreamsErrorCollector.CONSUMER_FAILED_MESSAGES;
 import static io.confluent.ksql.metrics.StreamsErrorCollector.CONSUMER_FAILED_MESSAGES_PER_SEC;
@@ -32,6 +22,14 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.metrics.TopicSensors.Stat;
+import java.util.Map;
+import java.util.stream.IntStream;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class StreamsErrorCollectorTest {
   private final static String TOPIC_NAME = "test-topic";

@@ -1,19 +1,15 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * This file is an adaptation of Presto's presto-parser/src/main/antlr4/com/facebook/presto/sql/parser/SqlBase.g4 grammar.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 grammar SqlBase;
@@ -39,13 +35,13 @@ statement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) TOPICS                                                  #listTopics
     | (LIST | SHOW) REGISTERED TOPICS                                       #listRegisteredTopics
-    | (LIST | SHOW) STREAMS EXTENDED?                                   #listStreams
-    | (LIST | SHOW) TABLES EXTENDED?                                    #listTables
-    | (LIST | SHOW) FUNCTIONS                                            #listFunctions
+    | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
+    | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
+    | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | DESCRIBE EXTENDED? (qualifiedName | TOPIC qualifiedName)              #showColumns
     | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
-    | PRINT (qualifiedName | STRING) (FROM BEGINNING)? ((INTERVAL | SAMPLE) number)?   #printTopic
-    | (LIST | SHOW) QUERIES EXTENDED?                                   #listQueries
+    | PRINT (qualifiedName | STRING) printClause                            #printTopic
+    | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
@@ -65,8 +61,8 @@ statement
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
-    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                  #dropStream
-    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                  #dropTable
+    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
+    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
     | EXPLAIN ANALYZE?
             (statement | qualifiedName)         #explain
     | EXPORT CATALOG TO STRING                                              #exportCatalog
@@ -91,7 +87,21 @@ tableProperty
 
 queryNoWith:
       queryTerm
-      (LIMIT limit=(INTEGER_VALUE | ALL))?
+      limitClause
+    ;
+
+printClause
+      : (FROM BEGINNING)?
+      intervalClause
+      limitClause
+      ;
+
+intervalClause
+    : ((INTERVAL | SAMPLE) number)?
+    ;
+
+limitClause
+    : (LIMIT number)?
     ;
 
 queryTerm
@@ -332,7 +342,6 @@ nonReserved
 SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';
-ALL: 'ALL';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
 WITHIN: 'WITHIN';

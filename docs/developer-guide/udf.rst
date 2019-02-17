@@ -48,6 +48,8 @@ Folow these steps to create your custom functions:
          KSQL server, including your custom UDF and UDAF functions. Use the
          DESCRIBE FUNCTION statement to display details about your custom functions.
 
+For a detailed walkthrough on creating a UDF, see :ref:`implement-a-udf`.
+
 ======================
 Creating UDF and UDAFs
 ======================
@@ -116,6 +118,9 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
 
 .. code:: java
 
+    import io.confluent.ksql.function.udf.Udf;
+    import io.confluent.ksql.function.udf.UdfDescription;
+
     @UdfDescription(name = "multiply", description = "multiplies 2 numbers")
     public class Multiply {
 
@@ -143,6 +148,32 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
         return v1 * v2;
       }
     }
+
+If you're using Gradle to build your UDF or UDAF, specify the ``ksql-udf``
+dependency: 
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:|release|'
+
+To compile with the latest version of ``ksql-udf``:
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:+'
+
+If you're using Maven to build your UDF or UDAF, specify the ``ksql-udf``
+dependency in your POM file:
+
+.. codewithvars:: xml
+
+    <dependencies>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-udf</artifactId>
+            <version>|release|</version>
+        </dependency>
+    </dependencies>
 
 
 UdfDescription Annotation
@@ -202,6 +233,9 @@ can be used to better describe what the parameter does, for example:
        @UdfParameter("str") final String str,
        @UdfParameter(value = "pos", description = "Starting position of the substring") final int pos)
 
+If your Java8 class is compiled with the ``-parameter`` compiler flag, the name of the parameter
+will be inferred from the method declaration.
+
 Configurable UDF
 ~~~~~~~~~~~~~~~~
 
@@ -225,6 +259,8 @@ If the UDF class needs access to the KSQL server configuration it can implement
 For security reasons, only settings whose name is prefixed with
 ``ksql.functions.<lowercase-udfname>.`` or ``ksql.functions._global_.`` will be propagated to the
 Udf.
+
+.. _ksql-udafs:
 
 UDAFs
 -----

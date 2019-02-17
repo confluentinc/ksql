@@ -1,18 +1,15 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2018 Confluent Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.confluent.ksql;
 
@@ -41,10 +38,10 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.util.FakeKafkaClientSupplier;
-import io.confluent.ksql.util.FakeKafkaTopicClient;
+import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
@@ -57,7 +54,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,11 +98,14 @@ final class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private static final String CONFIG_END_MARKER = "CONFIGS_END";
 
+  // Pass a single test or multiple tests separated by commas to the test framework.
+  // Example:
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
+  private static final String KSQL_TEST_FILES = "ksql.test.files";
+
   static {
-    // don't use the actual metastore, aim is just to get the functions into the registry.
-    // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
-    // test
-    UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
+    UdfLoaderUtil.load(functionRegistry);
   }
 
   private EndToEndEngineTestUtil(){}
@@ -140,6 +142,7 @@ final class EndToEndEngineTestUtil {
       }
     }
 
+    @SuppressFBWarnings("HE_EQUALS_USE_HASHCODE")
     @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass", "Contract"}) // Hack to make work with OutputVerifier.
     @Override
     public boolean equals(final Object o) {
@@ -315,23 +318,27 @@ final class EndToEndEngineTestUtil {
 
   static class Topic {
     private final String name;
-    private final org.apache.avro.Schema schema;
+    private final Optional<org.apache.avro.Schema> schema;
     private final SerdeSupplier serdeSupplier;
+    private final int numPartitions;
 
     Topic(
         final String name,
-        final org.apache.avro.Schema schema,
-        final SerdeSupplier serdeSupplier) {
-      this.name = name;
-      this.schema = schema;
-      this.serdeSupplier = serdeSupplier;
+        final Optional<org.apache.avro.Schema> schema,
+        final SerdeSupplier serdeSupplier,
+        final int numPartitions
+    ) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.serdeSupplier = Objects.requireNonNull(serdeSupplier, "serdeSupplier");
+      this.numPartitions = numPartitions;
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    public org.apache.avro.Schema getSchema() {
+    Optional<org.apache.avro.Schema> getSchema() {
       return schema;
     }
 
@@ -463,7 +470,7 @@ final class EndToEndEngineTestUtil {
       this.node = node;
     }
 
-    public Path getTestPath() {
+    Path getTestPath() {
       return testPath;
     }
 
@@ -493,7 +500,7 @@ final class EndToEndEngineTestUtil {
         final Path testPath,
         final String name,
         final Map<String, Object> properties,
-        final List<Topic> topics,
+        final Collection<Topic> topics,
         final List<Record> inputRecords,
         final List<Record> outputRecords,
         final List<String> statements,
@@ -508,6 +515,22 @@ final class EndToEndEngineTestUtil {
       this.expectedException = expectedException;
     }
 
+    TestCase copyWithName(String newName) {
+      final TestCase copy = new TestCase(
+          testPath,
+          newName,
+          properties,
+          topics,
+          inputRecords,
+          outputRecords,
+          statements,
+          expectedException);
+      copy.setGeneratedTopology(generatedTopology);
+      copy.setExpectedTopology(expectedTopology);
+      copy.setPersistedProperties(persistedProperties);
+      return copy;
+    }
+
     void setGeneratedTopology(final String generatedTopology) {
       this.generatedTopology = generatedTopology;
     }
@@ -520,7 +543,7 @@ final class EndToEndEngineTestUtil {
        this.persistedProperties = persistedProperties;
     }
 
-    public Optional<Map<String, String>> persistedProperties() {
+    Optional<Map<String, String>> persistedProperties() {
       return Optional.ofNullable(persistedProperties);
     }
 
@@ -582,17 +605,19 @@ final class EndToEndEngineTestUtil {
       }
     }
 
-    void initializeTopics(final KsqlEngine ksqlEngine) {
+    void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
-        ksqlEngine.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
-        if (topic.getSchema() != null) {
-          try {
-            ksqlEngine.getSchemaRegistryClient().register(
-                topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, topic.getSchema());
-          } catch (final Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
+        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) 1);
+
+        topic.getSchema()
+            .ifPresent(schema -> {
+              try {
+                serviceContext.getSchemaRegistryClient()
+                    .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+              } catch (final Exception e) {
+                throw new RuntimeException(e);
+              }
+            });
       }
     }
 
@@ -615,8 +640,9 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-
-  static void writeExpectedTopologyFiles(final String topologyDir, List<TestCase> testCases) {
+  static void writeExpectedTopologyFiles(
+      final String topologyDir,
+      final List<TestCase> testCases) {
 
     final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
@@ -625,92 +651,102 @@ final class EndToEndEngineTestUtil {
       final Map<String, Object> updatedConfigs = new HashMap<>(originalConfigs);
 
       final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
-      try(final KsqlEngine ksqlEngine = getKsqlEngine(ksqlConfig)) {
-          final Topology topology = getStreamsTopology(testCase, ksqlEngine, ksqlConfig);
-          final Map<String, String> configsToPersist = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
-          writeExpectedTopologyFile(testCase.name, topology, configsToPersist, objectWriter, topologyDir);
+      try(final ServiceContext serviceContext = getServiceContext();
+          final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
+          final QueryMetadata queryMetadata = buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
+          final Map<String, String> configsToPersist
+              = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
+          writeExpectedTopologyFile(
+              testCase.name,
+              queryMetadata.getTopology(),
+              configsToPersist,
+              objectWriter,
+              topologyDir);
       }
     });
   }
 
+  private static QueryMetadata buildQuery(
+      final TestCase testCase,
+      final ServiceContext serviceContext,
+      final KsqlEngine ksqlEngine,
+      final KsqlConfig ksqlConfig
+  ) {
+    testCase.initializeTopics(serviceContext);
 
+    final String sql = testCase.statements().stream()
+        .collect(Collectors.joining(System.lineSeparator()));
 
-  private static Topology getStreamsTopology(final TestCase testCase,
-                                             final KsqlEngine ksqlEngine,
-                                             final KsqlConfig ksqlConfig) {
+    final List<QueryMetadata> queries =
+        KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, testCase.properties());
 
-      final List<QueryMetadata> queries = new ArrayList<>();
-      testCase.initializeTopics(ksqlEngine);
-      testCase.statements().forEach(
-          q -> queries.addAll(
-              ksqlEngine.buildMultipleQueries(q, ksqlConfig, testCase.properties()))
-      );
-
-      assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
-
-     return queries.get(queries.size() - 1).getTopology();
+    assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
+    return queries.get(queries.size() - 1);
   }
 
-  private static TopologyTestDriver buildStreamsTopologyTestDriver(final TestCase testCase,
-                                                                   final KsqlEngine ksqlEngine,
-                                                                   final KsqlConfig ksqlConfig,
-                                                                   final Properties streamsProperties) {
-
+  private static TopologyTestDriver buildStreamsTopologyTestDriver(
+      final TestCase testCase,
+      final ServiceContext serviceContext,
+      final KsqlEngine ksqlEngine,
+      final KsqlConfig ksqlConfig) {
     final Map<String, String> persistedConfigs = testCase.persistedProperties().orElse(new HashMap<>());
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-    final Topology topology = getStreamsTopology(testCase, ksqlEngine, maybeUpdatedConfigs);
+    final QueryMetadata queryMetadata = buildQuery(testCase, serviceContext, ksqlEngine, maybeUpdatedConfigs);
     if (testCase.expectedTopology != null) {
-      testCase.setGeneratedTopology(topology.describe().toString());
+      testCase.setGeneratedTopology(queryMetadata.getTopologyDescription());
     }
-    return new TopologyTestDriver(topology,
+    final Properties streamsProperties = new Properties();
+    streamsProperties.putAll(queryMetadata.getStreamsProperties());
+    return new TopologyTestDriver(
+        queryMetadata.getTopology(),
         streamsProperties,
         0);
   }
 
-    private static void writeExpectedTopologyFile(final String queryName,
-                                                  final Topology topology,
-                                                  final Map<String, String> configs,
-                                                  final ObjectWriter objectWriter,
-                                                  final String topologyDir) {
+  private static void writeExpectedTopologyFile(final String queryName,
+                                                final Topology topology,
+                                                final Map<String, String> configs,
+                                                final ObjectWriter objectWriter,
+                                                final String topologyDir) {
 
-        final Path newTopologyDataPath = Paths.get(topologyDir);
-        try {
-            final String updatedQueryName = formatQueryName(queryName);
-            final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
-            final String configString = objectWriter.writeValueAsString(configs);
-            final String topologyString = topology.describe().toString();
-            final StringBuilder builder = new StringBuilder();
-            builder.append(configString).append("\n").append(CONFIG_END_MARKER).append("\n").append(topologyString);
+      final Path newTopologyDataPath = Paths.get(topologyDir);
+      try {
+          final String updatedQueryName = formatQueryName(queryName);
+          final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
+          final String configString = objectWriter.writeValueAsString(configs);
+          final String topologyString = topology.describe().toString();
 
-            final byte[] topologyBytes = builder.toString().getBytes(StandardCharsets.UTF_8);
+        final byte[] topologyBytes =
+            (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
+                .getBytes(StandardCharsets.UTF_8);
 
-            Files.write(topologyFile,
-                        topologyBytes,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
+          Files.write(topologyFile,
+                      topologyBytes,
+                      StandardOpenOption.CREATE,
+                      StandardOpenOption.WRITE,
+                      StandardOpenOption.TRUNCATE_EXISTING);
 
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+      } catch (IOException e) {
+          throw new RuntimeException(e);
+      }
+  }
 
   static String formatQueryName(final String originalQueryName) {
     return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
   }
 
-  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) throws IOException {
-         final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
-         final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
-         final List<String> topologyFiles = findExpectedTopologyFiles(dir);
-         topologyFiles.forEach(fileName -> {
-             final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
-             expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
-         });
-      return expectedTopologyAndConfigs;
+  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) {
+    final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
+    final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
+    final List<String> topologyFiles = findExpectedTopologyFiles(dir);
+    topologyFiles.forEach(fileName -> {
+      final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
+      expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
+    });
+    return expectedTopologyAndConfigs;
   }
 
   private static TopologyAndConfigs readTopologyFile(final String file, final ObjectReader objectReader) {
@@ -739,19 +775,35 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static List<String> findExpectedTopologyFiles(final String dir) throws IOException {
-       final List<String> topologyFiles = new ArrayList<>();
+  static List<String> findExpectedTopologyDirectories(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology directories.", e);
+    }
+  }
+
+  private static List<String> findExpectedTopologyFiles(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology files. dir: " + dir, e);
+    }
+  }
+
+  private static List<String> findContentsOfDirectory(final String dir) throws IOException {
+    final List<String> contents = new ArrayList<>();
     try (final BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
                 getResourceAsStream(dir), StandardCharsets.UTF_8))) {
 
-      String topology;
-      while ((topology = reader.readLine()) != null) {
-          topologyFiles.add(topology);
+      String file;
+      while ((file = reader.readLine()) != null) {
+        contents.add(file);
       }
     }
-    return topologyFiles;
+    return contents;
   }
 
   private static List<Path> findTests(final Path dir) {
@@ -773,10 +825,28 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static Stream<JsonTestCase> findTestCases(final Path dir) {
+  private static List<Path> getTests(final Path dir, final List<String> files) {
+    return files.stream().map(name -> dir.resolve(name.trim())).collect(Collectors.toList());
+  }
+
+  /**
+   * Returns a list of files specified in the system property 'ksql.test.file'.
+   * The list may be specified as a comma-separated string. If 'ksql.test.file' is not found,
+   * then an empty list is returned.
+   */
+  static List<String> getTestFilesParam() {
+    final String ksqlTestFiles = System.getProperty(KSQL_TEST_FILES, "").trim();
+    if (ksqlTestFiles.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    return Arrays.asList(ksqlTestFiles.split(","));
+  }
+
+  static Stream<JsonTestCase> findTestCases(final Path dir, final List<String> files) {
     final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
 
-    return findTests(dir).stream()
+    return getTestPaths(dir, files).stream()
         .flatMap(testPath -> {
           final JsonNode rootNode = loadTest(classLoader, testPath);
 
@@ -788,6 +858,18 @@ final class EndToEndEngineTestUtil {
         });
   }
 
+  /**
+   * Return a list of test paths found on the given directory. If the files parameter is not empty,
+   * then returns only the paths of the given list.
+   */
+  private static List<Path> getTestPaths(final Path dir, final List<String> files) {
+    if (files != null && !files.isEmpty()) {
+      return getTests(dir, files);
+    } else {
+      return findTests(dir);
+    }
+  }
+
   private static JsonNode loadTest(final ClassLoader classLoader, final Path testPath) {
     try {
       return OBJECT_MAPPER.readTree(classLoader.getResourceAsStream(testPath.toString()));
@@ -796,18 +878,14 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static KsqlEngine getKsqlEngine(final KsqlConfig ksqlConfig) {
-
-    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
+  private static ServiceContext getServiceContext() {
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+    return TestServiceContext.create(() -> schemaRegistryClient);
+  }
 
-    return KsqlEngineTestUtil.createKsqlEngine(
-        new FakeKafkaTopicClient(),
-        () -> schemaRegistryClient,
-        new FakeKafkaClientSupplier(),
-        metaStore,
-        ksqlConfig,
-        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps()));
+  private static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
+    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
   }
 
   private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
@@ -820,6 +898,9 @@ final class EndToEndEngineTestUtil {
         .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
         .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
         .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
+        .put(
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
         .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
 
       if(additionalConfigs != null){
@@ -832,22 +913,25 @@ final class EndToEndEngineTestUtil {
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
     final Map<String, Object> config = getConfigs(new HashMap<>());
-    final Properties streamsProperties = new Properties();
-    streamsProperties.putAll(config);
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 
-    final Map<String, String> persistedConfigs = testCase.persistedProperties().orElse(new HashMap<>());
+    final Map<String, String> persistedConfigs =
+        testCase.persistedProperties().orElse(new HashMap<>());
 
     final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
         currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-
-    try (final KsqlEngine ksqlEngine = getKsqlEngine(ksqlConfig)) {
-      testCase.initializeTopics(ksqlEngine);
-      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(testCase, ksqlEngine, ksqlConfig, streamsProperties);
+    try (final ServiceContext serviceContext = getServiceContext();
+        final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
+      testCase.initializeTopics(serviceContext);
+      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(
+          testCase,
+          serviceContext,
+          ksqlEngine,
+          ksqlConfig);
       assertEquals(testCase.expectedTopology, testCase.generatedTopology);
-      testCase.processInput(testDriver, ksqlEngine.getSchemaRegistryClient());
-      testCase.verifyOutput(testDriver, ksqlEngine.getSchemaRegistryClient());
+      testCase.processInput(testDriver, serviceContext.getSchemaRegistryClient());
+      testCase.verifyOutput(testDriver, serviceContext.getSchemaRegistryClient());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
     }
@@ -969,7 +1053,7 @@ final class EndToEndEngineTestUtil {
           return resolved;
         }
         final Map<String, Object> ret = Maps.newHashMap();
-        schema.getTypes().stream()
+        schema.getTypes()
             .forEach(
               s -> ret.put(s.getName().toUpperCase(), null));
         ret.put(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
@@ -981,10 +1065,9 @@ final class EndToEndEngineTestUtil {
 
   static class TopologyAndConfigs {
       public final String topology;
-      public final Map<String, String> configs;
+      final Map<String, String> configs;
 
-    public TopologyAndConfigs(final String topology,
-                              final Map<String, String> configs) {
+    TopologyAndConfigs(final String topology, final Map<String, String> configs) {
       this.topology = topology;
       this.configs = configs;
     }

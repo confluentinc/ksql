@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.util;
 
@@ -21,6 +19,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
@@ -43,6 +42,7 @@ public class TopicConsumer {
   private static final Duration RESULTS_EXTRA_POLL_TIME = Duration.ofMillis(250);
 
   private final EmbeddedSingleNodeKafkaCluster cluster;
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   public TopicConsumer(final EmbeddedSingleNodeKafkaCluster cluster) {
     this.cluster = cluster;
@@ -87,24 +87,25 @@ public class TopicConsumer {
                                             final Schema schema,
                                             final int expectedNumMessages,
                                             final Deserializer<K> keyDeserializer) {
-    return readResults(topic, greaterThanOrEqualTo(expectedNumMessages),
-                       new KsqlJsonDeserializer(schema, false), keyDeserializer
+    return readResults(
+        topic,
+        greaterThanOrEqualTo(expectedNumMessages),
+        new KsqlJsonDeserializer(
+            schema,
+            false,
+            processingLogContext.getLoggerFactory().getLogger("consumer"),
+            processingLogContext),
+        keyDeserializer
     );
   }
 
   public void verifyRecordsReceived(final String topic,
                                     final Matcher<Integer> expectedNumMessages) {
-    verifyRecordsReceived(topic, expectedNumMessages,
-                          new ByteArrayDeserializer(),
-                          new ByteArrayDeserializer());
-  }
-
-  public <K> Map<K, GenericRow> verifyRecordsReceived(final String topic,
-                                                      final Schema schema,
-                                                      final Matcher<Integer> expectedNumMessages,
-                                                      final Deserializer<K> keyDeserializer) {
-    return verifyRecordsReceived(topic, expectedNumMessages,
-                                 new KsqlJsonDeserializer(schema, false), keyDeserializer);
+    verifyRecordsReceived(
+        topic,
+        expectedNumMessages,
+        new ByteArrayDeserializer(),
+        new ByteArrayDeserializer());
   }
 
   public <K, V> Map<K, V> verifyRecordsReceived(final String topic,

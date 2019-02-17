@@ -1,18 +1,16 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.analyzer;
 
@@ -113,25 +111,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     process(node.getSelect(), new AnalysisContext(
         AnalysisContext.ParentType.SELECT));
-    if (node.getWhere().isPresent()) {
-      analyzeWhere(node.getWhere().get());
-    }
-    if (node.getGroupBy().isPresent()) {
-      analyzeGroupBy(node.getGroupBy().get());
-    }
 
-    if (node.getWindowExpression().isPresent()) {
-      analyzeWindowExpression(node.getWindowExpression().get());
-    }
+    node.getWhere().ifPresent(this::analyzeWhere);
+    node.getGroupBy().ifPresent(this::analyzeGroupBy);
+    node.getWindowExpression().ifPresent(this::analyzeWindowExpression);
+    node.getHaving().ifPresent(this::analyzeHaving);
+    node.getLimit().ifPresent(analysis::setLimitClause);
 
-    if (node.getHaving().isPresent()) {
-      analyzeHaving(node.getHaving().get());
-    }
-
-    if (node.getLimit().isPresent()) {
-      final String limitStr = node.getLimit().get();
-      analysis.setLimitClause(Integer.parseInt(limitStr));
-    }
     analyzeExpressions();
 
     return null;
@@ -152,7 +138,11 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       if (analysis.getIntoFormat() != null) {
         switch (analysis.getIntoFormat().toUpperCase()) {
           case DataSource.AVRO_SERDE_NAME:
-            intoTopicSerde = new KsqlAvroTopicSerDe();
+            final String schemaFullName =
+                StringUtil.cleanQuotes(
+                 analysis.getIntoProperties().get(
+                   DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
+            intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
             break;
           case DataSource.JSON_SERDE_NAME:
             intoTopicSerde = new KsqlJsonTopicSerDe();
@@ -162,11 +152,15 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             break;
           default:
             throw new KsqlException(
-                String.format("Unsupported format: %s", analysis.getIntoFormat()));
+              String.format("Unsupported format: %s", analysis.getIntoFormat()));
         }
       } else {
         if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
-          intoTopicSerde = new KsqlAvroTopicSerDe();
+          final String schemaFullName =
+              StringUtil.cleanQuotes(
+                analysis.getIntoProperties().get(
+                  DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
+          intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
         }
       }
 
@@ -547,9 +541,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     validateWithClause(node.getProperties().keySet());
 
-    if (node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY) != null) {
-      setIntoTopicFormat(into, node);
-    }
+    setIntoTopicFormat(into, node);
 
     if (node.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY) != null) {
       setIntoTopicName(node);
@@ -615,12 +607,22 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   }
 
   private void setIntoTopicFormat(final StructuredDataSource into, final Table node) {
-    String serde = node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString();
-    if (!serde.startsWith("'") && !serde.endsWith("'")) {
-      throw new KsqlException(
-          serde + " value is string and should be enclosed between " + "\"'\".");
+    final Object serdeProperty = node.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY);
+
+    String serde;
+    if (serdeProperty != null) {
+      serde = serdeProperty.toString();
+
+      if (!serde.startsWith("'") && !serde.endsWith("'")) {
+        throw new KsqlException(
+                serde + " value is string and should be enclosed between " + "\"'\".");
+      }
+      serde = serde.substring(1, serde.length() - 1).toUpperCase();
+    } else {
+      final StructuredDataSource leftSource = analysis.getFromDataSource(0).left;
+      serde = leftSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe().toString();
     }
-    serde = serde.substring(1, serde.length() - 1);
+
     analysis.setIntoFormat(serde);
     analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
     if ("AVRO".equals(serde)) {
@@ -635,6 +637,15 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         avroSchemaFilePath = avroSchemaFilePath.substring(1, avroSchemaFilePath.length() - 1);
       }
       analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
+
+      final Expression avroSchemaFullName =
+              node.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
+      analysis.getIntoProperties().put(
+              DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
+              ? avroSchemaFullName : KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+    } else if (node.getProperties().containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)) {
+      throw new KsqlException(
+              DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME + " is only valid for AVRO topics.");
     }
   }
 
@@ -674,6 +685,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     validSet.add(KsqlConstants.SINK_NUMBER_OF_PARTITIONS.toUpperCase());
     validSet.add(KsqlConstants.SINK_NUMBER_OF_REPLICAS.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());
+    validSet.add(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME.toUpperCase());
 
     for (final String withVariable : withClauseVariables) {
       if (!validSet.contains(withVariable.toUpperCase())) {

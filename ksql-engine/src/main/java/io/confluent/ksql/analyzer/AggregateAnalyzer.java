@@ -30,12 +30,12 @@ import java.util.function.BiConsumer;
 
 class AggregateAnalyzer {
 
-  private final AggregateAnalysis aggregateAnalysis;
+  private final MutableAggregateAnalysis aggregateAnalysis;
   private final DereferenceExpression defaultArgument;
   private final FunctionRegistry functionRegistry;
 
   AggregateAnalyzer(
-      final AggregateAnalysis aggregateAnalysis,
+      final MutableAggregateAnalysis aggregateAnalysis,
       final DereferenceExpression defaultArgument,
       final FunctionRegistry functionRegistry
   ) {

@@ -14,7 +14,7 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.analyzer.AggregateAnalysis;
+import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -158,7 +158,7 @@ class QueryEngine {
     );
 
     final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
-    final AggregateAnalysis aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+    final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     return new LogicalPlanner(analysis, aggAnalysis, metaStore).buildPlan();
   }

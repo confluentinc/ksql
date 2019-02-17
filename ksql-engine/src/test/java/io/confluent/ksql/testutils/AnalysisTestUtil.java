@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.testutils;
 
-import io.confluent.ksql.analyzer.AggregateAnalysis;
+import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.metastore.MetaStore;
@@ -61,7 +61,7 @@ public final class AnalysisTestUtil {
       return (Query) statements.get(0).getStatement();
     }
 
-    AggregateAnalysis aggregateAnalys() {
+    AggregateAnalysisResult aggregateAnalys() {
       return queryAnalyzer.analyzeAggregate(query, analysis);
     }
   }

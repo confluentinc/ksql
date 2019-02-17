@@ -224,7 +224,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 1)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 1)]"
       }
     },
     {
@@ -235,7 +235,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(TEST.REGION, 7, 1)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(TEST.REGION, 7, 1)]"
       }
     },
     {
@@ -246,7 +246,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 3)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 3)]"
       }
     },
     {
@@ -257,7 +257,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(TEST.REGION, 7, 3)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(TEST.REGION, 7, 3)]"
       }
     },
     {
@@ -465,7 +465,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [(TEST.F1 + TEST.F2)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(TEST.F1 + TEST.F2)]"
       }
     },
     {
@@ -476,7 +476,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [(TEST.SUBREGION + TEST.REGION)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(TEST.SUBREGION + TEST.REGION)]"
       }
     },
     {
@@ -487,7 +487,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [TEST.F2, TEST.F1]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.F2, TEST.F1]"
       }
     },
     {
@@ -498,7 +498,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [TEST.SUBREGION, TEST.REGION]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.SUBREGION, TEST.REGION]"
       }
     },
     {
@@ -552,7 +552,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [(TEST.F1 - TEST.F2)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(TEST.F1 - TEST.F2)]"
       }
     },
     {
@@ -563,7 +563,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [(TEST.F1 - TEST.F0)]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [(TEST.F1 - TEST.F0)]"
       }
     },
     {
@@ -745,7 +745,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [TEST.D1]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.D1]"
       }
     },
     {
@@ -756,7 +756,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) must be part of GROUP BY: [TEST.D1]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.D1]"
       }
     },
     {

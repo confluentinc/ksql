@@ -59,10 +59,8 @@ public class AggregateAnalyzerTest {
   private static final FunctionCall AGG_FUNCTION_CALL = new FunctionCall(QualifiedName.of("MAX"),
       ImmutableList.of(COL0, COL1));
 
-  private static final Literal LITERAL = new StringLiteral("some-literal");
-
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private AggregateAnalysis analysis;
+  private MutableAggregateAnalysis analysis;
   private AggregateAnalyzer analyzer;
 
   @Rule
@@ -70,7 +68,7 @@ public class AggregateAnalyzerTest {
 
   @Before
   public void init() {
-    analysis = new AggregateAnalysis();
+    analysis = new MutableAggregateAnalysis();
     analyzer = new AggregateAnalyzer(analysis, DEFAULT_ARGUMENT, functionRegistry);
   }
 

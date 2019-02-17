@@ -19,6 +19,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.math.IntMath;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -157,6 +158,7 @@ public class PrintPublisher implements Flow.Publisher<Collection<String>> {
     }
   }
 
+  @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE") // False positive
   private static final class LimitIntervalCollection<T> extends AbstractCollection<T> {
 
     private final Iterable<T> source;

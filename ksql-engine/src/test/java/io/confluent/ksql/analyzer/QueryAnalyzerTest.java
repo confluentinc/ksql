@@ -146,8 +146,8 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
 
     expectedException.expect(KsqlException.class);
-    expectedException
-        .expectMessage("Non-aggregate SELECT expression not part of GROUP BY: [ORDERS.ORDERID]");
+    expectedException.expectMessage(
+        "Non-aggregate SELECT expression(s) not part of GROUP BY: [ORDERS.ORDERID]");
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -314,7 +314,7 @@ public class QueryAnalyzerTest {
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
-        "Non-aggregate SELECT expression not part of GROUP BY: "
+        "Non-aggregate SELECT expression(s) not part of GROUP BY: "
             + "[ORDERS.ORDERTIME, ORDERS.ORDERUNITS, ORDERS.MAPCOL, ORDERS.ORDERID, "
             + "ORDERS.ITEMINFO, ORDERS.ARRAYCOL, ORDERS.ADDRESS]"
     ));
@@ -352,7 +352,7 @@ public class QueryAnalyzerTest {
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
-        "Non-aggregate SELECT expression(s) must be part of GROUP BY: [SUBSTRING(ORDERS.ORDERID, 1, 2)]"
+        "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(ORDERS.ORDERID, 1, 2)]"
     ));
 
     // When:
@@ -369,7 +369,8 @@ public class QueryAnalyzerTest {
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
-        "Non-aggregate SELECT expression(s) must be part of GROUP BY: [(ORDERS.ITEMID + FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STREET'))]"
+        "Non-aggregate SELECT expression(s) not part of GROUP BY: "
+            + "[(ORDERS.ITEMID + FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STREET'))]"
     ));
 
     // When:
@@ -386,7 +387,7 @@ public class QueryAnalyzerTest {
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
-        "Non-aggregate SELECT expression(s) must be part of GROUP BY: [ORDERS.ORDERID]"
+        "Non-aggregate SELECT expression(s) not part of GROUP BY: [ORDERS.ORDERID]"
     ));
 
     // When:
@@ -403,7 +404,8 @@ public class QueryAnalyzerTest {
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
-        "Non-aggregate SELECT expression(s) must be part of GROUP BY: [(ORDERS.ORDERID - ORDERS.ORDERTIME)]"
+        "Non-aggregate SELECT expression(s) not part of GROUP BY: "
+            + "[(ORDERS.ORDERID - ORDERS.ORDERTIME)]"
     ));
 
     // When:

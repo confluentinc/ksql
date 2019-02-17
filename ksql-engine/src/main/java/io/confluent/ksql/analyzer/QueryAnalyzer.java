@@ -50,7 +50,7 @@ public class QueryAnalyzer {
   }
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
-    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
+    final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
     final DereferenceExpression defaultArgument = analysis.getDefaultArgument();
     final AggregateAnalyzer aggregateAnalyzer =
         new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
@@ -87,9 +87,9 @@ public class QueryAnalyzer {
     return aggregateAnalysis;
   }
 
-  private void processHavingExpression(
+  private static void processHavingExpression(
       final Analysis analysis,
-      final AggregateAnalysis aggregateAnalysis,
+      final MutableAggregateAnalysis aggregateAnalysis,
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
@@ -101,7 +101,7 @@ public class QueryAnalyzer {
         ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,exp));
   }
 
-  private void processGroupByExpression(
+  private static void processGroupByExpression(
       final Analysis analysis,
       final AggregateAnalyzer aggregateAnalyzer
   ) {
@@ -110,9 +110,9 @@ public class QueryAnalyzer {
     }
   }
 
-  private void processSelectExpressions(
+  private static void processSelectExpressions(
       final Analysis analysis,
-      final AggregateAnalysis aggregateAnalysis,
+      final MutableAggregateAnalysis aggregateAnalysis,
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
@@ -157,7 +157,7 @@ public class QueryAnalyzer {
 
     if (!unmatchedSelects.isEmpty()) {
       throw new KsqlException(
-          "Non-aggregate SELECT expression(s) must be part of GROUP BY: "
+          "Non-aggregate SELECT expression(s) not part of GROUP BY: "
               + unmatchedSelects.keySet());
     }
 

@@ -109,7 +109,7 @@ public class KsqlRestApplicationTest {
         .thenReturn(LOG_TOPIC_NAME);
     when(ksqlEngine.createSandbox()).thenReturn(sandBox);
     when(commandQueue.isEmpty()).thenReturn(true);
-    when(commandQueue.enqueueCommand(any(), any(), any(), any()))
+    when(commandQueue.enqueueCommand(any(), any(), any()))
         .thenReturn(queuedCommandStatus);
     when(serviceContext.getAdminClient())
         .thenReturn(new FakeKafkaClientSupplier().getAdminClient(Collections.emptyMap()));
@@ -242,15 +242,8 @@ public class KsqlRestApplicationTest {
             processingLogConfig,
             ksqlConfig
         );
-    verify(sandBox).execute(
-        statement,
-        ksqlConfig,
-        Collections.emptyMap());
-    verify(commandQueue).enqueueCommand(
-        statement.getStatementText(),
-        statement.getStatement(),
-        ksqlConfig,
-        Collections.emptyMap());
+    verify(sandBox).execute(statement, ksqlConfig, Collections.emptyMap());
+    verify(commandQueue).enqueueCommand(statement, ksqlConfig, Collections.emptyMap());
   }
 
   @Test
@@ -285,7 +278,7 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(), any(), any());
+    verify(commandQueue, never()).enqueueCommand(any(), any(), any());
   }
 
   @Test
@@ -302,6 +295,6 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(), any(), any());
+    verify(commandQueue, never()).enqueueCommand(any(), any(), any());
   }
 }

@@ -105,7 +105,7 @@ public class ProcessingLogServerUtilsTest {
     ksqlEngine.close();
   }
 
-  private List<String> push(final List<String> path, final String elem) {
+  private static List<String> push(final List<String> path, final String elem) {
     return new ImmutableList.Builder<String>().addAll(path).add(elem).build();
   }
 

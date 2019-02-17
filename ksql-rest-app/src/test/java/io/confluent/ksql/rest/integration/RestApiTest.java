@@ -14,21 +14,18 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.test.util.TestKsqlRestApp;
-import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.Collections;
+import java.util.Optional;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.junit.After;
@@ -39,8 +36,10 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+@SuppressWarnings("unchecked")
 @Category({IntegrationTest.class})
 public class RestApiTest {
+
   private static final String PAGE_VIEW_TOPIC = "pageviews";
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
 
@@ -59,8 +58,6 @@ public class RestApiTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, new PageViewDataProvider(), JSON, System::currentTimeMillis);
-
     createStreams();
   }
 
@@ -76,43 +73,71 @@ public class RestApiTest {
 
   @Test
   public void shouldExecuteStreamingQueryWithV1ContentType() {
-    final KsqlRequest request = new KsqlRequest(
-        String.format("SELECT * from %s;", PAGE_VIEW_STREAM), Collections.emptyMap(), null);
-
-    try (final Response response = restClient.target(REST_APP.getHttpListener())
-        .path("query")
-        .request(Versions.KSQL_V1_JSON)
-        .header("Content-Type", Versions.KSQL_V1_JSON)
-        .post(Entity.json(request))) {
+    try (final Response response = makeStreamingRequest(
+        "SELECT * from " + PAGE_VIEW_STREAM + ";",
+        Versions.KSQL_V1_JSON,
+        Versions.KSQL_V1_JSON
+    )) {
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
     }
   }
 
   @Test
   public void shouldExecuteStreamingQueryWithJsonContentType() {
-    final KsqlRequest request = new KsqlRequest(
-        String.format("SELECT * from %s;", PAGE_VIEW_STREAM), Collections.emptyMap(), null);
-
-    try (final Response response = restClient.target(REST_APP.getHttpListener())
-        .path("query")
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .header("Content-Type", MediaType.APPLICATION_JSON_TYPE)
-        .post(Entity.json(request))) {
-
+    try (final Response response = makeStreamingRequest(
+        "SELECT * from " + PAGE_VIEW_STREAM + "; ",
+        MediaType.APPLICATION_JSON_TYPE.toString(),
+        MediaType.APPLICATION_JSON_TYPE.toString()
+    )) {
       assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
     }
   }
 
-  private static void createStreams() {
-    try (final KsqlRestClient ksqlRestClient =
-        new KsqlRestClient(REST_APP.getHttpListener().toString())
-    ) {
-      final RestResponse createStreamResponse = ksqlRestClient
-              .makeKsqlRequest(String.format(
-                  "CREATE STREAM %s (viewtime bigint, pageid varchar, userid varchar)"
-                      + " WITH (kafka_topic='pageviews', value_format='json');", PAGE_VIEW_STREAM),
-                  null);
-      assertTrue(createStreamResponse.isSuccessful());
+  private Response makeStreamingRequest(
+      final String sql,
+      final String mediaType,
+      final String contentType
+  ) {
+    return makeRequest("query", sql, mediaType, Optional.ofNullable(contentType));
+  }
+
+  private Response makeRequest(
+      final String path,
+      final String sql,
+      final String mediaType,
+      final Optional<String> contentType
+  ) {
+    Builder builder = restClient
+        .target(REST_APP.getHttpListener())
+        .path(path)
+        .request(mediaType);
+
+    if (contentType.isPresent()) {
+      builder = builder.header("Content-Type", contentType.get());
     }
+
+    return builder.post(ksqlRequest(sql));
+  }
+
+  private static void createStreams() {
+    final Client client = TestKsqlRestApp.buildClient();
+
+    try (final Response response = client
+        .target(REST_APP.getHttpListener())
+        .path("ksql")
+        .request(MediaType.APPLICATION_JSON_TYPE)
+        .post(ksqlRequest(
+            "CREATE STREAM " + PAGE_VIEW_STREAM + " "
+                + "(viewtime bigint, pageid varchar, userid varchar) "
+                + "WITH (kafka_topic='" + PAGE_VIEW_TOPIC + "', value_format='json');"))) {
+
+      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+    } finally {
+      client.close();
+    }
+  }
+
+  private static Entity<?> ksqlRequest(final String sql) {
+    return Entity.json(new KsqlRequest(sql, Collections.emptyMap(), null));
   }
 }

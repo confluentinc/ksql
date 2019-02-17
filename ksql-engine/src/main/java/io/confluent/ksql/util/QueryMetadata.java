@@ -82,6 +82,20 @@ public class QueryMetadata {
     this.sourceNames = visitor.getSourceNames();
   }
 
+  protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
+    this.statementString = other.statementString;
+    this.kafkaStreams = other.kafkaStreams;
+    this.outputNode = other.outputNode;
+    this.executionPlan = other.executionPlan;
+    this.dataSourceType = other.dataSourceType;
+    this.queryApplicationId = other.queryApplicationId;
+    this.topology = other.topology;
+    this.streamsProperties = other.streamsProperties;
+    this.overriddenProperties = other.overriddenProperties;
+    this.sourceNames = other.sourceNames;
+    this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
+  }
+
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
     this.queryStateListener = Optional.of(queryStateListener);
     queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());

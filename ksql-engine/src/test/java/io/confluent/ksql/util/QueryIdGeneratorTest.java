@@ -42,6 +42,16 @@ public class QueryIdGeneratorTest {
   }
 
   @Test
+  public void shouldCopy() {
+    // When:
+    final QueryIdGenerator copy = generator.copy();
+
+    // Then:
+    assertThat(copy.getNextId(), is(generator.getNextId()));
+    assertThat(copy.getNextId(), is(generator.getNextId()));
+  }
+
+  @Test
   public void shouldBeThreadSafe() {
     // Given:
     final int iterations = 10_000;

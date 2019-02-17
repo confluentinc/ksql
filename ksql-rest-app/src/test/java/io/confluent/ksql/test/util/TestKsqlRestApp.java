@@ -20,6 +20,16 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.EntityQueryId;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SourceInfo;
+import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
@@ -29,12 +39,16 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -120,6 +134,39 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   @SuppressWarnings("unused") // Part of public API
+  public KsqlRestClient buildKsqlClient() {
+    return new KsqlRestClient(getHttpListener().toString());
+  }
+
+  public Set<String> getPersistentQueries() {
+    try (final KsqlRestClient client = buildKsqlClient()) {
+      return getPersistentQueries(client);
+    }
+  }
+
+  public void closePersistentQueries() {
+    try (final KsqlRestClient client = buildKsqlClient()) {
+      terminateQueries(getPersistentQueries(client), client);
+    }
+  }
+
+  public void dropSourcesExcept(final String... blackList) {
+    try (final KsqlRestClient client = buildKsqlClient()) {
+
+      final Set<String> except = Arrays.stream(blackList)
+          .map(String::toUpperCase)
+          .collect(Collectors.toSet());
+
+      final Set<String> streams = getStreams(client);
+      streams.removeAll(except);
+      dropStreams(streams, client);
+
+      final Set<String> tables = getTables(client);
+      tables.removeAll(except);
+      dropTables(tables, client);
+    }
+  }
+
   public static Client buildClient() {
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
@@ -178,6 +225,93 @@ public class TestKsqlRestApp extends ExternalResource {
       return url.toURI();
     } catch (final Exception e) {
       throw new IllegalStateException("Invalid REST listener", e);
+    }
+  }
+
+  private static Set<String> getPersistentQueries(final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> response = client.makeKsqlRequest("SHOW QUERIES;");
+    if (response.isErroneous()) {
+      throw new AssertionError("Failed to get persistent queries."
+          + " msg:" + response.getErrorMessage());
+    }
+
+    final Queries queries = (Queries) response.getResponse().get(0);
+    return queries.getQueries().stream()
+        .map(RunningQuery::getId)
+        .map(EntityQueryId::getId)
+        .collect(Collectors.toSet());
+  }
+
+  private static void terminateQueries(final Set<String> queryIds, final KsqlRestClient client) {
+    final HashSet<String> remaining = new HashSet<>(queryIds);
+    while (!remaining.isEmpty()) {
+      KsqlErrorMessage lastError = null;
+      final Set<String> toRemove = new HashSet<>();
+
+      for (final String queryId : remaining) {
+        final RestResponse<KsqlEntityList> response = client
+            .makeKsqlRequest("TERMINATE " + queryId + ";");
+
+        if (response.isSuccessful()) {
+          toRemove.add(queryId);
+        } else {
+          lastError = response.getErrorMessage();
+        }
+      }
+
+      if (toRemove.isEmpty()) {
+        throw new AssertionError("Failed to terminate queries. lastError:" + lastError);
+      }
+
+      remaining.removeAll(toRemove);
+    }
+  }
+
+  private static Set<String> getStreams(final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res = client.makeKsqlRequest("SHOW STREAMS;");
+    if (res.isErroneous()) {
+      throw new AssertionError("Failed to get streams."
+          + " msg:" + res.getErrorMessage());
+    }
+
+    return ((StreamsList)res.getResponse().get(0)).getStreams().stream()
+        .map(SourceInfo::getName)
+        .collect(Collectors.toSet());
+  }
+
+  private static Set<String> getTables(final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res = client.makeKsqlRequest("SHOW TABLES;");
+    if (res.isErroneous()) {
+      throw new AssertionError("Failed to get tables."
+          + " msg:" + res.getErrorMessage());
+    }
+
+    return ((TablesList)res.getResponse().get(0)).getTables().stream()
+        .map(SourceInfo::getName)
+        .collect(Collectors.toSet());
+  }
+
+  private static void dropStreams(final Set<String> streams, final KsqlRestClient client) {
+    for (final String stream : streams) {
+      final RestResponse<KsqlEntityList> res = client
+          .makeKsqlRequest("DROP STREAM " + stream + ";");
+
+      if (res.isErroneous()) {
+        throw new AssertionError("Failed to drop stream " + stream + "."
+            + " msg:" + res.getErrorMessage());
+      }
+    }
+  }
+
+  private static void dropTables(final Set<String> tables, final KsqlRestClient client) {
+    for (final String table : tables) {
+      final RestResponse<KsqlEntityList> res = client
+          .makeKsqlRequest("DROP TABLE " + table + ";");
+
+      if (res.isErroneous()) {
+        throw new AssertionError("Failed to drop table " + table + "."
+            + " msg:" + res.getErrorMessage());
+      }
     }
   }
 

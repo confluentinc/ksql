@@ -60,8 +60,7 @@ public class CommandFactories implements DdlCommandFactory {
   public DdlCommand create(
       final String sqlExpression,
       final DdlStatement ddlStatement,
-      final Map<String, Object> properties,
-      final boolean enforceTopicExistence
+      final Map<String, Object> properties
   ) {
     return FACTORIES
         .getOrDefault(ddlStatement.getClass(), (statement, cf, ci) -> {
@@ -74,7 +73,7 @@ public class CommandFactories implements DdlCommandFactory {
         })
         .handle(
             this,
-            new CallInfo(sqlExpression, properties, enforceTopicExistence),
+            new CallInfo(sqlExpression, properties),
             ddlStatement);
   }
 
@@ -89,8 +88,7 @@ public class CommandFactories implements DdlCommandFactory {
     return new CreateStreamCommand(
         callInfo.sqlExpression,
         statement,
-        serviceContext.getTopicClient(),
-        callInfo.enforceTopicExistence);
+        serviceContext.getTopicClient());
   }
 
   private CreateTableCommand handleCreateTable(
@@ -100,8 +98,7 @@ public class CommandFactories implements DdlCommandFactory {
     return new CreateTableCommand(
         callInfo.sqlExpression,
         statement,
-        serviceContext.getTopicClient(),
-        callInfo.enforceTopicExistence);
+        serviceContext.getTopicClient());
   }
 
   private DropSourceCommand handleDropStream(final DropStream statement) {
@@ -146,16 +143,13 @@ public class CommandFactories implements DdlCommandFactory {
 
     final String sqlExpression;
     final Map<String, Object> properties;
-    final boolean enforceTopicExistence;
 
     private CallInfo(
         final String sqlExpression,
-        final Map<String, Object> properties,
-        final boolean enforceTopicExistence
+        final Map<String, Object> properties
     ) {
       this.sqlExpression = sqlExpression;
       this.properties = properties;
-      this.enforceTopicExistence = enforceTopicExistence;
     }
   }
 }

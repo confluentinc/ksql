@@ -16,9 +16,9 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -37,6 +37,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +45,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -225,7 +225,7 @@ public class StatementExecutor {
   private void handleRunScript(final Command command, final Mode mode) {
 
     if (command.getOverwriteProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-      final String queries =
+      final String sql =
           (String) command.getOverwriteProperties().get(
               KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
       final Map<String, Object> overriddenProperties = new HashMap<>(
@@ -233,23 +233,22 @@ public class StatementExecutor {
 
       final KsqlConfig mergedConfig = buildMergedConfig(command);
 
-      final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(queries);
-
-      final List<QueryMetadata> queryMetadataList = statements.stream()
-          .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
-          .map(ExecuteResult::getQuery)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .collect(Collectors.toList());
+      final List<QueryMetadata> queries = new ArrayList<>();
+      for (final ParsedStatement parsed : ksqlEngine.parse(sql)) {
+        final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
+        ksqlEngine.execute(prepared, ksqlConfig, overriddenProperties)
+            .getQuery()
+            .ifPresent(queries::add);
+      }
 
       if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
-        queryMetadataList.forEach(QueryMetadata::close);
+        queries.forEach(QueryMetadata::close);
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
             ksqlEngine, mergedConfig, command.getStatement());
       }
 
       if (mode == Mode.EXECUTE) {
-        for (final QueryMetadata queryMetadata : queryMetadataList) {
+        for (final QueryMetadata queryMetadata : queries) {
           if (queryMetadata instanceof PersistentQueryMetadata) {
             final PersistentQueryMetadata persistentQueryMd =
                 (PersistentQueryMetadata) queryMetadata;

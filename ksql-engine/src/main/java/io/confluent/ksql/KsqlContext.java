@@ -19,6 +19,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
@@ -27,14 +28,13 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,17 +89,18 @@ public class KsqlContext {
   }
 
   public List<QueryMetadata> sql(final String sql, final Map<String, Object> overriddenProperties) {
-    final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(sql);
+    final List<ParsedStatement> statements = ksqlEngine.parse(sql);
 
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox();
-    statements.forEach(stmt -> sandbox.execute(stmt, ksqlConfig, overriddenProperties));
 
-    final List<QueryMetadata> queries = statements.stream()
-        .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
-        .map(ExecuteResult::getQuery)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .collect(Collectors.toList());
+    statements.forEach(stmt -> execute(sandbox, stmt, ksqlConfig, overriddenProperties));
+
+    final List<QueryMetadata> queries = new ArrayList<>();
+    for (final ParsedStatement parsed : statements) {
+      execute(ksqlEngine, parsed, ksqlConfig, overriddenProperties)
+          .getQuery()
+          .ifPresent(queries::add);
+    }
 
     for (final QueryMetadata queryMetadata : queries) {
       if (queryMetadata instanceof PersistentQueryMetadata) {
@@ -132,5 +133,15 @@ public class KsqlContext {
 
   public void terminateQuery(final QueryId queryId) {
     ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::close);
+  }
+
+  private static ExecuteResult execute(
+      final KsqlExecutionContext executionContext,
+      final ParsedStatement stmt,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties
+  ) {
+    final PreparedStatement<?> prepared = executionContext.prepare(stmt);
+    return executionContext.execute(prepared, ksqlConfig, overriddenProperties);
   }
 }

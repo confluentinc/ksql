@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
 import io.confluent.ksql.datagen.SessionManager;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
@@ -34,16 +35,15 @@ import java.util.Collections;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import org.apache.avro.Schema;
-
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
@@ -59,11 +59,17 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+/**
+ *  Runs JMH microbenchmarks against KSQL serdes.
+ *  See `ksql-benchmark/README.md` for more info, including benchmark results
+ *  and how to run the benchmarks.
+ */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 5, time = 10)
-@Measurement(iterations = 5, time = 10)
+@Warmup(iterations = 3, time = 10)
+@Measurement(iterations = 3, time = 10)
 @Threads(4)
+@Fork(3)
 public class SerdeBenchmark {
 
   private static final Path SCHEMA_DIR = Paths.get("schemas");
@@ -158,7 +164,8 @@ public class SerdeBenchmark {
           new KsqlConfig(Collections.emptyMap()),
           false,
           () -> null,
-          "benchmark");
+          "benchmark",
+          ProcessingLogContext.create());
     }
 
     private static Serde<GenericRow> getAvroSerde(
@@ -169,7 +176,8 @@ public class SerdeBenchmark {
           new KsqlConfig(Collections.emptyMap()),
           false,
           () -> schemaRegistryClient,
-          "benchmark");
+          "benchmark",
+          ProcessingLogContext.create());
     }
   }
 

@@ -23,6 +23,7 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -160,6 +161,7 @@ public class StructuredDataSourceNode
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final QueryId queryId
   ) {
@@ -176,7 +178,8 @@ public class StructuredDataSourceNode
             ksqlConfig,
             false,
             serviceContext.getSchemaRegistryClientFactory(), 
-            QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext())
+            QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext()),
+            processingLogContext
         );
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
@@ -191,7 +194,8 @@ public class StructuredDataSourceNode
               ksqlConfig,
               true,
               serviceContext.getSchemaRegistryClientFactory(),
-              QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext())
+              QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext()),
+              processingLogContext
           ),
           timestampExtractor,
           ksqlConfig,

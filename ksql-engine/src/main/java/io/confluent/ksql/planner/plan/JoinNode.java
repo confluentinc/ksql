@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
@@ -177,6 +178,7 @@ public class JoinNode extends PlanNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final QueryId queryId) {
 
@@ -186,6 +188,7 @@ public class JoinNode extends PlanNode {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
         this,
         queryId,
@@ -230,6 +233,7 @@ public class JoinNode extends PlanNode {
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final FunctionRegistry functionRegistry,
         final JoinNode joinNode,
         final QueryId queryId,
@@ -241,6 +245,7 @@ public class JoinNode extends PlanNode {
               builder,
               ksqlConfig,
               serviceContext,
+              processingLogContext,
               functionRegistry,
               joinNode,
               queryId,
@@ -250,6 +255,7 @@ public class JoinNode extends PlanNode {
               builder,
               ksqlConfig,
               serviceContext,
+              processingLogContext,
               functionRegistry,
               joinNode,
               queryId,
@@ -259,6 +265,7 @@ public class JoinNode extends PlanNode {
               builder,
               ksqlConfig,
               serviceContext,
+              processingLogContext,
               functionRegistry,
               joinNode,
               queryId,
@@ -280,6 +287,7 @@ public class JoinNode extends PlanNode {
     protected final StreamsBuilder builder;
     protected final KsqlConfig ksqlConfig;
     private final ServiceContext serviceContext;
+    private final ProcessingLogContext processingLogContext;
     protected final FunctionRegistry functionRegistry;
     final JoinNode joinNode;
     final QueryContext.Stacker contextStacker;
@@ -289,6 +297,7 @@ public class JoinNode extends PlanNode {
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final FunctionRegistry functionRegistry,
         final JoinNode joinNode,
         final QueryId queryId,
@@ -297,6 +306,9 @@ public class JoinNode extends PlanNode {
       this.builder = Objects.requireNonNull(builder, "builder");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+      this.processingLogContext = Objects.requireNonNull(
+          processingLogContext,
+          "processingLogContext");
       this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
       this.joinNode = Objects.requireNonNull(joinNode, "joinNode");
       this.queryId = Objects.requireNonNull(queryId, "queryId");
@@ -312,6 +324,7 @@ public class JoinNode extends PlanNode {
               builder,
               ksqlConfig,
               serviceContext,
+              processingLogContext,
               functionRegistry,
               queryId),
           keyFieldName,
@@ -327,6 +340,7 @@ public class JoinNode extends PlanNode {
           ksqlConfig.cloneWithPropertyOverwrite(
               Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
           serviceContext,
+          processingLogContext,
           functionRegistry,
           queryId);
 
@@ -384,7 +398,8 @@ public class JoinNode extends PlanNode {
               ksqlConfig,
               false,
               serviceContext.getSchemaRegistryClientFactory(), 
-              QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()));
+              QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
+              processingLogContext);
     }
 
     Field getJoinKey(final String alias, final String keyFieldName) {
@@ -398,6 +413,7 @@ public class JoinNode extends PlanNode {
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final FunctionRegistry functionRegistry,
         final JoinNode joinNode,
         final QueryId queryId,
@@ -407,6 +423,7 @@ public class JoinNode extends PlanNode {
           builder,
           ksqlConfig,
           serviceContext,
+          processingLogContext,
           functionRegistry,
           joinNode,
           queryId,
@@ -481,6 +498,7 @@ public class JoinNode extends PlanNode {
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final FunctionRegistry functionRegistry,
         final JoinNode joinNode,
         final QueryId queryId,
@@ -490,6 +508,7 @@ public class JoinNode extends PlanNode {
           builder,
           ksqlConfig,
           serviceContext,
+          processingLogContext,
           functionRegistry,
           joinNode,
           queryId,
@@ -547,6 +566,7 @@ public class JoinNode extends PlanNode {
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final FunctionRegistry functionRegistry,
         final JoinNode joinNode,
         final QueryId queryId,
@@ -556,6 +576,7 @@ public class JoinNode extends PlanNode {
           builder,
           ksqlConfig,
           serviceContext,
+          processingLogContext,
           functionRegistry,
           joinNode,
           queryId,

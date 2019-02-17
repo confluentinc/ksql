@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
@@ -74,7 +75,8 @@ public class KsqlGenericRowAvroSerializerTest {
             new KsqlConfig(Collections.emptyMap()),
             false,
             () -> schemaRegistryClient,
-            "loggerName"
+            "loggerName",
+            ProcessingLogContext.create()
         ).serializer();
 
     final List columns = Arrays.asList(
@@ -114,7 +116,8 @@ public class KsqlGenericRowAvroSerializerTest {
             new KsqlConfig(Collections.emptyMap()),
             false,
             () -> schemaRegistryClient,
-            "loggerName"
+            "loggerName",
+            ProcessingLogContext.create()
         ).serializer();
 
     final List columns = Arrays.asList(
@@ -155,7 +158,8 @@ public class KsqlGenericRowAvroSerializerTest {
             new KsqlConfig(Collections.emptyMap()),
             false,
             () -> schemaRegistryClient,
-            "loggerName"
+            "loggerName",
+            ProcessingLogContext.create()
         ).serializer();
 
     final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
@@ -173,7 +177,8 @@ public class KsqlGenericRowAvroSerializerTest {
             new KsqlConfig(Collections.emptyMap()),
             false,
             () -> schemaRegistryClient,
-            "loggerName"
+            "loggerName",
+            ProcessingLogContext.create()
         ).serializer();
 
     final List columns = Arrays.asList(
@@ -210,7 +215,8 @@ public class KsqlGenericRowAvroSerializerTest {
             new KsqlConfig(Collections.emptyMap()),
             false,
             () -> schemaRegistryClient,
-            "loggerName"
+            "loggerName",
+            ProcessingLogContext.create()
         );
 
     final byte[] bytes = serde.serializer().serialize("topic", ksqlRecord);
@@ -363,7 +369,8 @@ public class KsqlGenericRowAvroSerializerTest {
             new KsqlConfig(Collections.emptyMap()),
             false,
             () -> schemaRegistryClient,
-            "loggerName"
+            "loggerName",
+            ProcessingLogContext.create()
         );
 
     final byte[] bytes = serde.serializer().serialize("topic", ksqlRecord);
@@ -392,7 +399,8 @@ public class KsqlGenericRowAvroSerializerTest {
             new KsqlConfig(Collections.emptyMap()),
             true,
             () -> schemaRegistryClient,
-            "loggerName"
+            "loggerName",
+            ProcessingLogContext.create()
         );
 
     final byte[] bytes = serde.serializer().serialize("topic", ksqlRecord);
@@ -428,7 +436,8 @@ public class KsqlGenericRowAvroSerializerTest {
                 new KsqlConfig(Collections.emptyMap()),
                 false,
                 () -> schemaRegistryClient,
-                "logger.name.prefix"
+                "logger.name.prefix",
+                ProcessingLogContext.create()
             );
 
         final byte[] bytes = serde.serializer().serialize("topic", ksqlRecord);

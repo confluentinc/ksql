@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.rest.util;
 
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
@@ -23,14 +23,19 @@ public final class QueryCapacityUtil {
   }
 
   public static boolean exceedsPersistentQueryCapacity(
-      final KsqlEngine ksqlEngine, final KsqlConfig ksqlConfig, final long additionalQueries) {
-    return (ksqlEngine.numberOfPersistentQueries() + additionalQueries) > getQueryLimit(ksqlConfig);
+      final KsqlExecutionContext executionContext,
+      final KsqlConfig ksqlConfig,
+      final long additionalQueries
+  ) {
+    final long newTotal = executionContext.numberOfPersistentQueries() + additionalQueries;
+    return newTotal > getQueryLimit(ksqlConfig);
   }
 
   public static void throwTooManyActivePersistentQueriesException(
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext executionContext,
       final KsqlConfig ksqlConfig,
-      final String statementStr) {
+      final String statementStr
+  ) {
     throw new KsqlException(
         String.format(
             "Not executing statement(s) '%s' as it would cause the number "
@@ -40,7 +45,7 @@ public final class QueryCapacityUtil {
                 + "Current persistent query count: %d. Configured limit: %d.",
             statementStr,
             KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
-            ksqlEngine.numberOfPersistentQueries(),
+            executionContext.numberOfPersistentQueries(),
             getQueryLimit(ksqlConfig)
         )
     );

@@ -26,10 +26,11 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -38,6 +39,8 @@ import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
@@ -51,7 +54,7 @@ import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
-import io.confluent.ksql.rest.util.ProcessingLogConfig;
+import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -74,9 +77,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -305,10 +310,20 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    final ProcessingLogConfig processingLogConfig
+        = new ProcessingLogConfig(restConfig.getOriginals());
+    final ProcessingLogContext processingLogContext
+        = ProcessingLogContext.create(processingLogConfig);
 
-    UdfLoader.newInstance(ksqlConfig, ksqlEngine.getFunctionRegistry(), ksqlInstallDir).load();
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+
+    final KsqlEngine ksqlEngine = new KsqlEngine(
+        serviceContext,
+        processingLogContext,
+        functionRegistry,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+
+    UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
@@ -344,8 +359,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                 new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
             )
         ),
-        serviceContext.getTopicClient(),
-        true
+        serviceContext.getTopicClient()
     ));
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
@@ -360,15 +374,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         ksqlConfig,
         ksqlEngine,
         statementParser
-    );
-
-    final CommandRunner commandRunner = new CommandRunner(
-        statementExecutor,
-        commandStore,
-        ksqlConfig,
-        ksqlEngine,
-        maxStatementRetries,
-        serviceContext
     );
 
     final RootDocument rootDocument = new RootDocument();
@@ -398,17 +403,27 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
-    final ProcessingLogConfig processingLogConfig =
-        new ProcessingLogConfig(restConfig.getOriginals());
-    ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
-        serviceContext.getTopicClient(),
-        processingLogConfig,
-        ksqlConfig);
+    final Optional<String> processingLogTopic =
+        ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+            serviceContext.getTopicClient(),
+            processingLogConfig,
+            ksqlConfig);
     maybeCreateProcessingLogStream(
         processingLogConfig,
         ksqlConfig,
         ksqlEngine,
         commandStore
+    );
+
+    final List<String> managedTopics = new LinkedList<>();
+    managedTopics.add(commandTopic);
+    processingLogTopic.ifPresent(managedTopics::add);
+    final CommandRunner commandRunner = new CommandRunner(
+        statementExecutor,
+        commandStore,
+        ksqlEngine,
+        maxStatementRetries,
+        new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext, managedTopics)
     );
 
     commandRunner.processPriorCommands();
@@ -521,7 +536,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
       return;
     }
-    final PreparedStatement<AbstractStreamCreateStatement> statement =
+    final PreparedStatement<?> statement =
         ProcessingLogServerUtils.processingLogStreamCreateStatement(
             config,
             ksqlConfig);

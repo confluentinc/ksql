@@ -6,7 +6,20 @@ Version 5.2.0
 
 KSQL 5.2 includes new features, including:
 
+* Added a new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
+* Added ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
+
 KSQL 5.2 includes bug fixes, including:
+
+* Improved support for multi-line requests in interactive mode deployments.
+  Prior to version 5.2 KSQL parsed the full request before attempting to execute any statements.
+  Requests that contained later statements that were dependent the execution of prior statements
+  may have failed. In version 5.2 and later, this is no longer an issue.
+
+* Improved support for non-interactive, "headless" mode deployments.
+  Prior to version 5.2 KSQL parsed the full script before attempting to execute any statements.
+  The full parse would often fail when later statements relied on the execution of earlier
+  statements. In version 5.2 and later, this is no longer an issue.
 
 KSQL 5.2 deprecates or removes some features, including:
 

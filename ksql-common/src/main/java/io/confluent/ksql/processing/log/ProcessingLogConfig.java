@@ -12,7 +12,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.processing.log;
 
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -75,6 +75,10 @@ public class ProcessingLogConfig extends AbstractConfig {
       TOPIC_PARTITIONS,
       TOPIC_REPLICATION_FACTOR);
 
+  public static final String INCLUDE_ROWS = propertyName("include.rows");
+  private static final String INCLUDE_ROWS_DOC =
+      "Toggles whether or not the processing log should include rows in log messages";
+
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
           STREAM_AUTO_CREATE,
@@ -111,7 +115,14 @@ public class ProcessingLogConfig extends AbstractConfig {
           Type.SHORT,
           TOPIC_REPLICATION_FACTOR_DEFAULT,
           Importance.LOW,
-          TOPIC_REPLICATION_FACTOR_DOC);
+          TOPIC_REPLICATION_FACTOR_DOC)
+      .define(
+          INCLUDE_ROWS,
+          Type.BOOLEAN,
+          false,
+          Importance.HIGH,
+          INCLUDE_ROWS_DOC
+      );
 
   public ProcessingLogConfig(final Map<?, ?> properties) {
     super(CONFIG_DEF, properties);

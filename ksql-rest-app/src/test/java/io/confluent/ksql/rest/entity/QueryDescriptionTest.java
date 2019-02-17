@@ -27,6 +27,7 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -98,6 +99,7 @@ public class QueryDescriptionTest {
         final StreamsBuilder builder,
         final KsqlConfig ksqlConfig,
         final ServiceContext serviceContext,
+        final ProcessingLogContext processingLogContext,
         final FunctionRegistry functionRegistry,
         final QueryId queryId
     ) {

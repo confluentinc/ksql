@@ -20,8 +20,10 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyShort;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,9 +31,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -42,7 +47,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.rest.util.ProcessingLogConfig;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -56,16 +61,23 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class StandaloneExecutorTest {
 
@@ -76,7 +88,22 @@ public class StandaloneExecutorTest {
           ProcessingLogConfig.TOPIC_NAME, PROCESSING_LOG_TOPIC_NAME
       ));
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
-  private static final QualifiedName SOME_NAME = QualifiedName.of("Test");
+  private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
+
+  private static final CreateStream CREATE_STREAM = new CreateStream(
+      SOME_NAME, Collections.emptyList(), true, Collections.emptyMap());
+
+  private final static ParsedStatement PARSED_STMT_0 = ParsedStatement
+      .of("sql 0", mock(SingleStatementContext.class));
+
+  private final static ParsedStatement PARSED_STMT_1 = ParsedStatement
+      .of("sql 1", mock(SingleStatementContext.class));
+
+  private final static PreparedStatement<?> PREPARED_STMT_0 = PreparedStatement
+      .of("sql 0", CREATE_STREAM);
+
+  private final static PreparedStatement<?> PREPARED_STMT_1 = PreparedStatement
+      .of("sql 1", CREATE_STREAM);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -84,13 +111,17 @@ public class StandaloneExecutorTest {
   @Mock
   private Query query;
   @Mock
-  private KsqlEngine engine;
+  private KsqlEngine ksqlEngine;
+  @Mock
+  private KsqlExecutionContext sandBox;
   @Mock
   private UdfLoader udfLoader;
   @Mock
-  private PersistentQueryMetadata queryMd;
+  private PersistentQueryMetadata persistentQuery;
   @Mock
-  private QueryMetadata nonPeristentQueryMd;
+  private PersistentQueryMetadata sandBoxQuery;
+  @Mock
+  private QueryMetadata nonPersistentQueryMd;
   @Mock
   private VersionCheckerAgent versionCheckerAgent;
   @Mock
@@ -104,15 +135,29 @@ public class StandaloneExecutorTest {
   @Before
   public void before() throws IOException {
     queriesFile = Paths.get(TestUtils.tempFile().getPath());
+    givenQueryFileContains("something");
 
-    when(engine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(queryMd));
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
+
+    when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0));
+
+    when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
+    when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
+
+    when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(persistentQuery));
+
+    when(ksqlEngine.createSandbox()).thenReturn(sandBox);
+
+    when(sandBox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
+    when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
+
+    when(sandBox.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
 
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
         processingLogConfig,
         ksqlConfig,
-        engine,
+        ksqlEngine,
         queriesFile.toString(),
         udfLoader,
         false,
@@ -136,7 +181,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).parseStatements("This statement");
+    verify(ksqlEngine).parse("This statement");
   }
 
   @Test
@@ -179,7 +224,7 @@ public class StandaloneExecutorTest {
             ProcessingLogConfig.TOPIC_NAME, PROCESSING_LOG_TOPIC_NAME
         )),
         ksqlConfig,
-        engine,
+        ksqlEngine,
         queriesFile.toString(),
         udfLoader,
         false,
@@ -197,15 +242,22 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldFailOnDropStatement() {
     // Given:
-    when(engine.parseStatements(any())).thenReturn(ImmutableList.of(
-        PreparedStatement.of("DROP",
+    givenQueryFileParsesTo(
+        PreparedStatement.of("DROP Test",
             new DropStream(SOME_NAME, false, false))
-    ));
+    );
 
+    // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Ignoring statements: DROP\n"
-        + "Only DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
-        + "and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.");
+    expectedException.expectMessage("Unsupported statement: DROP Test\n"
+        + "Only the following statements are supporting in standalone mode:\n"
+        + "CREAETE STREAM AS SELECT\n"
+        + "CREATE STREAM\n"
+        + "CREATE TABLE\n"
+        + "CREATE TABLE AS SELECT\n"
+        + "INSERT INTO\n"
+        + "SET\n"
+        + "UNSET");
 
     // When:
     standaloneExecutor.start();
@@ -216,9 +268,8 @@ public class StandaloneExecutorTest {
     // Given:
     givenExecutorWillFailOnNoQueries();
 
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        PreparedStatement.of("Transient query", query)
-    ));
+    givenQueryFileParsesTo(PreparedStatement.of("SET PROP",
+        new SetProperty(Optional.empty(), "name", "value")));
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("The SQL file did not contain any queries");
@@ -233,13 +284,13 @@ public class StandaloneExecutorTest {
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
         new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
 
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(cs));
+    givenQueryFileParsesTo(cs);
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute(cs, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(cs, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -248,97 +299,106 @@ public class StandaloneExecutorTest {
     final PreparedStatement<CreateTable> ct = PreparedStatement.of("CT",
         new CreateTable(SOME_NAME, emptyList(), false, emptyMap()));
 
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(ct));
+    givenQueryFileParsesTo(ct);
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute(ct, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(ct, ksqlConfig, emptyMap());
   }
 
   @Test
   public void shouldRunSetStatements() {
     // Given:
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        PreparedStatement.of("CS",
-            new SetProperty(Optional.empty(), "name", "value")),
-        PreparedStatement.of("CS",
-            new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
-    ));
+    final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET PROP",
+        new SetProperty(Optional.empty(), "name", "value"));
+
+    final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
+        new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
+
+    givenQueryFileParsesTo(setProp, cs);
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine)
-        .execute(any(), any(), eq(ImmutableMap.of("name", "value")));
+    verify(ksqlEngine).execute(eq(cs), any(), eq(ImmutableMap.of("name", "value")));
   }
 
   @Test
   public void shouldRunUnSetStatements() {
     // Given:
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        PreparedStatement.of("SET",
-            new SetProperty(Optional.empty(), "name", "value")),
-        PreparedStatement.of("UNSET",
-            new UnsetProperty(Optional.empty(), "name")),
-        PreparedStatement.of("CS",
-            new CreateStream(SOME_NAME, emptyList(), false, emptyMap()))
-    ));
+    final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET",
+        new SetProperty(Optional.empty(), "name", "value"));
+
+    final PreparedStatement<UnsetProperty> unsetProp = PreparedStatement.of("UNSET",
+        new UnsetProperty(Optional.empty(), "name"));
+
+    final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
+        new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
+
+    givenQueryFileParsesTo(setProp, unsetProp, cs);
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute(any(), any(), eq(emptyMap()));
+    verify(ksqlEngine).execute(eq(cs), any(), eq(emptyMap()));
   }
 
   @Test
   public void shouldRunCsasStatements() {
     // Given:
-    final PreparedStatement<CreateStreamAsSelect> csas = PreparedStatement.of("CSAS1",
+    final PreparedStatement<?> csas = PreparedStatement.of("CSAS1",
         new CreateStreamAsSelect(SOME_NAME, query, false, emptyMap(), Optional.empty()));
 
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(csas));
+    givenQueryFileParsesTo(csas);
+
+    when(sandBox.execute(eq(csas), any(), any()))
+        .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute(csas, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(csas, ksqlConfig, emptyMap());
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldRunCtasStatements() {
     // Given:
-    final PreparedStatement<CreateTableAsSelect> ctas = PreparedStatement.of("CTAS",
+    final PreparedStatement<?> ctas = PreparedStatement.of("CTAS",
         new CreateTableAsSelect(SOME_NAME, query, false, emptyMap()));
 
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(ctas));
+    givenQueryFileParsesTo(ctas);
+
+    when(sandBox.execute(eq(ctas), any(), any()))
+        .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute(ctas, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(ctas, ksqlConfig, emptyMap());
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldRunInsertIntoStatements() {
     // Given:
-    final PreparedStatement<InsertInto> insertInto = PreparedStatement.of("InsertInto",
+    final PreparedStatement<?> insertInto = PreparedStatement.of("InsertInto",
         new InsertInto(SOME_NAME, query, Optional.empty()));
 
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(insertInto));
+    givenQueryFileParsesTo(insertInto);
+
+    when(sandBox.execute(eq(insertInto), any(), any()))
+        .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(engine).execute(insertInto, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(insertInto, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -346,7 +406,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(engine.execute(any(), any(), any()))
+    when(sandBox.execute(any(), any(), any()))
         .thenReturn(ExecuteResult.of("well, this is unexpected."));
 
     expectedException.expect(KsqlException.class);
@@ -361,7 +421,8 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(engine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(nonPeristentQueryMd));
+    when(sandBox.execute(any(), any(), any()))
+        .thenReturn(ExecuteResult.of(nonPersistentQueryMd));
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not build the query");
@@ -373,7 +434,7 @@ public class StandaloneExecutorTest {
   @Test(expected = RuntimeException.class)
   public void shouldThrowIfParseThrows() {
     // Given:
-    when(engine.parseStatements(any())).thenThrow(new RuntimeException("Boom!"));
+    when(ksqlEngine.parse(any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
     standaloneExecutor.start();
@@ -382,9 +443,7 @@ public class StandaloneExecutorTest {
   @Test(expected = RuntimeException.class)
   public void shouldThrowIfExecuteThrows() {
     // Given:
-    givenFileContainsAPersistentQuery();
-
-    when(engine.execute(any(), any(), any())).thenThrow(new RuntimeException("Boom!"));
+    when(ksqlEngine.execute(any(), any(), any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
     standaloneExecutor.start();
@@ -396,7 +455,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.stop();
 
     // Then:
-    verify(engine).close();
+    verify(ksqlEngine).close();
   }
 
   @Test
@@ -408,12 +467,54 @@ public class StandaloneExecutorTest {
     verify(serviceContext).close();
   }
 
+  @Test
+  public void shouldStartQueries() {
+    // Given:
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(persistentQuery));
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(persistentQuery).start();
+  }
+
+  @Test
+  public void shouldNotStartValidationPhaseQueries() {
+    // Given:
+    givenFileContainsAPersistentQuery();
+    when(sandBox.execute(any(), any(), any())).thenReturn(ExecuteResult.of(sandBoxQuery));
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(sandBoxQuery, never()).start();
+  }
+
+  @Test
+  public void shouldOnlyPrepareNextStatementOncePreviousStatementHasBeenExecuted() {
+    // Given:
+    when(ksqlEngine.parse(any())).thenReturn(
+        ImmutableList.of(PARSED_STMT_0, PARSED_STMT_1));
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    final InOrder inOrder = inOrder(ksqlEngine);
+    inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
+    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_0), any(), any());
+    inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
+    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_1), any(), any());
+  }
+
   private void givenExecutorWillFailOnNoQueries() {
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
         processingLogConfig,
         ksqlConfig,
-        engine,
+        ksqlEngine,
         queriesFile.toString(),
         udfLoader,
         true,
@@ -421,10 +522,25 @@ public class StandaloneExecutorTest {
   }
 
   private void givenFileContainsAPersistentQuery() {
-    when(engine.parseStatements(anyString())).thenReturn(ImmutableList.of(
-        PreparedStatement.of("InsertInto",
-            new InsertInto(SOME_NAME, query, Optional.empty()))
-    ));
+    givenQueryFileParsesTo(
+        PreparedStatement.of("InsertInto", new InsertInto(SOME_NAME, query, Optional.empty()))
+    );
+  }
+
+  private void givenQueryFileParsesTo(final PreparedStatement<?>... statements) {
+    final List<ParsedStatement> parsedStmts = Arrays.stream(statements)
+        .map(statement -> ParsedStatement
+            .of(statement.getStatementText(), mock(SingleStatementContext.class)))
+        .collect(Collectors.toList());
+
+    when(ksqlEngine.parse(any())).thenReturn(parsedStmts);
+
+    IntStream.range(0, parsedStmts.size()).forEach(idx -> {
+      final ParsedStatement parsed = parsedStmts.get(idx);
+      final PreparedStatement prepared = statements[idx];
+      when(sandBox.prepare(parsed)).thenReturn(prepared);
+      when(ksqlEngine.prepare(parsed)).thenReturn(prepared);
+    });
   }
 
   @SuppressWarnings("SameParameterValue")

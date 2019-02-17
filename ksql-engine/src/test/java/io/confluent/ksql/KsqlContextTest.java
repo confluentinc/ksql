@@ -15,7 +15,9 @@
 package io.confluent.ksql;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,7 +25,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -46,6 +51,18 @@ public class KsqlContextTest {
   private static final ImmutableMap<String, Object> SOME_PROPERTIES = ImmutableMap
       .of("overridden", "props");
 
+  private final static ParsedStatement PARSED_STMT_0 = ParsedStatement
+      .of("sql 0", mock(SingleStatementContext.class));
+
+  private final static ParsedStatement PARSED_STMT_1 = ParsedStatement
+      .of("sql 1", mock(SingleStatementContext.class));
+
+  private final static PreparedStatement<?> PREPARED_STMT_0 = PreparedStatement
+      .of("sql 0", mock(Statement.class));
+
+  private final static PreparedStatement<?> PREPARED_STMT_1 = PreparedStatement
+      .of("sql 1", mock(Statement.class));
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -59,23 +76,24 @@ public class KsqlContextTest {
   private PersistentQueryMetadata persistentQuery;
   @Mock
   private QueuedQueryMetadata transientQuery;
-  @Mock
-  private PreparedStatement<?> statement0;
-  @Mock
-  private PreparedStatement<?> statement1;
   private KsqlContext ksqlContext;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     ksqlContext = new KsqlContext(serviceContext, SOME_CONFIG, ksqlEngine);
 
-    when(ksqlEngine.parseStatements(any()))
-        .thenReturn(ImmutableList.of(statement0));
+    when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0));
 
-    when(ksqlEngine.createSandbox())
-        .thenReturn(sandbox);
+    when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
+    when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
     when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
+
+    when(ksqlEngine.createSandbox()).thenReturn(sandbox);
+
+    when(sandbox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
+    when(sandbox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
   }
 
   @Test
@@ -84,30 +102,47 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
-    verify(ksqlEngine).parseStatements("Some SQL");
+    verify(ksqlEngine).parse("Some SQL");
+  }
+
+  @Test
+  public void shouldOnlyPrepareNextStatementOncePreviousStatementHasBeenExecuted() {
+    // Given:
+    when(ksqlEngine.parse(any())).thenReturn(
+        ImmutableList.of(PARSED_STMT_0, PARSED_STMT_1));
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    final InOrder inOrder = inOrder(ksqlEngine);
+    inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
+    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_0), any(), any());
+    inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
+    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_1), any(), any());
   }
 
   @Test
   public void shouldTryExecuteStatementsReturnedByParserBeforeExecute() {
     // Given:
-    when(ksqlEngine.parseStatements(any()))
-        .thenReturn(ImmutableList.of(statement0, statement1));
+    when(ksqlEngine.parse(any())).thenReturn(
+        ImmutableList.of(PARSED_STMT_0, PARSED_STMT_1));
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine, sandbox);
-    inOrder.verify(sandbox).execute(statement0, SOME_CONFIG, SOME_PROPERTIES);
-    inOrder.verify(sandbox).execute(statement1, SOME_CONFIG, SOME_PROPERTIES);
-    inOrder.verify(ksqlEngine).execute(statement0, SOME_CONFIG, SOME_PROPERTIES);
-    inOrder.verify(ksqlEngine).execute(statement1, SOME_CONFIG, SOME_PROPERTIES);
+    inOrder.verify(sandbox).execute(eq(PREPARED_STMT_0), any(), any());
+    inOrder.verify(sandbox).execute(eq(PREPARED_STMT_1), any(), any());
+    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_0), any(), any());
+    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_1), any(), any());
   }
 
   @Test
   public void shouldThrowIfParseFails() {
     // Given:
-    when(ksqlEngine.parseStatements(any()))
+    when(ksqlEngine.parse(any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
     // Expect

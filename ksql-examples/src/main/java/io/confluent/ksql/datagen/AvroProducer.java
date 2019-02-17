@@ -23,7 +23,6 @@ import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-
 import org.apache.avro.Schema;
 import org.apache.kafka.common.serialization.Serializer;
 

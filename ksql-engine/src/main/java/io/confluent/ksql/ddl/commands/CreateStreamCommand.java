@@ -26,13 +26,9 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
   public CreateStreamCommand(
       final String sqlExpression,
       final CreateStream createStream,
-      final KafkaTopicClient kafkaTopicClient,
-      final boolean enforceTopicExistence
+      final KafkaTopicClient kafkaTopicClient
   ) {
-    super(sqlExpression,
-        createStream,
-        kafkaTopicClient,
-        enforceTopicExistence);
+    super(sqlExpression, createStream, kafkaTopicClient);
   }
 
   @Override
@@ -58,8 +54,6 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
         keySerde
     );
 
-    // TODO: Need to check if the topic exists.
-    // Add the topic to the metastore
     metaStore.putSource(ksqlStream.cloneWithTimeKeyColumns());
     return new DdlCommandResult(true, "Stream created");
   }

@@ -76,7 +76,7 @@ public class CommandFactoriesTest {
   public void shouldCreateDDLCommandForRegisterTopic() {
     final DdlCommand result = commandFactories.create(
         sqlExpression, new RegisterTopic(QualifiedName.of("blah"),
-            true, properties), NO_PROPS, true);
+            true, properties), NO_PROPS);
 
     assertThat(result, instanceOf(RegisterTopicCommand.class));
   }
@@ -86,7 +86,7 @@ public class CommandFactoriesTest {
     final DdlCommand result = commandFactories.create(
         sqlExpression, new CreateStream(QualifiedName.of("foo"),
             Collections.emptyList(), true, properties),
-        NO_PROPS, true);
+        NO_PROPS);
 
     assertThat(result, instanceOf(CreateStreamCommand.class));
   }
@@ -97,7 +97,7 @@ public class CommandFactoriesTest {
 
     final DdlCommand result = commandFactories
         .create(sqlExpression, createTable(tableProperties),
-            NO_PROPS, true);
+            NO_PROPS);
 
     assertThat(result, instanceOf(CreateTableCommand.class));
   }
@@ -109,7 +109,7 @@ public class CommandFactoriesTest {
 
     try {
       commandFactories
-          .create(sqlExpression, createTable(tableProperties), NO_PROPS, true);
+          .create(sqlExpression, createTable(tableProperties), NO_PROPS);
 
     } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("No column with the provided key column name in the "
@@ -125,7 +125,7 @@ public class CommandFactoriesTest {
 
     try {
       commandFactories
-          .create(sqlExpression, createTable(tableProperties), NO_PROPS, true);
+          .create(sqlExpression, createTable(tableProperties), NO_PROPS);
 
     } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("No column with the provided timestamp column name in the WITH clause, COL3, exists in the defined schema."));
@@ -138,8 +138,7 @@ public class CommandFactoriesTest {
     tableProperties.remove(DdlConfig.KEY_NAME_PROPERTY);
 
     try {
-      commandFactories.create(sqlExpression, createTable(properties),
-          NO_PROPS, true);
+      commandFactories.create(sqlExpression, createTable(properties), NO_PROPS);
 
     } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("Cannot define a TABLE without providing the KEY column name in the WITH clause."));
@@ -154,7 +153,7 @@ public class CommandFactoriesTest {
 
     try {
       commandFactories.create(sqlExpression, createTable(tableProperties),
-          NO_PROPS, true);
+          NO_PROPS);
 
     } catch (final KsqlException e) {
       assertThat(e.getMessage(), equalTo("Kafka topic does not exist: topic"));
@@ -162,20 +161,10 @@ public class CommandFactoriesTest {
   }
 
   @Test
-  public void shouldNotFailCreateTableIfTopicNotExistButExistenceNotRequired() {
-    final HashMap<String, Expression> tableProperties = validTableProps();
-
-    givenTopicsDoNotExist();
-
-    commandFactories
-        .create(sqlExpression, createTable(tableProperties), NO_PROPS, false);
-  }
-
-  @Test
   public void shouldCreateCommandForDropStream() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropStream(QualifiedName.of("foo"), true, true),
-        NO_PROPS, true
+        NO_PROPS
     );
     assertThat(result, instanceOf(DropSourceCommand.class));
   }
@@ -184,7 +173,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForDropTable() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropTable(QualifiedName.of("foo"), true, true),
-        NO_PROPS, true
+        NO_PROPS
     );
     assertThat(result, instanceOf(DropSourceCommand.class));
   }
@@ -193,7 +182,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForDropTopic() {
     final DdlCommand result = commandFactories.create(sqlExpression,
         new DropTopic(QualifiedName.of("foo"), true),
-        NO_PROPS, true
+        NO_PROPS
     );
     assertThat(result, instanceOf(DropTopicCommand.class));
   }
@@ -201,7 +190,7 @@ public class CommandFactoriesTest {
   @Test(expected = KsqlException.class)
   public void shouldThowKsqlExceptionIfCommandFactoryNotFound() {
     commandFactories.create(sqlExpression, new ExecutableDdlStatement() {},
-        NO_PROPS, true);
+        NO_PROPS);
   }
 
   private HashMap<String, Expression> validTableProps() {

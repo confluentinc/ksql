@@ -40,7 +40,7 @@ public class SqlToJavaVisitorTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     // load udfs that are not hardcoded
-    UdfLoaderUtil.load(metaStore);
+    UdfLoaderUtil.load(functionRegistry);
 
     final Schema addressSchema = SchemaBuilder.struct()
         .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)

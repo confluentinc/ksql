@@ -17,6 +17,7 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
@@ -72,14 +73,16 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<K> filter(
       final Expression filterExpression,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public SchemaKStream<K> select(
       final List<SelectExpression> expressions,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     throw new UnsupportedOperationException();
   }
 

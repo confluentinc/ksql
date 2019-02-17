@@ -42,6 +42,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -113,6 +114,7 @@ public class SchemaKStreamTest {
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   @Mock
   private GroupedFactory mockGroupedFactory;
@@ -172,7 +174,8 @@ public class SchemaKStreamTest {
         new KsqlConfig(Collections.emptyMap()),
         false,
         MockSchemaRegistryClient::new,
-        "test");
+        "test",
+        ProcessingLogContext.create());
   }
 
   @Test
@@ -185,7 +188,8 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextStacker);
+        childContextStacker,
+        processingLogContext);
     Assert.assertEquals(3, projectedSchemaKStream.getSchema().fields().size());
     Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0"),
         projectedSchemaKStream.getSchema().fields().get(0));
@@ -215,7 +219,8 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextStacker);
+        childContextStacker,
+        processingLogContext);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(new Field("NEWKEY", 0, Schema.OPTIONAL_INT64_SCHEMA)));
@@ -231,7 +236,8 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextStacker);
+        childContextStacker,
+        processingLogContext);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(initialSchemaKStream.getKeyField()));
@@ -247,7 +253,8 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextStacker);
+        childContextStacker,
+        processingLogContext);
     assertThat(
         projectedSchemaKStream.getKeyField(),
         equalTo(new Field("COL0", 1, Schema.OPTIONAL_INT64_SCHEMA)));
@@ -263,7 +270,8 @@ public class SchemaKStreamTest {
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
-        childContextStacker);
+        childContextStacker,
+        processingLogContext);
     assertThat(projectedSchemaKStream.getKeyField(), nullValue());
   }
 
@@ -275,7 +283,8 @@ public class SchemaKStreamTest {
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         projectNode.getProjectSelectExpressions(),
-        childContextStacker);
+        childContextStacker,
+        processingLogContext);
     Assert.assertEquals(3, projectedSchemaKStream.getSchema().fields().size());
     Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0"),
         projectedSchemaKStream.getSchema().fields().get(0));
@@ -303,7 +312,8 @@ public class SchemaKStreamTest {
     initialSchemaKStream = buildSchemaKStream(logicalPlan.getTheSourceNode().getSchema());
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
-        childContextStacker);
+        childContextStacker,
+        processingLogContext);
 
     Assert.assertEquals(8, filteredSchemaKStream.getSchema().fields().size());
     Assert.assertSame(filteredSchemaKStream.getSchema().field("TEST1.COL0"),
@@ -349,7 +359,12 @@ public class SchemaKStreamTest {
         new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKStream.getSchema(), null, false, () -> null, "test");
+        initialSchemaKStream.getSchema(),
+        null,
+        false,
+        () -> null,
+        "test",
+        processingLogContext);
     final List<Expression> groupByExpressions = Collections.singletonList(keyExpression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         rowSerde,
@@ -374,7 +389,8 @@ public class SchemaKStreamTest {
         null,
         false,
         () -> null,
-        "test");
+        "test",
+        processingLogContext);
     final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         rowSerde,

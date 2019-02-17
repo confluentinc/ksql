@@ -54,6 +54,11 @@
             <artifactId>antlr4-runtime</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
         <!-- Required for running tests -->
 
         <dependency>

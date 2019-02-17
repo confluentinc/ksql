@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -71,6 +72,7 @@ import org.junit.Test;
 public class SchemaKGroupedTableTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
   private final Schema schema = SchemaBuilder.struct()
       .field("GROUPING_COLUMN", Schema.OPTIONAL_STRING_SCHEMA)
@@ -95,7 +97,8 @@ public class SchemaKGroupedTableTest {
                 new KsqlConfig(Collections.emptyMap()),
                 false,
                 MockSchemaRegistryClient::new, 
-                "test")));
+                "test",
+                processingLogContext)));
 
   }
 
@@ -119,7 +122,12 @@ public class SchemaKGroupedTableTest {
             .collect(Collectors.toList());
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, () -> null, "test");
+        initialSchemaKTable.getSchema(),
+        null,
+        false,
+        () -> null,
+        "test",
+        processingLogContext);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde, groupByExpressions, queryContext);
     Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
@@ -142,7 +150,12 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           windowExpression,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(), ksqlConfig, false, () -> null, "test"),
+              ksqlTable.getSchema(),
+              ksqlConfig,
+              false,
+              () -> null,
+              "test",
+              processingLogContext),
           queryContext
       );
       Assert.fail("Should fail to build topology for aggregation with window");
@@ -168,7 +181,12 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           null,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(), ksqlConfig, false, () -> null, "test"),
+              ksqlTable.getSchema(),
+              ksqlConfig,
+              false,
+              () -> null,
+              "test",
+              processingLogContext),
           queryContext
       );
       Assert.fail("Should fail to build topology for aggregation with unsupported function");

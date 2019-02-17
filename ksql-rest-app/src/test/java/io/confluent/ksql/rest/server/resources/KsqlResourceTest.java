@@ -47,7 +47,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -142,12 +141,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlResourceTest {
 
@@ -181,7 +179,6 @@ public class KsqlResourceTest {
   private SchemaRegistryClient schemaRegistryClient;
   private QueuedCommandStatus commandStatus;
   private QueuedCommandStatus commandStatus1;
-  private QueuedCommandStatus commandStatus2;
   private MetaStoreImpl metaStore;
   private ServiceContext serviceContext;
 
@@ -195,7 +192,7 @@ public class KsqlResourceTest {
     commandStatus1 = new QueuedCommandStatus(
         1, new CommandStatusFuture(new CommandId(TABLE, "something", DROP)));
 
-    commandStatus2 = new QueuedCommandStatus(
+    final QueuedCommandStatus commandStatus2 = new QueuedCommandStatus(
         2, new CommandStatusFuture(new CommandId(STREAM, "something", EXECUTE)));
 
     kafkaTopicClient = new FakeKafkaTopicClient();
@@ -401,7 +398,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectCSASStatementResultType() {
-    // Expect:
+    // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
@@ -416,7 +413,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectCSASStatementResultTypeWithGroupBy() {
-    // Expect:
+    // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
@@ -431,7 +428,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailForIncorrectCTASStatementResultType() {
-    // Expect:
+    // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
@@ -481,7 +478,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailBareQuery() {
-    // Expect:
+    // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
@@ -495,7 +492,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldFailPrintTopic() {
-    // Expect:
+    // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
@@ -573,7 +570,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldNotDistributeCreateStatementIfTopicDoesNotExist() {
-    // Expect:
+    // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException
@@ -648,23 +645,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldDistributeMultipleInterDependantStatements() {
-    // When:
-    makeMultipleRequest(
-        "CREATE STREAM S AS SELECT * FROM test_stream; "
-            + "CREATE STREAM S2 AS SELECT * FROM S;",
-        CommandStatusEntity.class
-    );
-
-    // Then:
-    final InOrder inOrder = inOrder(commandStore);
-    inOrder.verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S AS SELECT * FROM test_stream;"), any(), any(), any());
-    inOrder.verify(commandStore).enqueueCommand(
-        eq("CREATE STREAM S2 AS SELECT * FROM S;"), any(), any(), any());
-  }
-
-  @Test
   public void shouldWaitForLastDistributedStatementBeforeExecutingAnyNonDistributed()
       throws Exception
   {
@@ -705,6 +685,34 @@ public class KsqlResourceTest {
 
     // Then:
     verify(commandStore, never()).ensureConsumedPast(anyLong(), any());
+  }
+
+  @Test
+  public void shouldNotWaitForLastDistributedStatementBeforeExecutingSyncBlackListedStatement()
+      throws Exception {
+    // Given:
+    final ImmutableList<String> blackListed = ImmutableList.of(
+        //"LIST TOPICS;" <- mocks don't support required ops,
+        "LIST FUNCTIONS;",
+        "DESCRIBE FUNCTION LCASE;",
+        "LIST PROPERTIES;",
+        "SET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "'='FOO';",
+        "UNSET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "';"
+    );
+
+    for (final String statement : blackListed) {
+
+      // When:
+      makeMultipleRequest(
+          "CREATE STREAM " + KsqlIdentifierTestUtil.uniqueIdentifierName()
+              + " AS SELECT * FROM test_stream;\n"
+              + statement,
+          KsqlEntity.class
+      );
+
+      // Then:
+      verify(commandStore, never()).ensureConsumedPast(anyLong(), any());
+    }
   }
 
   @Test
@@ -791,23 +799,41 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldDistributeTerminateQueryWithoutValidation() {
-    // Why? Because currently if the server receives a single request containing two statements:
-    // `CREATE STREAM FOO AS blah;`
-    // `TERMINATE csas_foo_0;`
-    // Then its possible that the terminate line is valid, in that it will terminate the query
-    // started by the first line, but the server can no validate this as the CSAS may not have
-    // be actioned by the StatementExecutor yet.
-
-    // Given:
-    final String terminateSql = "TERMINATE some_id;";
+  public void shouldThrowOnTerminateUnknownQuery() {
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+        "Unknown queryId: unknown_query_id"))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+        "TERMINATE unknown_query_id;"))));
 
     // When:
-    final CommandStatusEntity result = makeSingleRequest(terminateSql, CommandStatusEntity.class);
+    makeRequest("TERMINATE unknown_query_id;");
+  }
+
+  @Test
+  public void shouldThrowOnTerminateTerminatedQuery() {
+    // Given:
+    final String queryId = createQuery(
+        "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
+        Collections.emptyMap())
+        .getQueryId()
+        .getId();
 
     // Then:
-    verify(commandStore).enqueueCommand(eq(terminateSql), isA(TerminateQuery.class), any(), any());
-    assertThat(result.getStatementText(), is(terminateSql));
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(containsString(
+        "Unknown queryId:"))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
+        "TERMINATE /*second*/"))));
+
+    // When:
+    makeRequest(
+        "TERMINATE " + queryId + ";"
+            + "TERMINATE /*second*/ " + queryId + ";"
+    );
   }
 
   @Test
@@ -879,7 +905,7 @@ public class KsqlResourceTest {
     // Given:
     givenMockEngine();
 
-    when(ksqlEngine.parseStatements(anyString()))
+    when(ksqlEngine.parse(anyString()))
         .thenThrow(new RuntimeException("internal error"));
 
     // When:
@@ -1013,7 +1039,7 @@ public class KsqlResourceTest {
 
     givenMockEngine();
 
-    when(ksqlEngine.numberOfPersistentQueries()).thenReturn(3L);
+    givenPersistentQueryCount(3);
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1036,7 +1062,7 @@ public class KsqlResourceTest {
         + "CREATE STREAM another_stream AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(ksqlEngine.numberOfPersistentQueries()).thenReturn(2L);
+    givenPersistentQueryCount(2);
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1328,8 +1354,10 @@ public class KsqlResourceTest {
   private void givenMockEngine() {
     ksqlEngine = mock(KsqlEngine.class);
     when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
-    when(ksqlEngine.parseStatements(any()))
-        .thenAnswer(invocation -> realEngine.parseStatements(invocation.getArgument(0)));
+    when(ksqlEngine.parse(any()))
+        .thenAnswer(invocation -> realEngine.parse(invocation.getArgument(0)));
+    when(sandbox.prepare(any()))
+        .thenAnswer(invocation -> realEngine.createSandbox().prepare(invocation.getArgument(0)));
     when(ksqlEngine.createSandbox()).thenReturn(sandbox);
     setUpKsqlResource();
   }
@@ -1568,5 +1596,9 @@ public class KsqlResourceTest {
 
   private void givenTopicExists(final String name) {
     kafkaTopicClient.preconditionTopicExists(name, 1, (short) 1, Collections.emptyMap());
+  }
+
+  private void givenPersistentQueryCount(final int value) {
+    when(sandbox.numberOfPersistentQueries()).thenReturn(value);
   }
 }

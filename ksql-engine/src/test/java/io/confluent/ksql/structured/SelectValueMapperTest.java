@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
@@ -28,13 +27,13 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SelectExpression;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -53,14 +51,14 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class SelectValueMapperTest {
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-
   private final MetaStore metaStore =
       MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Mock
   private StructuredLogger processingLogger;
+
+  private ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -108,7 +106,7 @@ public class SelectValueMapperTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void shouldWriteProcessingLogOnError() throws IOException {
+  public void shouldWriteProcessingLogOnError() {
     // Given:
     final SelectValueMapper selectMapper = givenSelectMapperFor(
         "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
@@ -135,10 +133,6 @@ public class SelectValueMapperTest {
             "Error computing expression CEIL(TEST1.COL3) "
                 + "for column KSQL_COL_3 with index 3: null")
     );
-    final String rowString =
-        errorStruct.getString(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD);
-    final List<Object> row = (List) MAPPER.readValue(rowString, List.class);
-    assertThat(row, Matchers.contains(0, "key", 2, "foo", "whatever", null, "boo", "hoo"));
   }
 
   private SelectValueMapper givenSelectMapperFor(final String query) {
@@ -150,7 +144,11 @@ public class SelectValueMapperTest {
     final List<String> selectFieldNames = selectExpressions.stream()
         .map(SelectExpression::getName)
         .collect(Collectors.toList());
-    return new SelectValueMapper(selectFieldNames, metadata, processingLogger);
+    return new SelectValueMapper(
+        selectFieldNames,
+        metadata,
+        processingLogger,
+        processingLogContext);
   }
 
   private List<ExpressionMetadata> createExpressionMetadata(

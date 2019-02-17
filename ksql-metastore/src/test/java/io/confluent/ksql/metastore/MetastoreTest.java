@@ -30,13 +30,12 @@ import org.junit.Test;
 
 public class MetastoreTest {
 
-  private MetaStore metaStore;
+  private MutableMetaStore metaStore;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
   }
-
 
   @Test
   public void testTopicMap() {

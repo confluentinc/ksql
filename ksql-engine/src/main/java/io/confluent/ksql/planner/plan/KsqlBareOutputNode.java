@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -61,12 +62,14 @@ public class KsqlBareOutputNode extends OutputNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final QueryId queryId) {
     final SchemaKStream schemaKStream = getSource().buildStream(
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
         queryId);
 

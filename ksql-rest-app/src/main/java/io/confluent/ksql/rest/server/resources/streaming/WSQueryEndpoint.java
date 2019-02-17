@@ -281,7 +281,7 @@ public class WSQueryEndpoint {
     this.subscriber = topicSubscriber;
 
     topicPublisher.start(exec, serviceContext.getSchemaRegistryClient(),
-        ksqlConfig.getKsqlStreamConfigProps(), topicName, printTopic.getFromBeginning(),
+        ksqlConfig.getKsqlStreamConfigProps(), printTopic,
         topicSubscriber
     );
   }
@@ -313,11 +313,10 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService exec,
       final SchemaRegistryClient schemaRegistryClient,
       final Map<String, Object> ksqlStreamConfigProps,
-      final String topicName,
-      final boolean fromBeginning,
+      final PrintTopic printTopic,
       final WebSocketSubscriber<String> topicSubscriber
   ) {
-    new PrintPublisher(exec, schemaRegistryClient, ksqlStreamConfigProps, topicName,fromBeginning)
+    new PrintPublisher(exec, schemaRegistryClient, ksqlStreamConfigProps, printTopic)
         .subscribe(topicSubscriber);
   }
 
@@ -338,8 +337,7 @@ public class WSQueryEndpoint {
         ListeningScheduledExecutorService exec,
         SchemaRegistryClient schemaRegistryClient,
         Map<String, Object> consumerProperties,
-        String topicName,
-        boolean fromBeginning,
+        PrintTopic printTopic,
         WebSocketSubscriber<String> subscriber);
   }
 

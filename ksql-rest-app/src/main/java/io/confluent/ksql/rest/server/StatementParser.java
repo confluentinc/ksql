@@ -15,6 +15,7 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
@@ -30,13 +31,13 @@ public class StatementParser {
   public <T extends Statement> PreparedStatement<T> parseSingleStatement(
       final String statementString
   ) {
-    final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(statementString);
+    final List<ParsedStatement> statements = ksqlEngine.parse(statementString);
     if ((statements.size() != 1)) {
       throw new IllegalArgumentException(
           String.format("Expected exactly one KSQL statement; found %d instead", statements.size())
       );
     }
 
-    return (PreparedStatement<T>) statements.get(0);
+    return (PreparedStatement<T>) ksqlEngine.prepare(statements.get(0));
   }
 }

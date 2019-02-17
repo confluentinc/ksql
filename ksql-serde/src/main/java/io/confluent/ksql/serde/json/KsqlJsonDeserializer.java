@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.json;
 import com.google.gson.Gson;
 import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
@@ -26,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -43,13 +45,15 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   private final Schema schema;
   private final JsonConverter jsonConverter;
   private final StructuredLogger recordLogger;
+  private final ProcessingLogContext processingLogContext;
 
   private final Gson gson;
 
   public KsqlJsonDeserializer(
       final Schema schema,
       final boolean isInternal,
-      final StructuredLogger recordLogger) {
+      final StructuredLogger recordLogger,
+      final ProcessingLogContext processingLogContext) {
     gson = new Gson();
     // If this is a Deserializer for an internal topic in the streams app
     if (isInternal) {
@@ -59,7 +63,8 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     }
     jsonConverter = new JsonConverter();
     jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
-    this.recordLogger = recordLogger;
+    this.recordLogger = Objects.requireNonNull(recordLogger);
+    this.processingLogContext = Objects.requireNonNull(processingLogContext);
   }
 
   @Override
@@ -76,7 +81,10 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       return row;
     } catch (final Exception e) {
       recordLogger.error(
-          SerdeProcessingLogMessageFactory.deserializationErrorMsg(e, Optional.ofNullable(bytes)));
+          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+              e,
+              Optional.ofNullable(bytes),
+              processingLogContext.getConfig()));
       throw new SerializationException(
           "KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
     }

@@ -20,6 +20,7 @@ import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -31,6 +32,7 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -53,16 +55,22 @@ class QueryEngine {
   private static final Logger LOG = LoggerFactory.getLogger(QueryEngine.class);
 
   private final ServiceContext serviceContext;
+  private final ProcessingLogContext processingLogContext;
   private final Consumer<QueryMetadata> queryCloseCallback;
   private final QueryIdGenerator queryIdGenerator;
 
   QueryEngine(
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
+      final QueryIdGenerator queryIdGenerator,
       final Consumer<QueryMetadata> queryCloseCallback
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.processingLogContext = Objects.requireNonNull(
+        processingLogContext,
+        "processingLogContext");
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
-    this.queryIdGenerator = new QueryIdGenerator();
+    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
   @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.
@@ -92,7 +100,7 @@ class QueryEngine {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final KafkaClientSupplier clientSupplier,
-      final MetaStore metaStore
+      final MutableMetaStore metaStore
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
@@ -102,6 +110,7 @@ class QueryEngine {
         builder,
         ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
         serviceContext,
+        processingLogContext,
         metaStore,
         overriddenProperties,
         metaStore,

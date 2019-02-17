@@ -25,6 +25,6 @@ public final class ProcessingLoggerUtil {
   }
 
   public static String join(final Iterable<String> levels) {
-    return String.join(ProcessingLoggerFactory.DELIMITER, levels);
+    return String.join(ProcessingLogConstants.DELIMITER, levels);
   }
 }

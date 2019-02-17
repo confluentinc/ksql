@@ -38,7 +38,9 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -50,6 +52,7 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
+import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
@@ -236,7 +239,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         CommandId.Action.CREATE);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
+    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
     expect(mockEngine.execute(csasStatement, expectedConfig, Collections.emptyMap()))
         .andReturn(ExecuteResult.of(mockQueryMetadata));
     mockQueryMetadata.start();
@@ -386,6 +389,8 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     status.setStatus(sameStatus(CommandStatus.Status.PARSING));
     expectLastCall();
+    status.setStatus(sameStatus(Status.EXECUTING));
+    expectLastCall();
     status.setFinalStatus(sameStatus(CommandStatus.Status.ERROR));
     expectLastCall();
     replay(status);
@@ -518,12 +523,13 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockParser.parseSingleStatement(statement))
         .andReturn(csas);
     expect(mockMetaStore.getSource(name)).andStubReturn(null);
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
+    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
     expect(mockEngine.execute(eq(csas), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of(mockQuery));
     return mockQuery;
   }
 
+  @SuppressWarnings("unchecked")
   private PersistentQueryMetadata mockReplayRunScript(
       final String runScriptStatement,
       final String queryStatement
@@ -534,12 +540,15 @@ public class StatementExecutorTest extends EasyMockSupport {
         PreparedStatement.of(queryStatement, mockRunScript);
     expect(mockParser.parseSingleStatement(runScriptStatement))
         .andReturn(runScript);
-    final ImmutableList<PreparedStatement<?>> statements = ImmutableList
-        .of(PreparedStatement.of(queryStatement, mock(Statement.class)));
-    expect(mockEngine.parseStatements(eq(queryStatement))).andReturn(statements);
-    expect(mockEngine.execute(eq(statements.get(0)), anyObject(), anyObject()))
+    final ImmutableList<ParsedStatement> parsedStatements = ImmutableList
+        .of(ParsedStatement.of(queryStatement, mock(SingleStatementContext.class)));
+    final PreparedStatement preparedStatement =
+        PreparedStatement.of(queryStatement, mock(Statement.class));
+    expect(mockEngine.parse(eq(queryStatement))).andReturn(parsedStatements);
+    expect(mockEngine.prepare(parsedStatements.get(0))).andReturn(preparedStatement);
+    expect(mockEngine.execute(eq(preparedStatement), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of(mockQuery));
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0L);
+    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
     return mockQuery;
   }
 

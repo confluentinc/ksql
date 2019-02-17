@@ -16,8 +16,10 @@ package io.confluent.ksql.physical;
 
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -53,7 +55,6 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -259,83 +260,107 @@ public class PhysicalPlanBuilderTest {
     assertThat(ksqlStructuredDataOutputNode.getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
         equalTo(DataSource.DataSourceSerDe.DELIMITED));
     closeQueries(queryMetadataList);
-    ksqlEngine.close();
   }
 
   @Test
   public void shouldFailIfInsertSinkDoesNotExist() {
+    // Given:
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
+    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
+    // Then:
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(statementText(is("INSERT INTO s1 SELECT col0, col1, col2 FROM test1;")));
-    expectedException
-        .expect(rawMessage(is("Sink 'S1' does not exist for the INSERT INTO statement.")));
+    expectedException.expect(rawMessage(is(
+        "Sink does not exist for the INSERT INTO statement: S1")));
 
-    try {
-      KsqlEngineTestUtil.execute(
+    // When:
+    KsqlEngineTestUtil.execute(
           ksqlEngine,
           createStream + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } finally {
-      ksqlEngine.close();
-    }
   }
 
   @Test
   public void shouldFailInsertIfTheResultSchemaDoesNotMatch() {
+    // Given:
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1 FROM test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    try {
-      KsqlEngineTestUtil.execute(
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is(
+        "Incompatible schema between results and sink. Result schema is "
+        + "[COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE], "
+        + "but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR].")));
+
+    // When:
+    KsqlEngineTestUtil.execute(
           ksqlEngine,
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } catch (final KsqlException ksqlException) {
-      assertThat(ksqlException.getMessage(),
-          equalTo("Incompatible schema between results and sink. Result schema is [COL0 :"
-              + " BIGINT, COL1 : VARCHAR, COL2 : DOUBLE], but the sink schema is [COL0 : BIGINT, COL1 : VARCHAR]."));
-      return;
-    } finally {
-      ksqlEngine.close();
-    }
-    Assert.fail();
   }
 
   @Test
-  public void shouldCreatePlanForInsertIntoTableFromTable() {
+  public void shouldThrowOnInsertIntoTableFromTable() {
+    // Given:
     final String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
     final String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    kafkaTopicClient.createTopic("test1", 1, (short) 1);
 
-    final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(ksqlEngine,
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is(
+        "INSERT INTO can only be used to insert into a stream. T2 is a table.")));
+
+    // When:
+    KsqlEngineTestUtil.execute(ksqlEngine,
         createTable + "\n " + csasQuery + "\n " + insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
-    Assert.assertTrue(queryMetadataList.size() == 2);
-    final String planText = queryMetadataList.get(1).getExecutionPlan();
-    final String[] lines = planText.split("\n");
-    assertThat(lines.length, equalTo(2));
-    assertThat(lines[0],
-        equalTo(" > [ PROJECT ] | Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : "
-            + "BIGINT, COL1 : VARCHAR, COL2 : DOUBLE, COL3 : DOUBLE] | Logger: InsertQuery_1.Project"));
-    assertThat(lines[1],
-        equalTo("\t\t > [ SOURCE ] | Schema: [T1.ROWTIME : BIGINT, T1.ROWKEY : VARCHAR, "
-            + "T1.COL0 : BIGINT, T1.COL1 : VARCHAR, T1.COL2 : DOUBLE, T1.COL3 : "
-            + "DOUBLE] | Logger: InsertQuery_1.KsqlTopic"));
-    closeQueries(queryMetadataList);
-    ksqlEngine.close();
   }
 
   @Test
-  public void shouldFailInsertIfTheResultTypesDontMatch() {
+  public void shouldCreatePlanForInsertIntoStreamFromStream() {
+    // Given:
+    final String cs = "CREATE STREAM test1 (col0 INT) "
+        + "WITH (KAFKA_TOPIC='test1', VALUE_FORMAT='JSON');";
+    final String csas = "CREATE STREAM s0 AS SELECT * FROM test1;";
+    final String insertInto = "INSERT INTO s0 SELECT * FROM test1;";
+    kafkaTopicClient.createTopic("test1", 1, (short) 1);
+
+    // When:
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(ksqlEngine,
+        cs + csas + insertInto,
+        ksqlConfig,
+        Collections.emptyMap());
+
+    // Then:
+    assertThat(queries, hasSize(2));
+    final String planText = queries.get(1).getExecutionPlan();
+    final String[] lines = planText.split("\n");
+    assertThat(lines.length, equalTo(3));
+    assertThat(lines[0], containsString("> [ SINK ] | "
+        + "Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : INT]"));
+
+    assertThat(lines[1], containsString("> [ PROJECT ] | "
+        + "Schema: [ROWTIME : BIGINT, ROWKEY : VARCHAR, COL0 : INT]"));
+
+    assertThat(lines[2], containsString("> [ SOURCE ] | "
+        + "Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : INT]"));
+    closeQueries(queries);
+  }
+
+  @Test
+  public void shouldFailInsertIfTheResultTypesDoNotMatch() {
+    // Given:
     final String createTable = "CREATE TABLE T1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE, COL3 "
         + "DOUBLE) "
         + "WITH ( "
@@ -346,19 +371,17 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("t1", 1, (short) 1, Collections.emptyMap());
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    try {
-      KsqlEngineTestUtil.execute(ksqlEngine,
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is(
+        "Incompatible data sink and query result. "
+        + "Data sink (S2) type is KTABLE but select query result is KSTREAM.")));
+
+    // When:
+    KsqlEngineTestUtil.execute(ksqlEngine,
           createTable + "\n " + createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } catch (final KsqlException ksqlException) {
-      assertThat(ksqlException.getMessage(), equalTo("Incompatible data sink and query result. "
-          + "Data sink (S2) type is KTABLE but select query result is KSTREAM."));
-      return;
-    } finally {
-      ksqlEngine.close();
-    }
-    Assert.fail();
   }
 
   @Test
@@ -384,7 +407,6 @@ public class PhysicalPlanBuilderTest {
     assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR"
         + ", COL2 : DOUBLE] | Logger: InsertQuery_1.Project"));
     closeQueries(queryMetadataList);
-    ksqlEngine.close();
   }
 
   @Test
@@ -393,21 +415,19 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
-    try {
-      KsqlEngineTestUtil.execute(
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(is(
+        "Incompatible key fields for sink and results. "
+        + "Sink key field is COL0 (type: Schema{INT64}) "
+        + "while result key field is null (type: null)")));
+
+    // When:
+    KsqlEngineTestUtil.execute(
           ksqlEngine,
           createStream + "\n " + csasQuery + "\n " + insertIntoQuery,
           ksqlConfig,
           Collections.emptyMap());
-    } catch (final Exception ksqlException) {
-      assertThat(ksqlException.getMessage(), equalTo("Incompatible key fields for sink and "
-          + "results. Sink key field is COL0 (type: "
-          + "Schema{INT64}) while result key field is null (type: null)"));
-      return;
-    } finally {
-      ksqlEngine.close();
-    }
-    Assert.fail();
   }
 
   @Test
@@ -650,7 +670,6 @@ public class PhysicalPlanBuilderTest {
         field -> Assert.assertTrue(field.schema().isOptional())
     );
     closeQueries(queryMetadataList);
-    ksqlEngine.close();
   }
 
   @Test
@@ -666,7 +685,6 @@ public class PhysicalPlanBuilderTest {
     assertThat(ksqlEngine.getMetaStore().getSource("TEST1").getKsqlTopic().isKsqlSink(), equalTo(false));
     assertThat(ksqlEngine.getMetaStore().getSource("S1").getKsqlTopic().isKsqlSink(), equalTo(true));
     assertThat(ksqlEngine.getMetaStore().getSource("T1").getKsqlTopic().isKsqlSink(), equalTo(true));
-    ksqlEngine.close();
   }
 
 

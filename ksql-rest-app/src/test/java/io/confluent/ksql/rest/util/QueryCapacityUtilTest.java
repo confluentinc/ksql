@@ -104,7 +104,7 @@ public class QueryCapacityUtilTest {
         ksqlEngine, ksqlConfig, statementStr);
   }
 
-  private void givenActivePersistentQueries(final long numQueries) {
+  private void givenActivePersistentQueries(final int numQueries) {
     when(ksqlEngine.numberOfPersistentQueries())
         .thenReturn(numQueries);
   }

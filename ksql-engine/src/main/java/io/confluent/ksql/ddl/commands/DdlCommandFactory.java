@@ -21,7 +21,6 @@ public interface DdlCommandFactory {
   DdlCommand create(
       String sqlExpression,
       DdlStatement ddlStatement,
-      Map<String, Object> properties,
-      boolean enforceTopicExistence
+      Map<String, Object> properties
   );
 }

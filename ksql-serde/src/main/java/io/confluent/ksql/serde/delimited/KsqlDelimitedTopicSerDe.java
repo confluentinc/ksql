@@ -26,7 +26,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;

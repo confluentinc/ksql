@@ -359,8 +359,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                 new StringLiteral(COMMANDS_KSQL_TOPIC_NAME)
             )
         ),
-        serviceContext.getTopicClient(),
-        true
+        serviceContext.getTopicClient()
     ));
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);

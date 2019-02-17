@@ -14,24 +14,28 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class AggregateAnalysis {
 
   private final Set<DereferenceExpression> requiredColumns = new HashSet<>();
-  private final Set<DereferenceExpression> groupByColumns = new HashSet<>();
-  private final Set<DereferenceExpression> nonAggSelectColumns = new HashSet<>();
-  private final Set<DereferenceExpression> nonAggHavingColumns = new HashSet<>();
+  private final Set<DereferenceExpression> groupByFields = new HashSet<>();
+  private final Map<Expression, Set<DereferenceExpression>> nonAggSelectExpressions
+      = new HashMap<>();
+  private final Set<DereferenceExpression> nonAggHavingFields = new HashSet<>();
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
-  private final List<FunctionCall> functionList = new ArrayList<>();
+  private final List<FunctionCall> aggFunctions = new ArrayList<>();
   private Expression havingExpression = null;
 
 
@@ -50,22 +54,21 @@ public class AggregateAnalysis {
   }
 
   /**
-   * Get the set of columns from the source schema that are used in the GROUP BY clause.
+   * Get the set of fields from the source schema that are used in the GROUP BY expression.
    *
-   * @return the set of columns in the GROUP BY clause.
+   * @return the set of fields in the GROUP BY expression.
    */
-  Set<DereferenceExpression> getGroupByColumns() {
-    return Collections.unmodifiableSet(groupByColumns);
+  Set<DereferenceExpression> getGroupByFields() {
+    return Collections.unmodifiableSet(groupByFields);
   }
 
   /**
-   * Get the set of columns from the source schema that are using in the SELECT clause outside
-   * of aggregate functions.
+   * Get a map of select expression to the set of source schema fields the expression uses.
    *
-   * @return the set of non-aggregate columns in the SELECT clause.
+   * @return the map of select expression to the set of source schema fields.
    */
-  Set<DereferenceExpression> getNonAggregateSelectColumns() {
-    return Collections.unmodifiableSet(nonAggSelectColumns);
+  Map<Expression, Set<DereferenceExpression>> getNonAggregateSelectExpressions() {
+    return Collections.unmodifiableMap(nonAggSelectExpressions);
   }
 
   /**
@@ -74,12 +77,12 @@ public class AggregateAnalysis {
    *
    * @return the set of non-aggregate columns in the HAVING clause.
    */
-  Set<DereferenceExpression> getNonAggregateHavingColumns() {
-    return Collections.unmodifiableSet(nonAggHavingColumns);
+  Set<DereferenceExpression> getNonAggregateHavingFields() {
+    return Collections.unmodifiableSet(nonAggHavingFields);
   }
 
-  public List<FunctionCall> getFunctionList() {
-    return Collections.unmodifiableList(functionList);
+  public List<FunctionCall> getAggregateFunctions() {
+    return Collections.unmodifiableList(aggFunctions);
   }
 
   public List<Expression> getFinalSelectExpressions() {
@@ -98,20 +101,23 @@ public class AggregateAnalysis {
     aggregateFunctionArguments.add(argument);
   }
 
-  void addFunction(final FunctionCall functionCall) {
-    functionList.add(functionCall);
+  void addAggFunction(final FunctionCall functionCall) {
+    aggFunctions.add(functionCall);
   }
 
-  void addGroupByColumn(final DereferenceExpression node) {
-    groupByColumns.add(node);
+  void addGroupByField(final DereferenceExpression node) {
+    groupByFields.add(node);
   }
 
-  void addNonAggregateSelectColumn(final DereferenceExpression node) {
-    nonAggSelectColumns.add(node);
+  void addNonAggregateSelectExpression(
+      final Expression selectExpression,
+      final Set<DereferenceExpression> referencedFields
+  ) {
+    nonAggSelectExpressions.put(selectExpression, ImmutableSet.copyOf(referencedFields));
   }
 
-  void addNonAggregateHavingColumn(final DereferenceExpression node) {
-    nonAggHavingColumns.add(node);
+  void addNonAggregateHavingField(final DereferenceExpression node) {
+    nonAggHavingFields.add(node);
   }
 
   void addRequiredColumn(final DereferenceExpression node) {

@@ -20,8 +20,12 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.Node;
+import io.confluent.ksql.util.KsqlException;
+import java.util.HashSet;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Optional;
+import java.util.Set;
+import java.util.Stack;
 import java.util.function.BiConsumer;
 
 class AggregateAnalyzer {
@@ -41,26 +45,36 @@ class AggregateAnalyzer {
   }
 
   void processSelect(final Expression expression) {
-    final AggregateVisitor visitor = new AggregateVisitor((inAggregateFunction, node) -> {
-      if (!inAggregateFunction) {
-        aggregateAnalysis.addNonAggregateSelectColumn(node);
+    final Set<DereferenceExpression> nonAggFields = new HashSet<>();
+    final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
+      if (!aggFuncName.isPresent()) {
+        nonAggFields.add(node);
       }
+    });
+
+    visitor.process(expression, new AnalysisContext());
+
+    if (!visitor.visitedAggFunction) {
+      aggregateAnalysis.addNonAggregateSelectExpression(expression, nonAggFields);
+    }
+  }
+
+  void processGroupBy(final Expression expression) {
+    final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
+      if (aggFuncName.isPresent()) {
+        throw new KsqlException("GROUP BY does not support aggregate functions: "
+            + aggFuncName.get() + " is an aggregate function.");
+      }
+      aggregateAnalysis.addGroupByField(node);
     });
 
     visitor.process(expression, new AnalysisContext());
   }
 
-  void processGroupBy(final Expression expression) {
-    final AggregateVisitor visitor = new AggregateVisitor((ignored, node) ->
-        aggregateAnalysis.addGroupByColumn(node));
-
-    visitor.process(expression, new AnalysisContext());
-  }
-
   void processHaving(final Expression expression) {
-    final AggregateVisitor visitor = new AggregateVisitor((inAggregateFunction, node) -> {
-      if (!inAggregateFunction) {
-        aggregateAnalysis.addNonAggregateHavingColumn(node);
+    final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
+      if (!aggFuncName.isPresent()) {
+        aggregateAnalysis.addNonAggregateHavingField(node);
       }
     });
     visitor.process(expression, new AnalysisContext());
@@ -68,11 +82,12 @@ class AggregateAnalyzer {
 
   private final class AggregateVisitor extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
-    private final BiConsumer<Boolean, DereferenceExpression> dereferenceCollector;
-    private final AtomicInteger aggregateFunctionDepth = new AtomicInteger(0);
+    private final BiConsumer<Optional<String>, DereferenceExpression> dereferenceCollector;
+    private final Stack<String> aggregateFunctionStack = new Stack<>();
+    private boolean visitedAggFunction = false;
 
     private AggregateVisitor(
-        final BiConsumer<Boolean, DereferenceExpression> dereferenceCollector
+        final BiConsumer<Optional<String>, DereferenceExpression> dereferenceCollector
     ) {
       this.dereferenceCollector =
           Objects.requireNonNull(dereferenceCollector, "dereferenceCollector");
@@ -83,19 +98,20 @@ class AggregateAnalyzer {
       final String functionName = node.getName().getSuffix();
       final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
       if (aggregateFunc) {
+        visitedAggFunction = true;
         if (node.getArguments().isEmpty()) {
           node.getArguments().add(defaultArgument);
         }
 
         node.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
-        aggregateAnalysis.addFunction(node);
-        aggregateFunctionDepth.incrementAndGet();
+        aggregateAnalysis.addAggFunction(node);
+        aggregateFunctionStack.push(functionName);
       }
 
       final Node result = super.visitFunctionCall(node, context);
 
       if (aggregateFunc) {
-        aggregateFunctionDepth.decrementAndGet();
+        aggregateFunctionStack.pop();
       }
 
       return result;
@@ -106,7 +122,11 @@ class AggregateAnalyzer {
         final DereferenceExpression node,
         final AnalysisContext context
     ) {
-      dereferenceCollector.accept(aggregateFunctionDepth.get() != 0, node);
+      final Optional<String> aggFunctionName = aggregateFunctionStack.isEmpty()
+          ? Optional.empty()
+          : Optional.of(aggregateFunctionStack.peek());
+
+      dereferenceCollector.accept(aggFunctionName, node);
 
       aggregateAnalysis.addRequiredColumn(node);
       return null;

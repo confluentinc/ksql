@@ -298,7 +298,7 @@ public class AggregateNodeTest {
   @Test
   public void shouldGroupByFunction() {
     // Given:
-    final SchemaKStream stream = buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 "
+    final SchemaKStream stream = buildQuery("SELECT UCASE(col1), sum(col3), count(col3) FROM test1 "
         + "GROUP BY UCASE(col1);");
 
     // Then:
@@ -308,7 +308,7 @@ public class AggregateNodeTest {
   @Test
   public void shouldGroupByArithmetic() {
     // Given:
-    final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
+    final SchemaKStream stream = buildQuery("SELECT col0 + 10, sum(col3), count(col3) FROM test1 "
         + "GROUP BY col0 + 10;");
 
     // Then:

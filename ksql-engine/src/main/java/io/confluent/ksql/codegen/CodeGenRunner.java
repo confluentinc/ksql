@@ -186,12 +186,6 @@ public class CodeGenRunner {
         argumentTypes.add(expressionTypeManager.getExpressionSchema(argExpr));
       }
 
-      // Todo(ac): add unit test
-      if (functionRegistry.isAggregate(functionName)) {
-        throw new KsqlException("Non-aggregate function required: "
-            + functionName + " is an aggregate function.");
-      }
-
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlFunction function = holder.getFunction(argumentTypes);
       parameters.add(new ParameterType(function,

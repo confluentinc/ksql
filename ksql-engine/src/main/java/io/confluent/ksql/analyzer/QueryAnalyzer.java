@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -23,8 +24,11 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
@@ -79,7 +83,7 @@ public class QueryAnalyzer {
       );
     }
 
-    enforceAggregateRules(query, aggregateAnalysis);
+    enforceAggregateRules(query, analysis, aggregateAnalysis);
     return aggregateAnalysis;
   }
 
@@ -122,28 +126,45 @@ public class QueryAnalyzer {
 
   private static void enforceAggregateRules(
       final Query query,
+      final Analysis analysis,
       final AggregateAnalysis aggregateAnalysis
   ) {
     if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
       return;
     }
 
-    final Set<DereferenceExpression> groupByColumns = aggregateAnalysis
-        .getGroupByColumns();
-
-    final Set<DereferenceExpression> selectColumns = aggregateAnalysis
-        .getNonAggregateSelectColumns();
-
-    final Set<DereferenceExpression> selectOnly = Sets.difference(selectColumns, groupByColumns);
-    if (!selectOnly.isEmpty()) {
+    if (aggregateAnalysis.getAggregateFunctions().isEmpty()) {
       throw new KsqlException(
-          "Non-aggregate SELECT expression(s) must be part of GROUP BY: " + selectOnly);
+          "GROUP BY requires columns using aggregate functions in SELECT clause.");
+    }
+
+    final Set<Expression> groupByExprs = ImmutableSet.copyOf(analysis.getGroupByExpressions());
+
+    final HashMap<Expression, Set<DereferenceExpression>> unmatchedSelects =
+        new HashMap<>(aggregateAnalysis.getNonAggregateSelectExpressions());
+
+    // Remove exact matchers:
+    unmatchedSelects.keySet().removeAll(groupByExprs);
+
+    // Remove expressions where all parameters are within group-by,
+    // Or parameters are empty, i.e. literals:
+    final Set<Expression> toRemove = unmatchedSelects.entrySet().stream()
+        .filter(e -> Sets.difference(e.getValue(), groupByExprs).isEmpty())
+        .map(Entry::getKey)
+        .collect(Collectors.toSet());
+
+    unmatchedSelects.keySet().removeAll(toRemove);
+
+    if (!unmatchedSelects.isEmpty()) {
+      throw new KsqlException(
+          "Non-aggregate SELECT expression(s) must be part of GROUP BY: "
+              + unmatchedSelects.keySet());
     }
 
     final Set<DereferenceExpression> havingColumns = aggregateAnalysis
-        .getNonAggregateHavingColumns();
+        .getNonAggregateHavingFields();
 
-    final Set<DereferenceExpression> havingOnly = Sets.difference(havingColumns, groupByColumns);
+    final Set<DereferenceExpression> havingOnly = Sets.difference(havingColumns, groupByExprs);
     if (!havingOnly.isEmpty()) {
       throw new KsqlException(
           "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);

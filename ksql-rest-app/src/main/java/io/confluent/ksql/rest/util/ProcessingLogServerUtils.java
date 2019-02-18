@@ -84,7 +84,7 @@ public final class ProcessingLogServerUtils {
     return Optional.of(topicName);
   }
 
-  public static PreparedStatement<AbstractStreamCreateStatement> processingLogStreamCreateStatement(
+  public static PreparedStatement<?> processingLogStreamCreateStatement(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig) {
     return processingLogStreamCreateStatement(
@@ -93,8 +93,7 @@ public final class ProcessingLogServerUtils {
     );
   }
 
-  private static
-  PreparedStatement<AbstractStreamCreateStatement> processingLogStreamCreateStatement(
+  private static PreparedStatement<?> processingLogStreamCreateStatement(
       final String name,
       final String topicName) {
     final Schema schema = getMessageSchema();

@@ -29,8 +29,8 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.processing.log.ProcessingLogConstants;
@@ -63,7 +63,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
-  private static final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   static {
     UdfLoaderUtil.load(functionRegistry);

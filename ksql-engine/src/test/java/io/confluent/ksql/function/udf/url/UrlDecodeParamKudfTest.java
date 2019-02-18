@@ -14,13 +14,11 @@
 
 package io.confluent.ksql.function.udf.url;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class UrlDecodeParamKudfTest {
 

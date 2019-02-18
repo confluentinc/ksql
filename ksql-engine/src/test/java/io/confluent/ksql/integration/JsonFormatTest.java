@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
@@ -87,6 +88,7 @@ public class JsonFormatTest {
     ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
+        new InternalFunctionRegistry(),
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();

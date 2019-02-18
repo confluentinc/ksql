@@ -14,16 +14,16 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 
 /**
  * Execute DDL Commands
  */
 public class DdlCommandExec {
 
-  private final MetaStore metaStore;
+  private final MutableMetaStore metaStore;
 
-  public DdlCommandExec(final MetaStore metaStore) {
+  public DdlCommandExec(final MutableMetaStore metaStore) {
     this.metaStore = metaStore;
   }
 

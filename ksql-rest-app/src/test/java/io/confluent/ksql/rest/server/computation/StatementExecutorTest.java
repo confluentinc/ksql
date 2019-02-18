@@ -819,7 +819,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         dropStreamCommandStatus2.get()
             .getMessage(),
         containsString(
-            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop USER1PV. \n"));
+            "io.confluent.ksql.util.KsqlReferentialIntegrityException: Cannot drop USER1PV."));
     assertThat(
         dropStreamCommandStatus2.get()
             .getMessage(),

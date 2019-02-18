@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -91,14 +90,11 @@ public class WindowingIntTest {
     batch0SentMs = currentTimeMillis - (currentTimeMillis % TimeUnit.SECONDS.toMillis(10)) + (5001);
     tenSecWindowStartMs = batch0SentMs - (batch0SentMs % TimeUnit.SECONDS.toMillis(10));
     batch1Delay = 500;
-
   }
 
   @Before
   public void before() {
     topicClient = ksqlContext.getServiceContext().getTopicClient();
-
-    UdfLoaderUtil.load(ksqlContext.getFunctionRegistry());
 
     sourceTopicName = TopicTestUtil.uniqueTopicName("orders");
     resultStream0 = KsqlIdentifierTestUtil.uniqueIdentifierName("FIRST");

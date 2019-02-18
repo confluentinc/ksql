@@ -1,10 +1,6 @@
 {
   "comments": [
-    "When using value_format DELIMITED, we can define VALUE_DELIMITER as custom character or ",
-    "one of the formats in org.apache.commons.csv.CSVFormat ",
-    "Supported value DEFAULT, EXCEL, INFORMIX_UNLOAD, INFORMIX_UNLOAD_CSV, MYSQL, RFC4180, ORACLE, POSTGRESQL_CSV,",
-    ",POSTGRESQL_TEXT, TDF",
-    "More details on https://commons.apache.org/proper/commons-csv/apidocs/org/apache/commons/csv/CSVFormat.html"
+    "When using value_format DELIMITED, we can define VALUE_DELIMITER as custom character."
   ],
   "tests": [
     {
@@ -25,6 +21,18 @@
         {"topic": "S2", "key": 100, "value": "100,100,500", "timestamp": 0},
         {"topic": "S2", "key": 100, "value": "100,100,100", "timestamp": 0}
       ]
+    },
+    {
+      "name": "validate value_delimiter to be single character",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='<~>');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Only single characters are supported for VALUE_DELIMITER."
+      },
+      "inputs": [],
+      "outputs": []
     },
     {
       "name": "select delimited value_format with tab separated values using CsvFormat constant",

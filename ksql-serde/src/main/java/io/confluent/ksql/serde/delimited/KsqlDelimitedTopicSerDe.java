@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import io.confluent.ksql.util.KsqlException;
 import org.apache.commons.csv.CSVFormat;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -48,7 +49,7 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
     if (delimiter.length() == 1) {
       this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.charAt(0));
     } else {
-      this.csvFormat = CSVFormat.valueOf(delimiter);
+      throw new KsqlException("Only single characters are supported for VALUE_DELIMITER.");
     }
   }
 

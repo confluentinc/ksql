@@ -227,10 +227,8 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:   |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supported formats: single character to be delimiter or |
-|                         | DEFAULT, EXCEL, INFORMIX_UNLOAD, INFORMIX_UNLOAD_CSV, MYSQL, RFC4180, ORACLE,              |
-|                         | POSTGRESQL_CSV, POSTGRESQL_TEXT, TDF.                                                      |
-|                         | See: org.apache.commons.csv.CSVFormat                                                      |
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,           |
+|                         | defaults to ','.                                                                           |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
 |                         | message value, you may set this property to associate the corresponding field/column with  |
@@ -335,10 +333,8 @@ The WITH clause supports the following properties:
 | VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats:      |
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
-| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supported formats: single character to be delimiter or |
-|                         | DEFAULT, EXCEL, INFORMIX_UNLOAD, INFORMIX_UNLOAD_CSV, MYSQL, RFC4180, ORACLE,              |
-|                         | POSTGRESQL_CSV, POSTGRESQL_TEXT, TDF.                                                      |
-|                         | See: org.apache.commons.csv.CSVFormat                                                      |
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,           |
+|                         | defaults to ','.                                                                           |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KEY (required)          | Associates a field/column within the Kafka message value with the implicit ``ROWKEY``      |
 |                         | column (message key) in the KSQL table.                                                    |
@@ -439,10 +435,7 @@ The WITH clause for the result supports the following properties:
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
 |                         | set, then the format of the input stream/table is used.                                              |
 +-------------------------+------------------------------------------------------------------------------------------------------+
-| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supported formats: single character to be delimiter or           |
-|                         | DEFAULT, EXCEL, INFORMIX_UNLOAD, INFORMIX_UNLOAD_CSV, MYSQL, RFC4180, ORACLE,                        |
-|                         | POSTGRESQL_CSV, POSTGRESQL_TEXT, TDF.                                                                |
-|                         | See: org.apache.commons.csv.CSVFormat                                                                |
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','.    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
@@ -525,10 +518,7 @@ The WITH clause supports the following properties:
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
 |                         | set, then the format of the input stream or table is used.                                           |
 +-------------------------+------------------------------------------------------------------------------------------------------+
-| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supported formats: single character to be delimiter or           |
-|                         | DEFAULT, EXCEL, INFORMIX_UNLOAD, INFORMIX_UNLOAD_CSV, MYSQL, RFC4180, ORACLE,                        |
-|                         | POSTGRESQL_CSV, POSTGRESQL_TEXT, TDF.                                                                |
-|                         | See: org.apache.commons.csv.CSVFormat                                                                |
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','.    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |

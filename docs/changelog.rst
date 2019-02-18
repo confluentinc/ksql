@@ -11,6 +11,16 @@ KSQL 5.2 includes new features, including:
 
 KSQL 5.2 includes bug fixes, including:
 
+* Improved support for multi-line requests in interactive mode deployments.
+  Prior to version 5.2 KSQL parsed the full request before attempting to execute any statements.
+  Requests that contained later statements that were dependent the execution of prior statements
+  may have failed. In version 5.2 and later, this is no longer an issue.
+
+* Improved support for non-interactive, "headless" mode deployments.
+  Prior to version 5.2 KSQL parsed the full script before attempting to execute any statements.
+  The full parse would often fail when later statements relied on the execution of earlier
+  statements. In version 5.2 and later, this is no longer an issue.
+
 Version 5.1.0
 -------------
 

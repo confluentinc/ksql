@@ -27,18 +27,14 @@ import java.util.Map;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 
-  private String stateStoreName;
+  private final String stateStoreName;
 
-  public CreateTableCommand(
+  CreateTableCommand(
       final String sqlExpression,
       final CreateTable createTable,
-      final KafkaTopicClient kafkaTopicClient,
-      final boolean enforceTopicExistence
+      final KafkaTopicClient kafkaTopicClient
   ) {
-    super(sqlExpression,
-          createTable,
-        kafkaTopicClient,
-          enforceTopicExistence);
+    super(sqlExpression, createTable, kafkaTopicClient);
 
     final Map<String, Expression> properties = createTable.getProperties();
 
@@ -74,10 +70,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         stateStoreName, keySerde
     );
 
-    // TODO: Need to check if the topic exists.
-    // Add the topic to the metastore
     metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());
     return new DdlCommandResult(true, "Table created");
   }
-
 }

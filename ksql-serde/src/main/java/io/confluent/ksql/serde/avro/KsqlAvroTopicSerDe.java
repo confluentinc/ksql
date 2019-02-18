@@ -17,7 +17,6 @@ package io.confluent.ksql.serde.avro;
 import static io.confluent.ksql.processing.log.ProcessingLoggerUtil.join;
 
 import com.google.common.collect.ImmutableMap;
-
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -33,10 +32,8 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
-
 import java.util.Objects;
 import java.util.function.Supplier;
-
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;

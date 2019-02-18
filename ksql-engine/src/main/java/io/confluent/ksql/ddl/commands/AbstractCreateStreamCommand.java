@@ -65,8 +65,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   AbstractCreateStreamCommand(
       final String sqlExpression,
       final AbstractStreamCreateStatement statement,
-      final KafkaTopicClient kafkaTopicClient,
-      final boolean enforceTopicExistence
+      final KafkaTopicClient kafkaTopicClient
   ) {
     this.sqlExpression = sqlExpression;
     this.sourceName = statement.getName().getSuffix();
@@ -85,8 +84,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
       this.registerTopicCommand = null;
     } else {
       this.topicName = this.sourceName;
-      this.registerTopicCommand = registerTopicFirst(properties,
-          enforceTopicExistence);
+      this.registerTopicCommand = registerTopicFirst(properties);
     }
 
     this.schema = getStreamTableSchema(statement.getElements());
@@ -159,8 +157,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   }
 
   private RegisterTopicCommand registerTopicFirst(
-      final Map<String, Expression> properties,
-      final boolean enforceTopicExistence
+      final Map<String, Expression> properties
   ) {
     if (properties.size() == 0) {
       throw new KsqlException("Create Stream/Table statement needs WITH clause.");
@@ -177,7 +174,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     }
     final String kafkaTopicName = StringUtil.cleanQuotes(
         properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString());
-    if (enforceTopicExistence && !kafkaTopicClient.isTopicExists(kafkaTopicName)) {
+    if (!kafkaTopicClient.isTopicExists(kafkaTopicName)) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
     return new RegisterTopicCommand(this.topicName, false, properties);

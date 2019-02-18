@@ -12,19 +12,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.processing.log;
+package io.confluent.ksql.logging.processing;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
+import org.junit.Test;
 
-public final class ProcessingLoggerUtil {
-  private ProcessingLoggerUtil() {
+public class ProcessingLoggerUtilTest {
+  @Test
+  public void shouldJoinCorrectly() {
+    assertThat(ProcessingLoggerUtil.join("foo", "bar"), equalTo("foo.bar"));
   }
 
-  public static String join(final String... levels) {
-    return join(Arrays.asList(levels));
-  }
-
-  public static String join(final Iterable<String> levels) {
-    return String.join(ProcessingLogConstants.DELIMITER, levels);
+  @Test
+  public void shouldJoinIterableCorrectly() {
+    assertThat(ProcessingLoggerUtil.join(Arrays.asList("foo", "bar")), equalTo("foo.bar"));
   }
 }

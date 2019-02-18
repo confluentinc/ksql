@@ -23,12 +23,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.SerdeTestUtils;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -49,7 +50,7 @@ public class KsqlConnectDeserializerTest {
   @Mock
   private DataTranslator dataTranslator;
   @Mock
-  private StructuredLogger recordLogger;
+  private ProcessingLogger recordLogger;
   @Mock
   private Schema schema;
   @Mock
@@ -57,7 +58,8 @@ public class KsqlConnectDeserializerTest {
   @Mock
   private GenericRow genericRow;
 
-  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  private final ProcessingLogConfig processingLogConfig
+      = new ProcessingLogConfig(Collections.emptyMap());
 
   private KsqlConnectDeserializer connectDeserializer;
 
@@ -69,8 +71,7 @@ public class KsqlConnectDeserializerTest {
     connectDeserializer = new KsqlConnectDeserializer(
         converter,
         dataTranslator,
-        recordLogger,
-        processingLogContext
+        recordLogger
     );
     when(converter.toConnectData(any(), any())).thenReturn(new SchemaAndValue(schema, value));
     when(dataTranslator.toKsqlRow(any(), any())).thenReturn(genericRow);
@@ -105,8 +106,8 @@ public class KsqlConnectDeserializerTest {
         recordLogger,
         SerdeProcessingLogMessageFactory.deserializationErrorMsg(
             error,
-            Optional.ofNullable(BYTES),
-            processingLogContext.getConfig()).get()
+            Optional.ofNullable(BYTES)).apply(processingLogConfig),
+        processingLogConfig
     );
   }
 }

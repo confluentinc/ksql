@@ -12,15 +12,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.processing.log;
+package io.confluent.ksql.logging.processing;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class ProcessingLogMessageSchema {
-  private ProcessingLogMessageSchema() {
-  }
-
   private static final String NAMESPACE = "io.confluent.ksql.processing.log.";
 
   public static final String DESERIALIZATION_ERROR_FIELD_MESSAGE = "errorMessage";
@@ -86,4 +83,7 @@ public final class ProcessingLogMessageSchema {
       .field(PRODUCTION_ERROR, PRODUCTION_ERROR_SCHEMA)
       .optional()
       .build();
+
+  private ProcessingLogMessageSchema() {
+  }
 }

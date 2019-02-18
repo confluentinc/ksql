@@ -8,9 +8,9 @@ import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogConfig;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -31,8 +31,8 @@ public class EngineProcessingLogMessageFactoryTest {
   public void shouldBuildRecordProcessingErrorCorrectly() throws IOException {
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, new GenericRow(123, "data"), config
-    ).get();
+        errorMsg, new GenericRow(123, "data")
+    ).apply(config);
 
     // Then:
     assertThat(msgAndSchema.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
@@ -60,8 +60,8 @@ public class EngineProcessingLogMessageFactoryTest {
   public void shouldBuildRecordProcessingErrorCorrectlyIfRowNull() {
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, null, config
-    ).get();
+        errorMsg, null
+    ).apply(config);
 
     // Then:
     final Struct msg = (Struct) msgAndSchema.value();
@@ -82,8 +82,8 @@ public class EngineProcessingLogMessageFactoryTest {
 
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, new GenericRow(123, "data"), config
-    ).get();
+        errorMsg, new GenericRow(123, "data")
+    ).apply(config);
 
     // Then:
     final Struct msg = (Struct) msgAndSchema.value();

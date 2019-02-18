@@ -15,7 +15,7 @@
 package io.confluent.ksql.embedded;
 
 import io.confluent.ksql.KsqlContext;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 

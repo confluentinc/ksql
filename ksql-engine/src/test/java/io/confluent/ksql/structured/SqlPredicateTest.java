@@ -20,25 +20,25 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.AggregateAnalysis;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -52,13 +52,14 @@ import org.mockito.junit.MockitoRule;
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+  private final ProcessingLogConfig processingLogConfig
+      = new ProcessingLogConfig(Collections.emptyMap());
 
   private MetaStore metaStore;
   private InternalFunctionRegistry functionRegistry;
-  private ProcessingLogContext processingLogContext;
 
   @Mock
-  private StructuredLogger processingLogger;
+  private ProcessingLogger processingLogger;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -67,7 +68,6 @@ public class SqlPredicateTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     functionRegistry = new InternalFunctionRegistry();
-    processingLogContext = ProcessingLogContext.create();
   }
 
   private PlanNode buildLogicalPlan(final String queryStr) {
@@ -133,10 +133,10 @@ public class SqlPredicateTest {
         new GenericRow(0L, "key", Collections.emptyList()));
 
     // Then:
-    final ArgumentCaptor<Supplier<SchemaAndValue>> captor
-        = ArgumentCaptor.forClass(Supplier.class);
+    final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
+        = ArgumentCaptor.forClass(Function.class);
     verify(processingLogger).error(captor.capture());
-    final SchemaAndValue schemaAndValue = captor.getValue().get();
+    final SchemaAndValue schemaAndValue = captor.getValue().apply(processingLogConfig);
     assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
     final Struct struct = (Struct) schemaAndValue.value();
     assertThat(
@@ -161,7 +161,7 @@ public class SqlPredicateTest {
         false,
         ksqlConfig,
         functionRegistry,
-        processingLogger,
-        processingLogContext);
+        processingLogger
+    );
   }
 }

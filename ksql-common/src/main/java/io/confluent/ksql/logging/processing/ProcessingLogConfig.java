@@ -12,7 +12,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.processing.log;
+package io.confluent.ksql.logging.processing;
 
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;

@@ -532,28 +532,23 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final CommandQueue commandQueue) {
-    if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
+      final CommandQueue commandQueue
+  ) {
+    if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)
+        || !commandQueue.isEmpty()) {
       return;
     }
-    final PreparedStatement<?> statement =
-        ProcessingLogServerUtils.processingLogStreamCreateStatement(
-            config,
-            ksqlConfig);
-    if (!commandQueue.isEmpty()) {
-      return;
-    }
+
+    final PreparedStatement<?> statement = ProcessingLogServerUtils
+        .processingLogStreamCreateStatement(config, ksqlConfig);
+
     try {
       ksqlEngine.createSandbox().execute(statement, ksqlConfig, Collections.emptyMap());
     } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);
       return;
     }
-    commandQueue.enqueueCommand(
-          statement.getStatementText(),
-          statement.getStatement(),
-          ksqlConfig,
-          Collections.emptyMap()
-    );
+
+    commandQueue.enqueueCommand(statement, ksqlConfig, Collections.emptyMap());
   }
 }

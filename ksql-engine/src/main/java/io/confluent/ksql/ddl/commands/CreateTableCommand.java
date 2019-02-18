@@ -16,10 +16,10 @@ package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
@@ -27,18 +27,14 @@ import java.util.Map;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 
-  private String stateStoreName;
+  private final String stateStoreName;
 
-  public CreateTableCommand(
+  CreateTableCommand(
       final String sqlExpression,
       final CreateTable createTable,
-      final KafkaTopicClient kafkaTopicClient,
-      final boolean enforceTopicExistence
+      final KafkaTopicClient kafkaTopicClient
   ) {
-    super(sqlExpression,
-          createTable,
-        kafkaTopicClient,
-          enforceTopicExistence);
+    super(sqlExpression, createTable, kafkaTopicClient);
 
     final Map<String, Expression> properties = createTable.getProperties();
 
@@ -58,9 +54,15 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
+  public DdlCommandResult run(final MutableMetaStore metaStore) {
     if (registerTopicCommand != null) {
-      registerTopicCommand.run(metaStore, isValidatePhase);
+      try {
+        registerTopicCommand.run(metaStore);
+      } catch (KsqlException e) {
+        final String errorMessage =
+                String.format("Cannot create table '%s': %s", topicName, e.getMessage());
+        throw new KsqlException(errorMessage, e);
+      }
     }
     checkMetaData(metaStore, sourceName, topicName);
     final KsqlTable ksqlTable = new KsqlTable<>(
@@ -74,10 +76,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         stateStoreName, keySerde
     );
 
-    // TODO: Need to check if the topic exists.
-    // Add the topic to the metastore
     metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());
     return new DdlCommandResult(true, "Table created");
   }
-
 }

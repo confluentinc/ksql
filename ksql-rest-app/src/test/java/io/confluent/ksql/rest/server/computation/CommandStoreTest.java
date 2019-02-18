@@ -21,7 +21,6 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -30,6 +29,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
@@ -88,6 +88,7 @@ public class CommandStoreTest {
   private Statement statement;
   @Mock
   private CommandIdAssigner commandIdAssigner;
+  private PreparedStatement<?> preparedStatement;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -99,7 +100,7 @@ public class CommandStoreTest {
   private CommandStore commandStore;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     when(commandIdAssigner.getCommandId(any()))
         .thenAnswer(invocation -> new CommandId(
             CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
@@ -109,6 +110,8 @@ public class CommandStoreTest {
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
 
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
+
+    preparedStatement = PreparedStatement.of(statementText, statement);
 
     commandStore = new CommandStore(
         commandTopic,
@@ -122,12 +125,12 @@ public class CommandStoreTest {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
 
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     expectedException.expect(IllegalStateException.class);
 
     // When:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
@@ -138,22 +141,21 @@ public class CommandStoreTest {
         .thenReturn(recordMetadata);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // When:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
-
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
     commandStore.getNewCommands();
 
     // Should:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
@@ -173,7 +175,7 @@ public class CommandStoreTest {
     );
 
     // When:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
     verify(commandTopic).send(any(), any());
@@ -203,7 +205,7 @@ public class CommandStoreTest {
     when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
 
     // When:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
     verify(commandTopic).send(same(commandId), any());
@@ -213,7 +215,7 @@ public class CommandStoreTest {
   public void shouldIncludeCommandSequenceNumberInSuccessfulQueuedCommandStatus() {
     // When:
     final QueuedCommandStatus commandStatus =
-        commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+        commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
     assertThat(commandStatus.getCommandSequenceNumber(), equalTo(recordMetadata.offset()));
@@ -257,6 +259,23 @@ public class CommandStoreTest {
     inOrder.verify(commandTopic).getNewCommands(any());
   }
 
+  @Test
+  public void shouldComputeNotEmptyCorrectly() {
+    // Given:
+    when(commandTopic.getEndOffset()).thenReturn(1L);
+
+    // When/Then:
+    assertThat(commandStore.isEmpty(), is(false));
+  }
+
+  @Test
+  public void shouldComputeEmptyCorrectly() {
+    // Given:
+    when(commandTopic.getEndOffset()).thenReturn(0L);
+
+    // When/Then:
+    assertThat(commandStore.isEmpty(), is(true));
+  }
 
   private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {
     assertThat(args.length % 2, equalTo(0));

@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.collect.ImmutableList;
@@ -32,10 +33,12 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -85,16 +88,34 @@ public class CodeGenRunnerTest {
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
 
-    private MetaStore metaStore;
+    private MutableMetaStore metaStore;
     private CodeGenRunner codeGenRunner;
     private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
     @Before
     public void init() {
+        final KsqlFunction whenCondition = KsqlFunction.createLegacyBuiltIn(
+            Schema.OPTIONAL_BOOLEAN_SCHEMA,
+            ImmutableList.of(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
+            "WHENCONDITION",
+            WhenCondition.class
+        );
+        final KsqlFunction whenResult = KsqlFunction.createLegacyBuiltIn(
+            Schema.OPTIONAL_INT32_SCHEMA,
+            ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
+            "WHENRESULT",
+            WhenResult.class
+        );
+        functionRegistry.ensureFunctionFactory(
+            UdfLoaderUtil.createTestUdfFactory(whenCondition));
+        functionRegistry.addFunction(whenCondition);
+        functionRegistry.ensureFunctionFactory(
+            UdfLoaderUtil.createTestUdfFactory(whenResult));
+        functionRegistry.addFunction(whenResult);
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
         // load substring function
-        UdfLoaderUtil.load(metaStore);
+        UdfLoaderUtil.load(functionRegistry);
 
         final Schema arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build();
 
@@ -368,6 +389,120 @@ public class CodeGenRunnerTest {
     }
 
     @Test
+    public void testBetweenExprScalar() {
+        // int
+        assertThat(evalBetweenClauseScalar(INT32_INDEX1, 1, 0, 2), is(true));
+        assertThat(evalBetweenClauseScalar(INT32_INDEX1, 0, 0, 2), is(true));
+        assertThat(evalBetweenClauseScalar(INT32_INDEX1, 3, 0, 2), is(false));
+        assertThat(evalBetweenClauseScalar(INT32_INDEX1, null, 0, 2), is(false));
+
+        // long
+        assertThat(evalBetweenClauseScalar(INT64_INDEX1, 12345L, 12344L, 12346L), is(true));
+        assertThat(evalBetweenClauseScalar(INT64_INDEX1, 12344L, 12344L, 12346L), is(true));
+        assertThat(evalBetweenClauseScalar(INT64_INDEX1, 12345L, 0, 2L), is(false));
+        assertThat(evalBetweenClauseScalar(INT64_INDEX1, null, 0, 2L), is(false));
+
+        // double
+        assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 1.0d, 0.1d, 1.9d), is(true));
+        assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 0.1d, 0.1d, 1.9d), is(true));
+        assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, 2.0d, 0.1d, 1.9d), is(false));
+        assertThat(evalBetweenClauseScalar(FLOAT64_INDEX1, null, 0.1d, 1.9d), is(false));
+    }
+
+    @Test
+    public void testNotBetweenScalar() {
+        // int
+        assertThat(evalNotBetweenClauseScalar(INT32_INDEX1, 1, 0, 2), is(false));
+        assertThat(evalNotBetweenClauseScalar(INT32_INDEX1, 0, 0, 2), is(false));
+        assertThat(evalNotBetweenClauseScalar(INT32_INDEX1, 3, 0, 2), is(true));
+        assertThat(evalNotBetweenClauseScalar(INT32_INDEX1, null, 0, 2), is(true));
+
+        // long
+        assertThat(evalNotBetweenClauseScalar(INT64_INDEX1, 12345L, 12344L, 12346L), is(false));
+        assertThat(evalNotBetweenClauseScalar(INT64_INDEX1, 12344L, 12344L, 12346L), is(false));
+        assertThat(evalNotBetweenClauseScalar(INT64_INDEX1, 12345L, 0, 2L), is(true));
+        assertThat(evalNotBetweenClauseScalar(INT64_INDEX1, null, 0, 2L), is(true));
+
+        // double
+        assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 1.0d, 0.1d, 1.9d), is(false));
+        assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 0.1d, 0.1d, 1.9d), is(false));
+        assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, 2.0d, 0.1d, 1.9d), is(true));
+        assertThat(evalNotBetweenClauseScalar(FLOAT64_INDEX1, null, 0.1d, 1.9d), is(true));
+    }
+
+    @Test
+    public void testBetweenExprString() {
+        // constants
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "b", "'a'", "'c'"), is(true));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "a", "'a'", "'c'"), is(true));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "d", "'a'", "'c'"), is(false));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, null, "'a'", "'c'"), is(false));
+
+        // columns
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "S2", "col" + STRING_INDEX2, "'S3'"), is(true));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "S3", "col" + STRING_INDEX2, "'S3'"), is(true));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, "S4", "col" + STRING_INDEX2, "'S3'"), is(false));
+        assertThat(evalBetweenClauseString(STRING_INDEX1, null, "col" + STRING_INDEX2, "'S3'"), is(false));
+    }
+
+    @Test
+    public void testNotBetweenExprString() {
+        // constants
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "b", "'a'", "'c'"), is(false));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "a", "'a'", "'c'"), is(false));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "d", "'a'", "'c'"), is(true));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, null, "'a'", "'c'"), is(true));
+
+        // columns
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "S2", "col" + STRING_INDEX2, "'S3'"), is(false));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "S3", "col" + STRING_INDEX2, "'S3'"), is(false));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, "S4", "col" + STRING_INDEX2, "'S3'"), is(true));
+        assertThat(evalNotBetweenClauseString(STRING_INDEX1, null, "col" + STRING_INDEX2, "'S3'"), is(true));
+    }
+
+    @Test
+    public void testInvalidBetweenArrayValue() {
+        // Given:
+        expectedException.expect(KsqlException.class);
+        expectedException.expectMessage("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with ARRAY values. "
+            + "expression:(NOT (CODEGEN_TEST.COL9 BETWEEN 'a' AND 'c'))");
+        expectedException.expectCause(hasMessage(
+            equalTo("Cannot execute BETWEEN with ARRAY values")));
+
+        // When:
+        evalNotBetweenClauseObject(ARRAY_INDEX1, new Object[]{1, 2}, "'a'", "'c'");
+    }
+
+    @Test
+    public void testInvalidBetweenMapValue() {
+        // Given:
+        expectedException.expect(KsqlException.class);
+        expectedException.expectMessage("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with MAP values. "
+            + "expression:(NOT (CODEGEN_TEST.COL11 BETWEEN 'a' AND 'c'))");
+        expectedException.expectCause(hasMessage(
+            equalTo("Cannot execute BETWEEN with MAP values")));
+
+        // When:
+        evalNotBetweenClauseObject(MAP_INDEX1, ImmutableMap.of(1, 2), "'a'", "'c'");
+    }
+
+    @Test
+    public void testInvalidBetweenBooleanValue() {
+        // Given:
+        expectedException.expect(KsqlException.class);
+        expectedException.expectMessage("Code generation failed for Filter: "
+            + "Cannot execute BETWEEN with BOOLEAN values. "
+            + "expression:(NOT (CODEGEN_TEST.COL6 BETWEEN 'a' AND 'c'))");
+        expectedException.expectCause(hasMessage(
+            equalTo("Cannot execute BETWEEN with BOOLEAN values")));
+
+        // When:
+        evalNotBetweenClauseObject(BOOLEAN_INDEX1, true, "'a'", "'c'");
+    }
+
+    @Test
     public void shouldHandleArithmeticExpr() {
         // Given:
         final String query =
@@ -380,6 +515,42 @@ public class CodeGenRunnerTest {
 
         // Then:
         assertThat(columns, contains(20.0, 25.0, 125L, 50));
+    }
+
+    @Test
+    public void testCastNumericArithmeticExpressions() {
+        final Map<Integer, Object> inputValues =
+            ImmutableMap.of(0, 1, 3, 3, 4, 4, 5, 5);
+
+        // INT64 - INT32
+        assertThat(executeExpression(
+            "SELECT "
+                + "CAST((col5 - col0) AS INTEGER),"
+                + "CAST((col5 - col0) AS BIGINT),"
+                + "CAST((col5 - col0) AS DOUBLE),"
+                + "CAST((col5 - col0) AS STRING)"
+                + "FROM codegen_test;",
+            inputValues), contains(4, 4L, 4.0, "4"));
+
+        // FLOAT64 - FLOAT64
+        assertThat(executeExpression(
+            "SELECT "
+                + "CAST((col4 - col3) AS INTEGER),"
+                + "CAST((col4 - col3) AS BIGINT),"
+                + "CAST((col4 - col3) AS DOUBLE),"
+                + "CAST((col4 - col3) AS STRING)"
+                + "FROM codegen_test;",
+            inputValues), contains(1, 1L, 1.0, "1.0"));
+
+        // FLOAT64 - INT64
+        assertThat(executeExpression(
+            "SELECT "
+                + "CAST((col4 - col0) AS INTEGER),"
+                + "CAST((col4 - col0) AS BIGINT),"
+                + "CAST((col4 - col0) AS DOUBLE),"
+                + "CAST((col4 - col0) AS STRING)"
+                + "FROM codegen_test;",
+            inputValues), contains(3, 3L, 3.0, "3.0"));
     }
 
     @Test
@@ -461,6 +632,114 @@ public class CodeGenRunnerTest {
         // Then:
         assertThat(result, is("value1"));
     }
+
+    @Test
+    public void shouldHandleCaseStatement() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT CASE "
+                + "     WHEN col0 < 10 THEN 'small' "
+                + "     WHEN col0 < 100 THEN 'medium' "
+                + "     ELSE 'large' "
+                + "END "
+                + "FROM codegen_test;", metaStore)
+            .getSelectExpressions()
+            .get(0);
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Case")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is("small"));
+    }
+
+    @Test
+    public void shouldHandleCaseStatementLazily() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT CASE "
+                + "     WHEN WHENCONDITION(true, true) THEN WHENRESULT(100, true) "
+                + "     WHEN WHENCONDITION(true, false) THEN WHENRESULT(200, false) "
+                + "     ELSE WHENRESULT(300, false) "
+                + "END "
+                + "FROM codegen_test;", metaStore)
+            .getSelectExpressions()
+            .get(0);
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Case")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is(100));
+    }
+
+    @Test
+    public void shouldOnlyRunElseIfNoMatchInWhen() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT CASE "
+                + "     WHEN WHENCONDITION(false, true) THEN WHENRESULT(100, false) "
+                + "     WHEN WHENCONDITION(false, true) THEN WHENRESULT(200, false) "
+                + "     ELSE WHENRESULT(300, true) "
+                + "END "
+                + "FROM codegen_test;", metaStore)
+            .getSelectExpressions()
+            .get(0);
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Case")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is(300));
+    }
+
+    @Test
+    public void shouldReturnDefaultForCaseCorrectly() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT CASE "
+                + "     WHEN col0 > 10 THEN 'small' "
+                + "     ELSE 'large' "
+                + "END "
+                + "FROM codegen_test;", metaStore)
+            .getSelectExpressions()
+            .get(0);
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Case")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is("large"));
+    }
+
+    @Test
+    public void shouldReturnNullForCaseIfNoDefault() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT CASE "
+                + "     WHEN col0 > 10 THEN 'small' "
+                + "END "
+                + "FROM codegen_test;", metaStore)
+            .getSelectExpressions()
+            .get(0);
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "Case")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is(nullValue()));
+    }
+
 
     @Test
     public void shouldHandleUdfsExtractingFromMaps() {
@@ -565,6 +844,45 @@ public class CodeGenRunnerTest {
         return (Boolean)result0;
     }
 
+    private boolean evalBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s;", col, min.toString(), max.toString());
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalNotBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min.toString(), max.toString());
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalBetweenClauseString(final int col, final String val, final String min, final String max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s;", col, min, max);
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalNotBetweenClauseString(final int col, final String val, final String min, final String max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min, max);
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalNotBetweenClauseObject(final int col, final Object val, final String min, final String max) {
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min, max);
+        return evalBetweenClause(simpleQuery, col, val);
+    }
+
+    private boolean evalBetweenClause(final String simpleQuery, final int col, final Object val) {
+        final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
+
+        final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
+            (analysis.getWhereExpression(), "Filter");
+
+        final List<Object> columns = new ArrayList<>(ONE_ROW);
+        columns.set(col, val);
+
+        final Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(columns));
+        assertThat(result0, instanceOf(Boolean.class));
+        return (Boolean)result0;
+    }
+
     private GenericRow buildRow(final Map<Integer, Object> overrides) {
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         overrides.forEach(columns::set);
@@ -577,5 +895,28 @@ public class CodeGenRunnerTest {
 
     private static GenericRow genericRow(final List<Object> columns) {
         return new GenericRow(columns);
+    }
+
+    public static final class WhenCondition implements Kudf {
+
+        @Override
+        public Object evaluate(final Object... args) {
+            final boolean shouldBeEvaluated = (boolean) args[1];
+            if (!shouldBeEvaluated) {
+                throw new KsqlException("When condition in case is not running lazily!");
+            }
+            return args[0];
+        }
+    }
+
+    public static final class WhenResult implements Kudf {
+        @Override
+        public Object evaluate(final Object... args) {
+            final boolean shouldBeEvaluated = (boolean) args[1];
+            if (!shouldBeEvaluated) {
+                throw new KsqlException("Then expression in case is not running lazily!");
+            }
+            return args[0];
+        }
     }
 }

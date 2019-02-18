@@ -20,14 +20,20 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryIdGenerator;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -41,13 +47,11 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
-
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
   private final Field keyField;
   private final boolean doCreateInto;
   private final Map<String, Object> outputProperties;
-
 
   @JsonCreator
   public KsqlStructuredDataOutputNode(
@@ -78,6 +82,18 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
+  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
+    final String base = queryIdGenerator.getNextId();
+    if (!doCreateInto) {
+      return new QueryId("InsertQuery_" + base);
+    }
+    if (getNodeOutputType().equals(DataSourceType.KTABLE)) {
+      return new QueryId("CTAS_" + getId().toString() + "_" + base);
+    }
+    return new QueryId("CSAS_" + getId().toString() + "_" + base);
+  }
+
+  @Override
   public Field getKeyField() {
     return keyField;
   }
@@ -87,17 +103,21 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props
+      final QueryId queryId
   ) {
     final PlanNode source = getSource();
     final SchemaKStream schemaKStream = source.buildStream(
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
-        props
+        queryId
     );
+
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
 
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
     final Builder outputNodeBuilder = Builder.from(this);
@@ -120,7 +140,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         outputNodeBuilder,
         ksqlConfig,
         functionRegistry,
-        outputProperties
+        outputProperties,
+        contextStacker
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
@@ -139,7 +160,9 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 noRowKey.getSchema(),
                 ksqlConfig,
                 false,
-                serviceContext.getSchemaRegistryClientFactory()),
+                serviceContext.getSchemaRegistryClientFactory(),
+                QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
+                processingLogContext),
         rowkeyIndexes
     );
 
@@ -162,7 +185,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> outputProperties
+      final Map<String, Object> outputProperties,
+      final QueryContext.Stacker contextStacker
   ) {
 
     if (schemaKStream instanceof SchemaKTable) {
@@ -177,7 +201,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         schemaKStream.getKeySerde(),
         SchemaKStream.Type.SINK,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
 
     if (outputProperties.containsKey(DdlConfig.PARTITION_BY_PROPERTY)) {
@@ -191,7 +216,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           )));
 
       outputNodeBuilder.withKeyField(keyField);
-      return result.selectKey(keyField, false);
+      return result.selectKey(keyField, false, contextStacker);
     }
     return result;
   }
@@ -290,7 +315,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withLimit(original.getLimit())
           .withDoCreateInto(original.isDoCreateInto());
     }
-
 
     Builder withLimit(final Optional<Integer> limit) {
       this.limit = limit;

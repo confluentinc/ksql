@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.DropTopic;
 
 
@@ -31,7 +31,7 @@ public class DropTopicCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore, final boolean isValidatePhase) {
+  public DdlCommandResult run(final MutableMetaStore metaStore) {
     metaStore.deleteTopic(topicName);
     return new DdlCommandResult(true, "Topic " + topicName + " was dropped");
   }

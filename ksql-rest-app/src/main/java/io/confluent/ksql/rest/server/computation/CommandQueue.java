@@ -14,9 +14,8 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
@@ -25,8 +24,7 @@ import java.util.concurrent.TimeoutException;
 
 public interface CommandQueue extends Closeable {
   QueuedCommandStatus enqueueCommand(
-      String statementString,
-      Statement statement,
+      PreparedStatement<?> statement,
       KsqlConfig ksqlConfig,
       Map<String, Object> overwriteProperties
   );
@@ -37,6 +35,8 @@ public interface CommandQueue extends Closeable {
 
   void ensureConsumedPast(long seqNum, Duration timeout)
       throws InterruptedException, TimeoutException;
+
+  boolean isEmpty();
 
   @Override
   void close();

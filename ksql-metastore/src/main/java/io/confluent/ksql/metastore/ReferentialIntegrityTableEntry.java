@@ -14,44 +14,54 @@
 
 package io.confluent.ksql.metastore;
 
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.concurrent.ThreadSafe;
 
-public final class ReferentialIntegrityTableEntry implements Cloneable {
+@ThreadSafe
+final class ReferentialIntegrityTableEntry {
 
-  private final Set<String> sourceForQueries;
-  private final Set<String> sinkForQueries;
+  private final Set<String> sourceForQueries = ConcurrentHashMap.newKeySet();
+  private final Set<String> sinkForQueries = ConcurrentHashMap.newKeySet();
 
-  public ReferentialIntegrityTableEntry() {
-    sourceForQueries = new HashSet<>();
-    sinkForQueries = new HashSet<>();
+  ReferentialIntegrityTableEntry() {
   }
 
-  public ReferentialIntegrityTableEntry(
+  private ReferentialIntegrityTableEntry(
       final Set<String> sourceForQueries,
-      final Set<String> sinkForQueries) {
-    this.sourceForQueries = sourceForQueries;
-    this.sinkForQueries = sinkForQueries;
+      final Set<String> sinkForQueries
+  ) {
+    this.sourceForQueries.addAll(sourceForQueries);
+    this.sinkForQueries.addAll(sinkForQueries);
   }
 
-  public Set<String> getSourceForQueries() {
-    return sourceForQueries;
+  Set<String> getSourceForQueries() {
+    return Collections.unmodifiableSet(sourceForQueries);
   }
 
-  public Set<String> getSinkForQueries() {
-    return sinkForQueries;
+  Set<String> getSinkForQueries() {
+    return Collections.unmodifiableSet(sinkForQueries);
   }
 
-  public void removeQuery(final String queryId) {
+  void addSourceForQueries(final String queryId) {
+    if (!sourceForQueries.add(queryId)) {
+      throw new IllegalStateException("Already source for query: " + queryId);
+    }
+  }
+
+  void addSinkForQueries(final String queryId) {
+    if (!sinkForQueries.add(queryId)) {
+      throw new IllegalStateException("Already sink for query: " + queryId);
+    }
+  }
+
+  void removeQuery(final String queryId) {
     sourceForQueries.remove(queryId);
     sinkForQueries.remove(queryId);
   }
 
-  @Override
-  public ReferentialIntegrityTableEntry clone() {
-    final Set<String> cloneSourceForQueries = new HashSet<>(sourceForQueries);
-    final Set<String> cloneSinkForQueries = new HashSet<>(sinkForQueries);
-    return new ReferentialIntegrityTableEntry(cloneSourceForQueries,
-                                              cloneSinkForQueries);
+  public ReferentialIntegrityTableEntry copy() {
+    return new ReferentialIntegrityTableEntry(sourceForQueries, sinkForQueries);
   }
 }

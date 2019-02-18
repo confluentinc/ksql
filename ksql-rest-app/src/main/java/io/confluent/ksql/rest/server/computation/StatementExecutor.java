@@ -16,9 +16,9 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -37,6 +37,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +45,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,13 +184,9 @@ public class StatementExecutor {
       final Optional<CommandStatusFuture> commandStatusFuture,
       final Mode mode
   ) {
-    DdlCommandResult result = null;
     String successMessage = "";
     if (statement.getStatement() instanceof ExecutableDdlStatement) {
-      result = ksqlEngine.executeDdlStatement(
-          statement.getStatementText(),
-          (ExecutableDdlStatement) statement.getStatement(),
-          command.getOverwriteProperties());
+      successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
       startQuery(statement, command, mode);
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
@@ -210,41 +206,49 @@ public class StatementExecutor {
       ));
     }
 
-    final CommandStatus successStatus = new CommandStatus(
-        CommandStatus.Status.SUCCESS,
-        result != null ? result.getMessage() : successMessage
-    );
+    final CommandStatus successStatus =
+        new CommandStatus(CommandStatus.Status.SUCCESS, successMessage);
+
     putFinalStatus(commandId, commandStatusFuture, successStatus);
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  private String executeDdlStatement(final PreparedStatement<?> statement, final Command command) {
+    final KsqlConfig mergedConfig = buildMergedConfig(command);
+
+    return ksqlEngine
+        .execute(statement, mergedConfig, command.getOverwriteProperties())
+        .getCommandResult()
+        .get();
   }
 
   private void handleRunScript(final Command command, final Mode mode) {
 
     if (command.getOverwriteProperties().containsKey(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-      final String queries =
+      final String sql =
           (String) command.getOverwriteProperties().get(
               KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT);
       final Map<String, Object> overriddenProperties = new HashMap<>(
           command.getOverwriteProperties());
 
-      final KsqlConfig mergedConfig =
-          ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+      final KsqlConfig mergedConfig = buildMergedConfig(command);
 
-      final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(queries);
-
-      final List<QueryMetadata> queryMetadataList = statements.stream()
-          .map(stmt -> ksqlEngine.execute(stmt, ksqlConfig, overriddenProperties))
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .collect(Collectors.toList());
+      final List<QueryMetadata> queries = new ArrayList<>();
+      for (final ParsedStatement parsed : ksqlEngine.parse(sql)) {
+        final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
+        ksqlEngine.execute(prepared, ksqlConfig, overriddenProperties)
+            .getQuery()
+            .ifPresent(queries::add);
+      }
 
       if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig, 0)) {
-        queryMetadataList.forEach(QueryMetadata::close);
+        queries.forEach(QueryMetadata::close);
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
             ksqlEngine, mergedConfig, command.getStatement());
       }
 
       if (mode == Mode.EXECUTE) {
-        for (final QueryMetadata queryMetadata : queryMetadataList) {
+        for (final QueryMetadata queryMetadata : queries) {
           if (queryMetadata instanceof PersistentQueryMetadata) {
             final PersistentQueryMetadata persistentQueryMd =
                 (PersistentQueryMetadata) queryMetadata;
@@ -262,8 +266,7 @@ public class StatementExecutor {
       final Command command,
       final Mode mode
   ) {
-    final KsqlConfig mergedConfig =
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+    final KsqlConfig mergedConfig = buildMergedConfig(command);
 
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, mergedConfig,1)) {
       QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
@@ -274,7 +277,7 @@ public class StatementExecutor {
         statement,
         mergedConfig,
         command.getOverwriteProperties()
-    ).orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
+    ).getQuery().orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
 
     if (!(queryMetadata instanceof PersistentQueryMetadata)) {
       throw new KsqlException(String.format(
@@ -288,6 +291,10 @@ public class StatementExecutor {
     if (mode == Mode.EXECUTE) {
       persistentQueryMd.start();
     }
+  }
+
+  private KsqlConfig buildMergedConfig(final Command command) {
+    return ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
   }
 
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {

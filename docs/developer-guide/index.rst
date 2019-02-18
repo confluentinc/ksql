@@ -22,5 +22,6 @@ These topics show how to develop KSQL applications for |cp|.
     syntax-reference
     api
     udf
+    processing-log
     ../tutorials/index
     

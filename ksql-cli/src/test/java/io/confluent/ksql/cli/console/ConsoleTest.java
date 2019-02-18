@@ -14,16 +14,22 @@
 
 package io.confluent.ksql.cli.console;
 
-import static org.easymock.EasyMock.niceMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.FakeException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
+import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -61,8 +67,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.easymock.EasyMock;
-import org.jline.reader.EndOfFileException;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,9 +75,13 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class ConsoleTest {
 
+  private static final String CLI_CMD_NAME = "some command";
+  private static final String WHITE_SPACE = " \t ";
+
   private final TestTerminal terminal;
   private final Console console;
   private final Supplier<String> lineSupplier;
+  private final CliSpecificCommand cliCommand;
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<OutputFormat> data() {
@@ -82,9 +90,13 @@ public class ConsoleTest {
 
   @SuppressWarnings("unchecked")
   public ConsoleTest(final OutputFormat outputFormat) {
-    this.lineSupplier = niceMock(Supplier.class);
+    this.lineSupplier = mock(Supplier.class);
+    this.cliCommand = mock(CliSpecificCommand.class);
     this.terminal = new TestTerminal(lineSupplier);
-    this.console = new Console(outputFormat, () -> "v1.1.2", terminal, new NoOpRowCaptor());
+    this.console = new Console(outputFormat, terminal, new NoOpRowCaptor());
+
+    when(cliCommand.getName()).thenReturn(CLI_CMD_NAME);
+    console.registerCliSpecificCommand(cliCommand);
   }
 
   @After
@@ -243,24 +255,110 @@ public class ConsoleTest {
     }
   }
 
-  @Test(expected = EndOfFileException.class)
-  public void shouldHandleExitCommand() {
+  @Test
+  public void shouldExecuteCliCommands() {
     // Given:
-    EasyMock.expect(lineSupplier.get()).andReturn("eXiT");
-    EasyMock.replay(lineSupplier);
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME)
+        .thenReturn("not a CLI command;");
 
     // When:
     console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of()), any());
+  }
+
+  @Test
+  public void shouldExecuteCliCommandWithArgsTrimmingWhiteSpace() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "Arg0" + WHITE_SPACE + "Arg1" + WHITE_SPACE)
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg1")), any());
+  }
+
+  @Test
+  public void shouldExecuteCliCommandWithQuotedArgsContainingSpaces() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "Arg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
+  }
+
+  @Test
+  public void shouldSupportOtherWhitespaceBetweenCliCommandAndArgs() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + "\tArg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
+  }
+
+  @Test
+  public void shouldSupportCmdBeingTerminatedWithSemiColon() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "Arg0;")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
+  }
+
+  @Test
+  public void shouldSupportCmdWithQuotedArgBeingTerminatedWithSemiColon() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "'Arg0';")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
+  }
+
+  @Test
+  public void shouldFailIfCommandNameIsQuoted() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn("'some' 'command' " + "Arg0" + WHITE_SPACE + "'Arg 1'")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    console.readLine();
+
+    // Then:
+    verify(cliCommand, never()).execute(any(), any());
   }
 
   @Test
   public void shouldSwallowCliCommandLines() {
     // Given:
-    EasyMock.expect(lineSupplier.get())
-        .andReturn("history")
-        .andReturn("not a CLI command;");
-
-    EasyMock.replay(lineSupplier);
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME)
+        .thenReturn("not a CLI command;");
 
     // When:
     final String result = console.readLine();
@@ -269,7 +367,21 @@ public class ConsoleTest {
     assertThat(result, is("not a CLI command;"));
   }
 
-  private List<FieldInfo> buildTestSchema(final int size) {
+  @Test
+  public void shouldSwallowCliCommandLinesEvenWithWhiteSpace() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn("   \t   " + CLI_CMD_NAME + "   \t   ")
+        .thenReturn("not a CLI command;");
+
+    // When:
+    final String result = console.readLine();
+
+    // Then:
+    assertThat(result, is("not a CLI command;"));
+  }
+
+  private static List<FieldInfo> buildTestSchema(final int size) {
     final SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {
       dataSourceBuilder.field("f_" + i, SchemaUtil.getTypeSchema("STRING"));

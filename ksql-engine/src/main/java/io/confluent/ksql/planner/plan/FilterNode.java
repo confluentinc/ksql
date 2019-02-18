@@ -19,12 +19,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -33,7 +34,6 @@ import org.apache.kafka.streams.StreamsBuilder;
 @Immutable
 public class FilterNode
     extends PlanNode {
-
   private final PlanNode source;
   private final Expression predicate;
   private final Schema schema;
@@ -91,10 +91,16 @@ public class FilterNode
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props) {
-    return getSource().buildStream(builder, ksqlConfig, serviceContext,
-        functionRegistry, props)
-        .filter(getPredicate());
+      final QueryId queryId) {
+    return getSource().buildStream(
+        builder,
+        ksqlConfig,
+        serviceContext,
+        processingLogContext,
+        functionRegistry,
+        queryId
+    ).filter(getPredicate(), buildNodeContext(queryId), processingLogContext);
   }
 }

@@ -16,6 +16,7 @@ package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -69,6 +70,14 @@ public abstract class StructuredDataSource implements DataSource {
 
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
+  }
+
+  public KsqlTopicSerDe getKsqlTopicSerde() {
+    return ksqlTopic.getKsqlTopicSerDe();
+  }
+
+  public boolean isSerdeFormat(final DataSource.DataSourceSerDe format) {
+    return getKsqlTopicSerde() != null && getKsqlTopicSerde().getSerDe() == format;
   }
 
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {

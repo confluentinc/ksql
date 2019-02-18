@@ -16,7 +16,9 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -27,9 +29,12 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.processing.log.ProcessingLogConfig;
+import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
@@ -48,6 +53,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,25 +62,8 @@ public class StandaloneExecutor implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
 
-  private static final Map<Class<? extends Statement>, Handler<Statement>> HANDLERS =
-      ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
-          .put(SetProperty.class,
-              castHandler(StandaloneExecutor::handleSetProperty, SetProperty.class))
-          .put(UnsetProperty.class,
-              castHandler(StandaloneExecutor::handleUnsetProperty, UnsetProperty.class))
-          .put(CreateStream.class,
-              castHandler(StandaloneExecutor::handleExecutableDdl, CreateStream.class))
-          .put(CreateTable.class,
-              castHandler(StandaloneExecutor::handleExecutableDdl, CreateTable.class))
-          .put(CreateStreamAsSelect.class,
-              castHandler(StandaloneExecutor::handlePersistentQuery, CreateStreamAsSelect.class))
-          .put(CreateTableAsSelect.class,
-              castHandler(StandaloneExecutor::handlePersistentQuery, CreateTableAsSelect.class))
-          .put(InsertInto.class,
-              castHandler(StandaloneExecutor::handlePersistentQuery, InsertInto.class))
-          .build();
-
   private final ServiceContext serviceContext;
+  private final ProcessingLogConfig processingLogConfig;
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final String queriesFile;
@@ -85,6 +75,7 @@ public class StandaloneExecutor implements Executable {
 
   StandaloneExecutor(
       final ServiceContext serviceContext,
+      final ProcessingLogConfig processingLogConfig,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final String queriesFile,
@@ -93,6 +84,7 @@ public class StandaloneExecutor implements Executable {
       final VersionCheckerAgent versionCheckerAgent
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.processingLogConfig = Objects.requireNonNull(processingLogConfig, "processingLogConfig");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile");
@@ -105,7 +97,15 @@ public class StandaloneExecutor implements Executable {
   public void start() {
     try {
       udfLoader.load();
-      executeStatements(readQueriesFile(queriesFile));
+      ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
+          serviceContext.getTopicClient(),
+          processingLogConfig,
+          ksqlConfig);
+      if (processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
+        log.warn("processing log auto-create is enabled, but this is not supported "
+            + "for headless mode.");
+      }
+      processesQueryFile(readQueriesFile(queriesFile));
       showWelcomeMessage();
       final Properties properties = new Properties();
       properties.putAll(configProperties);
@@ -152,61 +152,44 @@ public class StandaloneExecutor implements Executable {
     writer.flush();
   }
 
-  private void executeStatements(final String queries) {
-    final List<PreparedStatement<?>> preparedStatements =
-        ksqlEngine.parseStatements(queries);
+  private void processesQueryFile(final String queries) {
+    final List<ParsedStatement> preparedStatements = ksqlEngine.parse(queries);
 
-    if (failOnNoQueries) {
-      final boolean noQueries = preparedStatements.stream()
-          .map(PreparedStatement::getStatement)
-          .noneMatch(stmt -> stmt instanceof QueryContainer);
-      if (noQueries) {
-        throw new KsqlException("The SQL file did not contain any queries");
-      }
+    validateStatements(preparedStatements);
+
+    executeStatements(
+        preparedStatements,
+        new StatementExecutor(ksqlEngine, configProperties, ksqlConfig)
+    );
+
+    ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
+  }
+
+  private void validateStatements(final List<ParsedStatement> statements) {
+    final StatementExecutor sandboxExecutor = new StatementExecutor(
+        ksqlEngine.createSandbox(),
+        new HashMap<>(configProperties),
+        ksqlConfig
+    );
+
+    final boolean hasQueries = executeStatements(statements, sandboxExecutor);
+
+    if (failOnNoQueries && !hasQueries) {
+      throw new KsqlException("The SQL file did not contain any queries");
+    }
+  }
+
+  private static boolean executeStatements(
+      final List<ParsedStatement> statements,
+      final StatementExecutor executor
+  ) {
+    boolean hasQueries = false;
+
+    for (final ParsedStatement parsed : statements) {
+      hasQueries |= executor.execute(parsed);
     }
 
-    preparedStatements.forEach(this::executeStatement);
-  }
-
-  @SuppressWarnings("unchecked")
-  private <T extends Statement> void executeStatement(
-      final PreparedStatement<T> statement
-  ) {
-    final Class<? extends Statement> type = statement.getStatement().getClass();
-    HANDLERS
-        .getOrDefault(type, StandaloneExecutor::defaultHandler)
-        .handle(this, (PreparedStatement)statement);
-  }
-
-  private void handleSetProperty(final PreparedStatement<SetProperty> statement) {
-    final SetProperty setProperty = statement.getStatement();
-    configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
-  }
-
-  private void handleUnsetProperty(final PreparedStatement<UnsetProperty> statement) {
-    configProperties.remove(statement.getStatement().getPropertyName());
-  }
-
-  private void handleExecutableDdl(final PreparedStatement<?> statement) {
-    ksqlEngine.execute(statement, ksqlConfig, configProperties);
-  }
-
-  private void handlePersistentQuery(final PreparedStatement<?> statement) {
-    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, configProperties)
-        .filter(q -> q instanceof PersistentQueryMetadata)
-        .orElseThrow((() -> new KsqlException("Could not build the query: "
-            + statement.getStatementText())));
-
-    query.start();
-  }
-
-  @SuppressWarnings("MethodMayBeStatic") // Won't compile if static.
-  private void defaultHandler(final PreparedStatement<?> statement) {
-    throw new KsqlException(String.format(
-        "Ignoring statements: %s"
-            + "%nOnly DDL (CREATE STREAM/TABLE, DROP STREAM/TABLE, SET, UNSET) "
-            + "and DML(CSAS, CTAS and INSERT INTO) statements can run in standalone mode.",
-        statement.getStatementText()));
+    return hasQueries;
   }
 
   private static String readQueriesFile(final String queryFilePath) {
@@ -222,15 +205,132 @@ public class StandaloneExecutor implements Executable {
     }
   }
 
-  @SuppressWarnings({"unchecked", "unused"})
-  private static <T extends Statement> Handler<Statement> castHandler(
-      final Handler<? super T> handler,
-      final Class<T> type) {
-    return ((Handler<Statement>) handler);
-  }
+  private static final class StatementExecutor {
 
-  private interface Handler<T extends Statement> {
+    private static final Map<Class<? extends Statement>, Handler<Statement>> HANDLERS =
+        ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
+            .put(SetProperty.class, createHandler(
+                StatementExecutor::handleSetProperty,
+                SetProperty.class,
+                "SET"))
+            .put(UnsetProperty.class, createHandler(
+                StatementExecutor::handleUnsetProperty,
+                UnsetProperty.class,
+                "UNSET"))
+            .put(CreateStream.class, createHandler(
+                StatementExecutor::handleExecutableDdl,
+                CreateStream.class,
+                "CREATE STREAM"))
+            .put(CreateTable.class, createHandler(
+                StatementExecutor::handleExecutableDdl,
+                CreateTable.class,
+                "CREATE TABLE"))
+            .put(CreateStreamAsSelect.class, createHandler(
+                StatementExecutor::handlePersistentQuery,
+                CreateStreamAsSelect.class,
+                "CREAETE STREAM AS SELECT"))
+            .put(CreateTableAsSelect.class, createHandler(
+                StatementExecutor::handlePersistentQuery,
+                CreateTableAsSelect.class,
+                "CREATE TABLE AS SELECT"))
+            .put(InsertInto.class, createHandler(
+                StatementExecutor::handlePersistentQuery,
+                InsertInto.class,
+                "INSERT INTO"))
+            .build();
 
-    void handle(StandaloneExecutor executor, PreparedStatement<T> statement);
+    private static String SUPPORTED_STATEMENTS = generateSupportedMessage();
+
+    private final KsqlExecutionContext executionContext;
+    private final Map<String, Object> configProperties;
+    private final KsqlConfig ksqlConfig;
+
+    private StatementExecutor(
+        final KsqlExecutionContext executionContext,
+        final Map<String, Object> configProperties,
+        final KsqlConfig ksqlConfig
+    ) {
+      this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
+      this.configProperties = Objects.requireNonNull(configProperties, "configProperties");
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    }
+
+    /**
+     * @return true if the statement contained a query, false otherwise
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends Statement> boolean execute(final ParsedStatement statement) {
+      final PreparedStatement<?> prepared = executionContext.prepare(statement);
+
+      final Handler<Statement> handler = HANDLERS.get(prepared.getStatement().getClass());
+      if (handler == null) {
+        throw new KsqlException(String.format("Unsupported statement: %s%n"
+                + "Only the following statements are supporting in standalone mode:%n"
+                + SUPPORTED_STATEMENTS,
+            statement.getStatementText()));
+      }
+
+      handler.handle(this, (PreparedStatement) prepared);
+      return prepared.getStatement() instanceof QueryContainer;
+    }
+
+    private void handleSetProperty(final PreparedStatement<SetProperty> statement) {
+      final SetProperty setProperty = statement.getStatement();
+      configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
+    }
+
+    private void handleUnsetProperty(final PreparedStatement<UnsetProperty> statement) {
+      configProperties.remove(statement.getStatement().getPropertyName());
+    }
+
+    private void handleExecutableDdl(final PreparedStatement<?> statement) {
+      executionContext.execute(statement, ksqlConfig, configProperties);
+    }
+
+    private void handlePersistentQuery(final PreparedStatement<?> statement) {
+      executionContext.execute(statement, ksqlConfig, configProperties)
+          .getQuery()
+          .filter(q -> q instanceof PersistentQueryMetadata)
+          .orElseThrow((() -> new KsqlStatementException(
+              "Could not build the query",
+              statement.getStatementText())));
+    }
+
+    private static String generateSupportedMessage() {
+      return HANDLERS.values().stream()
+          .map(Handler::getName)
+          .sorted()
+          .collect(Collectors.joining(System.lineSeparator()));
+    }
+
+    @SuppressWarnings({"unchecked", "unused"})
+    private static <T extends Statement> Handler<Statement> createHandler(
+        final BiConsumer<StatementExecutor, PreparedStatement<T>> handler,
+        final Class<T> type,
+        final String name
+    ) {
+
+      return new StatementExecutor.Handler<Statement>() {
+        @Override
+        public void handle(
+            final StatementExecutor executor,
+            final PreparedStatement<Statement> statement
+        ) {
+          handler.accept(executor, (PreparedStatement) statement);
+        }
+
+        @Override
+        public String getName() {
+          return name;
+        }
+      };
+    }
+
+    private interface Handler<T extends Statement> {
+
+      void handle(StatementExecutor executor, PreparedStatement<T> statement);
+
+      String getName();
+    }
   }
 }

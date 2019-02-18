@@ -34,9 +34,6 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.NodeLocation;
-import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.Statement;
@@ -46,8 +43,8 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
@@ -55,7 +52,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
@@ -131,11 +128,11 @@ public class WSQueryEndpointTest {
 
   @Before
   public void setUp() {
-    query = new Query(queryBody, Optional.empty());
+    query = new Query(queryBody, OptionalInt.empty());
 
     when(session.getId()).thenReturn("session-id");
     when(statementParser.parseSingleStatement(anyString()))
-        .thenAnswer(invocation -> new PreparedStatement<>(invocation.getArgument(0).toString(), query));
+        .thenAnswer(invocation -> PreparedStatement.of(invocation.getArgument(0).toString(), query));
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(ksqlEngine.isAcceptingStatements()).thenReturn(true);
@@ -314,7 +311,7 @@ public class WSQueryEndpointTest {
         eq(ksqlConfig),
         eq(ksqlEngine),
         eq(exec),
-        eq(new PreparedStatement<>(VALID_REQUEST.getKsql(), query)),
+        eq(PreparedStatement.of(VALID_REQUEST.getKsql(), query)),
         eq(VALID_REQUEST.getStreamsProperties()),
         any());
   }
@@ -322,7 +319,7 @@ public class WSQueryEndpointTest {
   @Test
   public void shouldHandlePrintTopic() {
     // Given:
-    givenRequestIs(printTopic("bob", true));
+    givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
     when(topicClient.isTopicExists("bob")).thenReturn(true);
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("this", "that"));
 
@@ -334,15 +331,14 @@ public class WSQueryEndpointTest {
         eq(exec),
         eq(schemaRegistryClient),
         eq(ImmutableMap.of("this", "that")),
-        eq("bob"),
-        eq(true),
+        eq(StreamingTestUtils.printTopic("bob", true, null, null)),
         any());
   }
 
   @Test
   public void shouldReturnErrorIfTopicDoesNotExist() throws Exception {
     // Given:
-    givenRequestIs(printTopic("bob", true));
+    givenRequestIs(StreamingTestUtils.printTopic("bob", true, null, null));
     when(topicClient.isTopicExists("bob")).thenReturn(false);
 
     // When:
@@ -393,15 +389,6 @@ public class WSQueryEndpointTest {
     verify(statementParser, never()).parseSingleStatement(any());
   }
 
-  private static PrintTopic printTopic(final String name, final boolean fromBeginning) {
-    return new PrintTopic(
-        new NodeLocation(0, 1),
-        QualifiedName.of(name),
-        fromBeginning,
-        Optional.empty()
-    );
-  }
-
   private void givenVersions(final String... versions) {
 
     givenRequestAndVersions(
@@ -445,7 +432,7 @@ public class WSQueryEndpointTest {
 
   private void givenRequestIs(final Statement stmt) {
     when(statementParser.parseSingleStatement(anyString()))
-        .thenReturn(new PreparedStatement<>("statement", stmt));
+        .thenReturn(PreparedStatement.of("statement", stmt));
   }
 
   private static String serialize(final KsqlRequest request) {

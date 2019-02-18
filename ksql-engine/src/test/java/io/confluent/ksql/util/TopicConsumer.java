@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
@@ -41,6 +42,7 @@ public class TopicConsumer {
   private static final Duration RESULTS_EXTRA_POLL_TIME = Duration.ofMillis(250);
 
   private final EmbeddedSingleNodeKafkaCluster cluster;
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   public TopicConsumer(final EmbeddedSingleNodeKafkaCluster cluster) {
     this.cluster = cluster;
@@ -85,24 +87,25 @@ public class TopicConsumer {
                                             final Schema schema,
                                             final int expectedNumMessages,
                                             final Deserializer<K> keyDeserializer) {
-    return readResults(topic, greaterThanOrEqualTo(expectedNumMessages),
-                       new KsqlJsonDeserializer(schema, false), keyDeserializer
+    return readResults(
+        topic,
+        greaterThanOrEqualTo(expectedNumMessages),
+        new KsqlJsonDeserializer(
+            schema,
+            false,
+            processingLogContext.getLoggerFactory().getLogger("consumer"),
+            processingLogContext),
+        keyDeserializer
     );
   }
 
   public void verifyRecordsReceived(final String topic,
                                     final Matcher<Integer> expectedNumMessages) {
-    verifyRecordsReceived(topic, expectedNumMessages,
-                          new ByteArrayDeserializer(),
-                          new ByteArrayDeserializer());
-  }
-
-  public <K> Map<K, GenericRow> verifyRecordsReceived(final String topic,
-                                                      final Schema schema,
-                                                      final Matcher<Integer> expectedNumMessages,
-                                                      final Deserializer<K> keyDeserializer) {
-    return verifyRecordsReceived(topic, expectedNumMessages,
-                                 new KsqlJsonDeserializer(schema, false), keyDeserializer);
+    verifyRecordsReceived(
+        topic,
+        expectedNumMessages,
+        new ByteArrayDeserializer(),
+        new ByteArrayDeserializer());
   }
 
   public <K, V> Map<K, V> verifyRecordsReceived(final String topic,

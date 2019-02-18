@@ -41,7 +41,7 @@ public class QueryMetadata {
   private final String executionPlan;
   private final DataSource.DataSourceType dataSourceType;
   private final String queryApplicationId;
-  private final Topology topoplogy;
+  private final Topology topology;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
   private final Consumer<QueryMetadata> closeCallback;
@@ -57,7 +57,7 @@ public class QueryMetadata {
       final String executionPlan,
       final DataSource.DataSourceType dataSourceType,
       final String queryApplicationId,
-      final Topology topoplogy,
+      final Topology topology,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback
@@ -68,7 +68,7 @@ public class QueryMetadata {
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
-    this.topoplogy = Objects.requireNonNull(topoplogy, "kafkaTopicClient");
+    this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
     this.streamsProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(streamsProperties, "streamsPropeties"));
@@ -80,6 +80,20 @@ public class QueryMetadata {
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
     visitor.process(outputNode, null);
     this.sourceNames = visitor.getSourceNames();
+  }
+
+  protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
+    this.statementString = other.statementString;
+    this.kafkaStreams = other.kafkaStreams;
+    this.outputNode = other.outputNode;
+    this.executionPlan = other.executionPlan;
+    this.dataSourceType = other.dataSourceType;
+    this.queryApplicationId = other.queryApplicationId;
+    this.topology = other.topology;
+    this.streamsProperties = other.streamsProperties;
+    this.overriddenProperties = other.overriddenProperties;
+    this.sourceNames = other.sourceNames;
+    this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
   }
 
   public void registerQueryStateListener(final QueryStateListener queryStateListener) {
@@ -120,7 +134,7 @@ public class QueryMetadata {
   }
 
   public Topology getTopology() {
-    return topoplogy;
+    return topology;
   }
 
   public Map<String, Object> getStreamsProperties() {
@@ -157,6 +171,6 @@ public class QueryMetadata {
   }
 
   public String getTopologyDescription() {
-    return topoplogy.describe().toString();
+    return topology.describe().toString();
   }
 }

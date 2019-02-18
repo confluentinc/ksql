@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -126,6 +127,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
+  @SuppressFBWarnings("NP_BOOLEAN_RETURN_NULL")
   private Boolean enforceBoolean(final Object value) {
     if (value instanceof Boolean) {
       return (Boolean) value;

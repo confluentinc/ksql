@@ -25,19 +25,26 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.processing.log.ProcessingLogConstants;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.LogicalPlanBuilder;
+import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +63,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
-  private static final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   static {
     UdfLoaderUtil.load(functionRegistry);
@@ -66,6 +73,8 @@ public class AggregateNodeTest {
   private ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private final StreamsBuilder builder = new StreamsBuilder();
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  private final QueryId queryId = new QueryId("queryid");
 
   @Test
   public void shouldBuildSourceNode() {
@@ -133,7 +142,7 @@ public class AggregateNodeTest {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
-    assertThat(node.topicSet(), hasItem(equalTo("Aggregate-GROUP-BY-repartition")));
+    assertThat(node.topicSet(), hasItem(equalTo("Aggregate-groupby-repartition")));
   }
 
   @Test
@@ -182,7 +191,7 @@ public class AggregateNodeTest {
     build();
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
         builder.build(), "KSTREAM-AGGREGATE-0000000005");
-    assertThat(node.stores(), hasItem(equalTo("Aggregate-AGGREGATION")));
+    assertThat(node.stores(), hasItem(equalTo("Aggregate-aggregate")));
   }
 
   @Test
@@ -249,24 +258,61 @@ public class AggregateNodeTest {
         + "GROUP BY col1;", ksqlConfig);
   }
 
+  private void shouldCreateLogger(final String name) {
+    // When:
+    final AggregateNode node = buildAggregateNode(
+        "SELECT col0, sum(col3), count(col3) FROM test1 GROUP BY col0;");
+    buildQuery(node, ksqlConfig);
+
+    // Then:
+    assertThat(
+        processingLogContext.getLoggerFactory().getLoggers(),
+        hasItem(
+            startsWith(
+                ProcessingLoggerUtil.join(
+                    ProcessingLogConstants.PREFIX,
+                    QueryLoggerUtil.queryLoggerName(
+                        new QueryContext.Stacker(queryId)
+                            .push(node.getId().toString(), name)
+                            .getQueryContext())
+                )
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldCreateLoggerForRepartition() {
+    shouldCreateLogger("groupby");
+  }
+
+  @Test
+  public void shouldCreateLoggerForStatestore() {
+    shouldCreateLogger("aggregate");
+  }
+
   private SchemaKStream buildQuery(final String queryString) {
     return buildQuery(queryString, ksqlConfig);
   }
 
   private SchemaKStream buildQuery(final String queryString, final KsqlConfig ksqlConfig) {
-    return buildAggregateNode(queryString)
-        .buildStream(
+    return buildQuery(buildAggregateNode(queryString), ksqlConfig);
+  }
+
+  private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
+        return aggregateNode.buildStream(
             builder,
             ksqlConfig,
             serviceContext,
+            processingLogContext,
             new InternalFunctionRegistry(),
-            new HashMap<>());
+            queryId);
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {
     final MetaStore newMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) new LogicalPlanBuilder(newMetaStore)
-        .buildLogicalPlan(queryString);
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+        .buildLogicalPlan(queryString, newMetaStore);
 
     return (AggregateNode) planNode.getSource();
   }

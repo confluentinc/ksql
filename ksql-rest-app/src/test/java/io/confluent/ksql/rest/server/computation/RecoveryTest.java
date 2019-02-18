@@ -18,6 +18,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,15 +30,16 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
-import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
+import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -56,11 +58,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
-import org.easymock.EasyMock;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class RecoveryTest {
@@ -70,8 +72,8 @@ public class RecoveryTest {
       )
   );
   private final List<QueuedCommand> commands = new LinkedList<>();
-  private final ServiceContext serviceContext =
-      TestServiceContext.create(new MockKafkaTopicClient());
+  private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
+  private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
 
@@ -83,8 +85,7 @@ public class RecoveryTest {
   }
 
   private KsqlEngine createKsqlEngine() {
-    final KsqlEngineMetrics engineMetrics = EasyMock.niceMock(KsqlEngineMetrics.class);
-    EasyMock.replay(engineMetrics);
+    final KsqlEngineMetrics engineMetrics = mock(KsqlEngineMetrics.class);
     return KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
@@ -105,17 +106,17 @@ public class RecoveryTest {
 
     @Override
     public QueuedCommandStatus enqueueCommand(
-        final String statementString,
-        final Statement statement,
+        final PreparedStatement<?> statement,
         final KsqlConfig ksqlConfig,
-        final Map<String, Object> overwriteProperties) {
-      final CommandId commandId = commandIdAssigner.getCommandId(statement);
+        final Map<String, Object> overwriteProperties
+    ) {
+      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
           new QueuedCommand(
               commandId,
               new Command(
-                  statementString,
+                  statement.getStatementText(),
                   Collections.emptyMap(),
                   ksqlConfig.getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));
@@ -138,6 +139,11 @@ public class RecoveryTest {
 
     @Override
     public void ensureConsumedPast(final long seqNum, final Duration timeout) {
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return commandLog.isEmpty();
     }
 
     @Override
@@ -174,10 +180,9 @@ public class RecoveryTest {
       this.commandRunner = new CommandRunner(
           statementExecutor,
           fakeCommandQueue,
-          ksqlConfig,
           ksqlEngine,
           1,
-          serviceContext
+          mock(ClusterTerminator.class)
       );
     }
 
@@ -366,7 +371,7 @@ public class RecoveryTest {
     protected boolean matchesSafely(final MetaStore other, final Description description) {
       if (!test(
           equalTo(sourceMatchers.keySet()),
-          other.getAllStructuredDataSourceNames(),
+          other.getAllStructuredDataSources().keySet(),
           description,
           "source set mismatch: ")) {
         return false;
@@ -499,6 +504,11 @@ public class RecoveryTest {
         (queryId, query) -> assertThat(query, sameQuery(recoveredQueries.get(queryId))));
   }
 
+  @Before
+  public void setUp() {
+    topicClient.preconditionTopicExists("A");
+  }
+
   @Test
   public void shouldRecoverCreates() {
     server1.submitCommands(
@@ -572,6 +582,8 @@ public class RecoveryTest {
 
   @Test
   public void shouldRecoverLogWithTerminateAfterDrop() {
+    topicClient.preconditionTopicExists("B");
+
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');"
@@ -609,7 +621,7 @@ public class RecoveryTest {
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     assertThat(
-        server.ksqlEngine.getMetaStore().getAllStructuredDataSourceNames(),
+        server.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
         contains("A", "B"));
     commands.add(
         new QueuedCommand(
@@ -620,7 +632,7 @@ public class RecoveryTest {
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
     assertThat(
-        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSourceNames(),
+        recovered.ksqlEngine.getMetaStore().getAllStructuredDataSources().keySet(),
         contains("A"));
   }
 }

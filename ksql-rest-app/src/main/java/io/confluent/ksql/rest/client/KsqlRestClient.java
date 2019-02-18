@@ -17,6 +17,8 @@ package io.confluent.ksql.rest.client;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.client.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -27,7 +29,6 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Closeable;
 import java.io.IOException;
@@ -37,9 +38,11 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -48,6 +51,7 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.naming.AuthenticationException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
@@ -80,7 +84,7 @@ public class KsqlRestClient implements Closeable {
 
   private final Client client;
 
-  private URI serverAddress;
+  private List<URI> serverAddresses;
 
   private final LocalProperties localProperties;
 
@@ -101,7 +105,7 @@ public class KsqlRestClient implements Closeable {
                  final String serverAddress,
                  final Map<String, Object> localProperties) {
     this.client = Objects.requireNonNull(client, "client");
-    this.serverAddress = parseServerAddress(serverAddress);
+    this.serverAddresses = parseServerAddresses(serverAddress);
     this.localProperties = new LocalProperties(localProperties);
   }
 
@@ -114,11 +118,11 @@ public class KsqlRestClient implements Closeable {
   }
 
   public URI getServerAddress() {
-    return serverAddress;
+    return serverAddresses.get(0);
   }
 
   public void setServerAddress(final String serverAddress) {
-    this.serverAddress = parseServerAddress(serverAddress);
+    this.serverAddresses = parseServerAddresses(serverAddress);
   }
 
   public RestResponse<ServerInfo> makeRootRequest() {
@@ -130,7 +134,11 @@ public class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
+    return makeKsqlRequest(ksql, null);
+  }
+
+  public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
     return postRequest("ksql", jsonRequest, Optional.empty(), true,
         r -> r.readEntity(KsqlEntityList.class));
   }
@@ -143,14 +151,15 @@ public class KsqlRestClient implements Closeable {
     return getRequest(String.format("status/%s", commandId), CommandStatus.class);
   }
 
-  public RestResponse<QueryStream> makeQueryRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
+  public RestResponse<QueryStream> makeQueryRequest(final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
     final Optional<Integer> readTimeoutMs = Optional.of(QueryStream.READ_TIMEOUT_MS);
     return postRequest("query", jsonRequest, readTimeoutMs, false, QueryStream::new);
   }
 
-  public RestResponse<InputStream> makePrintTopicRequest(final String ksql) {
-    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), null);
+  public RestResponse<InputStream> makePrintTopicRequest(
+      final String ksql, final Long commandSeqNum) {
+    final KsqlRequest jsonRequest = new KsqlRequest(ksql, localProperties.toMap(), commandSeqNum);
     return postRequest("query", jsonRequest, Optional.empty(), false,
         r -> (InputStream) r.getEntity());
   }
@@ -162,7 +171,7 @@ public class KsqlRestClient implements Closeable {
 
   private <T> RestResponse<T> getRequest(final String path, final Class<T> type) {
 
-    try (Response response = client.target(serverAddress)
+    try (Response response = client.target(getServerAddress())
         .path(path)
         .request(MediaType.APPLICATION_JSON_TYPE)
         .get()) {
@@ -186,7 +195,7 @@ public class KsqlRestClient implements Closeable {
     Response response = null;
 
     try {
-      final WebTarget target = client.target(serverAddress)
+      final WebTarget target = client.target(getServerAddress())
           .path(path);
 
       readTimeoutMs.ifPresent(timeout -> target.property(ClientProperties.READ_TIMEOUT, timeout));
@@ -248,7 +257,9 @@ public class KsqlRestClient implements Closeable {
     }
 
     return RestResponse.erroneous(
-        Errors.toErrorCode(response.getStatus()), "The server returned an unexpected error.");
+        Errors.toErrorCode(response.getStatus()),
+        "The server returned an unexpected error: "
+            + response.getStatusInfo().getReasonPhrase());
   }
 
   public static final class QueryStream implements Closeable, Iterator<StreamedRow> {
@@ -368,6 +379,15 @@ public class KsqlRestClient implements Closeable {
         prop -> propertiesMap.put(prop, properties.getProperty(prop)));
 
     return propertiesMap;
+  }
+
+  private static List<URI> parseServerAddresses(final String serverAddresses) {
+    Objects.requireNonNull(serverAddresses, "serverAddress");
+    return ImmutableList.copyOf(
+      Arrays.stream(serverAddresses.split(","))
+         .map(String::trim)
+         .map(KsqlRestClient::parseServerAddress)
+         .collect(Collectors.toList()));
   }
 
   private static URI parseServerAddress(final String serverAddress) {

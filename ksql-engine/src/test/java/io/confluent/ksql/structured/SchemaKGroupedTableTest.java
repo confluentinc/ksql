@@ -38,9 +38,12 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -67,10 +70,9 @@ import org.junit.Test;
 
 @SuppressWarnings("unchecked")
 public class SchemaKGroupedTableTest {
-  private final static String AGGREGATE_OP_NAME = "AGGREGATE";
-
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
   private final Schema schema = SchemaBuilder.struct()
       .field("GROUPING_COLUMN", Schema.OPTIONAL_STRING_SCHEMA)
@@ -78,7 +80,8 @@ public class SchemaKGroupedTableTest {
       .build();
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(metaStore);
+  private final QueryContext.Stacker queryContext
+      = new QueryContext.Stacker(new QueryId("query")).push("node");
 
   private KTable kTable;
   private KsqlTable ksqlTable;
@@ -89,26 +92,44 @@ public class SchemaKGroupedTableTest {
     final StreamsBuilder builder = new StreamsBuilder();
     kTable = builder
         .table(ksqlTable.getKsqlTopic().getKafkaTopicName(), Consumed.with(Serdes.String()
-            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(ksqlTable.getSchema(), new
-                KsqlConfig(Collections.emptyMap()), false, MockSchemaRegistryClient::new)));
+            , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
+                ksqlTable.getSchema(),
+                new KsqlConfig(Collections.emptyMap()),
+                false,
+                MockSchemaRegistryClient::new, 
+                "test",
+                processingLogContext)));
+
   }
 
   private SchemaKGroupedTable buildSchemaKGroupedTableFromQuery(
       final String query,
       final String...groupByColumns) {
-    final PlanNode logicalPlan = planBuilder.buildLogicalPlan(query);
+    final PlanNode logicalPlan = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
     final SchemaKTable initialSchemaKTable = new SchemaKTable<>(
-        logicalPlan.getTheSourceNode().getSchema(), kTable, ksqlTable.getKeyField(), new ArrayList<>(),
-        Serdes.String(), SchemaKStream.Type.SOURCE, ksqlConfig, functionRegistry);
+        logicalPlan.getTheSourceNode().getSchema(),
+        kTable,
+        ksqlTable.getKeyField(),
+        new ArrayList<>(),
+        Serdes.String(),
+        SchemaKStream.Type.SOURCE,
+        ksqlConfig,
+        functionRegistry,
+        queryContext.getQueryContext());
     final List<Expression> groupByExpressions =
         Arrays.stream(groupByColumns)
             .map(c -> new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST1")), c))
             .collect(Collectors.toList());
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, () -> null);
+        initialSchemaKTable.getSchema(),
+        null,
+        false,
+        () -> null,
+        "test",
+        processingLogContext);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
-        rowSerde, groupByExpressions, "GROUP-BY");
+        rowSerde, groupByExpressions, queryContext);
     Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     return (SchemaKGroupedTable)groupedSchemaKTable;
   }
@@ -129,8 +150,13 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           windowExpression,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(), ksqlConfig, false, () -> null),
-          AGGREGATE_OP_NAME
+              ksqlTable.getSchema(),
+              ksqlConfig,
+              false,
+              () -> null,
+              "test",
+              processingLogContext),
+          queryContext
       );
       Assert.fail("Should fail to build topology for aggregation with window");
     } catch(final KsqlException e) {
@@ -155,8 +181,13 @@ public class SchemaKGroupedTableTest {
           Collections.singletonMap(0, 0),
           null,
           new KsqlJsonTopicSerDe().getGenericRowSerde(
-              ksqlTable.getSchema(), ksqlConfig, false, () -> null),
-          AGGREGATE_OP_NAME
+              ksqlTable.getSchema(),
+              ksqlConfig,
+              false,
+              () -> null,
+              "test",
+              processingLogContext),
+          queryContext
       );
       Assert.fail("Should fail to build topology for aggregation with unsupported function");
     } catch(final KsqlException e) {
@@ -187,12 +218,12 @@ public class SchemaKGroupedTableTest {
     final Materialized materialized = MaterializedFactory.create(ksqlConfig).create(
         Serdes.String(),
         valueSerde,
-        AGGREGATE_OP_NAME);
+        StreamsUtil.buildOpName(queryContext.getQueryContext()));
     expect(
         materializedFactory.create(
             anyObject(Serdes.String().getClass()),
             same(valueSerde),
-            eq(AGGREGATE_OP_NAME)))
+            eq(StreamsUtil.buildOpName(queryContext.getQueryContext()))))
         .andReturn(materialized);
     final KTable mockKTable = mock(KTable.class);
     expect(
@@ -213,7 +244,7 @@ public class SchemaKGroupedTableTest {
         Collections.emptyMap(),
         null,
         valueSerde,
-        AGGREGATE_OP_NAME);
+        queryContext);
 
     // Then:
     verify(materializedFactory, mockKGroupedTable);

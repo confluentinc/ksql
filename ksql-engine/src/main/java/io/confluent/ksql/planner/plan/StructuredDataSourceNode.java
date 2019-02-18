@@ -23,25 +23,27 @@ import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.streams.StreamsUtil;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -83,6 +85,9 @@ public class StructuredDataSourceNode
         }
         return row;
       };
+
+  private static final String SOURCE_OP_NAME = "source";
+  private static final String REDUCE_OP_NAME = "reduce";
 
   private final StructuredDataSource structuredDataSource;
   private final Schema schema;
@@ -134,12 +139,10 @@ public class StructuredDataSourceNode
   @Override
   public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     final String topicName = getStructuredDataSource().getKsqlTopic().getKafkaTopicName();
-    final Map<String, TopicDescription> descriptions
-        = kafkaTopicClient.describeTopics(Collections.singletonList(topicName));
-    if (!descriptions.containsKey(topicName)) {
-      throw new KsqlException("Could not get topic description for " + topicName);
-    }
-    return descriptions.get(topicName).partitions().size();
+
+    return kafkaTopicClient.describeTopic(topicName)
+        .partitions()
+        .size();
   }
 
   @Override
@@ -158,9 +161,11 @@ public class StructuredDataSourceNode
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props
+      final QueryId queryId
   ) {
+    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
     final int timeStampColumnIndex = getTimeStampColumnIndex();
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
@@ -170,19 +175,31 @@ public class StructuredDataSourceNode
     final Serde<GenericRow> genericRowSerde =
         ksqlTopicSerDe.getGenericRowSerde(
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
-            ksqlConfig, false, serviceContext.getSchemaRegistryClientFactory());
+            ksqlConfig,
+            false,
+            serviceContext.getSchemaRegistryClientFactory(), 
+            QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext()),
+            processingLogContext
+        );
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
-
+      final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
       final KTable<?, GenericRow> kTable = createKTable(
           builder,
-          getAutoOffsetReset(props),
+          getAutoOffsetReset(ksqlConfig.getKsqlStreamConfigProps()),
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-              getSchema(), ksqlConfig, true, serviceContext.getSchemaRegistryClientFactory()),
+              getSchema(),
+              ksqlConfig,
+              true,
+              serviceContext.getSchemaRegistryClientFactory(),
+              QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext()),
+              processingLogContext
+          ),
           timestampExtractor,
-          ksqlConfig
+          ksqlConfig,
+          reduceContextStacker.getQueryContext()
       );
       return new SchemaKTable<>(
           getSchema(),
@@ -192,7 +209,8 @@ public class StructuredDataSourceNode
           table.getKeySerde(),
           SchemaKStream.Type.SOURCE,
           ksqlConfig,
-          functionRegistry
+          functionRegistry,
+          contextStacker.getQueryContext()
       );
     }
 
@@ -207,7 +225,8 @@ public class StructuredDataSourceNode
         stream.getKeySerde(),
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
-        functionRegistry
+        functionRegistry,
+        contextStacker.getQueryContext()
     );
   }
 
@@ -301,10 +320,6 @@ public class StructuredDataSourceNode
         .transformValues(new AddTimestampColumn());
   }
 
-  private String getReduceOpName() {
-    return getId().toString() + "-REDUCE";
-  }
-
   @SuppressWarnings("unchecked")
   private KTable<?, GenericRow> createKTable(
       final StreamsBuilder builder, 
@@ -312,7 +327,8 @@ public class StructuredDataSourceNode
       final Serde<GenericRow> genericRowSerde,
       final Serde<GenericRow> genericRowSerdeAfterRead,
       final TimestampExtractor timestampExtractor,
-      final KsqlConfig ksqlConfig) {
+      final KsqlConfig ksqlConfig,
+      final QueryContext reduceContextBuilder) {
     // to build a table we apply the following transformations:
     // 1. Create a KStream on the changelog topic.
     // 2. mapValues to add the ROWKEY column
@@ -332,13 +348,13 @@ public class StructuredDataSourceNode
       return table(
           builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(), windowedMapper,
           (Serde<Windowed<String>>)ksqlTable.getKeySerde(),
-          genericRowSerde, genericRowSerdeAfterRead, ksqlConfig);
+          genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, reduceContextBuilder);
     }
 
     return table(
         builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(),
         nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerde(),
-        genericRowSerde, genericRowSerdeAfterRead, ksqlConfig);
+        genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, reduceContextBuilder);
   }
 
   private <K> KTable<?, GenericRow> table(
@@ -350,7 +366,8 @@ public class StructuredDataSourceNode
       final Serde<K> keySerde,
       final Serde<GenericRow> genericRowSerde,
       final Serde<GenericRow> genericRowSerdeAfterRead,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final QueryContext reduceContextBuilder
   ) {
     final Consumed<K, GenericRow> consumed = Consumed
         .with(keySerde, genericRowSerde)
@@ -361,7 +378,7 @@ public class StructuredDataSourceNode
         materializedFactorySupplier.apply(ksqlConfig).create(
             keySerde,
             genericRowSerdeAfterRead,
-            getReduceOpName());
+            StreamsUtil.buildOpName(reduceContextBuilder));
     return builder
         .stream(ksqlTopic.getKafkaTopicName(), consumed)
         .mapValues(valueMapper)

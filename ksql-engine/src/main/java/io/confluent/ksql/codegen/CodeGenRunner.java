@@ -14,13 +14,13 @@
 
 package io.confluent.ksql.codegen;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.ExpressionTypeManager;
@@ -54,13 +55,6 @@ import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class CodeGenRunner {
-
-  public static final List<String> CODEGEN_IMPORTS = ImmutableList.of(
-      "org.apache.kafka.connect.data.Struct",
-      "java.util.HashMap",
-      "java.util.Map",
-      "java.util.List",
-      "java.util.ArrayList");
 
   private final Schema schema;
   private final FunctionRegistry functionRegistry;
@@ -124,7 +118,7 @@ public class CodeGenRunner {
 
       final IExpressionEvaluator ee =
           CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
-      ee.setDefaultImports(CodeGenRunner.CODEGEN_IMPORTS.toArray(new String[0]));
+      ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
       ee.setParameters(parameterNames, parameterTypes);
 
       final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
@@ -138,7 +132,8 @@ public class CodeGenRunner {
           columnIndexes,
           kudfObjects,
           expressionType,
-          new GenericRowValueTypeEnforcer(schema));
+          new GenericRowValueTypeEnforcer(schema),
+          expression);
     } catch (final KsqlException | CompileException e) {
       throw new KsqlException("Code generation failed for " + type
           + ": " + e.getMessage()
@@ -232,6 +227,14 @@ public class CodeGenRunner {
     }
 
     @Override
+    protected Object visitBetweenPredicate(final BetweenPredicate node, final Object context) {
+      process(node.getValue(), null);
+      process(node.getMax(), null);
+      process(node.getMin(), null);
+      return null;
+    }
+
+    @Override
     protected Object visitNotExpression(final NotExpression node, final Object context) {
       return process(node.getValue(), null);
     }
@@ -246,6 +249,20 @@ public class CodeGenRunner {
             "Cannot find the select field in the available fields: " + node.toString());
       }
       addParameter(schemaField.get());
+      return null;
+    }
+
+    @Override
+    protected Object visitSearchedCaseExpression(
+        final SearchedCaseExpression node,
+        final Object context) {
+      node.getWhenClauses().forEach(
+          whenClause -> {
+            process(whenClause.getOperand(), context);
+            process(whenClause.getResult(), context);
+          }
+      );
+      node.getDefaultValue().ifPresent(defaultVal -> process(defaultVal, context));
       return null;
     }
 
@@ -293,6 +310,7 @@ public class CodeGenRunner {
   }
 
   public static final class ParameterType {
+
     private final Class type;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<KsqlFunction> function;

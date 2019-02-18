@@ -18,7 +18,10 @@ import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -27,11 +30,11 @@ import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.ListFunctions;
@@ -86,11 +89,10 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -100,11 +102,15 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.function.BiConsumer;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
@@ -123,24 +129,6 @@ import org.apache.kafka.connect.data.Schema;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class KsqlResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-
-  private static final Map<Class<? extends Statement>, Validator<Statement>> CUSTOM_VALIDATORS =
-      ImmutableMap.<Class<? extends Statement>, Validator<Statement>>builder()
-          .put(Query.class,
-              castValidator(KsqlResource::validateQueryEndpointStatements, Query.class))
-          .put(PrintTopic.class,
-              castValidator(KsqlResource::validateQueryEndpointStatements, PrintTopic.class))
-          .put(SetProperty.class,
-              castValidator(KsqlResource::validatePropertyStatements, SetProperty.class))
-          .put(UnsetProperty.class,
-              castValidator(KsqlResource::validatePropertyStatements, UnsetProperty.class))
-          .put(ShowColumns.class,
-              castValidator(KsqlResource::showColumns, ShowColumns.class))
-          .put(Explain.class,
-              castValidator(KsqlResource::explain, Explain.class))
-          .put(DescribeFunction.class,
-              castValidator(KsqlResource::describeFunction, DescribeFunction.class))
-          .build();
 
   private static final Map<Class<? extends Statement>, Handler<Statement>> CUSTOM_EXECUTORS =
       ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
@@ -164,11 +152,25 @@ public class KsqlResource {
               castExecutor(KsqlResource::explain, Explain.class))
           .put(DescribeFunction.class,
               castExecutor(KsqlResource::describeFunction, DescribeFunction.class))
+          .put(SetProperty.class,
+              castExecutor(KsqlResource::executeDdlImmediately, SetProperty.class))
+          .put(UnsetProperty.class,
+              castExecutor(KsqlResource::executeDdlImmediately, UnsetProperty.class))
           .put(RunScript.class,
               castExecutor(KsqlResource::distributeStatement, RunScript.class))
           .put(TerminateQuery.class,
               castExecutor(KsqlResource::distributeStatement, TerminateQuery.class))
           .build();
+
+  private static final Set<Class<? extends Statement>> SYNC_BLACKLIST =
+      ImmutableSet.<Class<? extends Statement>>builder()
+          .add(ListTopics.class)
+          .add(ListFunctions.class)
+          .add(DescribeFunction.class)
+          .add(ListProperties.class)
+          .add(SetProperty.class)
+          .add(UnsetProperty.class)
+      .build();
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
@@ -204,7 +206,7 @@ public class KsqlResource {
 
     try {
       result.add(distributeStatement(
-          new PreparedStatement<>(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
+          PreparedStatement.of(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT,
               new TerminateCluster()),
           request.getStreamsProperties()
       ));
@@ -232,7 +234,9 @@ public class KsqlResource {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
           commandQueue, request, distributedCmdResponseTimeout);
 
-      final List<PreparedStatement<?>> statements = parseStatements(request.getKsql());
+      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+
+      validateStatements(statements, request.getStreamsProperties(), request.getKsql());
 
       return executeStatements(statements, request.getStreamsProperties());
     } catch (final KsqlRestException e) {
@@ -242,83 +246,56 @@ public class KsqlResource {
     } catch (final KsqlException e) {
       return Errors.badRequest(e);
     } catch (final Exception e) {
-      return Errors.serverErrorForStatement(e, request.getKsql(), new KsqlEntityList());
+      return Errors.serverErrorForStatement(e, request.getKsql());
     }
   }
 
-  private List<PreparedStatement<?>> parseStatements(final String sql) {
-    try {
-      final List<PreparedStatement<?>> statements = ksqlEngine.parseStatements(sql);
-      checkPersistentQueryCapacity(statements, sql);
-      return statements;
-    } catch (final KsqlStatementException e) {
-      throw new KsqlRestException(Errors.badStatement(e.getCause(), e.getSqlStatement()));
-    }
-  }
-
-  private void validateStatement(
-      final PreparedStatement<?> statement,
+  private void validateStatements(
+      final List<ParsedStatement> statements,
       final Map<String, Object> propertyOverrides,
-      final KsqlEntityList entities
+      final String sql
   ) {
-    try {
-      final Validator<?> customValidator = getCustomValidator(statement);
-      if (customValidator != null) {
-        customValidateStatement(statement, propertyOverrides);
-      } else if (KsqlEngine.isExecutableStatement(statement)) {
-        validateExecutableStatement(statement, propertyOverrides);
-      }
+    final RequestValidator requestValidator = new RequestValidator(
+        ksqlEngine.createSandbox(),
+        serviceContext,
+        ksqlConfig,
+        propertyOverrides);
 
-      validateCanExecute(statement, entities);
-    } catch (final KsqlRestException e) {
-      throw e;
-    } catch (final ShouldUseQueryEndpointException e) {
-      throw new KsqlRestException(Errors.queryEndpoint(e.getMessage(), entities));
-    } catch (final KsqlException e) {
-      throw new KsqlRestException(
-          Errors.badStatement(e, statement.getStatementText(), entities));
-    } catch (final Exception e) {
-      throw new KsqlRestException(
-          Errors.serverErrorForStatement(e, statement.getStatementText(), entities));
-    }
-  }
+    statements.forEach(requestValidator::validate);
 
-  private <T extends Statement> void customValidateStatement(
-      final PreparedStatement<T> statement,
-      final Map<String, Object> propertyOverrides
-  ) {
-    final Validator<T> validator = getCustomValidator(statement);
-    if (validator != null) {
-      validator.validate(this, statement, propertyOverrides);
-    }
+    requestValidator.checkCapacity(sql);
   }
 
   private Response executeStatements(
-      final List<? extends PreparedStatement<?>> statements,
+      final List<ParsedStatement> statements,
       final Map<String, Object> propertyOverrides
   ) {
+    final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
-
-    for (final PreparedStatement<?> statement : statements) {
-      validateStatement(statement, propertyOverrides, entities);
-
-      entities.add(executeStatement(statement, propertyOverrides, entities));
-    }
-
+    statements.forEach(stmt -> {
+      final KsqlEntity result = executeStatement(stmt, scopedPropertyOverrides, entities);
+      if (result != null) {
+        entities.add(result);
+      }
+    });
     return Response.ok(entities).build();
   }
 
   private <T extends Statement> KsqlEntity executeStatement(
-      final PreparedStatement<T> statement,
+      final ParsedStatement statement,
       final Map<String, Object> propertyOverrides,
-      final KsqlEntityList entities) {
+      final KsqlEntityList entities
+  ) {
     try {
-      final Handler<T> handler = getCustomExecutor(statement);
+      final PreparedStatement<T> prepared = prepareStatement(statement, ksqlEngine);
+      final Handler<T> handler = getCustomExecutor(prepared);
       if (handler != null) {
-        return handler.handle(this, statement, propertyOverrides);
+        waitForPreviousDistributedStatementToBeHandled(prepared, entities);
+
+        return handler.handle(this, prepared, propertyOverrides);
       }
 
-      return distributeStatement(statement, propertyOverrides);
+      return distributeStatement(prepared, propertyOverrides);
     } catch (final KsqlRestException e) {
       throw e;
     } catch (final KsqlException e) {
@@ -330,17 +307,49 @@ public class KsqlResource {
     }
   }
 
-  @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
-  private void validateQueryEndpointStatements(final PreparedStatement<?> statement) {
-    throw new ShouldUseQueryEndpointException(statement.getStatementText());
+  private void waitForPreviousDistributedStatementToBeHandled(
+      final PreparedStatement<?> prepared,
+      final KsqlEntityList entities
+  ) {
+    if (SYNC_BLACKLIST.contains(prepared.getStatement().getClass())) {
+      return;
+    }
+
+    final ArrayList<KsqlEntity> reversed = new ArrayList<>(entities);
+    Collections.reverse(reversed);
+
+    reversed.stream()
+        .filter(e -> e instanceof CommandStatusEntity)
+        .map(CommandStatusEntity.class::cast)
+        .map(CommandStatusEntity::getCommandSequenceNumber)
+        .findFirst()
+        .ifPresent(seqNum -> {
+          try {
+            commandQueue.ensureConsumedPast(seqNum, distributedCmdResponseTimeout);
+          } catch (final InterruptedException e) {
+            throw new KsqlRestException(Errors.serverShuttingDown());
+          } catch (final TimeoutException e) {
+            throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(seqNum));
+          }
+        });
   }
 
-  @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
-  private void validatePropertyStatements(final PreparedStatement<?> statement) {
-    throw new KsqlRestException(Errors.badStatement(
-        "SET and UNSET commands are not supported on the REST API. "
-            + "Pass properties via the 'streamsProperties' field",
-        statement.getStatementText()));
+  private KsqlEntity executeDdlImmediately(
+      final PreparedStatement<?> stmt,
+      final Map<String, Object> propertyOverrides
+  ) {
+    if (!(stmt.getStatement() instanceof ExecutableDdlStatement)) {
+      throw new IllegalArgumentException("statement is not executable");
+    }
+
+    ksqlEngine.execute(stmt, ksqlConfig, propertyOverrides);
+    return null;
+  }
+
+  private static boolean isUnknownPropertyName(final String propertyName) {
+    return !new KsqlConfigResolver()
+        .resolve(propertyName, false)
+        .isPresent();
   }
 
   private KafkaTopicsList listTopics(final PreparedStatement<ListTopics> statement) {
@@ -400,7 +409,7 @@ public class KsqlResource {
   }
 
   private KsqlEntity listFunctions(final PreparedStatement<ListFunctions> statement) {
-    final FunctionRegistry functionRegistry = ksqlEngine.getFunctionRegistry();
+    final FunctionRegistry functionRegistry = ksqlEngine.getMetaStore();
 
     final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
         .filter(factory -> !factory.isInternal())
@@ -486,36 +495,60 @@ public class KsqlResource {
       final PreparedStatement<Explain> statement,
       final Map<String, Object> propertyOverrides
   ) {
-    final String queryId = statement.getStatement().getQueryId();
-
-    final QueryDescription queryDescription = queryId == null
-        ? explainStatement(
-        statement.getStatement().getStatement(),
-        statement.getStatementText().substring("EXPLAIN ".length()),
-        propertyOverrides)
-        : explainQuery(queryId);
-
-    return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
+    return explain(statement, propertyOverrides, ksqlConfig, ksqlEngine);
   }
 
-  private QueryDescription explainStatement(
+  private static QueryDescriptionEntity explain(
+      final PreparedStatement<Explain> statement,
+      final Map<String, Object> propertyOverrides,
+      final KsqlConfig ksqlConfig,
+      final KsqlExecutionContext executionContext
+  ) {
+    final String queryId = statement.getStatement().getQueryId();
+
+    try {
+      final QueryDescription queryDescription = queryId == null
+          ? explainStatement(
+          statement.getStatement().getStatement(),
+          statement.getStatementText().substring("EXPLAIN ".length()),
+          executionContext,
+          ksqlConfig,
+          propertyOverrides)
+          : explainQuery(queryId, executionContext);
+
+      return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
+    }
+  }
+
+  private static QueryDescription explainStatement(
       final Statement statement,
       final String statementText,
+      final KsqlExecutionContext executionContext,
+      final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
     if (!(statement instanceof Query || statement instanceof QueryContainer)) {
       throw new KsqlException("The provided statement does not run a ksql query");
     }
 
-    final List<QueryMetadata> metadata = ksqlEngine.tryExecute(
-        ImmutableList.of(new PreparedStatement<>(statementText, statement)),
-        ksqlConfig, propertyOverrides);
+    final QueryMetadata metadata = executionContext.createSandbox().execute(
+        PreparedStatement.of(statementText, statement),
+        ksqlConfig, propertyOverrides)
+        .getQuery()
+        .orElseThrow(() ->
+            new IllegalStateException("The provided statement did not run a ksql query"));
 
-    return QueryDescription.forQueryMetadata(metadata.get(0));
+    return QueryDescription.forQueryMetadata(metadata);
   }
 
-  private QueryDescription explainQuery(final String queryId) {
-    final PersistentQueryMetadata metadata = ksqlEngine.getPersistentQuery(new QueryId(queryId))
+  private static QueryDescription explainQuery(
+      final String queryId,
+      final KsqlExecutionContext executionContext
+  ) {
+    final PersistentQueryMetadata metadata = executionContext
+        .getPersistentQuery(new QueryId(queryId))
         .orElseThrow(() -> new KsqlException(
             "Query with id:" + queryId + " does not exist, "
                 + "use SHOW QUERIES to view the full set of queries."));
@@ -526,7 +559,7 @@ public class KsqlResource {
   private FunctionDescriptionList describeFunction(final PreparedStatement<DescribeFunction> stmt) {
     final String functionName = stmt.getStatement().getFunctionName();
 
-    if (ksqlEngine.getFunctionRegistry().isAggregate(functionName)) {
+    if (ksqlEngine.getMetaStore().isAggregate(functionName)) {
       return describeAggregateFunction(functionName, stmt.getStatementText());
     }
 
@@ -538,7 +571,7 @@ public class KsqlResource {
       final String statementText
   ) {
     final AggregateFunctionFactory aggregateFactory
-        = ksqlEngine.getFunctionRegistry().getAggregateFactory(functionName);
+        = ksqlEngine.getMetaStore().getAggregateFactory(functionName);
 
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
@@ -561,7 +594,7 @@ public class KsqlResource {
       final String functionName,
       final String statementText
   ) {
-    final UdfFactory udfFactory = ksqlEngine.getFunctionRegistry().getUdfFactory(functionName);
+    final UdfFactory udfFactory = ksqlEngine.getMetaStore().getUdfFactory(functionName);
 
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
@@ -580,48 +613,15 @@ public class KsqlResource {
     );
   }
 
-  private void validateExecutableStatement(
-      final PreparedStatement<?> statement,
-      final Map<String, Object> propertyOverrides
-  ) {
-    final PreparedStatement<?> withSchema = addInferredSchema(statement);
-    final List<QueryMetadata> queries = ksqlEngine
-        .tryExecute(ImmutableList.of(withSchema), ksqlConfig, propertyOverrides);
-    if (queries.isEmpty()) {
-      return;
-    }
-
-    final QueryMetadata query = queries.get(0);
-
-    if (statement.getStatement() instanceof CreateStreamAsSelect
-        && query.getDataSourceType() == DataSourceType.KTABLE) {
-      throw new KsqlStatementException("Invalid result type. "
-          + "Your SELECT query produces a TABLE. "
-          + "Please use CREATE TABLE AS SELECT statement instead.",
-          statement.getStatementText());
-    }
-
-    if (statement.getStatement() instanceof CreateTableAsSelect
-        && query.getDataSourceType() == DataSourceType.KSTREAM) {
-      throw new KsqlStatementException("Invalid result type. "
-          + "Your SELECT query produces a STREAM. "
-          + "Please use CREATE STREAM AS SELECT statement instead.",
-          statement.getStatementText());
-    }
-  }
-
   private CommandStatusEntity distributeStatement(
       final PreparedStatement<?> statement,
       final Map<String, Object> propertyOverrides
   ) {
     try {
-      final PreparedStatement<?> withSchema = addInferredSchema(statement);
+      final PreparedStatement<?> withSchema = addInferredSchema(statement, serviceContext);
 
-      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(
-          withSchema.getStatementText(),
-          withSchema.getStatement(),
-          ksqlConfig,
-          propertyOverrides);
+      final QueuedCommandStatus queuedCommandStatus = commandQueue
+          .enqueueCommand(withSchema, ksqlConfig, propertyOverrides);
 
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
@@ -705,7 +705,10 @@ public class KsqlResource {
   }
 
   @SuppressWarnings("unchecked")
-  private PreparedStatement<?> addInferredSchema(final PreparedStatement<?> stmt) {
+  private static PreparedStatement<?> addInferredSchema(
+      final PreparedStatement<?> stmt,
+      final ServiceContext serviceContext
+  ) {
     return StatementWithSchema
         .forStatement((PreparedStatement) stmt, serviceContext.getSchemaRegistryClient());
   }
@@ -722,57 +725,6 @@ public class KsqlResource {
     final String returnType = SchemaUtil.getSqlTypeName(returnTypeSchema);
 
     return new FunctionInfo(args, returnType, description);
-  }
-
-  private void checkPersistentQueryCapacity(
-      final List<? extends PreparedStatement> parsedStatements,
-      final String queriesString
-  ) {
-    final long numQueries = parsedStatements.stream().filter(parsedStatement -> {
-      final Statement statement = parsedStatement.getStatement();
-      // Note: RunScript commands also have the potential to create persistent queries,
-      // but we don't count those queries here (to avoid parsing those commands)
-      return statement instanceof CreateAsSelect || statement instanceof InsertInto;
-    }).count();
-
-    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ksqlEngine, ksqlConfig, numQueries)) {
-      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
-          ksqlEngine, ksqlConfig, queriesString);
-    }
-  }
-
-  private static void validateCanExecute(
-      final PreparedStatement<?> statement,
-      final KsqlEntityList entities
-  ) {
-    if (getCustomExecutor(statement) == null
-        && !KsqlEngine.isExecutableStatement(statement)) {
-      throw new KsqlRestException(Errors.badStatement(
-          "Do not know how to execute statement", statement.getStatementText(), entities));
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T extends Statement> Validator<T> getCustomValidator(
-      final PreparedStatement<T> statement
-  ) {
-    final Class<? extends Statement> type = statement.getStatement().getClass();
-    return (Validator) CUSTOM_VALIDATORS.get(type);
-  }
-
-  @SuppressWarnings({"unchecked", "unused", "SameParameterValue"})
-  private static <T extends Statement> Validator<Statement> castValidator(
-      final Validator<? super T> handler,
-      final Class<T> type) {
-    return ((Validator<Statement>) handler);
-  }
-
-  @SuppressWarnings({"unchecked", "unused"})
-  private static <T extends Statement> Validator<Statement> castValidator(
-      final BiConsumer<KsqlResource, PreparedStatement<T>> validator,
-      final Class<T> type) {
-    return (ksqlResource, statement, propertyOverrides) ->
-        ((BiConsumer) validator).accept(ksqlResource, statement);
   }
 
   @SuppressWarnings("unchecked")
@@ -799,28 +751,12 @@ public class KsqlResource {
   }
 
   @FunctionalInterface
-  private interface Validator<T extends Statement> {
-
-    void validate(
-        KsqlResource ksqlResource,
-        PreparedStatement<T> statement,
-        Map<String, Object> propertyOverrides);
-  }
-
-  @FunctionalInterface
   private interface Handler<T extends Statement> {
 
     KsqlEntity handle(
         KsqlResource ksqlResource,
         PreparedStatement<T> statement,
         Map<String, Object> propertyOverrides);
-  }
-
-  private static final class ShouldUseQueryEndpointException extends RuntimeException {
-
-    private ShouldUseQueryEndpointException(final String statementText) {
-      super(statementText);
-    }
   }
 
   private static void ensureValidPatterns(final List<String> deleteTopicList) {
@@ -832,5 +768,208 @@ public class KsqlResource {
             throw new KsqlRestException(Errors.badRequest("Invalid pattern: " + pattern));
           }
         });
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T extends Statement> PreparedStatement<T> prepareStatement(
+      final ParsedStatement statement, final KsqlExecutionContext executor
+  ) {
+    return (PreparedStatement<T>) executor.prepare(statement);
+  }
+
+  private static final class RequestValidator {
+
+    @FunctionalInterface
+    private interface Validator<T extends Statement> {
+
+      void validate(RequestValidator validator, PreparedStatement<T> statement);
+    }
+
+    private static final Map<Class<? extends Statement>, Validator<Statement>> CUSTOM_VALIDATORS =
+        ImmutableMap.<Class<? extends Statement>, Validator<Statement>>builder()
+            .put(Query.class,
+                castValidator(RequestValidator::validateQueryEndpointStatement, Query.class))
+            .put(PrintTopic.class,
+                castValidator(RequestValidator::validateQueryEndpointStatement, PrintTopic.class))
+            .put(SetProperty.class,
+                castValidator(RequestValidator::validateSetProperty, SetProperty.class))
+            .put(UnsetProperty.class,
+                castValidator(RequestValidator::validateUnsetProperty, UnsetProperty.class))
+            .put(ShowColumns.class,
+                castValidator(RequestValidator::validateShowColumns, ShowColumns.class))
+            .put(Explain.class,
+                castValidator(RequestValidator::validateExplain, Explain.class))
+            .put(DescribeFunction.class,
+                castValidator(RequestValidator::validateDescribeFunction, DescribeFunction.class))
+            .put(TerminateQuery.class,
+                castValidator(RequestValidator::validateTerminateQuery, TerminateQuery.class))
+            .build();
+
+    private final KsqlExecutionContext executionSandbox;
+    private final ServiceContext serviceContext;
+    private final KsqlConfig ksqlConfig;
+    private final Map<String, Object> scopedPropertyOverrides;
+    private int persistentQueryCount;
+
+    private RequestValidator(
+        final KsqlExecutionContext executionSandbox,
+        final ServiceContext serviceContext,
+        final KsqlConfig ksqlConfig,
+        final Map<String, Object> propertyOverrides
+    ) {
+      this.executionSandbox = Objects.requireNonNull(executionSandbox, "executionSandbox");
+      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.scopedPropertyOverrides = new HashMap<>(propertyOverrides);
+    }
+
+    private <T extends Statement> void validate(final ParsedStatement stmt) {
+      try {
+        final PreparedStatement<T> prepared = prepareStatement(stmt, executionSandbox);
+        updatePersistentQueryCount(prepared);
+        final Validator<T> customValidator = getCustomValidator(prepared);
+        if (customValidator != null) {
+          customValidator.validate(this, prepared);
+
+        } else if (KsqlEngine.isExecutableStatement(prepared)) {
+          validateAgainstSandbox(prepared);
+        } else if (getCustomExecutor(prepared) == null) {
+          throw new KsqlRestException(Errors.badStatement(
+              "Do not know how to execute statement", stmt.getStatementText()));
+        }
+      } catch (final KsqlRestException e) {
+        throw e;
+      } catch (final KsqlStatementException e) {
+        throw new KsqlRestException(
+            Errors.badStatement(e.getRawMessage(), stmt.getStatementText()));
+      } catch (final KsqlException e) {
+        throw new KsqlRestException(Errors.badStatement(e, stmt.getStatementText()));
+      } catch (final Exception e) {
+        throw new KsqlRestException(Errors.serverErrorForStatement(e, stmt.getStatementText()));
+      }
+    }
+
+    private void validateAgainstSandbox(final PreparedStatement<?> prepared) {
+      final PreparedStatement<?> withSchemas = addInferredSchema(prepared, serviceContext);
+
+      executionSandbox.execute(withSchemas, ksqlConfig, scopedPropertyOverrides);
+    }
+
+    private <T extends Statement> void updatePersistentQueryCount(
+        final PreparedStatement<T> statement
+    ) {
+      // Note: RunScript commands also have the potential to create persistent queries,
+      // but we don't count those queries here (to avoid parsing those commands)
+      if (statement.getStatement() instanceof CreateAsSelect
+          || statement.getStatement() instanceof InsertInto) {
+        persistentQueryCount++;
+      }
+    }
+
+    private void checkCapacity(final String sql) {
+      if (QueryCapacityUtil
+          .exceedsPersistentQueryCapacity(executionSandbox, ksqlConfig, persistentQueryCount)) {
+        QueryCapacityUtil
+            .throwTooManyActivePersistentQueriesException(executionSandbox, ksqlConfig, sql);
+      }
+    }
+
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
+    private void validateSetProperty(final PreparedStatement<SetProperty> statement
+    ) {
+      if (isUnknownPropertyName(statement.getStatement().getPropertyName())) {
+        throw new KsqlRestException(Errors.badStatement(
+            "Unknown property", statement.getStatementText()));
+      }
+
+      try {
+        ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
+            statement.getStatement().getPropertyName(),
+            statement.getStatement().getPropertyValue()));
+      } catch (final Exception e) {
+        throw new KsqlRestException(Errors.badStatement(e, statement.getStatementText()));
+      }
+
+      executionSandbox.execute(statement, ksqlConfig, scopedPropertyOverrides);
+    }
+
+    @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
+    private void validateUnsetProperty(final PreparedStatement<UnsetProperty> statement) {
+      if (isUnknownPropertyName(statement.getStatement().getPropertyName())) {
+        throw new KsqlRestException(Errors.badStatement(
+            "Unknown property", statement.getStatementText()));
+      }
+
+      executionSandbox.execute(statement, ksqlConfig, scopedPropertyOverrides);
+    }
+
+    private void validateShowColumns(final PreparedStatement<ShowColumns> statement) {
+      final ShowColumns showColumns = statement.getStatement();
+      final String name = showColumns.getTable().getSuffix();
+
+      if (showColumns.isTopic()) {
+        final KsqlTopic ksqlTopic = executionSandbox.getMetaStore().getTopic(name);
+        if (ksqlTopic == null) {
+          throw new KsqlStatementException(
+              "Could not find Topic '" + name + "' in the Metastore",
+              statement.getStatementText());
+        }
+      } else {
+        final StructuredDataSource dataSource = executionSandbox.getMetaStore().getSource(name);
+        if (dataSource == null) {
+          throw new KsqlStatementException(
+              "Could not find STREAM/TABLE '" + name + "' in the Metastore",
+              statement.getStatementText());
+        }
+      }
+    }
+
+    private void validateExplain(final PreparedStatement<Explain> statement) {
+      explain(statement, scopedPropertyOverrides, ksqlConfig, executionSandbox);
+    }
+
+    private void validateDescribeFunction(final PreparedStatement<DescribeFunction> statement) {
+      try {
+        final String functionName = statement.getStatement().getFunctionName();
+
+        final FunctionRegistry functionRegistry = executionSandbox.getMetaStore();
+        if (!functionRegistry.isAggregate(functionName)) {
+          // Not a known UDAF, see if know UDF. (The below throws on unknown method).
+          functionRegistry.getUdfFactory(functionName);
+        }
+      } catch (final KsqlException e) {
+        throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
+      }
+    }
+
+    private void validateTerminateQuery(final PreparedStatement<TerminateQuery> statement) {
+      final QueryId queryId = statement.getStatement().getQueryId();
+
+      executionSandbox.getPersistentQuery(queryId)
+          .orElseThrow(() -> new KsqlStatementException(
+              "Unknown queryId: " + queryId,
+              statement.getStatementText()))
+          .close();
+    }
+
+    @SuppressWarnings("MethodMayBeStatic") // Can not be static as used in validator map
+    private void validateQueryEndpointStatement(final PreparedStatement<?> statement) {
+      throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Statement> Validator<T> getCustomValidator(
+        final PreparedStatement<T> statement
+    ) {
+      final Class<? extends Statement> type = statement.getStatement().getClass();
+      return (Validator) CUSTOM_VALIDATORS.get(type);
+    }
+
+    @SuppressWarnings({"unchecked", "unused", "SameParameterValue"})
+    private static <T extends Statement> Validator<Statement> castValidator(
+        final Validator<? super T> handler,
+        final Class<T> type) {
+      return ((Validator<Statement>) handler);
+    }
   }
 }

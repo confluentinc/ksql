@@ -10,18 +10,18 @@
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "d1", "value": "d1", "timestamp": 0},
-        {"topic": "test_topic", "key": "d2", "value": "d2", "timestamp": 0},
-        {"topic": "test_topic", "key": "d1", "value": "d1", "timestamp": 0},
-        {"topic": "test_topic", "key": "d2", "value": "d2", "timestamp": 0},
-        {"topic": "test_topic", "key": "d1", "value": "d1", "timestamp": 0}
+        {"topic": "test_topic", "key": "d1", "value": "d1"},
+        {"topic": "test_topic", "key": "d2", "value": "d2"},
+        {"topic": "test_topic", "key": "d1", "value": "d1"},
+        {"topic": "test_topic", "key": "d2", "value": "d2"},
+        {"topic": "test_topic", "key": "d1", "value": "d1"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "d1", "value": "d1,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d2", "value": "d2,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d1", "value": "d1,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d2", "value": "d2,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d1", "value": "d1,3", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,1"},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,1"},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,2"},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,2"},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,3"}
       ]
     },
     {
@@ -31,18 +31,18 @@
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) AS COUNT FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "1,a", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "2,b", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "3,a", "timestamp": 0}
+        {"topic": "test_topic", "key": 1, "value": "1,a"},
+        {"topic": "test_topic", "key": 2, "value": "2,b"},
+        {"topic": "test_topic", "key": 1, "value": "1,a"},
+        {"topic": "test_topic", "key": 2, "value": "2,b"},
+        {"topic": "test_topic", "key": 3, "value": "3,a"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "a|+|3", "value": "3,a,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1"},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,1"},
+        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,2"},
+        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,2"},
+        {"topic": "OUTPUT", "key": "a|+|3", "value": "3,a,1"}
       ]
     },
     {
@@ -52,18 +52,18 @@
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "d2", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "d1", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "d2", "timestamp": 0},
-        {"topic": "test_topic", "key": 5, "value": "d1", "timestamp": 0}
+        {"topic": "test_topic", "value": "d1"},
+        {"topic": "test_topic", "value": "d2"},
+        {"topic": "test_topic", "value": "d1"},
+        {"topic": "test_topic", "value": "d2"},
+        {"topic": "test_topic", "value": "d1"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "d1", "value": "d1,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d2", "value": "d2,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d1", "value": "d1,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d2", "value": "d2,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d1", "value": "d1,3", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,1"},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,1"},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,2"},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,2"},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,3"}
       ]
     },
     {
@@ -73,14 +73,14 @@
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*)*2 AS COUNT FROM TEST GROUP BY DATA;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "d2", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "d1", "timestamp": 0}
+        {"topic": "test_topic", "value": "d1"},
+        {"topic": "test_topic", "value": "d2"},
+        {"topic": "test_topic", "value": "d1"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "d1", "value": "d1,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d2", "value": "d2,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d1", "value": "d1,4", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,2"},
+        {"topic": "OUTPUT", "key": "d2", "value": "d2,2"},
+        {"topic": "OUTPUT", "key": "d1", "value": "d1,4"}
       ]
     },
     {
@@ -90,20 +90,20 @@
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) AS COUNT FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "some string", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "another string", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "some string again", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "another string again", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "some other string", "timestamp": 0},
-        {"topic": "test_topic", "key": 4, "value": "the final string", "timestamp": 0}
+        {"topic": "test_topic", "value": "some string"},
+        {"topic": "test_topic", "value": "another string"},
+        {"topic": "test_topic", "value": "some string again"},
+        {"topic": "test_topic", "value": "another string again"},
+        {"topic": "test_topic", "value": "some other string"},
+        {"topic": "test_topic", "value": "the final string"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "so", "value": "so,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "an", "value": "an,1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "so", "value": "so,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "an", "value": "an,2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "so", "value": "so,3", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "th", "value": "th,1", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "so", "value": "so,1"},
+        {"topic": "OUTPUT", "key": "an", "value": "an,1"},
+        {"topic": "OUTPUT", "key": "so", "value": "so,2"},
+        {"topic": "OUTPUT", "key": "an", "value": "an,2"},
+        {"topic": "OUTPUT", "key": "so", "value": "so,3"},
+        {"topic": "OUTPUT", "key": "th", "value": "th,1"}
       ]
     },
     {
@@ -113,18 +113,18 @@
         "CREATE TABLE OUTPUT AS SELECT data->field AS FIELD, COUNT(*) AS COUNT FROM TEST GROUP BY data->field;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"data": {"field": "Something"}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"data": {"field": "Something Else"}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"data": {}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"data": {"field": "Something"}}, "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": {"data": {}}, "timestamp": 0}
+        {"topic": "test_topic", "value": {"data": {"field": "Something"}}},
+        {"topic": "test_topic", "value": {"data": {"field": "Something Else"}}},
+        {"topic": "test_topic", "value": {"data": {}}},
+        {"topic": "test_topic", "value": {"data": {"field": "Something"}}},
+        {"topic": "test_topic", "value": {"data": {}}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 1}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "Something Else", "value": {"FIELD": "Something Else", "COUNT": 1}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "null", "value": {"FIELD": null, "COUNT": 1}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 2}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "null", "value": {"FIELD": null, "COUNT": 2}, "timestamp": 0}
+        {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 1}},
+        {"topic": "OUTPUT", "key": "Something Else", "value": {"FIELD": "Something Else", "COUNT": 1}},
+        {"topic": "OUTPUT", "key": "null", "value": {"FIELD": null, "COUNT": 1}},
+        {"topic": "OUTPUT", "key": "Something", "value": {"FIELD": "Something", "COUNT": 2}},
+        {"topic": "OUTPUT", "key": "null", "value": {"FIELD": null, "COUNT": 2}}
       ]
     },
     {
@@ -134,18 +134,18 @@
         "CREATE TABLE OUTPUT AS SELECT ROWKEY, COUNT(*) AS COUNT FROM TEST GROUP BY ROWKEY;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "-", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "-", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0}
+        {"topic": "test_topic", "key": 1, "value": "-"},
+        {"topic": "test_topic", "key": 2, "value": "-"},
+        {"topic": "test_topic", "key": 1, "value": "-"},
+        {"topic": "test_topic", "key": 2, "value": "-"},
+        {"topic": "test_topic", "key": 1, "value": "-"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": "1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "2", "value": "2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "3", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "1", "value": "1"},
+        {"topic": "OUTPUT", "key": "2", "value": "1"},
+        {"topic": "OUTPUT", "key": "1", "value": "2"},
+        {"topic": "OUTPUT", "key": "2", "value": "2"},
+        {"topic": "OUTPUT", "key": "1", "value": "3"}
       ]
     },
     {
@@ -155,18 +155,18 @@
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY 1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "-", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "-", "timestamp": 0},
-        {"topic": "test_topic", "key": 1, "value": "-", "timestamp": 0}
+        {"topic": "test_topic", "value": "-"},
+        {"topic": "test_topic", "value": "-"},
+        {"topic": "test_topic", "value": "-"},
+        {"topic": "test_topic", "value": "-"},
+        {"topic": "test_topic", "value": "-"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "2", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "3", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "4", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": "5", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "1", "value": "1"},
+        {"topic": "OUTPUT", "key": "1", "value": "2"},
+        {"topic": "OUTPUT", "key": "1", "value": "3"},
+        {"topic": "OUTPUT", "key": "1", "value": "4"},
+        {"topic": "OUTPUT", "key": "1", "value": "5"}
       ]
     },
     {
@@ -176,14 +176,14 @@
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) AS COUNT FROM TEST GROUP BY data;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "d1", "timestamp": 0},
-        {"topic": "test_topic", "key": 2, "value": "d2", "timestamp": 0},
-        {"topic": "test_topic", "key": 3, "value": "d1", "timestamp": 0}
+        {"topic": "test_topic", "value": "d1"},
+        {"topic": "test_topic", "value": "d2"},
+        {"topic": "test_topic", "value": "d1"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "d1", "value": "1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d2", "value": "1", "timestamp": 0},
-        {"topic": "OUTPUT", "key": "d1", "value": "2", "timestamp": 0}
+        {"topic": "OUTPUT", "key": "d1", "value": "1"},
+        {"topic": "OUTPUT", "key": "d2", "value": "1"},
+        {"topic": "OUTPUT", "key": "d1", "value": "2"}
       ]
     },
     {
@@ -195,9 +195,7 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Non-aggregate SELECT expression must be part of GROUP BY: [TEST.D1]"
-      },
-      "inputs": [],
-      "outputs": []
+      }
     },
     {
       "name": "group by with function not in select",
@@ -208,9 +206,7 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Non-aggregate SELECT expression must be part of GROUP BY: [SUBSTRING(TEST.SOURCE, 0, 2)]"
-      },
-      "inputs": [],
-      "outputs": []
+      }
     }
   ]
 }

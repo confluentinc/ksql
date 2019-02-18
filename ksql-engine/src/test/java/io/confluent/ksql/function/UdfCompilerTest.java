@@ -274,6 +274,15 @@ public class UdfCompilerTest {
     );
   }
 
+  @Test
+  public void shouldHandleUdafsWithMapValMapAggTypesAndFactoryArg() throws NoSuchMethodException {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createMapMap", int.class),
+                                 classLoader,
+                                 "test",
+                                 "desc"
+    );
+  }
+
   @Test(expected = KsqlException.class)
   public void shouldThrowWhenTryingToGenerateUdafThatHasIncorrectTypes() throws NoSuchMethodException {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBad"),
@@ -377,6 +386,10 @@ public class UdfCompilerTest {
   }
   
   public static Udaf<Map<String, Integer>, Map<Long, Boolean>> createMapMap() {
+    return null;
+  }
+
+  public static Udaf<Map<String, Integer>, Map<Long, Boolean>> createMapMap(int ignored) {
     return null;
   }
 

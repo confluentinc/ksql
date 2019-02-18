@@ -16,10 +16,9 @@ package io.confluent.ksql.serde;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.util.function.Supplier;
-
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 
@@ -40,5 +39,7 @@ public abstract class KsqlTopicSerDe {
       Schema schemaMaybeWithSource,
       KsqlConfig ksqlConfig,
       boolean isInternal,
-      Supplier<SchemaRegistryClient> schemaRegistryClientFactory);
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      String loggerNamePrefix,
+      ProcessingLogContext processingLogContext);
 }

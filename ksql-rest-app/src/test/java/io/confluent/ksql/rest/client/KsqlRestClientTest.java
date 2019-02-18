@@ -58,7 +58,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -67,6 +69,9 @@ public class KsqlRestClientTest {
 
   private MockApplication mockApplication;
   private KsqlRestClient ksqlRestClient;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() throws Exception {
@@ -83,7 +88,8 @@ public class KsqlRestClientTest {
 
   @Test
   public void testKsqlResource() {
-    final RestResponse<KsqlEntityList> results = ksqlRestClient.makeKsqlRequest("Test request");
+    final RestResponse<KsqlEntityList> results =
+        ksqlRestClient.makeKsqlRequest("Test request", null);
 
     assertThat(results, is(notNullValue()));
     assertThat(results.isSuccessful(), is(true));
@@ -97,7 +103,7 @@ public class KsqlRestClientTest {
   public void testStreamRowFromServer() throws InterruptedException {
     // Given:
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
-        ksqlRestClient.makeQueryRequest("Select *");
+        ksqlRestClient.makeQueryRequest("Select *", null);
 
     final ReceiverThread receiver = new ReceiverThread(queryResponse);
 
@@ -122,7 +128,7 @@ public class KsqlRestClientTest {
     givenResponsesDelayedBy(Duration.ofSeconds(3));
 
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
-        ksqlRestClient.makeQueryRequest("Select *");
+        ksqlRestClient.makeQueryRequest("Select *", null);
 
     final ReceiverThread receiver = new ReceiverThread(queryResponse);
 
@@ -145,7 +151,7 @@ public class KsqlRestClientTest {
   public void shouldReturnFalseFromHasNextIfClosedAsynchronously() throws Exception {
     // Given:
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
-        ksqlRestClient.makeQueryRequest("Select *");
+        ksqlRestClient.makeQueryRequest("Select *", null);
 
     final QueryStream stream = queryResponse.getResponse();
 
@@ -193,6 +199,34 @@ public class KsqlRestClientTest {
   }
 
   @Test
+  public void shouldParseSingleServerAddress() throws Exception {
+    final String singleServerAddress = "http://singleServer:8088";
+    final URI singleServerURI = new URI (singleServerAddress);
+    try (KsqlRestClient client = new KsqlRestClient(singleServerAddress)) {
+      assertThat(client.getServerAddress(), is(singleServerURI));
+    }
+  }
+
+  @Test
+  public void shouldParseMultipleServerAddresses() throws Exception {
+    final String firstServerAddress = "http://firstServer:8088";
+    final String multipleServerAddresses = firstServerAddress + ",http://secondServer:8088";
+    final URI firstServerURI = new URI (firstServerAddress);
+    try (KsqlRestClient client = new KsqlRestClient(multipleServerAddresses)) {
+      assertThat(client.getServerAddress(), is(firstServerURI));
+    }
+  }
+
+  @Test
+  public void shouldThrowIfAnyServerAddressIsInvalid() {
+    expectedException.expect(KsqlRestClientException.class);
+    expectedException.expectMessage("The supplied serverAddress is invalid: secondBuggyServer.8088");
+    try (KsqlRestClient client = new KsqlRestClient("http://firstServer:8088,secondBuggyServer.8088")) {
+      // Meh
+    }
+  }
+
+  @Test
   public void shouldHandleNotFoundOnGetRequests() {
     // Given:
     givenServerWillReturn(Status.NOT_FOUND);
@@ -213,7 +247,7 @@ public class KsqlRestClientTest {
     givenServerWillReturn(Status.NOT_FOUND);
 
     // When:
-    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva", null);
 
     // Then:
     assertThat(response.getErrorMessage().getErrorCode(), is(404));
@@ -242,7 +276,7 @@ public class KsqlRestClientTest {
     givenServerWillReturn(Status.UNAUTHORIZED);
 
     // When:
-    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva", null);
 
     // Then:
     assertThat(response.getErrorMessage().getErrorCode(), is(Errors.ERROR_CODE_UNAUTHORIZED));
@@ -251,7 +285,7 @@ public class KsqlRestClientTest {
   }
 
   @Test
-  public void shouldHandleForbiddendOnGetRequests() {
+  public void shouldHandleForbiddenOnGetRequests() {
     // Given:
     givenServerWillReturn(Status.FORBIDDEN);
 
@@ -270,7 +304,7 @@ public class KsqlRestClientTest {
     givenServerWillReturn(Status.FORBIDDEN);
 
     // When:
-    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva", null);
 
     // Then:
     assertThat(response.getErrorMessage().getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN));
@@ -298,7 +332,7 @@ public class KsqlRestClientTest {
     givenServerWillReturn(new KsqlErrorMessage(12300, "ouch", ImmutableList.of("s1", "s2")));
 
     // When:
-    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva", null);
 
     // Then:
     assertThat(response.getErrorMessage().getErrorCode(), is(12300));
@@ -318,7 +352,7 @@ public class KsqlRestClientTest {
     assertThat(response.getErrorMessage().getErrorCode(),
         is(Errors.toErrorCode(Status.EXPECTATION_FAILED.getStatusCode())));
     assertThat(response.getErrorMessage().getMessage(),
-        is("The server returned an unexpected error."));
+        is("The server returned an unexpected error: Expectation Failed"));
   }
 
   @Test
@@ -327,13 +361,13 @@ public class KsqlRestClientTest {
     givenServerWillReturn(Status.EXPECTATION_FAILED);
 
     // When:
-    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva");
+    final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva", null);
 
     // Then:
     assertThat(response.getErrorMessage().getErrorCode(),
         is(Errors.toErrorCode(Status.EXPECTATION_FAILED.getStatusCode())));
     assertThat(response.getErrorMessage().getMessage(),
-        is("The server returned an unexpected error."));
+        is("The server returned an unexpected error: Expectation Failed"));
   }
 
   @Test
@@ -356,7 +390,7 @@ public class KsqlRestClientTest {
     givenServerWillReturn(expectedEntity);
 
     // When:
-    final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest("foo");
+    final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest("foo", null);
 
     // Then:
     assertThat(response.get(), is(expectedEntity));
@@ -379,6 +413,7 @@ public class KsqlRestClientTest {
   private <T> void givenServerWillReturn(final int statusCode, final Optional<T> entity) {
     final Response response = mock(Response.class);
     when(response.getStatus()).thenReturn(statusCode);
+    when(response.getStatusInfo()).thenReturn(Status.fromStatusCode(statusCode));
 
     entity.ifPresent(e -> when(response.readEntity((Class<T>) e.getClass())).thenReturn(e));
 

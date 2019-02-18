@@ -16,6 +16,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -27,7 +28,6 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
-import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -59,6 +59,7 @@ public class StreamedQueryResource {
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
+  private final Duration commandQueueCatchupTimeout;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
 
@@ -69,6 +70,7 @@ public class StreamedQueryResource {
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
+      final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -78,6 +80,8 @@ public class StreamedQueryResource {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
+    this.commandQueueCatchupTimeout =
+        Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
@@ -97,7 +101,7 @@ public class StreamedQueryResource {
     final PreparedStatement<?> statement = parseStatement(request);
 
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
-        commandQueue, request, disconnectCheckInterval);
+        commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(request, statement);
   }
@@ -142,7 +146,9 @@ public class StreamedQueryResource {
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties
   ) throws Exception {
-    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties).get();
+    final QueryMetadata query = ksqlEngine.execute(statement, ksqlConfig, streamsProperties)
+        .getQuery()
+        .get();
 
     if (!(query instanceof QueuedQueryMetadata)) {
       throw new Exception(String.format(
@@ -179,10 +185,8 @@ public class StreamedQueryResource {
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         serviceContext.getSchemaRegistryClient(),
         ksqlConfig.getKsqlStreamConfigProps(),
-        topicName,
-        printTopic.getIntervalValue(),
-        disconnectCheckInterval,
-        printTopic.getFromBeginning()
+        printTopic,
+        disconnectCheckInterval
     );
 
     log.info("Printing topic '{}'", topicName);

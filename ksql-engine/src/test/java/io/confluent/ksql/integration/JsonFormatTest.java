@@ -18,17 +18,19 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -68,6 +70,7 @@ public class JsonFormatTest {
   private KsqlConfig ksqlConfig;
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
+  private ProcessingLogContext processingLogContext;
   private final TopicProducer topicProducer = new TopicProducer(CLUSTER);
   private final TopicConsumer topicConsumer = new TopicConsumer(CLUSTER);
 
@@ -80,8 +83,15 @@ public class JsonFormatTest {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
     ksqlConfig = KsqlContextTestUtil.createKsqlConfig(CLUSTER);
-    serviceContext = ServiceContext.create(ksqlConfig);
-    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    serviceContext = DefaultServiceContext.create(ksqlConfig);
+    processingLogContext = ProcessingLogContext.create();
+
+    ksqlEngine = new KsqlEngine(
+        serviceContext,
+        processingLogContext,
+        new InternalFunctionRegistry(),
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
 
@@ -142,7 +152,7 @@ public class JsonFormatTest {
   }
 
   //@Test
-  public void testSelectDateTimeUDFs() throws Exception {
+  public void testSelectDateTimeUDFs() {
     final String streamName = "SelectDateTimeUDFsStream".toUpperCase();
 
     final String selectColumns =
@@ -191,7 +201,7 @@ public class JsonFormatTest {
     );
 
     assertThat(
-        topicClient.describeTopics(ImmutableList.of(streamName)).get(streamName).partitions(),
+        topicClient.describeTopic(streamName).partitions(),
         hasSize(3));
     assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
         KafkaTopicClient.TopicCleanupPolicy.DELETE));

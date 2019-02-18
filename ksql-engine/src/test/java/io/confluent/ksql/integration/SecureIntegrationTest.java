@@ -32,16 +32,19 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.KsqlEngineTestUtil;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import io.confluent.ksql.util.KafkaTopicClient;
-import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -267,8 +270,12 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    serviceContext = ServiceContext.create(ksqlConfig);
-    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
+    serviceContext = DefaultServiceContext.create(ksqlConfig);
+    ksqlEngine = new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        new InternalFunctionRegistry(),
+        ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
 
     execInitCreateStreamQueries();
   }
@@ -297,7 +304,7 @@ public class SecureIntegrationTest {
     consumer.verifyRecordsReceived(outputTopic, greaterThan(0));
   }
 
-  private Map<String, Object> getBaseKsqlConfig() {
+  private static Map<String, Object> getBaseKsqlConfig() {
     final Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, SECURE_CLUSTER.bootstrapServers());
     configs.put("commit.interval.ms", 0);
@@ -310,7 +317,7 @@ public class SecureIntegrationTest {
     return configs;
   }
 
-  private Map<String, Object> getKsqlConfig(final Credentials user) {
+  private static Map<String, Object> getKsqlConfig(final Credentials user) {
     final Map<String, Object> configs = getBaseKsqlConfig();
     configs.putAll(SecureKafkaHelper.getSecureCredentialsConfig(user));
     return configs;

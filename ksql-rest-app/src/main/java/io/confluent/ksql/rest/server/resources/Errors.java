@@ -27,17 +27,20 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import javax.ws.rs.core.Response;
 
 public final class Errors {
-  public static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
+  private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
-  public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
-  public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
-  public static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
+  static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
+  static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
+  private static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
 
   public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
 
   public static final int ERROR_CODE_FORBIDDEN = toErrorCode(FORBIDDEN.getStatusCode());
 
-  public static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
+  static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
+
+  static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
+      toErrorCode(SERVICE_UNAVAILABLE.getStatusCode());
 
   public static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode()) + 1;
@@ -70,11 +73,11 @@ public final class Errors {
         .build();
   }
 
-  public static Response badStatement(final String msg, final String statementText) {
+  static Response badStatement(final String msg, final String statementText) {
     return badStatement(msg, statementText, new KsqlEntityList());
   }
 
-  public static Response badStatement(
+  private static Response badStatement(
       final String msg,
       final String statementText,
       final KsqlEntityList entities) {
@@ -89,7 +92,7 @@ public final class Errors {
     return badStatement(t, statementText, new KsqlEntityList());
   }
 
-  public static Response badStatement(
+  static Response badStatement(
       final Throwable t,
       final String statementText,
       final KsqlEntityList entities) {
@@ -100,20 +103,24 @@ public final class Errors {
         .build();
   }
 
-  public static Response queryEndpoint(final String statementText, final KsqlEntityList entities) {
+  static Response queryEndpoint(final String statementText) {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(
                 ERROR_CODE_QUERY_ENDPOINT, "SELECT and PRINT queries must use the /query endpoint",
-            statementText, entities))
+            statementText, new KsqlEntityList()))
         .build();
   }
 
-  public static Response notFound(final String msg) {
+  static Response notFound(final String msg) {
     return Response
         .status(NOT_FOUND)
         .entity(new KsqlErrorMessage(ERROR_CODE_NOT_FOUND, msg))
         .build();
+  }
+
+  static Response serverErrorForStatement(final Throwable t, final String statementText) {
+    return serverErrorForStatement(t, statementText, new KsqlEntityList());
   }
 
   public static Response serverErrorForStatement(
@@ -124,10 +131,22 @@ public final class Errors {
         .build();
   }
 
-  public static Response commandQueueCatchUpTimeout(final String msg) {
+  public static Response commandQueueCatchUpTimeout(final long cmdSeqNum) {
+    final String errorMsg = "Timed out while waiting for a previous command to execute. "
+        + "command sequence number: " + cmdSeqNum;
+
     return Response
         .status(SERVICE_UNAVAILABLE)
-        .entity(new KsqlErrorMessage(ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT, msg))
+        .entity(new KsqlErrorMessage(ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT, errorMsg))
+        .build();
+  }
+
+  static Response serverShuttingDown() {
+    return Response
+        .status(SERVICE_UNAVAILABLE)
+        .entity(new KsqlErrorMessage(
+            ERROR_CODE_SERVER_SHUTTING_DOWN,
+            "The server is shutting down"))
         .build();
   }
 }

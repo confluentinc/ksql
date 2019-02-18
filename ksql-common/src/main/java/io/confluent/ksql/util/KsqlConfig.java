@@ -20,6 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,6 +65,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String
       FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "ksql.fail.on.deserialization.error";
+
+  public static final String FAIL_ON_PRODUCTION_ERROR_CONFIG = "ksql.fail.on.production.error";
 
   public static final String
       KSQL_SERVICE_ID_CONFIG = "ksql.service.id";
@@ -366,7 +369,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                + " calling System.exit or executing processes"
         )
         .withClientSslSupport();
-
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEFS) {
       if (generation == ConfigGeneration.CURRENT) {
@@ -452,13 +454,17 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             .defaultCacheMaxBytesBufferingConfig);
     streamsConfigDefaults.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);
-    final Object fail = originals().get(FAIL_ON_DESERIALIZATION_ERROR_CONFIG);
-    if (fail == null || !Boolean.parseBoolean(fail.toString())) {
+    if (!getBooleanConfig(FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false)) {
       streamsConfigDefaults.put(
           StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
           LogMetricAndContinueExceptionHandler.class
       );
     }
+    streamsConfigDefaults.put(
+        StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
+        ProductionExceptionHandlerUtil.getHandler(
+            getBooleanConfig(FAIL_ON_PRODUCTION_ERROR_CONFIG, true))
+    );
     COMPATIBILITY_BREAKING_STREAMS_CONFIGS.forEach(
         config -> streamsConfigDefaults.put(
             config.name,
@@ -466,6 +472,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
     validate();
+  }
+
+  private boolean getBooleanConfig(final String config, final boolean defaultValue) {
+    final Object value = originals().get(config);
+    if (value == null) {
+      return defaultValue;
+    }
+    return Boolean.parseBoolean(value.toString());
   }
 
   private KsqlConfig(final ConfigGeneration generation,

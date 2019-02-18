@@ -38,8 +38,8 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -54,7 +54,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,11 +98,14 @@ final class EndToEndEngineTestUtil {
   private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private static final String CONFIG_END_MARKER = "CONFIGS_END";
 
+  // Pass a single test or multiple tests separated by commas to the test framework.
+  // Example:
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
+  //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
+  private static final String KSQL_TEST_FILES = "ksql.test.files";
+
   static {
-    // don't use the actual metastore, aim is just to get the functions into the registry.
-    // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
-    // test
-    UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
+    UdfLoaderUtil.load(functionRegistry);
   }
 
   private EndToEndEngineTestUtil(){}
@@ -313,23 +318,27 @@ final class EndToEndEngineTestUtil {
 
   static class Topic {
     private final String name;
-    private final org.apache.avro.Schema schema;
+    private final Optional<org.apache.avro.Schema> schema;
     private final SerdeSupplier serdeSupplier;
+    private final int numPartitions;
 
     Topic(
         final String name,
-        final org.apache.avro.Schema schema,
-        final SerdeSupplier serdeSupplier) {
-      this.name = name;
-      this.schema = schema;
-      this.serdeSupplier = serdeSupplier;
+        final Optional<org.apache.avro.Schema> schema,
+        final SerdeSupplier serdeSupplier,
+        final int numPartitions
+    ) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.serdeSupplier = Objects.requireNonNull(serdeSupplier, "serdeSupplier");
+      this.numPartitions = numPartitions;
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    public org.apache.avro.Schema getSchema() {
+    Optional<org.apache.avro.Schema> getSchema() {
       return schema;
     }
 
@@ -491,7 +500,7 @@ final class EndToEndEngineTestUtil {
         final Path testPath,
         final String name,
         final Map<String, Object> properties,
-        final List<Topic> topics,
+        final Collection<Topic> topics,
         final List<Record> inputRecords,
         final List<Record> outputRecords,
         final List<String> statements,
@@ -504,6 +513,22 @@ final class EndToEndEngineTestUtil {
       this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
       this.expectedException = expectedException;
+    }
+
+    TestCase copyWithName(String newName) {
+      final TestCase copy = new TestCase(
+          testPath,
+          newName,
+          properties,
+          topics,
+          inputRecords,
+          outputRecords,
+          statements,
+          expectedException);
+      copy.setGeneratedTopology(generatedTopology);
+      copy.setExpectedTopology(expectedTopology);
+      copy.setPersistedProperties(persistedProperties);
+      return copy;
     }
 
     void setGeneratedTopology(final String generatedTopology) {
@@ -582,15 +607,17 @@ final class EndToEndEngineTestUtil {
 
     void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
-        serviceContext.getTopicClient().createTopic(topic.getName(), 1, (short) 1);
-        if (topic.getSchema() != null) {
-          try {
-            serviceContext.getSchemaRegistryClient().register(
-                topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, topic.getSchema());
-          } catch (final Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
+        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) 1);
+
+        topic.getSchema()
+            .ifPresent(schema -> {
+              try {
+                serviceContext.getSchemaRegistryClient()
+                    .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+              } catch (final Exception e) {
+                throw new RuntimeException(e);
+              }
+            });
       }
     }
 
@@ -643,13 +670,16 @@ final class EndToEndEngineTestUtil {
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig) {
-    final List<QueryMetadata> queries = new ArrayList<>();
+      final KsqlConfig ksqlConfig
+  ) {
     testCase.initializeTopics(serviceContext);
-    testCase.statements().forEach(
-        q -> queries.addAll(
-            KsqlEngineTestUtil.execute(ksqlEngine, q, ksqlConfig, testCase.properties()))
-    );
+
+    final String sql = testCase.statements().stream()
+        .collect(Collectors.joining(System.lineSeparator()));
+
+    final List<QueryMetadata> queries =
+        KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, testCase.properties());
+
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return queries.get(queries.size() - 1);
   }
@@ -675,48 +705,48 @@ final class EndToEndEngineTestUtil {
         0);
   }
 
-    private static void writeExpectedTopologyFile(final String queryName,
-                                                  final Topology topology,
-                                                  final Map<String, String> configs,
-                                                  final ObjectWriter objectWriter,
-                                                  final String topologyDir) {
+  private static void writeExpectedTopologyFile(final String queryName,
+                                                final Topology topology,
+                                                final Map<String, String> configs,
+                                                final ObjectWriter objectWriter,
+                                                final String topologyDir) {
 
-        final Path newTopologyDataPath = Paths.get(topologyDir);
-        try {
-            final String updatedQueryName = formatQueryName(queryName);
-            final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
-            final String configString = objectWriter.writeValueAsString(configs);
-            final String topologyString = topology.describe().toString();
+      final Path newTopologyDataPath = Paths.get(topologyDir);
+      try {
+          final String updatedQueryName = formatQueryName(queryName);
+          final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
+          final String configString = objectWriter.writeValueAsString(configs);
+          final String topologyString = topology.describe().toString();
 
-          final byte[] topologyBytes =
-              (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
-                  .getBytes(StandardCharsets.UTF_8);
+        final byte[] topologyBytes =
+            (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
+                .getBytes(StandardCharsets.UTF_8);
 
-            Files.write(topologyFile,
-                        topologyBytes,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
+          Files.write(topologyFile,
+                      topologyBytes,
+                      StandardOpenOption.CREATE,
+                      StandardOpenOption.WRITE,
+                      StandardOpenOption.TRUNCATE_EXISTING);
 
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+      } catch (IOException e) {
+          throw new RuntimeException(e);
+      }
+  }
 
   static String formatQueryName(final String originalQueryName) {
     return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
   }
 
-  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) throws IOException {
-         final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
-         final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
-         final List<String> topologyFiles = findExpectedTopologyFiles(dir);
-         topologyFiles.forEach(fileName -> {
-             final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
-             expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
-         });
-      return expectedTopologyAndConfigs;
+  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) {
+    final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
+    final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
+    final List<String> topologyFiles = findExpectedTopologyFiles(dir);
+    topologyFiles.forEach(fileName -> {
+      final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
+      expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
+    });
+    return expectedTopologyAndConfigs;
   }
 
   private static TopologyAndConfigs readTopologyFile(final String file, final ObjectReader objectReader) {
@@ -745,19 +775,35 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static List<String> findExpectedTopologyFiles(final String dir) throws IOException {
-       final List<String> topologyFiles = new ArrayList<>();
+  static List<String> findExpectedTopologyDirectories(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology directories.", e);
+    }
+  }
+
+  private static List<String> findExpectedTopologyFiles(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology files. dir: " + dir, e);
+    }
+  }
+
+  private static List<String> findContentsOfDirectory(final String dir) throws IOException {
+    final List<String> contents = new ArrayList<>();
     try (final BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
                 getResourceAsStream(dir), StandardCharsets.UTF_8))) {
 
-      String topology;
-      while ((topology = reader.readLine()) != null) {
-          topologyFiles.add(topology);
+      String file;
+      while ((file = reader.readLine()) != null) {
+        contents.add(file);
       }
     }
-    return topologyFiles;
+    return contents;
   }
 
   private static List<Path> findTests(final Path dir) {
@@ -779,10 +825,28 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static Stream<JsonTestCase> findTestCases(final Path dir) {
+  private static List<Path> getTests(final Path dir, final List<String> files) {
+    return files.stream().map(name -> dir.resolve(name.trim())).collect(Collectors.toList());
+  }
+
+  /**
+   * Returns a list of files specified in the system property 'ksql.test.file'.
+   * The list may be specified as a comma-separated string. If 'ksql.test.file' is not found,
+   * then an empty list is returned.
+   */
+  static List<String> getTestFilesParam() {
+    final String ksqlTestFiles = System.getProperty(KSQL_TEST_FILES, "").trim();
+    if (ksqlTestFiles.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    return Arrays.asList(ksqlTestFiles.split(","));
+  }
+
+  static Stream<JsonTestCase> findTestCases(final Path dir, final List<String> files) {
     final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
 
-    return findTests(dir).stream()
+    return getTestPaths(dir, files).stream()
         .flatMap(testPath -> {
           final JsonNode rootNode = loadTest(classLoader, testPath);
 
@@ -792,6 +856,18 @@ final class EndToEndEngineTestUtil {
           return StreamSupport.stream(tests, false)
               .map(jsonNode -> new JsonTestCase(testPath, jsonNode));
         });
+  }
+
+  /**
+   * Return a list of test paths found on the given directory. If the files parameter is not empty,
+   * then returns only the paths of the given list.
+   */
+  private static List<Path> getTestPaths(final Path dir, final List<String> files) {
+    if (files != null && !files.isEmpty()) {
+      return getTests(dir, files);
+    } else {
+      return findTests(dir);
+    }
   }
 
   private static JsonNode loadTest(final ClassLoader classLoader, final Path testPath) {
@@ -808,7 +884,7 @@ final class EndToEndEngineTestUtil {
   }
 
   private static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
-    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
   }
 

@@ -19,7 +19,9 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.List;
 import java.util.Objects;
@@ -123,10 +125,6 @@ public abstract class OutputNode
     return timestampExtractionPolicy;
   }
 
-  public TimestampExtractionPolicy getSourceTimestampExtractionPolicy() {
-    return source.getTheSourceNode().getTimestampExtractionPolicy();
-  }
-
   private interface InternalCallback extends Callback {
 
     void setLimitHandler(LimitHandler limitHandler);
@@ -164,6 +162,8 @@ public abstract class OutputNode
       }
     }
   }
+
+  public abstract QueryId getQueryId(QueryIdGenerator queryIdGenerator);
 
   private static class NoCallback implements InternalCallback {
 

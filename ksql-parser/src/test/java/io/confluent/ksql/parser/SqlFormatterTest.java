@@ -25,7 +25,7 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -63,8 +63,7 @@ public class SqlFormatterTest {
   private JoinCriteria criteria;
   private NodeLocation location;
 
-  private static final KsqlParser KSQL_PARSER = new KsqlParser();
-  private MetaStore metaStore;
+  private MutableMetaStore metaStore;
 
   private static final Schema addressSchema = SchemaBuilder.struct()
       .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
@@ -166,7 +165,7 @@ public class SqlFormatterTest {
     assertThat("literal escaping failure", sql, containsString("`GROUP` STRING"));
     assertThat("not literal escaping failure", sql, containsString("NOLIT STRING"));
     assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
-    final List<PreparedStatement<?>> statements = new KsqlParser().buildAst(sql,
+    final List<PreparedStatement<?>> statements = KsqlParserTestUtil.buildAst(sql,
         MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry()));
     assertFalse("formatted sql parsing error", statements.isEmpty());
   }
@@ -255,7 +254,7 @@ public class SqlFormatterTest {
   public void shouldFormatSelectQueryCorrectly() {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
-    final Statement statement = KSQL_PARSER.buildAst(statementString, metaStore).get(0)
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
         + "FROM ADDRESS A\n"

@@ -16,11 +16,12 @@ package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -34,20 +35,25 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.processing.log.ProcessingLogConstants;
+import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.streams.MaterializedFactory;
+import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -104,6 +110,7 @@ public class StructuredDataSourceNodeTest {
           new KsqlTopic("topic", "topic",
               new KsqlJsonTopicSerDe(), false), Serdes.String()),
       realSchema);
+  private final QueryId queryId = new QueryId("source-test");
 
   private final PlanNodeId realNodeId = new PlanNodeId("source");
   @Mock
@@ -141,11 +148,13 @@ public class StructuredDataSourceNodeTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   private ServiceContext serviceContext;
+  private ProcessingLogContext processingLogContext;
 
   @Before
   @SuppressWarnings("unchecked")
   public void before() {
     serviceContext = TestServiceContext.create();
+    processingLogContext = ProcessingLogContext.create();
     realBuilder = new StreamsBuilder();
     realStream = build(node);
 
@@ -160,7 +169,9 @@ public class StructuredDataSourceNodeTest {
         any(Schema.class),
         any(KsqlConfig.class),
         any(Boolean.class),
-        any(Supplier.class))).thenReturn(rowSerde);
+        any(Supplier.class),
+        anyString(),
+        any(ProcessingLogContext.class))).thenReturn(rowSerde);
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
@@ -194,14 +205,34 @@ public class StructuredDataSourceNodeTest {
         streamsBuilder,
         realConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
-        Collections.emptyMap()
+        queryId
     );
 
     // Then:
     verify(materializedFactorySupplier).apply(realConfig);
-    verify(materializedFactory).create(keySerde, rowSerde, "source-REDUCE");
+    verify(materializedFactory).create(keySerde, rowSerde, "source-reduce");
     verify(kGroupedStream).aggregate(any(), any(), same(materialized));
+  }
+
+  @Test
+  public void shouldCreateLoggerForSourceSerde() {
+    assertThat(
+        processingLogContext.getLoggerFactory().getLoggers(),
+        hasItem(
+            startsWith(
+                ProcessingLoggerUtil.join(
+                    ProcessingLogConstants.PREFIX,
+                    QueryLoggerUtil.queryLoggerName(
+                        new QueryContext.Stacker(queryId)
+                            .push(node.getId().toString(), "source")
+                            .getQueryContext()
+                    )
+                )
+            )
+        )
+    );
   }
 
   @Test
@@ -307,8 +338,9 @@ public class StructuredDataSourceNodeTest {
         realBuilder,
         realConfig,
         serviceContext,
+        processingLogContext,
         new InternalFunctionRegistry(),
-        new HashMap<>());
+        queryId);
   }
 
   private StructuredDataSourceNode nodeWithMockTableSource() {

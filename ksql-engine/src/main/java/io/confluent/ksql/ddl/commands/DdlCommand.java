@@ -14,8 +14,8 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 
 public interface DdlCommand {
-  DdlCommandResult run(MetaStore metaStore, boolean isValidatePhase);
+  DdlCommandResult run(MutableMetaStore metaStore);
 }

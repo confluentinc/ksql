@@ -36,12 +36,15 @@ public final class CommandStoreUtil {
     try {
       waitForCommandSequenceNumber(commandQueue, request, timeout);
     } catch (final InterruptedException e) {
-      final String errorMsg = "Interrupted while waiting for command queue to reach "
-          + "specified command sequence number in request: " + request.getKsql();
+      final long seqNum = request.getCommandSequenceNumber().orElse(-1L);
+      final String errorMsg = "Interrupted while waiting for command with the supplied "
+          + "sequence number to execute. sequence number: " + seqNum
+          + ", request: " + request.getKsql();
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
     } catch (final TimeoutException e) {
-      throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(e.getMessage()));
+      throw new KsqlRestException(Errors.commandQueueCatchUpTimeout(
+          request.getCommandSequenceNumber().orElse(-1L)));
     }
   }
 

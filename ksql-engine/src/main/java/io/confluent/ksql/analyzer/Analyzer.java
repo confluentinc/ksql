@@ -111,25 +111,13 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     process(node.getSelect(), new AnalysisContext(
         AnalysisContext.ParentType.SELECT));
-    if (node.getWhere().isPresent()) {
-      analyzeWhere(node.getWhere().get());
-    }
-    if (node.getGroupBy().isPresent()) {
-      analyzeGroupBy(node.getGroupBy().get());
-    }
 
-    if (node.getWindowExpression().isPresent()) {
-      analyzeWindowExpression(node.getWindowExpression().get());
-    }
+    node.getWhere().ifPresent(this::analyzeWhere);
+    node.getGroupBy().ifPresent(this::analyzeGroupBy);
+    node.getWindowExpression().ifPresent(this::analyzeWindowExpression);
+    node.getHaving().ifPresent(this::analyzeHaving);
+    node.getLimit().ifPresent(analysis::setLimitClause);
 
-    if (node.getHaving().isPresent()) {
-      analyzeHaving(node.getHaving().get());
-    }
-
-    if (node.getLimit().isPresent()) {
-      final String limitStr = node.getLimit().get();
-      analysis.setLimitClause(Integer.parseInt(limitStr));
-    }
     analyzeExpressions();
 
     return null;

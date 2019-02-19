@@ -27,7 +27,7 @@ configuration file at
   to the IP address of the REST API endpoint for KSQL Server. Typical values
   are ``http://0.0.0.0:8088`` and ``http://localhost:8088``.
 * In the |c3-short| configuration file, set the ``confluent.controlcenter.ksql.url``
-  property to the KSQL Server hostname. This setting specifies how |c3-short|
+  property to the URL of the KSQL Server host. This setting specifies how |c3-short|
   communicates with KSQL Server for regular HTTP requests. For more information,
   see :ref:`controlcenter_ksql_settings`.
 * If KSQL Server communicates over an internal DNS that is not externally
@@ -65,11 +65,11 @@ interfaces:
     listeners=http://0.0.0.0:8088
 
 
-In the |c3-short| configuration file, set ``ksql.url`` to the KSQL Server
-hostname, which must be reachable from the host that |c3-short| is installed
-on. Also, set ``ksql.advertised.url`` to the public IP address published by the
-KSQL Server host, which must be a URL that the browser can resolve through
-externally available DNS.
+In the |c3-short| configuration file, set ``confluent.controlcenter.ksql.url``
+to the URL of the KSQL Server host, which must be reachable from the host that
+|c3-short| is installed on. Also, set ``confluent.controlcenter.ksql.advertised.url``
+to the public IP address published by the KSQL Server host, which must be a URL
+that the browser can resolve through externally available DNS.
 
 ::
 

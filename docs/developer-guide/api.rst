@@ -241,69 +241,69 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
         }
       ]
 
-   .. _coordinate_multiple_requests
+.. _coordinate_multiple_requests
 
-   **Coordinating among multiple requests**
+Coordinate Multiple Requests
+----------------------------
 
-   To submit multiple, interdependent requests, there are two options. The first is to submit them as a single request,
-   similar to the example request above:
+To submit multiple, interdependent requests, there are two options. The first is to submit them as a single request,
+similar to the example request above:
 
-   .. code:: http
+.. code:: http
 
-      POST /ksql HTTP/1.1
-      Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+   POST /ksql HTTP/1.1
+   Accept: application/vnd.ksql.v1+json
+   Content-Type: application/vnd.ksql.v1+json
 
-      {
-        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;"
-      }
+   {
+     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;"
+   }
 
-   The second method is to submit the statements as separate requests and incorporate the interdependency via ``commandSequenceNumber``.
-   Send the first request:
+The second method is to submit the statements as separate requests and incorporate the interdependency by using ``commandSequenceNumber``.
+Send the first request:
 
-   .. code:: http
+.. code:: http
 
-      POST /ksql HTTP/1.1
-      Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+   POST /ksql HTTP/1.1
+   Accept: application/vnd.ksql.v1+json
+   Content-Type: application/vnd.ksql.v1+json
 
-      {
-        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';"
-      }
+   {
+     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';"
+   }
 
-   Make note of the ``commandSequenceNumber`` returned in the response:
+Make note of the ``commandSequenceNumber`` returned in the response:
 
-   .. code:: http
+.. code:: http
 
-       HTTP/1.1 200 OK
-       Content-Type: application/vnd.ksql.v1+json
+   HTTP/1.1 200 OK
+   Content-Type: application/vnd.ksql.v1+json
 
-      [
-        {
-          "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';",
-          "commandId":"stream/PAGEVIEWS_HOME/create",
-          "commandStatus": {
-            "status":"SUCCESS",
-            "message":"Stream created and running"
-          },
-          "commandSequenceNumber":10
-        }
-      ]
+   [
+     {
+       "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';",
+       "commandId":"stream/PAGEVIEWS_HOME/create",
+       "commandStatus": {
+         "status":"SUCCESS",
+         "message":"Stream created and running"
+       },
+       "commandSequenceNumber":10
+     }
+   ]
 
-   Provide this ``commandSequenceNumber`` as part of the second request, indicating that this request should not
-   execute until after command number 10 has finished executing:
+Provide this ``commandSequenceNumber`` as part of the second request, indicating that this request should not
+execute until after command number 10 has finished executing:
 
-   .. code:: http
+.. code:: http
 
-      POST /ksql HTTP/1.1
-      Accept: application/vnd.ksql.v1+json
-      Content-Type: application/vnd.ksql.v1+json
+   POST /ksql HTTP/1.1
+   Accept: application/vnd.ksql.v1+json
+   Content-Type: application/vnd.ksql.v1+json
 
-      {
-        "ksql": "CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;",
-        "commandSequenceNumber":10
-      }
-
+   {
+     "ksql": "CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;",
+     "commandSequenceNumber":10
+   }
 
 Run A Query And Stream Back The Output
 --------------------------------------

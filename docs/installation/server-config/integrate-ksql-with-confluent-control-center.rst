@@ -52,7 +52,7 @@ private and public IP addresses.
    When KSQL and |c3| communicate over a virtual private network (VPN),
    |c3-short| proxies your queries, but to see the query results, the results
    stream directly from KSQL Server back to your browser, without going through
-   |c3-short|. 
+   |c3-short|.
 
 Assign the following configuration properties to integrate KSQL Server with
 |c3-short| when they run on separate hosts.
@@ -76,6 +76,12 @@ that the browser can resolve through externally available DNS.
     confluent.controlcenter.ksql.url=<private-ip-address>
     confluent.controlcenter.ksql.advertised.url=<public-ip-address>
 
+.. note::
+
+   You must specify the ports in the KSQL URL settings. For example, if the
+   public URL is ``http://ksql-server-677739697.us-east-1.elb.amazonaws.com:80``,
+   be sure to include port ``80``, or the |c3-short| connection to KSQL Server
+   will fail.
 
 Check KSQL Server Network Binding
 *********************************

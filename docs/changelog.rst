@@ -10,7 +10,7 @@ KSQL 5.2 includes new features, including:
 * Added ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
 * Added support for read-after-write consistency: new commands will not execute until previous commands have finished executing.
   This feature is enabled by default in the CLI (`#2280 <https://github.com/confluentinc/ksql/pull/2280>`_)
-  and can be implemented by the user for the REST API (`#2159 <https://github.com/confluentinc/ksql/pull/2159>`_).
+  and can be implemented by the user for the REST API (:ref:`coordinate_multiple_requests`).
 
 KSQL 5.2 includes bug fixes, including:
 

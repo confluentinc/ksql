@@ -1214,6 +1214,14 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| CURRENTDATE            |  ``CURRENTDATE()``                                                        | Gets an integer representing days since epoch.    |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| CURRENTTIMESTAMP       |  ``CURRENTTIMESTAMP([TIMEZONE])``                                         | Gets the current timestamp represented in         |
+|                        |                                                                           | millisecond as BIGINT.                            |
+|                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
+|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
+|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |
 |                        |                                                                           | the given format. Single quotes in the            |

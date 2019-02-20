@@ -20,13 +20,21 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.rest.server.computation.ConfigStore;
+import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
+import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Properties;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public final class StandaloneExecutorFactory {
+  static final String CONFIG_TOPIC_SUFFIX = "configs";
+
   private StandaloneExecutorFactory(){
   }
 
@@ -35,9 +43,50 @@ public final class StandaloneExecutorFactory {
       final String queriesFile,
       final String installDir
   ) {
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+    return create(
+        properties,
+        queriesFile,
+        installDir,
+        DefaultServiceContext::create,
+        KafkaConfigStore::new,
+        StandaloneExecutor::new
+    );
+  }
 
-    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
+  interface StandaloneExecutorConstructor {
+    StandaloneExecutor create(
+        ServiceContext serviceContext,
+        ProcessingLogConfig processingLogConfig,
+        KsqlConfig ksqlConfig,
+        KsqlEngine ksqlEngine,
+        String queriesFile,
+        UdfLoader udfLoader,
+        boolean failOnNoQueries,
+        VersionCheckerAgent versionCheckerAgent
+    );
+  }
+
+  static StandaloneExecutor create(
+      final Properties properties,
+      final String queriesFile,
+      final String installDir,
+      final Function<KsqlConfig, ServiceContext> serviceContextFactory,
+      final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory,
+      final StandaloneExecutorConstructor constructor
+  ) {
+    final KsqlConfig baseConfig = new KsqlConfig(properties);
+
+    final ServiceContext serviceContext = serviceContextFactory.apply(baseConfig);
+
+    final String configTopicName
+        = KsqlInternalTopicUtils.getTopicName(baseConfig, CONFIG_TOPIC_SUFFIX);
+    KsqlInternalTopicUtils.ensureTopic(
+        configTopicName,
+        baseConfig,
+        serviceContext.getTopicClient()
+    );
+    final ConfigStore configStore = configStoreFactory.apply(configTopicName, baseConfig);
+    final KsqlConfig ksqlConfig = configStore.getKsqlConfig();
 
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(properties);
@@ -55,7 +104,7 @@ public final class StandaloneExecutorFactory {
     final UdfLoader udfLoader =
         UdfLoader.newInstance(ksqlConfig, functionRegistry, installDir);
 
-    return new StandaloneExecutor(
+    return constructor.create(
         serviceContext,
         processingLogConfig,
         ksqlConfig,

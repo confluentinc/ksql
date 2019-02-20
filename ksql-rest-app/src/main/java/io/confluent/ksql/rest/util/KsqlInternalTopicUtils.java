@@ -19,6 +19,7 @@ import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,8 +65,30 @@ public class KsqlInternalTopicUtils {
   public static void ensureTopic(final String name,
                                  final KsqlConfig ksqlConfig,
                                  final KafkaTopicClient topicClient) {
+    final short replicationFactor =
+        ksqlConfig.originals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
+            ? ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) : 1;
+    if (replicationFactor < 2) {
+      log.warn("Creating topic {} with replication factor of {} which is less than 2. "
+              + "This is not advisable in a production environment. ",
+          name, replicationFactor);
+    }
     final long requiredTopicRetention = Long.MAX_VALUE;
+
     if (topicClient.isTopicExists(name)) {
+      final TopicDescription description = topicClient.describeTopic(name);
+      if (description.partitions().size() != NPARTITIONS) {
+        throw new IllegalStateException(
+            String.format(
+                "Invalid partition count on topic %s: %d", name, description.partitions().size()));
+      }
+      final int nReplicas = description.partitions().get(0).replicas().size();
+      if (nReplicas < replicationFactor) {
+        throw new IllegalStateException(
+            String.format(
+                "Invalid replcation factor on topic %s: %d", name, nReplicas));
+      }
+
       final ImmutableMap<String, Object> requiredConfig =
           ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention);
 
@@ -77,15 +100,6 @@ public class KsqlInternalTopicUtils {
       }
 
       return;
-    }
-
-    final short replicationFactor =
-        ksqlConfig.originals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
-            ? ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) : 1;
-    if (replicationFactor < 2) {
-      log.warn("Creating topic {} with replication factor of {} which is less than 2. "
-              + "This is not advisable in a production environment. ",
-          name, replicationFactor);
     }
 
     topicClient.createTopic(

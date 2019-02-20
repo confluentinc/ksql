@@ -34,7 +34,10 @@ abstract class ConfigTopicKey {
     private final String value;
 
     StringKey(@JsonProperty("value") final String value) {
-      this.value = value;
+      this.value = Objects.requireNonNull(value, "value");
+      if (this.value.isEmpty()) {
+        throw new IllegalArgumentException("StringKey value must not be empty");
+      }
     }
 
     public String getValue() {

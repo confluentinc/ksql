@@ -27,6 +27,7 @@ import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Properties;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -47,7 +48,21 @@ public final class StandaloneExecutorFactory {
         queriesFile,
         installDir,
         DefaultServiceContext::create,
-        KafkaConfigStore::new
+        KafkaConfigStore::new,
+        StandaloneExecutor::new
+    );
+  }
+
+  interface StandaloneExecutorConstructor {
+    StandaloneExecutor create(
+        ServiceContext serviceContext,
+        ProcessingLogConfig processingLogConfig,
+        KsqlConfig ksqlConfig,
+        KsqlEngine ksqlEngine,
+        String queriesFile,
+        UdfLoader udfLoader,
+        boolean failOnNoQueries,
+        VersionCheckerAgent versionCheckerAgent
     );
   }
 
@@ -56,7 +71,8 @@ public final class StandaloneExecutorFactory {
       final String queriesFile,
       final String installDir,
       final Function<KsqlConfig, ServiceContext> serviceContextFactory,
-      final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory
+      final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory,
+      final StandaloneExecutorConstructor constructor
   ) {
     final KsqlConfig baseConfig = new KsqlConfig(properties);
 
@@ -88,7 +104,7 @@ public final class StandaloneExecutorFactory {
     final UdfLoader udfLoader =
         UdfLoader.newInstance(ksqlConfig, functionRegistry, installDir);
 
-    return new StandaloneExecutor(
+    return constructor.create(
         serviceContext,
         processingLogConfig,
         ksqlConfig,

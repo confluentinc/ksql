@@ -70,7 +70,7 @@ public class ConfigTopicKeyTest {
     assertThat(key, equalTo(STRING_KEY));
   }
 
-  private class IllegalArgumentMatcher extends TypeSafeMatcher<Exception> {
+  private static class IllegalArgumentMatcher extends TypeSafeMatcher<Exception> {
     private final String msg;
     private final Class<? extends Exception> exceptionClass;
 

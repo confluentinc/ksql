@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore.KsqlProperties;
 import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
@@ -219,6 +220,7 @@ public class KafkaConfigStoreTest {
     inOrder.verify(producer).flush();
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
   private void verifyMergedConfig(final KsqlConfig mergedConfig) {
     assertThat(mergedConfig, is(this.mergedConfig));
     verify(currentConfigProxy).overrideBreakingConfigsWithOriginalValues(

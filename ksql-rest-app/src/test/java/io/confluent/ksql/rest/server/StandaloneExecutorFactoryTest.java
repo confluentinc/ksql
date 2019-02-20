@@ -1,13 +1,18 @@
 package io.confluent.ksql.rest.server;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyShort;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.rest.server.StandaloneExecutorFactory.StandaloneExecutorConstructor;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -51,6 +56,10 @@ public class StandaloneExecutorFactoryTest {
   private KafkaTopicClient topicClient;
   @Mock
   private ConfigStore configStore;
+  @Mock
+  private StandaloneExecutorConstructor constructor;
+  @Mock
+  private StandaloneExecutor standaloneExecutor;
 
   @Before
   public void setup() {
@@ -59,15 +68,18 @@ public class StandaloneExecutorFactoryTest {
     when(configStoreFactory.apply(any(), any())).thenReturn(configStore);
     when(topicClient.isTopicExists(configTopicName)).thenReturn(false);
     when(configStore.getKsqlConfig()).thenReturn(mergedConfig);
+    when(constructor.create(any(), any(), any(), any(), anyString(), any(), anyBoolean(), any()))
+        .thenReturn(standaloneExecutor);
   }
 
-  private StandaloneExecutor create() {
-    return StandaloneExecutorFactory.create(
+  private void create() {
+    StandaloneExecutorFactory.create(
         properties,
         QUERIES_FILE,
         INSTALL_DIR,
         serviceContextFactory,
-        configStoreFactory
+        configStoreFactory,
+        constructor
     );
   }
 
@@ -100,9 +112,10 @@ public class StandaloneExecutorFactoryTest {
     create();
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(topicClient, configStoreFactory, configStore);
+    final InOrder inOrder = Mockito.inOrder(topicClient, configStoreFactory, constructor);
     inOrder.verify(topicClient).createTopic(eq(configTopicName), anyInt(), anyShort(), anyMap());
     inOrder.verify(configStoreFactory).apply(eq(configTopicName), argThat(sameConfig(baseConfig)));
-    inOrder.verify(configStore).getKsqlConfig();
+    inOrder.verify(constructor).create(
+        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any());
   }
 }

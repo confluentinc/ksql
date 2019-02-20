@@ -1455,7 +1455,7 @@ public class KsqlResourceTest {
     expectedException.expect(exceptionErrorMessage(
         errorMessage(containsString(
             "Cannot add the new data source. Another data source with the "
-                + "same name already exists: KsqlStream name:SINK"))));
+                + "same name already exists: KsqlTable name:SINK"))));
 
     // When:
     final String createSql =

@@ -71,7 +71,7 @@ to a list of URLs for the KSQL Server hosts, which must be reachable from the ho
 that |c3-short| is installed on. Replace ``<name>`` with the name |c3-short| uses
 to identify the KSQL cluster.
 
-Also, set ``confluent.controlcenter.ksql.<name>.advertised.url``to the public
+Also, set ``confluent.controlcenter.ksql.<name>.advertised.url`` to the public
 IP addresses published by the KSQL Server hosts, which must be a list of URLs
 that the browser can resolve through externally available DNS.
 

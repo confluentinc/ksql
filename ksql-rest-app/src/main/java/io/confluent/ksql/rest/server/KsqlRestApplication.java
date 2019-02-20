@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -24,6 +25,7 @@ import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
@@ -53,9 +55,9 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ClusterTerminator;
-import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -90,6 +92,7 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
@@ -300,6 +303,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries
   ) {
+
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -321,9 +325,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
-    final String commandTopic = KsqlInternalTopicUtils.getTopicName(
-        ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
-    KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
+    final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+    final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
+    ensureCommandTopic(restConfig, serviceContext.getTopicClient(), commandTopic);
 
     final Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
@@ -450,6 +454,51 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       );
     } catch (final Exception e) {
       throw new KsqlException("Failed to get Kafka cluster information", e);
+    }
+  }
+
+  static void ensureCommandTopic(final KsqlRestConfig restConfig,
+                                 final KafkaTopicClient topicClient,
+                                 final String commandTopic) {
+    final long requiredTopicRetention = Long.MAX_VALUE;
+    if (topicClient.isTopicExists(commandTopic)) {
+      final ImmutableMap<String, Object> requiredConfig =
+          ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention);
+
+      if (topicClient.addTopicConfig(commandTopic, requiredConfig)) {
+        log.info("Corrected retention.ms on command topic. topic:{}, retention.ms:{}",
+                 commandTopic, requiredTopicRetention);
+      }
+
+      return;
+    }
+
+    try {
+      short replicationFactor = 1;
+      if (restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
+        replicationFactor = Short.parseShort(
+            restConfig
+                .getOriginals()
+                .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
+                .toString()
+        );
+      }
+      if (replicationFactor < 2) {
+        log.warn("Creating topic {} with replication factor of {} which is less than 2. "
+                 + "This is not advisable in a production environment. ",
+                commandTopic, replicationFactor);
+      }
+
+      // for now we create the command topic with infinite retention so that we
+      // don't lose any data in case of fail over etc.
+      topicClient.createTopic(
+          commandTopic,
+          1,
+          replicationFactor,
+          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention)
+      );
+    } catch (final KafkaTopicExistsException e) {
+      log.info("Command Topic Exists: {}", e.getMessage());
     }
   }
 

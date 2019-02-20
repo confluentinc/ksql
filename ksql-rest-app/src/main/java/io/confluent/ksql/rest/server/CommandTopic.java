@@ -18,7 +18,7 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
-import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
+import io.confluent.ksql.rest.util.CommandTopicJsonSerdeUtil;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -56,13 +56,13 @@ public class CommandTopic {
         commandTopicName,
         new KafkaConsumer<>(
             Objects.requireNonNull(kafkaConsumerProperties, "kafkaClientProperties"),
-            InternalTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
-            InternalTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
+            CommandTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
+            CommandTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
         ),
         new KafkaProducer<>(
             Objects.requireNonNull(kafkaProducerProperties, "kafkaClientProperties"),
-            InternalTopicJsonSerdeUtil.getJsonSerializer(true),
-            InternalTopicJsonSerdeUtil.getJsonSerializer(false)
+            CommandTopicJsonSerdeUtil.getJsonSerializer(true),
+            CommandTopicJsonSerdeUtil.getJsonSerializer(false)
         ));
   }
 

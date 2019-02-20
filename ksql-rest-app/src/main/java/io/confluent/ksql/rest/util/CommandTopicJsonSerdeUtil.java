@@ -22,9 +22,11 @@ import java.util.Map;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
-public final class InternalTopicJsonSerdeUtil {
 
-  private InternalTopicJsonSerdeUtil(){}
+
+public final class CommandTopicJsonSerdeUtil {
+
+  private CommandTopicJsonSerdeUtil(){}
 
   public static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
     final Serializer<T> result = new KafkaJsonSerializer<>();

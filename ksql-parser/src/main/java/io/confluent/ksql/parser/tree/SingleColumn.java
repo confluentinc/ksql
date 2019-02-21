@@ -24,31 +24,44 @@ import java.util.Optional;
 public class SingleColumn
     extends SelectItem {
 
+  private final Optional<AllColumns> source;
   private final Optional<String> alias;
   private final Expression expression;
 
   public SingleColumn(final Expression expression) {
-    this(Optional.empty(), expression, Optional.empty());
+    this(Optional.empty(), expression, Optional.empty(), Optional.empty());
   }
 
   public SingleColumn(final Expression expression, final Optional<String> alias) {
-    this(Optional.empty(), expression, alias);
+    this(Optional.empty(), expression, alias, Optional.empty());
   }
 
   public SingleColumn(final Expression expression, final String alias) {
-    this(Optional.empty(), expression, Optional.of(alias));
+    this(Optional.empty(), expression, Optional.of(alias), Optional.empty());
   }
 
   public SingleColumn(
       final NodeLocation location, final Expression expression, final Optional<String> alias) {
-    this(Optional.of(location), expression, alias);
+    this(Optional.of(location), expression, alias, Optional.empty());
   }
 
-  private SingleColumn(final Optional<NodeLocation> location, final Expression expression,
-                       final Optional<String> alias) {
+  public SingleColumn(final Expression expression, final String alias, final AllColumns source) {
+    this(Optional.empty(), expression, Optional.of(alias), Optional.of(source));
+  }
+
+  private SingleColumn(final SingleColumn other, final Expression expression) {
+    this(other.getLocation(), expression, other.alias, other.source);
+  }
+
+  private SingleColumn(
+      final Optional<NodeLocation> location,
+      final Expression expression,
+      final Optional<String> alias,
+      final Optional<AllColumns> source) {
     super(location);
     requireNonNull(expression, "expression is null");
     requireNonNull(alias, "alias is null");
+    requireNonNull(source, "source is null");
 
     alias.ifPresent(name -> {
       checkForReservedToken(expression, name, SchemaUtil.ROWTIME_NAME);
@@ -57,6 +70,11 @@ public class SingleColumn
 
     this.expression = expression;
     this.alias = alias;
+    this.source = source;
+  }
+
+  public SingleColumn copyWithExpression(final Expression expression) {
+    return new SingleColumn(this, expression);
   }
 
   private void checkForReservedToken(
@@ -78,6 +96,10 @@ public class SingleColumn
     return expression;
   }
 
+  public Optional<AllColumns> getSource() {
+    return source;
+  }
+
   @Override
   public boolean equals(final Object obj) {
     if (this == obj) {
@@ -87,22 +109,22 @@ public class SingleColumn
       return false;
     }
     final SingleColumn other = (SingleColumn) obj;
-    return Objects.equals(this.alias, other.alias) && Objects
-        .equals(this.expression, other.expression);
+    return Objects.equals(this.alias, other.alias)
+        && Objects.equals(this.expression, other.expression)
+        && Objects.equals(this.source, other.source);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(alias, expression);
+    return Objects.hash(source, alias, expression);
   }
 
   @Override
   public String toString() {
-    if (alias.isPresent()) {
-      return expression.toString() + " " + alias.get();
-    }
-
-    return expression.toString();
+    return "SingleColumn{" + "source=" + source
+        + ", alias=" + alias
+        + ", expression=" + expression
+        + '}';
   }
 
   @Override

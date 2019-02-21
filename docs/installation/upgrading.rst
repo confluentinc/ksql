@@ -8,45 +8,9 @@ capacity to take over temporarily for unavailable, restarting servers.
 
 
 Upgrading from KSQL 5.1 to KSQL 5.2
------------------------------------
+-------------------------------------------------------
 
 Notable changes in 5.2:
-
-* KSQL Server
-
-    * Non-interactive mode:
-
-        * Non-interactive mode now explicitly rejects ``CREATE STREAM`` and ``CREATE TABLE``
-          statements that do not define any columns.
-          See `Interactive mode rejects statements without defined columns`_ for more info.
-
-
-Interactive mode rejects statements without defined columns
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-With this release, non-interactive, "headless" mode explicitly rejects ``CREATE STREAM`` and
-``CREATE TABLE`` statements that do not define any columns, for example:
-
-``CREATE STREAM FOO /*no columns defined here*/ WITH (...);``
-
-Interactive mode supports building the column set from a schema retrieved from the Schema Registry,
-if a ``CREATE STREAM`` or ``CREATE TABLE`` statement does not provide them. This is known as
-*schema inference*.
-
-Interactive mode captures the column set at the time the statement was submitted via the CLI or
-RESTful API and persists it to Kafka. This ensures each node within the cluster is using a
-consistent column set and will continue to do so if the schema in the Schema Registry change
-and the node is restarted.
-
-Headless mode does not currently support storing the column set in Kafka, so
-schema inference has been disabled in this mode to avoid inconsistencies between
-cluster nodes and undefined behavior if the schema in the Schema Registry changes.
-(`Github issue 1530 <https://github.com/confluentinc/ksql/issues/1530>`_ looks to add support for
-schema inference to headless mode).
-
-To resolve the issue, add the required column definition to the statement, for example:
-
-``CREATE STREAM FOO (f0 INT, f1 BIGINT, ...) WITH (...);``
 
 Upgrading from KSQL 0.x (Developer Preview) to KSQL 4.1
 -------------------------------------------------------

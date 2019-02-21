@@ -29,6 +29,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.io.IOException;
@@ -39,6 +41,7 @@ import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -139,6 +142,7 @@ public class StandaloneExecutorFunctionalTest {
 
   @Test
   public void shouldHandleJsonWithSchemas() {
+    // Given:
     givenScript(""
         + "CREATE STREAM S (ORDERTIME BIGINT)"
         + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json');\n"
@@ -205,7 +209,7 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   @Test
-  public void shouldFailOnAvroWithoutSchemas() {
+  public void shouldInferAvroSchema() {
     // Given:
     givenScript(""
         + "SET 'auto.offset.reset' = 'earliest';"
@@ -214,12 +218,47 @@ public class StandaloneExecutorFunctionalTest {
         + ""
         + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
 
+    // When:
+    standalone.start();
+
     // Then:
-    expectedException.expect(UnsupportedOperationException.class);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, AVRO, DATA_SCHEMA);
+  }
+
+  @Test
+  public void shouldFailOnAvroWithoutSchemasIfSchemaNotAvailable() {
+    // Given:
+    TEST_HARNESS.ensureTopics("topic-without-schema");
+
+    givenScript(""
+        + "SET 'auto.offset.reset' = 'earliest';"
+        + ""
+        + "CREATE STREAM S WITH (kafka_topic='topic-without-schema', value_format='avro');");
+
+    // Then:
+    expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Script contains 'CREATE STREAM' or 'CREATE TABLE' statements without a defined schema.");
-    expectedException.expectMessage(
-        "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');");
+        "Schema registry fetch for topic topic-without-schema request failed");
+
+    // When:
+    standalone.start();
+  }
+
+  @Test
+  public void shouldFailOnAvroWithoutSchemasIfSchemaNotEvolvable() {
+    // Given:
+    givenIncompatibleSchemaExists(s1);
+
+    givenScript(""
+        + "SET 'auto.offset.reset' = 'earliest';"
+        + ""
+        + "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
+        + ""
+        + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expectMessage("schema evolution issues");
 
     // When:
     standalone.start();
@@ -247,6 +286,14 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, JSON, DATA_SCHEMA);
+  }
+
+  private static void givenIncompatibleSchemaExists(final String topicName) {
+    final Schema incompatible = SchemaBuilder.struct()
+        .field("ORDERID", Schema.INT64_SCHEMA)
+        .build();
+
+    TEST_HARNESS.ensureSchema(topicName, incompatible);
   }
 
   private void givenScript(final String contents) {

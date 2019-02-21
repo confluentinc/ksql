@@ -343,8 +343,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     ) {
       throwOnImmutableOverride(overriddenProperties);
 
-      final DdlCommand command = ddlCommandFactory
-          .create(sqlExpression, statement, overriddenProperties);
+      final DdlCommand command = ddlCommandFactory.create(
+          sqlExpression,
+          statement,
+          overriddenProperties
+      );
 
       final DdlCommandResult result = ddlCommandExec.execute(command);
 

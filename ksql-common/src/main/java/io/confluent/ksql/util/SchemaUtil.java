@@ -334,7 +334,7 @@ public final class SchemaUtil {
         .collect(Collectors.joining(", ", "STRUCT<", ">"));
   }
 
-  static org.apache.avro.Schema buildAvroSchema(final Schema schema, final String name) {
+  public static org.apache.avro.Schema buildAvroSchema(final Schema schema, final String name) {
     return buildAvroSchema(DEFAULT_NAMESPACE, name, schema);
   }
 

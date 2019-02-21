@@ -420,9 +420,8 @@ public class AvroSchemaInferenceTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementText, metaStore)
         .getStatement();
 
-    final PreparedStatement<?> inferred
-        = StatementWithSchema.forStatement(
-        statement, statementText, schemaRegistryClient);
+    final PreparedStatement<?> inferred = StatementWithSchema.forStatement(
+        PreparedStatement.of(statementText, statement), schemaRegistryClient);
 
     final Statement statementWithSchema
         = KsqlParserTestUtil.buildSingleAst(inferred.getStatementText(), metaStore).getStatement();

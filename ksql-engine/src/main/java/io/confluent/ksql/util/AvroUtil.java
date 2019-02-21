@@ -96,10 +96,11 @@ public final class AvroUtil {
     }
   }
 
-  private static SchemaMetadata getSchemaMetadata(final AbstractStreamCreateStatement
-                                                          abstractStreamCreateStatement,
-                                                  final SchemaRegistryClient schemaRegistryClient,
-                                                  final String kafkaTopicName) {
+  private static SchemaMetadata getSchemaMetadata(
+      final AbstractStreamCreateStatement abstractStreamCreateStatement,
+      final SchemaRegistryClient schemaRegistryClient,
+      final String kafkaTopicName
+  ) {
     try {
       return fetchSchemaMetadata(
               abstractStreamCreateStatement,

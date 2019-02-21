@@ -25,13 +25,6 @@ public final class StatementWithSchema {
   private StatementWithSchema() {
   }
 
-  public static <T extends Statement> PreparedStatement<T> forStatement(
-      final T statement,
-      final String statementText,
-      final SchemaRegistryClient schemaRegistryClient) {
-    return forStatement(PreparedStatement.of(statementText, statement), schemaRegistryClient);
-  }
-
   @SuppressWarnings("unchecked")
   public static <T extends Statement> PreparedStatement<T> forStatement(
       final PreparedStatement<T> statement,

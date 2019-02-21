@@ -32,12 +32,14 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -62,22 +64,6 @@ import org.slf4j.LoggerFactory;
 public class StandaloneExecutor implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(StandaloneExecutor.class);
-
-  private static final String MISSING_SCHEMA_MESSAGE = ""
-      + "Script contains 'CREATE STREAM' or 'CREATE TABLE' statements without a defined schema. "
-      + "Headless mode does not currently support schema inference via the Schema Registry. "
-      + "(See https://github.com/confluentinc/ksql/issues/1530 for more info)."
-      + System.lineSeparator()
-      + "Please update the script to include the schema, e.g. switch from:"
-      + System.lineSeparator()
-      + "\tCREATE STREAM FOO WITH (...);"
-      + System.lineSeparator()
-      + "to:"
-      + System.lineSeparator()
-      + "\tCREATE STREAM FOO (f0 INT, ...) WITH (...);"
-      + System.lineSeparator()
-      + "Statement missing schema:"
-      + System.lineSeparator();
 
   private final ServiceContext serviceContext;
   private final ProcessingLogConfig processingLogConfig;
@@ -176,7 +162,7 @@ public class StandaloneExecutor implements Executable {
 
     executeStatements(
         preparedStatements,
-        new StatementExecutor(ksqlEngine, configProperties, ksqlConfig)
+        new StatementExecutor(ksqlEngine, serviceContext, configProperties, ksqlConfig)
     );
 
     ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
@@ -185,6 +171,7 @@ public class StandaloneExecutor implements Executable {
   private void validateStatements(final List<ParsedStatement> statements) {
     final StatementExecutor sandboxExecutor = new StatementExecutor(
         ksqlEngine.createSandbox(),
+        SandboxedServiceContext.create(serviceContext),
         new HashMap<>(configProperties),
         ksqlConfig
     );
@@ -259,15 +246,18 @@ public class StandaloneExecutor implements Executable {
     private static final String SUPPORTED_STATEMENTS = generateSupportedMessage();
 
     private final KsqlExecutionContext executionContext;
+    private final ServiceContext serviceContext;
     private final Map<String, Object> configProperties;
     private final KsqlConfig ksqlConfig;
 
     private StatementExecutor(
         final KsqlExecutionContext executionContext,
+        final ServiceContext serviceContext,
         final Map<String, Object> configProperties,
         final KsqlConfig ksqlConfig
     ) {
       this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
+      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.configProperties = Objects.requireNonNull(configProperties, "configProperties");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
@@ -276,28 +266,29 @@ public class StandaloneExecutor implements Executable {
      * @return true if the statement contained a query, false otherwise
      */
     @SuppressWarnings("unchecked")
-    private <T extends Statement> boolean execute(final ParsedStatement statement) {
-      final PreparedStatement<?> prepared = executionContext.prepare(statement);
+    boolean execute(final ParsedStatement statement) {
+      final PreparedStatement<?> prepared = prepare(statement);
 
       throwOnMissingSchema(prepared);
 
       final Handler<Statement> handler = HANDLERS.get(prepared.getStatement().getClass());
       if (handler == null) {
-        throw new KsqlException(String.format("Unsupported statement: %s%n"
-                + "Only the following statements are supporting in standalone mode:%n"
-                + SUPPORTED_STATEMENTS,
-            statement.getStatementText()));
+        throw new KsqlStatementException("Unsupported statement. "
+            + "Only the following statements are supporting in standalone mode:"
+            + System.lineSeparator()
+            + SUPPORTED_STATEMENTS,
+            statement.getStatementText());
       }
 
       handler.handle(this, (PreparedStatement) prepared);
       return prepared.getStatement() instanceof QueryContainer;
     }
 
-    /**
-     * Standalone mode does not _yet_ support schema discovery via the schema registry.
-     *
-     * @see <a href="https://github.com/confluentinc/ksql/issues/1530">GitHub issue 1530</a>
-     */
+    private PreparedStatement<?> prepare(final ParsedStatement statement) {
+      final PreparedStatement<?> prepared = executionContext.prepare(statement);
+      return StatementWithSchema.forStatement(prepared, serviceContext.getSchemaRegistryClient());
+    }
+
     private static void throwOnMissingSchema(final PreparedStatement<?> statement) {
       if (!(statement.getStatement() instanceof AbstractStreamCreateStatement)) {
         return;
@@ -307,8 +298,9 @@ public class StandaloneExecutor implements Executable {
         return;
       }
 
-      throw new UnsupportedOperationException(MISSING_SCHEMA_MESSAGE
-          + statement.getStatementText());
+      throw new KsqlStatementException("statement does not define the schema "
+          + "and the supplied format does not support schema inference",
+          statement.getStatementText());
     }
 
     private void handleSetProperty(final PreparedStatement<SetProperty> statement) {

@@ -19,7 +19,6 @@ import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.config.PropertyValidator;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
 
@@ -39,9 +38,7 @@ public class LocalPropertyParser implements PropertyParser {
 
   @Override
   public Object parse(final String property, final Object value) {
-    if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)
-        || property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-
+    if (property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
       validator.validate(property, value);
       return value;
     }

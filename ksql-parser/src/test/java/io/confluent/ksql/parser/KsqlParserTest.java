@@ -502,14 +502,13 @@ public class KsqlParserTest {
   public void testRegisterTopic() {
     final String
         queryStr =
-        "REGISTER TOPIC orders_topic WITH (value_format = 'avro', "
-        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+        "REGISTER TOPIC orders_topic WITH (value_format = 'avro',kafka_topic='orders_topic');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof RegisterTopic);
     final RegisterTopic registerTopic = (RegisterTopic)statement;
     Assert.assertTrue("testRegisterTopic failed.", registerTopic
         .getName().toString().equalsIgnoreCase("ORDERS_TOPIC"));
-    Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().size() == 3);
+    Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().size() == 2);
     Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
   }
 
@@ -529,7 +528,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateStreamWithTopicWithStruct() throws Exception {
+  public void testCreateStreamWithTopicWithStruct() {
     final String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
@@ -551,12 +550,11 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateStream() throws Exception {
+  public void testCreateStream() {
     final String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (value_format = 'avro', "
-        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+        + "double) WITH (value_format = 'avro', kafka_topic='orders_topic');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
@@ -566,7 +564,6 @@ public class KsqlParserTest {
     Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
     Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig
                                                                                        .VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString().equalsIgnoreCase("'/Users/hojjat/avro_order_schema.avro'"));
   }
 
   @Test

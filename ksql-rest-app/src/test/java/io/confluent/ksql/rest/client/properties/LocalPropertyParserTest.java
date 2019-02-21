@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.PropertyValidator;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
@@ -67,24 +66,6 @@ public class LocalPropertyParserTest {
 
     when(resolver.resolve(anyString(), anyBoolean()))
         .thenReturn(Optional.of(configItem));
-  }
-
-  @Test
-  public void shouldNotCallResolverForAvroSchemaConstant() {
-    // When:
-    parser.parse(DdlConfig.AVRO_SCHEMA, "100");
-
-    // Then:
-    verify(resolver, never()).resolve(anyString(), anyBoolean());
-  }
-
-  @Test
-  public void shouldCallValidatorForAvroSchemaConstant() {
-    // When:
-    parser.parse(DdlConfig.AVRO_SCHEMA, "something");
-
-    // Then:
-    verify(validator).validate(DdlConfig.AVRO_SCHEMA, "something");
   }
 
   @Test

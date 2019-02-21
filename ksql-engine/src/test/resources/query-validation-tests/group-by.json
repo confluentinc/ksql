@@ -502,50 +502,48 @@
       }
     },
     {
-      "name": "arithmetic binary expression (stream->table)",
+      "name": "arithmetic binary expression with projection in-order & non-commutative group by (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT f2 + f1, COUNT(*) FROM TEST GROUP BY f2 + f1;"
+        "CREATE TABLE OUTPUT AS SELECT f2 - f1, COUNT(*) FROM TEST GROUP BY f2 - f1;"
       ],
       "inputs": [
         {"topic": "test_topic", "value": "1,2"},
         {"topic": "test_topic", "value": "2,3"},
-        {"topic": "test_topic", "value": "2,1"},
-        {"topic": "test_topic", "value": "2,2"},
-        {"topic": "test_topic", "value": "3,2"}
+        {"topic": "test_topic", "value": "2,4"},
+        {"topic": "test_topic", "value": "6,8"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
-        {"topic": "OUTPUT", "key": "5", "value": "5,1"},
-        {"topic": "OUTPUT", "key": "3", "value": "3,2"},
-        {"topic": "OUTPUT", "key": "4", "value": "4,1"},
-        {"topic": "OUTPUT", "key": "5", "value": "5,2"}
+        {"topic": "OUTPUT", "key": "1", "value": "1,1"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
+        {"topic": "OUTPUT", "key": "2", "value": "2,1"},
+        {"topic": "OUTPUT", "key": "2", "value": "2,2"}
       ]
     },
     {
-      "name": "arithmetic binary expression (table->table)",
+      "name": "arithmetic binary expression with projection in-order & non-commutative group by (table->table)",
       "statements": [
         "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT f0 + f1, COUNT(*) FROM TEST GROUP BY f0 + f1;"
+        "CREATE TABLE OUTPUT AS SELECT f0 - f1, COUNT(*) FROM TEST GROUP BY f0 - f1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "1", "value": "1,0"},
         {"topic": "test_topic", "key": "2", "value": "2,1"},
-        {"topic": "test_topic", "key": "3", "value": "3,0"},
+        {"topic": "test_topic", "key": "3", "value": "3,1"},
         {"topic": "test_topic", "key": "1", "value": null},
-        {"topic": "test_topic", "key": "2", "value": "2,0"}
+        {"topic": "test_topic", "key": "2", "value": "4,2"}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": "1,1"},
-        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
-        {"topic": "OUTPUT", "key": "3", "value": "3,2"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,2"},
+        {"topic": "OUTPUT", "key": "2", "value": "2,1"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,1"},
         {"topic": "OUTPUT", "key": "1", "value": "1,0"},
-        {"topic": "OUTPUT", "key": "3", "value": "3,1"},
-        {"topic": "OUTPUT", "key": "2", "value": "2,1"}
+        {"topic": "OUTPUT", "key": "2", "value": "2,2"}
       ]
     },
     {
-      "name": "arithmetic binary expression with inconsistent projection order and inconsistent result (stream->table)",
+      "name": "arithmetic binary expression with projection out-of-order & non-commutative group by (stream->table)",
       "statements": [
         "CREATE STREAM TEST (f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 - f2, COUNT(*) FROM TEST GROUP BY f2 - f1;"
@@ -556,7 +554,7 @@
       }
     },
     {
-      "name": "arithmetic binary expression with inconsistent projection order and inconsistent result (table->table)",
+      "name": "arithmetic binary expression with projection out-of-order & non-commutative group by (table->table)",
       "statements": [
         "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', KEY='f0', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 - f0, COUNT(*) FROM TEST GROUP BY f0 - f1;"
@@ -771,6 +769,28 @@
       }
     },
     {
+      "name": "aggregate function nested in arithmetic (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY 1 + SUM(d2);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "GROUP BY does not support aggregate functions: SUM is an aggregate function."
+      }
+    },
+    {
+      "name": "aggregate function nested in UDF (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY SUBSTRING(d1, SUM(d2), 1);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "GROUP BY does not support aggregate functions: SUM is an aggregate function."
+      }
+    },
+    {
       "name": "with projection without aggregate functions (stream->table)",
       "statements": [
         "CREATE STREAM TEST (d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -780,6 +800,72 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "GROUP BY requires columns using aggregate functions in SELECT clause."
       }
+    },
+    {
+      "name": "UDAF nested in UDF in select expression (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING('Mr Bugalicious', CAST(COUNT(*) AS INT), 1) FROM TEST GROUP BY d1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "x"},
+        {"topic": "test_topic", "value": "xxx"},
+        {"topic": "test_topic", "value": "y"},
+        {"topic": "test_topic", "value": "x"},
+        {"topic": "test_topic", "value": "xxx"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "x", "value": "M"},
+        {"topic": "OUTPUT", "key": "xxx", "value": "M"},
+        {"topic": "OUTPUT", "key": "y", "value": "M"},
+        {"topic": "OUTPUT", "key": "x", "value": "r"},
+        {"topic": "OUTPUT", "key": "xxx", "value": "r"}
+      ]
+    },
+    {
+      "name": "UDAF nested in UDF in select expression (table->table)",
+      "statements": [
+        "CREATE TABLE TEST (d0 INT, d1 VARCHAR) WITH (kafka_topic='test_topic', key='d0', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT SUBSTRING('Mr Bugalicious', CAST(COUNT(*) AS INT), 1) FROM TEST GROUP BY d1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "0", "value": "0,x"},
+        {"topic": "test_topic", "key": "1", "value": "1,x"},
+        {"topic": "test_topic", "key": "2", "value": "2,xxx"},
+        {"topic": "test_topic", "key": "3", "value": "3,xxx"},
+        {"topic": "test_topic", "key": "1", "value": null},
+        {"topic": "test_topic", "key": "2", "value": "2,yy"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "x", "value": "M"},
+        {"topic": "OUTPUT", "key": "x", "value": "r"},
+        {"topic": "OUTPUT", "key": "xxx", "value": "M"},
+        {"topic": "OUTPUT", "key": "xxx", "value": "r"},
+        {"topic": "OUTPUT", "key": "x", "value": "M"},
+        {"topic": "OUTPUT", "key": "xxx", "value": "M"},
+        {"topic": "OUTPUT", "key": "yy", "value": "M"}
+      ]
+    },
+    {
+      "name": "UDF nested in UDAF in select expression (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT SUM(LEN(d1)) FROM TEST GROUP BY d1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "x"},
+        {"topic": "test_topic", "value": "xxx"},
+        {"topic": "test_topic", "value": "y"},
+        {"topic": "test_topic", "value": "x"},
+        {"topic": "test_topic", "value": "xxx"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "x", "value": "1"},
+        {"topic": "OUTPUT", "key": "xxx", "value": "3"},
+        {"topic": "OUTPUT", "key": "y", "value": "1"},
+        {"topic": "OUTPUT", "key": "x", "value": "2"},
+        {"topic": "OUTPUT", "key": "xxx", "value": "6"}
+      ]
     }
   ]
 }

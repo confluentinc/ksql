@@ -1216,11 +1216,12 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CURRENTDATE            |  ``CURRENTDATE()``                                                        | Gets an integer representing days since epoch.    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| CURRENTTIMESTAMP       |  ``CURRENTTIMESTAMP([TIMEZONE])``                                         | Gets the current timestamp represented in         |
-|                        |                                                                           | millisecond as BIGINT.                            |
+| CURRENTTIMESTAMP       |  ``CURRENTTIMESTAMP([TIMEZONE])``                                         | Gets the current timestamp in milliseconds,       |
+|                        |                                                                           | represented as a BIGINT.                          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
-|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
+|                        |                                                                           | ``java.util.TimeZone`` ID format, for example:    |
+|                        |                                                                           | "UTC", "America/Los_Angeles", "PDT",              |
+|                        |                                                                           | "Europe/London".                                  |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |
@@ -1331,8 +1332,9 @@ Scalar functions
 |                        |                                                                           | two successive single quotes, ``''``, for         |
 |                        |                                                                           | example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
-|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
+|                        |                                                                           | ``java.util.TimeZone`` ID format, for example:    |
+|                        |                                                                           | "UTC", "America/Los_Angeles", "PDT",              |
+|                        |                                                                           | "Europe/London".                                  |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                                | ``SUBSTRING(str, pos, [len]``.                    |
 |                        |                                                                           | Returns a substring of ``str`` that starts at     |
@@ -1364,8 +1366,9 @@ Scalar functions
 |                        |                                                                           | successive single quotes, ``''``, for example:    |
 |                        |                                                                           | ``'yyyy-MM-dd''T''HH:mm:ssX'``.                   |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
-|                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
+|                        |                                                                           | ``java.util.TimeZone`` ID format, for example:    |
+|                        |                                                                           | "UTC", "America/Los_Angeles", "PDT",              |
+|                        |                                                                           | "Europe/London".                                  |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | TRIM                   |  ``TRIM(col1)``                                                           | Trim the spaces from the beginning and end of     |
 |                        |                                                                           | a string.                                         |

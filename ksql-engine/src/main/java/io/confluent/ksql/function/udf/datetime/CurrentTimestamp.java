@@ -22,7 +22,7 @@ import java.sql.Timestamp;
 import java.time.ZoneId;
 
 @UdfDescription(name = "currenttimestamp",
-    description = "Gets the current timestamp represented in millisecond as BIGINT.")
+    description = "Gets the current timestamp in milliseconds, represented as a BIGINT.")
 public class CurrentTimestamp {
 
   @Udf(description = "Gets a BIGINT millisecond from the current timestamp.")

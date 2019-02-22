@@ -17,8 +17,8 @@ package io.confluent.ksql.structured;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -140,8 +140,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         functionRegistry,
         processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.FILTER.name()).getQueryContext())),
-        processingLogContext
+                contextStacker.push(Type.FILTER.name()).getQueryContext()))
     );
     final KTable filteredKTable = ktable.filter(predicate.getPredicate());
     return new SchemaKTable<>(
@@ -166,8 +165,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         selectExpressions,
         processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.PROJECT.name()).getQueryContext())),
-        processingLogContext
+                contextStacker.push(Type.PROJECT.name()).getQueryContext()))
     );
     return new SchemaKTable<>(
         selection.getProjectedSchema(),

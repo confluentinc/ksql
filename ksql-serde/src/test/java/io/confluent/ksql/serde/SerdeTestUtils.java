@@ -20,8 +20,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import io.confluent.common.logging.StructuredLogger;
-import java.util.function.Supplier;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.mockito.ArgumentCaptor;
 
@@ -31,11 +32,12 @@ public final class SerdeTestUtils {
 
   @SuppressWarnings("unchecked")
   public static void shouldLogError(
-      final StructuredLogger recordLogger,
-      final SchemaAndValue expected) {
-    final ArgumentCaptor<Supplier> capture = ArgumentCaptor.forClass(Supplier.class);
+      final ProcessingLogger recordLogger,
+      final SchemaAndValue expected,
+      final ProcessingLogConfig config) {
+    final ArgumentCaptor<Function> capture = ArgumentCaptor.forClass(Function.class);
     verify(recordLogger, times(1)).error(capture.capture());
-    final Object errorMsg = capture.getValue().get();
+    final Object errorMsg = capture.getValue().apply(config);
     assertThat(errorMsg, instanceOf(SchemaAndValue.class));
     assertThat(errorMsg, equalTo(expected));
   }

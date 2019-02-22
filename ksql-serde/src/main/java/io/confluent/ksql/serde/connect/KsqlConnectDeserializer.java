@@ -14,9 +14,8 @@
 
 package io.confluent.ksql.serde.connect;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.util.Map;
 import java.util.Optional;
@@ -27,18 +26,15 @@ import org.apache.kafka.connect.storage.Converter;
 public class KsqlConnectDeserializer implements Deserializer<GenericRow> {
   final Converter converter;
   final DataTranslator connectToKsqlTranslator;
-  final StructuredLogger recordLogger;
-  final ProcessingLogContext processingLogContext;
+  final ProcessingLogger recordLogger;
 
   public KsqlConnectDeserializer(
       final Converter converter,
       final DataTranslator connectToKsqlTranslator,
-      final StructuredLogger recordLogger,
-      final ProcessingLogContext processingLogContext) {
+      final ProcessingLogger recordLogger) {
     this.converter = converter;
     this.connectToKsqlTranslator = connectToKsqlTranslator;
     this.recordLogger = recordLogger;
-    this.processingLogContext = processingLogContext;
   }
 
   @Override
@@ -55,8 +51,8 @@ public class KsqlConnectDeserializer implements Deserializer<GenericRow> {
       recordLogger.error(
           SerdeProcessingLogMessageFactory.deserializationErrorMsg(
               e,
-              Optional.ofNullable(bytes),
-              processingLogContext.getConfig()));
+              Optional.ofNullable(bytes))
+      );
       throw e;
     }
   }

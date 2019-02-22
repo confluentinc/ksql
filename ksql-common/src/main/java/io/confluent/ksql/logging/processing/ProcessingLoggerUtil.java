@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -12,12 +12,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.processing.log;
+package io.confluent.ksql.logging.processing;
 
-public final class ProcessingLogConstants {
-  public static final String DELIMITER = ".";
-  public static final String PREFIX = "processing";
+import java.util.Arrays;
 
-  private ProcessingLogConstants() {
+public final class ProcessingLoggerUtil {
+  private ProcessingLoggerUtil() {
+  }
+
+  public static String join(final String... levels) {
+    return join(Arrays.asList(levels));
+  }
+
+  public static String join(final Iterable<String> levels) {
+    return String.join(ProcessingLogConstants.DELIMITER, levels);
   }
 }

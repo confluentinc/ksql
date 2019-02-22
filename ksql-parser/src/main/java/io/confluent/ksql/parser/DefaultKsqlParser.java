@@ -106,9 +106,6 @@ public class DefaultKsqlParser implements KsqlParser {
     sqlBaseLexer.removeErrorListeners();
     sqlBaseLexer.addErrorListener(ERROR_LISTENER);
 
-    sqlBaseParser.removeErrorListeners();
-    sqlBaseParser.addErrorListener(ERROR_LISTENER);
-
     final Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
 
     try {

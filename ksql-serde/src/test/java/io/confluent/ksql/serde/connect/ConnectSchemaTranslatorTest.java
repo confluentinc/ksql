@@ -25,7 +25,7 @@ import org.junit.Test;
 
 
 public class ConnectSchemaTranslatorTest {
-  final ConnectSchemaTranslator schemaTranslator = new ConnectSchemaTranslator();
+  private final ConnectSchemaTranslator schemaTranslator = new ConnectSchemaTranslator();
 
   @Test
   public void shouldTranslatePrimitives() {

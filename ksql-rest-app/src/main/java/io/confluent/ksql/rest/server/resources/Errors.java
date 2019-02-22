@@ -77,7 +77,7 @@ public final class Errors {
     return badStatement(msg, statementText, new KsqlEntityList());
   }
 
-  private static Response badStatement(
+  static Response badStatement(
       final String msg,
       final String statementText,
       final KsqlEntityList entities) {

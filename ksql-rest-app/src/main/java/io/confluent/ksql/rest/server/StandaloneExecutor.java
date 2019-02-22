@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -39,7 +40,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -57,6 +57,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +75,8 @@ public class StandaloneExecutor implements Executable {
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
   private final Map<String, Object> configProperties = new HashMap<>();
   private final boolean failOnNoQueries;
-  private final VersionCheckerAgent versionCheckerAgent;
+  private final VersionCheckerAgent versionChecker;
+  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
 
   StandaloneExecutor(
       final ServiceContext serviceContext,
@@ -84,7 +86,8 @@ public class StandaloneExecutor implements Executable {
       final String queriesFile,
       final UdfLoader udfLoader,
       final boolean failOnNoQueries,
-      final VersionCheckerAgent versionCheckerAgent
+      final VersionCheckerAgent versionChecker,
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogConfig = Objects.requireNonNull(processingLogConfig, "processingLogConfig");
@@ -93,8 +96,9 @@ public class StandaloneExecutor implements Executable {
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader");
     this.failOnNoQueries = failOnNoQueries;
-    this.versionCheckerAgent =
-        Objects.requireNonNull(versionCheckerAgent, "VersionCheckerAgent");
+    this.versionChecker = Objects.requireNonNull(versionChecker, "versionChecker");
+    this.schemaInjectorFactory = Objects
+        .requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
   }
 
   public void start() {
@@ -112,7 +116,7 @@ public class StandaloneExecutor implements Executable {
       showWelcomeMessage();
       final Properties properties = new Properties();
       properties.putAll(configProperties);
-      versionCheckerAgent.start(KsqlModuleType.SERVER, properties);
+      versionChecker.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
       stop();
@@ -160,18 +164,23 @@ public class StandaloneExecutor implements Executable {
 
     validateStatements(preparedStatements);
 
+    final SchemaInjector schemaInjector = schemaInjectorFactory.apply(serviceContext);
+
     executeStatements(
         preparedStatements,
-        new StatementExecutor(ksqlEngine, serviceContext, configProperties, ksqlConfig)
+        new StatementExecutor(ksqlEngine, schemaInjector, configProperties, ksqlConfig)
     );
 
     ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
   }
 
   private void validateStatements(final List<ParsedStatement> statements) {
+    final SchemaInjector schemaInjector = schemaInjectorFactory
+        .apply(SandboxedServiceContext.create(serviceContext));
+
     final StatementExecutor sandboxExecutor = new StatementExecutor(
         ksqlEngine.createSandbox(),
-        SandboxedServiceContext.create(serviceContext),
+        schemaInjector,
         new HashMap<>(configProperties),
         ksqlConfig
     );
@@ -246,18 +255,18 @@ public class StandaloneExecutor implements Executable {
     private static final String SUPPORTED_STATEMENTS = generateSupportedMessage();
 
     private final KsqlExecutionContext executionContext;
-    private final ServiceContext serviceContext;
+    private final SchemaInjector schemaInjector;
     private final Map<String, Object> configProperties;
     private final KsqlConfig ksqlConfig;
 
     private StatementExecutor(
         final KsqlExecutionContext executionContext,
-        final ServiceContext serviceContext,
+        final SchemaInjector schemaInjector,
         final Map<String, Object> configProperties,
         final KsqlConfig ksqlConfig
     ) {
       this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
-      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+      this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
       this.configProperties = Objects.requireNonNull(configProperties, "configProperties");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
@@ -286,7 +295,7 @@ public class StandaloneExecutor implements Executable {
 
     private PreparedStatement<?> prepare(final ParsedStatement statement) {
       final PreparedStatement<?> prepared = executionContext.prepare(statement);
-      return StatementWithSchema.forStatement(prepared, serviceContext.getSchemaRegistryClient());
+      return schemaInjector.forStatement(prepared);
     }
 
     private static void throwOnMissingSchema(final PreparedStatement<?> statement) {

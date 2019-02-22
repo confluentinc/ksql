@@ -38,7 +38,8 @@ public class IntegerLiteral
     this.value = value;
   }
 
-  public int getValue() {
+  @Override
+  public Integer getValue() {
     return value;
   }
 

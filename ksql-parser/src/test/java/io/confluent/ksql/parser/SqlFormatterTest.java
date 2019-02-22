@@ -181,7 +181,7 @@ public class SqlFormatterTest {
             new StringLiteral("topic_test")
         ));
     final String sql = SqlFormatter.formatSql(createStream);
-    final String expectedSql = "CREATE STREAM TEST \n WITH (KAFKA_TOPIC='topic_test');";
+    final String expectedSql = "CREATE STREAM TEST  WITH (KAFKA_TOPIC='topic_test');";
     assertThat(sql, equalTo(expectedSql));
   }
 

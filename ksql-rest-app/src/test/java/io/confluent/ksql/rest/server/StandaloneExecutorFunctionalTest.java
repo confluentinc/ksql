@@ -16,15 +16,13 @@ package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.processing.log.ProcessingLogConfig;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -37,8 +35,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Map;
+import java.util.function.Function;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -74,9 +72,9 @@ public class StandaloneExecutorFunctionalTest {
   private static Schema DATA_SCHEMA;
 
   @Mock
-  private UdfLoader udfLoader;
-  @Mock
   private VersionCheckerAgent versionChecker;
+  @Mock
+  private ConfigStore configStore;
   private Path queryFile;
   private StandaloneExecutor standalone;
   private String s1;
@@ -102,31 +100,22 @@ public class StandaloneExecutorFunctionalTest {
 
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
 
-    final ServiceContext serviceContext = TestServiceContext.create(
-        ksqlConfig,
-        TEST_HARNESS.getServiceContext().getSchemaRegistryClientFactory()
-    );
+    when(configStore.getKsqlConfig()).thenReturn(ksqlConfig);
 
-    final ProcessingLogConfig processingLogConfig = new ProcessingLogConfig(Collections.emptyMap());
+    final Function<KsqlConfig, ServiceContext> serviceContextFactory = config ->
+        TestServiceContext.create(
+            ksqlConfig,
+            TEST_HARNESS.getServiceContext().getSchemaRegistryClientFactory()
+        );
 
-    final ProcessingLogContext processingLogContext = ProcessingLogContext
-        .create(processingLogConfig);
-
-    final KsqlEngine ksqlEngine = new KsqlEngine(
-        serviceContext,
-        processingLogContext,
-        new InternalFunctionRegistry(),
-        "some-id");
-
-    standalone = new StandaloneExecutor(
-        serviceContext,
-        processingLogConfig,
-        ksqlConfig,
-        ksqlEngine,
+    standalone = StandaloneExecutorFactory.create(
+        properties,
         queryFile.toString(),
-        udfLoader,
-        true,
-        versionChecker
+        ".",
+        serviceContextFactory,
+        (topicName, currentConfig) -> configStore,
+        activeQuerySupplier -> versionChecker,
+        StandaloneExecutor::new
     );
 
     s1 = KsqlIdentifierTestUtil.uniqueIdentifierName("S1");

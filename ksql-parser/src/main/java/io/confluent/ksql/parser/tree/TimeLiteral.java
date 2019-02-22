@@ -38,6 +38,7 @@ public class TimeLiteral
     this.value = value;
   }
 
+  @Override
   public String getValue() {
     return value;
   }

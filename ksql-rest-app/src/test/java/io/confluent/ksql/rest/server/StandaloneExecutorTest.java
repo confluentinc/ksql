@@ -14,10 +14,8 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -29,11 +27,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -58,10 +54,10 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.KsqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.processing.log.ProcessingLogConfig;
+import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -74,11 +70,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -129,12 +126,21 @@ public class StandaloneExecutorTest {
   private final static PreparedStatement<?> PREPARED_STMT_1 = PreparedStatement
       .of("sql 1", CREATE_STREAM);
 
-  private static final String AVRO_SCHEMA = SchemaBuilder
-      .record("thing").fields()
-      .name("thing1").type().optional().intType()
-      .name("thing2").type().optional().stringType()
-      .endRecord()
-      .toString(true);
+  private final static PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement
+      .of("sql 0", new CreateStream(
+          QualifiedName.of("CS 0"),
+          SOME_ELEMENTS,
+          true,
+          Collections.emptyMap()
+      ));
+
+  private final static PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement
+      .of("sql 1", new CreateStream(
+          QualifiedName.of("CS 1"),
+          SOME_ELEMENTS,
+          true,
+          Collections.emptyMap()
+      ));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -154,13 +160,19 @@ public class StandaloneExecutorTest {
   @Mock
   private QueryMetadata nonPersistentQueryMd;
   @Mock
-  private VersionCheckerAgent versionCheckerAgent;
+  private VersionCheckerAgent versionChecker;
   @Mock
   private ServiceContext serviceContext;
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
   private SchemaRegistryClient srClient;
+  @Mock
+  private Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
+  @Mock
+  private SchemaInjector schemaInjector;
+  @Mock
+  private SchemaInjector sandBoxSchemaInjector;
 
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
@@ -187,6 +199,11 @@ public class StandaloneExecutorTest {
 
     when(sandBox.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
 
+    when(schemaInjectorFactory.apply(any())).thenReturn(sandBoxSchemaInjector);
+    when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
+    when(sandBoxSchemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
         processingLogConfig,
@@ -195,7 +212,8 @@ public class StandaloneExecutorTest {
         queriesFile.toString(),
         udfLoader,
         false,
-        versionCheckerAgent);
+        versionChecker,
+        schemaInjectorFactory);
   }
 
   @Test
@@ -203,7 +221,7 @@ public class StandaloneExecutorTest {
     // When:
     standaloneExecutor.start();
 
-    verify(versionCheckerAgent).start(eq(KsqlModuleType.SERVER), any());
+    verify(versionChecker).start(eq(KsqlModuleType.SERVER), any());
   }
 
   @Test
@@ -262,7 +280,8 @@ public class StandaloneExecutorTest {
         queriesFile.toString(),
         udfLoader,
         false,
-        versionCheckerAgent
+        versionChecker,
+        schemaInjectorFactory
     );
 
     // When:
@@ -568,18 +587,18 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(cs);
 
-    givenAvroSchemaExists();
+    when(sandBoxSchemaInjector.forStatement(cs))
+        .thenReturn(STMT_0_WITH_SCHEMA);
+
+    when(schemaInjector.forStatement(cs))
+        .thenReturn(STMT_1_WITH_SCHEMA);
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(argThat(is(preparedStatementText(
-        "CREATE STREAM Bob \n"
-            + "(THING1 INTEGER, THING2 STRING) "
-            + "WITH (VALUE_FORMAT='avro', KAFKA_TOPIC='some-topic', AVRO_SCHEMA_ID='1');"))),
-        any(),
-        any());
+    verify(sandBox).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
+    verify(ksqlEngine).execute(eq(STMT_1_WITH_SCHEMA), any(), any());
   }
 
   private void givenExecutorWillFailOnNoQueries() {
@@ -591,23 +610,15 @@ public class StandaloneExecutorTest {
         queriesFile.toString(),
         udfLoader,
         true,
-        versionCheckerAgent);
+        versionChecker,
+        schemaInjectorFactory
+    );
   }
 
   private void givenFileContainsAPersistentQuery() {
     givenQueryFileParsesTo(
         PreparedStatement.of("InsertInto", new InsertInto(SOME_NAME, query, Optional.empty()))
     );
-  }
-
-  private void givenAvroSchemaExists() {
-    try {
-      final String subject = SOME_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-      when(srClient.getLatestSchemaMetadata(subject))
-          .thenReturn(new SchemaMetadata(1, 1, AVRO_SCHEMA));
-    } catch (final Exception e) {
-      // mocking only
-    }
   }
 
   private void givenQueryFileParsesTo(final PreparedStatement<?>... statements) {

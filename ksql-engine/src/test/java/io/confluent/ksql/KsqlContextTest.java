@@ -14,8 +14,6 @@
 
 package io.confluent.ksql;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -26,31 +24,23 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
-import org.apache.avro.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -74,11 +64,11 @@ public class KsqlContextTest {
   private final static PreparedStatement<?> PREPARED_STMT_1 = PreparedStatement
       .of("sql 1", mock(Statement.class));
 
-  private static final String AVRO_SCHEMA = SchemaBuilder.record("thing").fields()
-      .name("thing1").type().optional().intType()
-      .name("thing2").type().optional().stringType()
-      .endRecord()
-      .toString(true);
+  private final static PreparedStatement<?> STMT_0_WITH_SCHEMA = PreparedStatement
+      .of("sql 0", mock(Statement.class));
+
+  private final static PreparedStatement<?> STMT_1_WITH_SCHEMA = PreparedStatement
+      .of("sql 1", mock(Statement.class));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -94,20 +84,14 @@ public class KsqlContextTest {
   @Mock
   private QueuedQueryMetadata transientQuery;
   @Mock
-  private AbstractStreamCreateStatement createStatement;
-  @Mock
-  private AbstractStreamCreateStatement withSchema;
-  @Mock
-  private SchemaRegistryClient srClient;
-  @Captor
-  private ArgumentCaptor<PreparedStatement<?>> stmtCaptor;
+  private SchemaInjector schemaInjector;
 
   private KsqlContext ksqlContext;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    ksqlContext = new KsqlContext(serviceContext, SOME_CONFIG, ksqlEngine);
+    ksqlContext = new KsqlContext(serviceContext, SOME_CONFIG, ksqlEngine, schemaInjector);
 
     when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0));
 
@@ -116,18 +100,15 @@ public class KsqlContextTest {
 
     when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
 
-    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
-
-    when(createStatement.copyWith(any(), any())).thenReturn(withSchema);
-
-    when(createStatement.getProperties()).thenReturn(ImmutableMap.of(
-        DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON")
-    ));
-
     when(ksqlEngine.createSandbox()).thenReturn(sandbox);
 
     when(sandbox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandbox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
+
+    when(schemaInjector.forStatement(PREPARED_STMT_0))
+        .thenReturn((PreparedStatement) STMT_0_WITH_SCHEMA);
+    when(schemaInjector.forStatement(PREPARED_STMT_1))
+        .thenReturn((PreparedStatement) STMT_1_WITH_SCHEMA);
   }
 
   @Test
@@ -151,9 +132,9 @@ public class KsqlContextTest {
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
-    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_0), any(), any());
+    inOrder.verify(ksqlEngine).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
-    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_1), any(), any());
+    inOrder.verify(ksqlEngine).execute(eq(STMT_1_WITH_SCHEMA), any(), any());
   }
 
   @Test
@@ -167,10 +148,10 @@ public class KsqlContextTest {
 
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine, sandbox);
-    inOrder.verify(sandbox).execute(eq(PREPARED_STMT_0), any(), any());
-    inOrder.verify(sandbox).execute(eq(PREPARED_STMT_1), any(), any());
-    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_0), any(), any());
-    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_1), any(), any());
+    inOrder.verify(sandbox).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
+    inOrder.verify(sandbox).execute(eq(STMT_1_WITH_SCHEMA), any(), any());
+    inOrder.verify(ksqlEngine).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
+    inOrder.verify(ksqlEngine).execute(eq(STMT_1_WITH_SCHEMA), any(), any());
   }
 
   @Test
@@ -269,48 +250,30 @@ public class KsqlContextTest {
     inOrder.verify(serviceContext).close();
   }
 
-  @Test
-  public void shouldLoadSchemaFromSchemaRegistry() throws Exception {
-    // Given:
-    givenAvroStatement();
-
-    when(srClient.getLatestSchemaMetadata("topic-name-value"))
-        .thenReturn(new SchemaMetadata(1, 1, AVRO_SCHEMA));
-
-    // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
-
-    // Then:
-    verify(ksqlEngine).execute(stmtCaptor.capture(), any(), any());
-    assertThat(stmtCaptor.getValue().getStatement(), is(withSchema));
-  }
-
-  @Test
-  public void shouldThrowIfFailedToGetSchemaFromRegistry() throws Exception {
-    // Given:
-    givenAvroStatement();
-
-    when(srClient.getLatestSchemaMetadata(any()))
-        .thenThrow(new RestClientException("oops", 500, 344));
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema registry fetch for topic topic-name request failed");
-
-    // When:
-    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
-  }
-
   @SuppressWarnings("unchecked")
-  private void givenAvroStatement() {
-    when(createStatement.getProperties()).thenReturn(ImmutableMap.of(
-        DdlConfig.VALUE_FORMAT_PROPERTY, new StringLiteral("AVRO"),
-        DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic-name")
-    ));
+  @Test
+  public void shouldInferSchema() {
+    // Given:
+    when(schemaInjector.forStatement(any())).thenReturn((PreparedStatement) STMT_0_WITH_SCHEMA);
 
-    final PreparedStatement<?> prepared = PreparedStatement
-        .of("sql 0", createStatement);
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
-    when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement) prepared);
+    // Then:
+    verify(ksqlEngine).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
+  }
+
+  @Test
+  public void shouldThrowIfFailedToInferSchema() {
+    // Given:
+    when(schemaInjector.forStatement(any()))
+        .thenThrow(new RuntimeException("Boom"));
+
+    // Then:
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("Boom");
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
   }
 }

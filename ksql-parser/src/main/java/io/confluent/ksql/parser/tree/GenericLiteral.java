@@ -57,6 +57,7 @@ public final class GenericLiteral
     return type;
   }
 
+  @Override
   public String getValue() {
     return value;
   }

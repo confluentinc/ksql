@@ -89,7 +89,9 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
@@ -99,7 +101,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -112,6 +113,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -175,9 +177,11 @@ public class KsqlResource {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
+  private final SchemaInjector schemaInjector;
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
+  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
@@ -185,7 +189,8 @@ public class KsqlResource {
       final ServiceContext serviceContext,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
-      final ActivenessRegistrar activenessRegistrar
+      final ActivenessRegistrar activenessRegistrar,
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -194,7 +199,11 @@ public class KsqlResource {
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.activenessRegistrar =
-        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar cannot be null.");
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
+    this.schemaInjectorFactory =
+        Objects.requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
+    this.schemaInjector =
+        Objects.requireNonNull(schemaInjectorFactory.apply(serviceContext));
   }
 
   @POST
@@ -255,9 +264,12 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides,
       final String sql
   ) {
+    final SchemaInjector schemaInjector = schemaInjectorFactory
+        .apply(SandboxedServiceContext.create(serviceContext));
+
     final RequestValidator requestValidator = new RequestValidator(
         ksqlEngine.createSandbox(),
-        serviceContext,
+        schemaInjector,
         ksqlConfig,
         propertyOverrides);
 
@@ -287,7 +299,7 @@ public class KsqlResource {
       final KsqlEntityList entities
   ) {
     try {
-      final PreparedStatement<T> prepared = prepareStatement(statement, ksqlEngine);
+      final PreparedStatement<T> prepared = prepareStatement(statement, ksqlEngine, schemaInjector);
       final Handler<T> handler = getCustomExecutor(prepared);
       if (handler != null) {
         waitForPreviousDistributedStatementToBeHandled(prepared, entities);
@@ -298,9 +310,9 @@ public class KsqlResource {
       return distributeStatement(prepared, propertyOverrides);
     } catch (final KsqlRestException e) {
       throw e;
-    } catch (final KsqlException e) {
+    } catch (final KsqlStatementException e) {
       throw new KsqlRestException(
-          Errors.badStatement(e, statement.getStatementText(), entities));
+          Errors.badStatement(e.getRawMessage(), e.getSqlStatement(), entities));
     } catch (final Exception e) {
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, statement.getStatementText(), entities));
@@ -618,16 +630,14 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides
   ) {
     try {
-      final PreparedStatement<?> withSchema = addInferredSchema(statement, serviceContext);
-
       final QueuedCommandStatus queuedCommandStatus = commandQueue
-          .enqueueCommand(withSchema, ksqlConfig, propertyOverrides);
+          .enqueueCommand(statement, ksqlConfig, propertyOverrides);
 
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return new CommandStatusEntity(
-          withSchema.getStatementText(),
+          statement.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()
@@ -704,15 +714,6 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
-  @SuppressWarnings("unchecked")
-  private static PreparedStatement<?> addInferredSchema(
-      final PreparedStatement<?> stmt,
-      final ServiceContext serviceContext
-  ) {
-    return StatementWithSchema
-        .forStatement((PreparedStatement) stmt, serviceContext.getSchemaRegistryClient());
-  }
-
   private static FunctionInfo getFunctionInfo(
       final List<Schema> argTypes,
       final Schema returnTypeSchema,
@@ -772,9 +773,12 @@ public class KsqlResource {
 
   @SuppressWarnings("unchecked")
   private static <T extends Statement> PreparedStatement<T> prepareStatement(
-      final ParsedStatement statement, final KsqlExecutionContext executor
+      final ParsedStatement statement,
+      final KsqlExecutionContext executor,
+      final SchemaInjector schemaInjector
   ) {
-    return (PreparedStatement<T>) executor.prepare(statement);
+    final PreparedStatement<T> prepared = (PreparedStatement<T>) executor.prepare(statement);
+    return schemaInjector.forStatement(prepared);
   }
 
   private static final class RequestValidator {
@@ -806,26 +810,28 @@ public class KsqlResource {
             .build();
 
     private final KsqlExecutionContext executionSandbox;
-    private final ServiceContext serviceContext;
+    private final SchemaInjector schemaInjector;
     private final KsqlConfig ksqlConfig;
     private final Map<String, Object> scopedPropertyOverrides;
     private int persistentQueryCount;
 
     private RequestValidator(
         final KsqlExecutionContext executionSandbox,
-        final ServiceContext serviceContext,
+        final SchemaInjector schemaInjector,
         final KsqlConfig ksqlConfig,
         final Map<String, Object> propertyOverrides
     ) {
       this.executionSandbox = Objects.requireNonNull(executionSandbox, "executionSandbox");
-      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+      this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
       this.scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     }
 
     private <T extends Statement> void validate(final ParsedStatement stmt) {
       try {
-        final PreparedStatement<T> prepared = prepareStatement(stmt, executionSandbox);
+        final PreparedStatement<T> prepared =
+            prepareStatement(stmt, executionSandbox, schemaInjector);
+
         updatePersistentQueryCount(prepared);
         final Validator<T> customValidator = getCustomValidator(prepared);
         if (customValidator != null) {
@@ -850,9 +856,7 @@ public class KsqlResource {
     }
 
     private void validateAgainstSandbox(final PreparedStatement<?> prepared) {
-      final PreparedStatement<?> withSchemas = addInferredSchema(prepared, serviceContext);
-
-      executionSandbox.execute(withSchemas, ksqlConfig, scopedPropertyOverrides);
+      executionSandbox.execute(prepared, ksqlConfig, scopedPropertyOverrides);
     }
 
     private <T extends Statement> void updatePersistentQueryCount(

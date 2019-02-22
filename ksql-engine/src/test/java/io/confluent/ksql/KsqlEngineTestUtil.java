@@ -21,10 +21,11 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.StatementWithSchema;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,11 +84,16 @@ public final class KsqlEngineTestUtil {
   ) {
     final List<ParsedStatement> statements = engine.parse(sql);
 
+    final Optional<DefaultSchemaInjector> schemaInjector = srClient
+        .map(SchemaRegistryTopicSchemaSupplier::new)
+        .map(DefaultSchemaInjector::new);
+
     final KsqlExecutionContext sandbox = engine.createSandbox();
-    statements.forEach(stmt -> execute(sandbox, stmt, ksqlConfig, overriddenProperties, srClient));
+    statements
+        .forEach(stmt -> execute(sandbox, stmt, ksqlConfig, overriddenProperties, schemaInjector));
 
     return statements.stream()
-        .map(stmt -> execute(engine, stmt, ksqlConfig, overriddenProperties, srClient))
+        .map(stmt -> execute(engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))
         .map(ExecuteResult::getQuery)
         .filter(Optional::isPresent)
         .map(Optional::get)
@@ -100,11 +106,11 @@ public final class KsqlEngineTestUtil {
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
-      final Optional<SchemaRegistryClient> srClient
+      final Optional<DefaultSchemaInjector> schemaInjector
   ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
-    final PreparedStatement<?> withSchema = srClient.
-        map(client -> StatementWithSchema.forStatement(prepared, client))
+    final PreparedStatement<?> withSchema = schemaInjector.
+        map(injector -> injector.forStatement(prepared))
         .orElse((PreparedStatement) prepared);
     return executionContext.execute(withSchema, ksqlConfig, overriddenProperties);
   }

@@ -37,7 +37,8 @@ public class DoubleLiteral
     this.value = Double.parseDouble(value);
   }
 
-  public double getValue() {
+  @Override
+  public Double getValue() {
     return value;
   }
 

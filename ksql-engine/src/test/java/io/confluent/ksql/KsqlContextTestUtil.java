@@ -17,6 +17,8 @@ package io.confluent.ksql;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
@@ -64,7 +66,10 @@ public final class KsqlContextTestUtil {
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
     );
 
-    return new KsqlContext(serviceContext, ksqlConfig, engine);
+    final DefaultSchemaInjector schemaInjector = new DefaultSchemaInjector(
+        new SchemaRegistryTopicSchemaSupplier(serviceContext.getSchemaRegistryClient()));
+
+    return new KsqlContext(serviceContext, ksqlConfig, engine, schemaInjector);
   }
 
   public static KsqlConfig createKsqlConfig(final EmbeddedSingleNodeKafkaCluster kafkaCluster) {

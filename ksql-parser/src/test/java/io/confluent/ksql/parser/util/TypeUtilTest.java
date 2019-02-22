@@ -23,17 +23,23 @@ import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.TypeUtil;
 import java.util.Arrays;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class TypeUtilTest {
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
   @Test
-  public void shouldGetCorrectPrimitiveKsqlType() throws Exception {
+  public void shouldGetCorrectPrimitiveKsqlType() {
     final Type type0 = TypeUtil.getKsqlType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     assertThat(type0.getKsqlType(), equalTo(Type.KsqlType.BOOLEAN));
 
@@ -51,7 +57,7 @@ public class TypeUtilTest {
   }
 
   @Test
-  public void shouldGetCorrectArrayKsqlType() throws Exception {
+  public void shouldGetCorrectArrayKsqlType() {
 
     final Schema arraySchema = SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
     final Type type = TypeUtil.getKsqlType(arraySchema);
@@ -61,7 +67,7 @@ public class TypeUtilTest {
   }
 
   @Test
-  public void shouldGetCorrectMapKsqlType() throws Exception {
+  public void shouldGetCorrectMapKsqlType() {
 
     final Schema mapSchema = SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
     final Type type = TypeUtil.getKsqlType(mapSchema);
@@ -70,9 +76,23 @@ public class TypeUtilTest {
     assertThat(((Map) type).getValueType().getKsqlType(), equalTo(Type.KsqlType.DOUBLE));
   }
 
+  @Test
+  public void shouldThrowOnNonStringKeyedMap() {
+    // Given:
+    final Schema mapSchema = SchemaBuilder
+        .map(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional()
+        .build();
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Unsupported map key type in schema: Schema{INT64}");
+
+    // When:
+    TypeUtil.getKsqlType(mapSchema);
+  }
 
   @Test
-  public void shouldGetCorrectStructKsqlType() throws Exception {
+  public void shouldGetCorrectStructKsqlType() {
 
     final Schema arraySchema = SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
     final Type type4 = TypeUtil.getKsqlType(arraySchema);
@@ -133,7 +153,7 @@ public class TypeUtilTest {
   }
 
   @Test
-  public void shouldGetCorrectPrimitiveSchema() throws Exception {
+  public void shouldGetCorrectPrimitiveSchema() {
 
     final Schema schema1 = TypeUtil.getTypeSchema(new PrimitiveType(Type.KsqlType.BIGINT));
     assertThat(schema1, equalTo(Schema.OPTIONAL_INT64_SCHEMA));
@@ -156,7 +176,7 @@ public class TypeUtilTest {
   }
 
   @Test
-  public void shouldGetCorrectArraySchema() throws Exception {
+  public void shouldGetCorrectArraySchema() {
 
     final Schema schema = TypeUtil.getTypeSchema(new Array(new PrimitiveType(Type.KsqlType.STRING)));
     assertThat(schema.type(), equalTo(Schema.Type.ARRAY));
@@ -164,7 +184,7 @@ public class TypeUtilTest {
   }
 
   @Test
-  public void shouldGetCorrectMapSchema() throws Exception {
+  public void shouldGetCorrectMapSchema() {
 
     final Schema schema = TypeUtil.getTypeSchema(new Map(new PrimitiveType(Type.KsqlType.DOUBLE)));
     assertThat(schema.type(), equalTo(Schema.Type.MAP));
@@ -172,7 +192,7 @@ public class TypeUtilTest {
   }
 
   @Test
-  public void shouldGetCorrectSchema() throws Exception {
+  public void shouldGetCorrectSchema() {
 
     final Struct internalStruct = new Struct(Arrays.asList(
         new Pair<>("COL1", new PrimitiveType(Type.KsqlType.STRING)),

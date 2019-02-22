@@ -33,6 +33,11 @@ public class NullLiteral
   }
 
   @Override
+  public String getValue() {
+    return "null";
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;

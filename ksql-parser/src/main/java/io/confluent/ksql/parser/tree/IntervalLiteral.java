@@ -84,6 +84,7 @@ public class IntervalLiteral
     this.endField = endField;
   }
 
+  @Override
   public String getValue() {
     return value;
   }

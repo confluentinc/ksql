@@ -34,7 +34,8 @@ public class LongLiteral extends Literal {
     this.value = value;
   }
 
-  public long getValue() {
+  @Override
+  public Long getValue() {
     return value;
   }
 

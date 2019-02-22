@@ -287,7 +287,7 @@ public final class SqlFormatter {
         builder.append("IF NOT EXISTS ");
       }
       builder.append(node.getName())
-          .append(" \n");
+          .append(" ");
       if (!node.getElements().isEmpty()) {
         builder.append("(");
         boolean addComma = false;

@@ -63,6 +63,7 @@ public class BinaryLiteral
     return BaseEncoding.base16().encode(value.getBytes());
   }
 
+  @Override
   public Slice getValue() {
     return value;
   }

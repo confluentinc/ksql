@@ -156,7 +156,7 @@ properties file:
 ::
 
     ksql.logging.processing.topic.auto.create=true
-    ksql.logging.processing.topic.name=<kafka topic>  # defaults to <ksql service id>processing_log
+    ksql.logging.processing.topic.name=<kafka topic>  # defaults to <ksql service id>ksql_processing_log
 
 The replication factor and partition count are configurable
 using the ``ksql.logging.processing.topic.replication.factor`` and ``ksql.logging.processing.topic.partitions`` properties,

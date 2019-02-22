@@ -85,6 +85,16 @@ ksql.streams.num.stream.threads
 This number of stream threads in an instance of the Kafka Streams application. The stream processing code runs in these
 threads. For more information about Kafka Streams threading model, see :ref:`streams_architecture_threads`.
 
+-----------------------------
+ksql.output.topic.name.prefix
+-----------------------------
+
+The default prefix for automatically created topic names. Unless a user
+defines an explicit topic name in a KSQL statement, KSQL prepends the value of
+``ksql.output.topic.name.prefix`` to the names of automatically created output
+topics. For example, you might use "ksql-interactive-" to name output topics
+in a KSQL Server cluster that's deployed in interactive mode. For more information, see
+:ref:`Configuring Security for KSQL <config-security-ksql-acl-interactive_post_ak_2_0>`.
 
 KSQL Query Settings
 -------------------

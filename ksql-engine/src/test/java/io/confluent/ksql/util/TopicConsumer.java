@@ -19,7 +19,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.serde.json.KsqlJsonDeserializer;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.time.Duration;
@@ -93,8 +93,7 @@ public class TopicConsumer {
         new KsqlJsonDeserializer(
             schema,
             false,
-            processingLogContext.getLoggerFactory().getLogger("consumer"),
-            processingLogContext),
+            processingLogContext.getLoggerFactory().getLogger("consumer")),
         keyDeserializer
     );
   }

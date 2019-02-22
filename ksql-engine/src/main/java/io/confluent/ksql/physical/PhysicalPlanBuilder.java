@@ -14,9 +14,10 @@
 
 package io.confluent.ksql.physical;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -28,7 +29,6 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.ServiceContext;
@@ -371,7 +371,7 @@ public class PhysicalPlanBuilder {
     final Map<String, Object> newStreamsProperties
         = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-    final StructuredLogger logger
+    final ProcessingLogger logger
         = processingLogContext.getLoggerFactory().getLogger(queryId.toString());
     newStreamsProperties.put(
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,

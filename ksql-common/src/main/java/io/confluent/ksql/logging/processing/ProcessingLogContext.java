@@ -12,9 +12,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.processing.log;
+package io.confluent.ksql.logging.processing;
 
-import io.confluent.common.logging.StructuredLoggerFactory;
 import java.util.Collections;
 
 public interface ProcessingLogContext {
@@ -26,7 +25,7 @@ public interface ProcessingLogContext {
   /**
    * @return A factory for creating structured loggers for logging processing log records.
    */
-  StructuredLoggerFactory getLoggerFactory();
+  ProcessingLoggerFactory getLoggerFactory();
 
   /**
    * Creates a processing log context that uses the supplied config.

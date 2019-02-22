@@ -24,7 +24,7 @@ import java.util.Optional;
 public class SingleColumn
     extends SelectItem {
 
-  private final Optional<AllColumns> source;
+  private final Optional<AllColumns> allColumns;
   private final Optional<String> alias;
   private final Expression expression;
 
@@ -45,23 +45,26 @@ public class SingleColumn
     this(Optional.of(location), expression, alias, Optional.empty());
   }
 
-  public SingleColumn(final Expression expression, final String alias, final AllColumns source) {
-    this(Optional.empty(), expression, Optional.of(alias), Optional.of(source));
+  public SingleColumn(
+      final Expression expression,
+      final String alias,
+      final AllColumns allColumns) {
+    this(Optional.empty(), expression, Optional.of(alias), Optional.of(allColumns));
   }
 
   private SingleColumn(final SingleColumn other, final Expression expression) {
-    this(other.getLocation(), expression, other.alias, other.source);
+    this(other.getLocation(), expression, other.alias, other.allColumns);
   }
 
   private SingleColumn(
       final Optional<NodeLocation> location,
       final Expression expression,
       final Optional<String> alias,
-      final Optional<AllColumns> source) {
+      final Optional<AllColumns> allColumns) {
     super(location);
     requireNonNull(expression, "expression is null");
     requireNonNull(alias, "alias is null");
-    requireNonNull(source, "source is null");
+    requireNonNull(allColumns, "allColumns is null");
 
     alias.ifPresent(name -> {
       checkForReservedToken(expression, name, SchemaUtil.ROWTIME_NAME);
@@ -70,7 +73,7 @@ public class SingleColumn
 
     this.expression = expression;
     this.alias = alias;
-    this.source = source;
+    this.allColumns = allColumns;
   }
 
   public SingleColumn copyWithExpression(final Expression expression) {
@@ -96,8 +99,13 @@ public class SingleColumn
     return expression;
   }
 
-  public Optional<AllColumns> getSource() {
-    return source;
+  /**
+   * @return a reference to an {@code AllColumns} if this single column
+   *         was expanded as part of a {@code SELECT *} Expression, otherwise
+   *         returns an empty optional
+   */
+  public Optional<AllColumns> getAllColumns() {
+    return allColumns;
   }
 
   @Override
@@ -111,17 +119,17 @@ public class SingleColumn
     final SingleColumn other = (SingleColumn) obj;
     return Objects.equals(this.alias, other.alias)
         && Objects.equals(this.expression, other.expression)
-        && Objects.equals(this.source, other.source);
+        && Objects.equals(this.allColumns, other.allColumns);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(source, alias, expression);
+    return Objects.hash(allColumns, alias, expression);
   }
 
   @Override
   public String toString() {
-    return "SingleColumn{" + "source=" + source
+    return "SingleColumn{" + "allColumns=" + allColumns
         + ", alias=" + alias
         + ", expression=" + expression
         + '}';

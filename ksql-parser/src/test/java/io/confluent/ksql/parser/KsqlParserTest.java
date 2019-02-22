@@ -1300,7 +1300,7 @@ public class KsqlParserTest {
         SingleColumn column = (SingleColumn) item;
         return Objects.equals(column.getExpression().toString(), expression)
             && Objects.equals(column.getAlias().orElse(null), alias)
-            && Objects.equals(column.getSource().isPresent(), false);
+            && Objects.equals(column.getAllColumns().isPresent(), false);
       }
 
       @Override

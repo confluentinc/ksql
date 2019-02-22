@@ -169,7 +169,7 @@ public final class SqlFormatter {
           .stream()
           .map(item ->
               (item instanceof SingleColumn)
-                  ? ((SingleColumn) item).getSource().map(SelectItem.class::cast).orElse(item)
+                  ? ((SingleColumn) item).getAllColumns().map(SelectItem.class::cast).orElse(item)
                   : item)
           .distinct()
           .collect(Collectors.toList());

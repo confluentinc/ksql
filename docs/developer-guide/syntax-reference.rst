@@ -907,6 +907,14 @@ the following WINDOW types:
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
 
+The following list shows valid time units for SIZE, ADVANCE BY, and SESSION.
+
+* DAY, DAYS
+* HOUR, HOURS
+* MINUTE, MINUTES
+* SECOND, SECONDS
+* MILLISECOND, MILLISECONDS
+
 For more information, see :ref:`windows_in_ksql_queries`.
 
 CAST

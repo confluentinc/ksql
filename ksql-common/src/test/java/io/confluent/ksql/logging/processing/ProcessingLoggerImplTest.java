@@ -72,7 +72,7 @@ public class ProcessingLoggerImplTest {
 
     // Then:
     final SchemaAndValue msg = verifyErrorMessage();
-    assertThat(msg, is(msg));
+    assertThat(msg, is(this.msg));
   }
 
   @Test

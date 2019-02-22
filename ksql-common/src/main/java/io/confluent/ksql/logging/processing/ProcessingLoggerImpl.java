@@ -49,6 +49,7 @@ public class ProcessingLoggerImpl implements ProcessingLogger {
     this.inner = inner;
   }
 
+  @Override
   public void error(final Function<ProcessingLogConfig, SchemaAndValue> msgFactory) {
     inner.error(new ProcessingLogMessage(config, msgFactory));
   }

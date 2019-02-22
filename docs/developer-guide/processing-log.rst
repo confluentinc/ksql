@@ -67,7 +67,7 @@ Note On Security
 
 By default, the record-processing log doesn't log any actual row data. To help
 you debug, you can enable including row data in log messages by setting the
-KSQL property ``ksql.processing.log.include.rows`` to ``true``.
+KSQL property ``ksql.logging.processing.rows.include`` to ``true``.
 
 If you do this, ensure that the log is configured to
 write to a destination where it is safe to write the data being processed. It's
@@ -155,24 +155,24 @@ properties file:
 
 ::
 
-    ksql.processing.log.topic.auto.create=true
-    ksql.processing.log.topic.name=<kafka topic>  # defaults to <ksql service id>processing_log
+    ksql.logging.processing.topic.auto.create=true
+    ksql.logging.processing.topic.name=<kafka topic>  # defaults to <ksql service id>processing_log
 
 The replication factor and partition count are configurable
-using the ``ksql.processing.log.topic.replication.factor`` and ``ksql.processing.log.topic.partitions`` properties,
+using the ``ksql.logging.processing.topic.replication.factor`` and ``ksql.logging.processing.topic.partitions`` properties,
 respectively.
 
-If ``ksql.processing.log.topic.auto.create`` is set to ``true``, the created topic will be deleted as part of :ref:`cluster termination<ksql_cluster_terminate>`.
+If ``ksql.logging.processing.topic.auto.create`` is set to ``true``, the created topic will be deleted as part of :ref:`cluster termination<ksql_cluster_terminate>`.
 
-If the ``ksql.processing.log.topic.name`` property is not specified, the processing log topic name will default to ``<ksql service id>processing_log``, where ``ksql service id`` is the value from the ``ksql.service.id`` property. This ensures each KSQL cluster gets its own processing log topic by default.
+If the ``ksql.logging.processing.topic.name`` property is not specified, the processing log topic name will default to ``<ksql service id>processing_log``, where ``ksql service id`` is the value from the ``ksql.service.id`` property. This ensures each KSQL cluster gets its own processing log topic by default.
 
 If you are bringing up a new interactive mode KSQL cluster, you can configure KSQL to set up
 a log stream automatically by including the following in your KSQL properties file:
 
 ::
 
-    ksql.processing.log.stream.auto.create=true
-    ksql.processing.log.stream.name=<stream name>  # defaults to PROCESSING_LOG
+    ksql.logging.processing.stream.auto.create=true
+    ksql.logging.processing.stream.name=<stream name>  # defaults to PROCESSING_LOG
 
 When you start KSQL, you should see the stream in your list of streams:
 

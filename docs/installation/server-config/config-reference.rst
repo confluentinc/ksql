@@ -251,7 +251,7 @@ These configurations control the behavior of the :ref:`KSQL processing log <ksql
 .. _ksql-processing-log-topic-auto-create:
 
 -------------------------------------
-ksql.processing.log.topic.auto.create
+ksql.logging.processing.topic.auto.create
 -------------------------------------
 
 Toggles automatic processing log topic creation. If set to true, then KSQL will automatically try
@@ -264,7 +264,7 @@ to create a processing log topic at startup. The name of the topic is the value 
 .. _ksql-processing-log-topic-name:
 
 ------------------------------
-ksql.processing.log.topic.name
+ksql.logging.processing.topic.name
 ------------------------------
 
 If automatic processing log topic creation is enabled, KSQL sets the name of the topic to the value of
@@ -275,7 +275,7 @@ is the value of the :ref:`ksql-service-id` property.
 .. _ksql-processing-log-topic-partitions:
 
 ------------------------------------
-ksql.processing.log.topic.partitions
+ksql.logging.processing.topic.partitions
 ------------------------------------
 
 If automatic processing log topic creation is enabled, KSQL creates the topic with number of partitions set
@@ -284,7 +284,7 @@ to the value of this property. By default, this property has the value ``1``.
 .. _ksql-processing-log-replication-factor:
 
 --------------------------------------------
-ksql.processing.log.topic.replication.factor
+ksql.logging.processing.topic.replication.factor
 --------------------------------------------
 
 If automatic processing log topic creation is enabled, KSQL creates the topic with  number of replicas set
@@ -293,7 +293,7 @@ to the value of this property. By default, this property has the value ``1``.
 .. _ksql-processing-log-stream-auto-create:
 
 --------------------------------------
-ksql.processing.log.stream.auto.create
+ksql.logging.processing.stream.auto.create
 --------------------------------------
 
 Toggles automatic processing log stream creation. If set to true, and KSQL is running in interactive mode on a new cluster,
@@ -304,7 +304,7 @@ the :ref:`ksql-processing-log-topic-name` property. By default, this property ha
 .. _ksql-processing-log-stream-name:
 
 -------------------------------
-ksql.processing.log.stream.name
+ksql.logging.processing.stream.name
 -------------------------------
 
 If automatic processing log stream creation is enabled, KSQL sets the name of the stream to the value of this
@@ -313,7 +313,7 @@ property. By default, this property has the value ``KSQL_PROCESSING_LOG``.
 .. _ksql-processing-log-include-rows:
 
 --------------------------------
-ksql.processing.log.include.rows
+ksql.logging.processing.rows.include
 --------------------------------
 
 Toggles whether or not the processing log should include rows in log messages. By default, this property has the

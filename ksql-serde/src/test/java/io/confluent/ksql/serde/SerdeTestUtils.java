@@ -20,11 +20,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.mockito.ArgumentCaptor;
 

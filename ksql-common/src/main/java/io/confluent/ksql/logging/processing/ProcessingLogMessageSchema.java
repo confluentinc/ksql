@@ -18,7 +18,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class ProcessingLogMessageSchema {
-  private static final String NAMESPACE = "io.confluent.ksql.processing.log.";
+  private static final String NAMESPACE = "io.confluent.ksql.logging.processing.";
 
   public static final String DESERIALIZATION_ERROR_FIELD_MESSAGE = "errorMessage";
   public static final String DESERIALIZATION_ERROR_FIELD_RECORD_B64 = "recordB64";

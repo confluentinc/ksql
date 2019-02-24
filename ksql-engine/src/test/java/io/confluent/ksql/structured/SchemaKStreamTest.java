@@ -288,9 +288,9 @@ public class SchemaKStreamTest {
     Assert.assertEquals(3, projectedSchemaKStream.getSchema().fields().size());
     Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0"),
         projectedSchemaKStream.getSchema().fields().get(0));
-    Assert.assertSame(projectedSchemaKStream.getSchema().field("KSQL_COL_1"),
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("KSQL_TEST1_COL_1"),
         projectedSchemaKStream.getSchema().fields().get(1));
-    Assert.assertSame(projectedSchemaKStream.getSchema().field("KSQL_COL_2"),
+    Assert.assertSame(projectedSchemaKStream.getSchema().field("KSQL_TEST1_COL_2"),
         projectedSchemaKStream.getSchema().fields().get(2));
 
     Assert.assertSame(projectedSchemaKStream.getSchema().field("COL0").schema().type(),

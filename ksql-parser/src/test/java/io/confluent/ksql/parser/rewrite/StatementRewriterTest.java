@@ -131,7 +131,7 @@ public class StatementRewriterTest {
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getAlias().get(), equalTo("KSQL_TEST1_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("(TEST1.COL0 + 10)"));
   }
 
@@ -148,7 +148,7 @@ public class StatementRewriterTest {
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getAlias().get(), equalTo("KSQL_TEST1_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("(TEST1.COL0 = 10)"));
     assertThat(column0.getExpression(), instanceOf(ComparisonExpression.class));
   }
@@ -166,7 +166,7 @@ public class StatementRewriterTest {
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getAlias().get(), equalTo("KSQL_TEST1_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("10"));
 
     final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
@@ -174,19 +174,19 @@ public class StatementRewriterTest {
     assertThat(column1.getExpression().toString(), equalTo("TEST1.COL2"));
 
     final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
-    assertThat(column2.getAlias().get(), equalTo("KSQL_COL_2"));
+    assertThat(column2.getAlias().get(), equalTo("KSQL_TEST1_COL_2"));
     assertThat(column2.getExpression().toString(), equalTo("'test'"));
 
     final SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
-    assertThat(column3.getAlias().get(), equalTo("KSQL_COL_3"));
+    assertThat(column3.getAlias().get(), equalTo("KSQL_TEST1_COL_3"));
     assertThat(column3.getExpression().toString(), equalTo("2.5"));
 
     final SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
-    assertThat(column4.getAlias().get(), equalTo("KSQL_COL_4"));
+    assertThat(column4.getAlias().get(), equalTo("KSQL_TEST1_COL_4"));
     assertThat(column4.getExpression().toString(), equalTo("true"));
 
     final SingleColumn column5 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(5);
-    assertThat(column5.getAlias().get(), equalTo("KSQL_COL_5"));
+    assertThat(column5.getAlias().get(), equalTo("KSQL_TEST1_COL_5"));
     assertThat(column5.getExpression().toString(), equalTo("-5"));
   }
 
@@ -204,7 +204,7 @@ public class StatementRewriterTest {
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getAlias().get(), equalTo("KSQL_TEST1_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("10"));
 
     final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
@@ -212,7 +212,7 @@ public class StatementRewriterTest {
     assertThat(column1.getExpression().toString(), equalTo("TEST1.COL2"));
 
     final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
-    assertThat(column2.getAlias().get(), equalTo("KSQL_COL_2"));
+    assertThat(column2.getAlias().get(), equalTo("KSQL_TEST1_COL_2"));
     assertThat(column2.getExpression().toString(), equalTo("'test'"));
 
   }
@@ -314,15 +314,15 @@ public class StatementRewriterTest {
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
 
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getAlias().get(), equalTo("KSQL_TEST1_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("LCASE(T1.COL1)"));
 
     final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
-    assertThat(column1.getAlias().get(), equalTo("KSQL_COL_1"));
+    assertThat(column1.getAlias().get(), equalTo("KSQL_TEST1_COL_1"));
     assertThat(column1.getExpression().toString(), equalTo("CONCAT(T1.COL2, 'hello')"));
 
     final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
-    assertThat(column2.getAlias().get(), equalTo("KSQL_COL_2"));
+    assertThat(column2.getAlias().get(), equalTo("KSQL_TEST1_COL_2"));
     assertThat(column2.getExpression().toString(), equalTo("FLOOR(ABS(T1.COL3))"));
   }
 

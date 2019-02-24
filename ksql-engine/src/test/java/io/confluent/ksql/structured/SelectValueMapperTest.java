@@ -130,7 +130,7 @@ public class SelectValueMapperTest {
         errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
         equalTo(
             "Error computing expression CEIL(TEST1.COL3) "
-                + "for column KSQL_COL_3 with index 3: null")
+                + "for column KSQL_TEST1_COL_3 with index 3: null")
     );
   }
 

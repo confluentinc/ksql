@@ -671,7 +671,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           alias = Optional.of(dereferenceExp.getFieldName());
         }
       } else {
-        alias = Optional.of("KSQL_COL_" + selectItemIndex);
+        alias = Optional.of("KSQL_"
+                + dataSourceExtractor.getFromName()
+                + "_COL_" + selectItemIndex);
       }
     } else {
       alias = Optional.of(alias.get());

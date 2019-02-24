@@ -210,7 +210,7 @@ public class PhysicalPlanBuilderTest {
     final String planText = metadata.getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines[0], startsWith(
-        " > [ SINK ] | Schema: [COL0 : BIGINT, KSQL_COL_1 : DOUBLE, KSQL_COL_2 : BIGINT] |"));
+        " > [ SINK ] | Schema: [COL0 : BIGINT, KSQL_TEST1_COL_1 : DOUBLE, KSQL_TEST1_COL_2 : BIGINT] |"));
     assertThat(lines[1], startsWith(
         "\t\t > [ AGGREGATE ] | Schema: [KSQL_INTERNAL_COL_0 : BIGINT, "
             + "KSQL_INTERNAL_COL_1 : DOUBLE, KSQL_AGG_VARIABLE_0 : DOUBLE, "

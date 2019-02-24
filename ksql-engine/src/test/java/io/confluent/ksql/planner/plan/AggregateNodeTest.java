@@ -218,8 +218,8 @@ public class AggregateNodeTest {
     // Then:
     assertThat(stream.getSchema().fields(), contains(
         new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("KSQL_COL_1", 1, Schema.OPTIONAL_FLOAT64_SCHEMA),
-        new Field("KSQL_COL_2", 2, Schema.OPTIONAL_INT64_SCHEMA)));
+        new Field("KSQL_TEST1_COL_1", 1, Schema.OPTIONAL_FLOAT64_SCHEMA),
+        new Field("KSQL_TEST1_COL_2", 2, Schema.OPTIONAL_INT64_SCHEMA)));
   }
 
   @Test

@@ -245,7 +245,7 @@ public class KsqlParserTest {
     Assert.assertTrue("testBinaryExpression fails", query.getQueryBody() instanceof QuerySpecification);
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    Assert.assertTrue("testBinaryExpression fails", column0.getAlias().get().equalsIgnoreCase("KSQL_COL_0"));
+    Assert.assertTrue("testBinaryExpression fails", column0.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_0"));
     Assert.assertTrue("testBinaryExpression fails", column0.getExpression().toString().equalsIgnoreCase("(TEST1.COL0 + 10)"));
   }
 
@@ -258,7 +258,7 @@ public class KsqlParserTest {
     Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    Assert.assertTrue("testBooleanExpression fails", column0.getAlias().get().equalsIgnoreCase("KSQL_COL_0"));
+    Assert.assertTrue("testBooleanExpression fails", column0.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_0"));
     Assert.assertTrue("testBooleanExpression fails", column0.getExpression().toString().equalsIgnoreCase("(TEST1.COL0 = 10)"));
   }
 
@@ -271,7 +271,7 @@ public class KsqlParserTest {
     Assert.assertTrue("testLiterals fails", query.getQueryBody() instanceof QuerySpecification);
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    Assert.assertTrue("testLiterals fails", column0.getAlias().get().equalsIgnoreCase("KSQL_COL_0"));
+    Assert.assertTrue("testLiterals fails", column0.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_0"));
     Assert.assertTrue("testLiterals fails", column0.getExpression().toString().equalsIgnoreCase("10"));
 
     final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
@@ -279,19 +279,19 @@ public class KsqlParserTest {
     Assert.assertTrue("testLiterals fails", column1.getExpression().toString().equalsIgnoreCase("TEST1.COL2"));
 
     final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
-    Assert.assertTrue("testLiterals fails", column2.getAlias().get().equalsIgnoreCase("KSQL_COL_2"));
+    Assert.assertTrue("testLiterals fails", column2.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_2"));
     Assert.assertTrue("testLiterals fails", column2.getExpression().toString().equalsIgnoreCase("'test'"));
 
     final SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
-    Assert.assertTrue("testLiterals fails", column3.getAlias().get().equalsIgnoreCase("KSQL_COL_3"));
+    Assert.assertTrue("testLiterals fails", column3.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_3"));
     Assert.assertTrue("testLiterals fails", column3.getExpression().toString().equalsIgnoreCase("2.5"));
 
     final SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
-    Assert.assertTrue("testLiterals fails", column4.getAlias().get().equalsIgnoreCase("KSQL_COL_4"));
+    Assert.assertTrue("testLiterals fails", column4.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_4"));
     Assert.assertTrue("testLiterals fails", column4.getExpression().toString().equalsIgnoreCase("true"));
 
     final SingleColumn column5 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(5);
-    Assert.assertTrue("testLiterals fails", column5.getAlias().get().equalsIgnoreCase("KSQL_COL_5"));
+    Assert.assertTrue("testLiterals fails", column5.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_5"));
     Assert.assertTrue("testLiterals fails", column5.getExpression().toString().equalsIgnoreCase("-5"));
   }
 
@@ -305,7 +305,7 @@ public class KsqlParserTest {
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
     final SingleColumn column0
         = (SingleColumn) querySpecification.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getAlias().get(), equalTo("KSQL_TEST1_COL_0"));
     assertThat(column0.getExpression(), instanceOf(expectedValue.getClass()));
     assertThat(column0.getExpression(), equalTo(expectedValue));
   }
@@ -332,7 +332,7 @@ public class KsqlParserTest {
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
     final SingleColumn column0
         = (SingleColumn) querySpecification.getSelect().getSelectItems().get(0);
-    assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
+    assertThat(column0.getAlias().get(), equalTo("KSQL_TEST1_COL_0"));
     assertThat(column0.getExpression(), instanceOf(ArithmeticUnaryExpression.class));
     final ArithmeticUnaryExpression aue = (ArithmeticUnaryExpression) column0.getExpression();
     assertThat(aue.getValue(), instanceOf(IntegerLiteral.class));
@@ -351,7 +351,7 @@ public class KsqlParserTest {
     Assert.assertTrue("testProjection fails", query.getQueryBody() instanceof QuerySpecification);
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    Assert.assertTrue("testProjection fails", column0.getAlias().get().equalsIgnoreCase("KSQL_COL_0"));
+    Assert.assertTrue("testProjection fails", column0.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_0"));
     Assert.assertTrue("testProjection fails", column0.getExpression().toString().equalsIgnoreCase("10"));
 
     final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
@@ -359,7 +359,7 @@ public class KsqlParserTest {
     Assert.assertTrue("testProjection fails", column1.getExpression().toString().equalsIgnoreCase("TEST1.COL2"));
 
     final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
-    Assert.assertTrue("testProjection fails", column2.getAlias().get().equalsIgnoreCase("KSQL_COL_2"));
+    Assert.assertTrue("testProjection fails", column2.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_2"));
     Assert.assertTrue("testProjection fails", column2.getExpression().toString().equalsIgnoreCase("'test'"));
 
   }
@@ -491,15 +491,15 @@ public class KsqlParserTest {
     final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
 
     final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    Assert.assertTrue("testProjection fails", column0.getAlias().get().equalsIgnoreCase("KSQL_COL_0"));
+    Assert.assertTrue("testProjection fails", column0.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_0"));
     Assert.assertTrue("testProjection fails", column0.getExpression().toString().equalsIgnoreCase("LCASE(T1.COL1)"));
 
     final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
-    Assert.assertTrue("testProjection fails", column1.getAlias().get().equalsIgnoreCase("KSQL_COL_1"));
+    Assert.assertTrue("testProjection fails", column1.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_1"));
     Assert.assertTrue("testProjection fails", column1.getExpression().toString().equalsIgnoreCase("CONCAT(T1.COL2, 'hello')"));
 
     final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
-    Assert.assertTrue("testProjection fails", column2.getAlias().get().equalsIgnoreCase("KSQL_COL_2"));
+    Assert.assertTrue("testProjection fails", column2.getAlias().get().equalsIgnoreCase("KSQL_TEST1_COL_2"));
     Assert.assertTrue("testProjection fails", column2.getExpression().toString().equalsIgnoreCase("FLOOR(ABS(T1.COL3))"));
   }
 

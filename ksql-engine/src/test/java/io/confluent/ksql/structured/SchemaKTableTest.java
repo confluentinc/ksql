@@ -232,10 +232,10 @@ public class SchemaKTableTest {
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
                       projectedSchemaKStream.getSchema().fields().get(0));
     Assert.assertTrue(projectedSchemaKStream.getSchema()
-                          .field("KSQL_COL_1") ==
+                          .field("KSQL_TEST2_COL_1") ==
                       projectedSchemaKStream.getSchema().fields().get(1));
     Assert.assertTrue(projectedSchemaKStream.getSchema()
-                          .field("KSQL_COL_2") ==
+                          .field("KSQL_TEST2_COL_2") ==
                       projectedSchemaKStream.getSchema().fields().get(2));
 
     Assert.assertTrue(projectedSchemaKStream.getSchema()

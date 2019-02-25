@@ -436,7 +436,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           throw new InvalidColumnReferenceException("Source for alias '"
             + allColumns.getPrefix().get() + "' doesn't exist");
         }
-        addFieldsFromDataSource(selectItems, source, location, alias, alias + "_");
+        addFieldsFromDataSource(selectItems, source, location, alias, alias);
       } else {
         final AliasedRelation left = (AliasedRelation) join.getLeft();
         final StructuredDataSource
@@ -455,9 +455,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         }
 
         addFieldsFromDataSource(selectItems, leftDataSource, location,
-            left.getAlias(), left.getAlias() + "_");
+            left.getAlias(), left.getAlias());
         addFieldsFromDataSource(selectItems, rightDataSource, location,
-            right.getAlias(), right.getAlias() + "_");
+            right.getAlias(), right.getAlias());
       }
     } else {
       final AliasedRelation fromRel = (AliasedRelation) from;
@@ -486,12 +486,14 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     final QualifiedNameReference sourceName =
         new QualifiedNameReference(location, QualifiedName.of(alias));
 
+    final String prefix = columnNamePrefix.isEmpty() ? "" : columnNamePrefix + "_";
+
     for (final Field field : dataSource.getSchema().fields()) {
 
       final DereferenceExpression exp
           = new DereferenceExpression(location, sourceName, field.name());
 
-      final SingleColumn newColumn = new SingleColumn(exp, columnNamePrefix + field.name());
+      final SingleColumn newColumn = new SingleColumn(exp, prefix + field.name());
 
       selectItems.add(newColumn);
     }

@@ -24,8 +24,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
-import java.util.HashMap;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -140,25 +139,20 @@ public class QueryAnalyzer {
 
     final Set<Expression> groupByExprs = ImmutableSet.copyOf(analysis.getGroupByExpressions());
 
-    final HashMap<Expression, Set<DereferenceExpression>> unmatchedSelects =
-        new HashMap<>(aggregateAnalysis.getNonAggregateSelectExpressions());
-
-    // Remove exact matchers:
-    unmatchedSelects.keySet().removeAll(groupByExprs);
-
-    // Remove expressions where all parameters are within group-by,
-    // Or parameters are empty, i.e. literals:
-    final Set<Expression> toRemove = unmatchedSelects.entrySet().stream()
-        .filter(e -> Sets.difference(e.getValue(), groupByExprs).isEmpty())
-        .map(Entry::getKey)
+    final Set<Expression> unmatchedSelects = aggregateAnalysis.getNonAggregateSelectExpressions()
+        .entrySet()
+        .stream()
+        // Remove any that exactly match a group by expression:
+        .filter(e -> !groupByExprs.contains(e.getKey()))
+        // Remove any that are constants,
+        // or functions where all params exactly match a group by expression:
+        .filter(e -> !Sets.difference(e.getValue(), groupByExprs).isEmpty())
+        .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
-
-    unmatchedSelects.keySet().removeAll(toRemove);
 
     if (!unmatchedSelects.isEmpty()) {
       throw new KsqlException(
-          "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-              + unmatchedSelects.keySet());
+          "Non-aggregate SELECT expression(s) not part of GROUP BY: " + unmatchedSelects);
     }
 
     final Set<DereferenceExpression> havingColumns = aggregateAnalysis

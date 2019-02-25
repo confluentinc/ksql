@@ -495,7 +495,7 @@ public class AggregateNode extends PlanNode {
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter(), exp);
     }
 
-    public class ResolveToInternalRewriter extends ExpressionRewriter<Void> {
+    private class ResolveToInternalRewriter extends ExpressionRewriter<Void> {
 
       @Override
       public Expression rewriteDereferenceExpression(

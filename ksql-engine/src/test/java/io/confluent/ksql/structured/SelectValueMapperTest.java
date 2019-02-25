@@ -20,16 +20,16 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -56,9 +56,7 @@ public class SelectValueMapperTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Mock
-  private StructuredLogger processingLogger;
-
-  private ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  private ProcessingLogger processingLogger;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -116,10 +114,11 @@ public class SelectValueMapperTest {
         new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"));
 
     // Then:
-    final ArgumentCaptor<Supplier<SchemaAndValue>> captor
-        = ArgumentCaptor.forClass(Supplier.class);
+    final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
+        = ArgumentCaptor.forClass(Function.class);
     verify(processingLogger).error(captor.capture());
-    final SchemaAndValue schemaAndValue = captor.getValue().get();
+    final SchemaAndValue schemaAndValue = captor.getValue().apply(
+        new ProcessingLogConfig(Collections.emptyMap()));
     assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
     final Struct struct = (Struct) schemaAndValue.value();
     assertThat(
@@ -147,8 +146,8 @@ public class SelectValueMapperTest {
     return new SelectValueMapper(
         selectFieldNames,
         metadata,
-        processingLogger,
-        processingLogContext);
+        processingLogger
+    );
   }
 
   private List<ExpressionMetadata> createExpressionMetadata(

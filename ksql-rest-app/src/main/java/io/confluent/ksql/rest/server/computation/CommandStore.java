@@ -16,7 +16,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -84,20 +84,18 @@ public class CommandStore implements CommandQueue, Closeable {
    * cluster.
    * Does not return until the statement has been successfully written, or an exception is thrown.
    *
-   * @param statementString The string of the statement to be distributed
    * @param statement The statement to be distributed
    * @param overwriteProperties Any command-specific Streams properties to use.
    * @return The status of the enqueued command
    */
   @Override
   public QueuedCommandStatus enqueueCommand(
-      final String statementString,
-      final Statement statement,
+      final PreparedStatement<?> statement,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overwriteProperties) {
-    final CommandId commandId = commandIdAssigner.getCommandId(statement);
+    final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
     final Command command = new Command(
-        statementString,
+        statement.getStatementText(),
         overwriteProperties,
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandStatusFuture statusFuture = this.commandStatusMap.compute(
@@ -125,7 +123,7 @@ public class CommandStore implements CommandQueue, Closeable {
           String.format(
               "Could not write the statement '%s' into the "
                   + "command topic"
-                  + ".", statementString
+                  + ".", statement.getStatementText()
           ),
           e
       );

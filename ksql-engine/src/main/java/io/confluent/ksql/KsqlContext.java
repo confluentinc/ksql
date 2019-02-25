@@ -18,10 +18,10 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -54,8 +54,11 @@ public class KsqlContext {
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final KsqlEngine engine =
-        new KsqlEngine(serviceContext, processingLogContext, functionRegistry, serviceId);
+    final KsqlEngine engine = new KsqlEngine(
+        serviceContext,
+        processingLogContext,
+        functionRegistry,
+        serviceId);
     return new KsqlContext(serviceContext, ksqlConfig, engine);
   }
 

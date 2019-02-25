@@ -21,14 +21,16 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndContinueProductionExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndFailProductionExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndXProductionExceptionHandler;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import java.util.Collections;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -47,13 +49,16 @@ public class ProductionExceptionHandlerUtilTest {
   private Map<String, ?> CONFIGS;
 
   @Mock
-  private StructuredLogger logger;
+  private ProcessingLogger logger;
   @Captor
-  private ArgumentCaptor<Supplier<SchemaAndValue>> msgCaptor;
+  private ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> msgCaptor;
   @Mock
   private ProducerRecord<byte[], byte[]> record;
   @Mock
   private ProductionExceptionHandlerResponse mockResponse;
+
+  private final ProcessingLogConfig processingLogConfig = new ProcessingLogConfig(
+      Collections.emptyMap());
 
   private LogAndXProductionExceptionHandler exceptionHandler;
 
@@ -87,7 +92,7 @@ public class ProductionExceptionHandlerUtilTest {
 
     // Then:
     verify(logger).error(msgCaptor.capture());
-    final SchemaAndValue schemaAndValue = msgCaptor.getValue().get();
+    final SchemaAndValue schemaAndValue = msgCaptor.getValue().apply(processingLogConfig);
 
     assertThat(schemaAndValue.schema(), is(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
     final Struct msg = (Struct) schemaAndValue.value();

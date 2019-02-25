@@ -123,25 +123,6 @@ public class AggregateAnalyzerTest {
   }
 
   @Test
-  public void shouldCaptureGroupByNonAggregateFunctionArguments() {
-    // When:
-    analyzer.processGroupBy(FUNCTION_CALL);
-
-    // Then:
-    assertThat(analysis.getGroupByFields(), contains(COL0));
-  }
-
-  @Test
-  public void shouldNotCaptureOtherNonAggregateFunctionArgumentsAsGroupByColumns() {
-    // When:
-    analyzer.processSelect(FUNCTION_CALL);
-    analyzer.processHaving(FUNCTION_CALL);
-
-    // Then:
-    assertThat(analysis.getGroupByFields(), is(empty()));
-  }
-
-  @Test
   public void shouldThrowOnGroupByAggregateFunction() {
     // Then:
     expectedException.expect(KsqlException.class);
@@ -150,16 +131,6 @@ public class AggregateAnalyzerTest {
 
     // When:
     analyzer.processGroupBy(AGG_FUNCTION_CALL);
-  }
-
-  @Test
-  public void shouldNotCaptureOtherAggregateFunctionArgumentsAsGroupByColumns() {
-    // When:
-    analyzer.processSelect(AGG_FUNCTION_CALL);
-    analyzer.processHaving(AGG_FUNCTION_CALL);
-
-    // Then:
-    assertThat(analysis.getGroupByFields(), is(empty()));
   }
 
   @Test

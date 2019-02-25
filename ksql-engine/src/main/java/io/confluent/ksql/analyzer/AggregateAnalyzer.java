@@ -65,7 +65,6 @@ class AggregateAnalyzer {
         throw new KsqlException("GROUP BY does not support aggregate functions: "
             + aggFuncName.get() + " is an aggregate function.");
       }
-      aggregateAnalysis.addGroupByField(node);
     });
 
     visitor.process(expression, new AnalysisContext());

@@ -23,13 +23,6 @@ import java.util.Set;
 interface AggregateAnalysis extends AggregateAnalysisResult {
 
   /**
-   * Get the set of fields from the source schema that are used in the GROUP BY expression.
-   *
-   * @return the set of fields in the GROUP BY expression.
-   */
-  Set<DereferenceExpression> getGroupByFields();
-
-  /**
    * Get a map of select expression to the set of source schema fields the expression uses.
    *
    * @return the map of select expression to the set of source schema fields.

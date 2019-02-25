@@ -21,8 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertTrue;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -84,7 +83,7 @@ public class QueryAnalyzerTest {
   }
 
   @Test
-  public void shouldCreateAnalysisForInserInto() {
+  public void shouldCreateAnalysisForInsertInto() {
     // Given:
     final PreparedStatement<InsertInto> statement = KsqlParserTestUtil.buildSingleAst(
         "insert into test2 select col1 from test1;", metaStore);
@@ -173,26 +172,6 @@ public class QueryAnalyzerTest {
   public void shouldProcessGroupByExpression() {
     // Given:
     final Query query = givenQuery(
-        "select itemid, sum(orderunits) from orders group by itemid;");
-
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
-
-    // When:
-    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
-
-    // Then:
-    assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(ITEM_ID, ORDER_UNITS));
-
-    assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().get(ITEM_ID),
-        contains(ITEM_ID));
-
-    assertThat(aggregateAnalysis.getGroupByFields(), contains(ITEM_ID));
-  }
-
-  @Test
-  public void shouldProcessGroupByWithNoNonAggSelects() {
-    // Given:
-    final Query query = givenQuery(
         "select sum(orderunits) from orders group by itemid;");
 
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
@@ -201,11 +180,7 @@ public class QueryAnalyzerTest {
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     // Then:
-    assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(ITEM_ID, ORDER_UNITS));
-
-    assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().keySet(), is(empty()));
-
-    assertThat(aggregateAnalysis.getGroupByFields(), contains(ITEM_ID));
+    assertThat(aggregateAnalysis.getRequiredColumns(), hasItem(ITEM_ID));
   }
 
   @Test
@@ -220,9 +195,7 @@ public class QueryAnalyzerTest {
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     // Then:
-    assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(ITEM_ID, ORDER_UNITS));
-    assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().keySet(), is(empty()));
-    assertThat(aggregateAnalysis.getGroupByFields(), contains(ITEM_ID));
+    assertThat(aggregateAnalysis.getRequiredColumns(), hasItem(ITEM_ID));
   }
 
   @Test
@@ -237,7 +210,7 @@ public class QueryAnalyzerTest {
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     // Then:
-    assertThat(aggregateAnalysis.getGroupByFields(), contains(ITEM_ID));
+    assertThat(aggregateAnalysis.getRequiredColumns(), hasItem(ITEM_ID));
   }
 
   @Test
@@ -249,11 +222,26 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
 
     // When:
-    final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+    queryAnalyzer.analyzeAggregate(query, analysis);
+
+    // Then: did not throw.
+  }
+
+  @Test
+  public void shouldThrowIfGroupByAggFunction() {
+    // Given:
+    final Query query = givenQuery(
+        "select sum(orderunits) from orders group by sum(orderid);");
+
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
 
     // Then:
-    assertThat(aggregateAnalysis.getRequiredColumns(), contains(ORDER_UNITS));
-    assertThat(aggregateAnalysis.getGroupByFields(), is(empty()));
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "GROUP BY does not support aggregate functions: SUM is an aggregate function.");
+
+    // When:
+    queryAnalyzer.analyzeAggregate(query, analysis);
   }
 
   @Test

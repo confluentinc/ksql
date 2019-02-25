@@ -33,6 +33,7 @@ import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -54,7 +55,6 @@ import org.slf4j.LoggerFactory;
 public class StatementExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
-  private static final String LEGACY_RUN_SCRIPT_STATEMENT_PROPERTY = "ksql.run.script.statements";
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
@@ -230,7 +230,7 @@ public class StatementExecutor {
   private void handleLegacyRunScript(final Command command, final Mode mode) {
 
     final String sql = (String) command.getOverwriteProperties()
-        .get(LEGACY_RUN_SCRIPT_STATEMENT_PROPERTY);
+        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
 
     if (sql == null) {
       throw new KsqlException("No statements received for LOAD FROM FILE.");

@@ -43,6 +43,8 @@ public final class KsqlConstants {
   public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
   public static final int defaultNumberOfStreamsThreads = 4;
 
+  public static final String LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
+
   public static final String DOT = ".";
   public static final String STRUCT_FIELD_REF = "->";
 

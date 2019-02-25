@@ -15,11 +15,14 @@ Upgrading from KSQL 5.1 to KSQL 5.2
 
     * Interactive mode:
 
-        * The REST API no longer supports the ``RUN SCRIPT`` statement,
+        * The use of the ``RUN SCRIPT`` statement via the REST API is now deprecated and will be
+          removed in the next major release.
           (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
-          Support was dropped as it circumnavigated certain correctness checks.
+          The feature circumnavigated certain correctness checks.
           Instead, include the contents of the script in the main body of your request.
           Note: there is no change to the CLI, which continues to support ``RUN SCRIPT``.
+          The server will inline any `RUN SCRIPT` statements, as though the script contents
+          had been included in the main body of the request.
           The server will continue to honour previously submitted ``RUN SCRIPT`` statements.
 
 Upgrading from KSQL 0.x (Developer Preview) to KSQL 4.1

@@ -14,14 +14,13 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.GenericRowValueTypeEnforcer;
@@ -36,12 +35,8 @@ import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SqlPredicate {
-  private static final Logger log = LoggerFactory.getLogger(SqlPredicate.class);
-
   private final Expression filterExpression;
   private final Schema schema;
   private final IExpressionEvaluator ee;
@@ -50,8 +45,7 @@ public class SqlPredicate {
   private final KsqlConfig ksqlConfig;
   private final FunctionRegistry functionRegistry;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
-  private final StructuredLogger processingLogger;
-  private final ProcessingLogContext processingLogContext;
+  private final ProcessingLogger processingLogger;
 
   SqlPredicate(
       final Expression filterExpression,
@@ -59,8 +53,7 @@ public class SqlPredicate {
       final boolean isWindowedKey,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final StructuredLogger processingLogger,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogger processingLogger
   ) {
     this.filterExpression = filterExpression;
     this.schema = schema;
@@ -69,7 +62,6 @@ public class SqlPredicate {
     this.functionRegistry = functionRegistry;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.processingLogger = Objects.requireNonNull(processingLogger);
-    this.processingLogContext = Objects.requireNonNull(processingLogContext);
 
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     final Set<CodeGenRunner.ParameterType> parameters
@@ -189,8 +181,7 @@ public class SqlPredicate {
                 filterExpression,
                 e.getMessage()
             ),
-            row,
-            processingLogContext.getConfig()
+            row
         )
     );
   }

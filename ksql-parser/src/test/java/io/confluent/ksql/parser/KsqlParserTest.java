@@ -59,6 +59,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
+import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
@@ -70,10 +71,14 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -502,14 +507,13 @@ public class KsqlParserTest {
   public void testRegisterTopic() {
     final String
         queryStr =
-        "REGISTER TOPIC orders_topic WITH (value_format = 'avro', "
-        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+        "REGISTER TOPIC orders_topic WITH (value_format = 'avro',kafka_topic='orders_topic');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testRegisterTopic failed.", statement instanceof RegisterTopic);
     final RegisterTopic registerTopic = (RegisterTopic)statement;
     Assert.assertTrue("testRegisterTopic failed.", registerTopic
         .getName().toString().equalsIgnoreCase("ORDERS_TOPIC"));
-    Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().size() == 3);
+    Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().size() == 2);
     Assert.assertTrue("testRegisterTopic failed.", registerTopic.getProperties().get(DdlConfig.VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
   }
 
@@ -529,7 +533,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateStreamWithTopicWithStruct() throws Exception {
+  public void testCreateStreamWithTopicWithStruct() {
     final String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
@@ -551,12 +555,11 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testCreateStream() throws Exception {
+  public void testCreateStream() {
     final String
         queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-        + "double) WITH (value_format = 'avro', "
-        + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+        + "double) WITH (value_format = 'avro', kafka_topic='orders_topic');";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
     Assert.assertTrue("testCreateStream failed.", statement instanceof CreateStream);
     final CreateStream createStream = (CreateStream)statement;
@@ -566,7 +569,6 @@ public class KsqlParserTest {
     Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString().equalsIgnoreCase("'orders_topic'"));
     Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig
                                                                                        .VALUE_FORMAT_PROPERTY).toString().equalsIgnoreCase("'avro'"));
-    Assert.assertTrue("testCreateStream failed.", createStream.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString().equalsIgnoreCase("'/Users/hojjat/avro_order_schema.avro'"));
   }
 
   @Test
@@ -1092,8 +1094,8 @@ public class KsqlParserTest {
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
-        equalTo("A.ADDRESS ADDRESS"));
+    assertThat(querySpecification.getSelect().getSelectItems().get(0),
+        equalToColumn("A.ADDRESS", "ADDRESS"));
   }
 
   @Test
@@ -1107,8 +1109,8 @@ public class KsqlParserTest {
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
-        equalTo("ADDRESS.ORDERID ORDERID"));
+    assertThat(querySpecification.getSelect().getSelectItems().get(0),
+        equalToColumn("ADDRESS.ORDERID", "ORDERID"));
   }
 
   @Test
@@ -1121,8 +1123,8 @@ public class KsqlParserTest {
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
-        equalTo("FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') ADDRESS__CITY"));
+    assertThat(querySpecification.getSelect().getSelectItems().get(0),
+        equalToColumn("FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY')", "ADDRESS__CITY"));
   }
 
   @Test
@@ -1135,8 +1137,12 @@ public class KsqlParserTest {
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(),
-        equalTo("FETCH_FIELD_FROM_STRUCT(ADDRESS.ADDRESS, 'CITY') ADDRESS__CITY"));
+
+    final SelectItem item = querySpecification.getSelect().getSelectItems().get(0);
+    assertThat(item, equalToColumn(
+        "FETCH_FIELD_FROM_STRUCT(ADDRESS.ADDRESS, 'CITY')",
+        "ADDRESS__CITY"
+    ));
   }
 
   @Test(expected = KsqlException.class)
@@ -1156,7 +1162,8 @@ public class KsqlParserTest {
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
     assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().get(0).toString(), equalTo("ITEMID.ITEMID ITEMID_ITEMID"));
+    assertThat(querySpecification.getSelect().getSelectItems().get(0),
+        equalToColumn("ITEMID.ITEMID", "ITEMID_ITEMID"));
   }
 
   @Test
@@ -1275,6 +1282,32 @@ public class KsqlParserTest {
     final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
     final Expression caseExpression = ((SingleColumn) querySpecification.getSelect().getSelectItems().get(0)).getExpression();
     return (SearchedCaseExpression) caseExpression;
+  }
+
+  private static Matcher<SelectItem> equalToColumn(
+      final String expression,
+      final String alias) {
+    return new TypeSafeMatcher<SelectItem>() {
+      @Override
+      protected boolean matchesSafely(SelectItem item) {
+        if (!(item instanceof SingleColumn)) {
+          return false;
+        }
+
+        SingleColumn column = (SingleColumn) item;
+        return Objects.equals(column.getExpression().toString(), expression)
+            && Objects.equals(column.getAlias().orElse(null), alias)
+            && Objects.equals(column.getAllColumns().isPresent(), false);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(
+            String.format("Expression: %s, Alias: %s",
+                expression,
+                alias));
+      }
+    };
   }
 
 }

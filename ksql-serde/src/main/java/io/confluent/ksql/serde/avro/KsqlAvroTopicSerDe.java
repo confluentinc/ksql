@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.serde.avro;
 
-import static io.confluent.ksql.processing.log.ProcessingLoggerUtil.join;
+import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroConverter;
@@ -22,7 +22,7 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
@@ -86,8 +86,7 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig),
             new AvroDataTranslator(schema, this.fullSchemaName),
             processingLogContext.getLoggerFactory().getLogger(
-                join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME)),
-            processingLogContext
+                join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
         )
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);

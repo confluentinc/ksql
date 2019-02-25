@@ -408,7 +408,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     final List<SelectItem> selectItems = new ArrayList<>();
     for (final SelectItem selectItem : select.getSelectItems()) {
       if (selectItem instanceof AllColumns) {
-        selectItems.addAll(getSelectStarItems(selectItem, from));
+        selectItems.addAll(getSelectStarItems((AllColumns) selectItem, from));
 
       } else if (selectItem instanceof SingleColumn) {
         selectItems.add(selectItem);
@@ -420,9 +420,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return selectItems;
   }
 
-  private List<SelectItem> getSelectStarItems(final SelectItem selectItem, final Relation from) {
+  private List<SelectItem> getSelectStarItems(final AllColumns allColumns, final Relation from) {
     final List<SelectItem> selectItems = new ArrayList<>();
-    final AllColumns allColumns = (AllColumns) selectItem;
 
     final NodeLocation location = allColumns.getLocation().orElse(null);
     if (from instanceof Join) {
@@ -436,7 +435,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           throw new InvalidColumnReferenceException("Source for alias '"
             + allColumns.getPrefix().get() + "' doesn't exist");
         }
-        addFieldsFromDataSource(selectItems, source, location, alias, alias);
+        addFieldsFromDataSource(selectItems, source, location, alias, alias, allColumns);
       } else {
         final AliasedRelation left = (AliasedRelation) join.getLeft();
         final StructuredDataSource
@@ -455,9 +454,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         }
 
         addFieldsFromDataSource(selectItems, leftDataSource, location,
-            left.getAlias(), left.getAlias());
+            left.getAlias(), left.getAlias(), allColumns);
         addFieldsFromDataSource(selectItems, rightDataSource, location,
-            right.getAlias(), right.getAlias());
+            right.getAlias(), right.getAlias(), allColumns);
       }
     } else {
       final AliasedRelation fromRel = (AliasedRelation) from;
@@ -471,7 +470,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       }
 
       addFieldsFromDataSource(selectItems, fromDataSource, location,
-          fromDataSource.getName(), "");
+          fromDataSource.getName(), "", allColumns);
     }
     return selectItems;
   }
@@ -481,7 +480,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       final StructuredDataSource dataSource,
       final NodeLocation location,
       final String alias,
-      final String columnNamePrefix
+      final String columnNamePrefix,
+      final AllColumns source
   ) {
     final QualifiedNameReference sourceName =
         new QualifiedNameReference(location, QualifiedName.of(alias));
@@ -493,7 +493,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       final DereferenceExpression exp
           = new DereferenceExpression(location, sourceName, field.name());
 
-      final SingleColumn newColumn = new SingleColumn(exp, prefix + field.name());
+      final SingleColumn newColumn = new SingleColumn(exp, prefix + field.name(), source);
 
       selectItems.add(newColumn);
     }

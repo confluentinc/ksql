@@ -23,8 +23,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;

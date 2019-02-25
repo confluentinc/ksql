@@ -6,11 +6,14 @@ Version 5.2.0
 
 KSQL 5.2 includes new features, including:
 
-* Added a new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
-* Added ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
-* Added support for read-after-write consistency: new commands don't execute until previous commands have finished executing.
+* A new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
+* ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
+* Support for read-after-write consistency: new commands don't execute until previous commands have finished executing.
   This feature is enabled by default in the CLI (`#2280 <https://github.com/confluentinc/ksql/pull/2280>`_)
   and can be implemented by the user for the REST API (:ref:`coordinate_multiple_requests`).
+* A log of record processing events to help users debug their KSQL queries. The log can be configured
+  to log to Kafka to be consumed as a KSQL stream. See :ref:`KSQL processing log <ksql_processing_log>`
+  for more details.
 
 KSQL 5.2 includes bug fixes, including:
 

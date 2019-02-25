@@ -30,12 +30,13 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.common.logging.StructuredLogger;
-import io.confluent.common.logging.StructuredLoggerFactory;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metrics.ConsumerCollector;
@@ -45,7 +46,6 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -597,15 +597,15 @@ public class PhysicalPlanBuilderTest {
   public void shouldConfigureProducerErrorHandlerLogger() {
     // Given:
     processingLogContext = mock(ProcessingLogContext.class);
-    final StructuredLoggerFactory loggerFactory = mock(StructuredLoggerFactory.class);
-    final StructuredLogger logger = mock(StructuredLogger.class);
+    final ProcessingLoggerFactory loggerFactory = mock(ProcessingLoggerFactory.class);
+    final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
     final OutputNode spyNode = spy(
         (OutputNode) AnalysisTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
     doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
     when(loggerFactory.getLogger("foo")).thenReturn(logger);
     when(loggerFactory.getLogger(ArgumentMatchers.startsWith("foo.")))
-        .thenReturn(mock(StructuredLogger.class));
+        .thenReturn(mock(ProcessingLogger.class));
     physicalPlanBuilder = buildPhysicalPlanBuilder(Collections.emptyMap());
 
     // When:

@@ -16,7 +16,7 @@ package io.confluent.ksql.serde;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;

@@ -12,7 +12,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.processing.log;
+package io.confluent.ksql.logging.processing;
 
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -22,7 +22,7 @@ import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 
 public class ProcessingLogConfig extends AbstractConfig {
-  private static final String PROPERTY_PREFIX = "processing.log.";
+  private static final String PROPERTY_PREFIX = "logging.processing.";
 
   private static String propertyName(final String name) {
     return KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX + PROPERTY_PREFIX + name;
@@ -75,7 +75,7 @@ public class ProcessingLogConfig extends AbstractConfig {
       TOPIC_PARTITIONS,
       TOPIC_REPLICATION_FACTOR);
 
-  public static final String INCLUDE_ROWS = propertyName("include.rows");
+  public static final String INCLUDE_ROWS = propertyName("rows.include");
   private static final String INCLUDE_ROWS_DOC =
       "Toggles whether or not the processing log should include rows in log messages";
 

@@ -14,11 +14,11 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import static io.confluent.ksql.processing.log.ProcessingLoggerUtil.join;
+import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.util.SerdeUtils;
@@ -55,8 +55,7 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
     final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(
         schema,
         processingLogContext.getLoggerFactory().getLogger(
-            join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME)),
-        processingLogContext
+            join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
     );
     genericRowDeserializer.configure(serdeProps, false);
 

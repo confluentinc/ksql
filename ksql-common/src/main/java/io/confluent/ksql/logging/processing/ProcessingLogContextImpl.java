@@ -12,24 +12,28 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.processing.log;
+package io.confluent.ksql.logging.processing;
 
 import io.confluent.common.logging.StructuredLoggerFactory;
 
 public final class ProcessingLogContextImpl implements ProcessingLogContext {
   private final ProcessingLogConfig config;
-  private final StructuredLoggerFactory loggerFactory;
+  private final ProcessingLoggerFactory loggerFactory;
 
   ProcessingLogContextImpl(final ProcessingLogConfig config) {
     this.config = config;
-    this.loggerFactory = new StructuredLoggerFactory(ProcessingLogConstants.PREFIX);
+    this.loggerFactory = new ProcessingLoggerFactoryImpl(
+        config,
+        new StructuredLoggerFactory(ProcessingLogConstants.PREFIX)
+    );
   }
 
   public ProcessingLogConfig getConfig() {
     return config;
   }
 
-  public StructuredLoggerFactory getLoggerFactory() {
+  @Override
+  public ProcessingLoggerFactory getLoggerFactory() {
     return loggerFactory;
   }
 }

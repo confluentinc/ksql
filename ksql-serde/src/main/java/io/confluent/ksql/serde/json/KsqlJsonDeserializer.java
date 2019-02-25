@@ -15,9 +15,8 @@
 package io.confluent.ksql.serde.json;
 
 import com.google.gson.Gson;
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
@@ -44,16 +43,14 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
   private final JsonConverter jsonConverter;
-  private final StructuredLogger recordLogger;
-  private final ProcessingLogContext processingLogContext;
+  private final ProcessingLogger recordLogger;
 
   private final Gson gson;
 
   public KsqlJsonDeserializer(
       final Schema schema,
       final boolean isInternal,
-      final StructuredLogger recordLogger,
-      final ProcessingLogContext processingLogContext) {
+      final ProcessingLogger recordLogger) {
     gson = new Gson();
     // If this is a Deserializer for an internal topic in the streams app
     if (isInternal) {
@@ -64,7 +61,6 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     jsonConverter = new JsonConverter();
     jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
     this.recordLogger = Objects.requireNonNull(recordLogger);
-    this.processingLogContext = Objects.requireNonNull(processingLogContext);
   }
 
   @Override
@@ -83,8 +79,8 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
       recordLogger.error(
           SerdeProcessingLogMessageFactory.deserializationErrorMsg(
               e,
-              Optional.ofNullable(bytes),
-              processingLogContext.getConfig()));
+              Optional.ofNullable(bytes))
+      );
       throw new SerializationException(
           "KsqlJsonDeserializer failed to deserialize data for topic: " + topic, e);
     }

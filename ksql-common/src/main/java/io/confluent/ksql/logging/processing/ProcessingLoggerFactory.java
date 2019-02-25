@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -12,22 +12,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.processing.log;
+package io.confluent.ksql.logging.processing;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import java.util.Collection;
 
-import java.util.Arrays;
-import org.junit.Test;
+public interface ProcessingLoggerFactory {
+  /**
+   * Get a processing logger for writing record processing log messages
+   * @param name The name of the logger to get.
+   * @return The logger with the given name.
+   */
+  ProcessingLogger getLogger(String name);
 
-public class ProcessingLoggerUtilTest {
-  @Test
-  public void shouldJoinCorrectly() {
-    assertThat(ProcessingLoggerUtil.join("foo", "bar"), equalTo("foo.bar"));
-  }
-
-  @Test
-  public void shouldJoinIterableCorrectly() {
-    assertThat(ProcessingLoggerUtil.join(Arrays.asList("foo", "bar")), equalTo("foo.bar"));
-  }
+  /**
+   * @return A collection of all loggers that have been created by the factory
+   */
+  Collection<String> getLoggers();
 }

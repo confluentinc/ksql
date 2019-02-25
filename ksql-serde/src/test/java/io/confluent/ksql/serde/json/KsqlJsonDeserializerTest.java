@@ -22,9 +22,9 @@ import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.SerdeTestUtils;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
@@ -48,10 +48,11 @@ public class KsqlJsonDeserializerTest {
   private Schema orderSchema;
   private KsqlJsonDeserializer ksqlJsonDeserializer;
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  private final ProcessingLogConfig processingLogConfig
+      = new ProcessingLogConfig(Collections.emptyMap());
 
   @Mock
-  StructuredLogger recordLogger;
+  ProcessingLogger recordLogger;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -69,8 +70,8 @@ public class KsqlJsonDeserializerTest {
     ksqlJsonDeserializer = new KsqlJsonDeserializer(
         orderSchema,
         false,
-        recordLogger,
-        processingLogContext);
+        recordLogger
+    );
   }
 
   @Test
@@ -114,8 +115,7 @@ public class KsqlJsonDeserializerTest {
     final KsqlJsonDeserializer ksqlJsonDeserializer = new KsqlJsonDeserializer(
         newOrderSchema,
         false,
-        recordLogger,
-        processingLogContext);
+        recordLogger);
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", jsonBytes);
     assertThat(genericRow.getColumns().size(), equalTo(4));
@@ -171,8 +171,7 @@ public class KsqlJsonDeserializerTest {
     final KsqlJsonDeserializer deserializer = new KsqlJsonDeserializer(
         schema,
         false,
-        recordLogger,
-        processingLogContext);
+        recordLogger);
 
     final GenericRow expected = new GenericRow(Collections.singletonList(
         "{\"CATEGORY\":{\"ID\":2,\"NAME\":\"Food\"},\"ITEMID\":6,\"NAME\":\"Item_6\"}"));
@@ -197,7 +196,7 @@ public class KsqlJsonDeserializerTest {
         recordLogger,
         SerdeProcessingLogMessageFactory.deserializationErrorMsg(
             cause,
-            Optional.ofNullable(data),
-            processingLogContext.getConfig()).get());
+            Optional.ofNullable(data)).apply(processingLogConfig),
+        processingLogConfig);
   }
 }

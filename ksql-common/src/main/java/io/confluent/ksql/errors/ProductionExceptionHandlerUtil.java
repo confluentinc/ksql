@@ -14,11 +14,12 @@
 
 package io.confluent.ksql.errors;
 
-import io.confluent.common.logging.StructuredLogger;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -38,7 +39,7 @@ public final class ProductionExceptionHandlerUtil {
 
   abstract static class LogAndXProductionExceptionHandler implements ProductionExceptionHandler {
 
-    private StructuredLogger logger;
+    private ProcessingLogger logger;
 
     @Override
     public ProductionExceptionHandlerResponse handle(
@@ -50,17 +51,18 @@ public final class ProductionExceptionHandlerUtil {
     @Override
     public void configure(final Map<String, ?> configs) {
       final Object logger = configs.get(KSQL_PRODUCTION_ERROR_LOGGER);
-      if (! (logger instanceof StructuredLogger)) {
+      if (! (logger instanceof ProcessingLogger)) {
         throw new IllegalArgumentException("Invalid value for logger: " + logger.toString());
       }
-      this.logger = (StructuredLogger) logger;
+      this.logger = (ProcessingLogger) logger;
     }
 
     abstract ProductionExceptionHandlerResponse getResponse();
   }
 
-  private static Supplier<SchemaAndValue> productionError(final String errorMsg) {
-    return () -> {
+  private static Function<ProcessingLogConfig, SchemaAndValue> productionError(
+      final String errorMsg) {
+    return (config) -> {
       final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.PRODUCTION_ERROR.getTypeId());
       final Struct productionError =

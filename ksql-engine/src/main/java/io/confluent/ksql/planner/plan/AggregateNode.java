@@ -144,11 +144,11 @@ public class AggregateNode extends PlanNode {
     return aggregateFunctionArguments;
   }
 
-  public List<FunctionCall> getFunctionList() {
+  public List<FunctionCall> getFunctionCalls() {
     return functionList;
   }
 
-  public Set<DereferenceExpression> getRequiredColumnList() {
+  public Set<DereferenceExpression> getRequiredColumns() {
     return requiredColumns;
   }
 
@@ -169,10 +169,6 @@ public class AggregateNode extends PlanNode {
       ));
     }
     return finalSelectExpressionList;
-  }
-
-  private Expression getHavingExpressions() {
-    return havingExpressions;
   }
 
   @Override
@@ -202,7 +198,7 @@ public class AggregateNode extends PlanNode {
     );
 
     // Pre aggregate computations
-    final InternalSchema internalSchema = new InternalSchema(getRequiredColumnList(),
+    final InternalSchema internalSchema = new InternalSchema(getRequiredColumns(),
         getAggregateFunctionArguments());
 
     final SchemaKStream aggregateArgExpanded =
@@ -307,7 +303,7 @@ public class AggregateNode extends PlanNode {
   ) {
     final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
     int nonAggColumnIndex = 0;
-    for (final Expression expression : getRequiredColumnList()) {
+    for (final Expression expression : getRequiredColumns()) {
       final String exprStr =
           internalSchema.getInternalColumnForExpression(expression);
       final int index = SchemaUtil.getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
@@ -331,7 +327,7 @@ public class AggregateNode extends PlanNode {
     try {
       int udafIndexInAggSchema = initialUdafIndex;
       final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
-      for (final FunctionCall functionCall : getFunctionList()) {
+      for (final FunctionCall functionCall : getFunctionCalls()) {
         final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
             functionRegistry,
             internalSchema,
@@ -383,15 +379,15 @@ public class AggregateNode extends PlanNode {
   ) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     final List<Field> fields = schema.fields();
-    for (int i = 0; i < getRequiredColumnList().size(); i++) {
+    for (int i = 0; i < getRequiredColumns().size(); i++) {
       schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
     }
     for (int aggFunctionVarSuffix = 0;
-        aggFunctionVarSuffix < getFunctionList().size(); aggFunctionVarSuffix++) {
+        aggFunctionVarSuffix < getFunctionCalls().size(); aggFunctionVarSuffix++) {
       final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
           functionRegistry,
           internalSchema,
-          getFunctionList().get(aggFunctionVarSuffix),
+          getFunctionCalls().get(aggFunctionVarSuffix),
           schema);
       schemaBuilder.field(
           AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX

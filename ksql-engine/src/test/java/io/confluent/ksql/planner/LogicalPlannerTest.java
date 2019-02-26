@@ -125,12 +125,12 @@ public class LogicalPlannerTest {
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
     final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
-    assertThat(aggregateNode.getFunctionList().size(), equalTo(2));
-    assertThat(aggregateNode.getFunctionList().get(0).getName().getSuffix(), equalTo("SUM"));
+    assertThat(aggregateNode.getFunctionCalls().size(), equalTo(2));
+    assertThat(aggregateNode.getFunctionCalls().get(0).getName().getSuffix(), equalTo("SUM"));
     assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" TUMBLING ( SIZE 2 SECONDS ) "));
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
-    assertThat(aggregateNode.getRequiredColumnList().size(), equalTo(2));
+    assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
     assertThat(aggregateNode.getSchema().fields().get(1).schema().type(), equalTo(Schema.Type.FLOAT64));
     assertThat(aggregateNode.getSchema().fields().get(2).schema().type(), equalTo(Schema.Type.INT64));
     assertThat(logicalPlan.getSources().get(0).getSchema().fields().size(), equalTo(3));
@@ -147,12 +147,12 @@ public class LogicalPlannerTest {
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
     final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
-    assertThat(aggregateNode.getFunctionList().size(), equalTo(2));
-    assertThat(aggregateNode.getFunctionList().get(0).getName().getSuffix(), equalTo("SUM"));
+    assertThat(aggregateNode.getFunctionCalls().size(), equalTo(2));
+    assertThat(aggregateNode.getFunctionCalls().get(0).getName().getSuffix(), equalTo("SUM"));
     assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
-    assertThat(aggregateNode.getRequiredColumnList().size(), equalTo(2));
+    assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
     assertThat(aggregateNode.getSchema().fields().get(1).schema().type(), equalTo(Schema.Type.FLOAT64));
     assertThat(logicalPlan.getSources().get(0).getSchema().fields().size(), equalTo(2));
 

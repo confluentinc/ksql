@@ -14,6 +14,11 @@ KSQL 5.2 includes new features, including:
 * A log of record processing events to help users debug their KSQL queries. The log can be configured
   to log to Kafka to be consumed as a KSQL stream. See :ref:`KSQL processing log <ksql_processing_log>`
   for more details.
+* Aggregation functionality has been extended. KSQL now supports:
+  * ``GROUP BY`` more than just simple columns, including fields within structs,
+    arithmetic results, functions, string concatenations and literals.
+  * literals in the projection, (a.k.a the ``SELECT`` clause).
+  * Multiple ``HAVING`` clauses, including the use of aggregate functions and literals.
 
 KSQL 5.2 includes bug fixes, including:
 

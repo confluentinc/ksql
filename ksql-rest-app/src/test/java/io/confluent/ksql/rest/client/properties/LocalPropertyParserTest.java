@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,7 @@ import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.Before;
@@ -64,6 +66,24 @@ public class LocalPropertyParserTest {
 
     when(resolver.resolve(anyString(), anyBoolean()))
         .thenReturn(Optional.of(configItem));
+  }
+
+  @Test
+  public void shouldNotCallResolverForRunScriptConstant() {
+    // When:
+    parser.parse(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "100");
+
+    // Then:
+    verify(resolver, never()).resolve(anyString(), anyBoolean());
+  }
+
+  @Test
+  public void shouldCallValidatorForRunScriptConstant() {
+    // When:
+    parser.parse(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
+
+    // Then:
+    verify(validator).validate(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
   }
 
   @Test

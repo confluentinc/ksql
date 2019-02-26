@@ -19,6 +19,7 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -94,6 +95,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -124,6 +126,7 @@ import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+@SuppressWarnings("deprecation")
 @Path("/ksql")
 @Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
@@ -157,7 +160,7 @@ public class KsqlResource {
           .put(UnsetProperty.class,
               castExecutor(KsqlResource::executeDdlImmediately, UnsetProperty.class))
           .put(RunScript.class,
-              castExecutor(KsqlResource::distributeStatement, RunScript.class))
+              castExecutor(KsqlResource::executeRunScript, RunScript.class))
           .put(TerminateQuery.class,
               castExecutor(KsqlResource::distributeStatement, TerminateQuery.class))
           .build();
@@ -272,16 +275,12 @@ public class KsqlResource {
   ) {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
-    statements.forEach(stmt -> {
-      final KsqlEntity result = executeStatement(stmt, scopedPropertyOverrides, entities);
-      if (result != null) {
-        entities.add(result);
-      }
-    });
+    statements.forEach(stmt -> executeStatement(stmt, scopedPropertyOverrides, entities));
+    entities.removeIf(Objects::isNull);
     return Response.ok(entities).build();
   }
 
-  private <T extends Statement> KsqlEntity executeStatement(
+  private <T extends Statement> void executeStatement(
       final ParsedStatement statement,
       final Map<String, Object> propertyOverrides,
       final KsqlEntityList entities
@@ -289,13 +288,14 @@ public class KsqlResource {
     try {
       final PreparedStatement<T> prepared = prepareStatement(statement, ksqlEngine);
       final Handler<T> handler = getCustomExecutor(prepared);
-      if (handler != null) {
-        waitForPreviousDistributedStatementToBeHandled(prepared, entities);
-
-        return handler.handle(this, prepared, propertyOverrides);
+      if (handler == null) {
+        entities.add(distributeStatement(prepared, propertyOverrides));
+        return;
       }
 
-      return distributeStatement(prepared, propertyOverrides);
+      waitForPreviousDistributedStatementToBeHandled(prepared, entities);
+
+      entities.add(handler.handle(this, prepared, propertyOverrides));
     } catch (final KsqlRestException e) {
       throw e;
     } catch (final KsqlException e) {
@@ -613,6 +613,24 @@ public class KsqlResource {
     );
   }
 
+  private KsqlEntity executeRunScript(
+      final PreparedStatement<RunScript> statement,
+      final Map<String, Object> propertyOverrides
+  ) {
+    final String sql = (String) propertyOverrides
+        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
+
+    if (sql == null) {
+      throw new KsqlStatementException(
+          "Request is missing script content", statement.getStatementText());
+    }
+
+    final KsqlEntityList entities = new KsqlEntityList();
+    ksqlEngine.parse(sql).forEach(stmt -> executeStatement(stmt, propertyOverrides, entities));
+
+    return entities.isEmpty() ? null : Iterables.getLast(entities);
+  }
+
   private CommandStatusEntity distributeStatement(
       final PreparedStatement<?> statement,
       final Map<String, Object> propertyOverrides
@@ -801,7 +819,7 @@ public class KsqlResource {
             .put(Explain.class,
                 castValidator(RequestValidator::validateExplain, Explain.class))
             .put(RunScript.class,
-                castValidator(RequestValidator::rejectRunScript, RunScript.class))
+                castValidator(RequestValidator::validateRunScript, RunScript.class))
             .put(DescribeFunction.class,
                 castValidator(RequestValidator::validateDescribeFunction, DescribeFunction.class))
             .put(TerminateQuery.class,
@@ -861,8 +879,6 @@ public class KsqlResource {
     private <T extends Statement> void updatePersistentQueryCount(
         final PreparedStatement<T> statement
     ) {
-      // Note: RunScript commands also have the potential to create persistent queries,
-      // but we don't count those queries here (to avoid parsing those commands)
       if (statement.getStatement() instanceof CreateAsSelect
           || statement.getStatement() instanceof InsertInto) {
         persistentQueryCount++;
@@ -932,17 +948,19 @@ public class KsqlResource {
     }
 
     /**
-     * @deprecated deprecate since 5.2. `RUN SCRIPT` will be removed from syntax in later release.
+     * @deprecated `RUN SCRIPT` is deprecated since 5.2 and will be removed in the next major rel.
      */
     @SuppressWarnings({"MethodMayBeStatic", "DeprecatedIsStillUsed"})
-    private void rejectRunScript(final PreparedStatement<RunScript> statement) {
-      throw new KsqlRestException(Errors.badStatement(
-          "RUN SCRIPT is no longer supported by the REST API."
-              + System.lineSeparator()
-              + "However, the REST API does support multi-line requests:"
-              + "Please resend the request with the script contents in the body of the request.",
-          statement.getStatementText()
-      ));
+    private void validateRunScript(final PreparedStatement<RunScript> statement) {
+      final String sql = (String) scopedPropertyOverrides
+          .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
+
+      if (sql == null) {
+        throw new KsqlStatementException(
+            "Request is missing script content", statement.getStatementText());
+      }
+
+      executionSandbox.parse(sql).forEach(this::validate);
     }
 
     private void validateDescribeFunction(final PreparedStatement<DescribeFunction> statement) {

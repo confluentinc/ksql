@@ -19,6 +19,7 @@ import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.config.PropertyValidator;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
 
 public class LocalPropertyParser implements PropertyParser {
@@ -37,6 +38,11 @@ public class LocalPropertyParser implements PropertyParser {
 
   @Override
   public Object parse(final String property, final Object value) {
+    if (property.equalsIgnoreCase(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT)) {
+      validator.validate(property, value);
+      return value;
+    }
+
     final ConfigItem configItem = resolver.resolve(property, true)
         .orElseThrow(() -> new IllegalArgumentException(String.format(
             "Not recognizable as ksql, streams, consumer, or producer property: '%s'", property)));

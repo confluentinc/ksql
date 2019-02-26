@@ -24,7 +24,6 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RegisterTopic;
-import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
@@ -63,8 +62,6 @@ public class CommandIdAssigner {
         command -> getDropStreamCommandId((DropStream) command));
     suppliers.put(DropTable.class,
         command -> getDropTableCommandId((DropTable) command));
-    suppliers.put(RunScript.class,
-        command -> new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE));
     suppliers.put(TerminateCluster.class,
         command -> new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE));
   }

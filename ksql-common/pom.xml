@@ -45,7 +45,7 @@
 	</dependency>
 
         <dependency>
-            <groupId>io.confluent</groupId>
+            <groupId>io.confluent.logging</groupId>
             <artifactId>common-logging</artifactId>
             <version>${confluent.version}</version>
         </dependency>

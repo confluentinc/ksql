@@ -32,12 +32,13 @@ KSQL 5.2 deprecates some features, including:
 * The use of the ``RUN SCRIPT`` statement via the REST API is now deprecated and will be removed
   in the next major release.
   (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
-  The feature circumnavigated certain correctness checks.
+  The feature circumnavigates certain correctness checks and is unnecessary,
+  given the script content can be supplied in the main body of the request.
+  If you are using the ``RUN SCRIPT`` functionality from the KSQL CLI you will not be affected,
+  as this will continue to be supported.
+  If you are using the ``RUN SCRIPT`` functionality directly against the REST API your requests
+  will work with the 5.2 server, but will be rejected after the next major version release.
   Instead, include the contents of the script in the main body of your request.
-  Note: there is no change to the CLI, which continues to support ``RUN SCRIPT``.
-  The server will inline any `RUN SCRIPT` statements, as though the script contents had been
-  included in the main body of the request.
-  The server will continue to honour previously submitted ``RUN SCRIPT`` statements.
 
 Version 5.1.0
 -------------

@@ -96,12 +96,17 @@ Run a KSQL Statement
 
 The KSQL resource runs a sequence of KSQL statements. Most statements, except those starting with ``SELECT``, can be run on this endpoint. To run ``SELECT`` statements use the ``/query`` endpoint.
 
-.. note::
+.. warning::
 
-   Starting in KSQL 5.2, the KSQL REST API doesn't support the ``RUN SCRIPT``
-   statement. Instead, include the contents of the script in the main body of
-   your request. The KSQL CLI continues to support ``RUN SCRIPT``. KSQL Server
-   5.2 supports previously submitted ``RUN SCRIPT`` statements.
+   Starting in KSQL 5.2, support for using the RUN SCRIPT statement directly
+   against the KSQL REST API is deprecated and will be removed in the next
+   major release. KSQL Server still accepts RUN SCRIPT requests to the REST
+   API in KSQL 5.2, but it will reject them in the next major version release.
+   
+   To use RUN SCRIPT with the KSQL REST API, include the contents of the
+   script in the main body of your request.
+
+   The KSQL CLI continues to support RUN SCRIPT.
 
 .. http:post:: /ksql
 

@@ -14,16 +14,45 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
-public class RoundKudf implements Kudf {
+@UdfDescription(name = RoundKudf.NAME, version = "Confluent",
+    description = "Round a value to the nearest BIGINT value.")
+public class RoundKudf {
+  static final String NAME = "ROUND";
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Len udf should have one input argument.");
+  @Udf(description = "Round a value to the nearest BIGINT value.")
+  public Long round(
+      @UdfParameter(description = "A number which will be rounded up.")
+      final Integer n) {
+    if (n == null) {
+      return null;
     }
-    return Math.round((Double) args[0]);
+
+    return Math.round(n.doubleValue());
+  }
+
+  @Udf(description = "Round a value to the nearest BIGINT value.")
+  public Long round(
+      @UdfParameter(description = "A number which will be rounded up.")
+      final Long n) {
+    if (n == null) {
+      return null;
+    }
+
+    return Math.round(n.doubleValue());
+  }
+
+  @Udf(description = "Round a value to the nearest BIGINT value.")
+  public Long round(
+      @UdfParameter(description = "A number which will be rounded up.")
+      final Double n) {
+    if (n == null) {
+      return null;
+    }
+
+    return Math.round(n);
   }
 }

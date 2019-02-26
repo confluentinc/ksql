@@ -14,18 +14,45 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.UdfUtil;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
-public class AbsKudf implements Kudf {
+@UdfDescription(name = AbsKudf.NAME, version = "Confluent",
+    description = "Returns the absolute value of a number.")
+public class AbsKudf {
   public static final String NAME = "ABS";
 
-  @Override
-  public Object evaluate(final Object... args) {
-    UdfUtil.ensureCorrectArgs(NAME, args, Number.class);
-    if (args[0] == null) {
+  @Udf(description = "Returns the absolute value of a number.")
+  public Integer abs(
+      @UdfParameter(description = "A number whose absolute value is to be retrieved.")
+      final Integer n) {
+    if (n == null) {
       return null;
     }
-    return Math.abs(((Number) args[0]).doubleValue());
+
+    return Math.abs(n);
+  }
+
+  @Udf(description = "Returns the absolute value of a number.")
+  public Long abs(
+      @UdfParameter(description = "A number whose absolute value is to be retrieved.")
+      final Long n) {
+    if (n == null) {
+      return null;
+    }
+
+    return Math.abs(n);
+  }
+
+  @Udf(description = "Returns the absolute value of a number.")
+  public Double abs(
+      @UdfParameter(description = "A number whose absolute value is to be retrieved.")
+      final Double n) {
+    if (n == null) {
+      return null;
+    }
+
+    return Math.abs(n);
   }
 }

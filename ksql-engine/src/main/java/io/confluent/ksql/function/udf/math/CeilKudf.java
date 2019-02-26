@@ -14,16 +14,42 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
-public class CeilKudf implements Kudf {
+@UdfDescription(name = CeilKudf.NAME, version = "Confluent",
+    description = "Returns the ceiling of a value.")
+public class CeilKudf {
+  static final String NAME = "CEIL";
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Ceil udf should have one input argument.");
+  @Udf(description = "Returns the ceiling of a value.")
+  public Integer ceil(@UdfParameter(description = "A value.")
+      final Integer n) {
+    if (n == null) {
+      return null;
     }
-    return Math.ceil((Double) args[0]);
+
+    return (int) Math.ceil(n.doubleValue());
+  }
+
+  @Udf(description = "Returns the ceiling of a value.")
+  public Long ceil(@UdfParameter(description = "A value.")
+                      final Long n) {
+    if (n == null) {
+      return null;
+    }
+
+    return (long) Math.ceil(n.doubleValue());
+  }
+
+  @Udf(description = "Returns the ceiling of a value.")
+  public Double ceil(@UdfParameter(description = "A value.")
+                      final Double n) {
+    if (n == null) {
+      return null;
+    }
+
+    return Math.ceil(n.doubleValue());
   }
 }

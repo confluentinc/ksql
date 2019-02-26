@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -21,37 +21,36 @@ import static org.junit.Assert.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AbsKudfTest {
-
-  private AbsKudf udf;
+public class RoundKudfTest {
+  private RoundKudf udf;
 
   @Before
   public void setUp() {
-    udf = new AbsKudf();
+    udf = new RoundKudf();
   }
 
   @Test
   public void shouldReturnNullWhenArgNull() {
-    assertThat(udf.abs((Integer)null), is(nullValue()));
-    assertThat(udf.abs((Long)null), is(nullValue()));
-    assertThat(udf.abs((Double)null), is(nullValue()));
+    assertThat(udf.round((Integer)null), is(nullValue()));
+    assertThat(udf.round((Long)null), is(nullValue()));
+    assertThat(udf.round((Double)null), is(nullValue()));
   }
 
   @Test
   public void shouldAcceptDoubleValues() {
-    assertThat(udf.abs(-1.234), is(1.234));
-    assertThat(udf.abs(5567.0), is(5567.0));
+    assertThat(udf.round(-1.234), is(-1L));
+    assertThat(udf.round(7.59), is(8L));
   }
 
   @Test
   public void shouldAcceptIntegerValues() {
-    assertThat(udf.abs(-1), is(1));
-    assertThat(udf.abs(1), is(1));
+    assertThat(udf.round(-1), is(-1L));
+    assertThat(udf.round(1), is(1L));
   }
 
   @Test
   public void shouldAcceptLongValues() {
-    assertThat(udf.abs(-1L), is(1L));
-    assertThat(udf.abs(1L), is(1L));
+    assertThat(udf.round(-1L), is(-1L));
+    assertThat(udf.round(1L), is(1L));
   }
 }

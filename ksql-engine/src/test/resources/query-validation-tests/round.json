@@ -1,0 +1,24 @@
+{
+  "comments": [
+    "Tests covering the use of the ROUND function."
+  ],
+  "tests": [
+    {
+      "name": "returns the rounding number of an integer, a bigint, and a double",
+      "statements": [
+        "CREATE STREAM TEST (a INT, b BIGINT, c DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ROUND(a) as A, ROUND(b) as B, ROUND(c) as C FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"a": 1, "b": 1, "c":  1.0}, "timestamp": 0},
+        {"topic": "test_topic", "key": 2, "value": {"a": -1, "b": -1, "c":  -1.0}, "timestamp": 0},
+        {"topic": "test_topic", "key": 3, "value": {"a": null, "b": null, "c":  null}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"A": 1, "B": 1, "C":  1}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 2, "value": {"A": -1, "B": -1, "C":  -1}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 3, "value": {"A": null, "B": null, "C": null}, "timestamp": 0}
+      ]
+    }
+  ]
+}

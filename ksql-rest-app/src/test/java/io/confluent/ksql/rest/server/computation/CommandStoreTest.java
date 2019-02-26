@@ -124,7 +124,6 @@ public class CommandStoreTest {
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-
     commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     expectedException.expect(IllegalStateException.class);

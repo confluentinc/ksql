@@ -18,7 +18,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.rest.client.properties.LocalPropertyParser;
 import io.confluent.ksql.util.KsqlException;
@@ -46,7 +45,7 @@ public class KsqlRequest {
     this.ksql = ksql == null ? "" : ksql;
     this.streamsProperties = streamsProperties == null
         ? Collections.emptyMap()
-        : ImmutableMap.copyOf(streamsProperties);
+        : Collections.unmodifiableMap(new HashMap<>(streamsProperties));
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 

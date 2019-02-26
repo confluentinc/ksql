@@ -28,7 +28,7 @@ import java.util.Set;
 
 public class MutableAggregateAnalysis implements AggregateAnalysis {
 
-  private final Set<DereferenceExpression> requiredColumns = new HashSet<>();
+  private final List<DereferenceExpression> requiredColumns = new ArrayList<>();
   private final Map<Expression, Set<DereferenceExpression>> nonAggSelectExpressions
       = new HashMap<>();
   private final Set<DereferenceExpression> nonAggHavingFields = new HashSet<>();
@@ -44,8 +44,8 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   }
 
   @Override
-  public Set<DereferenceExpression> getRequiredColumns() {
-    return Collections.unmodifiableSet(requiredColumns);
+  public List<DereferenceExpression> getRequiredColumns() {
+    return Collections.unmodifiableList(requiredColumns);
   }
 
   @Override
@@ -97,7 +97,9 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   }
 
   void addRequiredColumn(final DereferenceExpression node) {
-    requiredColumns.add(node);
+    if (!requiredColumns.contains(node)) {
+      requiredColumns.add(node);
+    }
   }
 
   void addFinalSelectExpression(final Expression expression) {

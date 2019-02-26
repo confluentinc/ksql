@@ -14,8 +14,9 @@
 
 package io.confluent.ksql.services;
 
-import static io.confluent.ksql.services.SandboxProxyBuilder.anyParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
 
+import io.confluent.ksql.util.LimitedProxyBuilder;
 import org.apache.kafka.clients.producer.Producer;
 
 /**
@@ -29,7 +30,7 @@ import org.apache.kafka.clients.producer.Producer;
 final class SandboxedProducer<K, V> {
 
   static <K, V> Producer<K, V> createProxy() {
-    return SandboxProxyBuilder.forClass(Producer.class)
+    return LimitedProxyBuilder.forClass(Producer.class)
         .swallow("close", anyParams())
         .build();
   }

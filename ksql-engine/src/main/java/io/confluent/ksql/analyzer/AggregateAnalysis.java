@@ -23,17 +23,18 @@ import java.util.Set;
 interface AggregateAnalysis extends AggregateAnalysisResult {
 
   /**
-   * Get a map of select expression to the set of source schema fields the expression uses.
+   * Get a map of non-aggregate select expression to the set of source schema fields the
+   * expression uses.
    *
    * @return the map of select expression to the set of source schema fields.
    */
   Map<Expression, Set<DereferenceExpression>> getNonAggregateSelectExpressions();
 
   /**
-   * Get the set of columns from the source schema that are using in the HAVING clause outside
+   * Get the set of columns from the source schema that are used in the HAVING clause outside
    * of aggregate functions.
    *
-   * @return the set of non-aggregate columns in the HAVING clause.
+   * @return the set of non-aggregate columns used in the HAVING clause.
    */
   Set<DereferenceExpression> getNonAggregateHavingFields();
 }

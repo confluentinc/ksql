@@ -19,19 +19,18 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import java.util.List;
-import java.util.Set;
 
 public interface AggregateAnalysisResult {
 
   List<Expression> getAggregateFunctionArguments();
 
   /**
-   * Get the full set of columns from the source schema that are required. This includes columns
+   * Get the ordered list of columns from the source schema that are required. This includes columns
    * used in SELECT, GROUP BY and HAVING clauses.
    *
    * @return the full set of columns from the source schema that are required.
    */
-  Set<DereferenceExpression> getRequiredColumns();
+  List<DereferenceExpression> getRequiredColumns();
 
   List<FunctionCall> getAggregateFunctions();
 

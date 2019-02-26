@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -82,7 +81,7 @@ public class AggregateNode extends PlanNode {
   private final WindowExpression windowExpression;
   private final List<Expression> aggregateFunctionArguments;
   private final List<FunctionCall> functionList;
-  private final Set<DereferenceExpression> requiredColumns;
+  private final List<DereferenceExpression> requiredColumns;
   private final List<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
 
@@ -95,7 +94,7 @@ public class AggregateNode extends PlanNode {
       @JsonProperty("window") final WindowExpression windowExpression,
       @JsonProperty("aggregateFunctionArguments") final List<Expression> aggregateFunctionArguments,
       @JsonProperty("functionList") final List<FunctionCall> functionList,
-      @JsonProperty("requiredColumnList") final Set<DereferenceExpression> requiredColumns,
+      @JsonProperty("requiredColumnList") final List<DereferenceExpression> requiredColumns,
       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions,
       @JsonProperty("havingExpressions") final Expression havingExpressions
   ) {
@@ -108,7 +107,7 @@ public class AggregateNode extends PlanNode {
     this.aggregateFunctionArguments = aggregateFunctionArguments;
     this.functionList = functionList;
     this.requiredColumns =
-        ImmutableSet.copyOf(Objects.requireNonNull(requiredColumns, "requiredColumns"));
+        ImmutableList.copyOf(Objects.requireNonNull(requiredColumns, "requiredColumns"));
     this.finalSelectExpressions = finalSelectExpressions;
     this.havingExpressions = havingExpressions;
   }
@@ -148,7 +147,7 @@ public class AggregateNode extends PlanNode {
     return functionList;
   }
 
-  public Set<DereferenceExpression> getRequiredColumns() {
+  public List<DereferenceExpression> getRequiredColumns() {
     return requiredColumns;
   }
 
@@ -405,7 +404,7 @@ public class AggregateNode extends PlanNode {
     private final Map<String, String> expressionToInternalColumnNameMap = new HashMap<>();
 
     InternalSchema(
-        final Set<DereferenceExpression> requiredColumns,
+        final List<DereferenceExpression> requiredColumns,
         final List<Expression> aggregateFunctionArguments) {
       final Set<String> seen = new HashSet<>();
       collectAggregateArgExpressions(requiredColumns, seen);

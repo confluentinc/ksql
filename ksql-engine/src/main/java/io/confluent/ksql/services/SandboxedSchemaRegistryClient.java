@@ -14,9 +14,10 @@
 
 package io.confluent.ksql.services;
 
-import static io.confluent.ksql.services.SandboxProxyBuilder.methodParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Collections;
 import java.util.Objects;
 import org.apache.avro.Schema;
@@ -34,7 +35,7 @@ final class SandboxedSchemaRegistryClient {
   static SchemaRegistryClient createProxy(final SchemaRegistryClient delegate) {
     Objects.requireNonNull(delegate, "delegate");
 
-    return SandboxProxyBuilder.forClass(SchemaRegistryClient.class)
+    return LimitedProxyBuilder.forClass(SchemaRegistryClient.class)
         .forward("getLatestSchemaMetadata", methodParams(String.class), delegate)
         .forward("testCompatibility",
             methodParams(String.class, Schema.class), delegate)

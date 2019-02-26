@@ -1,8 +1,9 @@
 /*
  * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -12,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.services;
+package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -41,7 +42,7 @@ import javax.annotation.concurrent.Immutable;
  *
  * @param <T> the interface type that is to be proxied.
  */
-final class SandboxProxyBuilder<T> {
+public final class LimitedProxyBuilder<T> {
 
   /**
    * Special marked that can be passed as the only type in any {@code paramTypes} parameter to
@@ -64,8 +65,8 @@ final class SandboxProxyBuilder<T> {
    * @param <T> the type of the interface to proxy.
    * @return the proxy builder.
    */
-  static <T> SandboxProxyBuilder<T> forClass(final Class<T> type) {
-    return new SandboxProxyBuilder<>(type);
+  public  static <T> LimitedProxyBuilder<T> forClass(final Class<T> type) {
+    return new LimitedProxyBuilder<>(type);
   }
 
   /**
@@ -77,7 +78,7 @@ final class SandboxProxyBuilder<T> {
    * @param methodParams the type of the method.
    * @return the builder.
    */
-  SandboxProxyBuilder<T> swallow(final String methodName, final MethodParams methodParams) {
+  public LimitedProxyBuilder<T> swallow(final String methodName, final MethodParams methodParams) {
     final Collection<Method> methods = getDeclaredPublicMethods(methodName, methodParams);
 
     throwOnNoneVoidReturnType(methods);
@@ -94,7 +95,7 @@ final class SandboxProxyBuilder<T> {
    * @param returnValue the return value from the method.
    * @return the builder.
    */
-  SandboxProxyBuilder<T> swallow(
+  public LimitedProxyBuilder<T> swallow(
       final String methodName,
       final MethodParams methodParams,
       final Object returnValue
@@ -120,7 +121,7 @@ final class SandboxProxyBuilder<T> {
    * @param delegate the delegate to forward to.
    * @return the builder
    */
-  SandboxProxyBuilder<T> forward(
+  public LimitedProxyBuilder<T> forward(
       final String methodName,
       final MethodParams methodParams,
       final Object delegate
@@ -138,9 +139,9 @@ final class SandboxProxyBuilder<T> {
    * @return the proxy.
    */
   @SuppressWarnings("unchecked")
-  <TT extends T> TT build() {
+  public <TT extends T> TT build() {
     return (TT) Proxy.newProxyInstance(
-        SandboxProxyBuilder.class.getClassLoader(),
+        LimitedProxyBuilder.class.getClassLoader(),
         new Class[]{type},
         new SandboxProxy(handledMethods));
   }
@@ -151,7 +152,7 @@ final class SandboxProxyBuilder<T> {
    * @param params the types of the methods params.
    * @return the method params instance.
    */
-  static MethodParams methodParams(final Class<?>... params) {
+  public static MethodParams methodParams(final Class<?>... params) {
     return new MethodParams(params);
   }
 
@@ -160,7 +161,7 @@ final class SandboxProxyBuilder<T> {
    *
    * @return the empty method params instance.
    */
-  static MethodParams noParams() {
+  public static MethodParams noParams() {
     return NO_PARAMS;
   }
 
@@ -171,11 +172,11 @@ final class SandboxProxyBuilder<T> {
    *
    * @return the special instance.
    */
-  static MethodParams anyParams() {
+  public static MethodParams anyParams() {
     return ANY_PARAMS;
   }
 
-  private SandboxProxyBuilder(final Class<T> type) {
+  private LimitedProxyBuilder(final Class<T> type) {
     this.type = Objects.requireNonNull(type, "type");
 
     if (!type.isInterface()) {
@@ -195,8 +196,8 @@ final class SandboxProxyBuilder<T> {
         .collect(Collectors.toList());
 
     if (matching.isEmpty()) {
-      throw new IllegalArgumentException("Interface does not have method: "
-          + methodName + "(" + methodParams + ")");
+      throw new IllegalArgumentException("Interface '" + type.getSimpleName()
+          + "' does not have method: " + methodName + "(" + methodParams + ")");
     }
 
     throwIfAlreadyRegistered(matching);
@@ -236,7 +237,7 @@ final class SandboxProxyBuilder<T> {
   private void throwIfAlreadyRegistered(final Collection<Method> methods) {
     final String duplicates = methods.stream()
         .filter(handledMethods::containsKey)
-        .map(SandboxProxyBuilder::formatMethod)
+        .map(LimitedProxyBuilder::formatMethod)
         .collect(Collectors.joining(System.lineSeparator()));
 
     if (!duplicates.isEmpty()) {
@@ -248,7 +249,7 @@ final class SandboxProxyBuilder<T> {
   private static void throwOnNoneVoidReturnType(final Collection<Method> methods) {
     final String noneVoid = methods.stream()
         .filter(method -> !method.getReturnType().equals(void.class))
-        .map(SandboxProxyBuilder::formatMethod)
+        .map(LimitedProxyBuilder::formatMethod)
         .collect(Collectors.joining(System.lineSeparator()));
 
     if (!noneVoid.isEmpty()) {
@@ -304,7 +305,7 @@ final class SandboxProxyBuilder<T> {
     ) throws Throwable {
       final InvocationHandler handler = handledMethods.get(method);
       if (handler == null) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(formatMethod(method));
       }
 
       try {

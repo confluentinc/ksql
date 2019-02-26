@@ -1,8 +1,9 @@
 /*
  * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -12,11 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.services;
+package io.confluent.ksql.util;
 
-import static io.confluent.ksql.services.SandboxProxyBuilder.anyParams;
-import static io.confluent.ksql.services.SandboxProxyBuilder.methodParams;
-import static io.confluent.ksql.services.SandboxProxyBuilder.noParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.noParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
@@ -41,9 +42,9 @@ import org.junit.runners.Parameterized;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
-public final class SandboxProxyBuilderTest {
+public final class LimitedProxyBuilderTest {
 
-  private SandboxProxyBuilderTest() {
+  private LimitedProxyBuilderTest() {
   }
 
   @RunWith(MockitoJUnitRunner.class)
@@ -59,7 +60,7 @@ public final class SandboxProxyBuilderTest {
       expectedException.expectMessage("Type not an interface: " + String.class);
 
       // When:
-      SandboxProxyBuilder.forClass(String.class);
+      LimitedProxyBuilder.forClass(String.class);
     }
 
     @Test
@@ -70,24 +71,28 @@ public final class SandboxProxyBuilderTest {
       expectedException.expectMessage("void noReturnValue(String,long)");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("noReturnValue", methodParams(String.class, long.class))
           .forward("noReturnValue", methodParams(String.class, long.class), null);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void shouldThrowUnsupportedOnOtherMethods() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class).build();
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class).build();
+
+      // Expect:
+      expectedException.expect(UnsupportedOperationException.class);
+      expectedException.expectMessage("noReturnValue(String,long)");
 
       // When:
-      proxy.noReturnValue();
+      proxy.noReturnValue("", 1);
     }
 
     @Test
     public void shouldSwallowSpecificMethod() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("noReturnValue", methodParams(String.class, long.class))
           .build();
 
@@ -100,7 +105,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldSwallowMethodWithNoParams() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("noReturnValue", noParams())
           .build();
 
@@ -113,7 +118,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldSwallowAllVariantsOfMethods() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("noReturnValue", anyParams())
           .build();
 
@@ -128,7 +133,7 @@ public final class SandboxProxyBuilderTest {
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowUnsupportedOnDefaultMethodIfNotSwallowed() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("defaultMethods", noParams())
           .build();
 
@@ -139,7 +144,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldSwallowDefaultMethods() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("defaultMethods", methodParams(int.class))
           .build();
 
@@ -152,7 +157,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldSwallowDefaultMethodsWhenUsingAnyParams() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("defaultMethods", anyParams())
           .build();
 
@@ -167,10 +172,11 @@ public final class SandboxProxyBuilderTest {
     public void shouldThrowIfUnknownMethodName() {
       // Expect:
       expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage("Interface does not have method: unknown(*)");
+      expectedException.expectMessage(
+          "Interface 'TestInterface' does not have method: unknown(*)");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("unknown", anyParams())
           .build();
     }
@@ -179,10 +185,11 @@ public final class SandboxProxyBuilderTest {
     public void shouldThrowIfIUnknownMethodParams() {
       // Expect:
       expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage("Interface does not have method: noReturnValue(TimeUnit)");
+      expectedException.expectMessage(
+          "Interface 'TestInterface' does not have method: noReturnValue(TimeUnit)");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("noReturnValue", methodParams(TimeUnit.class))
           .build();
     }
@@ -195,7 +202,7 @@ public final class SandboxProxyBuilderTest {
       expectedException.expectMessage("int someFunc()");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("someFunc", noParams())
           .build();
     }
@@ -209,7 +216,7 @@ public final class SandboxProxyBuilderTest {
       expectedException.expectMessage("String someFunc(String)");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("someFunc", anyParams())
           .build();
     }
@@ -222,7 +229,7 @@ public final class SandboxProxyBuilderTest {
       expectedException.expectMessage("void noReturnValue()");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("noReturnValue", noParams(), 10)
           .build();
     }
@@ -230,7 +237,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldSwallowNonVoidFunctionWithNonNullReturnValue() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("someFunc", noParams(), 10)
           .build();
 
@@ -244,7 +251,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldSwallowNonVoidFunctionWithNullReturnValue() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("returnsList", noParams(), null)
           .build();
 
@@ -258,7 +265,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldSwallowNonVoidFunctionWithReturnValue() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .swallow("returnsList", noParams(), Collections.emptyList())
           .build();
 
@@ -294,7 +301,7 @@ public final class SandboxProxyBuilderTest {
       // Given:
       when(mock.someFunc()).thenReturn(12345);
 
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("someFunc", noParams(), delegate)
           .build();
 
@@ -308,7 +315,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldForwardToSpecificMethod() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("someFunc", noParams(), delegate)
           .build();
 
@@ -322,7 +329,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldForwardToNoParamsMethod() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("someFunc", noParams(), delegate)
           .build();
 
@@ -336,7 +343,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldForwardToAnyParamsMethod() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("someFunc", anyParams(), delegate)
           .build();
 
@@ -354,7 +361,7 @@ public final class SandboxProxyBuilderTest {
     @Test(expected = UnsupportedOperationException.class)
     public void shouldThrowUnsupportedOnDefaultMethodIfNotForwarded() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("defaultMethods", noParams(), delegate)
           .build();
 
@@ -365,7 +372,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldForwardDefaultMethods() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("defaultMethods", methodParams(int.class), delegate)
           .build();
 
@@ -379,7 +386,7 @@ public final class SandboxProxyBuilderTest {
     @Test
     public void shouldForwardDefaultMethodsWhenUsingAnyParams() {
       // Given:
-      final TestInterface proxy = SandboxProxyBuilder.forClass(TestInterface.class)
+      final TestInterface proxy = LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("defaultMethods", anyParams(), delegate)
           .build();
 
@@ -396,10 +403,11 @@ public final class SandboxProxyBuilderTest {
     public void shouldThrowIfUnknownMethodName() {
       // Expect:
       expectedException.expect(IllegalArgumentException.class);
-      expectedException.expectMessage("Interface does not have method: unknown(String)");
+      expectedException.expectMessage(
+          "Interface 'TestInterface' does not have method: unknown(String)");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("unknown", methodParams(String.class), delegate)
           .build();
     }
@@ -409,10 +417,10 @@ public final class SandboxProxyBuilderTest {
       // Expect:
       expectedException.expect(IllegalArgumentException.class);
       expectedException.expectMessage(
-          "Interface does not have method: noReturnValue(TimeUnit)");
+          "Interface 'TestInterface' does not have method: noReturnValue(TimeUnit)");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("noReturnValue", methodParams(TimeUnit.class), delegate)
           .build();
     }
@@ -427,7 +435,7 @@ public final class SandboxProxyBuilderTest {
           "Delegate does not have method: void noReturnValue()");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("noReturnValue", noParams(), delegate)
           .build();
     }
@@ -442,7 +450,7 @@ public final class SandboxProxyBuilderTest {
           "Delegate's method has different return type. wanted:int, got:long");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("differentReturnType", anyParams(), delegate)
           .build();
     }
@@ -457,7 +465,7 @@ public final class SandboxProxyBuilderTest {
           "Delegate does not have method: int differentParams(double,String)");
 
       // When:
-      SandboxProxyBuilder.forClass(TestInterface.class)
+      LimitedProxyBuilder.forClass(TestInterface.class)
           .forward("differentParams", methodParams(double.class, String.class), delegate)
           .build();
     }

@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Stack;
 import java.util.function.BiConsumer;
 
 class AggregateAnalyzer {
@@ -83,7 +82,7 @@ class AggregateAnalyzer {
   private final class AggregateVisitor extends DefaultTraversalVisitor<Node, AnalysisContext> {
 
     private final BiConsumer<Optional<String>, DereferenceExpression> dereferenceCollector;
-    private final Stack<String> aggregateFunctionStack = new Stack<>();
+    private Optional<String> aggFunctionName = Optional.empty();
     private boolean visitedAggFunction = false;
 
     private AggregateVisitor(
@@ -98,20 +97,26 @@ class AggregateAnalyzer {
       final String functionName = node.getName().getSuffix();
       final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
       if (aggregateFunc) {
+        if (aggFunctionName.isPresent()) {
+          throw new KsqlException("Aggregate functions can not be nested: "
+              + aggFunctionName.get() + "(" + functionName + "())");
+        }
+
         visitedAggFunction = true;
+        aggFunctionName = Optional.of(functionName);
+
         if (node.getArguments().isEmpty()) {
           node.getArguments().add(defaultArgument);
         }
 
         node.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
         aggregateAnalysis.addAggFunction(node);
-        aggregateFunctionStack.push(functionName);
       }
 
       final Node result = super.visitFunctionCall(node, context);
 
       if (aggregateFunc) {
-        aggregateFunctionStack.pop();
+        aggFunctionName = Optional.empty();
       }
 
       return result;
@@ -122,12 +127,7 @@ class AggregateAnalyzer {
         final DereferenceExpression node,
         final AnalysisContext context
     ) {
-      final Optional<String> aggFunctionName = aggregateFunctionStack.isEmpty()
-          ? Optional.empty()
-          : Optional.of(aggregateFunctionStack.peek());
-
       dereferenceCollector.accept(aggFunctionName, node);
-
       aggregateAnalysis.addRequiredColumn(node);
       return null;
     }

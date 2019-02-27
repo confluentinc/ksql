@@ -207,19 +207,31 @@ public class AggregateAnalyzerTest {
   }
 
   @Test
-  public void shouldCaptureNestedAggFunctions() {
+  public void shouldThrowOnNestedSelectAggFunctions() {
     // Given:
     final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
         ImmutableList.of(AGG_FUNCTION_CALL, COL2));
 
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Aggregate functions can not be nested: MIN(MAX())");
+
     // When:
-    analyzer.processHaving(nestedCall);
+    analyzer.processSelect(nestedCall);
+  }
+
+  @Test
+  public void shouldThrowOnNestedHavingAggFunctions() {
+    // Given:
+    final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
+        ImmutableList.of(AGG_FUNCTION_CALL, COL2));
 
     // Then:
-    assertThat(analysis.getAggregateFunctions(), containsInAnyOrder(AGG_FUNCTION_CALL, nestedCall));
-    assertThat(analysis.getNonAggregateSelectExpressions().keySet(), is(empty()));
-    assertThat(analysis.getNonAggregateHavingFields(), is(empty()));
-    assertThat(analysis.getRequiredColumns(), contains(COL0, COL1, COL2));
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Aggregate functions can not be nested: MIN(MAX())");
+
+    // When:
+    analyzer.processHaving(nestedCall);
   }
 
   @Test

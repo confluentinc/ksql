@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -98,9 +99,8 @@ public class RecoveryTest {
     private int offset;
 
     FakeCommandQueue(
-        final CommandIdAssigner commandIdAssigner,
         final List<QueuedCommand> commandLog) {
-      this.commandIdAssigner = commandIdAssigner;
+      this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
     }
 
@@ -154,17 +154,13 @@ public class RecoveryTest {
   private class KsqlServer {
     final KsqlEngine ksqlEngine;
     final KsqlResource ksqlResource;
-    final CommandIdAssigner commandIdAssigner;
     final FakeCommandQueue fakeCommandQueue;
     final StatementExecutor statementExecutor;
     final CommandRunner commandRunner;
 
     KsqlServer(final List<QueuedCommand> commandLog) {
       this.ksqlEngine = createKsqlEngine();
-      this.commandIdAssigner = new CommandIdAssigner(ksqlEngine.getMetaStore());
-      this.fakeCommandQueue = new FakeCommandQueue(
-          new CommandIdAssigner(ksqlEngine.getMetaStore()),
-          commandLog);
+      this.fakeCommandQueue = new FakeCommandQueue(commandLog);
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,

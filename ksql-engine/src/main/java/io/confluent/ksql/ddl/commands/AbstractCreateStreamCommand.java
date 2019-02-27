@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -147,12 +148,12 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   void checkMetaData(final MetaStore metaStore, final String sourceName, final String topicName) {
     // TODO: move the check to the runtime since it accesses metaStore
     if (metaStore.getSource(sourceName) != null) {
-      throw new KsqlException(String.format("Source %s already exists.", sourceName));
+      throw new KsqlException(String.format("Source already exists: %s", sourceName));
     }
 
     if (metaStore.getTopic(topicName) == null) {
       throw new KsqlException(
-          String.format("The corresponding topic, %s, does not exist.", topicName));
+          String.format("The corresponding topic does not exist: %s", topicName));
     }
   }
 

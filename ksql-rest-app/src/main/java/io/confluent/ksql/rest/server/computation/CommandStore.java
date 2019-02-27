@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -50,12 +51,11 @@ public class CommandStore implements CommandQueue, Closeable {
   public CommandStore(
       final String commandTopicName,
       final Map<String, Object> kafkaConsumerProperties,
-      final Map<String, Object> kafkaProducerProperties,
-      final CommandIdAssigner commandIdAssigner
+      final Map<String, Object> kafkaProducerProperties
   ) {
     this(
         new CommandTopic(commandTopicName, kafkaConsumerProperties, kafkaProducerProperties),
-        commandIdAssigner,
+        new CommandIdAssigner(),
         new SequenceNumberFutureStore());
   }
 

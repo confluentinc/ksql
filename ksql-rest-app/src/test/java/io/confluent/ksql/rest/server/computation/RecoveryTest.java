@@ -166,7 +166,6 @@ public class RecoveryTest {
       this.ksqlEngine = createKsqlEngine();
       this.fakeCommandQueue = new FakeCommandQueue(commandLog);
 
-      // Todo(ac): needed? Why does recovery use ksqlResource at all?
       final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
           new DefaultSchemaInjector(
               new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));

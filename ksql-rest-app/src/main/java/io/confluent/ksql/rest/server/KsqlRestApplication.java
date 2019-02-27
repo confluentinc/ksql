@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -40,7 +41,6 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -363,8 +363,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final CommandStore commandStore = new CommandStore(
         commandTopic,
         restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties(),
-        new CommandIdAssigner(ksqlEngine.getMetaStore()));
+        restConfig.getCommandProducerProperties());
 
     final StatementExecutor statementExecutor = new StatementExecutor(
         ksqlConfig,

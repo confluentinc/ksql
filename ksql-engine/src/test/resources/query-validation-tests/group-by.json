@@ -809,7 +809,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "aggregate requires group by...."
+        "message": "Use of aggregate functions requires a GROUP BY clause. Aggregate function(s): COUNT"
       }
     },
     {

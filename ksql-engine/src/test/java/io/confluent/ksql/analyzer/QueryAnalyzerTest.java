@@ -123,14 +123,13 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldThrowIfAggregateAnalysisDoesNotHaveGroupBy() {
     // Given:
-    final Query query = givenQuery(
-        "select itemid, sum(orderunits) from orders window TUMBLING (size 30 second) " +
-            "where orderunits > 5;");
+    final Query query = givenQuery("select itemid, sum(orderunits) from orders;");
 
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Aggregate query needs GROUP BY clause");
+    expectedException.expectMessage(
+        "Use of aggregate functions requires a GROUP BY clause. Aggregate function(s): SUM");
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);

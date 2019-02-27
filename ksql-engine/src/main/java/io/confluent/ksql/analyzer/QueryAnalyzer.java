@@ -20,6 +20,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
+import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
@@ -63,9 +65,14 @@ public class QueryAnalyzer {
         aggregateExpressionRewriter
     );
 
-    if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty()
+    if (!aggregateAnalysis.getAggregateFunctions().isEmpty()
         && analysis.getGroupByExpressions().isEmpty()) {
-      throw new KsqlException("Aggregate query needs GROUP BY clause. query:" + query);
+      final String aggFuncs = aggregateAnalysis.getAggregateFunctions().stream()
+          .map(FunctionCall::getName)
+          .map(QualifiedName::getSuffix)
+          .collect(Collectors.joining(", "));
+      throw new KsqlException("Use of aggregate functions requires a GROUP BY clause. "
+          + "Aggregate function(s): " + aggFuncs);
     }
 
     processGroupByExpression(

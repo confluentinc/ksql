@@ -101,7 +101,7 @@ public class AggregateAnalyzerTest {
   }
 
   @Test
-  public void shouldNotCaptureOtherNonAggregateFunctionArgumentsAsNonAggSelectColunms() {
+  public void shouldNotCaptureOtherNonAggregateFunctionArgumentsAsNonAggSelectColumns() {
     // When:
     analyzer.processGroupBy(FUNCTION_CALL);
     analyzer.processHaving(FUNCTION_CALL);

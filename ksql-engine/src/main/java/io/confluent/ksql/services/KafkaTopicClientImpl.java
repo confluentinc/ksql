@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
+import kafka.server.Defaults;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -261,6 +262,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           String.valueOf(nodes.iterator().next().id())
       );
 
+      ;
+
       final Map<ConfigResource, Config> config = ExecutorUtil.executeWithRetries(
           () -> adminClient.describeConfigs(Collections.singleton(resource)).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
@@ -268,8 +271,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return config.get(resource)
           .entries()
           .stream()
-          .anyMatch(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable")
-              && configEntry.value().equalsIgnoreCase("true"));
+          .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
+          .findFirst()
+          .map(configEntry -> configEntry.value().equalsIgnoreCase("true"))
+          .orElse(Defaults.DeleteTopicEnable());
 
     } catch (final Exception e) {
       log.error("Failed to initialize TopicClient: {}", e.getMessage());

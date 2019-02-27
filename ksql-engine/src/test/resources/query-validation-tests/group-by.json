@@ -802,6 +802,17 @@
       }
     },
     {
+      "name": "without group-by (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT d1, COUNT() FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "aggregate requires group by...."
+      }
+    },
+    {
       "name": "UDAF nested in UDF in select expression (stream->table)",
       "statements": [
         "CREATE STREAM TEST (d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",

@@ -16,23 +16,22 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.mock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class ExpressionTreeRewriterTest {
 
   private static final DereferenceExpression DEREF_0
@@ -47,7 +46,7 @@ public class ExpressionTreeRewriterTest {
     = new DereferenceExpression(new QualifiedNameReference(
       QualifiedName.of("Vic")), "f2");
 
-  @Mock(MockType.NICE)
+  @Mock
   private ExpressionRewriter<String> rewriter;
 
   @Test
@@ -56,10 +55,8 @@ public class ExpressionTreeRewriterTest {
     final FunctionCall original = givenFunctionCall();
     final FunctionCall expected = mock(FunctionCall.class);
 
-    EasyMock.expect(rewriter.rewriteFunctionCall(eq(original), anyObject(), anyObject()))
-        .andReturn(expected);
-
-    EasyMock.replay(rewriter);
+    when(rewriter.rewriteFunctionCall(eq(original), any(), any()))
+        .thenReturn(expected);
 
     // When:
     final FunctionCall result = ExpressionTreeRewriter.rewriteWith(rewriter, original);
@@ -73,14 +70,8 @@ public class ExpressionTreeRewriterTest {
     // Given:
     final FunctionCall original = givenFunctionCall();
 
-    EasyMock.expect(rewriter.rewriteFunctionCall(eq(original), anyObject(), anyObject()))
-        .andReturn(null);
-
-    EasyMock.expect(rewriter.rewriteDereferenceExpression(eq(DEREF_0), anyObject(), anyObject()))
-        .andReturn(DEREF_2);
-
-
-    EasyMock.replay(rewriter);
+    when(rewriter.rewriteDereferenceExpression(eq(DEREF_0), any(), any()))
+        .thenReturn(DEREF_2);
 
     // When:
     final FunctionCall result = ExpressionTreeRewriter.rewriteWith(rewriter, original);
@@ -93,7 +84,7 @@ public class ExpressionTreeRewriterTest {
     assertThat(result.getArguments(), is(ImmutableList.of(DEREF_2, DEREF_1)));
   }
 
-  private FunctionCall givenFunctionCall() {
+  private static FunctionCall givenFunctionCall() {
     final Optional<NodeLocation> location = Optional.of(new NodeLocation(42, 6));
     final QualifiedName name = QualifiedName.of("bob");
     final Optional<Window> window = Optional.of(mock(Window.class));

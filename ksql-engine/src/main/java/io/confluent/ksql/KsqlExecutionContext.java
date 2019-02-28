@@ -98,6 +98,8 @@ public interface KsqlExecutionContext {
       KsqlConfig ksqlConfig,
       Map<String, Object> overriddenProperties);
 
+  List<PersistentQueryMetadata> getPersistentQueries();
+
   /**
    * Holds the union of possible results from an {@link #execute} call.
    *

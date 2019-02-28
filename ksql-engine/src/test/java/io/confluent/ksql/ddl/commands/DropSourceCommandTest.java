@@ -104,6 +104,19 @@ public class DropSourceCommandTest {
   }
 
   @Test
+  public void shouldFailOnDropIncompatibleSource() {
+    // Given:
+    givenIncompatibleDropSourceCommand();
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Incompatible data source type is STREAM");
+
+    // When:
+    dropSourceCommand.run(metaStore);
+  }
+
+  @Test
   public void shouldDeleteTopicIfDeleteTopicTrue() {
     // Given:
     givenDropSourceCommand(ALWAYS, WITH_DELETE_TOPIC);
@@ -161,6 +174,15 @@ public class DropSourceCommandTest {
         kafkaTopicClient,
         schemaRegistryClient,
         deleteTopic);
+  }
+
+  private void givenIncompatibleDropSourceCommand() {
+    dropSourceCommand = new DropSourceCommand(
+        new DropStream(QualifiedName.of(STREAM_NAME), true, true),
+        DataSourceType.KTABLE,
+        kafkaTopicClient,
+        schemaRegistryClient,
+        true);
   }
 
   private void givenSourceDoesNotExist() {

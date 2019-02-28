@@ -162,6 +162,11 @@ import org.mockito.stubbing.Answer;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlResourceTest {
 
+  // REVIEW NOTE: I left all of these tests in tact and in a follow-up PR I will remove
+  // all of the tests that are covered by the new functionality. That way it will be easy
+  // to ensure that this PR is valid.
+  // TODO: remove this note before merging
+
   private static final long STATE_CLEANUP_DELAY_MS_DEFAULT = 10 * 60 * 1000L;
   private static final int FETCH_MIN_BYTES_DEFAULT = 1;
   private static final long BUFFER_MEMORY_DEFAULT = 32 * 1024 * 1024L;
@@ -1022,7 +1027,6 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-//    when(sandbox.getMetaStore()).thenReturn(metaStore);
     when(sandbox.execute(any(), any(), any()))
         .thenThrow(new RuntimeException("internal error"));
 
@@ -1094,7 +1098,7 @@ public class KsqlResourceTest {
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
-         new KsqlRequest("UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';\n"
+        new KsqlRequest("UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';\n"
             + csas, localOverrides, null),
         CommandStatusEntity.class);
 
@@ -1445,11 +1449,11 @@ public class KsqlResourceTest {
   public void shouldNeverEnqueueIfErrorIsThrown() {
     // Given:
     givenMockEngine();
-//    when(ksqlEngine.execute(any(), any(), any())).thenThrow(new KsqlException("Fail"));
+    when(ksqlEngine.getMetaStore()).thenThrow(new KsqlException("Fail"));
 
     // When:
     makeFailingRequest(
-        "REGISTER TOPIC X WITH (kafka_topic='bar', value_format='json';",
+        "LIST TOPICS;",
         Code.BAD_REQUEST);
 
     // Then:

@@ -31,6 +31,14 @@ interface AggregateAnalysis extends AggregateAnalysisResult {
   Map<Expression, Set<DereferenceExpression>> getNonAggregateSelectExpressions();
 
   /**
+   * Get the set of select fields that are involved in aggregate columns, but not as parameters
+   * to the aggregate functions.
+   *
+   * @return the set of fields used in aggregate columns outside of aggregate function parameters.
+   */
+  Set<DereferenceExpression> getAggregateSelectFields();
+
+  /**
    * Get the set of columns from the source schema that are used in the HAVING clause outside
    * of aggregate functions.
    *

@@ -17,6 +17,7 @@ package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -153,7 +154,7 @@ public class QueryAnalyzer {
         // Remove any that exactly match a group by expression:
         .filter(e -> !groupByExprs.contains(e.getKey()))
         // Remove any that are constants,
-        // or functions where all params exactly match a group by expression:
+        // or expressions where all params exactly match a group by expression:
         .filter(e -> !Sets.difference(e.getValue(), groupByExprs).isEmpty())
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
@@ -161,6 +162,14 @@ public class QueryAnalyzer {
     if (!unmatchedSelects.isEmpty()) {
       throw new KsqlException(
           "Non-aggregate SELECT expression(s) not part of GROUP BY: " + unmatchedSelects);
+    }
+
+    final SetView<DereferenceExpression> unmatchedSelectsAgg = Sets
+        .difference(aggregateAnalysis.getAggregateSelectFields(), groupByExprs);
+    if (!unmatchedSelectsAgg.isEmpty()) {
+      throw new KsqlException(
+          "Field used in aggregate SELECT expression(s) "
+              + "outside of aggregate functions not part of GROUP BY: " + unmatchedSelectsAgg);
     }
 
     final Set<DereferenceExpression> havingColumns = aggregateAnalysis

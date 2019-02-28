@@ -238,14 +238,13 @@ public class AggregateAnalyzerTest {
   public void shouldCaptureNonAggregateFunctionArgumentsWithNestedAggFunction() {
     // Given:
     final FunctionCall nonAggWithNestedAggFunc = new FunctionCall(QualifiedName.of("SUBSTRING"),
-        ImmutableList.of(COL2, FUNCTION_CALL, COL1));
+        ImmutableList.of(COL2, AGG_FUNCTION_CALL, COL1));
 
     // When:
     analyzer.processSelect(nonAggWithNestedAggFunc);
 
     // Then:
-    assertThat(analysis.getNonAggregateSelectExpressions().get(nonAggWithNestedAggFunc),
-        containsInAnyOrder(COL0, COL1, COL2));
+    assertThat(analysis.getAggregateSelectFields(), containsInAnyOrder(COL1, COL2));
   }
 
   @Test

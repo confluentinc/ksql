@@ -45,17 +45,19 @@ class AggregateAnalyzer {
   }
 
   void processSelect(final Expression expression) {
-    final Set<DereferenceExpression> nonAggFields = new HashSet<>();
+    final Set<DereferenceExpression> nonAggParams = new HashSet<>();
     final AggregateVisitor visitor = new AggregateVisitor((aggFuncName, node) -> {
       if (!aggFuncName.isPresent()) {
-        nonAggFields.add(node);
+        nonAggParams.add(node);
       }
     });
 
     visitor.process(expression, new AnalysisContext());
 
-    if (!visitor.visitedAggFunction) {
-      aggregateAnalysis.addNonAggregateSelectExpression(expression, nonAggFields);
+    if (visitor.visitedAggFunction) {
+      aggregateAnalysis.addAggregateSelectField(nonAggParams);
+    } else {
+      aggregateAnalysis.addNonAggregateSelectExpression(expression, nonAggParams);
     }
   }
 

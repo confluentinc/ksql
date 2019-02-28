@@ -32,6 +32,7 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   private final Map<Expression, Set<DereferenceExpression>> nonAggSelectExpressions
       = new HashMap<>();
   private final Set<DereferenceExpression> nonAggHavingFields = new HashSet<>();
+  private final Set<DereferenceExpression> aggSelectFields = new HashSet<>();
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
   private final List<FunctionCall> aggFunctions = new ArrayList<>();
@@ -51,6 +52,11 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   @Override
   public Map<Expression, Set<DereferenceExpression>> getNonAggregateSelectExpressions() {
     return Collections.unmodifiableMap(nonAggSelectExpressions);
+  }
+
+  @Override
+  public Set<DereferenceExpression> getAggregateSelectFields() {
+    return Collections.unmodifiableSet(aggSelectFields);
   }
 
   @Override
@@ -83,6 +89,12 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
 
   void addAggFunction(final FunctionCall functionCall) {
     aggFunctions.add(functionCall);
+  }
+
+  void addAggregateSelectField(
+      final Set<DereferenceExpression> fields
+  ) {
+    aggSelectFields.addAll(fields);
   }
 
   void addNonAggregateSelectExpression(

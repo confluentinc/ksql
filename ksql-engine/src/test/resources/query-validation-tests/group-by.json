@@ -193,23 +193,34 @@
     {
       "name": "with aggregate arithmetic involving source field (table->table)",
       "statements": [
+        "CREATE TABLE TEST (f0 INT, f1 INT) WITH (kafka_topic='test_topic', key='f0', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT f0 * SUM(f1) FROM TEST GROUP BY f0;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "2", "value": "2,10"},
+        {"topic": "test_topic", "key": "2", "value": "2,20"},
+        {"topic": "test_topic", "key": "2", "value": "2,30"},
+        {"topic": "test_topic", "key": "2", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "2", "value": "20"},
+        {"topic": "OUTPUT", "key": "2", "value": "0"},
+        {"topic": "OUTPUT", "key": "2", "value": "40"},
+        {"topic": "OUTPUT", "key": "2", "value": "0"},
+        {"topic": "OUTPUT", "key": "2", "value": "60"},
+        {"topic": "OUTPUT", "key": "2", "value": "0"}
+      ]
+    },
+    {
+      "name": "with aggregate arithmetic involving source field not in group by (table->table)",
+      "statements": [
         "CREATE TABLE TEST (f0 INT, f1 INT, f2 INT) WITH (kafka_topic='test_topic', key='f0', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 * SUM(f2) FROM TEST GROUP BY f0;"
       ],
-      "inputs": [
-        {"topic": "test_topic", "key": "1", "value": "1,10,2"},
-        {"topic": "test_topic", "key": "1", "value": "1,10,3"},
-        {"topic": "test_topic", "key": "1", "value": "1,20,3"},
-        {"topic": "test_topic", "key": "1", "value": null}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": "20"},
-        {"topic": "OUTPUT", "key": "1", "value": "0"},
-        {"topic": "OUTPUT", "key": "1", "value": "30"},
-        {"topic": "OUTPUT", "key": "1", "value": "0"},
-        {"topic": "OUTPUT", "key": "1", "value": "60"},
-        {"topic": "OUTPUT", "key": "1", "value": "0"}
-      ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Field used in aggregate SELECT expression(s) outside of aggregate functions not part of GROUP BY: [TEST.F1]"
+      }
     },
     {
       "name": "function (stream->table)",

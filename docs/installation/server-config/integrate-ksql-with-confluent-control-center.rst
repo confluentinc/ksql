@@ -36,7 +36,7 @@ configuration file at
   browser communicates with KSQL Server for websocket requests.
 
 Network Connectivity Between KSQL and |c3|
-==========================================
+******************************************
 
 When KSQL Server and |c3| run on the same host, you can use the default
 configuration defined by |cp| setup.
@@ -52,7 +52,8 @@ private and public IP addresses.
    When KSQL and |c3| communicate over a virtual private network (VPN),
    |c3-short| proxies your queries, but to see the query results, the results
    stream directly from KSQL Server back to your browser, without going through
-   |c3-short|.
+   |c3-short|. Over a VPN, the advertised URL isn't ``localhost``. Instead,
+   it's the hostname of the remote server.
 
 Assign the following configuration properties to integrate KSQL Server with
 |c3-short| when they run on separate hosts.
@@ -83,8 +84,17 @@ that the browser can resolve through externally available DNS.
    be sure to include port ``80``, or the |c3-short| connection to KSQL Server
    will fail.
 
+Check Network Connectivity Between KSQL and |c3|
+================================================
+
+Use a web browser to check the configuration of an advertised URL. Make sure
+that your browser can reach the ``info`` endpoint at ``http://<ksql.advertised.url>/info``.
+If the configuration is wrong, and the browser can't resolve the URL of the 
+KSQL Server host, you'll receive an error:
+``Websocket error when communicating with <ksql.advertised.url>``.
+
 Check KSQL Server Network Binding
-*********************************
+=================================
 
 If |c3| doesn't connect with your KSQL Server instance, check the network
 binding on the KSQL Server host: 

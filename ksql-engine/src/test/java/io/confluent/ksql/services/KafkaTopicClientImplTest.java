@@ -43,7 +43,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-import kafka.server.Defaults;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.Config;
@@ -248,9 +247,9 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
-  public void shouldDeleteTopicsIfDeleteTopicEnableExplicitlyTrue() {
+  public void shouldDeleteTopicsIfDeleteTopicEnableTrue() {
     // Given:
-    givenDeleteTopicEnableExplicitlyTrue();
+    givenDeleteTopicEnableTrue();
     expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -263,11 +262,9 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
-  public void shouldDeleteTopicsIfDeleteTopicEnableNotExplicitlySet() {
-    assertThat(Defaults.DeleteTopicEnable(), equalTo(true));
-
+  public void shouldDeleteTopicsIfBrokerDoesNotReturnValueForDeleteTopicEnable() {
     // Given:
-    givenDeleteTopicEnableNotExplicitlySet();
+    givenDeleteTopicEnableNotReturnedByBroker();
     expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -280,9 +277,9 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
-  public void shouldNotDeleteTopicIfDeleteTopicEnableExplicitlyFalse() {
+  public void shouldNotDeleteTopicIfDeleteTopicEnableFalse() {
     // Given:
-    givenDeleteTopicEnableExplicitlyFalse();
+    givenDeleteTopicEnableFalse();
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
 
@@ -538,7 +535,7 @@ public class KafkaTopicClientImplTest {
     return Collections.singleton(new ConfigResource(ConfigResource.Type.BROKER, node.idString()));
   }
 
-  private void givenDeleteTopicEnableExplicitlyTrue() {
+  private void givenDeleteTopicEnableTrue() {
     reset(adminClient);
     expect(adminClient.describeCluster()).andReturn(describeClusterResult());
 
@@ -547,7 +544,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(describeBrokerResult(Collections.singletonList(configEntryDeleteEnable)));
   }
 
-  private void givenDeleteTopicEnableExplicitlyFalse() {
+  private void givenDeleteTopicEnableFalse() {
     reset(adminClient);
     expect(adminClient.describeCluster()).andReturn(describeClusterResult());
 
@@ -556,7 +553,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(describeBrokerResult(Collections.singletonList(configEntryDeleteEnable)));
   }
 
-  private void givenDeleteTopicEnableNotExplicitlySet() {
+  private void givenDeleteTopicEnableNotReturnedByBroker() {
     reset(adminClient);
     expect(adminClient.describeCluster()).andReturn(describeClusterResult());
     expect(adminClient.describeConfigs(describeBrokerRequest()))

@@ -30,7 +30,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
-import kafka.server.Defaults;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -274,7 +273,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           .filter(configEntry -> configEntry.name().equalsIgnoreCase("delete.topic.enable"))
           .findFirst()
           .map(configEntry -> configEntry.value().equalsIgnoreCase("true"))
-          .orElse(Defaults.DeleteTopicEnable());
+          // if the broker does not provide the config value, default to true in an attempt
+          // to clean up topics
+          .orElse(true);
 
     } catch (final Exception e) {
       log.error("Failed to initialize TopicClient: {}", e.getMessage());

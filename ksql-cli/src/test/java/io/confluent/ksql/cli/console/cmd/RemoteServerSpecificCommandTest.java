@@ -158,7 +158,7 @@ public class RemoteServerSpecificCommandTest {
   }
 
   @Test
-  public void shouldReportErrorIfRemoveKsqlServerIsUsingSSL() {
+  public void shouldReportErrorIfRemoteKsqlServerIsUsingSSL() {
     // Given:
     when(restClient.makeRootRequest()).thenThrow(sslConnectionIssue());
 

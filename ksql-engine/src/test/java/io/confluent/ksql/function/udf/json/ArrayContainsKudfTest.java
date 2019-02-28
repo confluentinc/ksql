@@ -103,37 +103,6 @@ public class ArrayContainsKudfTest
     }
 
     @Test
-    public void shouldFindStringInAvroArray() {
-        assertEquals(true, jsonUdf.evaluate(new String[]{"abc", "bd", "DC"}, "DC"));
-        assertEquals(false, jsonUdf.evaluate(new String[]{"abc", "bd", "DC"}, "dc"));
-        assertEquals(false, jsonUdf.evaluate(new String[]{"abc", "bd", "1"}, 1));
-    }
-
-    @Test
-    public void shouldFindIntegersInAvroArray() {
-        assertEquals(true, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 2));
-        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 0));
-        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, "1"));
-        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, "aa"));
-    }
-
-    @Test
-    public void shouldFindLongInAvroArray() {
-        assertEquals(true, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 2L));
-        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 0L));
-        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, "1"));
-        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, "aaa"));
-    }
-
-    @Test
-    public void shouldFindDoublesInAvroArray() {
-        assertEquals(true, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, 2.0));
-        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, 4.0));
-        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, "1"));
-        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, "aaa"));
-    }
-
-    @Test
     public void shouldReturnFalseOnEmptyList() {
         assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), true));
         assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), false));

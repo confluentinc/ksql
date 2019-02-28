@@ -17,6 +17,7 @@ package io.confluent.ksql.cli.console.cmd;
 
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
+import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -27,12 +28,14 @@ import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
+import javax.net.ssl.SSLException;
 import javax.ws.rs.ProcessingException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 
 public final class RemoteServerSpecificCommand implements CliSpecificCommand {
 
+  private static final int CONSOLE_WIDTH = 80;
   private static final String HELP = "server:" + System.lineSeparator()
       + "\tShow the current server" + System.lineSeparator()
       + "\nserver <server>:" + System.lineSeparator()
@@ -99,22 +102,32 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
     } catch (final IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
     } catch (final KsqlRestClientException exception) {
-      if (exception.getCause() instanceof ProcessingException) {
-        writer.println();
-        writer.println(StringUtils.repeat('*', 36) + " ERROR " + StringUtils.repeat('*', 37));
-        writer.println(WordUtils.wrap(
-            "Remote server at "
-                + restClient.getServerAddress()
-                + " does not appear to be a valid KSQL server. Please ensure that the URL provided "
-                + "is for an active KSQL server.", 80));
-        writer.println("");
-        writer.println("The server responded with the following error: ");
-        writer.println(ErrorMessageUtil.buildErrorMessage(exception));
-        writer.println(StringUtils.repeat('*', 80));
-        writer.println();
-      } else {
+      if (!(exception.getCause() instanceof ProcessingException)) {
         throw exception;
       }
+
+      writer.println();
+      writer.println(StringUtils.repeat('*', 36) + " ERROR " + StringUtils.repeat('*', 37));
+
+      final String errorMsg;
+
+      if (exception.getCause().getCause() instanceof SSLException) {
+        errorMsg = " looks to be configured to use HTTPS / SSL. "
+            + "Please refer to the KSQL documentation on how to configure the CLI for SSL: "
+            + DocumentationLinks.SECURITY_CLI_SSL_DOC_URL;
+      } else {
+        errorMsg = " does not appear to be a valid KSQL server."
+            + " Please ensure that the URL provided is for an active KSQL server.";
+      }
+
+      writer.println(WordUtils.wrap(
+          "Remote server at " + restClient.getServerAddress() + errorMsg, CONSOLE_WIDTH));
+
+      writer.println("");
+      writer.println("The server responded with the following error: ");
+      writer.println(ErrorMessageUtil.buildErrorMessage(exception));
+      writer.println(StringUtils.repeat('*', CONSOLE_WIDTH));
+      writer.println();
     } finally {
       writer.flush();
     }

@@ -96,7 +96,7 @@ public final class ServerKeyStore {
   /**
    * @return props brokers will need to connect to support SSL connections.
    */
-  public static Map<String, ?> keyStoreProps() {
+  public static Map<String, String> keyStoreProps() {
     return ImmutableMap.of(
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath(),
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEYSTORE_PASSWORD,

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.client;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -30,6 +31,8 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.ssl.DefaultSslClientConfigurer;
+import io.confluent.ksql.rest.ssl.SslClientConfigurer;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Closeable;
 import java.io.IOException;
@@ -41,14 +44,12 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -90,21 +91,49 @@ public class KsqlRestClient implements Closeable {
   private final LocalProperties localProperties;
 
   public KsqlRestClient(final String serverAddress) {
-    this(serverAddress, Collections.emptyMap());
+    this(serverAddress, Collections.emptyMap(), Collections.emptyMap());
   }
 
-  public KsqlRestClient(final String serverAddress, final Properties properties) {
-    this(serverAddress, propertiesToMap(properties));
+  /**
+   * @param serverAddress the address of the KSQL server to connect to.
+   * @param localProperties initial set of local properties.
+   * @param clientProps properties used to build the client.
+   */
+  public KsqlRestClient(
+      final String serverAddress,
+      final Map<String, ?> localProperties,
+      final Map<String, String> clientProps
+  ) {
+    this(
+        serverAddress,
+        localProperties,
+        clientProps,
+        ClientBuilder.newBuilder(),
+        new DefaultSslClientConfigurer()
+    );
   }
 
-  public KsqlRestClient(final String serverAddress, final Map<String, Object> localProperties) {
-    this(buildClient(), serverAddress, localProperties);
+  @VisibleForTesting
+  KsqlRestClient(
+      final String serverAddress,
+      final Map<String, ?> localProperties,
+      final Map<String, String> clientProps,
+      final ClientBuilder clientBuilder,
+      final SslClientConfigurer sslClientConfigurer
+  ) {
+    this(
+        buildClient(clientBuilder, sslClientConfigurer, clientProps),
+        serverAddress,
+        localProperties
+    );
   }
 
-  // Visible for testing
-  KsqlRestClient(final Client client,
-                 final String serverAddress,
-                 final Map<String, Object> localProperties) {
+  @VisibleForTesting
+  KsqlRestClient(
+      final Client client,
+      final String serverAddress,
+      final Map<String, ?> localProperties
+  ) {
     this.client = Objects.requireNonNull(client, "client");
     this.serverAddresses = parseServerAddresses(serverAddress);
     this.localProperties = new LocalProperties(localProperties);
@@ -374,14 +403,6 @@ public class KsqlRestClient implements Closeable {
     return localProperties.unset(property);
   }
 
-  private static Map<String, Object> propertiesToMap(final Properties properties) {
-    final Map<String, Object> propertiesMap = new HashMap<>();
-    properties.stringPropertyNames().forEach(
-        prop -> propertiesMap.put(prop, properties.getProperty(prop)));
-
-    return propertiesMap;
-  }
-
   private static List<URI> parseServerAddresses(final String serverAddresses) {
     Objects.requireNonNull(serverAddresses, "serverAddress");
     return ImmutableList.copyOf(
@@ -401,12 +422,25 @@ public class KsqlRestClient implements Closeable {
     }
   }
 
-  private static Client buildClient() {
+  private static Client buildClient(
+      final ClientBuilder clientBuilder,
+      final SslClientConfigurer sslClientConfigurer,
+      final Map<String, String> props
+  ) {
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
     objectMapper.registerModule(new Jdk8Module());
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
-    return ClientBuilder.newBuilder().register(jsonProvider).build();
+
+    try {
+      clientBuilder.register(jsonProvider);
+
+      sslClientConfigurer.configureSsl(clientBuilder, props);
+
+      return clientBuilder.build();
+    } catch (final Exception e) {
+      throw new KsqlRestClientException("Failed to configure rest client", e);
+    }
   }
 }

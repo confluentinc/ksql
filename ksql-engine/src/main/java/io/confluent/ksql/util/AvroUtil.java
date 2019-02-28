@@ -21,6 +21,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -119,10 +120,10 @@ public final class AvroUtil {
                 + "\t-> Use PRINT '" + kafkaTopicName + "' FROM BEGINNING; to verify\n"
                 + "- Messages on the topic have not been serialized using the Confluent Schema "
                 + "Registry Avro serializer\n"
-                + "\t-> See " + KsqlConstants.DOC_URL_SR_SERIALISER + "\n"
+                + "\t-> See " + DocumentationLinks.SR_SERIALISER_DOC_URL + "\n"
                 + "- The schema is registered on a different instance of the Schema Registry\n"
                 + "\t-> Use the REST API to list available subjects\n\t"
-                + KsqlConstants.DOC_URL_SR_REST_GETSUBJECTS + "\n"
+                + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL + "\n"
                 );
       }
       throw new KsqlException("Schema registry fetch for topic " + kafkaTopicName

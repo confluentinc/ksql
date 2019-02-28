@@ -6,6 +6,7 @@ Version 5.2.0
 
 KSQL 5.2 includes new features, including:
 
+* Support for :ref:`HTTPS <config-ksql-for-https>`.
 * A new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
 * ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
 * Support for read-after-write consistency: new commands don't execute until previous commands have finished executing.

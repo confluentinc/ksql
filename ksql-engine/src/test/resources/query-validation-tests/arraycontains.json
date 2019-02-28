@@ -1,0 +1,47 @@
+{
+  "comments": [
+    "Tests covering the use of the ARRAYCONTAINS function."
+  ],
+  "tests": [
+    {
+      "name": "filter rows where the ARRAY column contains a specified STRING",
+      "statements": [
+        "CREATE STREAM test (colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT colors FROM test WHERE ARRAYCONTAINS(colors, 'Pink');"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Red", "Green"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Black"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", "Yellow", "Pink"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["White", "Pink"]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": ["Pink", null]}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"colors": null}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["Pink", "Yellow", "Pink"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["White", "Pink"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["Pink", null]}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "filter rows where the STRUCT->ARRAY column contains a specified STRING",
+      "statements": [
+        "CREATE STREAM test (c1 STRUCT<colors ARRAY<STRING>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT c1->colors AS colors FROM test WHERE ARRAYCONTAINS(c1->colors, 'Pink');"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"c1":{"colors": ["Red", "Green"]}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"c1":{"colors": ["Black"]}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"c1":{"colors": ["Pink", "Yellow", "Pink"]}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"c1":{"colors": ["White", "Pink"]}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"c1":{"colors": ["Pink", null]}}, "timestamp": 0},
+        {"topic": "test_topic", "key": 1, "value": {"c1":{"colors": null}}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["Pink", "Yellow", "Pink"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["White", "Pink"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLORS":["Pink", null]}, "timestamp": 0}
+      ]
+    }
+  ]
+}

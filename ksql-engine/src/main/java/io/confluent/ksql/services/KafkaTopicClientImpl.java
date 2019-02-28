@@ -261,8 +261,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           String.valueOf(nodes.iterator().next().id())
       );
 
-      ;
-
       final Map<ConfigResource, Config> config = ExecutorUtil.executeWithRetries(
           () -> adminClient.describeConfigs(Collections.singleton(resource)).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);

@@ -53,6 +53,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.LimitedProxyBuilder;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import java.util.Collections;

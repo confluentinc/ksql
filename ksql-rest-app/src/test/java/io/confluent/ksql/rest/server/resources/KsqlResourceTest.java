@@ -1347,6 +1347,8 @@ public class KsqlResourceTest {
     // Given:
     final ClusterTerminateRequest request = new ClusterTerminateRequest(
         ImmutableList.of("[Invalid Regex"));
+
+    // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionErrorMessage(errorMessage(is(
@@ -1464,6 +1466,34 @@ public class KsqlResourceTest {
     makeSingleRequest(createSql, CommandStatusEntity.class);
   }
 
+  @Test
+  public void shouldInlineRunScriptStatements() {
+    // Given:
+    final Map<String, ?> props = ImmutableMap.of(
+        KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
+        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;");
+
+    // When:
+    makeRequest("RUN SCRIPT '/some/script.sql';", props);
+
+    // Then:
+    verify(commandStore).enqueueCommand(
+        argThat(is(preparedStatement(instanceOf(CreateStreamAsSelect.class)))),
+        any(), any());
+  }
+
+  @Test
+  public void shouldThrowOnRunScriptStatementMissingScriptContent() {
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+        "Request is missing script content"))));
+
+    // When:
+    makeRequest("RUN SCRIPT '/some/script.sql';");
+  }
+
   private Answer executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, Collections.emptyMap());
@@ -1550,6 +1580,10 @@ public class KsqlResourceTest {
     makeMultipleRequest(sql, KsqlEntity.class);
   }
 
+  private void makeRequest(final String sql, final Map<String, ?> props) {
+    makeMultipleRequest(sql, props, KsqlEntity.class);
+  }
+
   private <T extends KsqlEntity> T makeSingleRequest(
       final String sql,
       final Class<T> expectedEntityType) {
@@ -1575,9 +1609,18 @@ public class KsqlResourceTest {
 
   private <T extends KsqlEntity> List<T> makeMultipleRequest(
       final String sql,
-      final Class<T> expectedEntityType) {
-    return makeMultipleRequest(
-        new KsqlRequest(sql, Collections.emptyMap(), null), expectedEntityType);
+      final Class<T> expectedEntityType
+  ) {
+    return makeMultipleRequest(sql, Collections.emptyMap(), expectedEntityType);
+  }
+
+  private <T extends KsqlEntity> List<T> makeMultipleRequest(
+      final String sql,
+      final Map<String, ?> props,
+      final Class<T> expectedEntityType
+  ) {
+    final KsqlRequest request = new KsqlRequest(sql, props, null);
+    return makeMultipleRequest(request, expectedEntityType);
   }
 
   private <T extends KsqlEntity> List<T> makeMultipleRequest(

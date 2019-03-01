@@ -39,7 +39,7 @@ public class LocalPropertyParser implements PropertyParser {
 
   @Override
   public Object parse(final String property, final Object value) {
-    if (property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
+    if (property.equalsIgnoreCase(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT)) {
       validator.validate(property, value);
       return value;
     }

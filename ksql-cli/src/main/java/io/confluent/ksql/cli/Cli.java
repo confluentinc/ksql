@@ -38,7 +38,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -434,11 +433,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   private void setProperty(final String property, final String value) {
     final Object priorValue = restClient.setProperty(property, value);
-
-    if (property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-      // Don't output.
-      return;
-    }
 
     terminal.writer().printf(
         "Successfully changed local property '%s'%s to '%s'.%s%n",

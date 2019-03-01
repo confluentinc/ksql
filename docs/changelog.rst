@@ -32,6 +32,19 @@ KSQL 5.2 includes bug fixes, including:
   The full parse would often fail when later statements relied on the execution of earlier
   statements. In version 5.2 and later, this is no longer an issue.
 
+KSQL 5.2 deprecates some features, including:
+
+* The use of the ``RUN SCRIPT`` statement via the REST API is now deprecated and will be removed
+  in the next major release.
+  (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
+  The feature circumnavigates certain correctness checks and is unnecessary,
+  given the script content can be supplied in the main body of the request.
+  If you are using the ``RUN SCRIPT`` functionality from the KSQL CLI you will not be affected,
+  as this will continue to be supported.
+  If you are using the ``RUN SCRIPT`` functionality directly against the REST API your requests
+  will work with the 5.2 server, but will be rejected after the next major version release.
+  Instead, include the contents of the script in the main body of your request.
+
 Version 5.1.0
 -------------
 

@@ -64,7 +64,8 @@ public class CommandIdAssigner {
             command -> new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE))
           .build();
 
-  public CommandIdAssigner() { }
+  public CommandIdAssigner() {
+  }
 
   public CommandId getCommandId(final Statement command) {
     final CommandIdSupplier supplier = SUPPLIERS.get(command.getClass());

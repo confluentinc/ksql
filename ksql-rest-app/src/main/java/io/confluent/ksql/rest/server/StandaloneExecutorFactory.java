@@ -29,7 +29,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-import java.util.Properties;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -40,7 +40,7 @@ public final class StandaloneExecutorFactory {
   }
 
   public static StandaloneExecutor create(
-      final Properties properties,
+      final Map<String, String> properties,
       final String queriesFile,
       final String installDir
   ) {
@@ -68,7 +68,7 @@ public final class StandaloneExecutorFactory {
   }
 
   static StandaloneExecutor create(
-      final Properties properties,
+      final Map<String, String> properties,
       final String queriesFile,
       final String installDir,
       final Function<KsqlConfig, ServiceContext> serviceContextFactory,

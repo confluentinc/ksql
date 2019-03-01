@@ -50,7 +50,7 @@ public final class ClientTrustStore {
   /**
    * @return props consumers and producers will need to connect to a secure Kafka cluster over SSL.
    */
-  public static Map<String, ?> trustStoreProps() {
+  public static Map<String, String> trustStoreProps() {
     return ImmutableMap.of(
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStorePath(),
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword(),

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -26,7 +27,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Properties;
+import java.util.Map;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.After;
@@ -153,9 +154,9 @@ public class StandaloneExecutorFunctionalTest {
     }
   }
 
-  private static Properties defaultProps() {
-    final Properties props = new Properties();
-    props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers());
-    return props;
+  private static Map<String, String> defaultProps() {
+    return ImmutableMap.of(
+        CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers()
+    );
   }
 }

@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.util.Utf8;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
@@ -108,7 +109,6 @@ public class KsqlGenericRowAvroSerializerTest {
 
   }
 
-
   @Test
   public void shouldSerializeRowWithNullCorrectly() {
     final Serializer<GenericRow> serializer =
@@ -167,7 +167,6 @@ public class KsqlGenericRowAvroSerializerTest {
 
     final GenericRow genericRow = new GenericRow(columns);
     serializer.serialize("t1", genericRow);
-
   }
 
   @Test
@@ -297,25 +296,38 @@ public class KsqlGenericRowAvroSerializerTest {
     );
   }
 
-  @Test
-  public void shouldSerializeMap() {
-    final org.apache.avro.Schema entrySchema
-        = org.apache.avro.SchemaBuilder.record("MapEntry")
-        .namespace("io.confluent.connect.avro")
+  private org.apache.avro.Schema mapEntrySchema(
+      final String name,
+      final org.apache.avro.Schema valueSchema) {
+    return org.apache.avro.SchemaBuilder.record(name)
+        .namespace("io.confluent.ksql.avro_schemas")
+        .prop("connect.named.map", "true")
         .fields()
         .name("key")
         .type().unionOf().nullType().and().stringType().endUnion()
         .nullDefault()
         .name("value")
-        .type().unionOf().nullType().and().longType().endUnion()
-        .nullDefault()
+        .type(valueSchema).withDefault(null)
         .endRecord();
-    final org.apache.avro.Schema avroSchema
-        = org.apache.avro.SchemaBuilder.array().items(entrySchema);
+  }
+
+  private org.apache.avro.Schema mapEntrySchema(final String name) {
+    return mapEntrySchema(
+        name,
+        org.apache.avro.SchemaBuilder.unionOf().nullType().and().longType().endUnion());
+  }
+
+  private org.apache.avro.Schema mapSchema(final String name) {
+    return org.apache.avro.SchemaBuilder.array().items(mapEntrySchema(name));
+  }
+
+  @Test
+  public void shouldSerializeMap() {
+    final org.apache.avro.Schema avroSchema = mapSchema("KsqlDataSourceSchema_field0");
     final Map<String, Long> value = ImmutableMap.of("foo", 123L);
     final List<GenericRecord> avroValue = new LinkedList<>();
     for (final Map.Entry<String, Long> entry : value.entrySet()) {
-      final GenericRecord record = new GenericData.Record(entrySchema);
+      final GenericRecord record = new GenericData.Record(avroSchema.getElementType());
       record.put("key", entry.getKey());
       record.put("value", entry.getValue());
       avroValue.add(record);
@@ -327,6 +339,53 @@ public class KsqlGenericRowAvroSerializerTest {
         value,
         avroSchema,
         avroValue);
+  }
+
+  @Test
+  public void shouldSerializeMultipleMaps() {
+    final org.apache.avro.Schema avroInnerSchema0
+        = mapEntrySchema("KsqlDataSourceSchema_field0_inner0");
+    final org.apache.avro.Schema avroInnerSchema1 =
+        mapEntrySchema(
+            "KsqlDataSourceSchema_field0_inner1",
+            org.apache.avro.SchemaBuilder.unionOf().nullType().and().stringType().endUnion());
+    final org.apache.avro.Schema avroSchema =
+        org.apache.avro.SchemaBuilder.record("KsqlDataSourceSchema_field0")
+            .namespace("io.confluent.ksql.avro_schemas")
+            .fields()
+            .name("inner0").type().unionOf().nullType().and().array()
+            .items(avroInnerSchema0).endUnion().nullDefault()
+            .name("inner1").type().unionOf().nullType().and().array()
+            .items(avroInnerSchema1).endUnion().nullDefault()
+            .endRecord();
+
+    final Schema ksqlSchema = SchemaBuilder.struct()
+        .field(
+            "inner0",
+            SchemaBuilder.map(
+                Schema.OPTIONAL_STRING_SCHEMA,
+                Schema.OPTIONAL_INT64_SCHEMA).optional().build())
+        .field("inner1",
+            SchemaBuilder.map(
+                Schema.OPTIONAL_STRING_SCHEMA,
+                Schema.OPTIONAL_STRING_SCHEMA).optional().build())
+        .optional()
+        .build();
+
+    final Struct value = new Struct(ksqlSchema)
+        .put("inner0", ImmutableMap.of("foo", 123L))
+        .put("inner1", ImmutableMap.of("bar", "baz"));
+
+    final List<GenericRecord> avroInner0 = Collections.singletonList(
+        new GenericRecordBuilder(avroInnerSchema0).set("key", "foo").set("value", 123L).build());
+    final List<GenericRecord> avroInner1 = Collections.singletonList(
+        new GenericRecordBuilder(avroInnerSchema1).set("key", "bar").set("value", "baz").build());
+    final GenericRecord avroValue = new GenericRecordBuilder(avroSchema)
+        .set("inner0", avroInner0)
+        .set("inner1", avroInner1)
+        .build();
+
+    shouldSerializeTypeCorrectly(ksqlSchema, value, avroSchema, avroValue);
   }
 
   @Test

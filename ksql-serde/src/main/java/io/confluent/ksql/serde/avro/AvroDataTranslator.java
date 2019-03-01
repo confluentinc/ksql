@@ -128,7 +128,8 @@ public class AvroDataTranslator implements DataTranslator {
             buildAvroCompatibleSchema(schema.keySchema(),
                 typeNameGenerator.with(TypeNameGenerator.MAP_KEY_NAME)),
             buildAvroCompatibleSchema(schema.valueSchema(),
-                typeNameGenerator.with(TypeNameGenerator.MAP_VALUE_NAME)));
+                typeNameGenerator.with(TypeNameGenerator.MAP_VALUE_NAME))
+        ).name(typeNameGenerator.name());
         break;
     }
     if (schema.isOptional()) {

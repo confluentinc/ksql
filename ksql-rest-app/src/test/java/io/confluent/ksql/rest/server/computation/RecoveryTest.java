@@ -124,7 +124,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public List<QueuedCommand> getNewCommands() {
+    public List<QueuedCommand> getNewCommands(final Duration timeout) {
       final List<QueuedCommand> commands = commandLog.subList(offset, commandLog.size());
       offset = commandLog.size();
       return commands;

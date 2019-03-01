@@ -115,7 +115,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
   private final ServerInfo serverInfo;
-  private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
 
@@ -156,8 +155,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         Version.getVersion(),
         getKafkaClusterId(serviceContext),
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
-
-    this.commandRunnerThread = new Thread(commandRunner, "CommandRunner");
   }
 
   @Override
@@ -172,7 +169,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   @Override
   public void start() throws Exception {
-    commandRunnerThread.start();
+    commandRunner.start();
     super.start();
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
@@ -193,7 +190,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     try {
       commandRunner.close();
-      commandRunnerThread.join();
     } catch (final Exception e) {
       log.error("Exception while waiting for CommandRunner thread to complete", e);
     }

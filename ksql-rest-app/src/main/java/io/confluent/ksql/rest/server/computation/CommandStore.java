@@ -130,16 +130,11 @@ public class CommandStore implements CommandQueue, Closeable {
     }
   }
 
-  /**
-   * Poll for new commands, blocking until at least one is available.
-   *
-   * @return The commands that have been polled from the command topic
-   */
-  public List<QueuedCommand> getNewCommands() {
+  public List<QueuedCommand> getNewCommands(final Duration timeout) {
     completeSatisfiedSequenceNumberFutures();
 
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
-    commandTopic.getNewCommands(Duration.ofMillis(Long.MAX_VALUE)).forEach(
+    commandTopic.getNewCommands(timeout).forEach(
         c -> {
           if (c.value() != null) {
             queuedCommands.add(

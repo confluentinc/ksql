@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -97,7 +98,7 @@ public class SchemaKGroupedTableTest {
                 ksqlTable.getSchema(),
                 new KsqlConfig(Collections.emptyMap()),
                 false,
-                MockSchemaRegistryClient::new, 
+                MockSchemaRegistryClient::new,
                 "test",
                 processingLogContext)));
 
@@ -105,8 +106,9 @@ public class SchemaKGroupedTableTest {
 
   private SchemaKGroupedTable buildSchemaKGroupedTableFromQuery(
       final String query,
-      final String...groupByColumns) {
-    final PlanNode logicalPlan = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
+      final String...groupByColumns
+  ) {
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
     final SchemaKTable initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,

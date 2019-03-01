@@ -53,7 +53,7 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -187,7 +187,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {
-    final PlanNode logical = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
+    final PlanNode logical = AnalysisTestUtil.buildLogicalPlan(query, metaStore);;
     return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
   }
 
@@ -602,7 +602,7 @@ public class PhysicalPlanBuilderTest {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
     final OutputNode spyNode = spy(
-        (OutputNode) LogicalPlanBuilderTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
+        (OutputNode) AnalysisTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
     doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
     when(loggerFactory.getLogger("foo")).thenReturn(logger);
     when(loggerFactory.getLogger(ArgumentMatchers.startsWith("foo.")))

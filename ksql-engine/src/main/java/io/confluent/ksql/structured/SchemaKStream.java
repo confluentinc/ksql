@@ -520,13 +520,22 @@ public class SchemaKStream<K> {
   }
 
   private boolean rekeyRequired(final List<Expression> groupByExpressions) {
+    if (groupByExpressions.size() != 1) {
+      return true;
+    }
+
     final Field keyField = getKeyField();
     if (keyField == null) {
       return true;
     }
+
+    final String groupByField = fieldNameFromExpression(groupByExpressions.get(0));
+    if (groupByField == null) {
+      return true;
+    }
+
     final String keyFieldName = SchemaUtil.getFieldNameWithNoAlias(keyField);
-    return !(groupByExpressions.size() == 1
-        && fieldNameFromExpression(groupByExpressions.get(0)).equals(keyFieldName));
+    return !groupByField.equals(keyFieldName);
   }
 
   public SchemaKGroupedStream groupBy(

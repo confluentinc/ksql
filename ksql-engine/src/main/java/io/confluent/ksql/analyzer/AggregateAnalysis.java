@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,79 +15,34 @@
 
 package io.confluent.ksql.analyzer;
 
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.FunctionCall;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-public class AggregateAnalysis {
+interface AggregateAnalysis extends AggregateAnalysisResult {
 
-  private final Map<String, Expression> requiredColumnsMap = new LinkedHashMap<>();
-  private final List<Expression> nonAggResultColumns = new ArrayList<>();
-  private final List<Expression> finalSelectExpressions = new ArrayList<>();
-  private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
-  private final List<FunctionCall> functionList = new ArrayList<>();
-  private Expression havingExpression = null;
+  /**
+   * Get a map of non-aggregate select expression to the set of source schema fields the
+   * expression uses.
+   *
+   * @return the map of select expression to the set of source schema fields.
+   */
+  Map<Expression, Set<DereferenceExpression>> getNonAggregateSelectExpressions();
 
+  /**
+   * Get the set of select fields that are involved in aggregate columns, but not as parameters
+   * to the aggregate functions.
+   *
+   * @return the set of fields used in aggregate columns outside of aggregate function parameters.
+   */
+  Set<DereferenceExpression> getAggregateSelectFields();
 
-  public List<Expression> getAggregateFunctionArguments() {
-    return Collections.unmodifiableList(aggregateFunctionArguments);
-  }
-
-  public List<Expression> getRequiredColumnsList() {
-    return new ArrayList<>(requiredColumnsMap.values());
-  }
-
-  public Map<String, Expression> getRequiredColumnsMap() {
-    return Collections.unmodifiableMap(requiredColumnsMap);
-  }
-
-  public List<FunctionCall> getFunctionList() {
-    return Collections.unmodifiableList(functionList);
-  }
-
-  public List<Expression> getNonAggResultColumns() {
-    return Collections.unmodifiableList(nonAggResultColumns);
-  }
-
-  public List<Expression> getFinalSelectExpressions() {
-    return Collections.unmodifiableList(finalSelectExpressions);
-  }
-
-  public Expression getHavingExpression() {
-    return havingExpression;
-  }
-
-  public void setHavingExpression(final Expression havingExpression) {
-    this.havingExpression = havingExpression;
-  }
-
-  public void addAggregateFunctionArgument(final Expression argument) {
-    aggregateFunctionArguments.add(argument);
-  }
-
-  public void addFunction(final FunctionCall functionCall) {
-    functionList.add(functionCall);
-  }
-
-  public boolean hasRequiredColumn(final String column) {
-    return requiredColumnsMap.containsKey(column);
-  }
-
-  public void addRequiredColumn(final String name, final Expression node) {
-    requiredColumnsMap.put(name, node);
-  }
-
-  public void addNonAggResultColumns(final Expression expression) {
-    if (!nonAggResultColumns.contains(expression)) {
-      nonAggResultColumns.add(expression);
-    }
-  }
-
-  public void addFinalSelectExpression(final Expression expression) {
-    finalSelectExpressions.add(expression);
-  }
+  /**
+   * Get the set of columns from the source schema that are used in the HAVING clause outside
+   * of aggregate functions.
+   *
+   * @return the set of non-aggregate columns used in the HAVING clause.
+   */
+  Set<DereferenceExpression> getNonAggregateHavingFields();
 }

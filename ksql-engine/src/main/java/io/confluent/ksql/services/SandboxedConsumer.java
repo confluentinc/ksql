@@ -15,9 +15,10 @@
 
 package io.confluent.ksql.services;
 
-import static io.confluent.ksql.services.SandboxProxyBuilder.anyParams;
-import static io.confluent.ksql.services.SandboxProxyBuilder.noParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.noParams;
 
+import io.confluent.ksql.util.LimitedProxyBuilder;
 import org.apache.kafka.clients.consumer.Consumer;
 
 /**
@@ -31,7 +32,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 final class SandboxedConsumer {
 
   static <K, V> Consumer<K, V> createProxy() {
-    return SandboxProxyBuilder.forClass(Consumer.class)
+    return LimitedProxyBuilder.forClass(Consumer.class)
         .swallow("close", anyParams())
         .swallow("wakeup", noParams())
         .swallow("unsubscribe", noParams())

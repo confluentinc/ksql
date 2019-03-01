@@ -34,6 +34,7 @@ import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
+import javax.net.ssl.SSLException;
 import javax.ws.rs.ProcessingException;
 import org.junit.Before;
 import org.junit.Test;
@@ -143,10 +144,51 @@ public class RemoteServerSpecificCommandTest {
   }
 
   @Test
+  public void shouldReportErrorIfFailedToGetRemoteKsqlServerInfo() {
+    // Given:
+    when(restClient.makeRootRequest()).thenThrow(genericConnectionIssue());
+
+    // When:
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
+
+    // Then:
+    assertThat(out.toString(), containsString(
+        "Remote server at http://192.168.0.1:8080 does not appear to be a valid KSQL\n"
+        + "server. Please ensure that the URL provided is for an active KSQL server."));
+  }
+
+  @Test
+  public void shouldReportErrorIfRemoteKsqlServerIsUsingSSL() {
+    // Given:
+    when(restClient.makeRootRequest()).thenThrow(sslConnectionIssue());
+
+    // When:
+    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
+
+    // Then:
+    assertThat(out.toString(), containsString(
+        "Remote server at http://192.168.0.1:8080 looks to be configured to use HTTPS /\n"
+            + "SSL. Please refer to the KSQL documentation on how to configure the CLI for SSL:\n"
+            + "https://docs.confluent.io/current/ksql/docs/installation/server-config/security.html"
+            + "#configuring-cli-for-https"));
+  }
+
+  @Test
   public void shouldGetHelp() {
     assertThat(command.getHelpMessage(),
         containsString("server:\n\tShow the current server"));
     assertThat(command.getHelpMessage(),
         containsString("server <server>:\n\tChange the current server to <server>"));
+  }
+
+  private static Exception genericConnectionIssue() {
+    return new KsqlRestClientException("failed",
+        new ProcessingException("oh no"));
+  }
+
+  private static Exception sslConnectionIssue() {
+    return new KsqlRestClientException("failed",
+        new ProcessingException("oh no",
+            new SSLException("blah")));
   }
 }

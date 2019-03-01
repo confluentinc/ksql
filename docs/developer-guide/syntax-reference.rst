@@ -82,6 +82,22 @@ For more info, see :ref:`operators`.
 .. note:: You can’t create new nested ``STRUCT`` data as the result of a query,
    but you can copy existing ``STRUCT`` fields as-is.
 
+.. _ksql-time-units:
+
+KSQL Time Units
+---------------
+
+The following list shows valid time units for the SIZE, ADVANCE BY, SESSION, and
+WITHIN clauses.
+
+* DAY, DAYS 
+* HOUR, HOURS
+* MINUTE, MINUTES
+* SECOND, SECONDS
+* MILLISECOND, MILLISECONDS
+
+For more information, see :ref:`windows_in_ksql_queries`.
+
 =================
 KSQL CLI Commands
 =================
@@ -920,16 +936,6 @@ the following WINDOW types:
          FROM orders
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
-
-The following list shows valid time units for SIZE, ADVANCE BY, and SESSION.
-
-* DAY, DAYS
-* HOUR, HOURS
-* MINUTE, MINUTES
-* SECOND, SECONDS
-* MILLISECOND, MILLISECONDS
-
-For more information, see :ref:`windows_in_ksql_queries`.
 
 CAST
 ~~~~

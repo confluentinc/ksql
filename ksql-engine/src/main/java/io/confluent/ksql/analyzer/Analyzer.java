@@ -217,10 +217,8 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
     if (analysis.getWhereExpression() != null) {
       expressionAnalyzer.analyzeExpression(analysis.getWhereExpression());
     }
-    if (!analysis.getGroupByExpressions().isEmpty()) {
-      for (final Expression expression : analysis.getGroupByExpressions()) {
-        expressionAnalyzer.analyzeExpression(expression);
-      }
+    for (final Expression expression : analysis.getGroupByExpressions()) {
+      expressionAnalyzer.analyzeExpression(expression);
     }
     if (analysis.getHavingExpression() != null) {
       expressionAnalyzer.analyzeExpression(analysis.getHavingExpression());
@@ -511,7 +509,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
   private void analyzeGroupBy(final GroupBy groupBy) {
     for (final GroupingElement groupingElement : groupBy.getGroupingElements()) {
       final Set<Expression> groupingSet = groupingElement.enumerateGroupingSets().get(0);
-      analysis.getGroupByExpressions().addAll(groupingSet);
+      analysis.addGroupByExpressions(groupingSet);
     }
   }
 

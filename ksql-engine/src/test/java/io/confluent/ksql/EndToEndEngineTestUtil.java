@@ -439,7 +439,7 @@ final class EndToEndEngineTestUtil {
 
   @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
   static class ExpectedException {
-    private final List<Matcher<? super Throwable>> matchers = new ArrayList<>();
+    private final List<Matcher<?>> matchers = new ArrayList<>();
 
     public static ExpectedException none() {
       return new ExpectedException();
@@ -447,6 +447,10 @@ final class EndToEndEngineTestUtil {
 
     public void expect(final Class<? extends Throwable> type) {
       matchers.add(instanceOf(type));
+    }
+
+    public void expect(final Matcher<?> matcher) {
+      matchers.add(matcher);
     }
 
     public void expectMessage(final String substring) {
@@ -457,8 +461,9 @@ final class EndToEndEngineTestUtil {
       matchers.add(ThrowableMessageMatcher.hasMessage(matcher));
     }
 
+    @SuppressWarnings("unchecked")
     private Matcher<Throwable> build() {
-      return allOf(matchers);
+      return allOf(new ArrayList(matchers));
     }
   }
 

@@ -51,6 +51,7 @@ import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.structured.SchemaKStream.Type;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SchemaUtil;
@@ -207,7 +208,6 @@ public class SchemaKTableTest {
     Assert.assertTrue(projectedSchemaKStream.getSourceSchemaKStreams().get(0) ==
                       initialSchemaKTable);
   }
-
 
   @Test
   public void testSelectWithExpression() {
@@ -500,6 +500,6 @@ public class SchemaKTableTest {
   }
 
   private PlanNode buildLogicalPlan(final String query) {
-    return LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
+    return AnalysisTestUtil.buildLogicalPlan(query, metaStore);
   }
 }

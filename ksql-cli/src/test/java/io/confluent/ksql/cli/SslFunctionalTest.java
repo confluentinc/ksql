@@ -93,7 +93,7 @@ public class SslFunctionalTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private Map<String, String> clientProps;
-  private static SslContextFactory sslContextFactory;
+  private SslContextFactory sslContextFactory;
 
   @BeforeClass
   public static void classSetUp() throws Exception {
@@ -181,7 +181,7 @@ public class SslFunctionalTest {
     }
   }
 
-  private static void makeWsRequest() throws Exception {
+  private void makeWsRequest() throws Exception {
     final HttpClient httpClient = new HttpClient(sslContextFactory);
     httpClient.start();
     final WebSocketClient wsClient = new WebSocketClient(httpClient);

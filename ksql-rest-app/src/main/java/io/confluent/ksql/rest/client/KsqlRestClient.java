@@ -96,17 +96,17 @@ public class KsqlRestClient implements Closeable {
 
   /**
    * @param serverAddress the address of the KSQL server to connect to.
-   * @param localProperties initial set of local properties.
+   * @param localProps initial set of local properties.
    * @param clientProps properties used to build the client.
    */
   public KsqlRestClient(
       final String serverAddress,
-      final Map<String, ?> localProperties,
+      final Map<String, ?> localProps,
       final Map<String, String> clientProps
   ) {
     this(
         serverAddress,
-        localProperties,
+        localProps,
         clientProps,
         ClientBuilder.newBuilder(),
         new DefaultSslClientConfigurer()
@@ -116,7 +116,7 @@ public class KsqlRestClient implements Closeable {
   @VisibleForTesting
   KsqlRestClient(
       final String serverAddress,
-      final Map<String, ?> localProperties,
+      final Map<String, ?> localProps,
       final Map<String, String> clientProps,
       final ClientBuilder clientBuilder,
       final SslClientConfigurer sslClientConfigurer
@@ -124,7 +124,7 @@ public class KsqlRestClient implements Closeable {
     this(
         buildClient(clientBuilder, sslClientConfigurer, clientProps),
         serverAddress,
-        localProperties
+        localProps
     );
   }
 
@@ -132,11 +132,11 @@ public class KsqlRestClient implements Closeable {
   KsqlRestClient(
       final Client client,
       final String serverAddress,
-      final Map<String, ?> localProperties
+      final Map<String, ?> localProps
   ) {
     this.client = Objects.requireNonNull(client, "client");
     this.serverAddresses = parseServerAddresses(serverAddress);
-    this.localProperties = new LocalProperties(localProperties);
+    this.localProperties = new LocalProperties(localProps);
   }
 
   public void setupAuthenticationCredentials(final String userName, final String password) {

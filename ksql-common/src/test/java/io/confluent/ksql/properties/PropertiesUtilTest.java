@@ -17,8 +17,10 @@ package io.confluent.ksql.properties;
 
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
@@ -149,8 +151,28 @@ public class PropertiesUtilTest {
           final Map<String, ?> result = PropertiesUtil.applyOverrides(emptyMap(), overrides);
 
           // Then:
-          assertThat(result.keySet(), contains("should.not.be.filtered"));
+          assertThat(result.keySet(), hasItem("should.not.be.filtered"));
+          assertThat(result.keySet(), not(hasItem("props.should.be.filtered")));
         });
+  }
+
+  @Test
+  public void shouldFilterByKey() {
+    // Given:
+    final Map<String, String> props = ImmutableMap.of(
+        "keep.this", "v0",
+        "keep that", "v1",
+        "do not keep this", "keep"
+    );
+
+    // When:
+    final Map<String, String> result = PropertiesUtil
+        .filterByKey(props, key -> key.startsWith("keep"));
+
+    // Then:
+    assertThat(result.keySet(), containsInAnyOrder("keep.this", "keep that"));
+    assertThat(result.get("keep.this"), is("v0"));
+    assertThat(result.get("keep that"), is("v1"));
   }
 
   private void givenPropsFileContains(final String contents) {

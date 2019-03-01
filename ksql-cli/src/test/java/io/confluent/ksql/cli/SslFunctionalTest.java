@@ -85,14 +85,16 @@ public class SslFunctionalTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private Map<String, String> clientProps;
+  private static SslContextFactory sslContextFactory;
 
   @Before
   public void setUp() {
     clientProps = Collections.emptyMap();
+    sslContextFactory = new SslContextFactory();
   }
 
   @Test
-  public void shouldNotBeAbleToUseCliWithIfClientDoesNotTrustServerCert() {
+  public void shouldNotBeAbleToUseCliIfClientDoesNotTrustServerCert() {
     // Then:
     expectedException.expect(KsqlRestClientException.class);
     expectedException.expectCause(is(instanceOf(ProcessingException.class)));
@@ -115,27 +117,36 @@ public class SslFunctionalTest {
   }
 
   @Test
-  public void shouldNotTableAbleToUseWssIfClientDoesNotTrustServerCert() throws Exception {
+  public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() throws Exception {
     // Then:
     expectedException.expect(SSLHandshakeException.class);
     expectedException.expectCause(hasCause(hasMessage(containsString(
         "unable to find valid certification path to requested target"))));
 
     // When:
-    makeWsRequest(false);
+    makeWsRequest();
   }
 
   @Test
   public void shouldBeAbleToUseWss() throws Exception {
+    // Given:
+    givenTrustStoreConfigured();
+
     // When:
-    final Code result = makeWsRequest(true);
+    final Code result = makeWsRequest();
 
     // Then:
     assertThat(result, is(Code.OK));
   }
 
   private void givenTrustStoreConfigured() {
+    // HTTP:
     clientProps = TRUST_STORE_PROPS;
+
+    // WS:
+    sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());
+    sslContextFactory.setTrustStorePassword(ClientTrustStore.trustStorePassword());
+    sslContextFactory.setEndpointIdentificationAlgorithm("");
   }
 
   private Code canMakeCliRequest() {
@@ -152,14 +163,7 @@ public class SslFunctionalTest {
     }
   }
 
-  private static Code makeWsRequest(final boolean setUpTrustStore) throws Exception {
-    final SslContextFactory sslContextFactory = new SslContextFactory();
-    if (setUpTrustStore) {
-      sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());
-      sslContextFactory.setTrustStorePassword(ClientTrustStore.trustStorePassword());
-      sslContextFactory.setEndpointIdentificationAlgorithm("");
-    }
-
+  private static Code makeWsRequest() throws Exception {
     final HttpClient httpClient = new HttpClient(sslContextFactory);
     httpClient.start();
     final WebSocketClient wsClient = new WebSocketClient(httpClient);

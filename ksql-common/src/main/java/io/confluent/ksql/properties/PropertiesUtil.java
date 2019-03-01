@@ -22,26 +22,33 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Utility class for working with property files and system properties.
  */
 public final class PropertiesUtil {
 
-  private static final Set<String> BLACK_LIST = ImmutableSet.of(
-      "java.",
-      "os.",
-      "sun.",
-      "user.",
-      "line.separator",
-      "path.separator",
-      "file.separator");
+  private static final Set<Predicate<String>> BLACK_LIST = ImmutableSet
+      .<Predicate<String>>builder()
+      .add(key -> key.startsWith("java."))
+      .add(key -> key.startsWith("os."))
+      .add(key -> key.startsWith("sun."))
+      .add(key -> key.startsWith("user."))
+      .add(key -> key.startsWith("line.separator"))
+      .add(key -> key.startsWith("path.separator"))
+      .add(key -> key.startsWith("file.separator"))
+      .build();
+
+  private static final Predicate<String> IS_BLACKLISTED = BLACK_LIST.stream()
+      .reduce(key -> false, Predicate::or);
+
+  private static final Predicate<String> NOT_BLACKLISTED = IS_BLACKLISTED.negate();
 
   private PropertiesUtil() {
   }
@@ -81,12 +88,28 @@ public final class PropertiesUtil {
       final Properties overrides
   ) {
     final Map<String, String> overridesMap = asMap(overrides);
+
+    final HashMap<String, String> merged = new HashMap<>(props);
+    merged.putAll(filterByKey(overridesMap, NOT_BLACKLISTED));
+
+    return ImmutableMap.copyOf(merged);
+  }
+
+  /**
+   * Remove any properties where the key does not pass the supplied {@code predicate}.
+   *
+   * @param props the props to filter
+   * @param predicate the key predicate
+   * @return the filtered props.
+   */
+  public static Map<String, String> filterByKey(
+      final Map<String, String> props,
+      final Predicate<String> predicate
+  ) {
     final Builder<String, String> builder = ImmutableMap.builder();
 
-    filterOutPropsInSystemProps(props, overridesMap.keySet())
-        .forEach(e -> builder.put(e.getKey(), e.getValue()));
-
-    filterOutBlackListedProperties(overridesMap)
+    props.entrySet().stream()
+        .filter(e -> predicate.test(e.getKey()))
         .forEach(e -> builder.put(e.getKey(), e.getValue()));
 
     return builder.build();
@@ -107,7 +130,7 @@ public final class PropertiesUtil {
     final String separator = System.lineSeparator() + "\t- ";
 
     final String blacklisted = properties.keySet().stream()
-        .filter(key -> BLACK_LIST.stream().anyMatch(key::startsWith))
+        .filter(IS_BLACKLISTED)
         .collect(Collectors.joining(separator));
 
     if (!blacklisted.isEmpty()) {
@@ -115,21 +138,6 @@ public final class PropertiesUtil {
           + "(Please remove them an try again):"
           + separator + blacklisted);
     }
-  }
-
-  private static Stream<Entry<String, String>> filterOutPropsInSystemProps(
-      final Map<String, String> props,
-      final Set<String> systemPropKeys
-  ) {
-    return props.entrySet().stream()
-        .filter(e -> !systemPropKeys.contains(e.getKey()));
-  }
-
-  private static Stream<? extends Entry<String, String>> filterOutBlackListedProperties(
-      final Map<String, String> props
-  ) {
-    return props.entrySet().stream()
-        .filter(e -> BLACK_LIST.stream().noneMatch(excluded -> e.getKey().startsWith(excluded)));
   }
 
   private static Map<String, String> asMap(final Properties props) {

@@ -31,13 +31,14 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class Ksql {
   private static final Logger LOGGER = LoggerFactory.getLogger(Ksql.class);
+  private static final Predicate<String> NOT_CLIENT_SIDE_CONFIG = key -> !key.startsWith("ssl.");
 
   private final Options options;
   private final KsqlClientBuilder clientBuilder;
@@ -105,10 +106,7 @@ public final class Ksql {
   }
 
   private static Map<String, String> stripClientSideProperties(final Map<String, String> props) {
-    return props.entrySet()
-        .stream()
-        .filter(e -> !e.getKey().startsWith("ssl."))
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    return PropertiesUtil.filterByKey(props, NOT_CLIENT_SIDE_CONFIG);
   }
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

@@ -29,8 +29,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -126,7 +126,7 @@ public class KsqlBareOutputNodeTest {
   public void shouldComputeQueryIdCorrectly() {
     // Given:
     final KsqlBareOutputNode node
-        = (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+        = (KsqlBareOutputNode) AnalysisTestUtil
         .buildLogicalPlan("select col0 from test1;", metaStore);
     final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
 
@@ -147,7 +147,7 @@ public class KsqlBareOutputNodeTest {
 
   private SchemaKStream build() {
     final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
         .buildLogicalPlan(simpleSelectFilter, metaStore);
     return planNode.buildStream(
         builder,

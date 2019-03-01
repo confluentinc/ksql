@@ -25,10 +25,13 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplie
 import static io.confluent.ksql.EndToEndEngineTestUtil.findExpectedTopologyDirectories;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
+import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
+import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Iterables;
 import com.google.common.io.Files;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.EndToEndEngineTestUtil.JsonTestCase;
@@ -47,6 +50,7 @@ import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
 import java.io.IOException;
@@ -181,9 +185,10 @@ public class QueryTranslationTest {
 
       final Map<String, Object> properties = getTestCaseProperties(testCase);
 
-      final Optional<ExpectedException> expectedException = getTestCaseExpectedException(testCase);
-
       final List<String> statements = getTestCaseStatements(testCase, format);
+
+      final Optional<ExpectedException> expectedException =
+          getTestCaseExpectedException(testCase, Iterables.getLast(statements));
 
       final Map<String, Topic> topics =
           getTestCaseTopics(testCase, statements, expectedException.isPresent());
@@ -302,13 +307,25 @@ public class QueryTranslationTest {
     return properties;
   }
 
-  private static Optional<ExpectedException> getTestCaseExpectedException(final JsonNode testCase) {
+  private static Optional<ExpectedException> getTestCaseExpectedException(
+      final JsonNode testCase,
+      final String lastStatement
+  ) {
     return getOptionalJsonField(testCase, "expectedException")
         .map(eeNode -> {
           final ExpectedException expectedException = ExpectedException.none();
 
           getOptionalJsonField(eeNode, "type")
-              .ifPresent(type -> expectedException.expect(parseThrowable(type.asText())));
+              .map(JsonNode::asText)
+              .map(QueryTranslationTest::parseThrowable)
+              .ifPresent(type -> {
+                expectedException.expect(type);
+
+                if (type.equals(KsqlStatementException.class)) {
+                  // Ensure exception contains last statement, otherwise the test case is invalid:
+                  expectedException.expect(statementText(is(lastStatement)));
+                }
+              });
 
           getOptionalJsonField(eeNode, "message")
               .ifPresent(msg -> expectedException.expectMessage(msg.asText()));

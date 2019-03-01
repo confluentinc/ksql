@@ -15,27 +15,21 @@
 
 package io.confluent.ksql.structured;
 
-import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.analyzer.AggregateAnalysis;
-import io.confluent.ksql.analyzer.AggregateAnalyzer;
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.AnalysisContext;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
@@ -69,18 +63,6 @@ public class SqlPredicateTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     functionRegistry = new InternalFunctionRegistry();
-  }
-
-  private PlanNode buildLogicalPlan(final String queryStr) {
-    final Analysis analysis = analyzeQuery(queryStr, metaStore);
-    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis,
-                                                                analysis, functionRegistry);
-    for (final Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null));
-    }
-    // Build a logical plan
-    return new LogicalPlanner(analysis, aggregateAnalysis, functionRegistry).buildPlan();
   }
 
   @Test
@@ -154,7 +136,7 @@ public class SqlPredicateTest {
   }
 
   private SqlPredicate givenSqlPredicateFor(final String statement) {
-    final PlanNode logicalPlan = buildLogicalPlan(statement);
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(statement, metaStore);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
     return new SqlPredicate(
         filterNode.getPredicate(),

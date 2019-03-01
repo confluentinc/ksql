@@ -36,7 +36,8 @@ public final class KsqlInternalTopicUtils {
 
   private static final int NPARTITIONS = 1;
 
-  private KsqlInternalTopicUtils() { }
+  private KsqlInternalTopicUtils() {
+  }
 
   /**
    * Compute a name for an internal topic.

@@ -125,6 +125,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("deprecation")
@@ -133,6 +135,8 @@ import org.apache.kafka.connect.data.Schema;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class KsqlResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final Logger log = LoggerFactory.getLogger(KsqlResource.class);
 
   private static final Map<Class<? extends Statement>, Handler<Statement>> CUSTOM_EXECUTORS =
       ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
@@ -960,6 +964,10 @@ public class KsqlResource {
         throw new KsqlStatementException(
             "Request is missing script content", statement.getStatementText());
       }
+
+      log.warn("RUN SCRIPT statement detected. "
+          + "Note: RUN SCRIPT is deprecated and will be removed in the next major version. "
+          + "statement: " + statement.getStatementText());
 
       executionSandbox.parse(sql).forEach(this::validate);
     }

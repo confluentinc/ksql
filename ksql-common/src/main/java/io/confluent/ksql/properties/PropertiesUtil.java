@@ -59,7 +59,7 @@ public final class PropertiesUtil {
   }
 
   /**
-   * Load a property file and optionally apply system properties as overrides.
+   * Load a property file.
    *
    * @param propertiesFile the property file to load.
    * @return an immutable map of the loaded properties.

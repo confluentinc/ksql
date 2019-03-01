@@ -107,7 +107,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       }
 
       writer.println();
-      writer.println(StringUtils.repeat('*', 36) + " ERROR " + StringUtils.repeat('*', 37));
+      writer.println(StringUtils.center("ERROR", CONSOLE_WIDTH, "*"));
 
       final String errorMsg;
 

@@ -103,19 +103,7 @@ public class SslFunctionalTest {
   }
 
   @Test
-  public void shouldBeAbleToUseCliOverHttpsViaConfigFile() {
-    // Given:
-    givenTrustStoreConfigured();
-
-    // When:
-    final Code result = canMakeCliRequest();
-
-    // Then:
-    assertThat(result, is(Code.OK));
-  }
-
-  @Test
-  public void shouldBeAbleToUseCliOverHttpsViaSystemProps() {
+  public void shouldBeAbleToUseCliOverHttps() {
     // Given:
     givenTrustStoreConfigured();
 

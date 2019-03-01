@@ -63,7 +63,7 @@ public final class Ksql {
         : Options.parse(args);
 
     if (options == null) {
-      System.exit(0);
+      System.exit(-1);
     }
 
     try {

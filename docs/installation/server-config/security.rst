@@ -58,7 +58,7 @@ Configuring the CLI for HTTPS
 If the KSQL server is configured to use HTTPS, CLI instances may need to be configured with
 suitable key and trust stores.
 
-If the SSL certificate the server is using is not signed by a recognised public Certificate Authority
+If the server's SSL certificate is not signed by a recognised public Certificate Authority,
 the CLI will need to be configured with a trust store that trusts the servers SSL certificate.
 
 If you haven't already, you will need to :ref:`create SSL key and trust stores <generating-keys-certs>`.
@@ -84,14 +84,14 @@ command-line arguments, for example:
 
 .. code:: bash
 
-    <ksql-install>bin/ksql --config-file ./config/ksql-cli.properties http://localhost:8088
+    <ksql-install>bin/ksql --config-file ./config/ksql-cli.properties https://localhost:8088
 
 Configuring KSQL for Basic HTTP Authentication
 ----------------------------------------------
 KSQL can be configured to require users to authenticate using a username and password via the Basic
 HTTP authentication mechanism.
 
-.. note:: If using Basic authentication it is highly recommended that you
+.. note:: If you're using Basic authentication, we recommended that you
           :ref:`configure KSQL to use HTTPS to secure communication <config-ksql-for-https>`,
           as the Basic protocol passes credentials in plain text.
 

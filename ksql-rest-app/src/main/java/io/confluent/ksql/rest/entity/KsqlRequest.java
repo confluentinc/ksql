@@ -40,7 +40,7 @@ public class KsqlRequest {
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
-      @JsonProperty("streamsProperties") final Map<String, Object> streamsProperties,
+      @JsonProperty("streamsProperties") final Map<String, ?> streamsProperties,
       @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     this.ksql = ksql == null ? "" : ksql;

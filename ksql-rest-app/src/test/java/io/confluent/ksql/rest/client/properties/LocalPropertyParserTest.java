@@ -91,7 +91,7 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldNotCallResolverForRunScriptConstant() {
     // When:
-    parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "100");
+    parser.parse(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "100");
 
     // Then:
     verify(resolver, never()).resolve(anyString(), anyBoolean());
@@ -100,10 +100,10 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldCallValidatorForRunScriptConstant() {
     // When:
-    parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
+    parser.parse(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
 
     // Then:
-    verify(validator).validate(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
+    verify(validator).validate(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
   }
 
   @Test

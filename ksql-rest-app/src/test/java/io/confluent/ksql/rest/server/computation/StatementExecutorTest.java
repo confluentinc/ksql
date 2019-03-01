@@ -63,7 +63,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -84,7 +83,7 @@ import org.junit.Test;
 @SuppressWarnings("ConstantConditions")
 public class StatementExecutorTest extends EasyMockSupport {
 
-  private static final Map<String, String> PRE_VERSION_5_NULL_ORIGNAL_PROPS = null;
+  private static final Map<String, String> PRE_VERSION_5_NULL_ORIGINAL_PROPS = null;
 
   private KsqlEngine ksqlEngine;
   private StatementExecutor statementExecutor;
@@ -594,7 +593,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command("DROP", Collections.emptyMap(), PRE_VERSION_5_NULL_ORIGNAL_PROPS)
+            new Command("DROP", Collections.emptyMap(), PRE_VERSION_5_NULL_ORIGINAL_PROPS)
         )
     );
 
@@ -675,7 +674,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldHandleRunScriptCommand() {
+  public void shouldHandleLegacyRunScriptCommand() {
     // Given:
     final String runScriptStatement = "run script";
     final String queryStatement = "a query";
@@ -690,8 +689,7 @@ public class StatementExecutorTest extends EasyMockSupport {
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
                 runScriptStatement,
-                Collections
-                    .singletonMap(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, queryStatement),
+                Collections.singletonMap("ksql.run.script.statements", queryStatement),
                 Collections.emptyMap())
         )
     );
@@ -701,7 +699,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   @Test
-  public void shouldRestoreRunScriptCommand() {
+  public void shouldRestoreLegacyRunScriptCommand() {
     // Given:
     final String runScriptStatement = "run script";
     final String queryStatement = "a persistent query";
@@ -714,7 +712,7 @@ public class StatementExecutorTest extends EasyMockSupport {
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
                 runScriptStatement,
-                Collections.singletonMap(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, queryStatement),
+                Collections.singletonMap("ksql.run.script.statements", queryStatement),
                 Collections.emptyMap())
         )
     );

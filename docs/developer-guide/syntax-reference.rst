@@ -33,6 +33,16 @@ means new facts can be inserted to the table, and existing facts can be updated 
 Kafka topic or derived from existing streams and tables. In both cases, a table’s underlying data is durably stored (persisted)
 within a Kafka topic on the Kafka brokers.
 
+Time Units
+----------
+
+The following list shows valid time units for the SIZE, ADVANCE BY, and SESSION clauses.
+
+* DAY, DAYS 
+* HOUR, HOURS
+* MINUTE, MINUTES
+* SECOND, SECONDS
+* MILLISECOND, MILLISECONDS
 
 =================
 KSQL CLI Commands
@@ -701,16 +711,6 @@ the following WINDOW types:
          FROM orders
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
-
-The following list shows valid time units for SIZE, ADVANCE BY, and SESSION.
-
-* DAY, DAYS 
-* HOUR, HOURS
-* MINUTE, MINUTES
-* SECOND, SECONDS
-* MILLISECOND, MILLISECONDS
-
-For more information, see :ref:`windows_in_ksql_queries`.
 
 CAST
 ~~~~

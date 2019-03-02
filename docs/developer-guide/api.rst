@@ -214,7 +214,7 @@ The KSQL resource runs a sequence of KSQL statements. Most statements, except th
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice'",
+        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice';",
         "streamsProperties": {
           "ksql.streams.auto.offset.reset": "earliest"
         }

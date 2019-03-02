@@ -23,7 +23,7 @@ import java.util.Optional;
 
 public class PrimitiveType extends Type {
 
-  final KsqlType ksqlType;
+  private final KsqlType ksqlType;
 
   public PrimitiveType(final KsqlType ksqlType) {
     this(Optional.empty(), ksqlType);

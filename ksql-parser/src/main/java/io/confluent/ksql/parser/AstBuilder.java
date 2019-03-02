@@ -1088,7 +1088,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return new Cast(
         getLocation(context),
         (Expression) visit(context.expression()),
-        getType(context.type()).toString()
+        getType(context.type())
     );
   }
 

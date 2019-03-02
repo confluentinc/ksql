@@ -404,59 +404,6 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldGetTheCorrectSchemaForBoolean() {
-    final Schema schema = SchemaUtil.getTypeSchema("BOOLEAN");
-    assertThat(schema, sameInstance(Schema.OPTIONAL_BOOLEAN_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetTheCorrectSchemaForInt() {
-    final Schema schema = SchemaUtil.getTypeSchema("INT");
-    assertThat(schema, sameInstance(Schema.OPTIONAL_INT32_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetTheCorrectSchemaForLong() {
-    final Schema schema = SchemaUtil.getTypeSchema("BIGINT");
-    assertThat(schema, sameInstance(Schema.OPTIONAL_INT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetTheCorrectSchemaForDouble() {
-    final Schema schema = SchemaUtil.getTypeSchema("DOUBLE");
-    assertThat(schema, sameInstance(Schema.OPTIONAL_FLOAT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetTheCorrectSchemaForString() {
-    final Schema schema = SchemaUtil.getTypeSchema("VARCHAR");
-    assertThat(schema, sameInstance(Schema.OPTIONAL_STRING_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetTheCorrectSchemaForArray() {
-    final Schema schema = SchemaUtil.getTypeSchema("ARRAY<DOUBLE>");
-    assertThat(schema.type(), sameInstance(Schema.Type.ARRAY));
-  }
-
-  @Test
-  public void shouldGetTheCorrectSchemaForMap() {
-    final Schema schema = SchemaUtil.getTypeSchema("MAP<VARCHAR, DOUBLE>");
-    assertThat(schema.type(), sameInstance(Schema.Type.MAP));
-  }
-
-  @Test
-  public void shouldFailForIncorrectSchema() {
-
-    try {
-      SchemaUtil.getTypeSchema("BYTES");
-      Assert.fail();
-    } catch (final Exception e) {
-      assertThat(e.getMessage(), equalTo("Unsupported type: BYTES"));
-    }
-  }
-
-  @Test
   public void shouldGetTheCorrectFieldIndex() {
     final int index1 = SchemaUtil.getFieldIndexByName(schema, "orderid".toUpperCase());
     final int index2 = SchemaUtil.getFieldIndexByName(schema, "itemid".toUpperCase());

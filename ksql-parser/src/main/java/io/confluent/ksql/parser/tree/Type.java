@@ -21,25 +21,15 @@ import java.util.Optional;
 
 public abstract class Type extends Expression {
 
-
   public enum KsqlType {
     BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT
   }
 
-  final KsqlType ksqlType;
-
-  public Type(final KsqlType ksqlType) {
-    this(Optional.empty(), ksqlType);
-  }
-
-  public Type(final NodeLocation location, final KsqlType ksqlType) {
-    this(Optional.of(location), ksqlType);
-  }
+  private final KsqlType ksqlType;
 
   protected Type(final Optional<NodeLocation> location, final KsqlType ksqlType) {
     super(location);
-    requireNonNull(ksqlType, "ksqlType is null");
-    this.ksqlType = ksqlType;
+    this.ksqlType = requireNonNull(ksqlType, "ksqlType");
   }
 
   public KsqlType getKsqlType() {

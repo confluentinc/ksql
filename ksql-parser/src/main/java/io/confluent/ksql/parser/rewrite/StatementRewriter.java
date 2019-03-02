@@ -811,19 +811,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitCast(final Cast node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new Cast(
-          node.getLocation().get(),
-          (Expression) process(node.getExpression(), context),
-          node.getType()
-      );
-    } else {
-      return new Cast((Expression) process(node.getExpression(), context),
-          node.getType()
-      );
-    }
+    return new Cast(node);
   }
 
   protected Node visitFieldReference(final FieldReference node, final Object context) {

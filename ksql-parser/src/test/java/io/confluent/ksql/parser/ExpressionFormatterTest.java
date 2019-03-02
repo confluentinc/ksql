@@ -275,7 +275,17 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatCast() {
-    assertThat(ExpressionFormatter.formatExpression(new Cast(new LongLiteral(1), "Double", false)), equalTo("CAST(1 AS Double)"));
+    // Given:
+    final Cast cast = new Cast(
+        new NodeLocation(0, 0),
+        new LongLiteral(1),
+        PrimitiveType.getPrimitiveType("DOUBLE"));
+
+    // When:
+    final String result = ExpressionFormatter.formatExpression(cast);
+
+    // Then:
+    assertThat(result, equalTo("CAST(1 AS DOUBLE)"));
   }
 
   @Test

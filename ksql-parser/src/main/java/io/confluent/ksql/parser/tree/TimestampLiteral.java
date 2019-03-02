@@ -40,6 +40,7 @@ public class TimestampLiteral
     this.value = value;
   }
 
+  @Override
   public String getValue() {
     return value;
   }

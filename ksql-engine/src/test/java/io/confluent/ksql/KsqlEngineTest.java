@@ -43,7 +43,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
@@ -554,26 +553,22 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldInferSchemaIfNotPresent() {
-    final Schema schema = SchemaBuilder
-        .record("Test").fields()
-        .name("field").type().intType().noDefault()
-        .endRecord();
-    givenTopicWithSchema("bar", schema);
+  public void shouldThrowIfSchemaNotPresent() {
+    // Given:
+    givenTopicsExist("bar");
 
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
+        "The statement does not define any columns.")));
+    expectedException.expect(statementText(is(
+        "create stream bar with (value_format='avro', kafka_topic='bar');")));
+
+    // When:
     KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream bar with (value_format='avro', kafka_topic='bar');",
         KSQL_CONFIG,
         Collections.emptyMap());
-
-    final StructuredDataSource source = metaStore.getSource("BAR");
-    final org.apache.kafka.connect.data.Schema ksqlSchema = source.getSchema();
-    assertThat(ksqlSchema.fields().size(), equalTo(3));
-    assertThat(ksqlSchema.fields().get(2).name(), equalTo("FIELD"));
-    assertThat(
-        ksqlSchema.fields().get(2).schema(),
-        equalTo(org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA));
-    assertThat(source.getSqlExpression(), containsString("(FIELD INTEGER)"));
   }
 
   @Test
@@ -968,9 +963,35 @@ public class KsqlEngineTest {
       try {
         ksqlEngine.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
         Assert.fail();
-      } catch (final KsqlException e) {
+      } catch (final KsqlStatementException e) {
         assertThat(e.getMessage(), containsString(
             "Corresponding Kafka topic (KAFKA_TOPIC) should be set in WITH clause."));
+      }
+    }
+  }
+
+  @Test
+  public void shouldThrowIfStatementMissingValueFormatConfig() {
+    // Given:
+    givenTopicsExist("foo");
+
+    final List<ParsedStatement> parsed = parse(
+        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (KAFKA_TOPIC='foo');"
+            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (KAFKA_TOPIC='foo');"
+    );
+
+    for (ParsedStatement statement : parsed) {
+      final PreparedStatement<?> prepared = ksqlEngine.prepare(statement);
+
+      try {
+        // When:
+        ksqlEngine.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+
+        // Then:
+        Assert.fail();
+      } catch (final KsqlStatementException e) {
+        assertThat(e.getMessage(), containsString(
+            "Topic format(VALUE_FORMAT) should be set in WITH clause."));
       }
     }
   }

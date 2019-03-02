@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -24,6 +25,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -32,8 +36,10 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class StandaloneExecutorFactory {
+
   static final String CONFIG_TOPIC_SUFFIX = "configs";
 
   private StandaloneExecutorFactory(){
@@ -50,11 +56,13 @@ public final class StandaloneExecutorFactory {
         installDir,
         DefaultServiceContext::create,
         KafkaConfigStore::new,
+        KsqlVersionCheckerAgent::new,
         StandaloneExecutor::new
     );
   }
 
   interface StandaloneExecutorConstructor {
+
     StandaloneExecutor create(
         ServiceContext serviceContext,
         ProcessingLogConfig processingLogConfig,
@@ -63,16 +71,19 @@ public final class StandaloneExecutorFactory {
         String queriesFile,
         UdfLoader udfLoader,
         boolean failOnNoQueries,
-        VersionCheckerAgent versionCheckerAgent
+        VersionCheckerAgent versionChecker,
+        Function<ServiceContext, SchemaInjector> schemaInjectorFactory
     );
   }
 
+  @VisibleForTesting
   static StandaloneExecutor create(
       final Map<String, String> properties,
       final String queriesFile,
       final String installDir,
       final Function<KsqlConfig, ServiceContext> serviceContextFactory,
       final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory,
+      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final StandaloneExecutorConstructor constructor
   ) {
     final KsqlConfig baseConfig = new KsqlConfig(properties);
@@ -105,6 +116,13 @@ public final class StandaloneExecutorFactory {
     final UdfLoader udfLoader =
         UdfLoader.newInstance(ksqlConfig, functionRegistry, installDir);
 
+    final VersionCheckerAgent versionChecker = versionCheckerFactory
+        .apply(ksqlEngine::hasActiveQueries);
+
+    final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
+        new DefaultSchemaInjector(
+            new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
+
     return constructor.create(
         serviceContext,
         processingLogConfig,
@@ -113,7 +131,8 @@ public final class StandaloneExecutorFactory {
         queriesFile,
         udfLoader,
         true,
-        new KsqlVersionCheckerAgent(ksqlEngine::hasActiveQueries)
+        versionChecker,
+        schemaInjectorFactory
     );
   }
 }

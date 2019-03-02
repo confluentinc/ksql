@@ -15,6 +15,7 @@
 
 package io.confluent.ksql;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -24,6 +25,9 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -46,10 +50,16 @@ public class KsqlContext {
   private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
+  private final SchemaInjector schemaInjector;
 
+  /**
+   * Create a KSQL context object with the given properties. A KSQL context has it's own metastore
+   * valid during the life of the object.
+   */
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final ProcessingLogContext processingLogContext) {
+      final ProcessingLogContext processingLogContext
+  ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -60,21 +70,24 @@ public class KsqlContext {
         processingLogContext,
         functionRegistry,
         serviceId);
-    return new KsqlContext(serviceContext, ksqlConfig, engine);
+
+    final DefaultSchemaInjector schemaInjector = new DefaultSchemaInjector(
+        new SchemaRegistryTopicSchemaSupplier(serviceContext.getSchemaRegistryClient()));
+
+    return new KsqlContext(serviceContext, ksqlConfig, engine, schemaInjector);
   }
 
-  /**
-   * Create a KSQL context object with the given properties.
-   * A KSQL context has it's own metastore valid during the life of the object.
-   */
+  @VisibleForTesting
   KsqlContext(
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine
+      final KsqlEngine ksqlEngine,
+      final SchemaInjector schemaInjector
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
   }
 
   public ServiceContext getServiceContext() {
@@ -139,13 +152,14 @@ public class KsqlContext {
     ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::close);
   }
 
-  private static ExecuteResult execute(
+  private ExecuteResult execute(
       final KsqlExecutionContext executionContext,
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
-    return executionContext.execute(prepared, ksqlConfig, overriddenProperties);
+    final PreparedStatement<?> withSchema = schemaInjector.forStatement(prepared);
+    return executionContext.execute(withSchema, ksqlConfig, overriddenProperties);
   }
 }

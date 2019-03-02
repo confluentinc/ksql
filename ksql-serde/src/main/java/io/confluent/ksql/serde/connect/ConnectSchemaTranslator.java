@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.serde.connect;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Map;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,12 +29,28 @@ import org.slf4j.LoggerFactory;
 public class ConnectSchemaTranslator {
   private static final Logger log = LoggerFactory.getLogger(ConnectSchemaTranslator.class);
 
+  private static final Map<Type, Function<Schema, Schema>> CONNECT_TO_KSQL =
+      ImmutableMap.<Type, Function<Schema, Schema>>builder()
+      .put(Type.INT8, s -> Schema.OPTIONAL_INT32_SCHEMA)
+      .put(Type.INT16, s -> Schema.OPTIONAL_INT32_SCHEMA)
+      .put(Type.INT32, s -> Schema.OPTIONAL_INT32_SCHEMA)
+      .put(Type.INT64, s -> Schema.OPTIONAL_INT64_SCHEMA)
+      .put(Type.FLOAT32, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .put(Type.FLOAT64, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .put(Type.STRING, s -> Schema.OPTIONAL_STRING_SCHEMA)
+      .put(Type.BOOLEAN, s -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .put(Type.ARRAY, ConnectSchemaTranslator::toKsqlArraySchema)
+      .put(Type.MAP, ConnectSchemaTranslator::toKsqlMapSchema)
+      .put(Type.STRUCT, ConnectSchemaTranslator::toKsqlStructSchema)
+      .build();
+
   protected static class UnsupportedTypeException extends RuntimeException {
-    public UnsupportedTypeException(final String error) {
+    UnsupportedTypeException(final String error) {
       super(error);
     }
   }
 
+  @SuppressWarnings("MethodMayBeStatic") // Part of injectable API.
   public Schema toKsqlSchema(final Schema schema) {
     try {
       final Schema rowSchema = toKsqlFieldSchema(schema);
@@ -43,34 +63,17 @@ public class ConnectSchemaTranslator {
     }
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  protected Schema toKsqlFieldSchema(final Schema schema) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    switch (schema.type()) {
-      case INT8:
-      case INT16:
-      case INT32:
-        return Schema.OPTIONAL_INT32_SCHEMA;
-      case FLOAT32:
-      case FLOAT64:
-        return Schema.OPTIONAL_FLOAT64_SCHEMA;
-      case INT64:
-      case STRING:
-      case BOOLEAN:
-        return SchemaBuilder.type(schema.type()).optional().build();
-      case ARRAY:
-        return toKsqlArraySchema(schema);
-      case MAP:
-        return toKsqlMapSchema(schema);
-      case STRUCT:
-        return toKsqlStructSchema(schema);
-      default:
-        throw new UnsupportedTypeException(
-            String.format("Unsupported type: %s", schema.type().getName()));
+  private static Schema toKsqlFieldSchema(final Schema schema) {
+    final Function<Schema, Schema> handler = CONNECT_TO_KSQL.get(schema.type());
+    if (handler == null) {
+      throw new UnsupportedTypeException(
+          String.format("Unsupported type: %s", schema.type().getName()));
     }
+
+    return handler.apply(schema);
   }
 
-  private void checkMapKeyType(final Schema.Type type) {
+  private static void checkMapKeyType(final Schema.Type type) {
     switch (type) {
       case INT8:
       case INT16:
@@ -84,7 +87,7 @@ public class ConnectSchemaTranslator {
     }
   }
 
-  private Schema toKsqlMapSchema(final Schema schema) {
+  private static Schema toKsqlMapSchema(final Schema schema) {
     final Schema keySchema = toKsqlFieldSchema(schema.keySchema());
     checkMapKeyType(keySchema.type());
     return SchemaBuilder.map(
@@ -93,13 +96,13 @@ public class ConnectSchemaTranslator {
     ).optional().build();
   }
 
-  private Schema toKsqlArraySchema(final Schema schema) {
+  private static Schema toKsqlArraySchema(final Schema schema) {
     return SchemaBuilder.array(
         toKsqlFieldSchema(schema.valueSchema())
     ).optional().build();
   }
 
-  private Schema toKsqlStructSchema(final Schema schema) {
+  private static Schema toKsqlStructSchema(final Schema schema) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (final Field field : schema.fields()) {
       try {

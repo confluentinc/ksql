@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.util;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,22 +23,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
+import io.confluent.connect.avro.AvroData;
+import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.KsqlParserTestUtil;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.parser.tree.Array;
-import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
+import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
@@ -66,10 +58,7 @@ public class AvroUtilTest {
       + " ]"
       + "}";
 
-  private static final org.apache.avro.Schema RESULT_AVRO_SCHEMA =
-      new org.apache.avro.Schema.Parser().parse(AVRO_SCHEMA_STRING);
-
-  private static final Schema RESULT_SCHEMA = AvroUtil.toKsqlSchema(AVRO_SCHEMA_STRING);
+  private static final Schema RESULT_SCHEMA = toKsqlSchema(AVRO_SCHEMA_STRING);
 
   private static final KsqlTopic RESULT_TOPIC =
       new KsqlTopic("registered-name", "actual-name", new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME), false);
@@ -81,7 +70,6 @@ public class AvroUtilTest {
   private SchemaRegistryClient srClient;
   @Mock
   private PersistentQueryMetadata persistentQuery;
-  private AbstractStreamCreateStatement statement;
 
   @Before
   public void setUp() {
@@ -89,73 +77,6 @@ public class AvroUtilTest {
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
     when(persistentQuery.getResultTopicSerde())
         .thenReturn(RESULT_TOPIC.getKsqlTopicSerDe().getSerDe());
-
-    statement = createStreamCreateSql();
-  }
-
-  @Test
-  public void shouldPassAvroCheck() throws Exception {
-    // Given:
-    when(srClient.getLatestSchemaMetadata(any())).thenReturn(
-        new SchemaMetadata(1, 1, AVRO_SCHEMA_STRING));
-
-    // When:
-    final AbstractStreamCreateStatement result =
-        AvroUtil.checkAndSetAvroSchema(statement, srClient);
-
-    // Then:
-    assertThat(result.getElements(), contains(
-        new TableElement("ORDERTIME", new PrimitiveType(Type.KsqlType.BIGINT)),
-        new TableElement("ORDERID", new PrimitiveType(Type.KsqlType.BIGINT)),
-        new TableElement("ITEMID", new PrimitiveType(Type.KsqlType.STRING)),
-        new TableElement("ORDERUNITS", new PrimitiveType(Type.KsqlType.DOUBLE)),
-        new TableElement("ARRAYCOL", new Array(new PrimitiveType(Type.KsqlType.DOUBLE))),
-        new TableElement("MAPCOL", new Map(new PrimitiveType(Type.KsqlType.DOUBLE)))
-    ));
-  }
-
-  @Test
-  public void shouldThrowIfAvroSchemaNotCompatibleWithKsql() throws Exception {
-    // Given:
-    when(srClient.getLatestSchemaMetadata(any())).thenReturn(
-        new SchemaMetadata(1, 1, "{\"type\": \"record\"}"));
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Unable to verify if the Avro schema for topic s1_topic is compatible with KSQL.\n"
-            + "Reason: No name in schema: {\"type\":\"record\"}\n\n"
-            + "Please see https://github.com/confluentinc/ksql/issues/ to see if this particular reason is already\n"
-            + "known, and if not log a new issue. Please include the full Avro schema that you are trying to use.");
-
-    // When:
-    AvroUtil.checkAndSetAvroSchema(statement, srClient);
-  }
-
-  @Test
-  public void shouldNotPassAvroCheckIfSchemaDoesNotExist() throws Exception {
-    // Given:
-    when(srClient.getLatestSchemaMetadata(any()))
-        .thenThrow(new RestClientException("Not found", 404, 40401));
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Avro schema for message values on topic s1_topic does not exist in the Schema Registry.\n"
-            + "Subject: s1_topic-value\n\n"
-            + "Possible causes include:\n"
-            + "- The topic itself does not exist\n"
-            + "\t-> Use SHOW TOPICS; to check\n" +
-            "- Messages on the topic are not Avro serialized\n"
-            + "\t-> Use PRINT 's1_topic' FROM BEGINNING; to verify\n"
-            + "- Messages on the topic have not been serialized using the Confluent Schema Registry Avro serializer\n"
-            + "\t-> See https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html\n"
-            + "- The schema is registered on a different instance of the Schema Registry\n"
-            + "\t-> Use the REST API to list available subjects\n\t"
-            + "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects\n");
-
-    // When:
-    AvroUtil.checkAndSetAvroSchema(statement, srClient);
   }
 
   @Test
@@ -250,13 +171,10 @@ public class AvroUtilTest {
     AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
   }
 
-  private static AbstractStreamCreateStatement createStreamCreateSql() {
-    final PreparedStatement<AbstractStreamCreateStatement> statementList = KsqlParserTestUtil
-        .buildSingleAst(
-            "CREATE STREAM S1 WITH (kafka_topic='s1_topic', value_format='avro');",
-            new MetaStoreImpl(new InternalFunctionRegistry())
-        );
-
-    return statementList.getStatement();
+  private static Schema toKsqlSchema(final String avroSchemaString) {
+    final org.apache.avro.Schema avroSchema =
+        new org.apache.avro.Schema.Parser().parse(avroSchemaString);
+    final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
+    return new ConnectSchemaTranslator().toKsqlSchema(avroData.toConnectSchema(avroSchema));
   }
 }

@@ -17,6 +17,7 @@ import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -59,6 +60,8 @@ public class StandaloneExecutorFactoryTest {
   private StandaloneExecutorConstructor constructor;
   @Mock
   private StandaloneExecutor standaloneExecutor;
+  @Mock
+  private VersionCheckerAgent versionChecker;
 
   @Before
   public void setup() {
@@ -67,7 +70,8 @@ public class StandaloneExecutorFactoryTest {
     when(configStoreFactory.apply(any(), any())).thenReturn(configStore);
     when(topicClient.isTopicExists(configTopicName)).thenReturn(false);
     when(configStore.getKsqlConfig()).thenReturn(mergedConfig);
-    when(constructor.create(any(), any(), any(), any(), anyString(), any(), anyBoolean(), any()))
+    when(constructor
+        .create(any(), any(), any(), any(), anyString(), any(), anyBoolean(), any(), any()))
         .thenReturn(standaloneExecutor);
   }
 
@@ -78,18 +82,19 @@ public class StandaloneExecutorFactoryTest {
         INSTALL_DIR,
         serviceContextFactory,
         configStoreFactory,
+        activeQuerySupplier -> versionChecker,
         constructor
     );
   }
 
-  private Matcher<KsqlConfig> sameConfig(final KsqlConfig expected) {
+  private static Matcher<KsqlConfig> sameConfig(final KsqlConfig expected) {
     return new KsqlConfigMatcher(expected);
   }
 
   private static class KsqlConfigMatcher extends TypeSafeMatcher<KsqlConfig> {
     private final KsqlConfig expected;
 
-    public KsqlConfigMatcher(final KsqlConfig expected) {
+    KsqlConfigMatcher(final KsqlConfig expected) {
       this.expected = expected;
     }
 
@@ -115,6 +120,6 @@ public class StandaloneExecutorFactoryTest {
     inOrder.verify(topicClient).createTopic(eq(configTopicName), anyInt(), anyShort(), anyMap());
     inOrder.verify(configStoreFactory).apply(eq(configTopicName), argThat(sameConfig(baseConfig)));
     inOrder.verify(constructor).create(
-        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any());
+        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any(), any());
   }
 }

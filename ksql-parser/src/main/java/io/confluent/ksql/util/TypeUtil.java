@@ -15,46 +15,61 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.tree.Array;
-import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class TypeUtil {
+
+  private static final Map<Schema.Type, Function<Schema, Type>> KSQL_TYPES = ImmutableMap
+      .<Schema.Type, Function<Schema, Type>>builder()
+      .put(Schema.Type.INT32, s -> new PrimitiveType(Type.KsqlType.INTEGER))
+      .put(Schema.Type.INT64, s -> new PrimitiveType(Type.KsqlType.BIGINT))
+      .put(Schema.Type.FLOAT32, s -> new PrimitiveType(Type.KsqlType.DOUBLE))
+      .put(Schema.Type.FLOAT64, s -> new PrimitiveType(Type.KsqlType.DOUBLE))
+      .put(Schema.Type.BOOLEAN, s -> new PrimitiveType(Type.KsqlType.BOOLEAN))
+      .put(Schema.Type.STRING, s -> new PrimitiveType(Type.KsqlType.STRING))
+      .put(Schema.Type.ARRAY, TypeUtil::toKsqlArray)
+      .put(Schema.Type.MAP, TypeUtil::toKsqlMap)
+      .put(Schema.Type.STRUCT, TypeUtil::toKsqlStruct)
+      .build();
+
   private TypeUtil() {
   }
 
   public static Type getKsqlType(final Schema schema) {
-    switch (schema.type()) {
-      case INT32:
-        return new PrimitiveType(Type.KsqlType.INTEGER);
-      case INT64:
-        return new PrimitiveType(Type.KsqlType.BIGINT);
-      case FLOAT32:
-      case FLOAT64:
-        return new PrimitiveType(Type.KsqlType.DOUBLE);
-      case BOOLEAN:
-        return new PrimitiveType(Type.KsqlType.BOOLEAN);
-      case STRING:
-        return new PrimitiveType(Type.KsqlType.STRING);
-      case ARRAY:
-        return new Array(getKsqlType(schema.valueSchema()));
-      case MAP:
-        return new Map(getKsqlType(schema.valueSchema()));
-      case STRUCT:
-        return new Struct(getStructItems(schema));
-
-      default:
-        throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
+    final Function<Schema, Type> handler = KSQL_TYPES.get(schema.type());
+    if (handler == null) {
+      throw new KsqlException(String.format("Invalid type in schema: %s.", schema));
     }
+
+    return handler.apply(schema);
+  }
+
+  private static Array toKsqlArray(final Schema schema) {
+    return new Array(getKsqlType(schema.valueSchema()));
+  }
+
+  private static Type toKsqlMap(final Schema schema) {
+    if (schema.keySchema().type() != Schema.Type.STRING) {
+      throw new KsqlException("Unsupported map key type in schema: " + schema.keySchema());
+    }
+    return new io.confluent.ksql.parser.tree.Map(getKsqlType(schema.valueSchema()));
+  }
+
+  private static Struct toKsqlStruct(final Schema schema) {
+    return new Struct(getStructItems(schema));
   }
 
   private static List<Pair<String, Type>> getStructItems(final Schema struct) {
@@ -86,7 +101,8 @@ public final class TypeUtil {
           ).optional().build();
       case MAP:
         return SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA,
-                                 getTypeSchema(((Map) ksqlType).getValueType())).optional().build();
+            getTypeSchema(((io.confluent.ksql.parser.tree.Map) ksqlType).getValueType())).optional()
+            .build();
       case STRUCT:
         return buildStructSchema((Struct) ksqlType);
 

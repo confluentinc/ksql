@@ -39,6 +39,9 @@ import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -56,6 +59,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
@@ -161,13 +165,19 @@ public class RecoveryTest {
     KsqlServer(final List<QueuedCommand> commandLog) {
       this.ksqlEngine = createKsqlEngine();
       this.fakeCommandQueue = new FakeCommandQueue(commandLog);
+
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
+          new DefaultSchemaInjector(
+              new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
+
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,
           serviceContext,
           fakeCommandQueue,
           Duration.ofMillis(0),
-          ()->{}
+          ()->{},
+          schemaInjectorFactory
       );
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,

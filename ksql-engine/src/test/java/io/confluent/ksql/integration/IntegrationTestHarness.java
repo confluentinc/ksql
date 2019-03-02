@@ -38,6 +38,7 @@ import io.confluent.ksql.test.util.ConsumerTestUtil;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TestDataProvider;
 import java.time.Duration;
 import java.util.Arrays;
@@ -105,8 +106,8 @@ public class IntegrationTestHarness extends ExternalResource {
     return kafkaCluster.bootstrapServers();
   }
 
-  public SchemaRegistryClient schemaRegistryClient() {
-    return serviceContext.get().getSchemaRegistryClient();
+  public ServiceContext getServiceContext() {
+    return serviceContext.get();
   }
 
   public TestKsqlContext buildKsqlContext() {
@@ -511,6 +512,18 @@ public class IntegrationTestHarness extends ExternalResource {
         "consumer",
         ProcessingLogContext.create()
     ).deserializer();
+  }
+
+  public void ensureSchema(final String topicName, final Schema schema) {
+    final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
+    try {
+      final org.apache.avro.Schema avroSchema = SchemaUtil
+          .buildAvroSchema(schema, "test-" + topicName);
+
+      srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, avroSchema);
+    } catch (final Exception e) {
+      throw new AssertionError(e);
+    }
   }
 
   public static final class Builder {

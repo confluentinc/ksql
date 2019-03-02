@@ -94,7 +94,7 @@ public class StandaloneExecutorFunctionalTest {
   public void setUp() throws Exception {
     queryFile = TMP.newFile().toPath();
 
-    final Map<String, ?> properties = ImmutableMap.of(
+    final Map<String, String> properties = ImmutableMap.of(
         CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers()
     );
 

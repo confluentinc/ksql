@@ -21,6 +21,7 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -127,11 +128,11 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + System.lineSeparator()
             + "- Messages on the topic have not been serialized using the Confluent Schema "
             + "Registry Avro serializer"
-            + "\t-> See " + KsqlConstants.DOC_URL_SR_SERIALISER
+            + "\t-> See " + DocumentationLinks.SR_SERIALISER_DOC_URL
             + System.lineSeparator()
             + "- The schema is registered on a different instance of the Schema Registry"
             + "\t-> Use the REST API to list available subjects"
-            + "\t" + KsqlConstants.DOC_URL_SR_REST_GETSUBJECTS));
+            + "\t" + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL));
   }
 
   private static SchemaResult notCompatible(

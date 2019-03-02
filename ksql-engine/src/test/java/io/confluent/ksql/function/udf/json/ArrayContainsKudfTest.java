@@ -17,10 +17,9 @@ package io.confluent.ksql.function.udf.json;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.Collections;
+import org.junit.Test;
 
 public class ArrayContainsKudfTest
 {

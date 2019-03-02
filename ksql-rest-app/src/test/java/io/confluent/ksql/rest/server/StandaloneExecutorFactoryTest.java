@@ -19,7 +19,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Collections;
-import java.util.Properties;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.hamcrest.Description;
@@ -38,7 +38,7 @@ public class StandaloneExecutorFactoryTest {
   private static final String QUERIES_FILE = "queries";
   private static final String INSTALL_DIR = "install";
 
-  private final Properties properties = new Properties();
+  private final Map<String, String> properties = Collections.emptyMap();
   private final KsqlConfig baseConfig = new KsqlConfig(properties);
   private final KsqlConfig mergedConfig = new KsqlConfig(Collections.emptyMap());
   private final String configTopicName = KsqlInternalTopicUtils.getTopicName(

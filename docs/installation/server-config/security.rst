@@ -22,13 +22,78 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 
 .. include:: ../../../../includes/installation-types-zip-tar.rst
 
+.. _config-ksql-for-https:
+
+Configuring KSQL for HTTPS
+--------------------------
+KSQL can be configured to use HTTPS rather than the default HTTP for all communication.
+
+If you haven't already, you will need to :ref:`create SSL key and trust stores <generating-keys-certs>`.
+
+Use the following settings to configure the KSQL server to use HTTPS:
+
+::
+
+    listeners=https://hostname:port
+    ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
+    ssl.keystore.password=xxxx
+    ssl.key.password=yyyy
+
+Note the use of the HTTPS protocol in the ``listeners`` config.
+
+To enable the server to authenticate clients (2-way authentication), use the following additional
+settings:
+
+::
+
+    ssl.client.auth=required
+    ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+    ssl.truststore.password=zzzz
+
+.. _configuring-cli-for-https:
+
+-----------------------------
+Configuring the CLI for HTTPS
+-----------------------------
+If the KSQL server is configured to use HTTPS, CLI instances may need to be configured with
+suitable key and trust stores.
+
+If the server's SSL certificate is not signed by a recognised public Certificate Authority,
+the CLI will need to be configured with a trust store that trusts the servers SSL certificate.
+
+If you haven't already, you will need to :ref:`create SSL key and trust stores <generating-keys-certs>`.
+
+Use the following settings to configure the CLI server:
+
+::
+
+    ssl.truststore.location=/var/private/ssl/ksql.client.truststore.jks
+    ssl.truststore.password=zzzz
+
+If the server is performing client authentication (2-way authentication), use the following
+additional settings:
+
+::
+
+    ssl.keystore.location=/var/private/ssl/ksql.client.keystore.jks
+    ssl.keystore.password=xxxx
+    ssl.key.password=yyyy
+
+Settings for the CLI can be stored in a suitable file and passed to the CLI via the ``--config-file``
+command-line arguments, for example:
+
+.. code:: bash
+
+    <ksql-install>bin/ksql --config-file ./config/ksql-cli.properties https://localhost:8088
+
 Configuring KSQL for Basic HTTP Authentication
 ----------------------------------------------
 KSQL can be configured to require users to authenticate using a username and password via the Basic
 HTTP authentication mechanism.
 
-.. note:: If using Basic authentication it is highly recommended that you configure the KSQL server to
-          use SSL to secure communication, as the Basic protocol passes credentials in plain text.
+.. note:: If you're using Basic authentication, we recommended that you
+          :ref:`configure KSQL to use HTTPS to secure communication <config-ksql-for-https>`,
+          as the Basic protocol passes credentials in plain text.
 
 Use the following settings to configure the KSQL server to require authentication:
 
@@ -93,9 +158,9 @@ Which results in an output similar to:
 Where each line of the output is the password encrypted using different mechanisms, starting with
 plain text.
 
--------------------
-Configuring the CLI
--------------------
+-------------------------------------------------
+Configuring the CLI for Basic HTTP Authentication
+-------------------------------------------------
 If the KSQL server is configured to use Basic authentication, CLI instances will need to be
 configured with suitable valid credentials.  Credentials can be passed when starting the CLI using
 the ``--user`` and ``--password`` command-line arguments, for example:

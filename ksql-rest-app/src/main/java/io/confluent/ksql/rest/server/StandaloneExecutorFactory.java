@@ -46,7 +46,7 @@ public final class StandaloneExecutorFactory {
   }
 
   public static StandaloneExecutor create(
-      final Map<?, ?> properties,
+      final Map<String, String> properties,
       final String queriesFile,
       final String installDir
   ) {
@@ -78,7 +78,7 @@ public final class StandaloneExecutorFactory {
 
   @VisibleForTesting
   static StandaloneExecutor create(
-      final Map<?, ?> properties,
+      final Map<String, String> properties,
       final String queriesFile,
       final String installDir,
       final Function<KsqlConfig, ServiceContext> serviceContextFactory,

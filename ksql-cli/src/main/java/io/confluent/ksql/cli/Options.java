@@ -45,6 +45,7 @@ public class Options {
   @Inject
   public HelpOption help;
 
+  @SuppressWarnings("unused") // Accessed via reflection
   @Once
   @Required
   @Arguments(
@@ -54,6 +55,7 @@ public class Options {
 
   private static final String CONFIGURATION_FILE_OPTION_NAME = "--config-file";
 
+  @SuppressWarnings("unused") // Accessed via reflection
   @Option(
       name = CONFIGURATION_FILE_OPTION_NAME,
       description = "A file specifying configs for Ksql and its underlying Kafka Streams "
@@ -61,6 +63,7 @@ public class Options {
   private String configFile;
 
 
+  @SuppressWarnings("unused") // Accessed via reflection
   @Option(
       name = {USERNAME_OPTION, USERNAME_SHORT_OPTION},
       description =
@@ -73,6 +76,7 @@ public class Options {
       hidden = true)
   private String userName;
 
+  @SuppressWarnings("unused") // Accessed via reflection
   @Option(
       name = {PASSWORD_OPTION, PASSWORD_SHORT_OPTION},
       description =
@@ -85,14 +89,15 @@ public class Options {
       hidden = true)
   private String password;
 
+  @SuppressWarnings("unused") // Accessed via reflection
   @Option(
       name = STREAMED_QUERY_ROW_LIMIT_OPTION_NAME,
       description = "An optional maximum number of rows to read from streamed queries")
-
   @LongRange(
       min = 1)
   private Long streamedQueryRowLimit;
 
+  @SuppressWarnings("unused") // Accessed via reflection
   @Option(
       name = STREAMED_QUERY_TIMEOUT_OPTION_NAME,
       description = "An optional time limit (in milliseconds) for streamed queries")
@@ -100,6 +105,7 @@ public class Options {
       min = 1)
   private Long streamedQueryTimeoutMs;
 
+  @SuppressWarnings("FieldMayBeFinal") // Accessed via reflection
   @Option(
       name = OUTPUT_FORMAT_OPTION_NAME,
       description = "The output format to use "

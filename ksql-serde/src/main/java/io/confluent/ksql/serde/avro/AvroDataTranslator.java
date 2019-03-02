@@ -38,10 +38,14 @@ public class AvroDataTranslator implements DataTranslator {
   private final Schema ksqlSchema;
   private final Schema avroCompatibleSchema;
 
-  public AvroDataTranslator(final Schema ksqlSchema, final String schemaFullName) {
+  public AvroDataTranslator(
+      final Schema ksqlSchema,
+      final String schemaFullName,
+      final boolean useNamedMaps) {
     this.ksqlSchema = ksqlSchema;
     this.avroCompatibleSchema = buildAvroCompatibleSchema(
         ksqlSchema,
+        useNamedMaps,
         new TypeNameGenerator(Collections.singleton(schemaFullName)));
     this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
   }
@@ -95,15 +99,17 @@ public class AvroDataTranslator implements DataTranslator {
     }
   }
 
-  private String avroCompatibleFieldName(final Field field) {
+  private static String avroCompatibleFieldName(final Field field) {
     // Currently the only incompatible field names expected are fully qualified
     // column identifiers. Once quoted identifier support is introduced we will
     // need to implement something more generic here.
     return field.name().replace(".", "_");
   }
 
-  private Schema buildAvroCompatibleSchema(final Schema schema,
-                                           final TypeNameGenerator typeNameGenerator) {
+  private static Schema buildAvroCompatibleSchema(
+      final Schema schema,
+      final boolean useNamedMaps,
+      final TypeNameGenerator typeNameGenerator) {
     final SchemaBuilder schemaBuilder;
     switch (schema.type()) {
       default:
@@ -116,20 +122,26 @@ public class AvroDataTranslator implements DataTranslator {
         for (final Field f : schema.fields()) {
           schemaBuilder.field(
               avroCompatibleFieldName(f),
-              buildAvroCompatibleSchema(f.schema(), typeNameGenerator.with(f.name())));
+              buildAvroCompatibleSchema(
+                  f.schema(), useNamedMaps, typeNameGenerator.with(f.name())));
         }
         break;
       case ARRAY:
         schemaBuilder = SchemaBuilder.array(
-            buildAvroCompatibleSchema(schema.valueSchema(), typeNameGenerator));
+            buildAvroCompatibleSchema(
+                schema.valueSchema(), useNamedMaps, typeNameGenerator));
         break;
       case MAP:
-        schemaBuilder = SchemaBuilder.map(
+        final SchemaBuilder mapSchemaBuilder = SchemaBuilder.map(
             buildAvroCompatibleSchema(schema.keySchema(),
+                useNamedMaps,
                 typeNameGenerator.with(TypeNameGenerator.MAP_KEY_NAME)),
             buildAvroCompatibleSchema(schema.valueSchema(),
+                useNamedMaps,
                 typeNameGenerator.with(TypeNameGenerator.MAP_VALUE_NAME))
-        ).name(typeNameGenerator.name());
+        );
+        schemaBuilder = useNamedMaps ?
+          mapSchemaBuilder.name(typeNameGenerator.name()) : mapSchemaBuilder;
         break;
     }
     if (schema.isOptional()) {

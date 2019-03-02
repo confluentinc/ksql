@@ -20,6 +20,7 @@ import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -36,6 +37,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.util.Utf8;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
@@ -43,6 +45,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -50,8 +53,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlGenericRowAvroSerializerTest {
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-  private final Schema schema = SchemaBuilder.struct()
+  private Schema schema = SchemaBuilder.struct()
         .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
         .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
@@ -66,21 +70,31 @@ public class KsqlGenericRowAvroSerializerTest {
                 Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .optional()
         .build();
+  private KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+  private Serializer<GenericRow> serializer;
+  private Deserializer<GenericRow> deserializer;
 
-  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  @Before
+  public void setup() {
+    resetSerde();
+  }
 
-  @Test
-  public void shouldSerializeRowCorrectly() {
-    final Serializer<GenericRow> serializer =
+  private void resetSerde() {
+    final Serde<GenericRow> serde =
         new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
             schema,
-            new KsqlConfig(Collections.emptyMap()),
+            ksqlConfig,
             false,
             () -> schemaRegistryClient,
             "loggerName",
             ProcessingLogContext.create()
-        ).serializer();
+        );
+    serializer = serde.serializer();
+    deserializer = serde.deserializer();
+  }
 
+  @Test
+  public void shouldSerializeRowCorrectly() {
     final List columns = Arrays.asList(
         1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
         Collections.singletonMap("key1", 100.0));
@@ -111,16 +125,6 @@ public class KsqlGenericRowAvroSerializerTest {
 
   @Test
   public void shouldSerializeRowWithNullCorrectly() {
-    final Serializer<GenericRow> serializer =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
-            schema,
-            new KsqlConfig(Collections.emptyMap()),
-            false,
-            () -> schemaRegistryClient,
-            "loggerName",
-            ProcessingLogContext.create()
-        ).serializer();
-
     final List columns = Arrays.asList(
         1511897796092L, 1L, null, 10.0, Arrays.asList(100.0),
         Collections.singletonMap("key1", 100.0));
@@ -153,16 +157,6 @@ public class KsqlGenericRowAvroSerializerTest {
   @Test
   @SuppressWarnings("unchecked")
   public void shouldSerializeRowWithNullValues() {
-    final Serializer<GenericRow> serializer =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
-            schema,
-            new KsqlConfig(Collections.emptyMap()),
-            false,
-            () -> schemaRegistryClient,
-            "loggerName",
-            ProcessingLogContext.create()
-        ).serializer();
-
     final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
 
     final GenericRow genericRow = new GenericRow(columns);
@@ -171,16 +165,6 @@ public class KsqlGenericRowAvroSerializerTest {
 
   @Test
   public void shouldFailForIncompatibleType() {
-    final Serializer<GenericRow> serializer =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
-            schema,
-            new KsqlConfig(Collections.emptyMap()),
-            false,
-            () -> schemaRegistryClient,
-            "loggerName",
-            ProcessingLogContext.create()
-        ).serializer();
-
     final List columns = Arrays.asList(
         1511897796092L, 1L, "item_1", "10.0", Arrays.asList((Double)100.0),
         Collections.singletonMap("key1", 100.0));
@@ -203,27 +187,19 @@ public class KsqlGenericRowAvroSerializerTest {
                                             final Object ksqlValue,
                                             final org.apache.avro.Schema avroSchema,
                                             final Object avroValue) {
-    final Schema ksqlRecordSchema = SchemaBuilder.struct()
+    // Given:
+    schema = SchemaBuilder.struct()
         .field("field0", ksqlSchema)
         .build();
-
+    resetSerde();
     final GenericRow ksqlRecord = new GenericRow(ImmutableList.of(ksqlValue));
 
-    final Serde<GenericRow> serde =
-        new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME).getGenericRowSerde(
-            ksqlRecordSchema,
-            new KsqlConfig(Collections.emptyMap()),
-            false,
-            () -> schemaRegistryClient,
-            "loggerName",
-            ProcessingLogContext.create()
-        );
+    // When:
+    final byte[] bytes = serializer.serialize("topic", ksqlRecord);
 
-    final byte[] bytes = serde.serializer().serialize("topic", ksqlRecord);
-
+    // Then:
     final KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(schemaRegistryClient);
     final GenericRecord avroRecord = (GenericRecord) deserializer.deserialize("topic", bytes);
-
     assertThat(avroRecord.getSchema().getNamespace(), equalTo(KsqlConstants.AVRO_SCHEMA_NAMESPACE));
     assertThat(avroRecord.getSchema().getName(), equalTo(KsqlConstants.AVRO_SCHEMA_NAME));
     assertThat(avroRecord.getSchema().getFields().size(), equalTo(1));
@@ -235,8 +211,7 @@ public class KsqlGenericRowAvroSerializerTest {
         equalTo(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL)));
     assertThat(field.schema().getTypes().get(1), equalTo(avroSchema));
     assertThat(avroRecord.get("field0"), equalTo(avroValue));
-
-    final GenericRow deserializedKsqlRecord = serde.deserializer().deserialize("topic", bytes);
+    final GenericRow deserializedKsqlRecord = this.deserializer.deserialize("topic", bytes);
     assertThat(deserializedKsqlRecord, equalTo(ksqlRecord));
   }
 
@@ -317,13 +292,12 @@ public class KsqlGenericRowAvroSerializerTest {
         org.apache.avro.SchemaBuilder.unionOf().nullType().and().longType().endUnion());
   }
 
-  private org.apache.avro.Schema mapSchema(final String name) {
-    return org.apache.avro.SchemaBuilder.array().items(mapEntrySchema(name));
+  private org.apache.avro.Schema mapSchema(final org.apache.avro.Schema entrySchema) {
+    return org.apache.avro.SchemaBuilder.array().items(entrySchema);
   }
 
-  @Test
-  public void shouldSerializeMap() {
-    final org.apache.avro.Schema avroSchema = mapSchema("KsqlDataSourceSchema_field0");
+  private void shouldSerializeMap(final org.apache.avro.Schema avroSchema) {
+    // Given;
     final Map<String, Long> value = ImmutableMap.of("foo", 123L);
     final List<GenericRecord> avroValue = new LinkedList<>();
     for (final Map.Entry<String, Long> entry : value.entrySet()) {
@@ -332,6 +306,8 @@ public class KsqlGenericRowAvroSerializerTest {
       record.put("value", entry.getValue());
       avroValue.add(record);
     }
+
+    // Then:
     shouldSerializeTypeCorrectly(
         SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
             .optional()
@@ -342,12 +318,41 @@ public class KsqlGenericRowAvroSerializerTest {
   }
 
   @Test
+  public void shouldSerializeMapWithName() {
+    final org.apache.avro.Schema avroSchema = mapSchema(
+        mapEntrySchema(KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0"));
+    shouldSerializeMap(avroSchema);
+  }
+
+  private org.apache.avro.Schema legacyMapEntrySchema() {
+    final String name = AvroData.NAMESPACE + "." + AvroData.MAP_ENTRY_TYPE_NAME;
+    return org.apache.avro.SchemaBuilder.record(name)
+        .fields()
+        .name("key")
+        .type().unionOf().nullType().and().stringType().endUnion()
+        .nullDefault()
+        .name("value")
+        .type().unionOf().nullType().and().longType().endUnion()
+        .nullDefault()
+        .endRecord();
+  }
+
+  @Test
+  public void shouldSerializeMapWithoutNameIfDisabled() {
+    ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, false));
+    final org.apache.avro.Schema avroSchema = mapSchema(legacyMapEntrySchema());
+    shouldSerializeMap(avroSchema);
+  }
+
+  @Test
   public void shouldSerializeMultipleMaps() {
     final org.apache.avro.Schema avroInnerSchema0
-        = mapEntrySchema("KsqlDataSourceSchema_field0_inner0");
+        = mapEntrySchema(
+            KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner0");
     final org.apache.avro.Schema avroInnerSchema1 =
         mapEntrySchema(
-            "KsqlDataSourceSchema_field0_inner1",
+            KsqlConstants.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner1",
             org.apache.avro.SchemaBuilder.unionOf().nullType().and().stringType().endUnion());
     final org.apache.avro.Schema avroSchema =
         org.apache.avro.SchemaBuilder.record("KsqlDataSourceSchema_field0")

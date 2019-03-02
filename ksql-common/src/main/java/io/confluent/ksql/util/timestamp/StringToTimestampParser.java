@@ -17,25 +17,24 @@ package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.util.KsqlException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalField;
+import java.util.Locale;
+import java.util.function.Function;
 
 public class StringToTimestampParser {
+
+  private static final Function<ZoneId, ZonedDateTime> DEFAULT_ZONED_DATE_TIME =
+      zid -> ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, zid);
+
   private final DateTimeFormatter formatter;
 
   public StringToTimestampParser(final String pattern) {
-    formatter = new DateTimeFormatterBuilder()
-        .appendPattern(pattern)
-        .parseDefaulting(ChronoField.YEAR_OF_ERA, 1970)
-        .parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
-        .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
-        .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-        .toFormatter();
+    formatter = DateTimeFormatter.ofPattern(pattern, Locale.ROOT);
   }
 
   public long parse(final String text) {
@@ -43,25 +42,21 @@ public class StringToTimestampParser {
   }
 
   public long parse(final String text, final ZoneId zoneId) {
-    TemporalAccessor parsed = formatter.parseBest(
-        text,
-        ZonedDateTime::from,
-        LocalDateTime::from);
+    final TemporalAccessor parsed = formatter.parse(text);
+    ZonedDateTime resolved = DEFAULT_ZONED_DATE_TIME.apply(zoneId);
 
-    if (parsed == null) {
-      throw new KsqlException("text value: "
-          + text
-          +  "cannot be parsed into a timestamp");
+    for (final TemporalField override : ChronoField.values()) {
+      if (parsed.isSupported(override)) {
+        if (!resolved.isSupported(override)) {
+          throw new KsqlException(
+              "Unsupported temporal field in timestamp: " + text + " (" + override + ")");
+        }
+        resolved = resolved.with(override, parsed.getLong(override));
+      }
     }
 
-    if (parsed instanceof LocalDateTime) {
-      parsed = ((LocalDateTime) parsed).atZone(zoneId);
-    }
-
-    final LocalDateTime dateTime = ((ZonedDateTime) parsed)
-        .withZoneSameInstant(ZoneId.systemDefault())
-        .toLocalDateTime();
-    return Timestamp.valueOf(dateTime).getTime();
+    return Timestamp.valueOf(
+        resolved.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()).getTime();
   }
 
 }

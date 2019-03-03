@@ -141,4 +141,17 @@ public class LogicalSchemasTest {
     // When:
     LogicalSchemas.toSqlTypeConverter().toSqlType(mapSchema);
   }
+
+  @Test
+  public void shouldThrowOnUnsupportedConnectSchemaType() {
+    // Given:
+    final Schema unsupported = SchemaBuilder.int8().build();
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Unexpected logical type: Schema{INT8}");
+
+    // When:
+    LogicalSchemas.toSqlTypeConverter().toSqlType(unsupported);
+  }
 }

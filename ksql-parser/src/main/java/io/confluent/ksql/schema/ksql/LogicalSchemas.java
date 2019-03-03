@@ -98,7 +98,7 @@ public final class LogicalSchemas {
     private static Type sqlType(final Schema schema) {
       final Function<Schema, Type> handler = LOGICAL_TO_SQL.get(schema.type());
       if (handler == null) {
-        throw new AssertionError("Unexpected logical type: " + schema);
+        throw new KsqlException("Unexpected logical type: " + schema);
       }
 
       return handler.apply(schema);
@@ -147,7 +147,7 @@ public final class LogicalSchemas {
     private static Schema logicalType(final Type sqlType) {
       final Function<Type, Schema> handler = SQL_TO_LOGICAL.get(sqlType.getKsqlType());
       if (handler == null) {
-        throw new AssertionError("Unexpected sql type: " + sqlType);
+        throw new KsqlException("Unexpected sql type: " + sqlType);
       }
 
       return handler.apply(sqlType);

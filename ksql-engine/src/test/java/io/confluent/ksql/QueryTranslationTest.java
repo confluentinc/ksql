@@ -49,10 +49,10 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StringUtil;
-import io.confluent.ksql.util.TypeUtil;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -409,8 +409,9 @@ public class QueryTranslationTest {
       if (format.equals(DataSource.AVRO_SERDE_NAME)) {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-        statement.getElements().forEach(
-            e -> schemaBuilder.field(e.getName(), TypeUtil.getTypeSchema(e.getType()))
+        statement.getElements().forEach(e -> schemaBuilder.field(
+            e.getName(),
+            LogicalSchemas.fromSqlTypeConverter().fromSqlType(e.getType()))
         );
         avroSchema = Optional.of(new AvroData(1)
             .fromConnectSchema(addNames(schemaBuilder.build())));

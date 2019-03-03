@@ -36,8 +36,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.parser.tree.Type.KsqlType;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
@@ -53,7 +52,7 @@ public class CommandFactoriesTest {
   private static final java.util.Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(KsqlType.STRING)));
+      new TableElement("bob", new PrimitiveType(SqlType.STRING)));
 
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final ServiceContext serviceContext = EasyMock.createNiceMock(ServiceContext.class);
@@ -207,8 +206,8 @@ public class CommandFactoriesTest {
   private static CreateTable createTable(final HashMap<String, Expression> tableProperties) {
     return new CreateTable(QualifiedName.of("foo"),
         ImmutableList.of(
-            new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)),
-            new TableElement("COL2", new PrimitiveType(Type.KsqlType.STRING))),
+            new TableElement("COL1", new PrimitiveType(SqlType.BIGINT)),
+            new TableElement("COL2", new PrimitiveType(SqlType.STRING))),
         true, tableProperties);
   }
 

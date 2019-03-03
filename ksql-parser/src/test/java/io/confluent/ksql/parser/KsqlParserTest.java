@@ -65,7 +65,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.KsqlException;
@@ -547,10 +547,10 @@ public class KsqlParserTest {
     assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
     assertThat(createStream.getElements().size(), equalTo(7));
     assertThat(createStream.getElements().get(0).getName().toString().toLowerCase(), equalTo("ordertime"));
-    assertThat(createStream.getElements().get(6).getType().getKsqlType(), equalTo(Type.KsqlType.STRUCT));
+    assertThat(createStream.getElements().get(6).getType().getSqlType(), equalTo(SqlType.STRUCT));
     final Struct struct = (Struct) createStream.getElements().get(6).getType();
     assertThat(struct.getItems().size(), equalTo(5));
-    assertThat(struct.getItems().get(0).getRight().getKsqlType(), equalTo(Type.KsqlType.STRING));
+    assertThat(struct.getItems().get(0).getRight().getSqlType(), equalTo(SqlType.STRING));
     assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toLowerCase(),
                equalTo("'orders_topic'"));
   }

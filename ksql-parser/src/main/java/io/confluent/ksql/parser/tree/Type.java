@@ -22,27 +22,27 @@ import java.util.Optional;
 public abstract class Type extends Expression {
 
 
-  public enum KsqlType {
+  public enum SqlType {
     BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT
   }
 
-  final KsqlType ksqlType;
+  final SqlType sqlType;
 
-  public Type(final KsqlType ksqlType) {
-    this(Optional.empty(), ksqlType);
+  public Type(final SqlType sqlType) {
+    this(Optional.empty(), sqlType);
   }
 
-  public Type(final NodeLocation location, final KsqlType ksqlType) {
-    this(Optional.of(location), ksqlType);
+  public Type(final NodeLocation location, final SqlType sqlType) {
+    this(Optional.of(location), sqlType);
   }
 
-  protected Type(final Optional<NodeLocation> location, final KsqlType ksqlType) {
+  protected Type(final Optional<NodeLocation> location, final SqlType sqlType) {
     super(location);
-    requireNonNull(ksqlType, "ksqlType is null");
-    this.ksqlType = ksqlType;
+    requireNonNull(sqlType, "sqlType is null");
+    this.sqlType = sqlType;
   }
 
-  public KsqlType getKsqlType() {
-    return ksqlType;
+  public SqlType getSqlType() {
+    return sqlType;
   }
 }

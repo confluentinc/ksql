@@ -21,6 +21,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +35,12 @@ public final class TypeUtil {
 
   private static final Map<Schema.Type, Function<Schema, Type>> KSQL_TYPES = ImmutableMap
       .<Schema.Type, Function<Schema, Type>>builder()
-      .put(Schema.Type.INT32, s -> new PrimitiveType(Type.KsqlType.INTEGER))
-      .put(Schema.Type.INT64, s -> new PrimitiveType(Type.KsqlType.BIGINT))
-      .put(Schema.Type.FLOAT32, s -> new PrimitiveType(Type.KsqlType.DOUBLE))
-      .put(Schema.Type.FLOAT64, s -> new PrimitiveType(Type.KsqlType.DOUBLE))
-      .put(Schema.Type.BOOLEAN, s -> new PrimitiveType(Type.KsqlType.BOOLEAN))
-      .put(Schema.Type.STRING, s -> new PrimitiveType(Type.KsqlType.STRING))
+      .put(Schema.Type.INT32, s -> new PrimitiveType(SqlType.INTEGER))
+      .put(Schema.Type.INT64, s -> new PrimitiveType(SqlType.BIGINT))
+      .put(Schema.Type.FLOAT32, s -> new PrimitiveType(SqlType.DOUBLE))
+      .put(Schema.Type.FLOAT64, s -> new PrimitiveType(SqlType.DOUBLE))
+      .put(Schema.Type.BOOLEAN, s -> new PrimitiveType(SqlType.BOOLEAN))
+      .put(Schema.Type.STRING, s -> new PrimitiveType(SqlType.STRING))
       .put(Schema.Type.ARRAY, TypeUtil::toKsqlArray)
       .put(Schema.Type.MAP, TypeUtil::toKsqlMap)
       .put(Schema.Type.STRUCT, TypeUtil::toKsqlStruct)
@@ -84,7 +85,7 @@ public final class TypeUtil {
   }
 
   public static Schema getTypeSchema(final Type ksqlType) {
-    switch (ksqlType.getKsqlType()) {
+    switch (ksqlType.getSqlType()) {
       case BOOLEAN:
         return Schema.OPTIONAL_BOOLEAN_SCHEMA;
       case INTEGER:

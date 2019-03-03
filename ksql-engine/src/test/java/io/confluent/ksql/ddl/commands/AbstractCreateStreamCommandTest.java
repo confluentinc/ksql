@@ -31,7 +31,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type.KsqlType;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
@@ -51,7 +51,7 @@ public class AbstractCreateStreamCommandTest {
 
   private static final String TOPIC_NAME = "some topic";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(KsqlType.STRING)));
+      new TableElement("bob", new PrimitiveType(SqlType.STRING)));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

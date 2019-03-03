@@ -39,16 +39,6 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
   private final StructuredLogger recordLogger;
   private final ProcessingLogContext processingLogContext;
 
-  public KsqlDelimitedDeserializer(final Schema schema) {
-    this.schema = schema;
-    this.csvFormat = CSVFormat.DEFAULT;
-  }
-
-  KsqlDelimitedDeserializer(final Schema schema, final CSVFormat csvFormat) {
-    this.schema = schema;
-    this.csvFormat = csvFormat;
-  }
-
   KsqlDelimitedDeserializer(
       final Schema schema,
       final CSVFormat csvFormat,

@@ -148,7 +148,7 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
             intoTopicSerde = new KsqlJsonTopicSerDe();
             break;
           case DataSource.DELIMITED_SERDE_NAME:
-            intoTopicSerde = new KsqlDelimitedTopicSerDe();
+            intoTopicSerde = new KsqlDelimitedTopicSerDe(DdlConfig.VALUE_DELIMITER_DEFAULT);
             break;
           default:
             throw new KsqlException(

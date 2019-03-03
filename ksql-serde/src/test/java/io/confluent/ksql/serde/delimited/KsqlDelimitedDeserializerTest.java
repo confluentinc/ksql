@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import static org.easymock.EasyMock.mock;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -113,7 +114,12 @@ public class KsqlDelimitedDeserializerTest {
   public void shouldDeserializeDelimitedCorrectlyWithOtherDelimitersTDF() {
     final String rowString = "1511897796092\t1\titem_1\t10.0\r\n";
 
-    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(orderSchema, CSVFormat.TDF);
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(
+            orderSchema,
+            CSVFormat.TDF,
+            mock(StructuredLogger.class),
+            mock(ProcessingLogContext.class)
+    );
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     assertThat(genericRow.getColumns().size(), equalTo(4));
@@ -129,7 +135,11 @@ public class KsqlDelimitedDeserializerTest {
     final String rowString = "1511897796092|1|item_1|10.0\r\n";
 
     final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(
-            orderSchema, CSVFormat.DEFAULT.withDelimiter('|'));
+            orderSchema,
+            CSVFormat.DEFAULT.withDelimiter('|'),
+            mock(StructuredLogger.class),
+            mock(ProcessingLogContext.class)
+    );
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
     assertThat(genericRow.getColumns().size(), equalTo(4));

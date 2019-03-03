@@ -61,4 +61,13 @@ public class DataGenTest {
         "format=avro",
         "topic=foo");
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void valueDelimiterCanOnlyBeSingleCharacter() throws Exception {
+    DataGen.run(
+            "schema=./src/main/resources/purchase.avro",
+            "format=delimited",
+            "valueDelimiter=@@",
+            "topic=foo");
+  }
 }

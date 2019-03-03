@@ -57,7 +57,7 @@ public final class DataGen {
 
     final Generator generator = new Generator(arguments.schemaFile, new Random());
     final DataGenProducer dataProducer = new ProducerFactory()
-        .getProducer(arguments.format, arguments.schemaRegistryUrl);
+        .getProducer(arguments.format, arguments.valueDelimiter, arguments.schemaRegistryUrl);
     final Properties props = getProperties(arguments);
 
     dataProducer.populateTopic(
@@ -92,6 +92,8 @@ public final class DataGen {
         + "schema=<avro schema file> "
         + "[schemaRegistryUrl=<url for Confluent Schema Registry> (defaults to http://localhost:8081)] "
         + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
+        + "[valueDelimiter=<delimiter for delimited format> (used only when format is 'delimited', only "
+        + "single characters, defaults to ',' )] "
         + "topic=<kafka topic name> "
         + "key=<name of key column> "
         + "[iterations=<number of rows> (defaults to 1,000,000)] "
@@ -108,6 +110,7 @@ public final class DataGen {
     private final String bootstrapServer;
     private final InputStream schemaFile;
     private final Format format;
+    private final String valueDelimiter;
     private final String topicName;
     private final String keyName;
     private final int iterations;
@@ -122,6 +125,7 @@ public final class DataGen {
         final Format format,
         final String topicName,
         final String keyName,
+        final String valueDelimiter,
         final int iterations,
         final long maxInterval,
         final String schemaRegistryUrl,
@@ -131,6 +135,7 @@ public final class DataGen {
       this.bootstrapServer = bootstrapServer;
       this.schemaFile = schemaFile;
       this.format = format;
+      this.valueDelimiter = valueDelimiter;
       this.topicName = topicName;
       this.keyName = keyName;
       this.iterations = iterations;
@@ -154,6 +159,7 @@ public final class DataGen {
               .put("bootstrap-server", (builder, argVal) -> builder.bootstrapServer = argVal)
               .put("schema", (builder, argVal) -> builder.schemaFile = toFileInputStream(argVal))
               .put("format", (builder, argVal) -> builder.format = parseFormat(argVal))
+              .put("valueDelimiter", (builder, argVal) -> builder.valueDelimiter = parseValueDelimiter(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
               .put("iterations", (builder, argVal) -> builder.iterations = parseIterations(argVal))
@@ -170,6 +176,7 @@ public final class DataGen {
       private String bootstrapServer;
       private InputStream schemaFile;
       private Format format;
+      private String valueDelimiter;
       private String topicName;
       private String keyName;
       private int iterations;
@@ -183,6 +190,7 @@ public final class DataGen {
         bootstrapServer = "localhost:9092";
         schemaFile = null;
         format = null;
+        valueDelimiter = ",";
         topicName = null;
         keyName = null;
         iterations = 1000000;
@@ -231,7 +239,7 @@ public final class DataGen {
 
       Arguments build() {
         if (help) {
-          return new Arguments(true, null, null, null, null, null, 0, -1, null, null);
+          return new Arguments(true, null, null, null, null, null, null, 0, -1, null, null);
         }
 
         if (quickstart != null) {
@@ -254,6 +262,7 @@ public final class DataGen {
             bootstrapServer,
             schemaFile,
             format,
+            valueDelimiter,
             topicName,
             keyName,
             iterations,
@@ -350,6 +359,16 @@ public final class DataGen {
               formatString
           ));
         }
+      }
+
+      private static String parseValueDelimiter(final String valueDelimiterString) {
+        if (valueDelimiterString.length() > 1) {
+          throw new ArgumentParseException(String.format(
+                  "Invalid value '%s' for valueDelimiter; was expecting single character value",
+                  valueDelimiterString
+          ));
+        }
+        return valueDelimiterString;
       }
 
       private static int parseIterations(final String iterationsString) {

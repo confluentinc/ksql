@@ -41,11 +41,6 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
 
   private final CSVFormat csvFormat;
 
-  public KsqlDelimitedTopicSerDe() {
-    super(DataSource.DataSourceSerDe.DELIMITED);
-    this.csvFormat = CSVFormat.DEFAULT;
-  }
-
   public KsqlDelimitedTopicSerDe(final String delimiter) {
     super(DataSource.DataSourceSerDe.DELIMITED);
 
@@ -66,7 +61,7 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
       final ProcessingLogContext processingLogContext) {
     final Map<String, Object> serdeProps = new HashMap<>();
 
-    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema);
+    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema, csvFormat);
     genericRowSerializer.configure(serdeProps, false);
 
     final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(

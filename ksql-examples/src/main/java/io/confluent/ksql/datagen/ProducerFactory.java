@@ -20,6 +20,7 @@ import java.util.Collections;
 
 class ProducerFactory {
   DataGenProducer getProducer(final Format format,
+      final String valueDelimiter,
       final String schemaRegistryUrl) {
     switch (format) {
       case AVRO:
@@ -36,7 +37,7 @@ class ProducerFactory {
         return new JsonProducer();
 
       case DELIMITED:
-        return new DelimitedProducer();
+        return new DelimitedProducer(valueDelimiter);
 
       default:
         throw new IllegalArgumentException("Invalid format in '" + format

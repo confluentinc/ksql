@@ -21,6 +21,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.RegisterTopic;
+import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
@@ -78,17 +79,16 @@ public class RegisterTopicCommand implements DdlCommand {
       case DataSource.JSON_SERDE_NAME:
         return new KsqlJsonTopicSerDe();
       case DataSource.DELIMITED_SERDE_NAME:
-        if (properties.containsKey(DdlConfig.VALUE_DELIMITER_PROPERTY)) {
-          return new KsqlDelimitedTopicSerDe(StringUtil.cleanQuotes(
-                  properties.get(DdlConfig.VALUE_DELIMITER_PROPERTY).toString()));
-        }
-        return new KsqlDelimitedTopicSerDe();
+        final String delimiter = StringUtil.cleanQuotes(properties.getOrDefault(
+                DdlConfig.VALUE_DELIMITER_PROPERTY,
+                new StringLiteral(DdlConfig.VALUE_DELIMITER_DEFAULT)).toString());
+        return new KsqlDelimitedTopicSerDe(delimiter);
       default:
         throw new KsqlException("The specified topic serde is not supported.");
     }
   }
 
-  private String cleanQuotesAndUpperCase(final String string) {
+  private static String cleanQuotesAndUpperCase(final String string) {
     return StringUtil.cleanQuotes(string.toUpperCase());
   }
 

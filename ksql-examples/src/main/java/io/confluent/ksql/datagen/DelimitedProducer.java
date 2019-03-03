@@ -17,9 +17,16 @@ package io.confluent.ksql.datagen;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedSerializer;
 import org.apache.avro.Schema;
+import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.serialization.Serializer;
 
 public class DelimitedProducer extends DataGenProducer {
+
+  private final CSVFormat csvFormat;
+  public DelimitedProducer(final String valueDelimiter) {
+    super();
+    this.csvFormat = CSVFormat.newFormat(valueDelimiter.charAt(0));
+  }
 
   @Override
   protected Serializer<GenericRow> getSerializer(
@@ -27,6 +34,6 @@ public class DelimitedProducer extends DataGenProducer {
       final org.apache.kafka.connect.data.Schema kafkaSchema,
       final String topicName
   ) {
-    return new KsqlDelimitedSerializer(kafkaSchema);
+    return new KsqlDelimitedSerializer(kafkaSchema, csvFormat);
   }
 }

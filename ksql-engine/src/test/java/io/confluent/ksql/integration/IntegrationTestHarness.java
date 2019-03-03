@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
@@ -480,7 +481,7 @@ public class IntegrationTestHarness extends ExternalResource {
       case AVRO:
         return new KsqlAvroTopicSerDe(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
       case DELIMITED:
-        return new KsqlDelimitedTopicSerDe();
+        return new KsqlDelimitedTopicSerDe(DdlConfig.VALUE_DELIMITER_DEFAULT);
       default:
         throw new RuntimeException("Format not supported: " + dataSourceSerDe);
     }

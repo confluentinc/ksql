@@ -21,6 +21,8 @@ import io.confluent.ksql.GenericRow;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+
+import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -46,7 +48,7 @@ public class KsqlDelimitedSerializerTest {
   public void shouldSerializeRowCorrectly() {
     final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
     final GenericRow genericRow = new GenericRow(columns);
-    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
+    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema, CSVFormat.DEFAULT);
     final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
@@ -54,10 +56,21 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
+  public void shouldSerializeRowWithCustomDelimiter() {
+    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
+    final GenericRow genericRow = new GenericRow(columns);
+    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema, CSVFormat.newFormat('^'));
+    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
+
+    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
+    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092^1^item_1^10.0"));
+  }
+
+  @Test
   public void shouldSerializeRowWithNull() {
     final List columns = Arrays.asList(1511897796092L, 1L, "item_1", null);
     final GenericRow genericRow = new GenericRow(columns);
-    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
+    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema, CSVFormat.DEFAULT);
     final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);

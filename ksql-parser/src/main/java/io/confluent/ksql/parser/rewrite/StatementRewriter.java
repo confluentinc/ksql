@@ -811,7 +811,8 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitCast(final Cast node, final Object context) {
-    return new Cast(node);
+    final Expression expression = (Expression) process(node.getExpression(), context);
+    return new Cast(node.getLocation(), expression, node.getType());
   }
 
   protected Node visitFieldReference(final FieldReference node, final Object context) {

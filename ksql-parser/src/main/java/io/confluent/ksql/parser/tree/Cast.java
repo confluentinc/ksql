@@ -25,10 +25,6 @@ public final class Cast extends Expression {
   private final Expression expression;
   private final Type type;
 
-  public Cast(final Cast other) {
-    this(other.getLocation(), other.getExpression(), other.getType());
-  }
-
   public Cast(
       final NodeLocation location,
       final Expression expression,

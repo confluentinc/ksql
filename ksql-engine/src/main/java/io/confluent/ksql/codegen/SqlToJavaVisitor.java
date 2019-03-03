@@ -410,7 +410,7 @@ public class SqlToJavaVisitor {
         throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
       }
 
-      final Schema returnType = LogicalSchemas.fromPrimitiveSqlType((PrimitiveType)sqlType);
+      final Schema returnType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
       final Schema rightSchema = expr.getRight();
       if (returnType.equals(rightSchema) || rightSchema == null) {
         return new Pair<>(expr.getLeft(), returnType);

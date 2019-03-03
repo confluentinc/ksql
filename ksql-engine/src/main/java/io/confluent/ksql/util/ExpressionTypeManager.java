@@ -112,7 +112,7 @@ public class ExpressionTypeManager
       throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
     }
 
-    final Schema castType = LogicalSchemas.fromPrimitiveSqlType((PrimitiveType)sqlType);
+    final Schema castType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
     expressionTypeContext.setSchema(castType);
     return null;
   }

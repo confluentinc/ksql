@@ -18,8 +18,13 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.LogicalSchemas.LogicalToSqlTypeConverter;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Schema;
 
 public final class TableElement
     extends Node {
@@ -78,5 +83,17 @@ public final class TableElement
         .add("name", name)
         .add("type", type)
         .toString();
+  }
+
+  public static List<TableElement> fromSchema(final Schema schema) {
+    final LogicalToSqlTypeConverter toSqlTypeConverter = LogicalSchemas
+        .toSqlTypeConverter();
+
+    return schema.fields().stream()
+        .map(f -> new TableElement(
+            f.name().toUpperCase(),
+            toSqlTypeConverter.toSqlType(f.schema()))
+        )
+        .collect(Collectors.toList());
   }
 }

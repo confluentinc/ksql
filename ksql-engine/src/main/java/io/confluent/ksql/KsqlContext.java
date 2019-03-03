@@ -17,6 +17,7 @@ package io.confluent.ksql;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;

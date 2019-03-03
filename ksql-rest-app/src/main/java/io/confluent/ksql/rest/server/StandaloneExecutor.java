@@ -16,8 +16,8 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;

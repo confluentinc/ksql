@@ -159,6 +159,15 @@ dependency in your POM file:
 
 .. codewithvars:: xml
 
+    <!-- Specify the repository for Confluent dependencies -->
+        <repositories>
+            <repository>
+                <id>confluent</id>
+                <url>http://packages.confluent.io/maven/</url>
+            </repository>
+        </repositories>
+
+    <!-- Specify the ksql-udf dependency -->
     <dependencies>
         <dependency>
             <groupId>io.confluent.ksql</groupId>

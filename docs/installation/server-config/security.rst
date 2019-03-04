@@ -505,8 +505,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, and ``OPERATIO
 the principal is the user the KSQL server has authenticated as, with the Apache Kafka cluster, or an appropriate group
 that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-   non-interactive queries, see :ref:`restrict-ksql-interactive`.
+.. tip:: For more information about ACLs see :ref:`kafka_authorization`.
 
 .. _config-security-ksql-acl-interactive_pre_ak_2_0:
 
@@ -601,11 +600,13 @@ Consumer groups
     Consumer group names are formatted like ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``,
     where the default of ``ksql.service.id`` is ``default_``.
 
+.. tip:: For more information about interactive and non-interactive queries, see :ref:`restrict-ksql-interactive`.
+
 ----------------------------------------------
 Configuring |c3-short| Monitoring Interceptors
 ----------------------------------------------
 
-This configuration enables SASL and SSL for the :ref:`monitoring intercepts <controlcenter_clients>` that integrate KSQL
+This configuration enables SASL and SSL for the :ref:`monitoring interceptors <controlcenter_clients>` that integrate KSQL
 with |c3-short|.
 
 ::

@@ -47,7 +47,7 @@ Upgrading from KSQL 5.0.0 and below to KSQL 5.1
 
     * The KSQL engine metrics are now prefixed with the ``ksql.service.id``. If you have been using any metric monitoring
       tool you need to update your metric names.
-      For instance, assuming ``ksql.service.id`` is set to ``default``, ``messages-produced-per-sec`` will be changed to ``_confluent-ksql-default_messages-consumed-per-sec``.
+      For instance, assuming ``ksql.service.id`` is set to ``default_``, ``messages-produced-per-sec`` will be changed to ``_confluent-ksql-default_messages-consumed-per-sec``.
 
 * Configuration:
 

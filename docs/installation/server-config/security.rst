@@ -505,7 +505,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, and ``OPERATIO
 the principal is the user the KSQL server has authenticated as, with the Apache Kafka cluster, or an appropriate group
 that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs see :ref:`kafka_authorization`.
+.. tip:: For more information about ACLs, see :ref:`kafka_authorization`.
 
 .. _config-security-ksql-acl-interactive_pre_ak_2_0:
 

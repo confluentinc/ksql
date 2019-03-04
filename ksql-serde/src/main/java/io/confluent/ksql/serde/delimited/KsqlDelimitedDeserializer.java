@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.delimited;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
@@ -35,7 +36,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
   private final CSVFormat csvFormat;
-  private final StructuredLogger recordLogger;
+  private final ProcessingLogger recordLogger;
 
   KsqlDelimitedDeserializer(
       final Schema schema,

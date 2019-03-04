@@ -120,7 +120,7 @@ public class KsqlDelimitedDeserializerTest {
     final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(
             orderSchema,
             CSVFormat.TDF,
-            mock(StructuredLogger.class)
+            mock(ProcessingLogger.class)
     );
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
@@ -139,7 +139,7 @@ public class KsqlDelimitedDeserializerTest {
     final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(
             orderSchema,
             CSVFormat.DEFAULT.withDelimiter('|'),
-            mock(StructuredLogger.class)
+            mock(ProcessingLogger.class)
     );
 
     final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());

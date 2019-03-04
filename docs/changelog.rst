@@ -20,6 +20,11 @@ KSQL 5.2 includes new features, including:
     arithmetic results, functions, string concatenations and literals.
   * literals in the projection, (a.k.a the ``SELECT`` clause).
   * Multiple ``HAVING`` clauses, including the use of aggregate functions and literals.
+* Automatic compatibility management for queries in headless mode across versions. Starting with 5.2, KSQL will automatically take care
+  of ensuring query compatiblity when upgrading. This means you won't need to worry about setting properties correctly during upgrade, as
+  has been required for previous upgrades. Refer to the :ref:`architecture documentation <ksql-architecture-config-topic>` for details.
+  Note that it is still up to the user to set properties correctly before upgrading to 5.2. The :ref:`upgrade doc <upgrading-ksql>` has
+  details about the properties required to safely upgrade to 5.2.
 
 KSQL 5.2 includes bug fixes, including:
 

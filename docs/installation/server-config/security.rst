@@ -4,9 +4,9 @@ Configuring Security for KSQL
 =============================
 
 KSQL supports authentication on its HTTP endpoints and also supports many of the security features
-of the other services it communicates with both Apache Kafka and the |sr|.
+of the other services it communicates with, like Apache Kafka and |sr|.
 
-- KSQL supports Basic HTTP authentication on its RESTful and Websocket HTTP endpoints, which means
+- KSQL supports Basic HTTP authentication on its RESTful and WebSocket endpoints, which means
   that the endpoints can be protected by a username and password.
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
@@ -27,8 +27,9 @@ Configuring KSQL for Basic HTTP Authentication
 KSQL can be configured to require users to authenticate using a username and password via the Basic
 HTTP authentication mechanism.
 
-.. note:: If using Basic authentication it is highly recommended that you configure the KSQL server to
-          use SSL to secure communication, as the Basic protocol passes credentials in plain text.
+.. note:: If you're using Basic authentication, we recommended that you configure KSQL Server to
+          use SSL for secure communication, because the Basic protocol passes credentials in plain text.
+          For more information, see :ref:`config-security-ssl`.
 
 Use the following settings to configure the KSQL server to require authentication:
 
@@ -42,7 +43,7 @@ Use the following settings to configure the KSQL server to require authenticatio
 The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized
 to use the KSQL server an authenticated user must belong to at least one of these roles.
 
-The ``authentication.realm`` config must match a section with in ``jaas_config.file``, which
+The ``authentication.realm`` config must match a section within ``jaas_config.file``, which
 defines how the server authenticates users, for example:
 
 ::
@@ -59,7 +60,7 @@ authenticates users by checking for their credentials in a password file.
 You can also use other implementations of the standard Java ``LoginModule`` interface, such as
 ``JDBCLoginModule`` for reading credentials from a database or the ``LdapLoginModule``.
 
-The file parameter is the location of the properties file, The format is:
+The file parameter is the location of the password file, The format is:
 
 ::
 

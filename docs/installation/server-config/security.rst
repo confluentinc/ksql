@@ -250,7 +250,7 @@ For example, given the following setup:
 - A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
 - Authenticating with the Kafka cluster as a ``KSQL1`` user.
 - With ``ksql.service.id`` set to ``production_``.
-- Running queries the read from input topics ``input-topic1`` and ``input-topic2``.
+- Running queries that read from input topics ``input-topic1`` and ``input-topic2``.
 - Writing to output topics ``output-topic1`` and ``output-topic2``.
 - Where ``output-topic1`` is also used as an input for another query.
 
@@ -284,8 +284,8 @@ access to the input and output topics, as required.
 .. tip:: To simplify ACL management, you should configure a default custom topic name prefix such as ``ksql-interactive-`` for your
          KSQL cluster via the ``ksql.output.topic.name.prefix`` :ref:`server configuration setting <set-ksql-server-properties>`.
          Unless a user defines an explicit topic name in a KSQL statement, KSQL will then always prefix the name of any automatically
-         created output topics.
-         Then add an ACL to allow ``ALL`` operations on ``TOPIC``s ``PREFIXED`` with the configured custom name prefix (in the example above: ``ksql-interactive-``).
+         created output topics. Then add an ACL to allow ``ALL`` operations on ``TOPICs`` that are ``PREFIXED`` with the configured
+         custom name prefix (in the example above: ``ksql-interactive-``).
 
 For example, given the following setup:
 

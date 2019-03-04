@@ -62,7 +62,9 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
       final ProcessingLogContext processingLogContext) {
     final Map<String, Object> serdeProps = new HashMap<>();
 
-    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema, csvFormat);
+    final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(
+        schema, csvFormat
+    );
     genericRowSerializer.configure(serdeProps, false);
 
     final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(

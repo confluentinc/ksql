@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,8 +15,9 @@
 
 package io.confluent.ksql.services;
 
-import static io.confluent.ksql.services.SandboxProxyBuilder.anyParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
 
+import io.confluent.ksql.util.LimitedProxyBuilder;
 import org.apache.kafka.clients.producer.Producer;
 
 /**
@@ -29,7 +31,7 @@ import org.apache.kafka.clients.producer.Producer;
 final class SandboxedProducer<K, V> {
 
   static <K, V> Producer<K, V> createProxy() {
-    return SandboxProxyBuilder.forClass(Producer.class)
+    return LimitedProxyBuilder.forClass(Producer.class)
         .swallow("close", anyParams())
         .build();
   }

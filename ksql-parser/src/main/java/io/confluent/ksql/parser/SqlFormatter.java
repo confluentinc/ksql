@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -66,6 +67,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 public final class SqlFormatter {
 
@@ -76,15 +79,13 @@ public final class SqlFormatter {
   }
 
   public static String formatSql(final Node root) {
-    final StringBuilder builder = new StringBuilder();
-    new Formatter(builder, true).process(root, 0);
-    return builder.toString();
+    return formatSql(root, true);
   }
 
   public static String formatSql(final Node root, final boolean unmangleNames) {
     final StringBuilder builder = new StringBuilder();
     new Formatter(builder, unmangleNames).process(root, 0);
-    return builder.toString();
+    return StringUtils.stripEnd(builder.toString(), "\n");
   }
 
   private static final class Formatter
@@ -131,9 +132,6 @@ public final class SqlFormatter {
       append(indent, "FROM ");
       processRelation(node.getFrom(), indent);
       builder.append('\n');
-      append(indent, "  ");
-
-      builder.append('\n');
 
       if (node.getWhere().isPresent()) {
         append(indent, "WHERE " + ExpressionFormatter.formatExpression(node.getWhere().get()))
@@ -168,9 +166,18 @@ public final class SqlFormatter {
         builder.append(" DISTINCT");
       }
 
-      if (node.getSelectItems().size() > 1) {
+      final List<SelectItem> selectItems = node.getSelectItems()
+          .stream()
+          .map(item ->
+              (item instanceof SingleColumn)
+                  ? ((SingleColumn) item).getAllColumns().map(SelectItem.class::cast).orElse(item)
+                  : item)
+          .distinct()
+          .collect(Collectors.toList());
+
+      if (selectItems.size() > 1) {
         boolean first = true;
-        for (final SelectItem item : node.getSelectItems()) {
+        for (final SelectItem item : selectItems) {
           builder.append("\n")
                   .append(indentString(indent))
                   .append(first ? "  " : ", ");
@@ -180,7 +187,7 @@ public final class SqlFormatter {
         }
       } else {
         builder.append(' ');
-        process(getOnlyElement(node.getSelectItems()), indent);
+        process(getOnlyElement(selectItems), indent);
       }
 
       builder.append('\n');
@@ -287,7 +294,7 @@ public final class SqlFormatter {
         builder.append("IF NOT EXISTS ");
       }
       builder.append(node.getName())
-          .append(" \n");
+          .append(" ");
       if (!node.getElements().isEmpty()) {
         builder.append("(");
         boolean addComma = false;

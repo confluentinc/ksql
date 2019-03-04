@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,8 +19,10 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -29,8 +32,9 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.processing.log.ProcessingLogConfig;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -54,6 +58,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +76,8 @@ public class StandaloneExecutor implements Executable {
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
   private final Map<String, Object> configProperties = new HashMap<>();
   private final boolean failOnNoQueries;
-  private final VersionCheckerAgent versionCheckerAgent;
+  private final VersionCheckerAgent versionChecker;
+  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
 
   StandaloneExecutor(
       final ServiceContext serviceContext,
@@ -81,7 +87,8 @@ public class StandaloneExecutor implements Executable {
       final String queriesFile,
       final UdfLoader udfLoader,
       final boolean failOnNoQueries,
-      final VersionCheckerAgent versionCheckerAgent
+      final VersionCheckerAgent versionChecker,
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogConfig = Objects.requireNonNull(processingLogConfig, "processingLogConfig");
@@ -90,8 +97,9 @@ public class StandaloneExecutor implements Executable {
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader");
     this.failOnNoQueries = failOnNoQueries;
-    this.versionCheckerAgent =
-        Objects.requireNonNull(versionCheckerAgent, "VersionCheckerAgent");
+    this.versionChecker = Objects.requireNonNull(versionChecker, "versionChecker");
+    this.schemaInjectorFactory = Objects
+        .requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
   }
 
   public void start() {
@@ -109,7 +117,7 @@ public class StandaloneExecutor implements Executable {
       showWelcomeMessage();
       final Properties properties = new Properties();
       properties.putAll(configProperties);
-      versionCheckerAgent.start(KsqlModuleType.SERVER, properties);
+      versionChecker.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
       stop();
@@ -157,17 +165,23 @@ public class StandaloneExecutor implements Executable {
 
     validateStatements(preparedStatements);
 
+    final SchemaInjector schemaInjector = schemaInjectorFactory.apply(serviceContext);
+
     executeStatements(
         preparedStatements,
-        new StatementExecutor(ksqlEngine, configProperties, ksqlConfig)
+        new StatementExecutor(ksqlEngine, schemaInjector, configProperties, ksqlConfig)
     );
 
     ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
   }
 
   private void validateStatements(final List<ParsedStatement> statements) {
+    final SchemaInjector schemaInjector = schemaInjectorFactory
+        .apply(SandboxedServiceContext.create(serviceContext));
+
     final StatementExecutor sandboxExecutor = new StatementExecutor(
         ksqlEngine.createSandbox(),
+        schemaInjector,
         new HashMap<>(configProperties),
         ksqlConfig
     );
@@ -239,18 +253,21 @@ public class StandaloneExecutor implements Executable {
                 "INSERT INTO"))
             .build();
 
-    private static String SUPPORTED_STATEMENTS = generateSupportedMessage();
+    private static final String SUPPORTED_STATEMENTS = generateSupportedMessage();
 
     private final KsqlExecutionContext executionContext;
+    private final SchemaInjector schemaInjector;
     private final Map<String, Object> configProperties;
     private final KsqlConfig ksqlConfig;
 
     private StatementExecutor(
         final KsqlExecutionContext executionContext,
+        final SchemaInjector schemaInjector,
         final Map<String, Object> configProperties,
         final KsqlConfig ksqlConfig
     ) {
       this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
+      this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
       this.configProperties = Objects.requireNonNull(configProperties, "configProperties");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
@@ -259,19 +276,41 @@ public class StandaloneExecutor implements Executable {
      * @return true if the statement contained a query, false otherwise
      */
     @SuppressWarnings("unchecked")
-    private <T extends Statement> boolean execute(final ParsedStatement statement) {
-      final PreparedStatement<?> prepared = executionContext.prepare(statement);
+    boolean execute(final ParsedStatement statement) {
+      final PreparedStatement<?> prepared = prepare(statement);
+
+      throwOnMissingSchema(prepared);
 
       final Handler<Statement> handler = HANDLERS.get(prepared.getStatement().getClass());
       if (handler == null) {
-        throw new KsqlException(String.format("Unsupported statement: %s%n"
-                + "Only the following statements are supporting in standalone mode:%n"
-                + SUPPORTED_STATEMENTS,
-            statement.getStatementText()));
+        throw new KsqlStatementException("Unsupported statement. "
+            + "Only the following statements are supporting in standalone mode:"
+            + System.lineSeparator()
+            + SUPPORTED_STATEMENTS,
+            statement.getStatementText());
       }
 
       handler.handle(this, (PreparedStatement) prepared);
       return prepared.getStatement() instanceof QueryContainer;
+    }
+
+    private PreparedStatement<?> prepare(final ParsedStatement statement) {
+      final PreparedStatement<?> prepared = executionContext.prepare(statement);
+      return schemaInjector.forStatement(prepared);
+    }
+
+    private static void throwOnMissingSchema(final PreparedStatement<?> statement) {
+      if (!(statement.getStatement() instanceof AbstractStreamCreateStatement)) {
+        return;
+      }
+
+      if (!((AbstractStreamCreateStatement) statement.getStatement()).getElements().isEmpty()) {
+        return;
+      }
+
+      throw new KsqlStatementException("statement does not define the schema "
+          + "and the supplied format does not support schema inference",
+          statement.getStatementText());
     }
 
     private void handleSetProperty(final PreparedStatement<SetProperty> statement) {

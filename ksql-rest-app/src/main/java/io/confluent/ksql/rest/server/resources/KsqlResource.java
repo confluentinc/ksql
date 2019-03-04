@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -19,6 +20,7 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -89,17 +91,19 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KafkaConsumerGroupClient;
 import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StatementWithSchema;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -112,6 +116,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -122,13 +127,18 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+@SuppressWarnings("deprecation")
 @Path("/ksql")
 @Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class KsqlResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final Logger log = LoggerFactory.getLogger(KsqlResource.class);
 
   private static final Map<Class<? extends Statement>, Handler<Statement>> CUSTOM_EXECUTORS =
       ImmutableMap.<Class<? extends Statement>, Handler<Statement>>builder()
@@ -157,7 +167,7 @@ public class KsqlResource {
           .put(UnsetProperty.class,
               castExecutor(KsqlResource::executeDdlImmediately, UnsetProperty.class))
           .put(RunScript.class,
-              castExecutor(KsqlResource::distributeStatement, RunScript.class))
+              castExecutor(KsqlResource::executeRunScript, RunScript.class))
           .put(TerminateQuery.class,
               castExecutor(KsqlResource::distributeStatement, TerminateQuery.class))
           .build();
@@ -175,9 +185,11 @@ public class KsqlResource {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
+  private final SchemaInjector schemaInjector;
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
+  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
@@ -185,7 +197,8 @@ public class KsqlResource {
       final ServiceContext serviceContext,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
-      final ActivenessRegistrar activenessRegistrar
+      final ActivenessRegistrar activenessRegistrar,
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -194,7 +207,11 @@ public class KsqlResource {
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.activenessRegistrar =
-        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar cannot be null.");
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
+    this.schemaInjectorFactory =
+        Objects.requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
+    this.schemaInjector =
+        Objects.requireNonNull(schemaInjectorFactory.apply(serviceContext));
   }
 
   @POST
@@ -255,9 +272,12 @@ public class KsqlResource {
       final Map<String, Object> propertyOverrides,
       final String sql
   ) {
+    final SchemaInjector schemaInjector = schemaInjectorFactory
+        .apply(SandboxedServiceContext.create(serviceContext));
+
     final RequestValidator requestValidator = new RequestValidator(
         ksqlEngine.createSandbox(),
-        serviceContext,
+        schemaInjector,
         ksqlConfig,
         propertyOverrides);
 
@@ -272,35 +292,32 @@ public class KsqlResource {
   ) {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
-    statements.forEach(stmt -> {
-      final KsqlEntity result = executeStatement(stmt, scopedPropertyOverrides, entities);
-      if (result != null) {
-        entities.add(result);
-      }
-    });
+    statements.forEach(stmt -> executeStatement(stmt, scopedPropertyOverrides, entities));
+    entities.removeIf(Objects::isNull);
     return Response.ok(entities).build();
   }
 
-  private <T extends Statement> KsqlEntity executeStatement(
+  private <T extends Statement> void executeStatement(
       final ParsedStatement statement,
       final Map<String, Object> propertyOverrides,
       final KsqlEntityList entities
   ) {
     try {
-      final PreparedStatement<T> prepared = prepareStatement(statement, ksqlEngine);
+      final PreparedStatement<T> prepared = prepareStatement(statement, ksqlEngine, schemaInjector);
       final Handler<T> handler = getCustomExecutor(prepared);
-      if (handler != null) {
-        waitForPreviousDistributedStatementToBeHandled(prepared, entities);
-
-        return handler.handle(this, prepared, propertyOverrides);
+      if (handler == null) {
+        entities.add(distributeStatement(prepared, propertyOverrides));
+        return;
       }
 
-      return distributeStatement(prepared, propertyOverrides);
+      waitForPreviousDistributedStatementToBeHandled(prepared, entities);
+
+      entities.add(handler.handle(this, prepared, propertyOverrides));
     } catch (final KsqlRestException e) {
       throw e;
-    } catch (final KsqlException e) {
+    } catch (final KsqlStatementException e) {
       throw new KsqlRestException(
-          Errors.badStatement(e, statement.getStatementText(), entities));
+          Errors.badStatement(e.getRawMessage(), e.getSqlStatement(), entities));
     } catch (final Exception e) {
       throw new KsqlRestException(
           Errors.serverErrorForStatement(e, statement.getStatementText(), entities));
@@ -613,21 +630,37 @@ public class KsqlResource {
     );
   }
 
+  private KsqlEntity executeRunScript(
+      final PreparedStatement<RunScript> statement,
+      final Map<String, Object> propertyOverrides
+  ) {
+    final String sql = (String) propertyOverrides
+        .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
+
+    if (sql == null) {
+      throw new KsqlStatementException(
+          "Request is missing script content", statement.getStatementText());
+    }
+
+    final KsqlEntityList entities = new KsqlEntityList();
+    ksqlEngine.parse(sql).forEach(stmt -> executeStatement(stmt, propertyOverrides, entities));
+
+    return entities.isEmpty() ? null : Iterables.getLast(entities);
+  }
+
   private CommandStatusEntity distributeStatement(
       final PreparedStatement<?> statement,
       final Map<String, Object> propertyOverrides
   ) {
     try {
-      final PreparedStatement<?> withSchema = addInferredSchema(statement, serviceContext);
-
       final QueuedCommandStatus queuedCommandStatus = commandQueue
-          .enqueueCommand(withSchema, ksqlConfig, propertyOverrides);
+          .enqueueCommand(statement, ksqlConfig, propertyOverrides);
 
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return new CommandStatusEntity(
-          withSchema.getStatementText(),
+          statement.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()
@@ -704,15 +737,6 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
-  @SuppressWarnings("unchecked")
-  private static PreparedStatement<?> addInferredSchema(
-      final PreparedStatement<?> stmt,
-      final ServiceContext serviceContext
-  ) {
-    return StatementWithSchema
-        .forStatement((PreparedStatement) stmt, serviceContext.getSchemaRegistryClient());
-  }
-
   private static FunctionInfo getFunctionInfo(
       final List<Schema> argTypes,
       final Schema returnTypeSchema,
@@ -772,11 +796,15 @@ public class KsqlResource {
 
   @SuppressWarnings("unchecked")
   private static <T extends Statement> PreparedStatement<T> prepareStatement(
-      final ParsedStatement statement, final KsqlExecutionContext executor
+      final ParsedStatement statement,
+      final KsqlExecutionContext executor,
+      final SchemaInjector schemaInjector
   ) {
-    return (PreparedStatement<T>) executor.prepare(statement);
+    final PreparedStatement<T> prepared = (PreparedStatement<T>) executor.prepare(statement);
+    return schemaInjector.forStatement(prepared);
   }
 
+  @SuppressWarnings("deprecation")
   private static final class RequestValidator {
 
     @FunctionalInterface
@@ -799,6 +827,8 @@ public class KsqlResource {
                 castValidator(RequestValidator::validateShowColumns, ShowColumns.class))
             .put(Explain.class,
                 castValidator(RequestValidator::validateExplain, Explain.class))
+            .put(RunScript.class,
+                castValidator(RequestValidator::validateRunScript, RunScript.class))
             .put(DescribeFunction.class,
                 castValidator(RequestValidator::validateDescribeFunction, DescribeFunction.class))
             .put(TerminateQuery.class,
@@ -806,26 +836,28 @@ public class KsqlResource {
             .build();
 
     private final KsqlExecutionContext executionSandbox;
-    private final ServiceContext serviceContext;
+    private final SchemaInjector schemaInjector;
     private final KsqlConfig ksqlConfig;
     private final Map<String, Object> scopedPropertyOverrides;
     private int persistentQueryCount;
 
     private RequestValidator(
         final KsqlExecutionContext executionSandbox,
-        final ServiceContext serviceContext,
+        final SchemaInjector schemaInjector,
         final KsqlConfig ksqlConfig,
         final Map<String, Object> propertyOverrides
     ) {
       this.executionSandbox = Objects.requireNonNull(executionSandbox, "executionSandbox");
-      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+      this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
       this.scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     }
 
     private <T extends Statement> void validate(final ParsedStatement stmt) {
       try {
-        final PreparedStatement<T> prepared = prepareStatement(stmt, executionSandbox);
+        final PreparedStatement<T> prepared =
+            prepareStatement(stmt, executionSandbox, schemaInjector);
+
         updatePersistentQueryCount(prepared);
         final Validator<T> customValidator = getCustomValidator(prepared);
         if (customValidator != null) {
@@ -850,16 +882,12 @@ public class KsqlResource {
     }
 
     private void validateAgainstSandbox(final PreparedStatement<?> prepared) {
-      final PreparedStatement<?> withSchemas = addInferredSchema(prepared, serviceContext);
-
-      executionSandbox.execute(withSchemas, ksqlConfig, scopedPropertyOverrides);
+      executionSandbox.execute(prepared, ksqlConfig, scopedPropertyOverrides);
     }
 
     private <T extends Statement> void updatePersistentQueryCount(
         final PreparedStatement<T> statement
     ) {
-      // Note: RunScript commands also have the potential to create persistent queries,
-      // but we don't count those queries here (to avoid parsing those commands)
       if (statement.getStatement() instanceof CreateAsSelect
           || statement.getStatement() instanceof InsertInto) {
         persistentQueryCount++;
@@ -926,6 +954,26 @@ public class KsqlResource {
 
     private void validateExplain(final PreparedStatement<Explain> statement) {
       explain(statement, scopedPropertyOverrides, ksqlConfig, executionSandbox);
+    }
+
+    /**
+     * @deprecated `RUN SCRIPT` is deprecated since 5.2 and will be removed in the next major rel.
+     */
+    @SuppressWarnings({"MethodMayBeStatic", "DeprecatedIsStillUsed"})
+    private void validateRunScript(final PreparedStatement<RunScript> statement) {
+      final String sql = (String) scopedPropertyOverrides
+          .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
+
+      if (sql == null) {
+        throw new KsqlStatementException(
+            "Request is missing script content", statement.getStatementText());
+      }
+
+      log.warn("RUN SCRIPT statement detected. "
+          + "Note: RUN SCRIPT is deprecated and will be removed in the next major version. "
+          + "statement: " + statement.getStatementText());
+
+      executionSandbox.parse(sql).forEach(this::validate);
     }
 
     private void validateDescribeFunction(final PreparedStatement<DescribeFunction> statement) {

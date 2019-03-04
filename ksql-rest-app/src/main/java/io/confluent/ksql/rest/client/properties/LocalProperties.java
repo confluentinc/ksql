@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,8 +15,10 @@
 
 package io.confluent.ksql.rest.client.properties;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.PropertyParser;
+import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -25,13 +28,19 @@ public class LocalProperties {
   private final Map<String, Object> props = new HashMap<>();
   private final PropertyParser parser;
 
-  public LocalProperties(final Map<String, Object> initial) {
+  public LocalProperties(final Map<String, ?> initial) {
     this(initial, new LocalPropertyParser());
   }
 
-  LocalProperties(final Map<String, Object> initial, final PropertyParser parser) {
-    this.props.putAll(Objects.requireNonNull(initial, "initial"));
+  @VisibleForTesting
+  LocalProperties(final Map<String, ?> initial, final PropertyParser parser) {
     this.parser = Objects.requireNonNull(parser, "parser");
+
+    try {
+      Objects.requireNonNull(initial, "initial").forEach(this::set);
+    } catch (final Exception e) {
+      throw new KsqlException("invalid property found: " + e.getMessage(), e);
+    }
   }
 
   /**

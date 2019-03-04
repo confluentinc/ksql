@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlContextTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -75,8 +77,11 @@ public final class TestKsqlContext extends ExternalResource {
         additionalConfig
     );
 
-    delegate = KsqlContextTestUtil
-        .create(ksqlConfig, testHarness.schemaRegistryClient(), functionRegistry);
+    final SchemaRegistryClient srClient = testHarness
+        .getServiceContext()
+        .getSchemaRegistryClient();
+
+    delegate = KsqlContextTestUtil.create(ksqlConfig, srClient, functionRegistry);
   }
 
   @Override

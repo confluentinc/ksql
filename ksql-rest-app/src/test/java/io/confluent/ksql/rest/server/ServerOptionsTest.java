@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -13,73 +14,67 @@
  */
 package io.confluent.ksql.rest.server;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.hamcrest.Matchers.is;
 
-import java.io.File;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.Properties;
-import org.apache.kafka.test.TestUtils;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ServerOptionsTest {
 
+  private ServerOptions serverOptions;
+
+  @Before
+  public void setUp() {
+    serverOptions = new ServerOptions();
+  }
+
   @Test
   public void shouldNotHaveQueriesFileIfNotInPropertiesOrCommandLine() {
-    final ServerOptions serverOptions = new ServerOptions();
-    assertFalse(serverOptions.getQueriesFile(new Properties()).isPresent());
+    assertThat(serverOptions.getQueriesFile(emptyMap()), is(Optional.empty()));
   }
 
   @Test
   public void shouldHaveQueriesFileIfInProperties() {
-    final  Properties properties = new Properties();
-    final String queryFilePath = "/path/to/file";
-    properties.put(ServerOptions.QUERIES_FILE_CONFIG, queryFilePath);
-    final ServerOptions serverOptions = new ServerOptions();
-    assertThat(serverOptions.getQueriesFile(properties).get(), equalTo(queryFilePath));
+    // Given:
+    final Map<String, String> propsFile = ImmutableMap.of(
+        ServerOptions.QUERIES_FILE_CONFIG, "/path/to/file"
+    );
+
+    // Then:
+    assertThat(serverOptions.getQueriesFile(propsFile), is(Optional.of("/path/to/file")));
   }
 
   @Test
   public void shouldHaveQueriesFileIfSpecifiedOnCmdLine() throws IOException {
+    // Given:
     final String queryFilePath = "/path/to/query-file";
-    final ServerOptions
-        options = ServerOptions.parse("config.file", "--queries-file", queryFilePath);
-    assertThat(options.getQueriesFile(new Properties()).get(), equalTo(queryFilePath));
+
+    // When:
+    serverOptions = ServerOptions.parse("config.file", "--queries-file", queryFilePath);
+
+    // Then:
+    assertThat(serverOptions.getQueriesFile(emptyMap()), is(Optional.of(queryFilePath)));
   }
 
   @Test
   public void shouldUseQueryFileParamFromCmdLineInPreferenceToProperties() throws IOException {
+    // Given:
     final String cmdLineArg = "/path/to/query-file";
-    final ServerOptions
-        options = ServerOptions.parse("config.file", "--queries-file", cmdLineArg);
-    final Properties properties = new Properties();
-    properties.put(ServerOptions.QUERIES_FILE_CONFIG, "blah");
-    assertThat(options.getQueriesFile(properties).get(), equalTo(cmdLineArg));
-  }
 
-  @Test
-  public void shouldOverrideFilePropertiesWithSystemProperties() throws IOException {
-    final Properties sysProperties = new Properties();
-    sysProperties.setProperty("bootstrap.servers", "blah:9092");
-    sysProperties.setProperty("listeners", "http://localhost:8088");
+    final Map<String, String> propsFile = ImmutableMap.of(
+        ServerOptions.QUERIES_FILE_CONFIG, "should not use this"
+    );
 
-    final File propsFile = TestUtils.tempFile();
-    try (final PrintWriter writer =
-        new PrintWriter(Files.newBufferedWriter(propsFile.toPath(), StandardCharsets.UTF_8))) {
-      writer.println("bootstrap.servers=localhost:9092");
-      writer.println("listeners=http://some-server");
-      writer.println("num.stream.threads=1");
-    }
+    // When:
+    serverOptions = ServerOptions.parse("config.file", "--queries-file", cmdLineArg);
 
-    final ServerOptions options = ServerOptions.parse(propsFile.getPath());
-
-    final Properties properties = options.loadProperties(() -> sysProperties);
-    assertThat(properties.getProperty("bootstrap.servers"), equalTo("blah:9092"));
-    assertThat(properties.getProperty("listeners"), equalTo("http://localhost:8088"));
-    assertThat(properties.get("num.stream.threads"), equalTo("1"));
+    // Then:
+    assertThat(serverOptions.getQueriesFile(propsFile), is(Optional.of(cmdLineArg)));
   }
 }

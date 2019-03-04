@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,20 +15,20 @@
 
 package io.confluent.ksql.serde.util;
 
-import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.DESERIALIZATION_ERROR;
-import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE;
-import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64;
-import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
-import static io.confluent.ksql.processing.log.ProcessingLogMessageSchema.TYPE;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.TYPE;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.processing.log.ProcessingLogConfig;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Optional;
@@ -49,9 +50,8 @@ public class SerdeProcessingLogMessageFactoryTest {
     // When:
     final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
         error,
-        Optional.empty(),
-        config
-    ).get();
+        Optional.empty()
+    ).apply(config);
 
     // Then:
     final Struct struct = (Struct) msg.value();
@@ -64,9 +64,8 @@ public class SerdeProcessingLogMessageFactoryTest {
     // When:
     final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
         error,
-        Optional.of(record),
-        config
-    ).get();
+        Optional.of(record)
+    ).apply(config);
 
     // Then:
     final Schema schema = msg.schema();
@@ -103,9 +102,8 @@ public class SerdeProcessingLogMessageFactoryTest {
     // When:
     final SchemaAndValue msg = SerdeProcessingLogMessageFactory.deserializationErrorMsg(
         error,
-        Optional.of(record),
-        config
-    ).get();
+        Optional.of(record)
+    ).apply(config);
 
     // Then:
     final Struct struct = (Struct) msg.value();

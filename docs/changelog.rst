@@ -6,8 +6,20 @@ Version 5.2.0
 
 KSQL 5.2 includes new features, including:
 
-* Added a new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
-* Added ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
+* Support for :ref:`HTTPS <config-ksql-for-https>`.
+* A new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
+* ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
+* Support for read-after-write consistency: new commands don't execute until previous commands have finished executing.
+  This feature is enabled by default in the CLI (`#2280 <https://github.com/confluentinc/ksql/pull/2280>`_)
+  and can be implemented by the user for the REST API (:ref:`coordinate_multiple_requests`).
+* A log of record processing events to help users debug their KSQL queries. The log can be configured
+  to log to Kafka to be consumed as a KSQL stream. See :ref:`KSQL processing log <ksql_processing_log>`
+  for more details.
+* Aggregation functionality has been extended. KSQL now supports:
+  * ``GROUP BY`` more than just simple columns, including fields within structs,
+    arithmetic results, functions, string concatenations and literals.
+  * literals in the projection, (a.k.a the ``SELECT`` clause).
+  * Multiple ``HAVING`` clauses, including the use of aggregate functions and literals.
 
 KSQL 5.2 includes bug fixes, including:
 
@@ -20,6 +32,19 @@ KSQL 5.2 includes bug fixes, including:
   Prior to version 5.2 KSQL parsed the full script before attempting to execute any statements.
   The full parse would often fail when later statements relied on the execution of earlier
   statements. In version 5.2 and later, this is no longer an issue.
+
+KSQL 5.2 deprecates some features, including:
+
+* The use of the ``RUN SCRIPT`` statement via the REST API is now deprecated and will be removed
+  in the next major release.
+  (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
+  The feature circumnavigates certain correctness checks and is unnecessary,
+  given the script content can be supplied in the main body of the request.
+  If you are using the ``RUN SCRIPT`` functionality from the KSQL CLI you will not be affected,
+  as this will continue to be supported.
+  If you are using the ``RUN SCRIPT`` functionality directly against the REST API your requests
+  will work with the 5.2 server, but will be rejected after the next major version release.
+  Instead, include the contents of the script in the main body of your request.
 
 Version 5.1.0
 -------------

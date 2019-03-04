@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -24,7 +25,7 @@ import io.confluent.ksql.ddl.commands.DdlCommandExec;
 import io.confluent.ksql.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -34,8 +35,6 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlFormatter;
-import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -46,10 +45,8 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.planner.LogicalPlanNode;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource;
@@ -63,8 +60,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.StatementWithSchema;
-import io.confluent.ksql.util.StringUtil;
 import java.io.Closeable;
 import java.util.HashMap;
 import java.util.List;
@@ -349,7 +344,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     ) {
       throwOnImmutableOverride(overriddenProperties);
 
-      final DdlCommand command = createDdlCommand(
+      final DdlCommand command = ddlCommandFactory.create(
           sqlExpression,
           statement,
           overriddenProperties
@@ -364,88 +359,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       return result.getMessage();
     }
 
-    private DdlCommand createDdlCommand(
-        final String sqlExpression,
-        final ExecutableDdlStatement statement,
-        final Map<String, Object> overriddenProperties
-    ) {
-      final String resultingSqlExpression;
-      final ExecutableDdlStatement resultingStatement;
-
-      if (statement instanceof AbstractStreamCreateStatement) {
-        final AbstractStreamCreateStatement streamCreateStatement =
-            (AbstractStreamCreateStatement) statement;
-
-        final PreparedStatement<AbstractStreamCreateStatement> statementWithSchema
-            = maybeAddFieldsFromSchemaRegistry(streamCreateStatement, sqlExpression);
-
-        resultingStatement = (ExecutableDdlStatement) statementWithSchema.getStatement();
-        resultingSqlExpression = statementWithSchema.getStatementText();
-
-        if (((AbstractStreamCreateStatement) resultingStatement).getElements().isEmpty()) {
-          throw new KsqlStatementException(
-              "The statement or topic schema does not define any columns.",
-              sqlExpression);
-        }
-      } else {
-        resultingSqlExpression = sqlExpression;
-        resultingStatement = statement;
-      }
-
-      return ddlCommandFactory.create(
-          resultingSqlExpression, resultingStatement, overriddenProperties);
-    }
-
-    private PreparedStatement<AbstractStreamCreateStatement> maybeAddFieldsFromSchemaRegistry(
-        final AbstractStreamCreateStatement streamCreateStatement,
-        final String statementText
-    ) {
-      if (streamCreateStatement.getProperties().containsKey(DdlConfig.TOPIC_NAME_PROPERTY)) {
-        final String ksqlRegisteredTopicName = StringUtil.cleanQuotes(
-            streamCreateStatement
-                .getProperties()
-                .get(DdlConfig.TOPIC_NAME_PROPERTY)
-                .toString()
-                .toUpperCase()
-        );
-        final KsqlTopic ksqlTopic = metaStore.getTopic(ksqlRegisteredTopicName);
-        if (ksqlTopic == null) {
-          throw new KsqlStatementException(
-              String.format("Could not find %s topic in the metastore.", ksqlRegisteredTopicName),
-              statementText);
-        }
-
-        final Map<String, Expression> newProperties = new HashMap<>();
-        newProperties.put(
-            DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(ksqlTopic.getKafkaTopicName())
-        );
-
-        newProperties.put(
-            DdlConfig.VALUE_FORMAT_PROPERTY,
-            new StringLiteral(
-                ksqlTopic.getKsqlTopicSerDe().getSerDe().toString()
-            )
-        );
-
-        final AbstractStreamCreateStatement statementWithProperties =
-            streamCreateStatement.copyWith(
-                streamCreateStatement.getElements(),
-                newProperties);
-
-        return StatementWithSchema.forStatement(
-            statementWithProperties,
-            SqlFormatter.formatSql(statementWithProperties),
-            serviceContext.getSchemaRegistryClient()
-        );
-      }
-
-      return StatementWithSchema.forStatement(
-          streamCreateStatement,
-          statementText,
-          serviceContext.getSchemaRegistryClient());
-    }
-
-    void registerQuery(final QueryMetadata query) {
+    private void registerQuery(final QueryMetadata query) {
       if (query instanceof PersistentQueryMetadata) {
         final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
         final QueryId queryId = persistentQuery.getQueryId();

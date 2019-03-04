@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -549,19 +550,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitSingleColumn(final SingleColumn node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new SingleColumn(node.getLocation().get(),
-          (Expression) process(node.getExpression(), context),
-          node.getAlias()
-      );
-    } else {
-      return new SingleColumn(
-          (Expression) process(node.getExpression(), context),
-          node.getAlias()
-      );
-    }
+    return node.copyWithExpression((Expression) process(node.getExpression(), context));
   }
 
   protected Node visitAllColumns(final AllColumns node, final Object context) {

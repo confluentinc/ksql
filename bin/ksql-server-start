@@ -29,7 +29,4 @@ fi
 
 export KSQL_OPTS
 
-# TODO: Enable specification of properties via command-line arg in the KsqlRestApplication class
-# so that useful defaults for bootstrap server, port, etc. can be established here
-
 exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.rest.server.KsqlServerMain $EXTRA_ARGS "$@"

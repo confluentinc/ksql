@@ -6,7 +6,7 @@ KSQL REST API Reference
 REST Endpoint
 ---------------------
 
-The default REST API endpoint is ``http://localhost:8088/``. 
+The default REST API endpoint is ``http://localhost:8088/``.
 
 Change the server configuration that controls the REST API endpoint by setting
 the ``listeners`` parameter in the KSQL server config file. For more info, see
@@ -205,7 +205,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice'",
+        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice';",
         "streamsProperties": {
           "ksql.streams.auto.offset.reset": "earliest"
         }

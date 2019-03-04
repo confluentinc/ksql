@@ -188,8 +188,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, ``PATTERN_TYPE
 All ACLs described are ``ALLOW`` ACLs, where the principal is the user the KSQL server has authenticated as,
 with the Apache Kafka cluster, or an appropriate group that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-         non-interactive queries, see :ref:`restrict-ksql-interactive`.
+.. tip:: For more information about ACLs, see :ref:`kafka_authorization`.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ACLs on Literal Resource Pattern

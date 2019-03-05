@@ -21,18 +21,18 @@ import java.util.Optional;
 
 public abstract class Type extends Expression {
 
-  public enum KsqlType {
+  public enum SqlType {
     BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT
   }
 
-  private final KsqlType ksqlType;
+  private final SqlType sqlType;
 
-  protected Type(final Optional<NodeLocation> location, final KsqlType ksqlType) {
+  protected Type(final Optional<NodeLocation> location, final SqlType sqlType) {
     super(location);
-    this.ksqlType = requireNonNull(ksqlType, "ksqlType");
+    this.sqlType = requireNonNull(sqlType, "sqlType");
   }
 
-  public KsqlType getKsqlType() {
-    return ksqlType;
+  public SqlType getSqlType() {
+    return sqlType;
   }
 }

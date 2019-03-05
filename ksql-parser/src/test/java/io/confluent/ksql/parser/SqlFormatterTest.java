@@ -41,7 +41,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -150,9 +150,9 @@ public class SqlFormatterTest {
   public void testFormatSql() {
 
     final ArrayList<TableElement> tableElements = new ArrayList<>();
-    tableElements.add(new TableElement("GROUP", new PrimitiveType(Type.KsqlType.STRING)));
-    tableElements.add(new TableElement("NOLIT", new PrimitiveType(Type.KsqlType.STRING)));
-    tableElements.add(new TableElement("Having", new PrimitiveType(Type.KsqlType.STRING)));
+    tableElements.add(new TableElement("GROUP", new PrimitiveType(SqlType.STRING)));
+    tableElements.add(new TableElement("NOLIT", new PrimitiveType(SqlType.STRING)));
+    tableElements.add(new TableElement("Having", new PrimitiveType(SqlType.STRING)));
 
     final CreateStream createStream = new CreateStream(
         QualifiedName.of("TEST"),

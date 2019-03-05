@@ -33,7 +33,7 @@ public class Array extends Type {
   }
 
   private Array(final Optional<NodeLocation> location, final Type itemType) {
-    super(location, KsqlType.ARRAY);
+    super(location, SqlType.ARRAY);
     requireNonNull(itemType, "itemType is null");
     this.itemType = itemType;
   }

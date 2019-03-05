@@ -32,9 +32,9 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -53,7 +53,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type.KsqlType;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -100,7 +100,7 @@ public class StandaloneExecutorTest {
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
 
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(KsqlType.STRING)));
+      new TableElement("bob", new PrimitiveType(SqlType.STRING)));
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
 

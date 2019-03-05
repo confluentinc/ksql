@@ -31,9 +31,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -43,8 +41,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.parser.tree.Type.KsqlType;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -68,7 +65,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DefaultSchemaInjectorTest {
 
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(KsqlType.STRING)));
+      new TableElement("bob", new PrimitiveType(SqlType.STRING)));
   private static final Map<String, Expression> UNSUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("json")
   );
@@ -104,18 +101,18 @@ public class DefaultSchemaInjectorTest {
 
   private static final List<TableElement> EXPECTED_KSQL_SCHEMA = ImmutableList
       .<TableElement>builder()
-      .add(new TableElement("INTFIELD", new PrimitiveType(Type.KsqlType.INTEGER)))
-      .add(new TableElement("BIGINTFIELD", new PrimitiveType(KsqlType.BIGINT)))
-      .add(new TableElement("FLOATFIELD", new PrimitiveType(KsqlType.DOUBLE)))
-      .add(new TableElement("DOUBLEFIELD", new PrimitiveType(KsqlType.DOUBLE)))
-      .add(new TableElement("STRINGFIELD", new PrimitiveType(KsqlType.STRING)))
-      .add(new TableElement("BOOLEANFIELD", new PrimitiveType(KsqlType.BOOLEAN)))
+      .add(new TableElement("INTFIELD", new PrimitiveType(SqlType.INTEGER)))
+      .add(new TableElement("BIGINTFIELD", new PrimitiveType(SqlType.BIGINT)))
+      .add(new TableElement("FLOATFIELD", new PrimitiveType(SqlType.DOUBLE)))
+      .add(new TableElement("DOUBLEFIELD", new PrimitiveType(SqlType.DOUBLE)))
+      .add(new TableElement("STRINGFIELD", new PrimitiveType(SqlType.STRING)))
+      .add(new TableElement("BOOLEANFIELD", new PrimitiveType(SqlType.BOOLEAN)))
       .add(new TableElement("ARRAYFIELD", new io.confluent.ksql.parser.tree.Array(
-          new PrimitiveType(KsqlType.INTEGER))))
+          new PrimitiveType(SqlType.INTEGER))))
       .add(new TableElement("MAPFIELD", new io.confluent.ksql.parser.tree.Map(
-          new PrimitiveType(KsqlType.BIGINT))))
+          new PrimitiveType(SqlType.BIGINT))))
       .add(new TableElement("STRUCTFIELD", new io.confluent.ksql.parser.tree.Struct(
-          ImmutableList.of(new Pair<>("s0", new PrimitiveType(KsqlType.BIGINT))))))
+          ImmutableList.of(new Pair<>("s0", new PrimitiveType(SqlType.BIGINT))))))
       .build();
   private static final int SCHEMA_ID = 5;
 

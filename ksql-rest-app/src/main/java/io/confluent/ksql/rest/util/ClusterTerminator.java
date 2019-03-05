@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;

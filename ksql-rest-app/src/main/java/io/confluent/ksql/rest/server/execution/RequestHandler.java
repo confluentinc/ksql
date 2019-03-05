@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
@@ -80,14 +81,14 @@ public class RequestHandler {
       final CommandQueue commandQueue,
       final Duration distSyncTimeout
   ) {
-    this.customExecutors = customExecutors;
-    this.mustSynchronize = mustSynchronize;
-    this.ksqlEngine = ksqlEngine;
-    this.ksqlConfig = ksqlConfig;
-    this.serviceContext = serviceContext;
-    this.distributor = distributor;
-    this.commandQueue = commandQueue;
-    this.distributedCommandSyncTimeout = distSyncTimeout;
+    this.customExecutors = Objects.requireNonNull(customExecutors, "customExecutors");
+    this.mustSynchronize = Objects.requireNonNull(mustSynchronize);
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
+    this.serviceContext = Objects.requireNonNull(serviceContext);
+    this.distributor = Objects.requireNonNull(distributor);
+    this.commandQueue = Objects.requireNonNull(commandQueue);
+    this.distributedCommandSyncTimeout = Objects.requireNonNull(distSyncTimeout);
   }
 
   public KsqlEntityList execute(

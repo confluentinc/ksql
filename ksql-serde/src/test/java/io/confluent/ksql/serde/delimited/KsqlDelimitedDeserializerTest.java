@@ -123,7 +123,9 @@ public class KsqlDelimitedDeserializerTest {
             mock(ProcessingLogger.class)
     );
 
-    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize(
+            "",
+            rowString.getBytes(StandardCharsets.UTF_8));
     assertThat(genericRow.getColumns().size(), equalTo(4));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
@@ -142,7 +144,9 @@ public class KsqlDelimitedDeserializerTest {
             mock(ProcessingLogger.class)
     );
 
-    final GenericRow genericRow = ksqlJsonDeserializer.deserialize("", rowString.getBytes());
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize(
+            "",
+            rowString.getBytes(StandardCharsets.UTF_8));
     assertThat(genericRow.getColumns().size(), equalTo(4));
     assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
     assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));

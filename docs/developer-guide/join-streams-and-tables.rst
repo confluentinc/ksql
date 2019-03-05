@@ -1,7 +1,7 @@
 .. _join-streams-and-tables:
 
-Join Streams and Tables with KSQL
-#################################
+Join Event Streams with KSQL
+############################
 
 You can use KSQL to merge streams of data in real time by using a SQL-like
 *join* syntax. A KSQL join and a relational database join are similar in that

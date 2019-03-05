@@ -37,7 +37,7 @@ public final class Struct
   }
 
   private Struct(final Optional<NodeLocation> location, final List<Pair<String, Type>> items) {
-    super(location, KsqlType.STRUCT);
+    super(location, SqlType.STRUCT);
     requireNonNull(items, "items is null");
     this.items = ImmutableList.copyOf(items);
   }

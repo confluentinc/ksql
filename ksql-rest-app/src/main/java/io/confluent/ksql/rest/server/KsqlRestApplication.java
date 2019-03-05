@@ -39,7 +39,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -350,7 +350,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
             QualifiedName.of(COMMANDS_STREAM_NAME),
             Collections.singletonList(new TableElement(
                 "STATEMENT",
-                new PrimitiveType(Type.KsqlType.STRING)
+                new PrimitiveType(SqlType.STRING)
             )),
             false,
             Collections.singletonMap(

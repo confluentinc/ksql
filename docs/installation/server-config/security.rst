@@ -3,7 +3,7 @@
 Configuring Security for KSQL
 =============================
 
-KSQL supports many of the security features of both Apache Kafka and the |sr|.
+KSQL supports many of the security features of both |ak| and the |sr|.
 
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.

@@ -40,8 +40,6 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("UnstableApiUsage")
 public class StringToTimestampParser {
 
-  private static final Logger LOG = LoggerFactory.getLogger(StringToTimestampParser.class);
-
   private static final Multimap<TemporalUnit, ChronoField> CHRONO_UNIT_TO_FIELDS;
 
   static {
@@ -84,9 +82,6 @@ public class StringToTimestampParser {
             (ChronoUnit) chronoField.getRangeUnit()));
       }
     }
-
-    LOG.debug("Supported range for pattern {} is: {}", pattern, supportedRange);
-    System.out.println("Supported range: " + supportedRange);
 
     setDefault(formatBuilder, now, ChronoUnit.YEARS, ChronoField.YEAR_OF_ERA, 1970, supportedRange);
     setDefault(formatBuilder, now, ChronoUnit.MONTHS, ChronoField.MONTH_OF_YEAR, 1, supportedRange);

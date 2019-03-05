@@ -30,10 +30,10 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.ArrayUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,7 +48,7 @@ public class ArrayContainsKudf implements Kudf {
   private final Map<JsonToken, Matcher> matchers = new HashMap<>();
 
 
-  ArrayContainsKudf() {
+  public ArrayContainsKudf() {
     matchers.put(JsonToken.VALUE_NULL, (parser, value) -> value == null);
     matchers.put(JsonToken.VALUE_STRING,
         (parser, value) -> parser.getText().equals(value));
@@ -73,9 +73,10 @@ public class ArrayContainsKudf implements Kudf {
     final Object searchValue = args[1];
     if (args[0] instanceof String) {
       return jsonStringArrayContains(searchValue, (String) args[0]);
-    } else if (args[0] instanceof Object[]) {
-      return ArrayUtil.containsValue(searchValue, (Object[]) args[0]);
+    } else if (args[0] instanceof Collection) {
+      return ((Collection) args[0]).contains(searchValue);
     }
+
     throw new KsqlFunctionException("Invalid type parameters for " + Arrays.toString(args));
   }
 

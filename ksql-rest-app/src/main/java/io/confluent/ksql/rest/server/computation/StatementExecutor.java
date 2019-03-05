@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;

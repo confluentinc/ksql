@@ -49,10 +49,6 @@ public final class KsqlConstants {
   public static final String DOT = ".";
   public static final String STRUCT_FIELD_REF = "->";
 
-  public static final String DOC_URL_SR_SERIALISER =
-          "https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html";
-  public static final String DOC_URL_SR_REST_GETSUBJECTS =
-          "https://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects";
   public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
   public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   public static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =

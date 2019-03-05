@@ -37,6 +37,8 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -683,8 +685,13 @@ final class EndToEndEngineTestUtil {
     final String sql = testCase.statements().stream()
         .collect(Collectors.joining(System.lineSeparator()));
 
-    final List<QueryMetadata> queries =
-        KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, testCase.properties());
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        sql,
+        ksqlConfig,
+        testCase.properties(),
+        Optional.of(serviceContext.getSchemaRegistryClient())
+    );
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return queries.get(queries.size() - 1);

@@ -85,17 +85,15 @@ public class RegisterTopicCommand implements DdlCommand {
     }
   }
 
-  private void enforceTopicProperties(final Map<String, Expression> properties) {
-    if (properties.size() == 0) {
-      throw new KsqlException("Register topic statement needs WITH clause.");
-    }
-
+  private static void enforceTopicProperties(final Map<String, Expression> properties) {
     if (!properties.containsKey(DdlConfig.VALUE_FORMAT_PROPERTY)) {
-      throw new KsqlException("Topic format(format) should be set in WITH clause.");
+      throw new KsqlException("Topic format("
+          + DdlConfig.VALUE_FORMAT_PROPERTY + ") should be set in WITH clause.");
     }
 
     if (!properties.containsKey(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)) {
-      throw new KsqlException("Corresponding kafka topic should be set in WITH clause.");
+      throw new KsqlException("Corresponding Kafka topic ("
+          + DdlConfig.KAFKA_TOPIC_NAME_PROPERTY + ") should be set in WITH clause.");
     }
   }
 

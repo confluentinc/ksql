@@ -44,7 +44,8 @@ public class BooleanLiteral
     this.value = value.toLowerCase(ENGLISH).equals("true");
   }
 
-  public boolean getValue() {
+  @Override
+  public Boolean getValue() {
     return value;
   }
 

@@ -17,6 +17,8 @@ package io.confluent.ksql.function.udf.json;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Test;
 
 public class ArrayContainsKudfTest
@@ -100,33 +102,56 @@ public class ArrayContainsKudfTest
     }
 
     @Test
-    public void shouldFindStringInAvroArray() {
-        assertEquals(true, jsonUdf.evaluate(new String[]{"abc", "bd", "DC"}, "DC"));
-        assertEquals(false, jsonUdf.evaluate(new String[]{"abc", "bd", "DC"}, "dc"));
-        assertEquals(false, jsonUdf.evaluate(new String[]{"abc", "bd", "1"}, 1));
+    public void shouldReturnFalseOnEmptyList() {
+        assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), true));
+        assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), false));
+        assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), null));
+        assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), 1.0));
+        assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), 100));
+        assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), "abc"));
+        assertEquals(false, jsonUdf.evaluate(Collections.emptyList(), ""));
     }
 
     @Test
-    public void shouldFindIntegersInAvroArray() {
-        assertEquals(true, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 2));
-        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, 0));
-        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, "1"));
-        assertEquals(false, jsonUdf.evaluate(new Integer[]{1, 2, 3}, "aa"));
+    public void shouldNotFindValuesInNullListElements() {
+        assertEquals(true, jsonUdf.evaluate(Collections.singletonList(null), null));
+        assertEquals(false, jsonUdf.evaluate(Collections.singletonList(null), "null"));
+        assertEquals(false, jsonUdf.evaluate(Collections.singletonList(null), true));
+        assertEquals(false, jsonUdf.evaluate(Collections.singletonList(null), false));
+        assertEquals(false, jsonUdf.evaluate(Collections.singletonList(null), 1.0));
+        assertEquals(false, jsonUdf.evaluate(Collections.singletonList(null), 100));
+        assertEquals(false, jsonUdf.evaluate(Collections.singletonList(null), "abc"));
+        assertEquals(false, jsonUdf.evaluate(Collections.singletonList(null), ""));
     }
 
     @Test
-    public void shouldFindLongInAvroArray() {
-        assertEquals(true, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 2L));
-        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, 0L));
-        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, "1"));
-        assertEquals(false, jsonUdf.evaluate(new Long[]{1L, 2L, 3L}, "aaa"));
+    public void shouldFindStringInList() {
+        assertEquals(true, jsonUdf.evaluate(Arrays.asList("abc", "bd", "DC"), "DC"));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList("abc", "bd", "DC"), "dc"));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList("abc", "bd", "1"), 1));
     }
 
     @Test
-    public void shouldFindDoublesInAvroArray() {
-        assertEquals(true, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, 2.0));
-        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, 4.0));
-        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, "1"));
-        assertEquals(false, jsonUdf.evaluate(new Double[]{1.0, 2.0, 3.0}, "aaa"));
+    public void shouldFindIntegersInList() {
+        assertEquals(true, jsonUdf.evaluate(Arrays.asList(1, 2, 3), 2));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1, 2, 3), 0));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1, 2, 3), "1"));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1, 2, 3), "aa"));
+    }
+
+    @Test
+    public void shouldFindLongInList() {
+        assertEquals(true, jsonUdf.evaluate(Arrays.asList(1L, 2L, 3L), 2L));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1L, 2L, 3L), 0L));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1L, 2L, 3L), "1"));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1L, 2L, 3L), "aaa"));
+    }
+
+    @Test
+    public void shouldFindDoublesInList() {
+        assertEquals(true, jsonUdf.evaluate(Arrays.asList(1.0, 2.0, 3.0), 2.0));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1.0, 2.0, 3.0), 4.0));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1.0, 2.0, 3.0), "1"));
+        assertEquals(false, jsonUdf.evaluate(Arrays.asList(1.0, 2.0, 3.0), "aaa"));
     }
 }

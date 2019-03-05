@@ -38,6 +38,7 @@ public class DecimalLiteral
     this.value = requireNonNull(value, "value is null");
   }
 
+  @Override
   public String getValue() {
     return value;
   }

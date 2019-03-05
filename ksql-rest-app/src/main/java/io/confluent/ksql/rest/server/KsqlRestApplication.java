@@ -21,10 +21,10 @@ import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
@@ -39,7 +39,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -55,6 +55,9 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -343,7 +346,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
             QualifiedName.of(COMMANDS_STREAM_NAME),
             Collections.singletonList(new TableElement(
                 "STATEMENT",
-                new PrimitiveType(Type.KsqlType.STRING)
+                new PrimitiveType(SqlType.STRING)
             )),
             false,
             Collections.singletonMap(
@@ -385,13 +388,18 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
+    final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
+        new DefaultSchemaInjector(
+            new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
+
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
         serviceContext,
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime
+        versionChecker::updateLastRequestTime,
+        schemaInjectorFactory
     );
 
     final Optional<String> processingLogTopic =

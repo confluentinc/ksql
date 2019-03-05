@@ -17,18 +17,29 @@ package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.AVRO;
 import static io.confluent.ksql.serde.DataSource.DataSourceSerDe.JSON;
+import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.rest.server.computation.ConfigStore;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.OrderDataProvider;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Properties;
+import java.util.Map;
+import java.util.function.Function;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -38,8 +49,12 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @Category({IntegrationTest.class})
+@RunWith(MockitoJUnitRunner.class)
 public class StandaloneExecutorFunctionalTest {
 
   @ClassRule
@@ -56,6 +71,10 @@ public class StandaloneExecutorFunctionalTest {
   private static int DATA_SIZE;
   private static Schema DATA_SCHEMA;
 
+  @Mock
+  private VersionCheckerAgent versionChecker;
+  @Mock
+  private ConfigStore configStore;
   private Path queryFile;
   private StandaloneExecutor standalone;
   private String s1;
@@ -75,7 +94,29 @@ public class StandaloneExecutorFunctionalTest {
   public void setUp() throws Exception {
     queryFile = TMP.newFile().toPath();
 
-    standalone = StandaloneExecutorFactory.create(defaultProps(), queryFile.toString(), "./");
+    final Map<String, String> properties = ImmutableMap.of(
+        CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers()
+    );
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+
+    when(configStore.getKsqlConfig()).thenReturn(ksqlConfig);
+
+    final Function<KsqlConfig, ServiceContext> serviceContextFactory = config ->
+        TestServiceContext.create(
+            ksqlConfig,
+            TEST_HARNESS.getServiceContext().getSchemaRegistryClientFactory()
+        );
+
+    standalone = StandaloneExecutorFactory.create(
+        properties,
+        queryFile.toString(),
+        ".",
+        serviceContextFactory,
+        (topicName, currentConfig) -> configStore,
+        activeQuerySupplier -> versionChecker,
+        StandaloneExecutor::new
+    );
 
     s1 = KsqlIdentifierTestUtil.uniqueIdentifierName("S1");
     s2 = KsqlIdentifierTestUtil.uniqueIdentifierName("S2");
@@ -90,6 +131,7 @@ public class StandaloneExecutorFunctionalTest {
 
   @Test
   public void shouldHandleJsonWithSchemas() {
+    // Given:
     givenScript(""
         + "CREATE STREAM S (ORDERTIME BIGINT)"
         + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json');\n"
@@ -122,6 +164,96 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   @Test
+  public void shouldHandleAvroWithSchemas() {
+    // Given:
+    givenScript(""
+        + "CREATE STREAM S (ORDERTIME BIGINT)"
+        + "    WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
+        + "\n"
+        + "CREATE TABLE T (ORDERTIME BIGINT) "
+        + "    WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro', key='ORDERTIME');\n"
+        + "\n"
+        + "SET 'auto.offset.reset' = 'earliest';"
+        + "\n"
+        + "CREATE STREAM " + s1 + " AS SELECT * FROM S;\n"
+        + "\n"
+        + "INSERT INTO " + s1 + " SELECT * FROM S;\n"
+        + "\n"
+        + "CREATE TABLE " + t1 + " AS SELECT * FROM T;\n"
+        + "\n"
+        + "UNSET 'auto.offset.reset';"
+        + "\n"
+        + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
+
+    // When:
+    standalone.start();
+
+    // Then:
+    // CSAS and INSERT INTO both input into S1:
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, DATA_SCHEMA);
+    // CTAS only into T1:
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, DATA_SIZE, AVRO, DATA_SCHEMA);
+    // S2 should be empty as 'auto.offset.reset' unset:
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, DATA_SCHEMA);
+  }
+
+  @Test
+  public void shouldInferAvroSchema() {
+    // Given:
+    givenScript(""
+        + "SET 'auto.offset.reset' = 'earliest';"
+        + ""
+        + "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
+        + ""
+        + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
+
+    // When:
+    standalone.start();
+
+    // Then:
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, AVRO, DATA_SCHEMA);
+  }
+
+  @Test
+  public void shouldFailOnAvroWithoutSchemasIfSchemaNotAvailable() {
+    // Given:
+    TEST_HARNESS.ensureTopics("topic-without-schema");
+
+    givenScript(""
+        + "SET 'auto.offset.reset' = 'earliest';"
+        + ""
+        + "CREATE STREAM S WITH (kafka_topic='topic-without-schema', value_format='avro');");
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Schema registry fetch for topic topic-without-schema request failed");
+
+    // When:
+    standalone.start();
+  }
+
+  @Test
+  public void shouldFailOnAvroWithoutSchemasIfSchemaNotEvolvable() {
+    // Given:
+    givenIncompatibleSchemaExists(s1);
+
+    givenScript(""
+        + "SET 'auto.offset.reset' = 'earliest';"
+        + ""
+        + "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
+        + ""
+        + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expectMessage("schema evolution issues");
+
+    // When:
+    standalone.start();
+  }
+
+  @Test
   public void shouldHandleComments() {
     // Given:
     givenScript(""
@@ -145,17 +277,19 @@ public class StandaloneExecutorFunctionalTest {
     TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, JSON, DATA_SCHEMA);
   }
 
+  private static void givenIncompatibleSchemaExists(final String topicName) {
+    final Schema incompatible = SchemaBuilder.struct()
+        .field("ORDERID", Schema.INT64_SCHEMA)
+        .build();
+
+    TEST_HARNESS.ensureSchema(topicName, incompatible);
+  }
+
   private void givenScript(final String contents) {
     try {
       Files.write(queryFile, contents.getBytes(StandardCharsets.UTF_8));
     } catch (IOException e) {
       throw new AssertionError("Failed to save query file", e);
     }
-  }
-
-  private static Properties defaultProps() {
-    final Properties props = new Properties();
-    props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers());
-    return props;
   }
 }

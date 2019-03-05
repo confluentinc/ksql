@@ -16,6 +16,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -33,6 +34,7 @@ import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,6 +47,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DistributingExecutorTest {
 
   private static final Duration DURATION_10_MS = Duration.ofMillis(10);
+  private static final CommandId CS_COMMAND = new CommandId(Type.STREAM, "stream", Action.CREATE);
+  private static final CommandStatus SUCCESS_STATUS = new CommandStatus(Status.SUCCESS, "");
+  private static final PreparedStatement<?> EMPTY_STATEMENT =
+      PreparedStatement.of("", new EmptyStatement());
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -54,60 +60,75 @@ public class DistributingExecutorTest {
   @Mock ServiceContext serviceContext;
   @Mock SchemaInjector schemaInjector;
 
-  @Before
-  public void setUp() {
-    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
-  }
+  private DistributingExecutor distributor;
+  private AtomicLong scnCounter;
 
+  @Before
+  public void setUp() throws InterruptedException {
+    scnCounter = new AtomicLong();
+    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(queue.enqueueCommand(any(), any(), any())).thenReturn(status);
+    when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
+    when(status.getCommandId()).thenReturn(CS_COMMAND);
+    when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
+
+    distributor = new DistributingExecutor(queue, DURATION_10_MS, sc -> schemaInjector);
+  }
 
   @Test
   public void shouldEnqueueSuccessfulCommand() throws InterruptedException {
-    // Given:
-    final CommandId command = new CommandId(Type.STREAM, "stream", Action.CREATE);
-    final CommandStatus commandStatus = new CommandStatus(Status.SUCCESS, "");
-
-    when(queue.enqueueCommand(any(), any(), any())).thenReturn(status);
-    when(status.tryWaitForFinalStatus(any())).thenReturn(commandStatus);
-    when(status.getCommandId()).thenReturn(command);
-    when(status.getCommandSequenceNumber()).thenReturn(1L);
-
-    final PreparedStatement<?> preparedStatement = PreparedStatement.of("", new EmptyStatement());
-
     // When:
-    final CommandStatusEntity commandStatusEntity =
-        (CommandStatusEntity) new DistributingExecutor(queue, DURATION_10_MS, sc -> schemaInjector)
-            .execute(preparedStatement, null, serviceContext, null, null)
-            .orElseThrow(IllegalStateException::new);
+    distributor.execute(EMPTY_STATEMENT, null, serviceContext, null, null);
 
     // Then:
-    assertThat(commandStatusEntity, equalTo(new CommandStatusEntity(
-        "",
-        command,
-        commandStatus,
-        1L
-    )));
-
-    verify(queue, times(1)).enqueueCommand(eq(preparedStatement), any(), any());
-    verify(schemaInjector, times(1)).forStatement(eq(preparedStatement));
+    verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT), any(), any());
   }
 
   @Test
-  public void testFailingCommandQueue() {
+  public void shouldInferSchemas() {
+    // When:
+    distributor.execute(EMPTY_STATEMENT, null, serviceContext, null, null);
+
+    // Then:
+    verify(schemaInjector, times(1)).forStatement(eq(EMPTY_STATEMENT));
+  }
+
+  @Test
+  public void shouldReturnCommandStatus() {
+    // When:
+    final CommandStatusEntity commandStatusEntity =
+        (CommandStatusEntity) distributor.execute(
+            EMPTY_STATEMENT,
+            null,
+            serviceContext,
+            null,
+            null)
+            .orElseThrow(null);
+
+    // Then:
+    assertThat(commandStatusEntity,
+        equalTo(new CommandStatusEntity("", CS_COMMAND, SUCCESS_STATUS, 1L)));
+
+  }
+
+  @Test
+  public void shouldThrowExceptionOnFailureToEnqueue() {
     // Given:
-    when(queue.enqueueCommand(any(), any(), any())).thenThrow(new KsqlException("Fail!"));
+    final KsqlException cause = new KsqlException("fail");
+    when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
     final PreparedStatement preparedStatement = PreparedStatement.of("", new EmptyStatement());
 
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not write the statement");
+    expectedException.expectCause(is(cause));
 
     // When:
-    new DistributingExecutor(queue, DURATION_10_MS, context -> schemaInjector)
-        .execute(preparedStatement, null, serviceContext, null, null);
+    distributor.execute(preparedStatement, null, serviceContext, null, null);
   }
 
   @Test
-  public void testCannotInferSchema() {
+  public void shouldThrowFailureIfCannotInferSchema() {
     // Given:
     final PreparedStatement preparedStatement = PreparedStatement.of("", new EmptyStatement());
     when(schemaInjector.forStatement(any())).thenThrow(new KsqlException("Could not infer!"));
@@ -117,8 +138,7 @@ public class DistributingExecutorTest {
     expectedException.expectMessage("Could not infer!");
 
     // When:
-    new DistributingExecutor(queue, DURATION_10_MS, context -> schemaInjector)
-        .execute(preparedStatement, null, serviceContext, null, null);
+    distributor.execute(preparedStatement, null, serviceContext, null, null);
   }
 
 }

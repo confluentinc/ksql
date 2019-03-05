@@ -43,6 +43,7 @@ import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.List;
@@ -79,6 +80,8 @@ public class RequestValidatorTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    when(ksqlEngine.parse(any()))
+        .thenAnswer(inv -> new DefaultKsqlParser().parse(inv.getArgument(0)));
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
@@ -90,7 +93,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void testValidationPass() {
+  public void shouldCallStatementValidator() {
     // Given:
     givenRequestValidator(
         ImmutableMap.of(CreateStream.class, statementValidator)
@@ -113,7 +116,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void testValidationForExecutableStatement() {
+  public void shouldExecuteOnEngineIfNoCustomExecutor() {
     // Given:
     givenRequestValidator(
         ImmutableMap.of()
@@ -133,7 +136,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void testValidationFailThrowsException() {
+  public void shouldThrowExceptionIfValidationFails() {
     // Given:
     givenRequestValidator(
         ImmutableMap.of(CreateStream.class, statementValidator)
@@ -153,7 +156,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void testUnknownValidatorType() {
+  public void shouldThrowIfNoValidatorAvailable() {
     // Given:
     givenRequestValidator(
         ImmutableMap.of()
@@ -170,23 +173,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void testUnknownValidatorTypeExcluded() {
-    // Given:
-    givenRequestValidator(
-        ImmutableMap.of(
-            Explain.class, StatementValidator.NO_VALIDATION
-        )
-    );
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("EXPLAIN X;");
-
-    // Expect nothing
-    // When:
-    validator.validate(statements, ImmutableMap.of(), "sql");
-  }
-
-  @Test
-  public void testTooManyPersistentQueries() {
+  public void shouldThrowIfTooManyPersistentQueries() {
     // Given:
     givenRequestValidator(
         ImmutableMap.of()
@@ -219,7 +206,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void testNonPersistentQueriesDontCountTowardQueryLimit() {
+  public void shouldNotThrowIfManyNonPersistentQueries() {
     // Given:
     givenRequestValidator(
         ImmutableMap.of(
@@ -237,6 +224,33 @@ public class RequestValidatorTest {
     // Expect Nothing:
     // When:
     validator.validate(statements, ImmutableMap.of(), "sql");
+  }
+
+  @Test
+  public void shouldValidateRunScript() {
+    // Given:
+    final Map<String, Object> props = ImmutableMap.of(
+        KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
+        "CREATE STREAM x WITH (kafka_topic='x');");
+
+    givenRequestValidator(
+        ImmutableMap.of(CreateStream.class, statementValidator)
+    );
+
+    final List<ParsedStatement> statements =
+        new DefaultKsqlParser().parse("RUN SCRIPT '/some/script.sql';");
+
+    // When:
+    validator.validate(statements, props, "sql");
+
+    // Then:
+    verify(statementValidator, times(1)).validate(
+        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        eq(executionContext),
+        any(),
+        eq(ksqlConfig),
+        any()
+    );
   }
 
   private void givenRequestValidator(

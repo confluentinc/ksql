@@ -12,20 +12,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.validation;
+package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KafkaConsumerGroupClient;
+import io.confluent.ksql.util.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Optional;
 
-public final class ListRegisteredTopicsExecutor {
+public final class ListTopicsExecutor {
 
-  private ListRegisteredTopicsExecutor() { }
+  private ListTopicsExecutor() { }
 
   public static Optional<KsqlEntity> execute(
       final PreparedStatement statement,
@@ -34,9 +37,16 @@ public final class ListRegisteredTopicsExecutor {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
-    return Optional.of(KsqlTopicsList.build(
+    final KafkaTopicClient client = serviceContext.getTopicClient();
+    final KafkaConsumerGroupClient kafkaConsumerGroupClient
+        = new KafkaConsumerGroupClientImpl(serviceContext.getAdminClient());
+
+    return Optional.of(KafkaTopicsList.build(
         statement.getStatementText(),
-        executionContext.getMetaStore().getAllKsqlTopics().values()
+        executionContext.getMetaStore().getAllKsqlTopics().values(),
+        client.describeTopics(client.listNonInternalTopicNames()),
+        ksqlConfig,
+        kafkaConsumerGroupClient
     ));
   }
 

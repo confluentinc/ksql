@@ -15,6 +15,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
+import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -45,11 +46,13 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,6 +79,8 @@ public class RequestHandlerTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    when(ksqlEngine.parse(any()))
+        .thenAnswer(inv -> new DefaultKsqlParser().parse(inv.getArgument(0)));
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
@@ -86,22 +91,12 @@ public class RequestHandlerTest {
   public void shouldUseCustomExecutor() {
     // Given
     final KsqlEntity entity = mock(KsqlEntity.class);
-    final StatementExecutor customExecutor = mock(StatementExecutor.class);
-    when(customExecutor.execute(
-        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
-        eq(ksqlEngine),
-        eq(serviceContext),
-        eq(ksqlConfig),
-        any())).thenReturn(Optional.ofNullable(entity));
-
-    givenRequestHandler(
-        ImmutableMap.of(CreateStream.class, customExecutor),
-        clazz -> false
-    );
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
+    final StatementExecutor customExecutor = givenReturningExecutor(CreateStream.class, entity);
+    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor), clazz -> false);
 
     // When
+    final List<ParsedStatement> statements =
+        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
     final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of());
 
     // Then
@@ -118,14 +113,11 @@ public class RequestHandlerTest {
   @Test
   public void shouldDefaultToDistributor() {
     // Given
-    givenRequestHandler(
-        ImmutableMap.of(),
-        clazz -> false
-    );
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
+    givenRequestHandler(ImmutableMap.of(), clazz -> false);
 
     // When
+    final List<ParsedStatement> statements =
+        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
     final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of());
 
     // Then
@@ -139,16 +131,13 @@ public class RequestHandlerTest {
   }
 
   @Test
-  public void testDistributesProperties() {
+  public void shouldDistributeProperties() {
     // Given
-    givenRequestHandler(
-        ImmutableMap.of(),
-        clazz -> false
-    );
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
+    givenRequestHandler(ImmutableMap.of(), clazz -> false);
 
     // When
+    final List<ParsedStatement> statements =
+        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
     final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of("x", "y"));
 
     // Then
@@ -164,22 +153,7 @@ public class RequestHandlerTest {
   @Test
   public void shouldWaitForDistributedStatements() throws TimeoutException, InterruptedException {
     // Given
-    final CommandStatusEntity entity1 = mock(CommandStatusEntity.class);
-    when(entity1.getCommandSequenceNumber()).thenReturn(1L);
-
-    final CommandStatusEntity entity2 = mock(CommandStatusEntity.class);
-    when(entity2.getCommandSequenceNumber()).thenReturn(2L);
-
-    final StatementExecutor customExecutor = mock(StatementExecutor.class);
-    when(customExecutor.execute(
-        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
-        eq(ksqlEngine),
-        eq(serviceContext),
-        eq(ksqlConfig),
-        any()))
-        .thenReturn(Optional.of(entity1))
-        .thenReturn(Optional.of(entity2));
-
+    StatementExecutor customExecutor = givenSequencedExecutor(CreateStream.class);
     givenRequestHandler(
         ImmutableMap.of(CreateStream.class, customExecutor),
         clazz -> !Explain.class.isAssignableFrom(clazz)
@@ -207,6 +181,31 @@ public class RequestHandlerTest {
     verify(commandQueue, times(1)).ensureConsumedPast(2L, DURATION_10_MS);
   }
 
+  @Test
+  public void shouldInlineRunScriptStatements() {
+    // Given:
+    final Map<String, Object> props = ImmutableMap.of(
+        KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
+        "CREATE STREAM X WITH (kafka_topic='x');");
+
+    final StatementExecutor customExecutor = givenReturningExecutor(CreateStream.class, null);
+    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor), clazz -> false);
+
+    // When:
+    final List<ParsedStatement> statements = new DefaultKsqlParser()
+        .parse("RUN SCRIPT '/some/script.sql';" );
+    handler.execute(statements, props);
+
+    // Then:
+    verify(customExecutor, times(1))
+        .execute(
+            argThat(is(preparedStatementText("CREATE STREAM X WITH (kafka_topic='x');"))),
+            eq(ksqlEngine),
+            eq(serviceContext),
+            eq(ksqlConfig),
+            any());
+  }
+
   private void givenRequestHandler(
       final Map<Class<? extends Statement>, StatementExecutor> executors,
       final Predicate<Class<? extends Statement>> mustSynchronize) {
@@ -220,6 +219,39 @@ public class RequestHandlerTest {
         commandQueue,
         DURATION_10_MS
     );
+  }
+
+  private StatementExecutor givenReturningExecutor(
+      final Class<? extends Statement> statementClass,
+      final KsqlEntity entity
+  ) {
+    final StatementExecutor customExecutor = mock(StatementExecutor.class);
+    when(customExecutor.execute(
+        argThat(is(preparedStatement(instanceOf(statementClass)))),
+        eq(ksqlEngine),
+        eq(serviceContext),
+        eq(ksqlConfig),
+        any())).thenReturn(Optional.ofNullable(entity));
+    return customExecutor;
+  }
+
+  private StatementExecutor givenSequencedExecutor(
+      final Class<? extends Statement> statementClass
+  ) {
+    final AtomicLong scn = new AtomicLong();
+    final StatementExecutor customExecutor = mock(StatementExecutor.class);
+    when(customExecutor.execute(
+        argThat(is(preparedStatement(instanceOf(statementClass)))),
+        eq(ksqlEngine),
+        eq(serviceContext),
+        eq(ksqlConfig),
+        any()))
+        .thenAnswer(inv -> {
+          final CommandStatusEntity commandStatusEntity = mock(CommandStatusEntity.class);
+          when(commandStatusEntity.getCommandSequenceNumber()).thenReturn(scn.incrementAndGet());
+          return Optional.of(commandStatusEntity);
+        });
+    return customExecutor;
   }
 
 

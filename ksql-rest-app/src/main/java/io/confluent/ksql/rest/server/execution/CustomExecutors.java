@@ -30,8 +30,6 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.server.validation.ListRegisteredTopicsExecutor;
-import io.confluent.ksql.rest.server.validation.ListTopicsExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.EnumSet;

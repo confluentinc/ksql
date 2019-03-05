@@ -66,8 +66,8 @@ public enum CustomValidators implements StatementValidator {
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
-  SET_PROPERTY(SetProperty.class, PropertyValidator.Set::validate),
-  UNSET_PROPERTY(UnsetProperty.class, PropertyValidator.Unset::validate),
+  SET_PROPERTY(SetProperty.class, PropertyValidator::set),
+  UNSET_PROPERTY(UnsetProperty.class, PropertyValidator::unset),
 
   TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate),
   RUN_SCRIPT(RunScript.class, StatementValidator.NO_VALIDATION);

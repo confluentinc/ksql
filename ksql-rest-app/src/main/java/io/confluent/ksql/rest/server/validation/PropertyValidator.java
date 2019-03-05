@@ -28,54 +28,46 @@ import java.util.Map;
 
 public class PropertyValidator {
 
-  public static class Set {
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
+  public static void set(
+      final PreparedStatement statement,
+      final KsqlExecutionContext context,
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> propertyOverrides
+  ) {
+    final SetProperty setProperty = (SetProperty) statement.getStatement();
+    throwIfUnknownProperty(
+        setProperty.getPropertyName(),
+        statement.getStatementText()
+    );
 
-    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
-    public static void validate(
-        final PreparedStatement statement,
-        final KsqlExecutionContext context,
-        final ServiceContext serviceContext,
-        final KsqlConfig ksqlConfig,
-        final Map<String, Object> propertyOverrides
-    ) {
-      final SetProperty setProperty = (SetProperty) statement.getStatement();
-      throwIfUnknownProperty(
+    try {
+      ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
           setProperty.getPropertyName(),
-          statement.getStatementText()
-      );
-
-      try {
-        ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
-            setProperty.getPropertyName(),
-            setProperty.getPropertyValue()
-        ));
-      } catch (final Exception e) {
-        throw new KsqlStatementException(
-            e.getMessage(), statement.getStatementText(), e.getCause());
-      }
-
-      context.execute(statement, ksqlConfig, propertyOverrides);
+          setProperty.getPropertyValue()
+      ));
+    } catch (final Exception e) {
+      throw new KsqlStatementException(
+          e.getMessage(), statement.getStatementText(), e.getCause());
     }
 
+    context.execute(statement, ksqlConfig, propertyOverrides);
   }
 
-  public static class Unset {
-
-    public static void validate(
-        final PreparedStatement statement,
-        final KsqlExecutionContext context,
-        final ServiceContext serviceContext,
-        final KsqlConfig ksqlConfig,
-        final Map<String, Object> propertyOverrides
-    ) {
-      final UnsetProperty unsetProperty = (UnsetProperty) statement.getStatement();
-      throwIfUnknownProperty(
-          unsetProperty.getPropertyName(),
-          statement.getStatementText()
-      );
-      context.execute(statement, ksqlConfig, propertyOverrides);
-    }
-
+  public static void unset(
+      final PreparedStatement statement,
+      final KsqlExecutionContext context,
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> propertyOverrides
+  ) {
+    final UnsetProperty unsetProperty = (UnsetProperty) statement.getStatement();
+    throwIfUnknownProperty(
+        unsetProperty.getPropertyName(),
+        statement.getStatementText()
+    );
+    context.execute(statement, ksqlConfig, propertyOverrides);
   }
 
   private static void throwIfUnknownProperty(final String propertyName, final String text) {

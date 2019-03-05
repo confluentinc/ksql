@@ -26,7 +26,7 @@ public class DelimitedProducer extends DataGenProducer {
   private final CSVFormat csvFormat;
   public DelimitedProducer(final String valueDelimiter) {
     super();
-    this.csvFormat = CSVFormat.newFormat(valueDelimiter.charAt(0));
+    this.csvFormat = CSVFormat.DEFAULT.withDelimiter(valueDelimiter.charAt(0));
   }
 
   @Override

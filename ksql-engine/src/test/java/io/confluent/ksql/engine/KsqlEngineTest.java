@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql;
+package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
@@ -40,6 +40,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -155,7 +156,7 @@ public class KsqlEngineTest {
     // Given:
     final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil
         .execute(ksqlEngine,
-        "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap()).get(0);
+            "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap()).get(0);
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is("Statement not executable")));
@@ -171,7 +172,7 @@ public class KsqlEngineTest {
     // Given:
     final List<ParsedStatement> statements = parse(
         "create stream bar as select * from orders;"
-        + "insert into bar select * from orders;"
+            + "insert into bar select * from orders;"
     );
 
     givenStatementAlreadyExecuted(statements.get(0));
@@ -250,7 +251,7 @@ public class KsqlEngineTest {
         .emptyMap());
 
     assertThat(metaStore.getQueriesWithSource("TEST2"),
-               equalTo(Utils.mkSet("CTAS_BAR_0", "CTAS_FOO_1")));
+        equalTo(Utils.mkSet("CTAS_BAR_0", "CTAS_FOO_1")));
     assertThat(metaStore.getQueriesWithSink("BAR"), equalTo(Utils.mkSet("CTAS_BAR_0")));
     assertThat(metaStore.getQueriesWithSink("FOO"), equalTo(Utils.mkSet("CTAS_FOO_1")));
   }
@@ -314,8 +315,8 @@ public class KsqlEngineTest {
 
     final String runScriptContent =
         "CREATE STREAM S1 (COL1 BIGINT) WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
-        + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM S1 GROUP BY COL1;\n"
-        + "CREATE STREAM S2 (C1 BIGINT) WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
+            + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM S1 GROUP BY COL1;\n"
+            + "CREATE STREAM S2 (C1 BIGINT) WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
 
     KsqlEngineTestUtil.execute(ksqlEngine, runScriptContent, KSQL_CONFIG, Collections.emptyMap());
     Assert.assertTrue(serviceContext.getTopicClient().isTopicExists("T1"));
@@ -532,7 +533,7 @@ public class KsqlEngineTest {
     // Given:
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream bar with (value_format = 'avro') as select * from test1;"
-        + "create stream foo as select * from test1;",
+            + "create stream foo as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
     query.close();
@@ -673,7 +674,6 @@ public class KsqlEngineTest {
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
-
 
     // When:
     query.close();
@@ -1068,7 +1068,7 @@ public class KsqlEngineTest {
     final List<QueryMetadata> queries = KsqlEngineTestUtil
         .execute(ksqlEngine, sql, KSQL_CONFIG, Collections.emptyMap());
     assertThat("query id of actual execute should not be affected by previous tryExecute",
-        ((PersistentQueryMetadata)queries.get(0)).getQueryId(), is(new QueryId("CTAS_FOO_0")));
+        ((PersistentQueryMetadata) queries.get(0)).getQueryId(), is(new QueryId("CTAS_FOO_0")));
   }
 
   @Test
@@ -1076,7 +1076,7 @@ public class KsqlEngineTest {
     // Given:
     final List<ParsedStatement> statements = parse(
         "create table foo WITH(VALUE_FORMAT='AVRO') as select * from test2;"
-        + "create stream foo2 WITH(VALUE_FORMAT='AVRO') as select * from orders;");
+            + "create stream foo2 WITH(VALUE_FORMAT='AVRO') as select * from orders;");
 
     givenStatementAlreadyExecuted(statements.get(0));
 
@@ -1122,8 +1122,10 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(result.getQuery(), is(not(Optional.empty())));
-    assertThat(sandbox.getPersistentQuery(getQueryId(result.getQuery().get())), is(not(Optional.empty())));
-    assertThat(ksqlEngine.getPersistentQuery(getQueryId(result.getQuery().get())), is(Optional.empty()));
+    assertThat(sandbox.getPersistentQuery(getQueryId(result.getQuery().get())),
+        is(not(Optional.empty())));
+    assertThat(ksqlEngine.getPersistentQuery(getQueryId(result.getQuery().get())),
+        is(Optional.empty()));
   }
 
   @Test
@@ -1211,7 +1213,7 @@ public class KsqlEngineTest {
   }
 
   private static QueryId getQueryId(final QueryMetadata query) {
-    return ((PersistentQueryMetadata)query).getQueryId();
+    return ((PersistentQueryMetadata) query).getQueryId();
   }
 
   private void givenStatementAlreadyExecuted(

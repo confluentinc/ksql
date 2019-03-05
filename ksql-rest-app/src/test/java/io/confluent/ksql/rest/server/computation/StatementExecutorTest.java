@@ -32,9 +32,9 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.KsqlEngineTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;

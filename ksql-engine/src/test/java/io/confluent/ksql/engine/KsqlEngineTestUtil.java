@@ -13,9 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql;
+package io.confluent.ksql.engine;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;

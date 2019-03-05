@@ -108,6 +108,7 @@ public class CommandRunner implements Closeable {
   public void close() {
     try {
       closed = true;
+      commandStore.wakeup();
       executor.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();

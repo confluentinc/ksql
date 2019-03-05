@@ -278,6 +278,24 @@ public class CommandStoreTest {
     assertThat(commandStore.isEmpty(), is(true));
   }
 
+  @Test
+  public void shouldWakeUp() {
+    // When:
+    commandStore.wakeup();
+
+    // Then:
+    verify(commandTopic).wakeup();
+  }
+
+  @Test
+  public void shouldClose() {
+    // When:
+    commandStore.close();
+
+    // Then:
+    verify(commandTopic).close();
+  }
+
   private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {
     assertThat(args.length % 2, equalTo(0));
     final List<ConsumerRecord<CommandId, Command>> records = new ArrayList<>();

@@ -206,6 +206,7 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
     inOrder.verify(executor).awaitTermination(anyLong(), any());
     inOrder.verify(commandStore).close();
   }

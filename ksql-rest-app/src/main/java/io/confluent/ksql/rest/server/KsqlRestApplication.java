@@ -356,7 +356,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    final CommandStore commandStore = new CommandStore(
+    final CommandStore commandStore = CommandStore.Factory.create(
         commandTopic,
         restConfig.getCommandConsumerProperties(),
         restConfig.getCommandProducerProperties());

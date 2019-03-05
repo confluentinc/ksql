@@ -36,7 +36,6 @@ public interface CommandQueue extends Closeable {
    * it is guaranteed that the command has been persisted, without regard
    * for the {@link io.confluent.ksql.rest.entity.CommandStatus CommandStatus}.
    *
-   * @param statementString     The string of the statement to be distributed
    * @param statement           The statement to be distributed
    * @param ksqlConfig          The application-scoped configurations
    * @param overwriteProperties Any command-specific Streams properties to use.
@@ -87,6 +86,13 @@ public interface CommandQueue extends Closeable {
    * @return whether or not there are any enqueued commands
    */
   boolean isEmpty();
+
+  /**
+   * Cause any blocked {@link #getNewCommands(Duration)} calls to return early.
+   *
+   * <p>Useful when wanting to {@link #close()} the queue in a timely fashion.
+   */
+  void wakeup();
 
   /**
    * Closes the queue so that no more reads or writes will be accepted.

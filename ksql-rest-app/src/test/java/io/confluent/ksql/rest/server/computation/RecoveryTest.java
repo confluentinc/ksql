@@ -147,6 +147,10 @@ public class RecoveryTest {
     }
 
     @Override
+    public void wakeup() {
+    }
+
+    @Override
     public void close() {
     }
   }

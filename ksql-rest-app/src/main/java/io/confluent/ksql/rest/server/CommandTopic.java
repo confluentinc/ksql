@@ -138,8 +138,11 @@ public class CommandTopic {
         .get(commandTopicPartition);
   }
 
-  public void close() {
+  public void wakeup() {
     commandConsumer.wakeup();
+  }
+
+  public void close() {
     commandConsumer.close();
     commandProducer.close();
   }

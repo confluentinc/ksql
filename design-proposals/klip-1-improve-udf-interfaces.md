@@ -67,11 +67,12 @@ parallel. Below are detailed designs for each:
 
 ### Structured UDFs
 
-This is the most straight-forward of the changes. After refactoring done in 
-[#2411](https://github.com/confluentinc/ksql/pull/2411), the type coercion is already in place to
-support `Struct` types. Minor changes need to be made to ensure that the validation does not
-unnecessarily prevent usage of `Struct`. A noteworthy extension that may be worth supporting is 
-dedicated AVRO types in the signatures for UDFs, but this is not covered in this KLIP.
+After refactoring done in [#2411](https://github.com/confluentinc/ksql/pull/2411), the type coercion 
+is already in place to support `Struct` types as input parameters. Minor changes need to be made to 
+ensure that the validation does not unnecessarily prevent usage of `Struct`.
+
+A noteworthy extension that may be worth supporting is dedicated AVRO types in the signatures for 
+UDFs, but this is not covered in this KLIP.
 
 ```java
 @Udf("Checks if the employee has a valid record (i.e. contains a valid name and email)")
@@ -79,6 +80,29 @@ public boolean isValid(
     @UdfParameter final Struct employee) {
   return employee.get("firstname").matches("[A-Z][a-z]*")
     && employee.get("email").endsWith("@company.io");
+}
+```
+
+There is more work to be done in order to support `Struct` as the return value of UDFs, namely we
+must have some mechanism to create the output schema. There are two ways to resolve the output
+schema:
+
+* Resolve the schema at runtime, inferring it from the output object. This can work, but runs the
+risk that the UDF is inconsistent (e.g. returns two structs with different schemas).
+* Resolve the schema as part of the UDF specification. This adds more structure and predictability,
+but may become tricky to evolve and we need a good API to do this, especially if it is necessary to
+specify complicated nested structs. Below are three candidate ways to specify the schema:
+
+```java
+@UdfSchema
+public static final Schema SCHEMA = SchemaBuilder.struct()...build();
+
+@Udf("Checks if the employee has a valid record (i.e. contains a valid name and email)")
+@UdfReturn(value  = "STRUCT<'A' INT, 'B' VARCHAR>") // sample specification annotation
+@UdfReturn(file   = 'schema_def.kschema')           // another way pointing to a file
+@UdfReturn(schema = "name.space.MyClass.SCHEMA")    // another way that would resolve a java object
+public Struct generate() {
+  return new Struct(...);
 }
 ```
 

@@ -1,4 +1,4 @@
-You can use KSQL with compatible |cp| and Apache Kafka versions.
+You can use KSQL with compatible |cp| and |ak| versions.
 
 ==================== ================
 KSQL version         4.1

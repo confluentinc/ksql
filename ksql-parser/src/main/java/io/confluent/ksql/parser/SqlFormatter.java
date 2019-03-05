@@ -18,7 +18,6 @@ package io.confluent.ksql.parser;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Iterables.transform;
-import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -29,14 +28,8 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.CreateView;
-import io.confluent.ksql.parser.tree.Delete;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropView;
 import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.ExplainFormat;
-import io.confluent.ksql.parser.tree.ExplainOption;
-import io.confluent.ksql.parser.tree.ExplainType;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
@@ -44,18 +37,12 @@ import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.Node;
-import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.RenameColumn;
-import io.confluent.ksql.parser.tree.RenameTable;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SetSession;
 import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.parser.tree.ShowCreate;
-import io.confluent.ksql.parser.tree.ShowPartitions;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -63,7 +50,6 @@ import io.confluent.ksql.parser.tree.TableSubquery;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -365,72 +351,15 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitCreateView(final CreateView node, final Integer indent) {
-      builder.append("CREATE ");
-      if (node.isReplace()) {
-        builder.append("OR REPLACE ");
-      }
-      builder.append("VIEW ")
-              .append(node.getName())
-              .append(" AS\n");
-
-      process(node.getQuery(), indent);
-
-      return null;
-    }
-
-    @Override
-    protected Void visitDropView(final DropView node, final Integer context) {
-      builder.append("DROP VIEW ");
-      if (node.isExists()) {
-        builder.append("IF EXISTS ");
-      }
-      builder.append(node.getName());
-
-      return null;
-    }
-
-    @Override
     protected Void visitExplain(final Explain node, final Integer indent) {
       builder.append("EXPLAIN ");
       if (node.isAnalyze()) {
         builder.append("ANALYZE ");
       }
 
-      final List<String> options = new ArrayList<>();
-
-      for (final ExplainOption option : node.getOptions()) {
-        if (option instanceof ExplainType) {
-          options.add("TYPE " + ((ExplainType) option).getType());
-        } else if (option instanceof ExplainFormat) {
-          options.add("FORMAT " + ((ExplainFormat) option).getType());
-        } else {
-          throw new UnsupportedOperationException("unhandled explain option: " + option);
-        }
-      }
-
-      if (!options.isEmpty()) {
-        builder.append("(");
-        Joiner.on(", ").appendTo(builder, options);
-        builder.append(")");
-      }
-
       builder.append("\n");
 
       process(node.getStatement(), indent);
-
-      return null;
-    }
-
-    @Override
-    protected Void visitShowCreate(final ShowCreate node, final Integer context) {
-      if (node.getType() == ShowCreate.Type.TABLE) {
-        builder.append("SHOW CREATE TABLE ")
-                .append(formatName(node.getName()));
-      } else if (node.getType() == ShowCreate.Type.VIEW) {
-        builder.append("SHOW CREATE VIEW ")
-                .append(formatName(node.getName()));
-      }
 
       return null;
     }
@@ -444,39 +373,8 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitShowPartitions(final ShowPartitions node, final Integer context) {
-      builder.append("SHOW PARTITIONS FROM ")
-              .append(node.getTable());
-
-      if (node.getWhere().isPresent()) {
-        builder.append(" WHERE ")
-                .append(ExpressionFormatter.formatExpression(node.getWhere().get()));
-      }
-
-      if (node.getLimit().isPresent()) {
-        builder.append(" LIMIT ")
-                .append(node.getLimit().get());
-      }
-
-      return null;
-    }
-
-    @Override
     protected Void visitShowFunctions(final ListFunctions node, final Integer context) {
       builder.append("SHOW FUNCTIONS");
-
-      return null;
-    }
-
-    @Override
-    protected Void visitDelete(final Delete node, final Integer context) {
-      builder.append("DELETE FROM ")
-              .append(node.getTable().getName());
-
-      if (node.getWhere().isPresent()) {
-        builder.append(" WHERE ")
-                .append(ExpressionFormatter.formatExpression(node.getWhere().get()));
-      }
 
       return null;
     }
@@ -537,12 +435,6 @@ public final class SqlFormatter {
       return "\"" + name + "\"";
     }
 
-    private static String formatName(final QualifiedName name) {
-      return name.getParts().stream()
-              .map(Formatter::formatName)
-              .collect(joining("."));
-    }
-
     @Override
     protected Void visitInsertInto(final InsertInto node, final Integer indent) {
       builder.append("INSERT INTO ");
@@ -561,39 +453,6 @@ public final class SqlFormatter {
 
       return null;
     }
-
-    @Override
-    protected Void visitRenameTable(final RenameTable node, final Integer context) {
-      builder.append("ALTER TABLE ")
-              .append(node.getSource())
-              .append(" RENAME TO ")
-              .append(node.getTarget());
-
-      return null;
-    }
-
-    @Override
-    protected Void visitRenameColumn(final RenameColumn node, final Integer context) {
-      builder.append("ALTER TABLE ")
-              .append(node.getTable())
-              .append(" RENAME COLUMN ")
-              .append(node.getSource())
-              .append(" TO ")
-              .append(node.getTarget());
-
-      return null;
-    }
-
-    @Override
-    public Void visitSetSession(final SetSession node, final Integer context) {
-      builder.append("SET SESSION ")
-              .append(node.getName())
-              .append(" = ")
-              .append(ExpressionFormatter.formatExpression(node.getValue()));
-
-      return null;
-    }
-
 
     private void processRelation(final Relation relation, final Integer indent) {
       // TODO: handle this properly

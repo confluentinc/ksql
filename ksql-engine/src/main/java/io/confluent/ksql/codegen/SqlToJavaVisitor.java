@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
-import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -38,9 +37,7 @@ import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.FieldReference;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -151,13 +148,6 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    protected Pair<String, Schema> visitBinaryLiteral(
-        final BinaryLiteral node, final Boolean unmangleNames) {
-      throw new UnsupportedOperationException();
-    }
-
-
-    @Override
     protected Pair<String, Schema> visitDoubleLiteral(
         final DoubleLiteral node, final Boolean unmangleNames) {
       return new Pair<>(Double.toString(node.getValue()), Schema.OPTIONAL_FLOAT64_SCHEMA);
@@ -166,14 +156,6 @@ public class SqlToJavaVisitor {
     @Override
     protected Pair<String, Schema> visitDecimalLiteral(
         final DecimalLiteral node, final Boolean unmangleNames) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    protected Pair<String, Schema> visitGenericLiteral(
-        final GenericLiteral node,
-        final Boolean unmangleNames
-    ) {
       throw new UnsupportedOperationException();
     }
 
@@ -231,14 +213,6 @@ public class SqlToJavaVisitor {
         parts.add(formatIdentifier(part));
       }
       return Joiner.on('.').join(parts);
-    }
-
-    @Override
-    public Pair<String, Schema> visitFieldReference(
-        final FieldReference node,
-        final Boolean unmangleNames
-    ) {
-      throw new UnsupportedOperationException();
     }
 
     protected Pair<String, Schema> visitLongLiteral(

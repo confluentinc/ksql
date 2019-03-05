@@ -31,11 +31,6 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
-
-  protected R visitExtract(final Extract node, final C context) {
-    return visitExpression(node, context);
-  }
-
   protected R visitArithmeticBinary(final ArithmeticBinaryExpression node, final C context) {
     return visitExpression(node, context);
   }
@@ -81,32 +76,12 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
-  protected R visitShowPartitions(final ShowPartitions node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitShowCreate(final ShowCreate node, final C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitShowFunctions(final ListFunctions node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitSetSession(final SetSession node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitGenericLiteral(final GenericLiteral node, final C context) {
-    return visitLiteral(node, context);
-  }
-
   protected R visitTimeLiteral(final TimeLiteral node, final C context) {
     return visitLiteral(node, context);
-  }
-
-  protected R visitExplainOption(final ExplainOption node, final C context) {
-    return visitNode(node, context);
   }
 
   protected R visitWithQuery(final WithQuery node, final C context) {
@@ -126,10 +101,6 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitQuerySpecification(final QuerySpecification node, final C context) {
-    return visitQueryBody(node, context);
-  }
-
-  protected R visitSetOperation(final SetOperation node, final C context) {
     return visitQueryBody(node, context);
   }
 
@@ -161,10 +132,6 @@ public abstract class AstVisitor<R, C> {
     return visitLiteral(node, context);
   }
 
-  protected R visitBinaryLiteral(final BinaryLiteral node, final C context) {
-    return visitLiteral(node, context);
-  }
-
   protected R visitBooleanLiteral(final BooleanLiteral node, final C context) {
     return visitLiteral(node, context);
   }
@@ -178,10 +145,6 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitDereferenceExpression(final DereferenceExpression node, final C context) {
-    return visitExpression(node, context);
-  }
-
-  protected R visitNullIfExpression(final NullIfExpression node, final C context) {
     return visitExpression(node, context);
   }
 
@@ -281,20 +244,8 @@ public abstract class AstVisitor<R, C> {
     return visitRelation(node, context);
   }
 
-  protected R visitExists(final ExistsPredicate node, final C context) {
-    return visitExpression(node, context);
-  }
-
   protected R visitCast(final Cast node, final C context) {
     return visitExpression(node, context);
-  }
-
-  protected R visitFieldReference(final FieldReference node, final C context) {
-    return visitExpression(node, context);
-  }
-
-  protected R visitWindow(final Window node, final C context) {
-    return visitNode(node, context);
   }
 
   protected R visitWindowExpression(final WindowExpression node, final C context) {
@@ -310,14 +261,6 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitSessionWindowExpression(final SessionWindowExpression node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitWindowFrame(final WindowFrame node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitFrameBound(final FrameBound node, final C context) {
     return visitNode(node, context);
   }
 
@@ -358,26 +301,6 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitDropTable(final DropTable node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitRenameTable(final RenameTable node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitRenameColumn(final RenameColumn node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitCreateView(final CreateView node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitDropView(final DropView node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitDelete(final Delete node, final C context) {
     return visitStatement(node, context);
   }
 

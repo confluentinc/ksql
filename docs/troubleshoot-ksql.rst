@@ -31,8 +31,8 @@ Next, follow this checklist to diagnose why your query returns no results:
 * Does the data match the query predicate?
 * Are deserialization errors occurring while reading the data?
 
-Check the stream's underlying Kafka topic
-=========================================
+Check the stream's underlying |ak| topic
+========================================
 
 Use the DESCRIBE EXTENDED statement to verify the source topic for the stream.
 For example, if you have a ``pageviews`` stream on a Kafka topic named

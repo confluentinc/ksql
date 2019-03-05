@@ -68,7 +68,7 @@ public class DataGenTest {
     DataGen.run(
             "schema=./src/main/resources/purchase.avro",
             "format=delimited",
-            "valueDelimiter=@@",
+            "value_delimiter=@@",
             "topic=foo");
   }
 }

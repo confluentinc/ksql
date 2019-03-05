@@ -93,7 +93,7 @@ public final class DataGen {
         + "schema=<avro schema file> "
         + "[schemaRegistryUrl=<url for Confluent Schema Registry> (defaults to http://localhost:8081)] "
         + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
-        + "[valueDelimiter=<delimiter for delimited format> (used only when format is 'delimited', only "
+        + "[value_delimiter=<delimiter for delimited format> (used only when format is 'delimited', only "
         + "single characters, defaults to ',' )] "
         + "topic=<kafka topic name> "
         + "key=<name of key column> "
@@ -160,7 +160,7 @@ public final class DataGen {
               .put("bootstrap-server", (builder, argVal) -> builder.bootstrapServer = argVal)
               .put("schema", (builder, argVal) -> builder.schemaFile = toFileInputStream(argVal))
               .put("format", (builder, argVal) -> builder.format = parseFormat(argVal))
-              .put("valueDelimiter", (builder, argVal) -> builder.valueDelimiter = parseValueDelimiter(argVal))
+              .put("value_delimiter", (builder, argVal) -> builder.valueDelimiter = parseValueDelimiter(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
               .put("iterations", (builder, argVal) -> builder.iterations = parseIterations(argVal))
@@ -365,7 +365,7 @@ public final class DataGen {
       private static String parseValueDelimiter(final String valueDelimiterString) {
         if (valueDelimiterString.length() > 1) {
           throw new ArgumentParseException(String.format(
-                  "Invalid value '%s' for valueDelimiter; was expecting single character value",
+                  "Invalid value '%s' for value_delimiter; was expecting single character value",
                   valueDelimiterString
           ));
         }

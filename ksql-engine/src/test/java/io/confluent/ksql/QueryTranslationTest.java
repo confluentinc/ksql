@@ -418,7 +418,7 @@ public class QueryTranslationTest {
       } else {
         avroSchema = Optional.empty();
       }
-      return new Topic(topicName, avroSchema, getSerdeSupplier(format), KsqlConstants.defaultSinkNumberOfPartitions);
+      return new Topic(topicName, avroSchema, getSerdeSupplier(format), KsqlConstants.legacyDefaultSinkPartitionCount);
     };
 
     try {

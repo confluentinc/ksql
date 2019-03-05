@@ -241,12 +241,12 @@ public class KsqlStructuredDataOutputNodeTest {
     createOutputNode(Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "field2"), true);
 
     // When:
-    final SchemaKStream schemaKStream = buildStream();
+    stream = buildStream();
 
     // Then:
-    final Field keyField = schemaKStream.getKeyField();
+    final Field keyField = stream.getKeyField();
     assertThat(keyField, equalTo(new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA)));
-    assertThat(schemaKStream.getSchema().fields(), equalTo(schema.fields()));
+    assertThat(stream.getSchema().fields(), equalTo(schema.fields()));
   }
 
   @Test
@@ -299,11 +299,10 @@ public class KsqlStructuredDataOutputNodeTest {
     createOutputNode(Collections.emptyMap(), true);
 
     // When:
-    final SchemaKStream schemaKStream = buildStream();
+    stream = buildStream();
 
     // Then:
     verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 1, (short) 2, Collections.emptyMap());
-    assertThat(schemaKStream, instanceOf(SchemaKStream.class));
   }
 
   @Test
@@ -315,12 +314,11 @@ public class KsqlStructuredDataOutputNodeTest {
     ), true);
 
     // When:
-    final SchemaKStream schemaKStream = buildStream();
+    stream = buildStream();
 
     // Then:
     verify(mockTopicClient, never()).describeTopics(any());
     verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 5, (short) 3, Collections.emptyMap());
-    assertThat(schemaKStream, instanceOf(SchemaKStream.class));
   }
 
   @Test
@@ -329,11 +327,10 @@ public class KsqlStructuredDataOutputNodeTest {
     createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 5), true);
 
     // When:
-    final SchemaKStream schemaKStream = buildStream();
+    stream = buildStream();
 
     // Then:
     verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 5, (short) 2, Collections.emptyMap());
-    assertThat(schemaKStream, instanceOf(SchemaKStream.class));
   }
 
   @Test
@@ -342,11 +339,10 @@ public class KsqlStructuredDataOutputNodeTest {
     createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 2), true);
 
     // When:
-    final SchemaKStream schemaKStream = buildStream();
+    stream = buildStream();
 
     // Then:
     verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 1, (short) 2, Collections.emptyMap());
-    assertThat(schemaKStream, instanceOf(SchemaKStream.class));
   }
 
   @Test
@@ -354,6 +350,8 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     doThrow(KsqlException.class).when(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 1, (short) 2, Collections.emptyMap());
     createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 2), true);
+
+    // Then:
     expectedException.expect(KsqlException.class);
 
     // When:
@@ -362,26 +360,43 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
-  public void shouldUseLegacySinkPropertiesIfLegacyIsTrue() {
+  public void shouldUseLegacySinkPartitionCountIfLegacyIsTrue() {
     // Given:
-    Mockito.<Object>when(ksqlConfig.values()).thenReturn((Map<String, ?>) ImmutableMap.of(
-        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, KsqlConstants.defaultSinkNumberOfPartitions,
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, KsqlConstants.defaultSinkNumberOfReplications
+    Mockito.<Object>when(ksqlConfig.values()).thenReturn(ImmutableMap.<String, Object>of(
+        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, KsqlConstants.legacyDefaultSinkPartitionCount
     ));
-    when(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)).thenReturn(KsqlConstants.defaultSinkNumberOfPartitions);
-    when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn(KsqlConstants.defaultSinkNumberOfReplications);
-    createOutputNode(Collections.emptyMap(), true);
+    when(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)).thenReturn(KsqlConstants.legacyDefaultSinkPartitionCount);
+    createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 2), true);
 
     // When:
-    final SchemaKStream schemaKStream = buildStream();
+    stream = buildStream();
 
     // Then:
     verify(mockTopicClient).createTopic(
         SINK_KAFKA_TOPIC_NAME,
-        KsqlConstants.defaultSinkNumberOfPartitions,
-        KsqlConstants.defaultSinkNumberOfReplications,
+        KsqlConstants.legacyDefaultSinkPartitionCount,
+        (short) 2,
         Collections.emptyMap());
-    assertThat(schemaKStream, instanceOf(SchemaKStream.class));
+  }
+
+  @Test
+  public void shouldUseLegacySinkReplicasCountIfLegacyIsTrue() {
+    // Given:
+    Mockito.<Object>when(ksqlConfig.values()).thenReturn(ImmutableMap.<String, Object>of(
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, KsqlConstants.legacyDefaultSinkReplicaCount
+    ));
+    when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn(KsqlConstants.legacyDefaultSinkReplicaCount);
+    createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 5), true);
+
+    // When:
+    stream = buildStream();
+
+    // Then:
+    verify(mockTopicClient).createTopic(
+        SINK_KAFKA_TOPIC_NAME,
+        5,
+        KsqlConstants.legacyDefaultSinkReplicaCount,
+        Collections.emptyMap());
   }
 
   @Test

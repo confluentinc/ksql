@@ -56,8 +56,8 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
-import io.confluent.ksql.rest.server.mock.MockKafkaTopicClient;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -102,7 +102,11 @@ public class StatementExecutorTest extends EasyMockSupport {
     props.put("bootstrap.servers", CLUSTER.bootstrapServers());
 
     ksqlConfig = new KsqlConfig(props);
-    serviceContext = TestServiceContext.create(new MockKafkaTopicClient());
+    final FakeKafkaTopicClient fakeKafkaTopicClient = new FakeKafkaTopicClient();
+    fakeKafkaTopicClient.createTopic("pageview_topic", 1, (short) 1, Collections.emptyMap());
+    fakeKafkaTopicClient.createTopic("foo", 1, (short) 1, Collections.emptyMap());
+    fakeKafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1, Collections.emptyMap());
+    serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry())
@@ -113,8 +117,6 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser);
     statementExecutorWithMocks
         = new StatementExecutor(ksqlConfig, mockEngine, mockParser);
-//    doReturn(new TopicDescription("test1", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
-//        .when(topicClient).describeTopic("test1");
   }
 
   @After

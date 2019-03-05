@@ -24,7 +24,7 @@
       "name": "validate AVRO ok without elements",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S as SELECT * FROM test;"
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
       "topics": [
         {
@@ -45,7 +45,7 @@
       "name": "validate AVRO ok with elements",
       "statements": [
         "CREATE STREAM TEST (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S as SELECT * FROM test;"
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
       "topics": [
         {
@@ -66,7 +66,7 @@
       "name": "validate AVRO uses null for unknown element",
       "statements": [
         "CREATE STREAM TEST (c1 INT, unknown INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S as SELECT * FROM test;"
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
       "topics": [
         {
@@ -87,7 +87,7 @@
       "name": "validate AVRO fails on incompatible schema evolution",
       "statements": [
         "CREATE STREAM TEST (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM S as SELECT * FROM test;"
+        "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM test;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",

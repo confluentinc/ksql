@@ -1,7 +1,8 @@
 {
   "tests": [
     {
-      "name": "Set correct sink partitions from the source topic",
+      "name":  "should copy partition and replica count from source topic",
+      "description": "note: this isn't about input and outputs. It would fail if the counts are not copied across because the output topic 'S' already exists with the correct counts, and the execution path checks this",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
         "CREATE STREAM S as SELECT * FROM test;"
@@ -25,7 +26,7 @@
       "outputs": [{"topic": "S", "value": {"C1": 4}}]
     },
     {
-      "name": "Use the legacy default sink properties if default partitions and replicas were set.",
+      "name": "Use the legacy default sink properties for the sink topic if default partitions and replicas were set.",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
         "CREATE STREAM S as SELECT * FROM test;"

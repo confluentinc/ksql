@@ -200,7 +200,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               Type.INT,
               4,
               null,
-              Importance.MEDIUM,
+              Importance.LOW,
               "The legacy default number of partitions for the topics created by KSQL"
                   + "in 5.1 and earlier versions."
                   + "This property should not be set for 5.2 and later versions."),
@@ -209,7 +209,7 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Type.SHORT,
               (short) 1,
               null,
-              ConfigDef.Importance.MEDIUM,
+              ConfigDef.Importance.LOW,
               "The default number of replicas for the topics created by KSQL "
                   + "in 5.1 and earlier versions."
                   + "This property should not be set for 5.2 and later versions."

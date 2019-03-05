@@ -59,14 +59,6 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public TopicDescription describeTopic(final String topicName) {
-    final Node node = new Node(1, "node", 9092);
-    final TopicPartitionInfo topicPartitionInfo = new TopicPartitionInfo(1, node, ImmutableList.of(node), ImmutableList.of(node));
-    return new TopicDescription(topicName, true, ImmutableList.of(topicPartitionInfo));
-
-  }
-
-  @Override
   public Map<String, String> getTopicConfig(final String topicName) {
     return Collections.emptyMap();
   }

@@ -151,8 +151,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           noRowKey.getKafkaTopicName(),
           serviceContext.getTopicClient(),
           shouldBeCompacted(result),
-          sourceTopicProperties.getPartitions(),
-          sourceTopicProperties.getReplicas());
+          sourceTopicProperties.partitions,
+          sourceTopicProperties.replicas);
     }
     result.into(
         noRowKey.getKafkaTopicName(),
@@ -260,15 +260,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final KsqlConfig ksqlConfig
   ) {
     final Map ksqlProperties = ksqlConfig.values();
-    if ((ksqlProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)
-          && ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY) != null)
-        || (ksqlProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
-          && ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) != null)) {
+    if (ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY) != null
+        || ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) != null) {
       return getSinkTopicPropertiesLegacyWay(sinkProperties, ksqlConfig);
     }
     // Don't request topic properties from Kafka if both are set in WITH clause.
-    if (sinkProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)
-        && sinkProperties.containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
+    if (sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY) != null
+        && sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) != null) {
       return new SourceTopicProperties(
           (Integer) sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY),
           (Short) sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
@@ -289,13 +287,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   private static SourceTopicProperties getSinkTopicPropertiesLegacyWay(
-      final Map<String, Object> outputProperties,
+      final Map<String, Object> sinkProperties,
       final KsqlConfig ksqlConfig
   ) {
-    final int partitions = (Integer) outputProperties.getOrDefault(
+    final int partitions = (Integer) sinkProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
         ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
-    final short replicas = (Short) outputProperties.getOrDefault(
+    final short replicas = (Short) sinkProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
         ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
     return new SourceTopicProperties(partitions, replicas);
@@ -343,14 +341,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     SourceTopicProperties(final int partitions, final short replicas) {
       this.partitions = partitions;
       this.replicas = replicas;
-    }
-
-    public int getPartitions() {
-      return partitions;
-    }
-
-    public short getReplicas() {
-      return replicas;
     }
   }
 

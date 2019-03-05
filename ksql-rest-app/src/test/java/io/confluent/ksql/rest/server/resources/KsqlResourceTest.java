@@ -1022,7 +1022,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(sandbox.getMetaStore()).thenReturn(metaStore);
+//    when(sandbox.getMetaStore()).thenReturn(metaStore);
     when(sandbox.execute(any(), any(), any()))
         .thenThrow(new RuntimeException("internal error"));
 
@@ -1050,7 +1050,7 @@ public class KsqlResourceTest {
     verify(commandStore).enqueueCommand(
         argThat(is(preparedStatementText(csas))),
         any(),
-        eq(ImmutableMap.of(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2")));
+        eq(ImmutableMap.of(KsqlConfig.KSQL_ENABLE_UDFS, "false")));
 
     assertThat(results, hasSize(1));
     assertThat(results.get(0).getStatementText(), is(csas));
@@ -1445,7 +1445,7 @@ public class KsqlResourceTest {
   public void shouldNeverEnqueueIfErrorIsThrown() {
     // Given:
     givenMockEngine();
-    when(ksqlEngine.execute(any(), any(), any())).thenThrow(new KsqlException("Fail"));
+//    when(ksqlEngine.execute(any(), any(), any())).thenThrow(new KsqlException("Fail"));
 
     // When:
     makeFailingRequest(

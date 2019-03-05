@@ -60,7 +60,7 @@ public class KsqlDelimitedSerializerTest {
   public void shouldSerializeRowWithCustomDelimiter() {
     final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
     final GenericRow genericRow = new GenericRow(columns);
-    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema, CSVFormat.newFormat('^'));
+    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema, CSVFormat.DEFAULT.withDelimiter('^'));
     final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
 
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);

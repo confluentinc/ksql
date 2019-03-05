@@ -55,7 +55,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CreateStreamCommandTest {
 
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(SqlType.STRING)));
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
   @Mock
   private KafkaTopicClient topicClient;

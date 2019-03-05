@@ -150,9 +150,9 @@ public class SqlFormatterTest {
   public void testFormatSql() {
 
     final ArrayList<TableElement> tableElements = new ArrayList<>();
-    tableElements.add(new TableElement("GROUP", new PrimitiveType(SqlType.STRING)));
-    tableElements.add(new TableElement("NOLIT", new PrimitiveType(SqlType.STRING)));
-    tableElements.add(new TableElement("Having", new PrimitiveType(SqlType.STRING)));
+    tableElements.add(new TableElement("GROUP", PrimitiveType.of(SqlType.STRING)));
+    tableElements.add(new TableElement("NOLIT", PrimitiveType.of(SqlType.STRING)));
+    tableElements.add(new TableElement("Having", PrimitiveType.of(SqlType.STRING)));
 
     final CreateStream createStream = new CreateStream(
         QualifiedName.of("TEST"),

@@ -18,7 +18,6 @@ package io.confluent.ksql.parser;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.Array;
@@ -63,7 +62,6 @@ import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.util.Pair;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -279,7 +277,7 @@ public class ExpressionFormatterTest {
     final Cast cast = new Cast(
         new NodeLocation(0, 0),
         new LongLiteral(1),
-        PrimitiveType.getPrimitiveType("DOUBLE"));
+        PrimitiveType.of("DOUBLE"));
 
     // When:
     final String result = ExpressionFormatter.formatExpression(cast);
@@ -354,12 +352,11 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStruct() {
-    final Struct struct
-        = new Struct(
-            ImmutableList.of(
-                new Pair<>("field1", new PrimitiveType(SqlType.INTEGER)),
-                new Pair<>("field2", new PrimitiveType(SqlType.STRING))
-            ));
+    final Struct struct = Struct.builder()
+        .addField("field1", PrimitiveType.of(SqlType.INTEGER))
+        .addField("field2", PrimitiveType.of(SqlType.STRING))
+        .build();
+
     assertThat(
         ExpressionFormatter.formatExpression(struct),
         equalTo("STRUCT<field1 INTEGER, field2 STRING>"));
@@ -367,11 +364,10 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStructWithColumnWithReservedWordName() {
-    final Struct struct
-        = new Struct(
-        ImmutableList.of(
-            new Pair<>("END", new PrimitiveType(SqlType.INTEGER))
-        ));
+    final Struct struct = Struct.builder()
+        .addField("END", PrimitiveType.of(SqlType.INTEGER))
+        .build();
+
     assertThat(
         ExpressionFormatter.formatExpression(struct),
         equalTo("STRUCT<`END` INTEGER>"));
@@ -379,13 +375,13 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatMap() {
-    final Map map = new Map(new PrimitiveType(SqlType.BIGINT));
+    final Map map = Map.of(PrimitiveType.of(SqlType.BIGINT));
     assertThat(ExpressionFormatter.formatExpression(map), equalTo("MAP<VARCHAR, BIGINT>"));
   }
 
   @Test
   public void shouldFormatArray() {
-    final Array array = new Array(new PrimitiveType(SqlType.BOOLEAN));
+    final Array array = Array.of(PrimitiveType.of(SqlType.BOOLEAN));
     assertThat(ExpressionFormatter.formatExpression(array), equalTo("ARRAY<BOOLEAN>"));
   }
 }

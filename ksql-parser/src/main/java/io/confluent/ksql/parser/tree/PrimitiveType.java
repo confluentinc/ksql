@@ -15,47 +15,47 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static java.util.Objects.requireNonNull;
-
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 
-public class PrimitiveType extends Type {
+public final class PrimitiveType extends Type {
 
-  private final SqlType ksqlType;
-
-  public PrimitiveType(final SqlType sqlType) {
-    this(Optional.empty(), sqlType);
-  }
-
-  public PrimitiveType(final NodeLocation location, final SqlType sqlType) {
-    this(Optional.of(location), sqlType);
-  }
-
-  private PrimitiveType(final Optional<NodeLocation> location, final SqlType sqlType) {
-    super(location, sqlType);
-    requireNonNull(sqlType, "sqlType is null");
-    this.sqlType = sqlType;
-  }
-
-  public static PrimitiveType getPrimitiveType(final String typeName) {
-    switch (typeName) {
-      case "BOOLEAN":
-        return new PrimitiveType(SqlType.BOOLEAN);
+  public static PrimitiveType of(final String typeName) {
+    switch (typeName.toUpperCase()) {
       case "INT":
-      case "INTEGER":
-        return new PrimitiveType(SqlType.INTEGER);
-      case "BIGINT":
-        return new PrimitiveType(SqlType.BIGINT);
-      case "DOUBLE":
-        return new PrimitiveType(SqlType.DOUBLE);
+        return PrimitiveType.of(SqlType.INTEGER);
       case "VARCHAR":
-      case "STRING":
+        return PrimitiveType.of(SqlType.STRING);
+      default:
+        try {
+          final SqlType sqlType = SqlType.valueOf(typeName.toUpperCase());
+          return PrimitiveType.of(sqlType);
+        } catch (final IllegalArgumentException e) {
+          throw new KsqlException("Unknown primitive type: " + typeName, e);
+        }
+    }
+  }
+
+  public static PrimitiveType of(final SqlType sqlType) {
+    switch (sqlType) {
+      case BOOLEAN:
+        return new PrimitiveType(SqlType.BOOLEAN);
+      case INTEGER:
+        return new PrimitiveType(SqlType.INTEGER);
+      case BIGINT:
+        return new PrimitiveType(SqlType.BIGINT);
+      case DOUBLE:
+        return new PrimitiveType(SqlType.DOUBLE);
+      case STRING:
         return new PrimitiveType(SqlType.STRING);
       default:
-        throw new KsqlException("Invalid primitive column type: " + typeName);
+        throw new KsqlException("Invalid primitive type: " + sqlType);
     }
+  }
+
+  private PrimitiveType(final SqlType sqlType) {
+    super(Optional.empty(), sqlType);
   }
 
   @Override
@@ -64,20 +64,20 @@ public class PrimitiveType extends Type {
   }
 
   @Override
-  public SqlType getSqlType() {
-    return sqlType;
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof PrimitiveType)) {
+      return false;
+    }
+
+    final PrimitiveType that = (PrimitiveType) o;
+    return Objects.equals(this.getSqlType(), that.getSqlType());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(sqlType);
-  }
-
-  @Override
-  public boolean equals(final Object obj) {
-    if (obj instanceof PrimitiveType) {
-      return ((PrimitiveType) obj).getSqlType() == sqlType;
-    }
-    return false;
+    return Objects.hash(getSqlType());
   }
 }

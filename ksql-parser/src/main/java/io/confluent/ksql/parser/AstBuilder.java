@@ -31,7 +31,6 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
@@ -103,6 +102,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Struct;
+import io.confluent.ksql.parser.tree.Struct.Builder;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
@@ -1471,25 +1471,26 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   private static Type getType(final SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
-      return PrimitiveType.getPrimitiveType(baseTypeToString(type.baseType()));
+      return PrimitiveType.of(baseTypeToString(type.baseType()));
     }
 
     if (type.ARRAY() != null) {
-      return new Array(getType(type.type(0)));
+      return io.confluent.ksql.parser.tree.Array.of(getType(type.type(0)));
     }
 
     if (type.MAP() != null) {
-      return new io.confluent.ksql.parser.tree.Map(getType(type.type(1)));
+      return io.confluent.ksql.parser.tree.Map.of(getType(type.type(1)));
     }
 
     if (type.STRUCT() != null) {
-      final List<Pair<String, Type>> structItems = new ArrayList<>();
+      final Builder builder = Struct.builder();
+
       for (int i = 0; i < type.identifier().size(); i++) {
-        final String itemName = getIdentifierText(type.identifier(i));
-        final Type itemType = getType(type.type(i));
-        structItems.add(new Pair<>(itemName, itemType));
+        final String fieldName = getIdentifierText(type.identifier(i));
+        final Type fieldType = getType(type.type(i));
+        builder.addField(fieldName, fieldType);
       }
-      return new Struct(structItems);
+      return builder.build();
     }
 
     throw new IllegalArgumentException("Unsupported type specification: " + type.getText());

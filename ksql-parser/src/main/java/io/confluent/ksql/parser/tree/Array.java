@@ -20,22 +20,17 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
-public class Array extends Type {
+public final class Array extends Type {
 
-  private Type itemType;
+  private final Type itemType;
 
-  public Array(final Type itemType) {
-    this(Optional.empty(), itemType);
+  public static Array of(final Type itemType) {
+    return new Array(itemType);
   }
 
-  public Array(final NodeLocation location, final Type itemType) {
-    this(Optional.of(location), itemType);
-  }
-
-  private Array(final Optional<NodeLocation> location, final Type itemType) {
-    super(location, SqlType.ARRAY);
-    requireNonNull(itemType, "itemType is null");
-    this.itemType = itemType;
+  private Array(final Type itemType) {
+    super(Optional.empty(), SqlType.ARRAY);
+    this.itemType = requireNonNull(itemType, "itemType");
   }
 
   @Override
@@ -48,14 +43,19 @@ public class Array extends Type {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(itemType);
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final Array array = (Array) o;
+    return Objects.equals(itemType, array.itemType);
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    return
-        obj instanceof Array
-        && Objects.equals(itemType, ((Array)obj).itemType);
+  public int hashCode() {
+    return Objects.hash(itemType);
   }
 }

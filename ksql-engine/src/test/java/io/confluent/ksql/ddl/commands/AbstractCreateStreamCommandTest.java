@@ -51,7 +51,7 @@ public class AbstractCreateStreamCommandTest {
 
   private static final String TOPIC_NAME = "some topic";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(SqlType.STRING)));
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

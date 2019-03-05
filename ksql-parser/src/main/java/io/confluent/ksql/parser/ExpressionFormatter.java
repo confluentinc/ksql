@@ -114,10 +114,10 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitStruct(final Struct node, final Boolean unmangleNames) {
-      return "STRUCT<" + Joiner.on(", ").join(node.getItems().stream()
+      return "STRUCT<" + Joiner.on(", ").join(node.getFields().stream()
           .map((child) ->
-              ParserUtil.escapeIfLiteral(child.getLeft())
-                  + " " + process(child.getRight(), unmangleNames))
+              ParserUtil.escapeIfLiteral(child.getName())
+                  + " " + process(child.getType(), unmangleNames))
           .collect(toList())) + ">";
     }
 

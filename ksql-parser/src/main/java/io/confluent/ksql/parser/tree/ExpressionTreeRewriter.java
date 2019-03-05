@@ -17,7 +17,6 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.util.Pair;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -76,8 +75,8 @@ public final class ExpressionTreeRewriter<C> {
       }
 
       final ImmutableList.Builder<Expression> builder = ImmutableList.builder();
-      for (final Pair<String, Type> structItem : node.getItems()) {
-        builder.add(rewrite(structItem.getRight(), context.get()));
+      for (final Struct.Field field : node.getFields()) {
+        builder.add(rewrite(field.getType(), context.get()));
       }
       return node;
     }

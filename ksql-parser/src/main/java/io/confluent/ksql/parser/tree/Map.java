@@ -20,22 +20,17 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
-public class Map extends Type {
+public final class Map extends Type {
 
   private final Type valueType;
 
-  public Map(final Type valueType) {
-    this(Optional.empty(), valueType);
+  public static Map of(final Type valueType) {
+    return new Map(valueType);
   }
 
-  public Map(final NodeLocation location, final Type valueType) {
-    this(Optional.of(location), valueType);
-  }
-
-  private Map(final Optional<NodeLocation> location, final Type valueType) {
-    super(location, SqlType.MAP);
-    requireNonNull(valueType, "itemType is null");
-    this.valueType = valueType;
+  private Map(final Type valueType) {
+    super(Optional.empty(), SqlType.MAP);
+    this.valueType = requireNonNull(valueType, "itemType");
   }
 
   @Override
@@ -48,14 +43,19 @@ public class Map extends Type {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(valueType);
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final Map map = (Map) o;
+    return Objects.equals(valueType, map.valueType);
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    return
-        obj instanceof Map
-        && Objects.equals(valueType, ((Map)obj).valueType);
+  public int hashCode() {
+    return Objects.hash(valueType);
   }
 }

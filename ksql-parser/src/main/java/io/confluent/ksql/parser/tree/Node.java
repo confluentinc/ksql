@@ -26,7 +26,7 @@ public abstract class Node {
   private Optional<Node> parent = Optional.empty();
 
   protected Node(final Optional<NodeLocation> location) {
-    this.location = requireNonNull(location, "location is null");
+    this.location = requireNonNull(location, "location");
   }
 
   /**
@@ -44,10 +44,6 @@ public abstract class Node {
     return parent;
   }
 
-  public void setParent(final Optional<Node> parent) {
-    this.parent = parent;
-  }
-  
   public void setParent(final Node parent) {
     this.parent = Optional.ofNullable(parent);
   }

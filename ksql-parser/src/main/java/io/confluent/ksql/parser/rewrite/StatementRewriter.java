@@ -740,14 +740,9 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitStruct(final Struct node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new Struct(node.getLocation().get(),
-          node.getItems());
-    } else {
-      return new Struct(node.getItems());
-    }
+    return Struct.builder()
+        .addFields(node.getFields())
+        .build();
   }
 
   protected Node visitTableSubquery(final TableSubquery node, final Object context) {

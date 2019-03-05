@@ -416,7 +416,7 @@ public class SqlToJavaVisitor {
         return new Pair<>(expr.getLeft(), returnType);
       }
 
-      switch (sqlType.getKsqlType()) {
+      switch (sqlType.getSqlType()) {
 
         case STRING:
           return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);

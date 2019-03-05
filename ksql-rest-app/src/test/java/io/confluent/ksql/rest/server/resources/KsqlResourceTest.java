@@ -176,7 +176,7 @@ public class KsqlResourceTest {
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("f0", new PrimitiveType(SqlType.STRING))
+      new TableElement("f0", PrimitiveType.of(SqlType.STRING))
   );
   private static final PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement.of(
       "sql with schema",

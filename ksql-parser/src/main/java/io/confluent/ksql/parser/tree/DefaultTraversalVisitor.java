@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import io.confluent.ksql.util.Pair;
 import java.util.Set;
 
 public abstract class DefaultTraversalVisitor<R, C>
@@ -273,8 +272,8 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   protected R visitStruct(final Struct node, final C context) {
-    for (final Pair<String, Type> structItem : node.getItems()) {
-      process(structItem.getRight(), context);
+    for (final Struct.Field field : node.getFields()) {
+      process(field.getType(), context);
     }
     return null;
   }

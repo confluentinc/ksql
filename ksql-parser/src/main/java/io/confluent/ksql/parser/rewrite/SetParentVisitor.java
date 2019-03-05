@@ -57,13 +57,11 @@ import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TableSubquery;
-import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
-import io.confluent.ksql.util.Pair;
 import java.util.Set;
 
 public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
@@ -355,8 +353,8 @@ public class SetParentVisitor extends DefaultAstVisitor<Node, Node> {
   @Override
   protected Node visitStruct(final Struct node, final Node parent) {
     node.setParent(parent);
-    for (final Pair<String, Type> structItem : node.getItems()) {
-      process(structItem.getRight(), node);
+    for (final Struct.Field field : node.getFields()) {
+      process(field.getType(), node);
     }
     return null;
   }

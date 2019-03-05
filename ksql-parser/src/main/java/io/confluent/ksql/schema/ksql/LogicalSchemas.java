@@ -20,13 +20,9 @@ import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.parser.tree.Type.KsqlType;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -79,12 +75,12 @@ public final class LogicalSchemas {
 
     private static final Map<Schema.Type, Function<Schema, Type>> LOGICAL_TO_SQL = ImmutableMap
         .<Schema.Type, Function<Schema, Type>>builder()
-        .put(Schema.Type.INT32, s -> new PrimitiveType(Type.KsqlType.INTEGER))
-        .put(Schema.Type.INT64, s -> new PrimitiveType(Type.KsqlType.BIGINT))
-        .put(Schema.Type.FLOAT32, s -> new PrimitiveType(Type.KsqlType.DOUBLE))
-        .put(Schema.Type.FLOAT64, s -> new PrimitiveType(Type.KsqlType.DOUBLE))
-        .put(Schema.Type.BOOLEAN, s -> new PrimitiveType(Type.KsqlType.BOOLEAN))
-        .put(Schema.Type.STRING, s -> new PrimitiveType(Type.KsqlType.STRING))
+        .put(Schema.Type.INT32, s -> PrimitiveType.of(Type.SqlType.INTEGER))
+        .put(Schema.Type.INT64, s -> PrimitiveType.of(Type.SqlType.BIGINT))
+        .put(Schema.Type.FLOAT32, s -> PrimitiveType.of(Type.SqlType.DOUBLE))
+        .put(Schema.Type.FLOAT64, s -> PrimitiveType.of(Type.SqlType.DOUBLE))
+        .put(Schema.Type.BOOLEAN, s -> PrimitiveType.of(Type.SqlType.BOOLEAN))
+        .put(Schema.Type.STRING, s -> PrimitiveType.of(Type.SqlType.STRING))
         .put(Schema.Type.ARRAY, ToSqlTypeConverter::toSqlArray)
         .put(Schema.Type.MAP, ToSqlTypeConverter::toSqlMap)
         .put(Schema.Type.STRUCT, ToSqlTypeConverter::toSqlStruct)
@@ -105,38 +101,39 @@ public final class LogicalSchemas {
     }
 
     private static Array toSqlArray(final Schema schema) {
-      return new Array(sqlType(schema.valueSchema()));
+      return io.confluent.ksql.parser.tree.Array.of(sqlType(schema.valueSchema()));
     }
 
     private static Type toSqlMap(final Schema schema) {
       if (schema.keySchema().type() != Schema.Type.STRING) {
         throw new KsqlException("Unsupported map key type: " + schema.keySchema());
       }
-      return new io.confluent.ksql.parser.tree.Map(sqlType(schema.valueSchema()));
+      return io.confluent.ksql.parser.tree.Map.of(sqlType(schema.valueSchema()));
     }
 
     private static Struct toSqlStruct(final Schema schema) {
-      final List<Pair<String, Type>> fields = schema.schema().fields().stream()
-          .map(field -> new Pair<>(field.name(), sqlType(field.schema())))
-          .collect(Collectors.toList());
+      final Struct.Builder builder = Struct.builder();
 
-      return new Struct(fields);
+      schema.schema().fields()
+          .forEach(field -> builder.addField(field.name(), sqlType(field.schema())));
+
+      return builder.build();
     }
   }
 
   private static final class FromSqlTypeConverter implements SqlTypeToLogicalConverter {
 
-    private static final Map<KsqlType, Function<Type, Schema>> SQL_TO_LOGICAL = ImmutableMap
-        .<KsqlType, Function<Type, Schema>>builder()
-        .put(KsqlType.STRING, t -> STRING)
-        .put(KsqlType.BOOLEAN, t -> BOOLEAN)
-        .put(KsqlType.INTEGER, t -> INTEGER)
-        .put(KsqlType.BIGINT, t -> BIGINT)
-        .put(KsqlType.DOUBLE, t -> DOUBLE)
-        .put(KsqlType.ARRAY, t -> FromSqlTypeConverter.fromSqlArray((Array) t))
-        .put(KsqlType.MAP, t -> FromSqlTypeConverter
+    private static final Map<Type.SqlType, Function<Type, Schema>> SQL_TO_LOGICAL = ImmutableMap
+        .<Type.SqlType, Function<Type, Schema>>builder()
+        .put(Type.SqlType.STRING, t -> STRING)
+        .put(Type.SqlType.BOOLEAN, t -> BOOLEAN)
+        .put(Type.SqlType.INTEGER, t -> INTEGER)
+        .put(Type.SqlType.BIGINT, t -> BIGINT)
+        .put(Type.SqlType.DOUBLE, t -> DOUBLE)
+        .put(Type.SqlType.ARRAY, t -> FromSqlTypeConverter.fromSqlArray((Array) t))
+        .put(Type.SqlType.MAP, t -> FromSqlTypeConverter
             .fromSqlMap((io.confluent.ksql.parser.tree.Map) t))
-        .put(KsqlType.STRUCT, t -> FromSqlTypeConverter.fromSqlStruct((Struct) t))
+        .put(Type.SqlType.STRUCT, t -> FromSqlTypeConverter.fromSqlStruct((Struct) t))
         .build();
 
     @Override
@@ -145,7 +142,7 @@ public final class LogicalSchemas {
     }
 
     private static Schema logicalType(final Type sqlType) {
-      final Function<Type, Schema> handler = SQL_TO_LOGICAL.get(sqlType.getKsqlType());
+      final Function<Type, Schema> handler = SQL_TO_LOGICAL.get(sqlType.getSqlType());
       if (handler == null) {
         throw new KsqlException("Unexpected sql type: " + sqlType);
       }
@@ -170,8 +167,8 @@ public final class LogicalSchemas {
     private static Schema fromSqlStruct(final Struct struct) {
       final SchemaBuilder builder = SchemaBuilder.struct();
 
-      struct.getItems()
-          .forEach(field -> builder.field(field.getLeft(), logicalType(field.getRight())));
+      struct.getFields()
+          .forEach(field -> builder.field(field.getName(), logicalType(field.getType())));
 
       return builder
           .optional()

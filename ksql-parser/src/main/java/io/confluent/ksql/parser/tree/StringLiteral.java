@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,18 +15,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static io.airlift.slice.Slices.utf8Slice;
-import static java.util.Objects.requireNonNull;
-
-import io.airlift.slice.Slice;
 import java.util.Objects;
 import java.util.Optional;
 
-public class StringLiteral
-    extends Literal {
+public class StringLiteral extends Literal {
 
   private final String value;
-  private final Slice slice;
 
   public StringLiteral(final String value) {
     this(Optional.empty(), value);
@@ -37,17 +32,12 @@ public class StringLiteral
 
   private StringLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
-    requireNonNull(value, "value is null");
-    this.value = value;
-    this.slice = utf8Slice(value);
+    this.value = Objects.requireNonNull(value, "value");
   }
 
+  @Override
   public String getValue() {
     return value;
-  }
-
-  public Slice getSlice() {
-    return slice;
   }
 
   @Override

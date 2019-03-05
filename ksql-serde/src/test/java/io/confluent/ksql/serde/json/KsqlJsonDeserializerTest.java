@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,8 +23,9 @@ import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.SerdeTestUtils;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
@@ -47,9 +49,11 @@ public class KsqlJsonDeserializerTest {
   private Schema orderSchema;
   private KsqlJsonDeserializer ksqlJsonDeserializer;
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ProcessingLogConfig processingLogConfig
+      = new ProcessingLogConfig(Collections.emptyMap());
 
   @Mock
-  StructuredLogger recordLogger;
+  ProcessingLogger recordLogger;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -67,7 +71,8 @@ public class KsqlJsonDeserializerTest {
     ksqlJsonDeserializer = new KsqlJsonDeserializer(
         orderSchema,
         false,
-        recordLogger);
+        recordLogger
+    );
   }
 
   @Test
@@ -190,6 +195,9 @@ public class KsqlJsonDeserializerTest {
     // Then:
     SerdeTestUtils.shouldLogError(
         recordLogger,
-        SerdeProcessingLogMessageFactory.deserializationErrorMsg(cause, Optional.ofNullable(data)).get());
+        SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+            cause,
+            Optional.ofNullable(data)).apply(processingLogConfig),
+        processingLogConfig);
   }
 }

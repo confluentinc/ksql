@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,9 +18,10 @@ package io.confluent.ksql.ddl.commands;
 import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.ExecutorUtil;
@@ -53,7 +55,7 @@ public class DropSourceCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore) {
+  public DdlCommandResult run(final MutableMetaStore metaStore) {
     final StructuredDataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       if (ifExists) {
@@ -100,12 +102,10 @@ public class DropSourceCommand implements DdlCommand {
           + dataSource.getKsqlTopic().getKafkaTopicName(), e);
     }
 
-    if (dataSource.getKsqlTopic().getKsqlTopicSerDe().getSerDe()
-        == DataSource.DataSourceSerDe.AVRO) {
+    if (dataSource.isSerdeFormat(DataSource.DataSourceSerDe.AVRO)) {
       try {
-        final String subject = sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-
-        ExecutorUtil.executeWithRetries(() -> schemaRegistryClient.deleteSubject(subject), ALWAYS);
+        SchemaRegistryUtil.deleteSubjectWithRetries(
+            schemaRegistryClient, sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
       } catch (final Exception e) {
         throw new KsqlException("Could not clean up the schema registry for topic: "
             + sourceName, e);

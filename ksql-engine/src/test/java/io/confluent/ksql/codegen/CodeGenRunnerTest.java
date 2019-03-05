@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -38,7 +39,7 @@ import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -88,30 +89,34 @@ public class CodeGenRunnerTest {
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
 
-    private MetaStore metaStore;
+    private MutableMetaStore metaStore;
     private CodeGenRunner codeGenRunner;
     private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
     @Before
     public void init() {
-        final KsqlFunction whenCondition = new KsqlFunction(
+        final KsqlFunction whenCondition = KsqlFunction.createLegacyBuiltIn(
             Schema.OPTIONAL_BOOLEAN_SCHEMA,
             ImmutableList.of(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
             "WHENCONDITION",
             WhenCondition.class
         );
-        final KsqlFunction whenResult = new KsqlFunction(
+        final KsqlFunction whenResult = KsqlFunction.createLegacyBuiltIn(
             Schema.OPTIONAL_INT32_SCHEMA,
             ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
             "WHENRESULT",
             WhenResult.class
         );
+        functionRegistry.ensureFunctionFactory(
+            UdfLoaderUtil.createTestUdfFactory(whenCondition));
         functionRegistry.addFunction(whenCondition);
+        functionRegistry.ensureFunctionFactory(
+            UdfLoaderUtil.createTestUdfFactory(whenResult));
         functionRegistry.addFunction(whenResult);
         metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
         // load substring function
-        UdfLoaderUtil.load(metaStore);
+        UdfLoaderUtil.load(functionRegistry);
 
         final Schema arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build();
 

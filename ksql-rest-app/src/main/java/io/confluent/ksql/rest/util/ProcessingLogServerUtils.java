@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,16 +18,18 @@ package io.confluent.ksql.rest.util;
 import io.confluent.common.logging.LogRecordStructBuilder;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TypeUtil;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.slf4j.Logger;
@@ -62,13 +65,12 @@ public final class ProcessingLogServerUtils {
     }
   }
 
-  public static void maybeCreateProcessingLogTopic(
+  public static Optional<String> maybeCreateProcessingLogTopic(
       final KafkaTopicClient topicClient,
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig) {
-    if (!config.getString(ProcessingLogConfig.TOPIC_AUTO_CREATE).equals(
-        ProcessingLogConfig.AUTO_CREATE_ON)) {
-      return;
+    if (!config.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
+      return Optional.empty();
     }
     final String topicName = getTopicName(config, ksqlConfig);
     final int nPartitions =
@@ -80,11 +82,23 @@ public final class ProcessingLogServerUtils {
     } catch (final KafkaTopicExistsException e) {
       LOGGER.info(String.format("Log topic %s already exists", topicName), e);
     }
+    return Optional.of(topicName);
   }
 
-  public static String processingLogStreamCreateStatement(
+  public static PreparedStatement<?> processingLogStreamCreateStatement(
+      final ProcessingLogConfig config,
+      final KsqlConfig ksqlConfig
+  ) {
+    return processingLogStreamCreateStatement(
+        config.getString(ProcessingLogConfig.STREAM_NAME),
+        getTopicName(config, ksqlConfig)
+    );
+  }
+
+  private static PreparedStatement<?> processingLogStreamCreateStatement(
       final String name,
-      final String topicName) {
+      final String topicName
+  ) {
     final Schema schema = getMessageSchema();
     final String statementNoSchema =
         String.format(
@@ -96,9 +110,12 @@ public final class ProcessingLogServerUtils {
 
     final AbstractStreamCreateStatement streamCreateStatement
         = (AbstractStreamCreateStatement) preparedStatement.getStatement();
-    return SqlFormatter.formatSql(
+    final AbstractStreamCreateStatement streamCreateStatementWithSchema =
         streamCreateStatement.copyWith(
             TypeUtil.buildTableElementsForSchema(schema),
-            streamCreateStatement.getProperties()));
+            streamCreateStatement.getProperties());
+    return PreparedStatement.of(
+        SqlFormatter.formatSql(streamCreateStatementWithSchema),
+        streamCreateStatementWithSchema);
   }
 }

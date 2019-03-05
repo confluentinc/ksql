@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,11 +16,13 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,7 +33,10 @@ import java.util.Optional;
 public interface KsqlExecutionContext {
 
   /**
-   * @return create a sandboxed execution context as a copy of this context.
+   * Create an execution context in which statements can be run without affecting the state
+   * of the system.
+   *
+   * @return a sand boxed execution context.
    */
   KsqlExecutionContext createSandbox();
 
@@ -38,6 +44,13 @@ public interface KsqlExecutionContext {
    * @return read-only access to the context's {@link MetaStore}.
    */
   MetaStore getMetaStore();
+
+  /**
+   * Get the number of persistent queries.
+   *
+   * @return the number of queries
+   */
+  int numberOfPersistentQueries();
 
   /**
    * Retrieve the details of a persistent query.
@@ -48,12 +61,37 @@ public interface KsqlExecutionContext {
   Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
 
   /**
-   * Execute a statement within the context scope.
+   * Parse the statement(s) in supplied {@code sql}.
    *
-   * @param statement the statement to execute
-   * @param ksqlConfig the configuration to use.
-   * @param overriddenProperties any overridden properties
-   * @return query metadata if the statement contained a query, {@link Optional#empty()} otherwise
+   * <p>Note: the state of the execution context will not be changed.
+   *
+   * @param sql the statements to parse.
+   * @return the list of prepared statements.
+   */
+  List<ParsedStatement> parse(String sql);
+
+  /**
+   * Prepare the supplied statement for execution.
+   *
+   * <p>This provides some level of validation as well, e.g. ensuring sources and topics exist
+   * in the metastore, etc.
+   *
+   * @param stmt the parsed statement.
+   * @return the prepared statement.
+   */
+  PreparedStatement<?> prepare(ParsedStatement stmt);
+
+  /**
+   * Execute the supplied statement, updating the meta store and registering any query.
+   *
+   * <p>The statement must be executable. See {@link KsqlEngine#isExecutableStatement}.
+   *
+   * <p>If the statement contains a query, then it will be tracked, but not started.
+   *
+   * @param statement The SQL to execute.
+   * @param ksqlConfig the config.
+   * @param overriddenProperties The user-requested property overrides.
+   * @return The execution result.
    */
   ExecuteResult execute(
       PreparedStatement<?> statement,

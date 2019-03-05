@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -20,6 +21,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,7 +101,7 @@ public class KafkaTopicClientImplTest {
     node = new Node(1, "host", 9092);
     expect(adminClient.describeCluster()).andReturn(describeClusterResult());
     expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult());
+        .andReturn(describeBrokerResult(Collections.emptyList()));
   }
 
   @Test
@@ -242,6 +243,50 @@ public class KafkaTopicClientImplTest {
         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
         "default_query_CTAS_USERS_BY_CITY");
     kafkaTopicClient.deleteInternalTopics(applicationId);
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldDeleteTopicsIfDeleteTopicEnableTrue() {
+    // Given:
+    givenDeleteTopicEnableTrue();
+    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
+
+    // Then:
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldDeleteTopicsIfBrokerDoesNotReturnValueForDeleteTopicEnable() {
+    // Given:
+    givenDeleteTopicEnableNotReturnedByBroker();
+    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
+
+    // Then:
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldNotDeleteTopicIfDeleteTopicEnableFalse() {
+    // Given:
+    givenDeleteTopicEnableFalse();
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
+
+    // Then:
     verify(adminClient);
   }
 
@@ -490,13 +535,35 @@ public class KafkaTopicClientImplTest {
     return Collections.singleton(new ConfigResource(ConfigResource.Type.BROKER, node.idString()));
   }
 
-  private DescribeConfigsResult describeBrokerResult() {
-    final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
+  private void givenDeleteTopicEnableTrue() {
+    reset(adminClient);
+    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+
     final ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "true");
-    final List<ConfigEntry> configEntries = new ArrayList<>();
-    configEntries.add(configEntryDeleteEnable);
+    expect(adminClient.describeConfigs(describeBrokerRequest()))
+        .andReturn(describeBrokerResult(Collections.singletonList(configEntryDeleteEnable)));
+  }
+
+  private void givenDeleteTopicEnableFalse() {
+    reset(adminClient);
+    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+
+    final ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "false");
+    expect(adminClient.describeConfigs(describeBrokerRequest()))
+        .andReturn(describeBrokerResult(Collections.singletonList(configEntryDeleteEnable)));
+  }
+
+  private void givenDeleteTopicEnableNotReturnedByBroker() {
+    reset(adminClient);
+    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+    expect(adminClient.describeConfigs(describeBrokerRequest()))
+        .andReturn(describeBrokerResult(Collections.emptyList()));
+  }
+
+  private DescribeConfigsResult describeBrokerResult(final List<ConfigEntry> brokerConfigs) {
+    final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
     final Map<ConfigResource, Config> config = ImmutableMap.of(
-        new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(configEntries));
+        new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(brokerConfigs));
     expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config));
     replay(describeConfigsResult);
     return describeConfigsResult;

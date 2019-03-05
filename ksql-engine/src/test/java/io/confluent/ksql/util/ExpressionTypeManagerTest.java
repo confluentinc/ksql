@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -44,7 +45,7 @@ public class ExpressionTypeManagerTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     // load udfs that are not hardcoded
-    UdfLoaderUtil.load(metaStore);
+    UdfLoaderUtil.load(functionRegistry);
     final Schema schema = SchemaBuilder.struct()
         .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)

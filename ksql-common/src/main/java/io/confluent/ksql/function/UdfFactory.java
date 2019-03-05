@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -57,7 +58,7 @@ public class UdfFactory {
                                final List<FunctionParameter> paramTypes) {
     if (udfClass != ksqlFunction.getKudfClass()) {
       throw new KsqlException("Can't add function " + ksqlFunction
-          + " as a function with the same name exists on a different class " + udfClass);
+          + " as a function with the same name exists in a different " + udfClass);
     }
     if (functions.containsKey(paramTypes)) {
       throw new KsqlException("Can't add function " + ksqlFunction
@@ -97,6 +98,11 @@ public class UdfFactory {
 
   public String getPath() {
     return metadata.getPath();
+  }
+
+  public boolean matches(final UdfFactory that) {
+    return this == that
+        || (this.udfClass.equals(that.udfClass) && this.metadata.equals(that.metadata));
   }
 
   @Override

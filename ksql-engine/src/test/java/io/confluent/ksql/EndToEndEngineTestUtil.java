@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -36,10 +37,12 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -105,10 +108,7 @@ final class EndToEndEngineTestUtil {
   private static final String KSQL_TEST_FILES = "ksql.test.files";
 
   static {
-    // don't use the actual metastore, aim is just to get the functions into the registry.
-    // Done once only as it is relatively expensive, i.e., increases the test by 3x if run on each
-    // test
-    UdfLoaderUtil.load(new MetaStoreImpl(functionRegistry));
+    UdfLoaderUtil.load(functionRegistry);
   }
 
   private EndToEndEngineTestUtil(){}
@@ -441,7 +441,7 @@ final class EndToEndEngineTestUtil {
 
   @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
   static class ExpectedException {
-    private final List<Matcher<? super Throwable>> matchers = new ArrayList<>();
+    private final List<Matcher<?>> matchers = new ArrayList<>();
 
     public static ExpectedException none() {
       return new ExpectedException();
@@ -449,6 +449,10 @@ final class EndToEndEngineTestUtil {
 
     public void expect(final Class<? extends Throwable> type) {
       matchers.add(instanceOf(type));
+    }
+
+    public void expect(final Matcher<?> matcher) {
+      matchers.add(matcher);
     }
 
     public void expectMessage(final String substring) {
@@ -459,8 +463,9 @@ final class EndToEndEngineTestUtil {
       matchers.add(ThrowableMessageMatcher.hasMessage(matcher));
     }
 
+    @SuppressWarnings("unchecked")
     private Matcher<Throwable> build() {
-      return allOf(matchers);
+      return allOf(new ArrayList(matchers));
     }
   }
 
@@ -516,6 +521,22 @@ final class EndToEndEngineTestUtil {
       this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
       this.expectedException = expectedException;
+    }
+
+    TestCase copyWithName(String newName) {
+      final TestCase copy = new TestCase(
+          testPath,
+          newName,
+          properties,
+          topics,
+          inputRecords,
+          outputRecords,
+          statements,
+          expectedException);
+      copy.setGeneratedTopology(generatedTopology);
+      copy.setExpectedTopology(expectedTopology);
+      copy.setPersistedProperties(persistedProperties);
+      return copy;
     }
 
     void setGeneratedTopology(final String generatedTopology) {
@@ -664,8 +685,13 @@ final class EndToEndEngineTestUtil {
     final String sql = testCase.statements().stream()
         .collect(Collectors.joining(System.lineSeparator()));
 
-    final List<QueryMetadata> queries =
-        KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, testCase.properties());
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        sql,
+        ksqlConfig,
+        testCase.properties(),
+        Optional.of(serviceContext.getSchemaRegistryClient())
+    );
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return queries.get(queries.size() - 1);
@@ -692,48 +718,48 @@ final class EndToEndEngineTestUtil {
         0);
   }
 
-    private static void writeExpectedTopologyFile(final String queryName,
-                                                  final Topology topology,
-                                                  final Map<String, String> configs,
-                                                  final ObjectWriter objectWriter,
-                                                  final String topologyDir) {
+  private static void writeExpectedTopologyFile(final String queryName,
+                                                final Topology topology,
+                                                final Map<String, String> configs,
+                                                final ObjectWriter objectWriter,
+                                                final String topologyDir) {
 
-        final Path newTopologyDataPath = Paths.get(topologyDir);
-        try {
-            final String updatedQueryName = formatQueryName(queryName);
-            final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
-            final String configString = objectWriter.writeValueAsString(configs);
-            final String topologyString = topology.describe().toString();
+      final Path newTopologyDataPath = Paths.get(topologyDir);
+      try {
+          final String updatedQueryName = formatQueryName(queryName);
+          final Path topologyFile = Paths.get(newTopologyDataPath.toString(), updatedQueryName);
+          final String configString = objectWriter.writeValueAsString(configs);
+          final String topologyString = topology.describe().toString();
 
-          final byte[] topologyBytes =
-              (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
-                  .getBytes(StandardCharsets.UTF_8);
+        final byte[] topologyBytes =
+            (configString + "\n" + CONFIG_END_MARKER + "\n" + topologyString)
+                .getBytes(StandardCharsets.UTF_8);
 
-            Files.write(topologyFile,
-                        topologyBytes,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE,
-                        StandardOpenOption.TRUNCATE_EXISTING);
+          Files.write(topologyFile,
+                      topologyBytes,
+                      StandardOpenOption.CREATE,
+                      StandardOpenOption.WRITE,
+                      StandardOpenOption.TRUNCATE_EXISTING);
 
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+      } catch (IOException e) {
+          throw new RuntimeException(e);
+      }
+  }
 
   static String formatQueryName(final String originalQueryName) {
     return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
   }
 
-  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) throws IOException {
-         final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
-         final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
-         final List<String> topologyFiles = findExpectedTopologyFiles(dir);
-         topologyFiles.forEach(fileName -> {
-             final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
-             expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
-         });
-      return expectedTopologyAndConfigs;
+  static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) {
+    final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
+    final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
+    final List<String> topologyFiles = findExpectedTopologyFiles(dir);
+    topologyFiles.forEach(fileName -> {
+      final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);
+      expectedTopologyAndConfigs.put(fileName, topologyAndConfigs);
+    });
+    return expectedTopologyAndConfigs;
   }
 
   private static TopologyAndConfigs readTopologyFile(final String file, final ObjectReader objectReader) {
@@ -762,19 +788,35 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static List<String> findExpectedTopologyFiles(final String dir) throws IOException {
-       final List<String> topologyFiles = new ArrayList<>();
+  static List<String> findExpectedTopologyDirectories(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology directories.", e);
+    }
+  }
+
+  private static List<String> findExpectedTopologyFiles(final String dir) {
+    try {
+      return findContentsOfDirectory(dir);
+    } catch (final IOException e) {
+      throw new RuntimeException("Could not find expected topology files. dir: " + dir, e);
+    }
+  }
+
+  private static List<String> findContentsOfDirectory(final String dir) throws IOException {
+    final List<String> contents = new ArrayList<>();
     try (final BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(EndToEndEngineTestUtil.class.getClassLoader().
                 getResourceAsStream(dir), StandardCharsets.UTF_8))) {
 
-      String topology;
-      while ((topology = reader.readLine()) != null) {
-          topologyFiles.add(topology);
+      String file;
+      while ((file = reader.readLine()) != null) {
+        contents.add(file);
       }
     }
-    return topologyFiles;
+    return contents;
   }
 
   private static List<Path> findTests(final Path dir) {
@@ -855,7 +897,7 @@ final class EndToEndEngineTestUtil {
   }
 
   private static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
-    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
   }
 

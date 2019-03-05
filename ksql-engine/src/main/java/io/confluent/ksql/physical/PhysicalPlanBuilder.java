@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,10 +15,13 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -61,9 +65,10 @@ public class PhysicalPlanBuilder {
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final ServiceContext serviceContext;
+  private final ProcessingLogContext processingLogContext;
   private final FunctionRegistry functionRegistry;
   private final Map<String, Object> overriddenProperties;
-  private final MetaStore metaStore;
+  private final MutableMetaStore metaStore;
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Consumer<QueryMetadata> queryCloseCallback;
@@ -72,9 +77,10 @@ public class PhysicalPlanBuilder {
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final Map<String, Object> overriddenProperties,
-      final MetaStore metaStore,
+      final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final Consumer<QueryMetadata> queryCloseCallback
@@ -82,6 +88,9 @@ public class PhysicalPlanBuilder {
     this.builder = Objects.requireNonNull(builder, "builder");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.processingLogContext = Objects.requireNonNull(
+        processingLogContext,
+        "processingLogContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.overriddenProperties =
         Objects.requireNonNull(overriddenProperties, "overriddenProperties");
@@ -106,8 +115,8 @@ public class PhysicalPlanBuilder {
             builder,
             ksqlConfig,
             serviceContext,
+            processingLogContext,
             functionRegistry,
-            overriddenProperties,
             queryId
         );
     final OutputNode outputNode = resultStream.outputNode();
@@ -183,7 +192,8 @@ public class PhysicalPlanBuilder {
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         ksqlConfig,
-        overriddenProperties
+        queryId,
+        processingLogContext
     );
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
@@ -258,7 +268,8 @@ public class PhysicalPlanBuilder {
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
         ksqlConfig,
-        overriddenProperties
+        queryId,
+        processingLogContext
     );
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
@@ -352,15 +363,20 @@ public class PhysicalPlanBuilder {
     properties.put(key, valueList);
   }
 
-  private Map<String, Object> buildStreamsProperties(
+  private static Map<String, Object> buildStreamsProperties(
       final String applicationId,
       final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties
+      final QueryId queryId,
+      final ProcessingLogContext processingLogContext
   ) {
     final Map<String, Object> newStreamsProperties
         = new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
-    newStreamsProperties.putAll(overriddenProperties);
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    final ProcessingLogger logger
+        = processingLogContext.getLoggerFactory().getLogger(queryId.toString());
+    newStreamsProperties.put(
+        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
+        logger);
 
     updateListProperty(
         newStreamsProperties,

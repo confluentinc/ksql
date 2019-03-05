@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -21,12 +22,16 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.findExpectedTopologyDirectories;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
+import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
+import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Iterables;
 import com.google.common.io.Files;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.EndToEndEngineTestUtil.JsonTestCase;
@@ -46,6 +51,7 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
 import java.io.IOException;
@@ -85,9 +91,9 @@ import org.junit.runners.Parameterized;
 public class QueryTranslationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
-  private static final String TOPOLOGY_CHECKS_DIR = "expected_topology";
-  private static final String CURRENT_TOPOLOGY_VERSION = "5_1";
-  private static final String TOPOLOGY_VERSION_PROP = "topology.version";
+  private static final String TOPOLOGY_CHECKS_DIR = "expected_topology/";
+  private static final String TOPOLOGY_VERSIONS_DELIMITER = ",";
+  private static final String TOPOLOGY_VERSIONS_PROP = "topology.versions";
 
   private final TestCase testCase;
 
@@ -106,21 +112,52 @@ public class QueryTranslationTest {
   }
 
   @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> data() throws IOException {
-    final String topologyVersion = System.getProperty(TOPOLOGY_VERSION_PROP, CURRENT_TOPOLOGY_VERSION);
-    final String topologyDirectory = TOPOLOGY_CHECKS_DIR + "/" + topologyVersion;
-    final Map<String, TopologyAndConfigs> expectedTopologies = loadExpectedTopologies(topologyDirectory);
+  public static Collection<Object[]> data() {
+    final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions();
     return buildTestCases()
-          .peek(q -> {
-            final TopologyAndConfigs topologyAndConfigs = expectedTopologies.get(formatQueryName(q.getName()));
-            // could be null if the testCase has expected errors, no topology or configs saved
-            if (topologyAndConfigs !=null) {
-              q.setExpectedTopology(topologyAndConfigs.topology);
-              q.setPersistedProperties(topologyAndConfigs.configs);
-            }
-          })
+          .flatMap(q -> buildVersionedTestCases(q, expectedTopologies))
           .map(testCase -> new Object[]{testCase.getName(), testCase})
           .collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  private static List<TopologiesAndVersion> loadTopologiesAndVersions() {
+    return Stream.of(getTopologyVersions())
+        .map(version ->
+            new TopologiesAndVersion(version, loadExpectedTopologies(TOPOLOGY_CHECKS_DIR + version)))
+        .collect(Collectors.toList());
+  }
+
+  private static String[] getTopologyVersions() {
+    String[] topologyVersions;
+    final String topologyVersionsProp = System.getProperty(TOPOLOGY_VERSIONS_PROP);
+    if (topologyVersionsProp != null) {
+      topologyVersions = topologyVersionsProp.split(TOPOLOGY_VERSIONS_DELIMITER);
+    } else {
+      final List<String> topologyVersionsList = findExpectedTopologyDirectories(TOPOLOGY_CHECKS_DIR);
+      topologyVersions = new String[topologyVersionsList.size()];
+      topologyVersions = topologyVersionsList.toArray(topologyVersions);
+    }
+    return topologyVersions;
+  }
+
+  private static Stream<TestCase> buildVersionedTestCases(
+      final TestCase testCase, final List<TopologiesAndVersion> expectedTopologies) {
+    Stream.Builder<TestCase> builder = Stream.builder();
+    builder = builder.add(testCase);
+
+    for (final TopologiesAndVersion topologies : expectedTopologies) {
+      final TopologyAndConfigs topologyAndConfigs =
+          topologies.getTopology(formatQueryName(testCase.getName()));
+      // could be null if the testCase has expected errors, no topology or configs saved
+      if (topologyAndConfigs != null) {
+        final TestCase versionedTestCase = testCase.copyWithName(
+            testCase.getName() + "-" + topologies.getVersion());
+        versionedTestCase.setExpectedTopology(topologyAndConfigs.topology);
+        versionedTestCase.setPersistedProperties(topologyAndConfigs.configs);
+        builder = builder.add(versionedTestCase);
+      }
+    }
+    return builder.build();
   }
 
   static Stream<TestCase> buildTestCases() {
@@ -149,9 +186,10 @@ public class QueryTranslationTest {
 
       final Map<String, Object> properties = getTestCaseProperties(testCase);
 
-      final Optional<ExpectedException> expectedException = getTestCaseExpectedException(testCase);
-
       final List<String> statements = getTestCaseStatements(testCase, format);
+
+      final Optional<ExpectedException> expectedException =
+          getTestCaseExpectedException(testCase, Iterables.getLast(statements));
 
       final Map<String, Topic> topics =
           getTestCaseTopics(testCase, statements, expectedException.isPresent());
@@ -270,13 +308,25 @@ public class QueryTranslationTest {
     return properties;
   }
 
-  private static Optional<ExpectedException> getTestCaseExpectedException(final JsonNode testCase) {
+  private static Optional<ExpectedException> getTestCaseExpectedException(
+      final JsonNode testCase,
+      final String lastStatement
+  ) {
     return getOptionalJsonField(testCase, "expectedException")
         .map(eeNode -> {
           final ExpectedException expectedException = ExpectedException.none();
 
           getOptionalJsonField(eeNode, "type")
-              .ifPresent(type -> expectedException.expect(parseThrowable(type.asText())));
+              .map(JsonNode::asText)
+              .map(QueryTranslationTest::parseThrowable)
+              .ifPresent(type -> {
+                expectedException.expect(type);
+
+                if (type.equals(KsqlStatementException.class)) {
+                  // Ensure exception contains last statement, otherwise the test case is invalid:
+                  expectedException.expect(statementText(is(lastStatement)));
+                }
+              });
 
           getOptionalJsonField(eeNode, "message")
               .ifPresent(msg -> expectedException.expectMessage(msg.asText()));
@@ -529,6 +579,25 @@ public class QueryTranslationTest {
         final Throwable cause
     ) {
       super(fieldName + ": " + reason, cause);
+    }
+  }
+
+  private static class TopologiesAndVersion {
+
+    private final String version;
+    private final Map<String, TopologyAndConfigs> topologies;
+
+    TopologiesAndVersion(final String version, final Map<String, TopologyAndConfigs> topologies) {
+      this.version = version;
+      this.topologies = topologies;
+    }
+
+    String getVersion() {
+      return version;
+    }
+
+    TopologyAndConfigs getTopology(final String name) {
+      return topologies.get(name);
     }
   }
 }

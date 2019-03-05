@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -32,8 +33,10 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -269,7 +272,11 @@ public class SecureIntegrationTest {
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
     serviceContext = DefaultServiceContext.create(ksqlConfig);
-    ksqlEngine = new KsqlEngine(serviceContext, ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
+    ksqlEngine = new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        new InternalFunctionRegistry(),
+        ksqlConfig.getString(KSQL_SERVICE_ID_CONFIG));
 
     execInitCreateStreamQueries();
   }

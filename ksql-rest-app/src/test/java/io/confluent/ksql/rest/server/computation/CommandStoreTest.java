@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
@@ -87,6 +89,7 @@ public class CommandStoreTest {
   private Statement statement;
   @Mock
   private CommandIdAssigner commandIdAssigner;
+  private PreparedStatement<?> preparedStatement;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -98,7 +101,7 @@ public class CommandStoreTest {
   private CommandStore commandStore;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     when(commandIdAssigner.getCommandId(any()))
         .thenAnswer(invocation -> new CommandId(
             CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
@@ -108,6 +111,8 @@ public class CommandStoreTest {
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
 
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
+
+    preparedStatement = PreparedStatement.of(statementText, statement);
 
     commandStore = new CommandStore(
         commandTopic,
@@ -120,13 +125,12 @@ public class CommandStoreTest {
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     expectedException.expect(IllegalStateException.class);
 
     // When:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
@@ -137,22 +141,21 @@ public class CommandStoreTest {
         .thenReturn(recordMetadata);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // When:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
-
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
     commandStore.getNewCommands();
 
     // Should:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
   }
 
   @Test
@@ -172,7 +175,7 @@ public class CommandStoreTest {
     );
 
     // When:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
     verify(commandTopic).send(any(), any());
@@ -202,7 +205,7 @@ public class CommandStoreTest {
     when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
 
     // When:
-    commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
     verify(commandTopic).send(same(commandId), any());
@@ -212,7 +215,7 @@ public class CommandStoreTest {
   public void shouldIncludeCommandSequenceNumberInSuccessfulQueuedCommandStatus() {
     // When:
     final QueuedCommandStatus commandStatus =
-        commandStore.enqueueCommand(statementText, statement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+        commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     // Then:
     assertThat(commandStatus.getCommandSequenceNumber(), equalTo(recordMetadata.offset()));

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,8 +18,6 @@ package io.confluent.ksql.ddl;
 public final class DdlConfig {
 
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
-  public static final String AVRO_SCHEMA_FILE = "AVROSCHEMAFILE";
-  public static final String AVRO_SCHEMA = "AVROSCHEMA";
   public static final String VALUE_AVRO_SCHEMA_FULL_NAME = "VALUE_AVRO_SCHEMA_FULL_NAME";
   public static final String KAFKA_TOPIC_NAME_PROPERTY = "KAFKA_TOPIC";
   public static final String TOPIC_NAME_PROPERTY = "REGISTERED_TOPIC";

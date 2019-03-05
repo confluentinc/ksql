@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -23,18 +24,18 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.structured.LogicalPlanBuilderTestUtil;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.QueryIdGenerator;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -125,7 +126,7 @@ public class KsqlBareOutputNodeTest {
   public void shouldComputeQueryIdCorrectly() {
     // Given:
     final KsqlBareOutputNode node
-        = (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+        = (KsqlBareOutputNode) AnalysisTestUtil
         .buildLogicalPlan("select col0 from test1;", metaStore);
     final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
 
@@ -146,14 +147,14 @@ public class KsqlBareOutputNodeTest {
 
   private SchemaKStream build() {
     final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) LogicalPlanBuilderTestUtil
+    final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
         .buildLogicalPlan(simpleSelectFilter, metaStore);
     return planNode.buildStream(
         builder,
         new KsqlConfig(Collections.emptyMap()),
         serviceContext,
+        ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        new HashMap<>(),
         queryId);
   }
 

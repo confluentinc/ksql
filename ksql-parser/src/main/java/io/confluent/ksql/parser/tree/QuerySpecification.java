@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -19,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public class QuerySpecification
     extends QueryBody {
@@ -31,7 +33,7 @@ public class QuerySpecification
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
   private final Optional<Expression> having;
-  private final Optional<String> limit;
+  private final OptionalInt limit;
 
   public QuerySpecification(
       final Select select,
@@ -42,7 +44,7 @@ public class QuerySpecification
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
-      final Optional<String> limit) {
+      final OptionalInt limit) {
     this(Optional.empty(), select, into, shouldCreateInto, from, windowExpression, where, groupBy,
          having, limit);
   }
@@ -57,7 +59,7 @@ public class QuerySpecification
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
-      final Optional<String> limit) {
+      final OptionalInt limit) {
     this(Optional.of(location), select, into, shouldCreateInto, from, windowExpression, where,
          groupBy,
          having, limit);
@@ -73,7 +75,7 @@ public class QuerySpecification
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
-      final Optional<String> limit) {
+      final OptionalInt limit) {
     super(location);
     requireNonNull(select, "select is null");
     requireNonNull(into, "into is null");
@@ -127,7 +129,7 @@ public class QuerySpecification
     return having;
   }
 
-  public Optional<String> getLimit() {
+  public OptionalInt getLimit() {
     return limit;
   }
 
@@ -145,7 +147,7 @@ public class QuerySpecification
         .add("where", where.orElse(null))
         .add("groupBy", groupBy)
         .add("having", having.orElse(null))
-        .add("limit", limit.orElse(null))
+        .add("limit", limit)
         .toString();
   }
 

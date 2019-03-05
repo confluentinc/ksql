@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -23,7 +24,7 @@ import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 
 
-public class TestFunctionRegistry implements FunctionRegistry {
+public class TestFunctionRegistry implements MutableFunctionRegistry {
   private final Map<String, UdfFactory> udfs = new HashMap<>();
   private final Map<String, AggregateFunctionFactory> udafs = new HashMap<>();
 
@@ -34,7 +35,7 @@ public class TestFunctionRegistry implements FunctionRegistry {
 
   @Override
   public void addFunction(final KsqlFunction ksqlFunction) {
-    addFunctionFactory(new UdfFactory(
+    ensureFunctionFactory(new UdfFactory(
         ksqlFunction.getKudfClass(),
         new UdfMetadata(ksqlFunction.getFunctionName(),
             "",
@@ -45,8 +46,8 @@ public class TestFunctionRegistry implements FunctionRegistry {
     udfFactory.addFunction(ksqlFunction);  }
 
   @Override
-  public boolean addFunctionFactory(final UdfFactory factory) {
-    return udfs.putIfAbsent(factory.getName().toUpperCase(), factory) == null;
+  public UdfFactory ensureFunctionFactory(final UdfFactory factory) {
+    return udfs.putIfAbsent(factory.getName().toUpperCase(), factory);
   }
 
   @Override
@@ -64,11 +65,6 @@ public class TestFunctionRegistry implements FunctionRegistry {
   @Override
   public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
     udafs.put(aggregateFunctionFactory.getName().toUpperCase(), aggregateFunctionFactory);
-  }
-
-  @Override
-  public FunctionRegistry copy() {
-    return this;
   }
 
   @Override

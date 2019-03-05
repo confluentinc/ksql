@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
@@ -55,6 +57,8 @@ public class FilterNodeTest {
   private SchemaKStream schemaKStream;
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private ProcessingLogContext processingLogContext;
 
   private FilterNode node;
 
@@ -67,7 +71,7 @@ public class FilterNodeTest {
     when(sourceNode.buildStream(any(), any(), any(), any(), any(), any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(schemaKStream.filter(any(), any()))
+    when(schemaKStream.filter(any(), any(), any()))
         .thenReturn(schemaKStream);
     node = new FilterNode(nodeId, sourceNode, predicate);
   }
@@ -79,8 +83,8 @@ public class FilterNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
-        props,
         queryId
     );
 
@@ -89,12 +93,13 @@ public class FilterNodeTest {
         same(builder),
         same(ksqlConfig),
         same(serviceContext),
+        same(processingLogContext),
         same(functionRegistry),
-        same(props),
         same(queryId)
     );
     verify(schemaKStream).filter(
         same(predicate),
-        eq(node.buildNodeContext(queryId)));
+        eq(node.buildNodeContext(queryId)),
+        same(processingLogContext));
   }
 }

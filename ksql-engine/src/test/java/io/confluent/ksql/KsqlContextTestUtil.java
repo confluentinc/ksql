@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,6 +16,11 @@
 package io.confluent.ksql;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
@@ -38,7 +44,8 @@ public final class KsqlContextTestUtil {
 
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final FunctionRegistry functionRegistry
   ) {
     final KafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
 
@@ -56,10 +63,15 @@ public final class KsqlContextTestUtil {
 
     final KsqlEngine engine = new KsqlEngine(
         serviceContext,
+        ProcessingLogContext.create(),
+        functionRegistry,
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
     );
 
-    return new KsqlContext(serviceContext, ksqlConfig, engine);
+    final DefaultSchemaInjector schemaInjector = new DefaultSchemaInjector(
+        new SchemaRegistryTopicSchemaSupplier(serviceContext.getSchemaRegistryClient()));
+
+    return new KsqlContext(serviceContext, ksqlConfig, engine, schemaInjector);
   }
 
   public static KsqlConfig createKsqlConfig(final EmbeddedSingleNodeKafkaCluster kafkaCluster) {

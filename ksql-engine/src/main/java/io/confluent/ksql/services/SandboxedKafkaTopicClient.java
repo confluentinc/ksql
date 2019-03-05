@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,10 +15,11 @@
 
 package io.confluent.ksql.services;
 
-import static io.confluent.ksql.services.SandboxProxyBuilder.methodParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,7 +46,7 @@ final class SandboxedKafkaTopicClient {
   static KafkaTopicClient createProxy(final KafkaTopicClient delegate) {
     final SandboxedKafkaTopicClient sandbox = new SandboxedKafkaTopicClient(delegate);
 
-    return SandboxProxyBuilder.forClass(KafkaTopicClient.class)
+    return LimitedProxyBuilder.forClass(KafkaTopicClient.class)
         .forward("createTopic",
             methodParams(String.class, int.class, short.class), sandbox)
         .forward("createTopic",

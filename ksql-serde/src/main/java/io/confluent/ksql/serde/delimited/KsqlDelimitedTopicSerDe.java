@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,11 +15,11 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import static io.confluent.ksql.processing.log.ProcessingLoggerUtil.join;
+import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.util.SerdeUtils;
@@ -26,7 +27,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -46,7 +46,8 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
       final KsqlConfig ksqlConfig,
       final boolean isInternal,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
-      final String loggerNamePrefix) {
+      final String loggerNamePrefix,
+      final ProcessingLogContext processingLogContext) {
     final Map<String, Object> serdeProps = new HashMap<>();
 
     final Serializer<GenericRow> genericRowSerializer = new KsqlDelimitedSerializer(schema);
@@ -54,7 +55,7 @@ public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
 
     final Deserializer<GenericRow> genericRowDeserializer = new KsqlDelimitedDeserializer(
         schema,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
     );
     genericRowDeserializer.configure(serdeProps, false);

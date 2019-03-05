@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -36,7 +37,7 @@ public final class Struct
   }
 
   private Struct(final Optional<NodeLocation> location, final List<Pair<String, Type>> items) {
-    super(location, KsqlType.STRUCT);
+    super(location, SqlType.STRUCT);
     requireNonNull(items, "items is null");
     this.items = ImmutableList.copyOf(items);
   }

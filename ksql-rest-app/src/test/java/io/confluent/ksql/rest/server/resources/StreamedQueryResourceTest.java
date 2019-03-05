@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -37,8 +38,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -218,7 +219,8 @@ public class StreamedQueryResourceTest {
     // Expect
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
-    expectedException.expect(exceptionErrorMessage(errorMessage(is("whoops"))));
+    expectedException.expect(exceptionErrorMessage(errorMessage(
+        containsString("Timed out while waiting for a previous command to execute"))));
     expectedException.expect(
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
 

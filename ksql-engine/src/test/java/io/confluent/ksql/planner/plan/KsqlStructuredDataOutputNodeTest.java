@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -39,6 +40,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -178,8 +180,8 @@ public class KsqlStructuredDataOutputNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        new HashMap<>(),
         QUERY_ID);
   }
 
@@ -433,7 +435,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     final KsqlTopicSerDe topicSerde = mock(KsqlTopicSerDe.class);
     final Serde serde = mock(Serde.class);
-    when(topicSerde.getGenericRowSerde(any(), any(), anyBoolean(), any(), any()))
+    when(topicSerde.getGenericRowSerde(any(), any(), anyBoolean(), any(), any(), any()))
         .thenReturn(serde);
     outputNode = new KsqlStructuredDataOutputNode(
         new PlanNodeId("0"),
@@ -461,7 +463,8 @@ public class KsqlStructuredDataOutputNodeTest {
                 QueryLoggerUtil.queryLoggerName(
                     new QueryContext.Stacker(QUERY_ID)
                         .push(outputNode.getId().toString())
-                        .getQueryContext()))
+                        .getQueryContext())),
+            any()
         );
   }
 

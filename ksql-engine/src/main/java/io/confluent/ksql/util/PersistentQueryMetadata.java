@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,12 +15,12 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -31,7 +32,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   private final QueryId id;
   private final KsqlTopic resultTopic;
-
   private final Set<String> sinkNames;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -62,13 +62,26 @@ public class PersistentQueryMetadata extends QueryMetadata {
         closeCallback);
     this.id = Objects.requireNonNull(id, "id");
     this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
-    this.sinkNames = new HashSet<>();
-    this.sinkNames.add(sinkDataSource.getName());
+    this.sinkNames = ImmutableSet.of(sinkDataSource.getName());
 
     if (resultTopic.getKsqlTopicSerDe() == null) {
       throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
           resultTopic.getName()));
     }
+  }
+
+  private PersistentQueryMetadata(
+      final PersistentQueryMetadata other,
+      final Consumer<QueryMetadata> closeCallback
+  ) {
+    super(other, closeCallback);
+    this.id = other.id;
+    this.resultTopic = other.resultTopic;
+    this.sinkNames = other.sinkNames;
+  }
+
+  public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
+    return new PersistentQueryMetadata(this, closeCallback);
   }
 
   public QueryId getQueryId() {

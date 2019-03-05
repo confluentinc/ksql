@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,9 +15,10 @@
 
 package io.confluent.ksql.services;
 
-import static io.confluent.ksql.services.SandboxProxyBuilder.anyParams;
-import static io.confluent.ksql.services.SandboxProxyBuilder.noParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.noParams;
 
+import io.confluent.ksql.util.LimitedProxyBuilder;
 import org.apache.kafka.clients.consumer.Consumer;
 
 /**
@@ -30,7 +32,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 final class SandboxedConsumer {
 
   static <K, V> Consumer<K, V> createProxy() {
-    return SandboxProxyBuilder.forClass(Consumer.class)
+    return LimitedProxyBuilder.forClass(Consumer.class)
         .swallow("close", anyParams())
         .swallow("wakeup", noParams())
         .swallow("unsubscribe", noParams())

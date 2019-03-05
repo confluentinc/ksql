@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,34 +19,33 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-
-import java.util.function.Supplier;
 
 public final class MetaStoreFixture {
 
   private MetaStoreFixture() {
   }
 
-  public static MetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
+  public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
     return getNewMetaStore(functionRegistry, KsqlJsonTopicSerDe::new);
   }
 
-  public static MetaStore getNewMetaStore(final FunctionRegistry functionRegistry,
+  public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry,
                                           final Supplier<KsqlTopicSerDe> serde) {
 
     final MetadataTimestampExtractionPolicy timestampExtractionPolicy
         = new MetadataTimestampExtractionPolicy();
-    final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    final SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
+    final SchemaBuilder test1Schema = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -61,8 +61,8 @@ public final class MetaStoreFixture {
 
     final KsqlStream ksqlStream = new KsqlStream<>("sqlexpression",
         "TEST1",
-        schemaBuilder1,
-        schemaBuilder1.field("COL0"),
+        test1Schema,
+        test1Schema.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic1,
         Serdes.String());
@@ -70,7 +70,7 @@ public final class MetaStoreFixture {
     metaStore.putTopic(ksqlTopic1);
     metaStore.putSource(ksqlStream);
 
-    final SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
+    final SchemaBuilder test2Schema = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -85,8 +85,8 @@ public final class MetaStoreFixture {
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
-        schemaBuilder2,
-        schemaBuilder2.field("COL0"),
+        test2Schema,
+        test2Schema.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic2,
         "TEST2",

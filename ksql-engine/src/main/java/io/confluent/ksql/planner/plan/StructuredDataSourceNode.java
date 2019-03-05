@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -160,8 +162,8 @@ public class StructuredDataSourceNode
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
       final QueryId queryId
   ) {
     final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
@@ -177,7 +179,8 @@ public class StructuredDataSourceNode
             ksqlConfig,
             false,
             serviceContext.getSchemaRegistryClientFactory(), 
-            QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext())
+            QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext()),
+            processingLogContext
         );
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
@@ -185,14 +188,15 @@ public class StructuredDataSourceNode
       final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
       final KTable<?, GenericRow> kTable = createKTable(
           builder,
-          getAutoOffsetReset(props),
+          getAutoOffsetReset(ksqlConfig.getKsqlStreamConfigProps()),
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
               getSchema(),
               ksqlConfig,
               true,
               serviceContext.getSchemaRegistryClientFactory(),
-              QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext())
+              QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext()),
+              processingLogContext
           ),
           timestampExtractor,
           ksqlConfig,

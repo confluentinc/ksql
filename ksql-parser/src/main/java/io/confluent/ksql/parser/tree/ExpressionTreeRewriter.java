@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,7 +19,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.util.Pair;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class ExpressionTreeRewriter<C> {
 
@@ -393,6 +396,15 @@ public final class ExpressionTreeRewriter<C> {
         if (result != null) {
           return result;
         }
+      }
+
+      final List<Expression> args = node.getArguments().stream()
+          .map(arg -> rewrite(arg, context.get()))
+          .collect(Collectors.toList());
+
+      if (!node.getArguments().equals(args)) {
+        return new FunctionCall(
+            node.getLocation(), node.getName(), node.getWindow(), node.isDistinct(), args);
       }
 
       return node;

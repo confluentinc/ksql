@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,13 +16,15 @@
 package io.confluent.ksql.metastore;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.concurrent.ThreadSafe;
 
+@ThreadSafe
 final class ReferentialIntegrityTableEntry {
 
-  private final Set<String> sourceForQueries = new HashSet<>();
-  private final Set<String> sinkForQueries = new HashSet<>();
+  private final Set<String> sourceForQueries = ConcurrentHashMap.newKeySet();
+  private final Set<String> sinkForQueries = ConcurrentHashMap.newKeySet();
 
   ReferentialIntegrityTableEntry() {
   }
@@ -43,11 +46,15 @@ final class ReferentialIntegrityTableEntry {
   }
 
   void addSourceForQueries(final String queryId) {
-    sourceForQueries.add(queryId);
+    if (!sourceForQueries.add(queryId)) {
+      throw new IllegalStateException("Already source for query: " + queryId);
+    }
   }
 
   void addSinkForQueries(final String queryId) {
-    sinkForQueries.add(queryId);
+    if (!sinkForQueries.add(queryId)) {
+      throw new IllegalStateException("Already sink for query: " + queryId);
+    }
   }
 
   void removeQuery(final String queryId) {

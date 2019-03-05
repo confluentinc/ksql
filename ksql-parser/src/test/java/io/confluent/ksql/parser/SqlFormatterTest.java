@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -25,7 +26,7 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -40,7 +41,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -63,7 +64,7 @@ public class SqlFormatterTest {
   private JoinCriteria criteria;
   private NodeLocation location;
 
-  private MetaStore metaStore;
+  private MutableMetaStore metaStore;
 
   private static final Schema addressSchema = SchemaBuilder.struct()
       .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
@@ -149,9 +150,9 @@ public class SqlFormatterTest {
   public void testFormatSql() {
 
     final ArrayList<TableElement> tableElements = new ArrayList<>();
-    tableElements.add(new TableElement("GROUP", new PrimitiveType(Type.KsqlType.STRING)));
-    tableElements.add(new TableElement("NOLIT", new PrimitiveType(Type.KsqlType.STRING)));
-    tableElements.add(new TableElement("Having", new PrimitiveType(Type.KsqlType.STRING)));
+    tableElements.add(new TableElement("GROUP", new PrimitiveType(SqlType.STRING)));
+    tableElements.add(new TableElement("NOLIT", new PrimitiveType(SqlType.STRING)));
+    tableElements.add(new TableElement("Having", new PrimitiveType(SqlType.STRING)));
 
     final CreateStream createStream = new CreateStream(
         QualifiedName.of("TEST"),
@@ -181,7 +182,7 @@ public class SqlFormatterTest {
             new StringLiteral("topic_test")
         ));
     final String sql = SqlFormatter.formatSql(createStream);
-    final String expectedSql = "CREATE STREAM TEST \n WITH (KAFKA_TOPIC='topic_test');";
+    final String expectedSql = "CREATE STREAM TEST  WITH (KAFKA_TOPIC='topic_test');";
     assertThat(sql, equalTo(expectedSql));
   }
 
@@ -257,8 +258,69 @@ public class SqlFormatterTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
-        + "FROM ADDRESS A\n"
-        + "  \n"));
+        + "FROM ADDRESS A"));
+  }
+
+  @Test
+  public void shouldFormatSelectStarCorrectly() {
+    final String statementString = "CREATE STREAM S AS SELECT * FROM address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT *\n"
+            + "FROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatSelectStarCorrectlyWithOtherFields() {
+    final String statementString = "CREATE STREAM S AS SELECT *, address AS city FROM address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n"
+            + "  *\n"
+            + ", ADDRESS.ADDRESS \"CITY\"\n"
+            + "FROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatSelectStarCorrectlyWithJoin() {
+    final String statementString = "CREATE STREAM S AS SELECT address.*, itemid.* "
+        + "FROM address INNER JOIN itemid ON address.address = itemid.address->address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n"
+            + "  ADDRESS.*\n"
+            + ", ITEMID.*\n"
+            + "FROM ADDRESS ADDRESS\n"
+            + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))"));
+  }
+
+  @Test
+  public void shouldFormatSelectStarCorrectlyWithJoinOneSidedStar() {
+    final String statementString = "CREATE STREAM S AS SELECT address.*, itemid.ordertime "
+        + "FROM address INNER JOIN itemid ON address.address = itemid.address->address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n"
+            + "  ADDRESS.*\n"
+            + ", ITEMID.ORDERTIME \"ORDERTIME\"\n"
+            + "FROM ADDRESS ADDRESS\n"
+            + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))"));
+  }
+
+  @Test
+  public void shouldFormatSelectCorrectlyWithDuplicateFields() {
+    final String statementString = "CREATE STREAM S AS SELECT address AS one, address AS two FROM address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n"
+            + "  ADDRESS.ADDRESS \"ONE\"\n"
+            + ", ADDRESS.ADDRESS \"TWO\"\n"
+            + "FROM ADDRESS ADDRESS"));
   }
 }
 

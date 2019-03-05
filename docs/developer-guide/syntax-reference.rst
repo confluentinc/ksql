@@ -82,6 +82,22 @@ For more info, see :ref:`operators`.
 .. note:: You can’t create new nested ``STRUCT`` data as the result of a query,
    but you can copy existing ``STRUCT`` fields as-is.
 
+.. _ksql-time-units:
+
+KSQL Time Units
+---------------
+
+The following list shows valid time units for the SIZE, ADVANCE BY, SESSION, and
+WITHIN clauses.
+
+* DAY, DAYS 
+* HOUR, HOURS
+* MINUTE, MINUTES
+* SECOND, SECONDS
+* MILLISECOND, MILLISECONDS
+
+For more information, see :ref:`windows_in_ksql_queries`.
+
 =================
 KSQL CLI Commands
 =================
@@ -776,7 +792,7 @@ PRINT
 
 .. code:: sql
 
-    PRINT qualifiedName [FROM BEGINNING] [INTERVAL]
+    PRINT qualifiedName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
 
 **Description**
 
@@ -791,7 +807,9 @@ The PRINT statement supports the following properties:
 +=========================+==================================================================================================================+
 | FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| INTERVAL                | Print every nth message. The default is 1, meaning that every message is printed.                                |
+| INTERVAL interval       | Print every ``interval``th message. The default is 1, meaning that every message is printed.                     |
++-------------------------+------------------------------------------------------------------------------------------------------------------+
+| LIMIT limit             | Stop printing after ``limit`` messages. The default value is unlimited, requiring Ctrl+C to terminate the query. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 
 For example:
@@ -916,8 +934,6 @@ the following WINDOW types:
          FROM orders
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
-
-For more information, see :ref:`windows_in_ksql_queries`.
 
 CAST
 ~~~~
@@ -1362,6 +1378,89 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | UCASE                  |  ``UCASE(col1)``                                                          | Convert a string to uppercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_DECODE_PARAM       |  ``URL_DECODE_PARAM(col1)``                                               | Unescapes the `URL-param-encoded`_ value in       |
+|                        |                                                                           | ``col1`` This is the inverse of URL_ENCODE_PARAM  |
+|                        |                                                                           | :superscript:`*`                                  |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``'url%20encoded``                         |
+|                        |                                                                           | Output: ``url encoded``                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_ENCODE_PARAM       |  ``URL_ENCODE_PARAM(col1)``                                               | Escapes the value of ``col1`` such that it can    |
+|                        |                                                                           | safely be used in URL query parameters. Note that |
+|                        |                                                                           | this is not the same as encoding a value for use  |
+|                        |                                                                           | in the path portion of a URL.                     |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``url encoded``                            |
+|                        |                                                                           | Output: ``'url%20encoded``                        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_FRAGMENT   |  ``URL_EXTRACT_FRAGMENT(url)``                                            | Extract the fragment portion of the specified     |
+|                        |                                                                           | value. Returns NULL if ``url`` is not a valid URL |
+|                        |                                                                           | or if the fragment does not exist. Any encoded    |
+|                        |                                                                           | value will be decoded.                            |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``http://test.com#frag``,                  |
+|                        |                                                                           | Output: ``frag``                                  |
+|                        |                                                                           | Input: ``http://test.com#frag%20space``,          |
+|                        |                                                                           | Output: ``frag space``                            |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_HOST       |  ``URL_EXTRACT_HOST(url)``                                                | Extract the host-name portion of the specified    |
+|                        |                                                                           | value. Returns NULL if the ``url`` is not a valid |
+|                        |                                                                           | URI according to RFC-2396.                        |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``http://test.com:8080/path``,             |
+|                        |                                                                           | Output: ``test.com``                              |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_PARAMETER  |  ``URL_EXTRACT_PARAMETER(url, parameter_name)``                           | Extract the value of the requested parameter from |
+|                        |                                                                           | the query-string of ``url``. Returns NULL         |
+|                        |                                                                           | if the parameter is not present, has no value     |
+|                        |                                                                           | specified for it in the query-string, or ``url``  |
+|                        |                                                                           | is not a valid URI. Encodes the param and decodes |
+|                        |                                                                           | the output (see examples).                        |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | To get all of the parameter values from a         |
+|                        |                                                                           | URL as a single string, see ``URL_EXTRACT_QUERY.``|
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``http://test.com?a%20b=c%20d``, ``a b``   |
+|                        |                                                                           | Output: ``c d``                                   |
+|                        |                                                                           | Input: ``http://test.com?a=foo&b=bar``, `b`       |
+|                        |                                                                           | Output: ``bar``                                   |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_PATH       |  ``URL_EXTRACT_PATH(url)``                                                | Extracts the path from ``url``.                   |
+|                        |                                                                           | Returns NULL if ``url`` is not a valid URI but    |
+|                        |                                                                           | returns an empty string if the path is empty.     |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``http://test.com/path/to#a``              |
+|                        |                                                                           | Output: ``path/to``                               |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_PORT       |  ``URL_EXTRACT_PORT(url)``                                                | Extract the port number from ``url``.             |
+|                        |                                                                           | Returns NULL if ``url`` is not a valid URI or does|
+|                        |                                                                           | not contain an explicit port number.              |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``http://localhost:8080/path``             |
+|                        |                                                                           | Output: ``8080``                                  |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_PROTOCOL   |  ``URL_EXTRACT_PROTOCOL(url)``                                            | Extract the protocol from ``url``. Returns NULL if|
+|                        |                                                                           | ``url`` is an invalid URI or has no protocol.     |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``http://test.com?a=foo&b=bar``            |
+|                        |                                                                           | Output: ``http``                                  |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| URL_EXTRACT_QUERY      |  ``URL_EXTRACT_QUERY(url)``                                               | Extract the decoded query-string portion of       |
+|                        |                                                                           | ``url``. Returns NULL if no query-string is       |
+|                        |                                                                           | present or ``url`` is not a valid URI.            |
+|                        |                                                                           |                                                   |
+|                        |                                                                           | Input: ``http://test.com?a=foo%20bar&b=baz``,     |
+|                        |                                                                           | Output: ``a=foo bar&b=baz``                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+
+.. _URL-param-encoded:
+
+:superscript:`*` All KSQL URL functions assume URI syntax defined in `RFC 39386`_.
+For more information on the structure of a URI, including definitions of the various components,
+see Section 3 of the RFC. For encoding/decoding, the ``application/x-www-form-urlencoded``
+convention is followed.
+
+.. _RFC 39386: https://tools.ietf.org/html/rfc3986
 
 .. _ksql_aggregate_functions:
 
@@ -1470,7 +1569,7 @@ The ``KEY`` property is:
 
 In either case, when setting ``KEY`` you must be sure that *both* of the following conditions are true:
 
-1. For every record, the contents of the Kafka message key must be the same as the contents of the columm set in ``KEY`` (which is derived from a field in the Kafka message value).
+1. For every record, the contents of the Kafka message key must be the same as the contents of the column set in ``KEY`` (which is derived from a field in the Kafka message value).
 2. ``KEY`` must be set to a column of type ``VARCHAR`` aka ``STRING``.
 
 If these conditions are not met, then the results of aggregations and joins may be incorrect. However, if your data doesn't meet these requirements, you can still use KSQL with a few extra steps. The following section explains how.

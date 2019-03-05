@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -28,7 +30,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
@@ -103,18 +104,19 @@ public class ProjectNode
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final Map<String, Object> props,
       final QueryId queryId) {
     return getSource().buildStream(
         builder,
         ksqlConfig,
-        serviceContext, 
+        serviceContext,
+        processingLogContext,
         functionRegistry,
-        props,
         queryId
     ).select(
         getProjectSelectExpressions(),
-        buildNodeContext(queryId));
+        buildNodeContext(queryId),
+        processingLogContext);
   }
 }

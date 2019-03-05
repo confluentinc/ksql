@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,7 +15,7 @@
 
 package io.confluent.ksql.planner;
 
-import io.confluent.ksql.analyzer.AggregateAnalysis;
+import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -47,12 +48,12 @@ public class LogicalPlanner {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Analysis analysis;
-  private final AggregateAnalysis aggregateAnalysis;
+  private final AggregateAnalysisResult aggregateAnalysis;
   private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(
       final Analysis analysis,
-      final AggregateAnalysis aggregateAnalysis,
+      final AggregateAnalysisResult aggregateAnalysis,
       final FunctionRegistry functionRegistry
   ) {
     this.analysis = analysis;
@@ -150,8 +151,8 @@ public class LogicalPlanner {
         analysis.getGroupByExpressions(),
         analysis.getWindowExpression(),
         aggregateAnalysis.getAggregateFunctionArguments(),
-        aggregateAnalysis.getFunctionList(),
-        aggregateAnalysis.getRequiredColumnsList(),
+        aggregateAnalysis.getAggregateFunctions(),
+        aggregateAnalysis.getRequiredColumns(),
         aggregateAnalysis.getFinalSelectExpressions(),
         aggregateAnalysis.getHavingExpression()
     );

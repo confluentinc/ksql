@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,9 +15,12 @@
 
 package io.confluent.ksql.integration;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.KsqlContextTestUtil;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -32,6 +36,7 @@ public final class TestKsqlContext extends ExternalResource {
 
   private final IntegrationTestHarness testHarness;
   private final Map<String, Object> additionalConfig;
+  private final MutableFunctionRegistry functionRegistry;
   private KsqlContext delegate;
 
   TestKsqlContext(
@@ -40,6 +45,9 @@ public final class TestKsqlContext extends ExternalResource {
   ) {
     this.testHarness = Objects.requireNonNull(testHarness, "testHarness");
     this.additionalConfig = Objects.requireNonNull(additionalConfig, "additionalConfig");
+    this.functionRegistry = new InternalFunctionRegistry();
+
+    UdfLoaderUtil.load(functionRegistry);
   }
 
   public ServiceContext getServiceContext() {
@@ -48,10 +56,6 @@ public final class TestKsqlContext extends ExternalResource {
 
   public MetaStore getMetaStore() {
     return delegate.getMetaStore();
-  }
-
-  public FunctionRegistry getFunctionRegistry() {
-    return delegate.getFunctionRegistry();
   }
 
   public List<QueryMetadata> sql(final String sql) {
@@ -73,7 +77,11 @@ public final class TestKsqlContext extends ExternalResource {
         additionalConfig
     );
 
-    delegate = KsqlContextTestUtil.create(ksqlConfig, testHarness.schemaRegistryClient());
+    final SchemaRegistryClient srClient = testHarness
+        .getServiceContext()
+        .getSchemaRegistryClient();
+
+    delegate = KsqlContextTestUtil.create(ksqlConfig, srClient, functionRegistry);
   }
 
   @Override

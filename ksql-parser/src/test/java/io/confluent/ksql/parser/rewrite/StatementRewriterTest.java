@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -36,7 +37,7 @@ import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
@@ -345,7 +346,7 @@ public class StatementRewriterTest {
   }
 
   @Test
-  public void testCreateStreamWithTopicWithStruct() throws Exception {
+  public void testCreateStreamWithTopicWithStruct() {
     final String queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
             + "double, arraycol array<double>, mapcol map<varchar, double>, "
@@ -360,20 +361,20 @@ public class StatementRewriterTest {
     assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
     assertThat(createStream.getElements().size(), equalTo(7));
     assertThat(createStream.getElements().get(0).getName().toLowerCase(), equalTo("ordertime"));
-    assertThat(createStream.getElements().get(6).getType().getKsqlType(), equalTo(Type.KsqlType.STRUCT));
+    assertThat(createStream.getElements().get(6).getType().getSqlType(), equalTo(SqlType.STRUCT));
     final Struct struct = (Struct) createStream.getElements().get(6).getType();
     assertThat(struct.getItems().size(), equalTo(5));
-    assertThat(struct.getItems().get(0).getRight().getKsqlType(), equalTo(Type.KsqlType.STRING));
+    assertThat(struct.getItems().get(0).getRight().getSqlType(), equalTo(SqlType.STRING));
     assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toLowerCase(),
         equalTo("'orders_topic'"));
   }
 
   @Test
-  public void testCreateStream() throws Exception {
+  public void testCreateStream() {
     final String queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-            + "double) WITH (value_format = 'avro', "
-            + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+        "CREATE STREAM orders "
+            + "(ordertime bigint, orderid varchar, itemid varchar, orderunits double) "
+            + "WITH (value_format = 'avro',kafka_topic='orders_topic');";
     final Statement statement = parse(queryStr);
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -387,7 +388,6 @@ public class StatementRewriterTest {
     assertThat(createStream.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString(), equalTo("'orders_topic'"));
     assertThat(createStream.getProperties().get(DdlConfig
         .VALUE_FORMAT_PROPERTY).toString(), equalTo("'avro'"));
-    assertThat(createStream.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString(), equalTo("'/Users/hojjat/avro_order_schema.avro'"));
   }
 
   @Test

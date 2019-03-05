@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -30,6 +31,7 @@ import static org.junit.Assert.assertThat;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -49,6 +51,7 @@ import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.structured.SchemaKStream.Type;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SchemaUtil;
@@ -95,6 +98,7 @@ public class SchemaKTableTest {
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
   @Before
   public void init() {
@@ -161,7 +165,8 @@ public class SchemaKTableTest {
         new KsqlConfig(Collections.emptyMap()),
         false,
         MockSchemaRegistryClient::new,
-        "test");
+        "test",
+        processingLogContext);
   }
 
   @Test
@@ -182,7 +187,8 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
-        childContextStacker
+        childContextStacker,
+        processingLogContext
     );
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -203,7 +209,6 @@ public class SchemaKTableTest {
                       initialSchemaKTable);
   }
 
-
   @Test
   public void testSelectWithExpression() {
     final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100;";
@@ -221,7 +226,8 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
-        childContextStacker
+        childContextStacker,
+        processingLogContext
     );
     Assert.assertTrue(projectedSchemaKStream.getSchema().fields().size() == 3);
     Assert.assertTrue(projectedSchemaKStream.getSchema().field("COL0") ==
@@ -262,7 +268,8 @@ public class SchemaKTableTest {
         parentContext);
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
-        childContextStacker
+        childContextStacker,
+        processingLogContext
     );
 
     Assert.assertTrue(filteredSchemaKStream.getSchema().fields().size() == 7);
@@ -309,7 +316,12 @@ public class SchemaKTableTest {
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(), null, false, () -> null, "test");
+        initialSchemaKTable.getSchema(),
+        null,
+        false,
+        () -> null,
+        "test",
+        processingLogContext);
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
         rowSerde,
@@ -384,7 +396,8 @@ public class SchemaKTableTest {
         null,
         false,
         () -> null,
-        "test");
+        "test",
+        processingLogContext);
 
     // Call groupBy and extract the captured mapper
     initialSchemaKTable.groupBy(rowSerde, groupByExpressions, childContextStacker);
@@ -487,6 +500,6 @@ public class SchemaKTableTest {
   }
 
   private PlanNode buildLogicalPlan(final String query) {
-    return LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
+    return AnalysisTestUtil.buildLogicalPlan(query, metaStore);
   }
 }

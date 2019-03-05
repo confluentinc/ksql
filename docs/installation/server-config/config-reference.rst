@@ -85,6 +85,16 @@ ksql.streams.num.stream.threads
 This number of stream threads in an instance of the Kafka Streams application. The stream processing code runs in these
 threads. For more information about Kafka Streams threading model, see :ref:`streams_architecture_threads`.
 
+-----------------------------
+ksql.output.topic.name.prefix
+-----------------------------
+
+The default prefix for automatically created topic names. Unless a user
+defines an explicit topic name in a KSQL statement, KSQL prepends the value of
+``ksql.output.topic.name.prefix`` to the names of automatically created output
+topics. For example, you might use "ksql-interactive-" to name output topics
+in a KSQL Server cluster that's deployed in interactive mode. For more information, see
+:ref:`Configuring Security for KSQL <config-security-ksql-acl-interactive_post_ak_2_0>`.
 
 KSQL Query Settings
 -------------------
@@ -103,12 +113,28 @@ Indicates whether to fail if corrupt messages are read. KSQL decodes messages at
 decoding that KSQL uses depends on what's defined in STREAM's or TABLE's data definition as the data format for the
 topic. If a message in the topic can't be decoded according to that data format, KSQL considers this message to be
 corrupt. For example, a message is corrupt if KSQL expects message values to be in JSON format, but they are in
-DELIMITED format. The default value in KSQL is ``true``. For example, to ignore corrupt messages, add this to your
-properties file:
+DELIMITED format. The default value in KSQL is ``false``, which means a corrupt message will result in a log entry,
+and KSQL will continue processing. To change this default behavior and instead have Kafka Streams threads shut down when
+corrupt messages are encountered, add this to your properties file:
 
 ::
 
-    fail.on.deserialization.error=false
+    ksql.fail.on.deserialization.error=true
+
+.. _ksql-fail-on-production-error:
+
+-----------------------------
+ksql.fail.on.production.error
+-----------------------------
+
+Indicates whether to fail if KSQL fails to publish a record to an output topic due to a Kafka producer exception.
+The default value in KSQL is ``true``, which means if a producer error occurs, then the Kafka Streams thread that
+encountered the error will shut down. To log the error message to the
+:ref:`ksql_processing_log` and have KSQL continue processing as normal, add this to your properties file:
+
+::
+
+    ksql.fail.on.production.error=false
 
 .. _ksql-schema-registry-url:
 
@@ -210,6 +236,98 @@ bind to the default interface. For example:
 
     # Bind only to localhost.
     listeners=http://localhost:8088
+
+.. _ksql-c3-settings:
+
+|c3| Settings
+-------------
+
+You can access KSQL Server by using |c3|. For more information, see
+:ref:`controlcenter_ksql_settings`.
+
+.. _ksql-cloud-settings:
+
+|ccloud| Settings
+-----------------
+
+You can connect KSQL Server to |ccloud|. For more information, see
+:ref:`install_ksql-ccloud`.
+
+KSQL Processing Log Settings
+----------------------------
+
+These configurations control the behavior of the :ref:`KSQL processing log <ksql_processing_log>`.
+
+.. _ksql-processing-log-topic-auto-create:
+
+-------------------------------------
+ksql.logging.processing.topic.auto.create
+-------------------------------------
+
+Toggles automatic processing log topic creation. If set to true, then KSQL will automatically try
+to create a processing log topic at startup. The name of the topic is the value of the
+:ref:`ksql-processing-log-topic-name` property. The number of partitions is taken from the
+:ref:`ksql-processing-log-topic-partitions` property , and the replication factor is taken from the
+:ref:`ksql-processing-log-topic-replication-factor` property. By default, this property has the value
+``false``.
+
+.. _ksql-processing-log-topic-name:
+
+------------------------------
+ksql.logging.processing.topic.name
+------------------------------
+
+If automatic processing log topic creation is enabled, KSQL sets the name of the topic to the value of
+this property. If automatic processing log stream creation is enabled, KSQL uses this topic to back the
+stream. By default, this property has the value ``<service id>ksql_processing_log``, where ``<service id>``
+is the value of the :ref:`ksql-service-id` property.
+
+.. _ksql-processing-log-topic-partitions:
+
+------------------------------------
+ksql.logging.processing.topic.partitions
+------------------------------------
+
+If automatic processing log topic creation is enabled, KSQL creates the topic with number of partitions set
+to the value of this property. By default, this property has the value ``1``.
+
+.. _ksql-processing-log-replication-factor:
+
+--------------------------------------------
+ksql.logging.processing.topic.replication.factor
+--------------------------------------------
+
+If automatic processing log topic creation is enabled, KSQL creates the topic with  number of replicas set
+to the value of this property. By default, this property has the value ``1``.
+
+.. _ksql-processing-log-stream-auto-create:
+
+--------------------------------------
+ksql.logging.processing.stream.auto.create
+--------------------------------------
+
+Toggles automatic processing log stream creation. If set to true, and KSQL is running in interactive mode on a new cluster,
+KSQL automatically creates a processing log stream when it starts up. The name for the stream is the
+value of the :ref:`ksql-processing-log-stream-name` property. The stream is created over the topic set in
+the :ref:`ksql-processing-log-topic-name` property. By default, this property has the value ``false``.
+
+.. _ksql-processing-log-stream-name:
+
+-------------------------------
+ksql.logging.processing.stream.name
+-------------------------------
+
+If automatic processing log stream creation is enabled, KSQL sets the name of the stream to the value of this
+property. By default, this property has the value ``KSQL_PROCESSING_LOG``.
+
+.. _ksql-processing-log-include-rows:
+
+--------------------------------
+ksql.logging.processing.rows.include
+--------------------------------
+
+Toggles whether or not the processing log should include rows in log messages. By default, this property has the
+value ``false``.
 
 .. _ksql-production-settings:
 

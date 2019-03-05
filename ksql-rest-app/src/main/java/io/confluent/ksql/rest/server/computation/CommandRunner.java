@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,12 +15,10 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
@@ -52,23 +51,6 @@ public class CommandRunner implements Runnable, Closeable {
   private final ClusterTerminator clusterTerminator;
 
   public CommandRunner(
-      final StatementExecutor statementExecutor,
-      final CommandQueue commandStore,
-      final KsqlConfig ksqlConfig,
-      final KsqlEngine ksqlEngine,
-      final int maxRetries,
-      final ServiceContext serviceContext
-  ) {
-    this(
-        statementExecutor,
-        commandStore,
-        ksqlEngine,
-        maxRetries,
-        new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext)
-    );
-  }
-
-  CommandRunner(
       final StatementExecutor statementExecutor,
       final CommandQueue commandStore,
       final KsqlEngine ksqlEngine,

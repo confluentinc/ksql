@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -32,11 +33,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogConstants;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
-import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -53,7 +55,6 @@ import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -148,11 +149,13 @@ public class StructuredDataSourceNodeTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   private ServiceContext serviceContext;
+  private ProcessingLogContext processingLogContext;
 
   @Before
   @SuppressWarnings("unchecked")
   public void before() {
     serviceContext = TestServiceContext.create();
+    processingLogContext = ProcessingLogContext.create();
     realBuilder = new StreamsBuilder();
     realStream = build(node);
 
@@ -168,7 +171,8 @@ public class StructuredDataSourceNodeTest {
         any(KsqlConfig.class),
         any(Boolean.class),
         any(Supplier.class),
-        anyString())).thenReturn(rowSerde);
+        anyString(),
+        any(ProcessingLogContext.class))).thenReturn(rowSerde);
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
@@ -202,8 +206,8 @@ public class StructuredDataSourceNodeTest {
         streamsBuilder,
         realConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
-        Collections.emptyMap(),
         queryId
     );
 
@@ -216,11 +220,11 @@ public class StructuredDataSourceNodeTest {
   @Test
   public void shouldCreateLoggerForSourceSerde() {
     assertThat(
-        ProcessingLoggerFactory.getLoggers(),
+        processingLogContext.getLoggerFactory().getLoggers(),
         hasItem(
             startsWith(
                 ProcessingLoggerUtil.join(
-                    ProcessingLoggerFactory.PREFIX,
+                    ProcessingLogConstants.PREFIX,
                     QueryLoggerUtil.queryLoggerName(
                         new QueryContext.Stacker(queryId)
                             .push(node.getId().toString(), "source")
@@ -335,8 +339,8 @@ public class StructuredDataSourceNodeTest {
         realBuilder,
         realConfig,
         serviceContext,
+        processingLogContext,
         new InternalFunctionRegistry(),
-        new HashMap<>(),
         queryId);
   }
 

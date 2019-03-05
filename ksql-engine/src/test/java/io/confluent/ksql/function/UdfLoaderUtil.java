@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,14 +15,14 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import java.util.Optional;
 import org.apache.kafka.test.TestUtils;
 
 public final class UdfLoaderUtil {
   private UdfLoaderUtil() {}
 
-  public static FunctionRegistry load(final FunctionRegistry functionRegistry) {
+  public static FunctionRegistry load(final MutableFunctionRegistry functionRegistry) {
     new UdfLoader(functionRegistry,
         TestUtils.tempDirectory(),
         UdfLoaderUtil.class.getClassLoader(),
@@ -29,5 +30,17 @@ public final class UdfLoaderUtil {
         .load();
 
     return functionRegistry;
+  }
+
+  public static UdfFactory createTestUdfFactory(final KsqlFunction udf) {
+    final UdfMetadata metadata = new UdfMetadata(
+        udf.getFunctionName(),
+        udf.getDescription(),
+        "Test Author",
+        "",
+        KsqlFunction.INTERNAL_PATH,
+        false);
+
+    return new UdfFactory(udf.getKudfClass(), metadata);
   }
 }

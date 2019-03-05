@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,8 +18,8 @@ package io.confluent.ksql.structured;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -130,14 +131,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> filter(
       final Expression filterExpression,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
         hasWindowedKey(),
         ksqlConfig,
         functionRegistry,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
                 contextStacker.push(Type.FILTER.name()).getQueryContext()))
     );
@@ -158,12 +160,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> select(
       final List<SelectExpression> selectExpressions,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     final Selection selection = new Selection(
         selectExpressions,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.PROJECT.name()).getQueryContext())));
+                contextStacker.push(Type.PROJECT.name()).getQueryContext()))
+    );
     return new SchemaKTable<>(
         selection.getProjectedSchema(),
         ktable.mapValues(selection.getSelectValueMapper()),

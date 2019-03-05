@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -281,7 +282,7 @@ public class WSQueryEndpoint {
     this.subscriber = topicSubscriber;
 
     topicPublisher.start(exec, serviceContext.getSchemaRegistryClient(),
-        ksqlConfig.getKsqlStreamConfigProps(), topicName, printTopic.getFromBeginning(),
+        ksqlConfig.getKsqlStreamConfigProps(), printTopic,
         topicSubscriber
     );
   }
@@ -313,11 +314,10 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService exec,
       final SchemaRegistryClient schemaRegistryClient,
       final Map<String, Object> ksqlStreamConfigProps,
-      final String topicName,
-      final boolean fromBeginning,
+      final PrintTopic printTopic,
       final WebSocketSubscriber<String> topicSubscriber
   ) {
-    new PrintPublisher(exec, schemaRegistryClient, ksqlStreamConfigProps, topicName,fromBeginning)
+    new PrintPublisher(exec, schemaRegistryClient, ksqlStreamConfigProps, printTopic)
         .subscribe(topicSubscriber);
   }
 
@@ -338,8 +338,7 @@ public class WSQueryEndpoint {
         ListeningScheduledExecutorService exec,
         SchemaRegistryClient schemaRegistryClient,
         Map<String, Object> consumerProperties,
-        String topicName,
-        boolean fromBeginning,
+        PrintTopic printTopic,
         WebSocketSubscriber<String> subscriber);
   }
 

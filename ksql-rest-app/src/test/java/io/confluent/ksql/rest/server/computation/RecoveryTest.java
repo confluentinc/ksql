@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,24 +19,29 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
+import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -53,10 +59,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
-import org.easymock.EasyMock;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -84,8 +90,7 @@ public class RecoveryTest {
   }
 
   private KsqlEngine createKsqlEngine() {
-    final KsqlEngineMetrics engineMetrics = EasyMock.niceMock(KsqlEngineMetrics.class);
-    EasyMock.replay(engineMetrics);
+    final KsqlEngineMetrics engineMetrics = mock(KsqlEngineMetrics.class);
     return KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
@@ -98,25 +103,24 @@ public class RecoveryTest {
     private int offset;
 
     FakeCommandQueue(
-        final CommandIdAssigner commandIdAssigner,
         final List<QueuedCommand> commandLog) {
-      this.commandIdAssigner = commandIdAssigner;
+      this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
     }
 
     @Override
     public QueuedCommandStatus enqueueCommand(
-        final String statementString,
-        final Statement statement,
+        final PreparedStatement<?> statement,
         final KsqlConfig ksqlConfig,
-        final Map<String, Object> overwriteProperties) {
-      final CommandId commandId = commandIdAssigner.getCommandId(statement);
+        final Map<String, Object> overwriteProperties
+    ) {
+      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
           new QueuedCommand(
               commandId,
               new Command(
-                  statementString,
+                  statement.getStatementText(),
                   Collections.emptyMap(),
                   ksqlConfig.getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));
@@ -154,24 +158,26 @@ public class RecoveryTest {
   private class KsqlServer {
     final KsqlEngine ksqlEngine;
     final KsqlResource ksqlResource;
-    final CommandIdAssigner commandIdAssigner;
     final FakeCommandQueue fakeCommandQueue;
     final StatementExecutor statementExecutor;
     final CommandRunner commandRunner;
 
     KsqlServer(final List<QueuedCommand> commandLog) {
       this.ksqlEngine = createKsqlEngine();
-      this.commandIdAssigner = new CommandIdAssigner(ksqlEngine.getMetaStore());
-      this.fakeCommandQueue = new FakeCommandQueue(
-          new CommandIdAssigner(ksqlEngine.getMetaStore()),
-          commandLog);
+      this.fakeCommandQueue = new FakeCommandQueue(commandLog);
+
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
+          new DefaultSchemaInjector(
+              new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
+
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,
           serviceContext,
           fakeCommandQueue,
           Duration.ofMillis(0),
-          ()->{}
+          ()->{},
+          schemaInjectorFactory
       );
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
@@ -180,10 +186,9 @@ public class RecoveryTest {
       this.commandRunner = new CommandRunner(
           statementExecutor,
           fakeCommandQueue,
-          ksqlConfig,
           ksqlEngine,
           1,
-          serviceContext
+          mock(ClusterTerminator.class)
       );
     }
 

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -26,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -117,8 +117,6 @@ public class UdfIntTest {
   public void before() {
     intermediateStream = KsqlIdentifierTestUtil.uniqueIdentifierName("INTERMEDIATE");
     resultStreamName = KsqlIdentifierTestUtil.uniqueIdentifierName("OUTPUT");
-
-    UdfLoaderUtil.load(ksqlContext.getFunctionRegistry());
 
     createSourceStream();
   }

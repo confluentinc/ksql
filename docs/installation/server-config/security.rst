@@ -4,9 +4,9 @@ Configuring Security for KSQL
 =============================
 
 KSQL supports authentication on its HTTP endpoints and also supports many of the security features
-of the other services it communicates with both Apache Kafka and the |sr|.
+of the other services it communicates with, like Apache Kafka and |sr|.
 
-- KSQL supports Basic HTTP authentication on its RESTful and Websocket HTTP endpoints, which means
+- KSQL supports Basic HTTP authentication on its RESTful and WebSocket endpoints, which means
   that the endpoints can be protected by a username and password.
 - KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
@@ -22,13 +22,78 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 
 .. include:: ../../../../includes/installation-types-zip-tar.rst
 
+.. _config-ksql-for-https:
+
+Configuring KSQL for HTTPS
+--------------------------
+KSQL can be configured to use HTTPS rather than the default HTTP for all communication.
+
+If you haven't already, you will need to :ref:`create SSL key and trust stores <generating-keys-certs>`.
+
+Use the following settings to configure the KSQL server to use HTTPS:
+
+::
+
+    listeners=https://hostname:port
+    ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
+    ssl.keystore.password=xxxx
+    ssl.key.password=yyyy
+
+Note the use of the HTTPS protocol in the ``listeners`` config.
+
+To enable the server to authenticate clients (2-way authentication), use the following additional
+settings:
+
+::
+
+    ssl.client.auth=required
+    ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+    ssl.truststore.password=zzzz
+
+.. _configuring-cli-for-https:
+
+-----------------------------
+Configuring the CLI for HTTPS
+-----------------------------
+If the KSQL server is configured to use HTTPS, CLI instances may need to be configured with
+suitable key and trust stores.
+
+If the server's SSL certificate is not signed by a recognised public Certificate Authority,
+the CLI will need to be configured with a trust store that trusts the servers SSL certificate.
+
+If you haven't already, you will need to :ref:`create SSL key and trust stores <generating-keys-certs>`.
+
+Use the following settings to configure the CLI server:
+
+::
+
+    ssl.truststore.location=/var/private/ssl/ksql.client.truststore.jks
+    ssl.truststore.password=zzzz
+
+If the server is performing client authentication (2-way authentication), use the following
+additional settings:
+
+::
+
+    ssl.keystore.location=/var/private/ssl/ksql.client.keystore.jks
+    ssl.keystore.password=xxxx
+    ssl.key.password=yyyy
+
+Settings for the CLI can be stored in a suitable file and passed to the CLI via the ``--config-file``
+command-line arguments, for example:
+
+.. code:: bash
+
+    <ksql-install>bin/ksql --config-file ./config/ksql-cli.properties https://localhost:8088
+
 Configuring KSQL for Basic HTTP Authentication
 ----------------------------------------------
 KSQL can be configured to require users to authenticate using a username and password via the Basic
 HTTP authentication mechanism.
 
-.. note:: If using Basic authentication it is highly recommended that you configure the KSQL server to
-          use SSL to secure communication, as the Basic protocol passes credentials in plain text.
+.. note:: If you're using Basic authentication, we recommended that you
+          :ref:`configure KSQL to use HTTPS for secure communication <config-ksql-for-https>`,
+          because the Basic protocol passes credentials in plain text.
 
 Use the following settings to configure the KSQL server to require authentication:
 
@@ -42,7 +107,7 @@ Use the following settings to configure the KSQL server to require authenticatio
 The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized
 to use the KSQL server an authenticated user must belong to at least one of these roles.
 
-The ``authentication.realm`` config must match a section with in ``jaas_config.file``, which
+The ``authentication.realm`` config must match a section within ``jaas_config.file``, which
 defines how the server authenticates users, for example:
 
 ::
@@ -59,7 +124,7 @@ authenticates users by checking for their credentials in a password file.
 You can also use other implementations of the standard Java ``LoginModule`` interface, such as
 ``JDBCLoginModule`` for reading credentials from a database or the ``LdapLoginModule``.
 
-The file parameter is the location of the properties file, The format is:
+The file parameter is the location of the password file, The format is:
 
 ::
 
@@ -93,9 +158,9 @@ Which results in an output similar to:
 Where each line of the output is the password encrypted using different mechanisms, starting with
 plain text.
 
--------------------
-Configuring the CLI
--------------------
+-------------------------------------------------
+Configuring the CLI for Basic HTTP Authentication
+-------------------------------------------------
 If the KSQL server is configured to use Basic authentication, CLI instances will need to be
 configured with suitable valid credentials.  Credentials can be passed when starting the CLI using
 the ``--user`` and ``--password`` command-line arguments, for example:
@@ -273,8 +338,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, ``PATTERN_TYPE
 All ACLs described are ``ALLOW`` ACLs, where the principal is the user the KSQL server has authenticated as,
 with the Apache Kafka cluster, or an appropriate group that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-         non-interactive queries, see :ref:`restrict-ksql-interactive`.
+.. tip:: For more information about ACLs, see :ref:`kafka_authorization`.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ACLs on Literal Resource Pattern
@@ -336,7 +400,7 @@ For example, given the following setup:
 - A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0, 198.51.100.1, 198.51.100.2
 - Authenticating with the Kafka cluster as a ``KSQL1`` user.
 - With ``ksql.service.id`` set to ``production_``.
-- Running queries the read from input topics ``input-topic1`` and ``input-topic2``.
+- Running queries that read from input topics ``input-topic1`` and ``input-topic2``.
 - Writing to output topics ``output-topic1`` and ``output-topic2``.
 - Where ``output-topic1`` is also used as an input for another query.
 
@@ -370,8 +434,8 @@ access to the input and output topics, as required.
 .. tip:: To simplify ACL management, you should configure a default custom topic name prefix such as ``ksql-interactive-`` for your
          KSQL cluster via the ``ksql.output.topic.name.prefix`` :ref:`server configuration setting <set-ksql-server-properties>`.
          Unless a user defines an explicit topic name in a KSQL statement, KSQL will then always prefix the name of any automatically
-         created output topics.
-         Then add an ACL to allow ``ALL`` operations on ``TOPIC``s ``PREFIXED`` with the configured custom name prefix (in the example above: ``ksql-interactive-``).
+         created output topics. Then add an ACL to allow ``ALL`` operations on ``TOPICs`` that are ``PREFIXED`` with the configured
+         custom name prefix (in the example above: ``ksql-interactive-``).
 
 For example, given the following setup:
 
@@ -440,8 +504,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, and ``OPERATIO
 the principal is the user the KSQL server has authenticated as, with the Apache Kafka cluster, or an appropriate group
 that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs see :ref:`kafka_authorization` and for more information about interactive and
-   non-interactive queries, see :ref:`restrict-ksql-interactive`.
+.. tip:: For more information about ACLs, see :ref:`kafka_authorization`.
 
 .. _config-security-ksql-acl-interactive_pre_ak_2_0:
 
@@ -536,11 +599,13 @@ Consumer groups
     Consumer group names are formatted like ``_confluent-ksql-<value of ksql.service.id property>_query_<query id>``,
     where the default of ``ksql.service.id`` is ``default_``.
 
+.. tip:: For more information about interactive and non-interactive queries, see :ref:`restrict-ksql-interactive`.
+
 ----------------------------------------------
 Configuring |c3-short| Monitoring Interceptors
 ----------------------------------------------
 
-This configuration enables SASL and SSL for the :ref:`monitoring intercepts <controlcenter_clients>` that integrate KSQL
+This configuration enables SASL and SSL for the :ref:`monitoring interceptors <controlcenter_clients>` that integrate KSQL
 with |c3-short|.
 
 ::

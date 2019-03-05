@@ -15,8 +15,8 @@ This is needed to detect potentially non-backwards compatible changes to the gen
 The expected topology files, and the configuration used to generated them are found in
 `src/test/resources/expected_topology/<Version Number>`
 
-By default test will compare the current generated topology against the previous released version
-of KSQL, as identified by the `QueryTranslationTest.CURRENT_TOPOLOGY_VERSION` variable.
+By default test will compare the current generated topology against the previously released versions
+of KSQL, as identified by the `QueryTranslationTest.CURRENT_TOPOLOGY_VERSIONS` variable.
 
 ### Running a subset of tests:
 
@@ -35,21 +35,21 @@ The above commands can execute only a single test (sum.json) or multiple tests (
 
 ### Running against different previous versions:
 
-To run this test against previously released versions there are three options
+To run this test against specific previously released versions there are three options
 
-1. Manually change `QueryTranslationTest.CURRENT_TOPOLOGY_VERSION` to a valid version number
-found under the `src/test/resources/expected_topology` directory.
+1. Manually change `QueryTranslationTest.CURRENT_TOPOLOGY_VERSIONS` to a valid comma-delimited list of
+version numbers found under the `src/test/resources/expected_topology` directory.
 
-1. Set the system property "topology.version" to the version required.
+1. Set the system property "topology.versions" to the version(s) required.
   * Within Intellij
     1. Click Run/Edit configurations
     1. Select the QueryTranslationTest
-    1. Enter `-Dtopology.version=X` in the "VM options:" form entry
-       where X is the desired previously released version number.
+    1. Enter `-Dtopology.versions=X` in the "VM options:" form entry
+       where X is a comma-delimited list of the desired previously released version number(s).
   * From the command line
     1. run `mvn clean package -DskipTests=true` from the base of the KSQL project
-    1. Then run `mvn test -Dtopology.version=X -Dtest=QueryTranslationTest -pl ksql-engine`.
-       Again X is the version you want to run the tests against.
+    1. Then run `mvn test -Dtopology.versions=X -Dtest=QueryTranslationTest -pl ksql-engine`.
+       Again X is a list of the versions you want to run the tests against.
 
   Note that for both options above the version must exist
   under the `src/test/resources/expected_topology` directory.
@@ -94,7 +94,7 @@ The following is a template test file:
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement or topic schema does not define any columns."
+        "message": "The statement does not define any columns."
       }
     }
   ]
@@ -198,12 +198,13 @@ A test can define an expected exception in the same way as a JUnit test, e.g.
    ...
    "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement or topic schema does not define any columns."
+        "message": "The statement does not define any columns."
       },
    ...
 ```
 
 The expected exception can define the following attributes:
+
 | Attribute | Description |
 |-----------|:------------|
 | type      | (Optional) The fully qualifid class name of the _exact_ exception |

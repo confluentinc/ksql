@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,15 +16,15 @@
 package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.processing.log.ProcessingLoggerFactory;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -155,14 +156,15 @@ public class SchemaKStream<K> {
   @SuppressWarnings("unchecked")
   public SchemaKStream<K> filter(
       final Expression filterExpression,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
         schema,
         hasWindowedKey(),
         ksqlConfig,
         functionRegistry,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
                 contextStacker.push(Type.FILTER.name()).getQueryContext())
         )
@@ -184,12 +186,14 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> select(
       final List<SelectExpression> selectExpressions,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final ProcessingLogContext processingLogContext) {
     final Selection selection = new Selection(
         selectExpressions,
-        ProcessingLoggerFactory.getLogger(
+        processingLogContext.getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.PROJECT.name()).getQueryContext())));
+                contextStacker.push(Type.PROJECT.name()).getQueryContext()))
+    );
     return new SchemaKStream<>(
         selection.getProjectedSchema(),
         kstream.mapValues(selection.getSelectValueMapper()),
@@ -210,7 +214,7 @@ public class SchemaKStream<K> {
 
     Selection(
         final List<SelectExpression> selectExpressions,
-        final StructuredLogger processingLogger) {
+        final ProcessingLogger processingLogger) {
       key = findKeyField(selectExpressions);
       final List<ExpressionMetadata> expressionEvaluators = buildExpressions(selectExpressions);
       schema = buildSchema(selectExpressions, expressionEvaluators);
@@ -516,13 +520,22 @@ public class SchemaKStream<K> {
   }
 
   private boolean rekeyRequired(final List<Expression> groupByExpressions) {
+    if (groupByExpressions.size() != 1) {
+      return true;
+    }
+
     final Field keyField = getKeyField();
     if (keyField == null) {
       return true;
     }
+
+    final String groupByField = fieldNameFromExpression(groupByExpressions.get(0));
+    if (groupByField == null) {
+      return true;
+    }
+
     final String keyFieldName = SchemaUtil.getFieldNameWithNoAlias(keyField);
-    return !(groupByExpressions.size() == 1
-        && fieldNameFromExpression(groupByExpressions.get(0)).equals(keyFieldName));
+    return !groupByField.equals(keyFieldName);
   }
 
   public SchemaKGroupedStream groupBy(

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -23,6 +24,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
@@ -51,8 +53,8 @@ import org.junit.rules.ExpectedException;
 
 public class AnalyzerTest {
 
-  private MetaStore jsonMetaStore;
-  private MetaStore avroMetaStore;
+  private MutableMetaStore jsonMetaStore;
+  private MutableMetaStore avroMetaStore;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -221,7 +223,7 @@ public class AnalyzerTest {
   public void shouldCreateCorrectSinkKsqlTopic() {
     final String simpleQuery = "CREATE STREAM FOO WITH (KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     // The following few lines are only needed for this test
-    final MetaStore testMetastore = jsonMetaStore.copy();
+    final MutableMetaStore testMetastore = jsonMetaStore.copy();
     final KsqlTopic ksqlTopic = new KsqlTopic("FOO", "TEST_TOPIC1", new KsqlJsonTopicSerDe(), true);
     testMetastore.putTopic(ksqlTopic);
     final List<Statement> statements = parse(simpleQuery, testMetastore);
@@ -334,7 +336,7 @@ public class AnalyzerTest {
   public void shouldNotInheritNamespaceExplicitlySetUpstreamForAvro() {
     final String simpleQuery = "create stream s1 as select * from S0;";
 
-    final MetaStore newAvroMetaStore = avroMetaStore.copy();
+    final MutableMetaStore newAvroMetaStore = avroMetaStore.copy();
 
     final KsqlTopic ksqlTopic =
             new KsqlTopic(

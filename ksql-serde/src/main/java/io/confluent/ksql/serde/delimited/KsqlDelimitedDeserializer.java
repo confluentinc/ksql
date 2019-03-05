@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,14 +15,15 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -33,13 +35,13 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
-  private final StructuredLogger recordLogger;
+  private final ProcessingLogger recordLogger;
 
-  public KsqlDelimitedDeserializer(
+  KsqlDelimitedDeserializer(
       final Schema schema,
-      final StructuredLogger recordLogger) {
-    this.schema = schema;
-    this.recordLogger = recordLogger;
+      final ProcessingLogger recordLogger) {
+    this.schema = Objects.requireNonNull(schema);
+    this.recordLogger = Objects.requireNonNull(recordLogger);
   }
 
   @Override
@@ -85,7 +87,10 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       return new GenericRow(columns);
     } catch (final Exception e) {
       recordLogger.error(
-          SerdeProcessingLogMessageFactory.deserializationErrorMsg(e, Optional.ofNullable(bytes)));
+          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+              e,
+              Optional.ofNullable(bytes))
+      );
       throw new SerializationException(
           "Exception in deserializing the delimited row: " + recordCsvString,
           e

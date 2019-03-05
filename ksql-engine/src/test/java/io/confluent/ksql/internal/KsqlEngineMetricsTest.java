@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -94,7 +95,7 @@ public class KsqlEngineMetricsTest {
 
   @Test
   public void shouldRecordNumberOfActiveQueries() {
-    when(ksqlEngine.numberOfLiveQueries()).thenReturn(3L);
+    when(ksqlEngine.numberOfLiveQueries()).thenReturn(3);
     final double value = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "num-active-queries");
     assertEquals(3.0, value, 0.0);
   }
@@ -155,7 +156,7 @@ public class KsqlEngineMetricsTest {
 
   @Test
   public void shouldRecordNumberOfPersistentQueries() {
-    when(ksqlEngine.numberOfPersistentQueries()).thenReturn(3L);
+    when(ksqlEngine.numberOfPersistentQueries()).thenReturn(3);
 
     final double value = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "num-persistent-queries");
     assertEquals(3.0, value, 0.0);

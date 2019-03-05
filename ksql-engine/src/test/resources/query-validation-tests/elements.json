@@ -7,7 +7,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement or topic schema does not define any columns."
+        "message": "The statement does not define any columns."
       }
     },
     {
@@ -17,7 +17,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement or topic schema does not define any columns."
+        "message": "The statement does not define any columns."
       }
     },
     {

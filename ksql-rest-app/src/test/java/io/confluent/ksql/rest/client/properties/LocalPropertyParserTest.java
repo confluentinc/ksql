@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -25,7 +26,6 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.ConfigResolver;
 import io.confluent.ksql.config.PropertyValidator;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
@@ -70,27 +70,9 @@ public class LocalPropertyParserTest {
   }
 
   @Test
-  public void shouldNotCallResolverForAvroSchemaConstant() {
-    // When:
-    parser.parse(DdlConfig.AVRO_SCHEMA, "100");
-
-    // Then:
-    verify(resolver, never()).resolve(anyString(), anyBoolean());
-  }
-
-  @Test
-  public void shouldCallValidatorForAvroSchemaConstant() {
-    // When:
-    parser.parse(DdlConfig.AVRO_SCHEMA, "something");
-
-    // Then:
-    verify(validator).validate(DdlConfig.AVRO_SCHEMA, "something");
-  }
-
-  @Test
   public void shouldNotCallResolverForRunScriptConstant() {
     // When:
-    parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "100");
+    parser.parse(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "100");
 
     // Then:
     verify(resolver, never()).resolve(anyString(), anyBoolean());
@@ -99,10 +81,10 @@ public class LocalPropertyParserTest {
   @Test
   public void shouldCallValidatorForRunScriptConstant() {
     // When:
-    parser.parse(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
+    parser.parse(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
 
     // Then:
-    verify(validator).validate(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
+    verify(validator).validate(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT, "something2");
   }
 
   @Test

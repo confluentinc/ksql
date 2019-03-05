@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.times;
@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.query.QueryId;
@@ -36,7 +37,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -60,8 +60,8 @@ public class ProjectNodeTest {
   private final StreamsBuilder builder = new StreamsBuilder();
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final ServiceContext serviceContext = TestServiceContext.create();
+  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final HashMap<String, Object> props = new HashMap<>();
   private final QueryId queryId = new QueryId("project-test");
 
   @Rule
@@ -98,8 +98,8 @@ public class ProjectNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
-        props,
         queryId);
   }
 
@@ -109,7 +109,7 @@ public class ProjectNodeTest {
     // Given:
     final BooleanLiteral trueExpression = new BooleanLiteral("true");
     final BooleanLiteral falseExpression = new BooleanLiteral("false");
-    when(stream.select(anyList(), any())).thenReturn(stream);
+    when(stream.select(anyList(), any(), any())).thenReturn(stream);
     final ProjectNode node = buildNode(
         Arrays.asList(trueExpression, falseExpression));
 
@@ -118,8 +118,8 @@ public class ProjectNodeTest {
         builder,
         ksqlConfig,
         serviceContext,
+        processingLogContext,
         functionRegistry,
-        props,
         queryId);
 
     // Then:
@@ -127,14 +127,15 @@ public class ProjectNodeTest {
         eq(Arrays.asList(
             SelectExpression.of("field1", trueExpression),
             SelectExpression.of("field2", falseExpression))),
-        eq(node.buildNodeContext(queryId))
+        eq(node.buildNodeContext(queryId)),
+        same(processingLogContext)
     );
     verify(source, times(1)).buildStream(
         same(builder),
         same(ksqlConfig),
         same(serviceContext),
+        same(processingLogContext),
         same(functionRegistry),
-        same(props),
         same(queryId)
     );
   }
@@ -147,8 +148,8 @@ public class ProjectNodeTest {
         any(StreamsBuilder.class),
         any(KsqlConfig.class),
         any(ServiceContext.class),
+        any(ProcessingLogContext.class),
         any(InternalFunctionRegistry.class),
-        anyMap(),
         same(queryId))
     ).thenReturn(stream);
   }

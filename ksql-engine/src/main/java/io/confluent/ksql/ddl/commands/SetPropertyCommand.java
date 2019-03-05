@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,7 +15,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.SetProperty;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ public class SetPropertyCommand implements DdlCommand {
   }
 
   @Override
-  public DdlCommandResult run(final MetaStore metaStore) {
+  public DdlCommandResult run(final MutableMetaStore metaStore) {
     return new DdlCommandResult(true, "property:"
         + statement.getPropertyName()
         + " set to "

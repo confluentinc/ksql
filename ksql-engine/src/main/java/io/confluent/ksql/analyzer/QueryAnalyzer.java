@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,41 +15,48 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.tree.GroupBy;
+import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
   private final MetaStore metaStore;
-  private final KsqlConfig config;
+  private final String outputTopicPrefix;
 
-  public QueryAnalyzer(final MetaStore metaStore, final KsqlConfig config) {
+  public QueryAnalyzer(
+      final MetaStore metaStore,
+      final String outputTopicPrefix
+  ) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.config = Objects.requireNonNull(config, "config");
+    this.outputTopicPrefix = Objects.requireNonNull(outputTopicPrefix, "outputTopicPrefix");
   }
 
   public Analysis analyze(final String sqlExpression, final Query query) {
     final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore, topicPrefix());
+    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore, outputTopicPrefix);
     analyzer.process(query, new AnalysisContext());
     return analysis;
   }
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
-    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new
-        AggregateAnalyzer(aggregateAnalysis, analysis, metaStore);
+    final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
+    final DereferenceExpression defaultArgument = analysis.getDefaultArgument();
+    final AggregateAnalyzer aggregateAnalyzer =
+        new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(metaStore);
 
@@ -59,9 +67,14 @@ public class QueryAnalyzer {
         aggregateExpressionRewriter
     );
 
-    if (!aggregateAnalysis.getAggregateFunctionArguments().isEmpty()
+    if (!aggregateAnalysis.getAggregateFunctions().isEmpty()
         && analysis.getGroupByExpressions().isEmpty()) {
-      throw new KsqlException("Aggregate query needs GROUP BY clause. query:" + query);
+      final String aggFuncs = aggregateAnalysis.getAggregateFunctions().stream()
+          .map(FunctionCall::getName)
+          .map(QualifiedName::getSuffix)
+          .collect(Collectors.joining(", "));
+      throw new KsqlException("Use of aggregate functions requires a GROUP BY clause. "
+          + "Aggregate function(s): " + aggFuncs);
     }
 
     processGroupByExpression(
@@ -69,7 +82,6 @@ public class QueryAnalyzer {
         aggregateAnalyzer
     );
 
-    // TODO: make sure only aggregates are in the expression. For now we assume this is the case.
     if (analysis.getHavingExpression() != null) {
       processHavingExpression(
           analysis,
@@ -79,82 +91,94 @@ public class QueryAnalyzer {
       );
     }
 
-    enforceAggregateRules(query, aggregateAnalysis);
+    enforceAggregateRules(query, analysis, aggregateAnalysis);
     return aggregateAnalysis;
   }
 
-  private void processHavingExpression(
+  private static void processHavingExpression(
       final Analysis analysis,
-      final AggregateAnalysis aggregateAnalysis,
+      final MutableAggregateAnalysis aggregateAnalysis,
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
     final Expression exp = analysis.getHavingExpression();
 
-    processExpression(exp, aggregateAnalysis, aggregateAnalyzer);
+    aggregateAnalyzer.processHaving(exp);
 
     aggregateAnalysis.setHavingExpression(
         ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,exp));
   }
 
-  private void processGroupByExpression(
+  private static void processGroupByExpression(
       final Analysis analysis,
       final AggregateAnalyzer aggregateAnalyzer
   ) {
     for (final Expression exp : analysis.getGroupByExpressions()) {
-      aggregateAnalyzer.process(exp, new AnalysisContext());
+      aggregateAnalyzer.processGroupBy(exp);
     }
   }
 
-  private void processSelectExpressions(
+  private static void processSelectExpressions(
       final Analysis analysis,
-      final AggregateAnalysis aggregateAnalysis,
+      final MutableAggregateAnalysis aggregateAnalysis,
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
     for (final Expression exp : analysis.getSelectExpressions()) {
-      processExpression(exp, aggregateAnalysis, aggregateAnalyzer);
+      aggregateAnalyzer.processSelect(exp);
 
       aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, exp));
     }
   }
 
-  private static void processExpression(
-      final Expression expression,
-      final AggregateAnalysis aggregateAnalysis,
-      final AggregateAnalyzer aggregateAnalyzer) {
-    aggregateAnalyzer.process(expression, new AnalysisContext());
-    if (!aggregateAnalyzer.isHasAggregateFunction()) {
-      aggregateAnalysis.addNonAggResultColumns(expression);
-    }
-    aggregateAnalyzer.setHasAggregateFunction(false);
-  }
-
-  private void enforceAggregateRules(final Query query, final AggregateAnalysis aggregateAnalysis) {
-    final Optional<GroupBy> groupBy = ((QuerySpecification) query.getQueryBody()).getGroupBy();
-    if (!groupBy.isPresent()) {
+  private static void enforceAggregateRules(
+      final Query query,
+      final Analysis analysis,
+      final AggregateAnalysis aggregateAnalysis
+  ) {
+    if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
       return;
     }
 
-    final Set<Expression> groups = groupBy.get()
-        .getGroupingElements()
+    if (aggregateAnalysis.getAggregateFunctions().isEmpty()) {
+      throw new KsqlException(
+          "GROUP BY requires columns using aggregate functions in SELECT clause.");
+    }
+
+    final Set<Expression> groupByExprs = ImmutableSet.copyOf(analysis.getGroupByExpressions());
+
+    final Set<Expression> unmatchedSelects = aggregateAnalysis.getNonAggregateSelectExpressions()
+        .entrySet()
         .stream()
-        .flatMap(group -> group.enumerateGroupingSets().stream())
-        .flatMap(Set::stream)
+        // Remove any that exactly match a group by expression:
+        .filter(e -> !groupByExprs.contains(e.getKey()))
+        // Remove any that are constants,
+        // or expressions where all params exactly match a group by expression:
+        .filter(e -> !Sets.difference(e.getValue(), groupByExprs).isEmpty())
+        .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
 
-    final List<Expression> selectOnly = aggregateAnalysis.getNonAggResultColumns().stream()
-        .filter(exp -> !groups.contains(exp))
-        .collect(Collectors.toList());
-
-    if (!selectOnly.isEmpty()) {
+    if (!unmatchedSelects.isEmpty()) {
       throw new KsqlException(
-          "Non-aggregate SELECT expression must be part of GROUP BY: " + selectOnly);
+          "Non-aggregate SELECT expression(s) not part of GROUP BY: " + unmatchedSelects);
     }
-  }
 
-  private String topicPrefix() {
-    return config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
+    final SetView<DereferenceExpression> unmatchedSelectsAgg = Sets
+        .difference(aggregateAnalysis.getAggregateSelectFields(), groupByExprs);
+    if (!unmatchedSelectsAgg.isEmpty()) {
+      throw new KsqlException(
+          "Field used in aggregate SELECT expression(s) "
+              + "outside of aggregate functions not part of GROUP BY: " + unmatchedSelectsAgg);
+    }
+
+    final Set<DereferenceExpression> havingColumns = aggregateAnalysis
+        .getNonAggregateHavingFields();
+
+    final Set<DereferenceExpression> havingOnly = Sets.difference(havingColumns, groupByExprs);
+    if (!havingOnly.isEmpty()) {
+      throw new KsqlException(
+          "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);
+    }
   }
 }

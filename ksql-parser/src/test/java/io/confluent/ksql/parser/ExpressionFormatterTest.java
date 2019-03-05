@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -58,7 +59,7 @@ import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -346,8 +347,8 @@ public class ExpressionFormatterTest {
     final Struct struct
         = new Struct(
             ImmutableList.of(
-                new Pair<>("field1", new PrimitiveType(Type.KsqlType.INTEGER)),
-                new Pair<>("field2", new PrimitiveType(Type.KsqlType.STRING))
+                new Pair<>("field1", new PrimitiveType(SqlType.INTEGER)),
+                new Pair<>("field2", new PrimitiveType(SqlType.STRING))
             ));
     assertThat(
         ExpressionFormatter.formatExpression(struct),
@@ -359,7 +360,7 @@ public class ExpressionFormatterTest {
     final Struct struct
         = new Struct(
         ImmutableList.of(
-            new Pair<>("END", new PrimitiveType(Type.KsqlType.INTEGER))
+            new Pair<>("END", new PrimitiveType(SqlType.INTEGER))
         ));
     assertThat(
         ExpressionFormatter.formatExpression(struct),
@@ -368,13 +369,13 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatMap() {
-    final Map map = new Map(new PrimitiveType(Type.KsqlType.BIGINT));
+    final Map map = new Map(new PrimitiveType(SqlType.BIGINT));
     assertThat(ExpressionFormatter.formatExpression(map), equalTo("MAP<VARCHAR, BIGINT>"));
   }
 
   @Test
   public void shouldFormatArray() {
-    final Array array = new Array(new PrimitiveType(Type.KsqlType.BOOLEAN));
+    final Array array = new Array(new PrimitiveType(SqlType.BOOLEAN));
     assertThat(ExpressionFormatter.formatExpression(array), equalTo("ARRAY<BOOLEAN>"));
   }
 }

@@ -101,7 +101,7 @@ public class StructTest {
     // When:
     Struct.builder()
         .addField("f0", PrimitiveType.of(SqlType.BOOLEAN))
-        .addField("F0", PrimitiveType.of(SqlType.INTEGER))
+        .addField("F0", PrimitiveType.of(SqlType.BOOLEAN))
         .build();
 
     // Then: did not throw.

@@ -28,6 +28,24 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
  * Util class for converting to and from KSQL's logical schema.
+ *
+ * <p>KSQL has four main type systems:
+ *
+ * <ul>
+ *   <li><b>Physical:</b> - the type system of the physical bytes strored in Kafka.
+ *   This may be JSON, Avro, Delimited, etc. Some formats have associated schemas, e.g. Avro.</li>
+ *   <li><b>Standardized Physical:</b> - the serde layer in KSQL defines the standardized schema of
+ *   the physical data using the Connect {@code Schema} type, e.g. an Avro schema will be converted
+ *   into a standardised Connect schema.</li>
+ *   <li><b>Logical:</b> - the SQL types converted into the corresponding {@code Schema} type.</li>
+ *   <li><b>SQL:</b> - the SQL type system, e.g. INTEGER, BIGINT, ARRAY&lt;something&gt;, etc</li>
+ * </ul>
+ *
+ * <p>It can be confusing as both the Logical and Standardized Physical layers make use of the
+ * Connect {@code Schema} type. However, the <i>Logical Schema</i> only holds types that can be
+ * directly converted to <i>SQL</i> types. Where as the <i>Physical Schema</i> is the
+ * <i>actual</i> schema of the Data in Kafka, which may contain types KSQL does not support,
+ * or only support once coerced to other types.
  */
 public final class LogicalSchemas {
 

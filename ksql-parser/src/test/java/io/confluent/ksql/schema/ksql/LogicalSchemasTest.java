@@ -18,13 +18,13 @@ package io.confluent.ksql.schema.ksql;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -41,7 +41,7 @@ public class LogicalSchemasTest {
   private static final Schema LOGICAL_DOUBLE_SCHEMA = SchemaBuilder.float64().optional().build();
   private static final Schema LOGICAL_STRING_SCHEMA = SchemaBuilder.string().optional().build();
 
-  private static final java.util.Map<Type, Schema> SQL_TO_LOGICAL = ImmutableMap.<Type, Schema>builder()
+  private static final BiMap<Type, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<Type, Schema>builder()
       .put(PrimitiveType.of(SqlType.BOOLEAN), LOGICAL_BOOLEAN_SCHEMA)
       .put(PrimitiveType.of(SqlType.INTEGER), LOGICAL_INT_SCHEMA)
       .put(PrimitiveType.of(SqlType.BIGINT), LOGICAL_BIGINT_SCHEMA)
@@ -56,11 +56,6 @@ public class LogicalSchemasTest {
               .build(),
           SchemaBuilder.struct().field("f0", LogicalSchemas.INTEGER).optional().build())
       .build();
-
-  private static final java.util.Map<Schema, Type> LOGICAL_TO_SQL = ImmutableMap.copyOf(
-      SQL_TO_LOGICAL.entrySet().stream()
-          .collect(Collectors.toMap(Entry::getValue, Entry::getKey))
-  );
 
   private static final Schema STRUCT_LOGICAL_TYPE = SchemaBuilder.struct()
       .field("F0", SchemaBuilder.int32().optional().build())
@@ -108,7 +103,7 @@ public class LogicalSchemasTest {
 
   @Test
   public void shouldGetSqlTypeForEveryLogicalType() {
-    LOGICAL_TO_SQL.forEach((logical, sqlType) ->
+    SQL_TO_LOGICAL.inverse().forEach((logical, sqlType) ->
         assertThat(LogicalSchemas.toSqlTypeConverter().toSqlType(logical), is(sqlType)));
   }
 

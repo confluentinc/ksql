@@ -30,7 +30,7 @@ public final class Map extends Type {
 
   private Map(final Type valueType) {
     super(Optional.empty(), SqlType.MAP);
-    this.valueType = requireNonNull(valueType, "itemType");
+    this.valueType = requireNonNull(valueType, "valueType");
   }
 
   @Override

@@ -35,7 +35,7 @@ import org.junit.Test;
 public class ConfigItemTest {
 
   private static final ConfigKey KEY_NO_VALIDATOR = KsqlConfig.CURRENT_DEF.configKeys()
-      .get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
+      .get(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
 
   private static final ConfigKey KEY_WITH_VALIDATOR = StreamsConfig.configDef().configKeys()
       .get(StreamsConfig.SEND_BUFFER_CONFIG);
@@ -69,7 +69,7 @@ public class ConfigItemTest {
   @Test
   public void shouldReturnPropertyName() {
     assertThat(RESOLVED_NO_VALIDATOR.getPropertyName(),
-        is(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
+        is(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     assertThat(RESOLVED_WITH_VALIDATOR.getPropertyName(), is(StreamsConfig.SEND_BUFFER_CONFIG));
     assertThat(UNRESOLVED.getPropertyName(), is("some.unresolved.prop"));
   }
@@ -82,12 +82,12 @@ public class ConfigItemTest {
 
   @Test
   public void shouldParseResolvedValue() {
-    assertThat(RESOLVED_NO_VALIDATOR.parseValue(101), is(101));
+    assertThat(RESOLVED_NO_VALIDATOR.parseValue("ksql_default"), is("ksql_default"));
   }
 
   @Test
   public void shouldCoerceParsedValue() {
-    assertThat(RESOLVED_NO_VALIDATOR.parseValue("101"), is(101));
+    assertThat(RESOLVED_NO_VALIDATOR.parseValue("ksql_default"), is("ksql_default"));
   }
 
   @Test
@@ -129,14 +129,14 @@ public class ConfigItemTest {
 
   @Test
   public void shouldBeDefaultValue() {
-    assertThat(RESOLVED_NO_VALIDATOR.isDefaultValue(KsqlConstants.defaultSinkNumberOfPartitions),
+    assertThat(RESOLVED_NO_VALIDATOR.isDefaultValue("default_"),
         is(true));
   }
 
   @Test
   public void shouldCoerceBeforeCheckingIfDefaultValue() {
     assertThat(RESOLVED_NO_VALIDATOR
-            .isDefaultValue("" + KsqlConstants.defaultSinkNumberOfPartitions), is(true));
+            .isDefaultValue("default_"), is(true));
   }
 
   @Test

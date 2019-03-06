@@ -156,7 +156,7 @@ public class SchemaTranslationTest {
 
     final Topic srcTopic;
     final Topic outputTopic
-        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier(), 4);
+        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier(), 1);
     final List<Record> inputRecords;
     final List<Record> outputRecords;
     if (node.has("input_records")) {

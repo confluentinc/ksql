@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.rest.server.mock;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.services.KafkaTopicClient;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 /**
  * Fake Kafka Client is for test only, none of its methods should be called.

@@ -304,16 +304,8 @@ public class CliTest {
         // SESSION OVERRIDES:
         ImmutableList.of(
             KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-            SESSION_OVERRIDE, "latest"),
+            SESSION_OVERRIDE, "latest")
 
-        // DEFAULTS:
-        ImmutableList.of(
-            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
-            "" + KsqlConstants.defaultSinkNumberOfReplications)
-        ,
-        ImmutableList.of(
-            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
-            "" + KsqlConstants.defaultSinkNumberOfReplications)
     );
   }
 

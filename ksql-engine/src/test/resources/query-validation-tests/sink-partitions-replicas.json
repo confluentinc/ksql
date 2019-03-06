@@ -1,0 +1,57 @@
+{
+  "tests": [
+    {
+      "name":  "should copy partition and replica count from source topic",
+      "description": "note: this isn't about input and outputs. It would fail if the counts are not copied across because the output topic 'S' already exists with the correct counts, and the execution path checks this",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM S as SELECT * FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO",
+          "partitions": 5,
+          "replicas" : 3
+        },
+        {
+          "name": "S",
+          "format": "AVRO",
+          "partitions": 5,
+          "replicas" : 3
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
+    },
+    {
+      "name": "Use the legacy default sink properties for the sink topic if default partitions and replicas were set.",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM S as SELECT * FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO",
+          "partitions": 5,
+          "replicas" : 3
+        },
+        {
+          "name": "S",
+          "format": "AVRO",
+          "partitions": 4,
+          "replicas" : 1
+        }
+      ],
+      "properties": {
+        "ksql.sink.partitions": "4",
+        "ksql.sink.replicas": "1"
+      },
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
+    }
+  ]
+}

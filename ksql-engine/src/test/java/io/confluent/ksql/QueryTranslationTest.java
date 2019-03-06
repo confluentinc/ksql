@@ -50,6 +50,7 @@ import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.DataSource;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.TypeUtil;
@@ -417,7 +418,7 @@ public class QueryTranslationTest {
       } else {
         avroSchema = Optional.empty();
       }
-      return new Topic(topicName, avroSchema, getSerdeSupplier(format), 1);
+      return new Topic(topicName, avroSchema, getSerdeSupplier(format), KsqlConstants.legacyDefaultSinkPartitionCount);
     };
 
     try {

@@ -34,6 +34,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -78,6 +80,8 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -130,6 +134,12 @@ public class KsqlEngineTest {
     );
 
     sandbox = ksqlEngine.createSandbox();
+    doReturn(new TopicDescription("test1", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
+        .when(topicClient).describeTopic("test1");
+    doReturn(new TopicDescription("test2", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
+        .when(topicClient).describeTopic("test2");
+    doReturn(new TopicDescription("orders_topic", true, Collections.singletonList(mock(TopicPartitionInfo.class))))
+        .when(topicClient).describeTopic("orders_topic");
   }
 
   @After
@@ -957,7 +967,7 @@ public class KsqlEngineTest {
             + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON');"
     );
 
-    for (ParsedStatement statement : parsed) {
+    for (final ParsedStatement statement : parsed) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(statement);
 
       try {
@@ -980,7 +990,7 @@ public class KsqlEngineTest {
             + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (KAFKA_TOPIC='foo');"
     );
 
-    for (ParsedStatement statement : parsed) {
+    for (final ParsedStatement statement : parsed) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(statement);
 
       try {
@@ -1205,7 +1215,7 @@ public class KsqlEngineTest {
 
   private void givenTopicWithSchema(final String topicName, final Schema schema) {
     try {
-      givenTopicsExist(4, topicName);
+      givenTopicsExist(1, topicName);
       schemaRegistryClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
     } catch (final Exception e) {
       fail("invalid test:" + e.getMessage());

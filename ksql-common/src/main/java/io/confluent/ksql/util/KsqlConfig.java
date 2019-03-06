@@ -34,6 +34,8 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Importance;
+import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
@@ -192,7 +194,26 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               KSQL_USE_NAMED_INTERNAL_TOPICS_ON,
               ConfigDef.Importance.LOW,
               KSQL_USE_NAMED_INTERNAL_TOPICS_DOC,
-              KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR)
+              KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR),
+          new CompatibilityBreakingConfigDef(
+              SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+              Type.INT,
+              4,
+              null,
+              Importance.LOW,
+              "The legacy default number of partitions for the topics created by KSQL"
+                  + "in 5.1 and earlier versions."
+                  + "This property should not be set for 5.2 and later versions."),
+          new CompatibilityBreakingConfigDef(
+              SINK_NUMBER_OF_REPLICAS_PROPERTY,
+              ConfigDef.Type.SHORT,
+              (short) 1,
+              null,
+              ConfigDef.Importance.LOW,
+              "The default number of replicas for the topics created by KSQL "
+                  + "in 5.1 and earlier versions."
+                  + "This property should not be set for 5.2 and later versions."
+          )
   );
 
   private enum ConfigGeneration {
@@ -314,18 +335,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             "",
             ConfigDef.Importance.LOW,
             KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS
-        ).define(
-            SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-            ConfigDef.Type.INT,
-            KsqlConstants.defaultSinkNumberOfPartitions,
-            ConfigDef.Importance.MEDIUM,
-            "The default number of partitions for the topics created by KSQL."
-        ).define(
-            SINK_NUMBER_OF_REPLICAS_PROPERTY,
-            ConfigDef.Type.SHORT,
-            KsqlConstants.defaultSinkNumberOfReplications,
-            ConfigDef.Importance.MEDIUM,
-            "The default number of replicas for the topics created by KSQL."
         ).define(
             SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
             ConfigDef.Type.LONG,

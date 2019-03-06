@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -129,13 +130,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       addAvroSchemaToResultTopic(outputNodeBuilder);
     }
 
-    final int partitions = (Integer) outputProperties.getOrDefault(
-        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-        ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
-    final short replicas = (Short) outputProperties.getOrDefault(
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
-        ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
-
     final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
         outputNodeBuilder,
@@ -147,12 +141,18 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
     if (doCreateInto) {
+      final SourceTopicProperties sourceTopicProperties = getSourceTopicProperties(
+          getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
+          outputProperties,
+          serviceContext.getTopicClient(),
+          ksqlConfig
+      );
       createSinkTopic(
           noRowKey.getKafkaTopicName(),
           serviceContext.getTopicClient(),
           shouldBeCompacted(result),
-          partitions,
-          replicas);
+          sourceTopicProperties.partitions,
+          sourceTopicProperties.replicas);
     }
     result.into(
         noRowKey.getKafkaTopicName(),
@@ -177,7 +177,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private static boolean shouldBeCompacted(final SchemaKStream result) {
     return (result instanceof SchemaKTable)
-           && !((SchemaKTable<?>) result).hasWindowedKey();
+        && !((SchemaKTable<?>) result).hasWindowedKey();
   }
 
   @SuppressWarnings("unchecked")
@@ -212,7 +212,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           result.getSchema(), keyFieldName)
           .orElseThrow(() -> new KsqlException(String.format(
               "Column %s does not exist in the result schema."
-              + " Error in Partition By clause.",
+                  + " Error in Partition By clause.",
               keyFieldName
           )));
 
@@ -247,10 +247,67 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         : Collections.emptyMap();
 
     kafkaTopicClient.createTopic(kafkaTopicName,
-                                 numberOfPartitions,
-                                 numberOfReplications,
-                                 config
+        numberOfPartitions,
+        numberOfReplications,
+        config
     );
+  }
+
+  private static SourceTopicProperties getSourceTopicProperties(
+      final String kafkaTopicName,
+      final Map<String, Object> sinkProperties,
+      final KafkaTopicClient kafkaTopicClient,
+      final KsqlConfig ksqlConfig
+  ) {
+    final Map ksqlProperties = ksqlConfig.values();
+    if (ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY) != null
+        || ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) != null) {
+      return getSinkTopicPropertiesLegacyWay(sinkProperties, ksqlConfig);
+    }
+    // Don't request topic properties from Kafka if both are set in WITH clause.
+    if (sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY) != null
+        && sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) != null) {
+      return new SourceTopicProperties(
+          (Integer) sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY),
+          (Short) sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
+      );
+    }
+    final TopicDescription topicDescription = getSourceTopicPropertiesFromKafka(
+        kafkaTopicName,
+        kafkaTopicClient);
+
+    final int partitions = (Integer) sinkProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+        topicDescription.partitions().size());
+    final short replicas = (Short) sinkProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
+        (short) topicDescription.partitions().get(0).replicas().size());
+
+    return new SourceTopicProperties(partitions, replicas);
+  }
+
+  private static SourceTopicProperties getSinkTopicPropertiesLegacyWay(
+      final Map<String, Object> sinkProperties,
+      final KsqlConfig ksqlConfig
+  ) {
+    final int partitions = (Integer) sinkProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+        ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
+    final short replicas = (Short) sinkProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
+        ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
+    return new SourceTopicProperties(partitions, replicas);
+  }
+
+  private static TopicDescription getSourceTopicPropertiesFromKafka(
+      final String kafkaTopicName,
+      final KafkaTopicClient kafkaTopicClient
+  ) {
+    final TopicDescription topicDescription = kafkaTopicClient.describeTopic(kafkaTopicName);
+    if (topicDescription == null) {
+      throw new KsqlException("Could not fetch source topic description: " + kafkaTopicName);
+    }
+    return topicDescription;
   }
 
   public KsqlTopic getKsqlTopic() {
@@ -274,6 +331,17 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getLimit(),
         newDoCreateInto
     );
+  }
+
+  private static class SourceTopicProperties {
+
+    private final int partitions;
+    private final short replicas;
+
+    SourceTopicProperties(final int partitions, final short replicas) {
+      this.partitions = partitions;
+      this.replicas = replicas;
+    }
   }
 
   public static class Builder {

@@ -15,7 +15,7 @@ Also, you can generate data from a few simple, predefined schemas.
 **Prerequisites:** 
 
 - :ref:`Confluent Platform <installation>` is installed and running.
-  This installation includes an |ak| broker, KSQL, |c3-short|, |zk|,
+  This installation includes an |ak-tm| broker, KSQL, |c3-short|, |zk|,
   Schema Registry, REST Proxy, and Kafka Connect.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your
   local machine.

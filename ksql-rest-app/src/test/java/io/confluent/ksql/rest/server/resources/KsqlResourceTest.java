@@ -111,6 +111,7 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.TopicInjector;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -221,6 +222,13 @@ public class KsqlResourceTest {
   private SchemaInjector schemaInjector;
   @Mock
   private SchemaInjector sandboxSchemaInjector;
+  @Mock
+  private Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
+  @Mock
+  private TopicInjector topicInjector;
+  @Mock
+  private TopicInjector sandboxTopicInjector;
+
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
   private QueuedCommandStatus commandStatus;
@@ -269,8 +277,16 @@ public class KsqlResourceTest {
     when(schemaInjectorFactory.apply(any())).thenReturn(sandboxSchemaInjector);
     when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
 
+    when(topicInjectorFactory.apply(any())).thenReturn(sandboxTopicInjector);
+    when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
+
     when(sandboxSchemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
     when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    when(sandboxTopicInjector.forStatement(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.forStatement(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(0));
 
     setUpKsqlResource();
   }
@@ -565,8 +581,7 @@ public class KsqlResourceTest {
     // Then:
     verify(commandStore).enqueueCommand(
         argThat(is(preparedStatement(
-            "CREATE STREAM S WITH (REPLICAS = 1, PARTITIONS = 4, KAFKA_TOPIC = 'S') AS SELECT *\n"
-                + "FROM TEST_STREAM TEST_STREAM;",
+            "CREATE STREAM S AS SELECT * FROM test_stream;",
             CreateStreamAsSelect.class))),
         any(), any());
   }
@@ -1048,20 +1063,13 @@ public class KsqlResourceTest {
         CommandStatusEntity.class);
 
     // Then:
-    final String csasResolved =
-        "CREATE STREAM " + streamName
-            + " WITH (REPLICAS = 2, PARTITIONS = 4, KAFKA_TOPIC = '" + streamName + "') "
-            + "AS SELECT *\n"
-            + "FROM TEST_STREAM TEST_STREAM;";
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(csasResolved))),
+        argThat(is(preparedStatementText(csas))),
         any(),
         eq(ImmutableMap.of(KsqlConfig.KSQL_ENABLE_UDFS, "false")));
 
     assertThat(results, hasSize(1));
-    assertThat(
-        results.get(0).getStatementText(),
-        is(csasResolved));
+    assertThat(results.get(0).getStatementText(), is(csas));
   }
 
   @Test
@@ -1107,18 +1115,12 @@ public class KsqlResourceTest {
         CommandStatusEntity.class);
 
     // Then:
-    final String resovledCsas =
-        "CREATE STREAM " + streamName
-            + " WITH (REPLICAS = 1, PARTITIONS = 4, KAFKA_TOPIC = '" + streamName + "') "
-            + "AS SELECT *\n"
-            + "FROM TEST_STREAM TEST_STREAM;";
-
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(resovledCsas))),
+        argThat(is(preparedStatementText(csas))),
         any(),
         eq(emptyMap()));
 
-    assertThat(result.getStatementText(), is(resovledCsas));
+    assertThat(result.getStatementText(), is(csas));
   }
 
   @Test
@@ -1146,12 +1148,8 @@ public class KsqlResourceTest {
     makeSingleRequest(csas, KsqlEntity.class);
 
     // Then:
-    final String resolvedCsas = "CREATE STREAM " + streamName
-               + " WITH (REPLICAS = 1, PARTITIONS = 4, KAFKA_TOPIC = '" + streamName + "') "
-               + "AS SELECT *\n"
-               + "FROM TEST_STREAM TEST_STREAM;" ;
     verify(commandStore).enqueueCommand(
-        argThat(is(preparedStatementText(resolvedCsas))),
+        argThat(is(preparedStatementText(csas))),
         any(),
         eq(emptyMap()));
   }
@@ -1787,7 +1785,7 @@ public class KsqlResourceTest {
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
         ksqlConfig, ksqlEngine, serviceContext, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
-        activenessRegistrar, schemaInjectorFactory);
+        activenessRegistrar, schemaInjectorFactory, topicInjectorFactory);
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

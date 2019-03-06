@@ -59,6 +59,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.TopicInjector;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -177,6 +178,12 @@ public class StandaloneExecutorTest {
   private SchemaInjector schemaInjector;
   @Mock
   private SchemaInjector sandBoxSchemaInjector;
+  @Mock
+  private Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
+  @Mock
+  private TopicInjector topicInjector;
+  @Mock
+  private TopicInjector sandBoxTopicInjector;
 
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
@@ -208,6 +215,12 @@ public class StandaloneExecutorTest {
     when(sandBoxSchemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
     when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
 
+    when(topicInjectorFactory.apply(any())).thenReturn(sandBoxTopicInjector);
+    when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
+    when(sandBoxTopicInjector.forStatement(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.forStatement(any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
+
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
         processingLogConfig,
@@ -217,7 +230,8 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        schemaInjectorFactory);
+        schemaInjectorFactory,
+        topicInjectorFactory);
   }
 
   @Test
@@ -285,7 +299,8 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        schemaInjectorFactory
+        schemaInjectorFactory,
+        topicInjectorFactory
     );
 
     // When:
@@ -412,28 +427,14 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(csas);
 
-    when(sandBox
-        .execute(
-            argThat(
-                preparedStatement(
-                    containsString("CREATE STREAM " + SOME_NAME.toString()),
-                    CreateStreamAsSelect.class)),
-            any(),
-            any()))
+    when(sandBox.execute(eq(csas), any(), any()))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine)
-        .execute(
-            argThat(
-                preparedStatement(
-                    containsString("CREATE STREAM " + SOME_NAME.toString()),
-                    CreateStreamAsSelect.class)),
-            eq(ksqlConfig),
-            eq(emptyMap()));
+    verify(ksqlEngine).execute(csas, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -444,28 +445,14 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(ctas);
 
-    when(sandBox
-        .execute(
-            argThat(
-                preparedStatement(
-                    containsString("CREATE TABLE " + SOME_NAME.toString()),
-                    CreateTableAsSelect.class)),
-            any(),
-            any()))
+    when(sandBox.execute(eq(ctas), any(), any()))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine)
-        .execute(
-            argThat(
-                preparedStatement(
-                    containsString("CREATE TABLE " + SOME_NAME.toString()),
-                    CreateTableAsSelect.class)),
-            eq(ksqlConfig),
-            eq(emptyMap()));
+    verify(ksqlEngine).execute(ctas, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -643,7 +630,8 @@ public class StandaloneExecutorTest {
         udfLoader,
         true,
         versionChecker,
-        schemaInjectorFactory
+        schemaInjectorFactory,
+        topicInjectorFactory
     );
   }
 

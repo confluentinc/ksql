@@ -73,9 +73,6 @@ public class ClusterTerminatorTest {
       MANAGED_TOPIC_2
   );
 
-
-  private static final String SOURCE_SUFFIX = "_source";
-
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -426,8 +423,8 @@ public class ClusterTerminatorTest {
     for (final String topicName : topicNames) {
       final StructuredDataSource dataSource = mock(StructuredDataSource.class);
 
-      when(metaStore.getSourceForTopic(topicName)).thenReturn(Optional.of(dataSource));
-      when(dataSource.getName()).thenReturn(topicName + SOURCE_SUFFIX);
+      when(metaStore.getSourceForKafkaTopic(topicName)).thenReturn(Optional.of(dataSource));
+      when(dataSource.getKafkaTopicName()).thenReturn(topicName);
       when(dataSource.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(true);
     }
   }
@@ -439,7 +436,7 @@ public class ClusterTerminatorTest {
 
   private void givenSchemasForTopicsExistInSchemaRegistry(final String... topicNames) throws Exception {
     final Collection<String> subjectNames = Stream.of(topicNames)
-        .map(topicName -> topicName + SOURCE_SUFFIX + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
+        .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
         .collect(Collectors.toList());
     when(schemaRegistryClient.getAllSubjects()).thenReturn(subjectNames);
   }
@@ -447,12 +444,12 @@ public class ClusterTerminatorTest {
   private void verifySchemaDeletedForTopics(final String... topicNames) throws Exception {
     for (final String topicName : topicNames) {
       verify(schemaRegistryClient).deleteSubject(
-          topicName + SOURCE_SUFFIX + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
     }
   }
 
   private void verifySchemaNotDeletedForTopic(final String topicName) throws Exception {
     verify(schemaRegistryClient, never()).deleteSubject(
-        topicName + SOURCE_SUFFIX + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+        topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 }

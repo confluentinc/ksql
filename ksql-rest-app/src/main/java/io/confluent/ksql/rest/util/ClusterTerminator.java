@@ -118,12 +118,12 @@ public class ClusterTerminator {
   private void cleanUpSinkAvroSchemas(final List<String> topicsToBeDeleted) {
     final MetaStore metaStore = ksqlEngine.getMetaStore();
     final Stream<StructuredDataSource> avroSourcesToCleanUp = topicsToBeDeleted.stream()
-        .map(metaStore::getSourceForTopic)
+        .map(metaStore::getSourceForKafkaTopic)
         .filter(Optional::isPresent)
         .map(Optional::get)
         .filter(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO));
     final Stream<String> subjectsToDelete = avroSourcesToCleanUp
-        .map(source -> source.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+        .map(source -> source.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
     filterNonExistingSubjects(subjectsToDelete).forEach(this::deleteSubject);
   }
 

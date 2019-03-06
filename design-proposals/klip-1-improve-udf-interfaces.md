@@ -6,7 +6,7 @@
 **Discussion**: link
 
 **tl;dr:** *Address the most common feature requests related to UDF/UDAFs including
-struct support, wildcard types, variable arguments and complex aggregation*
+struct support, generic types, variable arguments and complex aggregation*
 
 
 ## Motivation and background
@@ -17,7 +17,7 @@ improve the UDF/UDAF interface in KSQL. Of these features, four stand out:
 - _Custom Struct Support_ - UDFs can only operate on standard Java types (`Map`, `List`, `String`, 
 etc...) and do not accept structured types. This dramatically limits what KSQL can handle, as
 much of the data flowing through kafka is structured Avro/JSON.
-- _Wildcard Type Support_ - Today, there is no way to implement a single UDF that supports data 
+- _Generics Type Support_ - Today, there is no way to implement a single UDF that supports data 
 structures with implicit types. For example, implementing a generic `list_union` operator would
 require different method signatures for each supported type. This quickly becomes unmanageable
 when there are multiple arguments.
@@ -35,7 +35,7 @@ the legacy implementation. The bullet points mentioned above are all in scope, b
 will not be included in this KLIP:
 
 - UDTFs - multiple output operations are more complicated and will require a KLIP of their own
-- Wildcards/Varargs for UDAFs - the support for Wildcards/Varargs will only extend to UDFs.
+- Generics/Varargs for UDAFs - the support for Generics/Varargs will only extend to UDFs.
 
 ## Value
 
@@ -44,7 +44,7 @@ these are outlined below:
 
 |      Improvement      |                                 Value                                  |
 |:---------------------:|------------------------------------------------------------------------|
-| Wildcard support      | Unblock `ARRAY_LENGTH`, `ARRAY_SLICE`, `ARRAY_TO_STRING`, etc...       |
+| Generics support      | Unblock `ARRAY_LENGTH`, `ARRAY_SLICE`, `ARRAY_TO_STRING`, etc...       |
 | Varargs support       | `CONCAT`, `MAX`, `MIN` etc...                                          |
 | Complex Aggregation   | `AVG`, `PERCENTILE`, etc...                                            |
 | Structured UDFs       | Arbitrary data handling without intermediary transforms                |
@@ -55,7 +55,7 @@ Some public APIs will be changed, though all will be changed in a backwards comp
 
 |      Improvement      |                               API change                               |
 |:---------------------:|------------------------------------------------------------------------|
-| Wildcard support      | UDF interface will accept wildcards and unspecified generics           |
+| Generics support      | UDF interface will accept inferred generics (e.g. `List<T>`)           |
 | Varargs support       | UDF interface will accept `...` in the method declarations             |
 | Complex Aggregation   | UDAFs may include `VR export(A agg)` to convert aggregated to output   |
 | Structured UDFs       | UDF/UDAF interfaces will accept the Kafka Connect `Struct` type        |
@@ -106,34 +106,31 @@ public Struct generate() {
 }
 ```
 
-### Wildcards 
+### Generics
 
 Today, we eagerly convert UDF output types to corresponding Connect schema types at the time that we
-compile the UDFs and not the time that we execute them. Since there is no corresponding "wildcard" 
-type in Connect, we fail this conversion. There is no such limitation on the code generation or the 
-input parameters to UDFs.
-
-Solving this problem can be done in two ways:
-
-- We can infer the types from the kafka topic schema or the metadata schema. This may not be
-possible for JSON or DELIMITED topic schemas.
-- We can resolve the schema at runtime. This is simple and only takes into account the data being
-deserialized, but may have performance implications. To address this concern, we could cache the
-schema after the first deserialization.
+compile the UDFs and not the time that we use them in a `SELECT` clause. Since there is no 
+corresponding "unresolved" type in Connect, we fail this conversion. To solve this problem, we can
+infer the type from the source schema and compile the code to work with any component type (e.g.
+omit the generics from the compiled code).
 
 ```java
 @Udf("returns a sublist of 'list'")
-public List sublist(
-    @UdfParameter final List list, 
+public <T> List<T> sublist(
+    @UdfParameter final List<T> list, 
     @UdfParameter final int start, 
     @UdfParameter final int end) {
   return list.subList(start, end);
 }
 ```
 
-**NOTE:** Explicitly typing with a wildcard (e.g. `<?>`) is not covered by this design. One way to
-allow for it is to simply scrub the wildcard if added, treating the type as if the wildcard did not
-exist.
+We need to ensure that the output type can be inferred. This means that we need to fail if the 
+signature is something like `<T> List<T> convert(List<String> list)`. This can be done during 
+compilation by following a simple rule: any generic type used in the output must be present in at
+least one of the parameters. We can access this information via reflection.
+
+**NOTE:** Supporting a wildcard type (e.g. `<?>`) is not covered by this design since we would not
+be able to generate the output schema of select statements.
 
 ### Varargs
 
@@ -235,8 +232,10 @@ will replace the multiply double method to include varargs:
 * The `Supported Types` section in `udf.rst` will include `Struct` and have an updated note at the 
 bottom which reads:
 
-> Note: Complex types other than List, Map and Struct are not currently supported. Wildcard types
-> for List and Map are supported, but component elements must be of one of the supported types.
+> Note: Complex types other than List, Map and Struct are not currently supported. Generic types
+> for List and Map are supported, but component elements must be of one of the supported types. If
+> the types are generic, the output type must be able to be inferred from one or more of the input
+> parameters.
 
 * The `UDAF` section in `udf.rst` will have an additional section to describe usage of the 
 `Exportable` interface:
@@ -289,6 +288,4 @@ N/A
 
 ## Performance implications
 
-* For Wildcard types, there may be performance implications if we need to infer the types during 
-runtime. As discussed in the [Design](#design) section, this can be mitigated by caching the types
-after first deserialization.
+N/A

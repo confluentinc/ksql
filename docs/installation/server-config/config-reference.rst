@@ -237,6 +237,9 @@ bind to the default interface. For example:
     # Bind only to localhost.
     listeners=http://localhost:8088
 
+You can configure KSQL Server to use HTTPS. For more information, see
+:ref:`config-ksql-for-https`.
+
 .. _ksql-c3-settings:
 
 |c3| Settings

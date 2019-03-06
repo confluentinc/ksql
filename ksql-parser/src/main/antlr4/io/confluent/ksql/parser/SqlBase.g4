@@ -102,18 +102,6 @@ limitClause
     : LIMIT number
     ;
 
-/*
- * Dropped `'(' queryNoWith ')'` as we do not support sub queries
- * Drooped `VALUES expression (',' expression)* ` as we do not support inline values.
- * DRopped `TABLE qualifiedName`
- */
-
-/*
- * Todo(ac): remove
- * Removed `(INTO into=relationPrimary)?` from below to avoid:
- * `SELECT * INTO BAR FROM FOO;` style statements.
- */
-
 windowExpression
     : (IDENTIFIER)?
      ( tumblingWindowExpression | hoppingWindowExpression | sessionWindowExpression )
@@ -195,10 +183,6 @@ joinCriteria
     : ON booleanExpression
     ;
 
-/*
- * Dropped `columnAliases?` from below as we don't support column aliasing in joins
- * "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t (alias0, alias2) left join test_table tt on t.id = tt.id;"
- */
 aliasedRelation
     : relationPrimary (AS? identifier)?
     ;
@@ -207,13 +191,6 @@ columnAliases
     : '(' identifier (',' identifier)* ')'
     ;
 
-/*
- * Dropped `(WITH tableProperties)?` from tableName to avoid statements like:
- * "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test WITH(value_format='DELIMITED') t left join test_table WITH(value_format='DELIMITED') tt on t.id = tt.id;"
- *
- * Dropped `'(' query ')'` as they are not supported
- * Dropped `'(' relation ')'` as they are not supported
- */
 relationPrimary
     : qualifiedName                                                   #tableName
     ;
@@ -236,9 +213,6 @@ predicated
     : valueExpression predicate[$valueExpression.ctx]?
     ;
 
-/*
- * Dropped `NOT? IN '(' query ')' ` as we do not support sub queries
- */
 predicate[ParserRuleContext value]
     : comparisonOperator right=valueExpression                            #comparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression        #between
@@ -257,9 +231,6 @@ valueExpression
     | left=valueExpression CONCAT right=valueExpression                                 #concatenation
     ;
 
-/*
- * Dropped `'(' query ')'` as we do not support sub queries
- */
 primaryExpression
     : NULL                                                                           #nullLiteral
     | identifier STRING                                                              #typeConstructor

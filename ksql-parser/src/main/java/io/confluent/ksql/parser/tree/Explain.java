@@ -17,8 +17,6 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-import com.google.common.collect.ImmutableList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -28,43 +26,25 @@ public class Explain
   private final Statement statement;
   private final String queryId;
   private final boolean analyze;
-  private final List<ExplainOption> options;
 
   public Explain(
       final String queryId,
       final Statement statement,
-      final boolean analyze,
-      final List<ExplainOption> options
+      final boolean analyze
   ) {
-    this(Optional.empty(), analyze, queryId, statement, options);
-  }
-
-  public Explain(
-      final NodeLocation location,
-      final boolean analyze,
-      final String queryId,
-      final Statement statement,
-      final List<ExplainOption> options
-  ) {
-    this(Optional.of(location), analyze, queryId, statement, options);
+    this(Optional.empty(), analyze, queryId, statement);
   }
 
   private Explain(
       final Optional<NodeLocation> location,
       final boolean analyze,
       final String queryId,
-      final Statement statement,
-      final List<ExplainOption> options
+      final Statement statement
   ) {
     super(location);
     this.statement = statement;
     this.analyze = analyze;
     this.queryId = queryId;
-    if (options == null) {
-      this.options = ImmutableList.of();
-    } else {
-      this.options = ImmutableList.copyOf(options);
-    }
 
     if (statement == null && queryId == null) {
       throw new NullPointerException("Must supply either queryId or statement");
@@ -83,10 +63,6 @@ public class Explain
     return analyze;
   }
 
-  public List<ExplainOption> getOptions() {
-    return options;
-  }
-
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitExplain(this, context);
@@ -94,7 +70,7 @@ public class Explain
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, options, analyze);
+    return Objects.hash(statement, analyze);
   }
 
   @Override
@@ -107,7 +83,6 @@ public class Explain
     }
     final Explain o = (Explain) obj;
     return Objects.equals(statement, o.statement)
-           && Objects.equals(options, o.options)
            && Objects.equals(analyze, o.analyze);
   }
 
@@ -115,7 +90,6 @@ public class Explain
   public String toString() {
     return toStringHelper(this)
         .add("statement", statement)
-        .add("options", options)
         .add("analyze", analyze)
         .toString();
   }

@@ -33,7 +33,6 @@ import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
-import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -49,10 +48,8 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
 import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.ExportCatalog;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
@@ -60,7 +57,6 @@ import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
@@ -124,7 +120,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -699,11 +694,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitExportCatalog(final SqlBaseParser.ExportCatalogContext context) {
-    return new ExportCatalog(Optional.ofNullable(getLocation(context)), context.STRING().getText());
-  }
-
-  @Override
   public Node visitRunScript(final SqlBaseParser.RunScriptContext context) {
     return new RunScript(Optional.ofNullable(getLocation(context)), context.STRING().getText());
   }
@@ -1241,27 +1231,22 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   }
 
   @Override
-  public Node visitBinaryLiteral(final SqlBaseParser.BinaryLiteralContext context) {
-    final String raw = context.BINARY_LITERAL().getText();
-    return new BinaryLiteral(getLocation(context), unquote(raw.substring(1), "'"));
-  }
-
-  @Override
   public Node visitTypeConstructor(final SqlBaseParser.TypeConstructorContext context) {
     final String type = getIdentifierText(context.identifier());
     final String value = unquote(context.STRING().getText(), "'");
+    final NodeLocation location = getLocation(context);
 
     if (type.equals("TIME")) {
-      return new TimeLiteral(getLocation(context), value);
+      return new TimeLiteral(location, value);
     }
     if (type.equals("TIMESTAMP")) {
-      return new TimestampLiteral(getLocation(context), value);
+      return new TimestampLiteral(location, value);
     }
     if (type.equals("DECIMAL")) {
-      return new DecimalLiteral(getLocation(context), value);
+      return new DecimalLiteral(location, value);
     }
 
-    return new GenericLiteral(getLocation(context), type, value);
+    throw new KsqlException("Unknown type: " + type + ", location:" + location);
   }
 
   @Override
@@ -1308,7 +1293,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     // Only simple explain is supported for now.
     //TODO: Expand to support other parts of EXPLAIN
 
-    return new Explain(queryId, statement, false, Collections.emptyList());
+    return new Explain(queryId, statement, false);
   }
 
   @Override
@@ -1374,11 +1359,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return QualifiedName.of(parts);
   }
 
-  private static Optional<String> getTextIfPresent(final Token token) {
-    return Optional.ofNullable(token)
-        .map(Token::getText);
-  }
-
   private static List<String> getColumnAliases(
       final SqlBaseParser.ColumnAliasesContext columnAliasesContext
   ) {
@@ -1425,36 +1405,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return ComparisonExpression.Type.GREATER_THAN_OR_EQUAL;
       default:
         throw new IllegalArgumentException("Unsupported operator: " + symbol.getText());
-    }
-  }
-
-  private static IntervalLiteral.IntervalField getIntervalFieldType(final Token token) {
-    switch (token.getType()) {
-      case SqlBaseLexer.YEAR:
-        return IntervalLiteral.IntervalField.YEAR;
-      case SqlBaseLexer.MONTH:
-        return IntervalLiteral.IntervalField.MONTH;
-      case SqlBaseLexer.DAY:
-        return IntervalLiteral.IntervalField.DAY;
-      case SqlBaseLexer.HOUR:
-        return IntervalLiteral.IntervalField.HOUR;
-      case SqlBaseLexer.MINUTE:
-        return IntervalLiteral.IntervalField.MINUTE;
-      case SqlBaseLexer.SECOND:
-        return IntervalLiteral.IntervalField.SECOND;
-      default:
-        throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
-    }
-  }
-
-  private static IntervalLiteral.Sign getIntervalSign(final Token token) {
-    switch (token.getType()) {
-      case SqlBaseLexer.MINUS:
-        return IntervalLiteral.Sign.NEGATIVE;
-      case SqlBaseLexer.PLUS:
-        return IntervalLiteral.Sign.POSITIVE;
-      default:
-        throw new IllegalArgumentException("Unsupported sign: " + token.getText());
     }
   }
 
@@ -1506,19 +1456,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
   }
 
-  private static void check(final boolean condition,
-                            final String message,
-                            final ParserRuleContext context) {
-    if (!condition) {
-      throw new ParsingException(
-          message,
-          null,
-          context.getStart().getLine(),
-          context.getStart().getCharPositionInLine()
-      );
-    }
-  }
-
   private static NodeLocation getLocation(final TerminalNode terminalNode) {
     requireNonNull(terminalNode, "terminalNode is null");
     return getLocation(terminalNode.getSymbol());
@@ -1564,10 +1501,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private InvalidColumnReferenceException(final String message) {
       super(message);
-    }
-
-    private InvalidColumnReferenceException(final String message, final Throwable cause) {
-      super(message, cause);
     }
   }
 }

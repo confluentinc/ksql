@@ -26,20 +26,14 @@ import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
-import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
-import io.confluent.ksql.parser.tree.ExistsPredicate;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Extract;
-import io.confluent.ksql.parser.tree.FieldReference;
-import io.confluent.ksql.parser.tree.FrameBound;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
@@ -53,7 +47,6 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -68,8 +61,6 @@ import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.parser.tree.Window;
-import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
@@ -129,12 +120,6 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitExtract(final Extract node, final Boolean unmangleNames) {
-      return "EXTRACT(" + node.getField() + " FROM " + process(node.getExpression(), unmangleNames)
-              + ")";
-    }
-
-    @Override
     protected String visitBooleanLiteral(final BooleanLiteral node, final Boolean unmangleNames) {
       return String.valueOf(node.getValue());
     }
@@ -142,11 +127,6 @@ public final class ExpressionFormatter {
     @Override
     protected String visitStringLiteral(final StringLiteral node, final Boolean unmangleNames) {
       return formatStringLiteral(node.getValue());
-    }
-
-    @Override
-    protected String visitBinaryLiteral(final BinaryLiteral node, final Boolean unmangleNames) {
-      return "X'" + node.toHexString() + "'";
     }
 
     @Override
@@ -175,11 +155,6 @@ public final class ExpressionFormatter {
     @Override
     protected String visitDecimalLiteral(final DecimalLiteral node, final Boolean unmangleNames) {
       return "DECIMAL '" + node.getValue() + "'";
-    }
-
-    @Override
-    protected String visitGenericLiteral(final GenericLiteral node, final Boolean unmangleNames) {
-      return node.getType() + " " + formatStringLiteral(node.getValue());
     }
 
     @Override
@@ -222,11 +197,6 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitExists(final ExistsPredicate node, final Boolean unmangleNames) {
-      return "(EXISTS (" + SqlFormatter.formatSql(node.getSubquery(), unmangleNames) + "))";
-    }
-
-    @Override
     protected String visitQualifiedNameReference(final QualifiedNameReference node,
                                                  final Boolean unmangleNames) {
       return formatQualifiedName(node.getName());
@@ -257,12 +227,6 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitFieldReference(final FieldReference node, final Boolean unmangleNames) {
-      // add colon so this won't parse
-      return ":input(" + node.getFieldIndex() + ")";
-    }
-
-    @Override
     protected String visitFunctionCall(final FunctionCall node, final Boolean unmangleNames) {
       final StringBuilder builder = new StringBuilder();
 
@@ -276,10 +240,6 @@ public final class ExpressionFormatter {
 
       builder.append(formatQualifiedName(node.getName()))
               .append('(').append(arguments).append(')');
-
-      if (node.getWindow().isPresent()) {
-        builder.append(" OVER ").append(visitWindow(node.getWindow().get(), unmangleNames));
-      }
 
       return builder.toString();
     }
@@ -314,15 +274,6 @@ public final class ExpressionFormatter {
         final IsNotNullPredicate node,
         final Boolean unmangleNames) {
       return "(" + process(node.getValue(), unmangleNames) + " IS NOT NULL)";
-    }
-
-    @Override
-    protected String visitNullIfExpression(
-        final NullIfExpression node,
-        final Boolean unmangleNames) {
-      return "NULLIF(" + process(node.getFirst(), unmangleNames) + ", " + process(node.getSecond(),
-              unmangleNames)
-              + ')';
     }
 
     @Override
@@ -450,48 +401,6 @@ public final class ExpressionFormatter {
         final InListExpression node,
         final Boolean unmangleNames) {
       return "(" + joinExpressions(node.getValues(), unmangleNames) + ")";
-    }
-
-    @Override
-    public String visitWindow(final Window node, final Boolean unmangleNames) {
-
-      return node.toString();
-    }
-
-    @Override
-    public String visitWindowFrame(final WindowFrame node, final Boolean unmangleNames) {
-      final StringBuilder builder = new StringBuilder();
-
-      builder.append(node.getType().toString()).append(' ');
-
-      if (node.getEnd().isPresent()) {
-        builder.append("BETWEEN ")
-                .append(process(node.getStart(), unmangleNames))
-                .append(" AND ")
-                .append(process(node.getEnd().get(), unmangleNames));
-      } else {
-        builder.append(process(node.getStart(), unmangleNames));
-      }
-
-      return builder.toString();
-    }
-
-    @Override
-    public String visitFrameBound(final FrameBound node, final Boolean unmangleNames) {
-      switch (node.getType()) {
-        case UNBOUNDED_PRECEDING:
-          return "UNBOUNDED PRECEDING";
-        case PRECEDING:
-          return process(node.getValue().get(), unmangleNames) + " PRECEDING";
-        case CURRENT_ROW:
-          return "CURRENT ROW";
-        case FOLLOWING:
-          return process(node.getValue().get(), unmangleNames) + " FOLLOWING";
-        case UNBOUNDED_FOLLOWING:
-          return "UNBOUNDED FOLLOWING";
-        default:
-          throw new IllegalArgumentException("unhandled type: " + node.getType());
-      }
     }
 
     private String formatBinaryExpression(

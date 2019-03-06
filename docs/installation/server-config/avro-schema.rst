@@ -111,7 +111,7 @@ generates an appropriate Avro schema for the new ``pageviews_avro`` stream, and 
 .. code:: sql
 
     CREATE STREAM pageviews_json (viewtime BIGINT, userid VARCHAR, pageid VARCHAR)
-      WITH (KAFKA_TOPIC='pageviews-json-topic', VALUE_FORMAT='JSON');
+      WITH (KAFKA_TOPIC='pageviews_kafka_topic_json', VALUE_FORMAT='JSON');
 
     CREATE STREAM pageviews_avro
       WITH (VALUE_FORMAT = 'AVRO') AS

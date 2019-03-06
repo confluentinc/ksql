@@ -140,8 +140,8 @@ public class AvroDataTranslator implements DataTranslator {
                 useNamedMaps,
                 typeNameGenerator.with(TypeNameGenerator.MAP_VALUE_NAME))
         );
-        schemaBuilder = useNamedMaps ?
-          mapSchemaBuilder.name(typeNameGenerator.name()) : mapSchemaBuilder;
+        schemaBuilder = useNamedMaps
+          ? mapSchemaBuilder.name(typeNameGenerator.name()) : mapSchemaBuilder;
         break;
     }
     if (schema.isOptional()) {

@@ -157,6 +157,151 @@
       ]
     },
     {
+      "name": "Filter on IN",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IN (1, 2, 3);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "1,456,foo"},
+        {"topic": "test_topic", "value": "2,1,bar"},
+        {"topic": "test_topic", "value": "4,456,f"}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": "1,456,foo"},
+        {"topic": "S1", "value": "2,1,bar"}
+      ]
+    },
+    {
+      "name": "Filter on NOT IN",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 NOT IN (1, 2, 3);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "1,456,foo"},
+        {"topic": "test_topic", "value": "2,1,bar"},
+        {"topic": "test_topic", "value": "4,456,f"}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": "4,456,f"}
+      ]
+    },
+    {
+      "name": "Filter on BETWEEN",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 BETWEEN 1 AND 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "1,456,foo"},
+        {"topic": "test_topic", "value": "2,1,bar"},
+        {"topic": "test_topic", "value": "4,456,f"}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": "1,456,foo"},
+        {"topic": "S1", "value": "2,1,bar"}
+      ]
+    },
+    {
+      "name": "Filter on NOT BETWEEN",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 NOT BETWEEN 1 AND 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "1,456,foo"},
+        {"topic": "test_topic", "value": "2,1,bar"},
+        {"topic": "test_topic", "value": "4,456,f"}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": "4,456,f"}
+      ]
+    },
+    {
+      "name": "Filter on NULL",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS NULL;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": ",456,foo"},
+        {"topic": "test_topic", "value": ",1,bar"},
+        {"topic": "test_topic", "value": "4,456,f"}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": ",456,foo"},
+        {"topic": "S1", "value": ",1,bar"}
+      ]
+    },
+    {
+      "name": "Filter on NOT NULL",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS NOT NULL;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic",
+          "value": ",456,foo"
+        },
+        {
+          "topic": "test_topic",
+          "value": ",1,bar"
+        },
+        {
+          "topic": "test_topic",
+          "value": "4,456,f"
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "S1",
+          "value": "4,456,f"
+        }
+      ]
+    },
+    {
+      "name": "Filter on IS DISTINCT FROM",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS DISTINCT FROM c2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "0,0"},
+        {"topic": "test_topic", "value": "0,1"},
+        {"topic": "test_topic", "value": "1,0"},
+        {"topic": "test_topic", "value": "0,"},
+        {"topic": "test_topic", "value": ",0"},
+        {"topic": "test_topic", "value": ","}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": "0,1"},
+        {"topic": "S1", "value": "1,0"},
+        {"topic": "S1", "value": "0,"},
+        {"topic": "S1", "value": ",0"}
+      ]
+    },
+    {
+      "name": "Filter on IS NOT DISTINCT FROM",
+      "statements": [
+        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS NOT DISTINCT FROM c2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "0,0"},
+        {"topic": "test_topic", "value": "0,1"},
+        {"topic": "test_topic", "value": "1,0"},
+        {"topic": "test_topic", "value": "0,"},
+        {"topic": "test_topic", "value": ",0"},
+        {"topic": "test_topic", "value": ","}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": "0,0"},
+        {"topic": "S1", "value": ","}
+      ]
+    },
+    {
       "name": "Filter on like pattern without wildcards",
       "statements": [
         "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",

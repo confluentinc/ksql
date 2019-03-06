@@ -25,29 +25,29 @@ import java.util.Optional;
 
 public class CreateTableAsSelect extends Statement implements CreateAsSelect {
 
-  private final QualifiedName name;
+  private final Table table;
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
 
   public CreateTableAsSelect(
-      final QualifiedName name,
+      final Table table,
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties
   ) {
-    this(Optional.empty(), name, query, notExists, properties);
+    this(Optional.empty(), table, query, notExists, properties);
   }
 
   public CreateTableAsSelect(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
+      final Table table,
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties
   ) {
     super(location);
-    this.name = requireNonNull(name, "name is null");
+    this.table = requireNonNull(table, "table");
     this.query = requireNonNull(query, "query is null");
     this.notExists = notExists;
     this.properties = ImmutableMap
@@ -56,12 +56,21 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
 
   @Override
   public QualifiedName getName() {
-    return name;
+    return table.getName();
   }
 
   @Override
   public Query getQuery() {
     return query;
+  }
+
+  @Override
+  public Sink getSink() {
+    return Sink.of(table, true, properties);
+  }
+
+  public Table getTable() {
+    return table;
   }
 
   public boolean isNotExists() {
@@ -85,7 +94,7 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, query, properties);
+    return Objects.hash(table, query, properties);
   }
 
   @Override
@@ -97,7 +106,7 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
       return false;
     }
     final CreateTableAsSelect o = (CreateTableAsSelect) obj;
-    return Objects.equals(name, o.name)
+    return Objects.equals(table, o.table)
            && Objects.equals(query, o.query)
            && Objects.equals(notExists, o.notExists)
            && Objects.equals(properties, o.properties);
@@ -106,7 +115,7 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("name", name)
+        .add("table", table)
         .add("query", query)
         .add("notExists", notExists)
         .add("properties", properties)

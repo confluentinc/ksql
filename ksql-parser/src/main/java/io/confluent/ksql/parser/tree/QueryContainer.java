@@ -19,5 +19,18 @@ package io.confluent.ksql.parser.tree;
  * Indicates the statement contains a {@link Query}.
  */
 public interface QueryContainer {
+
+  /**
+   * Get the contained query.
+   *
+   * @return the query
+   */
   Query getQuery();
+
+  /**
+   * Get the information about the sink the query will output to.
+   *
+   * @return the sink info.
+   */
+  Sink getSink();
 }

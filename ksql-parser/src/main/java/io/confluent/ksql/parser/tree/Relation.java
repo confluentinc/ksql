@@ -16,9 +16,10 @@
 package io.confluent.ksql.parser.tree;
 
 import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
-public abstract class Relation
-    extends Node {
+@Immutable
+public abstract class Relation extends Node {
 
   protected Relation(final Optional<NodeLocation> location) {
     super(location);

@@ -52,6 +52,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -103,6 +104,8 @@ public class StandaloneExecutorTest {
       new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
+
+  private static final Table SOME_TABLE = new Table(SOME_NAME);
 
   private static final ImmutableMap<String, Expression> JSON_PROPS = ImmutableMap
       .of("VALUE_FORMAT", new StringLiteral("json"));
@@ -405,7 +408,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsasStatements() {
     // Given:
     final PreparedStatement<?> csas = PreparedStatement.of("CSAS1",
-        new CreateStreamAsSelect(SOME_NAME, query, false, emptyMap(), Optional.empty()));
+        new CreateStreamAsSelect(SOME_TABLE, query, false, emptyMap(), Optional.empty()));
 
     givenQueryFileParsesTo(csas);
 
@@ -423,7 +426,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCtasStatements() {
     // Given:
     final PreparedStatement<?> ctas = PreparedStatement.of("CTAS",
-        new CreateTableAsSelect(SOME_NAME, query, false, emptyMap()));
+        new CreateTableAsSelect(SOME_TABLE, query, false, emptyMap()));
 
     givenQueryFileParsesTo(ctas);
 
@@ -441,7 +444,7 @@ public class StandaloneExecutorTest {
   public void shouldRunInsertIntoStatements() {
     // Given:
     final PreparedStatement<?> insertInto = PreparedStatement.of("InsertInto",
-        new InsertInto(SOME_NAME, query, Optional.empty()));
+        new InsertInto(SOME_TABLE, query, Optional.empty()));
 
     givenQueryFileParsesTo(insertInto);
 
@@ -618,7 +621,7 @@ public class StandaloneExecutorTest {
 
   private void givenFileContainsAPersistentQuery() {
     givenQueryFileParsesTo(
-        PreparedStatement.of("InsertInto", new InsertInto(SOME_NAME, query, Optional.empty()))
+        PreparedStatement.of("InsertInto", new InsertInto(SOME_TABLE, query, Optional.empty()))
     );
   }
 

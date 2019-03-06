@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,7 +37,8 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QueryBody;
+import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
@@ -53,6 +55,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -107,8 +110,6 @@ public class WSQueryEndpointTest {
   @Mock
   private Session session;
   @Mock
-  private QueryBody queryBody;
-  @Mock
   private CommandQueue commandQueue;
   @Mock
   private QueryPublisher queryPublisher;
@@ -118,7 +119,6 @@ public class WSQueryEndpointTest {
   private ActivenessRegistrar activenessRegistrar;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
-
   private Query query;
   private WSQueryEndpoint wsQueryEndpoint;
 
@@ -129,8 +129,10 @@ public class WSQueryEndpointTest {
 
   @Before
   public void setUp() {
-    query = new Query(queryBody, OptionalInt.empty());
-
+    query = new Query(
+      mock(Select.class), mock(Relation.class),
+        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty()
+    );
     when(session.getId()).thenReturn("session-id");
     when(statementParser.parseSingleStatement(anyString()))
         .thenAnswer(invocation -> PreparedStatement.of(invocation.getArgument(0).toString(), query));

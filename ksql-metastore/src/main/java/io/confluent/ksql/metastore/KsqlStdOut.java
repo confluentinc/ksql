@@ -25,7 +25,6 @@ public class KsqlStdOut extends StructuredDataSource {
   public static final String KSQL_STDOUT_NAME = "KSQL_STDOUT_NAME";
 
   public KsqlStdOut(
-      final String datasourceName,
       final Schema schema,
       final Field keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
@@ -33,7 +32,7 @@ public class KsqlStdOut extends StructuredDataSource {
   ) {
     super(
         "not-applicable-for-stdout",
-        datasourceName,
+        KSQL_STDOUT_NAME,
         schema,
         keyField,
         timestampExtractionPolicy,

@@ -25,10 +25,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
+@Immutable
 public final class QualifiedName {
 
   private final List<String> parts;
+  private final Optional<NodeLocation> location;
 
   public static QualifiedName of(final String first, final String... rest) {
     requireNonNull(first, "first is null");
@@ -40,18 +43,45 @@ public final class QualifiedName {
     return of(ImmutableList.of(name));
   }
 
+  public static QualifiedName of(
+      final NodeLocation location,
+      final String name
+  ) {
+    requireNonNull(location, "location");
+    requireNonNull(name, "name");
+    return of(location, ImmutableList.of(name));
+  }
+
+  public static QualifiedName of(
+      final NodeLocation location,
+      final Iterable<String> parts
+  ) {
+    requireNonNull(location, "location");
+    requireNonNull(parts, "parts");
+    checkArgument(!isEmpty(parts), "parts is empty");
+    return new QualifiedName(Optional.of(location), ImmutableList.copyOf(parts));
+  }
+
   public static QualifiedName of(final Iterable<String> parts) {
     requireNonNull(parts, "parts is null");
     checkArgument(!isEmpty(parts), "parts is empty");
-    return new QualifiedName(ImmutableList.copyOf(parts));
+    return new QualifiedName(Optional.empty(), ImmutableList.copyOf(parts));
   }
 
-  private QualifiedName(final List<String> parts) {
-    this.parts = parts;
+  private QualifiedName(
+      final Optional<NodeLocation> location,
+      final List<String> parts
+  ) {
+    this.location = requireNonNull(location, "location");
+    this.parts = requireNonNull(parts, "parts");
   }
 
   public List<String> getParts() {
     return parts;
+  }
+
+  public Optional<NodeLocation> getLocation() {
+    return location;
   }
 
   @Override
@@ -69,7 +99,7 @@ public final class QualifiedName {
     }
 
     final List<String> subList = parts.subList(0, parts.size() - 1);
-    return Optional.of(new QualifiedName(subList));
+    return Optional.of(new QualifiedName(location, subList));
   }
 
   public boolean hasSuffix(final QualifiedName suffix) {

@@ -138,7 +138,7 @@ public class DataSourceExtractor {
   private final class Visitor extends SqlBaseBaseVisitor<Node> {
 
     @Override
-    public Node visitQuerySpecification(final SqlBaseParser.QuerySpecificationContext ctx) {
+    public Node visitQuery(final SqlBaseParser.QueryContext ctx) {
       visit(ctx.from);
       return visitChildren(ctx);
     }
@@ -174,9 +174,7 @@ public class DataSourceExtractor {
       }
 
       // TODO: Figure out if the call to toUpperCase() here is really necessary
-      return new AliasedRelation(getLocation(context), table, alias.toUpperCase(),
-          getColumnAliases(context.columnAliases()));
-
+      return new AliasedRelation(getLocation(context), table, alias.toUpperCase());
     }
 
     @Override
@@ -217,18 +215,6 @@ public class DataSourceExtractor {
         .collect(toList());
 
     return QualifiedName.of(parts);
-  }
-
-  private static List<String> getColumnAliases(
-      final SqlBaseParser.ColumnAliasesContext columnAliasesContext) {
-    if (columnAliasesContext == null) {
-      return null;
-    }
-
-    return columnAliasesContext
-        .identifier().stream()
-        .map(AstBuilder::getIdentifierText)
-        .collect(toList());
   }
 
   private static NodeLocation getLocation(final ParserRuleContext parserRuleContext) {

@@ -46,7 +46,6 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
@@ -322,7 +321,7 @@ public class QueryTranslationTest {
               .ifPresent(type -> {
                 expectedException.expect(type);
 
-                if (type.equals(KsqlStatementException.class)) {
+                if (KsqlStatementException.class.isAssignableFrom(type)) {
                   // Ensure exception contains last statement, otherwise the test case is invalid:
                   expectedException.expect(statementText(is(lastStatement)));
                 }
@@ -435,8 +434,8 @@ public class QueryTranslationTest {
           .collect(Collectors.toList());
 
       return topics.isEmpty() ? null : topics.get(0);
-    } catch (final ParseFailedException e) {
-      // Statement won't parse:
+    } catch (final Exception e) {
+      // Statement won't parse: this will be detected/handled later.
       return null;
     }
   }

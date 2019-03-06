@@ -106,11 +106,6 @@ public class ExpressionRewriter<C> {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteSubqueryExpression(final SubqueryExpression node, final C context,
-                                              final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
   public Expression rewriteLiteral(final Literal node, final C context,
                                    final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);

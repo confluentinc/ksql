@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -45,10 +46,8 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -480,21 +479,16 @@ public class StatementExecutorTest extends EasyMockSupport {
         CoreMatchers.equalTo(CommandStatus.Status.SUCCESS));
   }
 
-  private Query mockCSASQuery(final String name) {
+  private Query mockCSASQuery() {
     final Query mockQuery = mock(Query.class);
-    final QuerySpecification mockQuerySpec = mock(QuerySpecification.class);
-    final Table mockRelation = mock(Table.class);
-    expect(mockQuery.getQueryBody()).andStubReturn(mockQuerySpec);
     expect(mockQuery.getLimit()).andStubReturn(OptionalInt.empty());
-    expect(mockQuerySpec.getInto()).andStubReturn(mockRelation);
-    expect(mockRelation.getName()).andStubReturn(QualifiedName.of(name));
     return mockQuery;
   }
 
   private CreateStreamAsSelect mockCSAS(final String name) {
     final CreateStreamAsSelect mockStatement = mock(CreateStreamAsSelect.class);
     expect(mockStatement.getName()).andStubReturn(QualifiedName.of(name));
-    expect(mockStatement.getQuery()).andStubReturn(mockCSASQuery(name));
+    expect(mockStatement.getQuery()).andStubReturn(mockCSASQuery());
     expect(mockStatement.getProperties()).andStubReturn(Collections.emptyMap());
     expect(mockStatement.getPartitionByColumn()).andStubReturn(Optional.empty());
     return mockStatement;

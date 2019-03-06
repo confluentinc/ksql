@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,30 +26,29 @@ public class AliasedRelation
 
   private final Relation relation;
   private final String alias;
-  private final List<String> columnNames;
 
   public AliasedRelation(
       final Relation relation,
-      final String alias,
-      final List<String> columnNames) {
-    this(Optional.empty(), relation, alias, columnNames);
+      final String alias
+  ) {
+    this(Optional.empty(), relation, alias);
   }
 
-  public AliasedRelation(final NodeLocation location, final Relation relation, final String alias,
-                         final List<String> columnNames) {
-    this(Optional.of(location), relation, alias, columnNames);
+  public AliasedRelation(final NodeLocation location, final Relation relation, final String alias) {
+    this(Optional.of(location), relation, alias);
   }
 
   private AliasedRelation(
-      final Optional<NodeLocation> location, final Relation relation, final String alias,
-                          final List<String> columnNames) {
+      final Optional<NodeLocation> location,
+      final Relation relation,
+      final String alias
+  ) {
     super(location);
     requireNonNull(relation, "relation is null");
     requireNonNull(alias, " is null");
 
     this.relation = relation;
     this.alias = alias.toUpperCase();
-    this.columnNames = columnNames;
   }
 
   public Relation getRelation() {
@@ -59,10 +57,6 @@ public class AliasedRelation
 
   public String getAlias() {
     return alias;
-  }
-
-  public List<String> getColumnNames() {
-    return columnNames;
   }
 
   @Override
@@ -75,7 +69,6 @@ public class AliasedRelation
     return toStringHelper(this)
         .add("relation", relation)
         .add("alias", alias)
-        .add("columnNames", columnNames)
         .omitNullValues()
         .toString();
   }
@@ -91,12 +84,11 @@ public class AliasedRelation
 
     final AliasedRelation that = (AliasedRelation) o;
     return Objects.equals(relation, that.relation)
-           && Objects.equals(alias, that.alias)
-           && Objects.equals(columnNames, that.columnNames);
+           && Objects.equals(alias, that.alias);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(relation, alias, columnNames);
+    return Objects.hash(relation, alias);
   }
 }

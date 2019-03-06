@@ -458,23 +458,6 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    public Expression visitSubqueryExpression(
-        final SubqueryExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteSubqueryExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      // No default rewrite for SubqueryExpression since we do not want to traverse subqueries
-      return node;
-    }
-
-    @Override
     public Expression visitLiteral(final Literal node, final Context<C> context) {
       if (!context.isDefaultRewrite()) {
         final Expression

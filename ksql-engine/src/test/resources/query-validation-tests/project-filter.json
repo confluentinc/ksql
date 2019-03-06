@@ -157,37 +157,6 @@
       ]
     },
     {
-      "name": "Filter on IN",
-      "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IN (1, 2, 3);"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "value": "1,456,foo"},
-        {"topic": "test_topic", "value": "2,1,bar"},
-        {"topic": "test_topic", "value": "4,456,f"}
-      ],
-      "outputs": [
-        {"topic": "S1", "value": "1,456,foo"},
-        {"topic": "S1", "value": "2,1,bar"}
-      ]
-    },
-    {
-      "name": "Filter on NOT IN",
-      "statements": [
-        "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",
-        "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 NOT IN (1, 2, 3);"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "value": "1,456,foo"},
-        {"topic": "test_topic", "value": "2,1,bar"},
-        {"topic": "test_topic", "value": "4,456,f"}
-      ],
-      "outputs": [
-        {"topic": "S1", "value": "4,456,f"}
-      ]
-    },
-    {
       "name": "Filter on BETWEEN",
       "statements": [
         "CREATE STREAM TEST (C1 BIGINT, C2 INTEGER, C3 STRING) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');",

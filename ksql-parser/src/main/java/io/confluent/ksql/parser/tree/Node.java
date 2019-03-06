@@ -18,7 +18,9 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
+@Immutable
 public abstract class Node {
 
   private final Optional<NodeLocation> location;

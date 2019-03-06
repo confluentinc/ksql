@@ -19,36 +19,37 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.ddl.DdlConfig;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
-  private final QualifiedName name;
+  private final Table stream;
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
   private final Optional<Expression> partitionByColumn;
 
   public CreateStreamAsSelect(
-      final QualifiedName name,
+      final Table stream,
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties,
       final Optional<Expression> partitionByColumn) {
-    this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
+    this(Optional.empty(), stream, query, notExists, properties, partitionByColumn);
   }
 
   public CreateStreamAsSelect(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
+      final Table stream,
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties,
       final Optional<Expression> partitionByColumn) {
     super(location);
-    this.name = requireNonNull(name, "stream is null");
+    this.stream = requireNonNull(stream, "streaml");
     this.query = query;
     this.notExists = notExists;
     this.properties = ImmutableMap.copyOf(
@@ -58,12 +59,29 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
   @Override
   public QualifiedName getName() {
-    return name;
+    return stream.getName();
   }
 
   @Override
   public Query getQuery() {
     return query;
+  }
+
+  @Override
+  public Sink getSink() {
+    final Map<String, Expression> sinkProperties = partitionByColumn
+        .map(exp -> (Map<String, Expression>)ImmutableMap.<String, Expression>builder()
+            .putAll(properties)
+            .put(DdlConfig.PARTITION_BY_PROPERTY, exp)
+            .build()
+        )
+        .orElse(properties);
+
+    return Sink.of(stream, true, sinkProperties);
+  }
+
+  public Table getStream() {
+    return stream;
   }
 
   public boolean isNotExists() {
@@ -87,7 +105,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, query, notExists, properties);
+    return Objects.hash(stream, query, notExists, properties);
   }
 
   @Override
@@ -99,7 +117,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
       return false;
     }
     final CreateStreamAsSelect o = (CreateStreamAsSelect) obj;
-    return Objects.equals(name, o.name)
+    return Objects.equals(stream, o.stream)
            && Objects.equals(query, o.query)
            && Objects.equals(notExists, o.notExists)
            && Objects.equals(properties, o.properties);
@@ -108,7 +126,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("name", name)
+        .add("stream", stream)
         .add("query", query)
         .add("notExists", notExists)
         .add("properties", properties)

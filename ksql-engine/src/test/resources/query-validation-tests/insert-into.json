@@ -57,6 +57,17 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "INSERT INTO can only be used to insert into a stream. OUTPUT is a table."
       }
+    },
+    {
+      "name": "unknown",
+      "statements": [
+        "CREATE STREAM SOURCE (d1 VARCHAR) WITH (kafka_topic='SOURCE', value_format='DELIMITED');",
+        "INSERT INTO UNKNOWN SELECT d1, COUNT() FROM SOURCE GROUP BY d1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Failed to prepare statement: Line: 2, Col: 13: UNKNOWN does not exist."
+      }
     }
   ]
 }

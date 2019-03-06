@@ -55,7 +55,6 @@ import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.TimeLiteral;
@@ -187,13 +186,6 @@ public final class ExpressionFormatter {
         builder.append(" TO ").append(node.getEndField().get());
       }
       return builder.toString();
-    }
-
-    @Override
-    protected String visitSubqueryExpression(
-        final SubqueryExpression node,
-        final Boolean unmangleNames) {
-      return "(" + SqlFormatter.formatSql(node.getQuery(), unmangleNames) + ")";
     }
 
     @Override

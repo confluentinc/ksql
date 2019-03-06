@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.PlanNode;
 import java.util.List;
+import java.util.Optional;
 
 public final class AnalysisTestUtil {
 
@@ -54,7 +55,7 @@ public final class AnalysisTestUtil {
     private Analyzer(final String queryStr, final MetaStore metaStore) {
       this.queryAnalyzer = new QueryAnalyzer(metaStore, "");
       this.query = parseQuery(queryStr, metaStore);
-      this.analysis = queryAnalyzer.analyze(queryStr, query);
+      this.analysis = queryAnalyzer.analyze(queryStr, query, Optional.empty());
     }
 
     private static Query parseQuery(final String queryStr, final MetaStore metaStore) {

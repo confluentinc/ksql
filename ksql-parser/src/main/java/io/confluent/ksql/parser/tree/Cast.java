@@ -20,64 +20,35 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class Cast
-    extends Expression {
+public final class Cast extends Expression {
 
   private final Expression expression;
-  private final String type;
-  private final boolean typeOnly;
-
-  public Cast(final Expression expression, final String type) {
-    this(Optional.empty(), expression, type, false);
-  }
-
-  public Cast(
-      final Expression expression,
-      final String type,
-      final boolean typeOnly) {
-    this(Optional.empty(), expression, type, typeOnly);
-  }
-
+  private final Type type;
 
   public Cast(
       final NodeLocation location,
       final Expression expression,
-      final String type) {
-    this(Optional.of(location), expression, type, false);
+      final Type type
+  ) {
+    this(Optional.of(location), expression, type);
   }
 
   public Cast(
-      final NodeLocation location,
-      final Expression expression,
-      final String type,
-      final boolean typeOnly) {
-    this(Optional.of(location), expression, type, typeOnly);
-  }
-
-  private Cast(
       final Optional<NodeLocation> location,
       final Expression expression,
-      final String type,
-      final boolean typeOnly) {
+      final Type type
+  ) {
     super(location);
-    requireNonNull(expression, "expression is null");
-    requireNonNull(type, "type is null");
-
-    this.expression = expression;
-    this.type = type;
-    this.typeOnly = typeOnly;
+    this.expression = requireNonNull(expression, "expression");
+    this.type = requireNonNull(type, "type");
   }
 
   public Expression getExpression() {
     return expression;
   }
 
-  public String getType() {
+  public Type getType() {
     return type;
-  }
-
-  public boolean isTypeOnly() {
-    return typeOnly;
   }
 
   @Override
@@ -95,12 +66,11 @@ public final class Cast
     }
     final Cast o = (Cast) obj;
     return Objects.equals(this.expression, o.expression)
-           && Objects.equals(this.type, o.type)
-           && Objects.equals(this.typeOnly, o.typeOnly);
+           && Objects.equals(this.type, o.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(expression, type, typeOnly);
+    return Objects.hash(expression, type);
   }
 }

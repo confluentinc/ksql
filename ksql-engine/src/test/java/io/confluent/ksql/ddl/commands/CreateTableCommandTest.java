@@ -69,7 +69,7 @@ public class CreateTableCommandTest {
     givenPropertiesWith((Collections.emptyMap()));
     when(createTableStatement.getName()).thenReturn(QualifiedName.of("name"));
     when(createTableStatement.getElements()).thenReturn(ImmutableList.of(
-        new TableElement("SOME-KEY", new PrimitiveType(SqlType.STRING))
+        new TableElement("SOME-KEY", PrimitiveType.of(SqlType.STRING))
     ));
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }

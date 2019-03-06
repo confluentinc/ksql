@@ -346,7 +346,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
             QualifiedName.of(COMMANDS_STREAM_NAME),
             Collections.singletonList(new TableElement(
                 "STATEMENT",
-                new PrimitiveType(SqlType.STRING)
+                PrimitiveType.of(SqlType.STRING)
             )),
             false,
             Collections.singletonMap(

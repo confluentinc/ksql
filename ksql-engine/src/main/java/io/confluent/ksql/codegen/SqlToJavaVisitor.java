@@ -47,12 +47,15 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.SymbolReference;
+import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -376,21 +379,26 @@ public class SqlToJavaVisitor {
     @Override
     protected Pair<String, Schema> visitCast(final Cast node, final Boolean context) {
       final Pair<String, Schema> expr = process(node.getExpression(), context);
-      final String returnTypeStr = node.getType();
-      final Schema returnType = SchemaUtil.getTypeSchema(returnTypeStr);
-      switch (returnTypeStr) {
+      final Type sqlType = node.getType();
+      if (!(sqlType instanceof PrimitiveType)) {
+        throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
+      }
 
-        case "VARCHAR":
-        case "STRING":
+      final Schema returnType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+      final Schema rightSchema = expr.getRight();
+      if (returnType.equals(rightSchema) || rightSchema == null) {
+        return new Pair<>(expr.getLeft(), returnType);
+      }
+
+      switch (sqlType.getSqlType()) {
+
+        case STRING:
           return new Pair<>("String.valueOf(" + expr.getLeft() + ")", returnType);
 
-        case "BOOLEAN": {
-          final Schema rightSchema = expr.getRight();
+        case BOOLEAN:
           return new Pair<>(getCastToBooleanString(rightSchema, expr.getLeft()), returnType);
-        }
 
-        case "INTEGER": {
-          final Schema rightSchema = expr.getRight();
+        case INTEGER: {
           final String exprStr = getCastString(
               rightSchema,
               expr.getLeft(),
@@ -400,8 +408,7 @@ public class SqlToJavaVisitor {
           return new Pair<>(exprStr, returnType);
         }
 
-        case "BIGINT": {
-          final Schema rightSchema = expr.getRight();
+        case BIGINT: {
           final String exprStr = getCastString(
               rightSchema, expr.getLeft(),
               "longValue",
@@ -410,8 +417,7 @@ public class SqlToJavaVisitor {
           return new Pair<>(exprStr, returnType);
         }
 
-        case "DOUBLE": {
-          final Schema rightSchema = expr.getRight();
+        case DOUBLE: {
           final String exprStr = getCastString(
               rightSchema,
               expr.getLeft(),
@@ -420,8 +426,9 @@ public class SqlToJavaVisitor {
           );
           return new Pair<>(exprStr, returnType);
         }
+
         default:
-          throw new KsqlFunctionException("Invalid cast operation: " + returnTypeStr);
+          throw new KsqlFunctionException("Invalid cast operation: " + sqlType);
       }
     }
 
@@ -674,9 +681,7 @@ public class SqlToJavaVisitor {
     }
 
     private String getCastToBooleanString(final Schema schema, final String exprStr) {
-      if (schema.type() == Schema.Type.BOOLEAN) {
-        return exprStr;
-      } else if (schema.type() == Schema.Type.STRING) {
+      if (schema.type() == Schema.Type.STRING) {
         return "Boolean.parseBoolean(" + exprStr + ")";
       } else {
         throw new KsqlFunctionException(
@@ -692,23 +697,11 @@ public class SqlToJavaVisitor {
     ) {
       switch (schema.type()) {
         case INT32:
-          if (javaTypeMethod.equals("intValue")) {
-            return exprStr;
-          } else {
-            return "(new Integer(" + exprStr + ")." + javaTypeMethod + "())";
-          }
+          return "(new Integer(" + exprStr + ")." + javaTypeMethod + "())";
         case INT64:
-          if (javaTypeMethod.equals("longValue")) {
-            return exprStr;
-          } else {
-            return "(new Long(" + exprStr + ")." + javaTypeMethod + "())";
-          }
+          return "(new Long(" + exprStr + ")." + javaTypeMethod + "())";
         case FLOAT64:
-          if (javaTypeMethod.equals("doubleValue")) {
-            return exprStr;
-          } else {
-            return "(new Double(" + exprStr + ")." + javaTypeMethod + "())";
-          }
+          return "(new Double(" + exprStr + ")." + javaTypeMethod + "())";
         case STRING:
           return javaStringParserMethod + "(" + exprStr + ")";
 

@@ -100,7 +100,7 @@ public class StandaloneExecutorTest {
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
 
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(SqlType.STRING)));
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
 

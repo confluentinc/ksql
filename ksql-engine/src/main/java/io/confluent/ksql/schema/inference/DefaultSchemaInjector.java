@@ -29,7 +29,6 @@ import io.confluent.ksql.schema.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.TypeUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -178,7 +177,7 @@ public class DefaultSchemaInjector implements SchemaInjector {
       final PreparedStatement<AbstractStreamCreateStatement> preparedStatement
   ) {
     try {
-      return TypeUtil.buildTableElementsForSchema(schema);
+      return TableElement.fromSchema(schema);
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Failed to convert schema to KSQL model: " + e.getMessage(),

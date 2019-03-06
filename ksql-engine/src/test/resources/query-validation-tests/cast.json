@@ -1,0 +1,66 @@
+{
+  "comments": [
+    "Tests covering use of casts"
+  ],
+  "tests": [
+    {
+      "name": "to array",
+      "statements": [
+        "CREATE STREAM TEST (f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT cast(f0 as ARRAY<INTEGER>) FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Only casts to primitive types are supported: ARRAY<INTEGER>"
+      }
+    },
+    {
+      "name": "to map",
+      "statements": [
+        "CREATE STREAM TEST (f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT cast(f0 as MAP<VARCHAR, INTEGER>) FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Only casts to primitive types are supported: MAP<VARCHAR, INTEGER>"
+      }
+    },
+    {
+      "name": "to struct",
+      "statements": [
+        "CREATE STREAM TEST (f0 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT cast(f0 as STRUCT<F0 VARCHAR, F1 INTEGER>) FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Only casts to primitive types are supported: STRUCT<F0 STRING, F1 INTEGER>"
+      }
+    },
+    {
+      "name": "no op",
+      "statements": [
+        "CREATE STREAM TEST (b BOOLEAN, i INT, bi BIGINT, d DOUBLE, s VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT cast(b as BOOLEAN), cast(i as INT), cast(bi as BIGINT), cast(d as DOUBLE), cast(s as STRING) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "true,10,101,10.3,bob"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "true,10,101,10.3,bob"}
+      ]
+    },
+    {
+      "name": "of nulls",
+      "statements": [
+        "CREATE STREAM TEST (ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT cast(null as BOOLEAN), cast(null as INT), cast(null as BIGINT), cast(null as DOUBLE), cast(null as STRING) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "-"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": ",,,,"}
+      ]
+    }
+  ]
+}

@@ -28,7 +28,7 @@ import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.util.TypeUtil;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -474,7 +474,7 @@ public class DefaultSchemaInjectorFunctionalTest {
     for (final TableElement tableElement : statement.getElements()) {
       builder.field(
           tableElement.getName(),
-          TypeUtil.getTypeSchema(tableElement.getType())
+          LogicalSchemas.fromSqlTypeConverter().fromSqlType(tableElement.getType())
       );
     }
     return builder.build();

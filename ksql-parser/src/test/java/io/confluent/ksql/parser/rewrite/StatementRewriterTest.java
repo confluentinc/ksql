@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.rewrite;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 
@@ -363,8 +364,8 @@ public class StatementRewriterTest {
     assertThat(createStream.getElements().get(0).getName().toLowerCase(), equalTo("ordertime"));
     assertThat(createStream.getElements().get(6).getType().getSqlType(), equalTo(SqlType.STRUCT));
     final Struct struct = (Struct) createStream.getElements().get(6).getType();
-    assertThat(struct.getItems().size(), equalTo(5));
-    assertThat(struct.getItems().get(0).getRight().getSqlType(), equalTo(SqlType.STRING));
+    assertThat(struct.getFields(), hasSize(5));
+    assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
     assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toLowerCase(),
         equalTo("'orders_topic'"));
   }

@@ -21,25 +21,15 @@ import java.util.Optional;
 
 public abstract class Type extends Expression {
 
-
   public enum SqlType {
     BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT
   }
 
-  final SqlType sqlType;
-
-  public Type(final SqlType sqlType) {
-    this(Optional.empty(), sqlType);
-  }
-
-  public Type(final NodeLocation location, final SqlType sqlType) {
-    this(Optional.of(location), sqlType);
-  }
+  private final SqlType sqlType;
 
   protected Type(final Optional<NodeLocation> location, final SqlType sqlType) {
     super(location);
-    requireNonNull(sqlType, "sqlType is null");
-    this.sqlType = sqlType;
+    this.sqlType = requireNonNull(sqlType, "sqlType");
   }
 
   public SqlType getSqlType() {

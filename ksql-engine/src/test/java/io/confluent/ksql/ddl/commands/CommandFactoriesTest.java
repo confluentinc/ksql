@@ -52,7 +52,7 @@ public class CommandFactoriesTest {
   private static final java.util.Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
-      new TableElement("bob", new PrimitiveType(SqlType.STRING)));
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final ServiceContext serviceContext = EasyMock.createNiceMock(ServiceContext.class);
@@ -206,8 +206,8 @@ public class CommandFactoriesTest {
   private static CreateTable createTable(final HashMap<String, Expression> tableProperties) {
     return new CreateTable(QualifiedName.of("foo"),
         ImmutableList.of(
-            new TableElement("COL1", new PrimitiveType(SqlType.BIGINT)),
-            new TableElement("COL2", new PrimitiveType(SqlType.STRING))),
+            new TableElement("COL1", PrimitiveType.of(SqlType.BIGINT)),
+            new TableElement("COL2", PrimitiveType.of(SqlType.STRING))),
         true, tableProperties);
   }
 

@@ -46,7 +46,6 @@ statement
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | LOAD expression                                                       #loadProperties
     | REGISTER TOPIC (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)?                                         #registerTopic
     | CREATE STREAM (IF NOT EXISTS)? qualifiedName
@@ -66,7 +65,6 @@ statement
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
     | EXPLAIN ANALYZE?
             (statement | qualifiedName)         #explain
-    | EXPORT CATALOG TO STRING                                              #exportCatalog
     | RUN SCRIPT STRING                                                     #runScript
     ;
 
@@ -266,9 +264,8 @@ primaryExpression
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
-    | BINARY_LITERAL                                                                 #binaryLiteral
-    | qualifiedName '(' ASTERISK ')'                              		             #functionCall
-    | qualifiedName '(' (expression (',' expression)*)? ')' 						 #functionCall
+    | qualifiedName '(' ASTERISK ')'                              		               #functionCall
+    | qualifiedName '(' (expression (',' expression)*)? ')' 						             #functionCall
     | '(' query ')'                                                                  #subqueryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
@@ -470,13 +467,6 @@ STRUCT_FIELD_REF: '->';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
-    ;
-
-// Note: we allow any character inside the binary literal and validate
-// its a correct literal when the AST is being constructed. This
-// allows us to provide more meaningful error messages to the user
-BINARY_LITERAL
-    :  'X\'' (~'\'')* '\''
     ;
 
 INTEGER_VALUE

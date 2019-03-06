@@ -20,7 +20,6 @@ import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
-import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -30,16 +29,10 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DefaultAstVisitor;
-import io.confluent.ksql.parser.tree.Delete;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.DropTable;
-import io.confluent.ksql.parser.tree.DropView;
-import io.confluent.ksql.parser.tree.ExistsPredicate;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Extract;
-import io.confluent.ksql.parser.tree.FieldReference;
-import io.confluent.ksql.parser.tree.FrameBound;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
@@ -57,14 +50,12 @@ import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryBody;
 import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.RenameColumn;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -87,9 +78,7 @@ import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -114,19 +103,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
 
   protected Node visitExpression(final Expression node, final Object context) {
     return node;
-  }
-
-  protected Node visitExtract(final Extract node, final Object context) {
-
-    if (node.getLocation().isPresent()) {
-      return new Extract(node.getLocation().get(),
-          (Expression) process(node.getExpression(), context),
-          node.getField());
-    } else {
-      return new Extract((Expression) process(node.getExpression(), context),
-          node.getField());
-    }
-
   }
 
   protected Node visitArithmeticBinary(
@@ -360,16 +336,10 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
   protected Node visitFunctionCall(final FunctionCall node, final Object context) {
-    final Optional<Window> window = node.getWindow().isPresent()
-        ? Optional.ofNullable((Window) process(node.getWindow().get(), context))
-        : Optional.empty();
-
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
     if (node.getLocation().isPresent()) {
-      return new FunctionCall(node.getLocation().get(),
+      return new FunctionCall(
+          node.getLocation().get(),
           node.getName(),
-          window,
           node.isDistinct(),
           node.getArguments()
               .stream()
@@ -377,8 +347,8 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
               .collect(Collectors.toList())
       );
     } else {
-      return new FunctionCall(node.getName(),
-          window,
+      return new FunctionCall(
+          node.getName(),
           node.isDistinct(),
           node.getArguments()
               .stream()
@@ -424,17 +394,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
           node.getValue());
     } else {
       return new StringLiteral(node.getValue());
-    }
-  }
-
-  protected Node visitBinaryLiteral(final BinaryLiteral node, final Object context) {
-    // May need some changes.
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new BinaryLiteral(node.getLocation().get(), node.getValue().toString());
-    } else {
-      return new BinaryLiteral(node.getValue().toString());
     }
   }
 
@@ -494,19 +453,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
       return new DereferenceExpression((Expression) process(node.getBase(), context),
           node.getFieldName()
       );
-    }
-  }
-
-  protected Node visitNullIfExpression(final NullIfExpression node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new NullIfExpression(node.getLocation().get(),
-          (Expression) process(node.getFirst(), context),
-          (Expression) process(node.getSecond(), context));
-    } else {
-      return new NullIfExpression((Expression) process(node.getFirst(), context),
-          (Expression) process(node.getSecond(), context));
     }
   }
 
@@ -792,26 +738,9 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     }
   }
 
-  protected Node visitExists(final ExistsPredicate node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new ExistsPredicate(
-          node.getLocation().get(),
-          (Query) process(node.getSubquery(), context)
-      );
-    } else {
-      return new ExistsPredicate((Query) process(node.getSubquery(), context));
-    }
-  }
-
   protected Node visitCast(final Cast node, final Object context) {
     final Expression expression = (Expression) process(node.getExpression(), context);
     return new Cast(node.getLocation(), expression, node.getType());
-  }
-
-  protected Node visitFieldReference(final FieldReference node, final Object context) {
-    return new FieldReference(node.getFieldIndex());
   }
 
   protected Node visitWindowExpression(final WindowExpression node, final Object context) {
@@ -853,63 +782,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   ) {
     return new SessionWindowExpression(node.getGap(),
         node.getSizeUnit());
-  }
-
-  protected Node visitWindow(final Window node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new Window(node.getLocation().get(),
-          node.getWindowName(),
-          (WindowExpression) process(node.getWindowExpression(), context)
-      );
-    } else {
-      return new Window(node.getWindowName(),
-          (WindowExpression) process(node.getWindowExpression(), context)
-      );
-    }
-  }
-
-  protected Node visitWindowFrame(final WindowFrame node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new WindowFrame(
-          node.getLocation().get(),
-          node.getType(),
-          (FrameBound) process(node.getStart(), context),
-          node.getEnd().isPresent()
-              ? Optional.ofNullable((FrameBound) process(node.getEnd().get(), context))
-              : Optional.empty()
-      );
-    } else {
-      return new WindowFrame(
-          node.getType(),
-          (FrameBound) process(node.getStart(), context),
-          node.getEnd().isPresent()
-              ? Optional.ofNullable((FrameBound) process(node.getEnd().get(), context))
-              : Optional.empty()
-      );
-    }
-  }
-
-  protected Node visitFrameBound(final FrameBound node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new FrameBound(node.getLocation().get(),
-          node.getType(),
-          node.getValue().isPresent()
-              ? (Expression) process(node.getValue().get(), context)
-              : null
-      );
-    } else {
-      return new FrameBound(node.getType(),
-          node.getValue().isPresent()
-              ? (Expression) process(node.getValue().get(), context)
-              : null
-      );
-    }
   }
 
   protected Node visitTableElement(final TableElement node, final Object context) {
@@ -1002,55 +874,6 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         node.getTableName(),
         node.getIfExists(),
         node.isDeleteTopic());
-  }
-
-  protected Node visitRenameColumn(final RenameColumn node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new RenameColumn(node.getLocation().get(),
-          node.getTable(),
-          node.getSource(),
-          node.getTarget()
-      );
-    } else {
-      return new RenameColumn(node.getTable(),
-          node.getSource(),
-          node.getTarget()
-      );
-    }
-  }
-
-  protected Node visitDropView(final DropView node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new DropView(node.getLocation().get(),
-          node.getName(),
-          node.isExists());
-    } else {
-      return new DropView(node.getName(),
-          node.isExists());
-    }
-  }
-
-  protected Node visitDelete(final Delete node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new Delete(node.getLocation().get(),
-          (Table) process(node.getTable(), context),
-          node.getWhere().isPresent()
-              ? Optional.ofNullable((Expression) process(node.getWhere().get(), context))
-              : Optional.empty()
-      );
-    } else {
-      return new Delete((Table) process(node.getTable(), context),
-          node.getWhere().isPresent()
-              ? Optional.ofNullable((Expression) process(node.getWhere().get(), context))
-              : Optional.empty()
-      );
-    }
   }
 
   protected Node visitGroupBy(final GroupBy node, final Object context) {

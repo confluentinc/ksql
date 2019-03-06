@@ -283,29 +283,6 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitNullIfExpression(
-        final NullIfExpression node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteNullIfExpression(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      final Expression first = rewrite(node.getFirst(), context.get());
-      final Expression second = rewrite(node.getSecond(), context.get());
-
-      if (first != node.getFirst() || second != node.getSecond()) {
-        return new NullIfExpression(first, second);
-      }
-
-      return node;
-    }
-
-    @Override
     protected Expression visitSearchedCaseExpression(final SearchedCaseExpression node,
                                                      final Context<C> context) {
       if (!context.isDefaultRewrite()) {
@@ -403,7 +380,7 @@ public final class ExpressionTreeRewriter<C> {
 
       if (!node.getArguments().equals(args)) {
         return new FunctionCall(
-            node.getLocation(), node.getName(), node.getWindow(), node.isDistinct(), args);
+            node.getLocation(), node.getName(), node.isDistinct(), args);
       }
 
       return node;
@@ -481,21 +458,6 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitExists(final ExistsPredicate node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteExists(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      // No default rewrite for ExistsPredicate since we do not want to traverse subqueries
-      return node;
-    }
-
-    @Override
     public Expression visitSubqueryExpression(
         final SubqueryExpression node,
         final Context<C> context) {
@@ -565,26 +527,6 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    protected Expression visitExtract(final Extract node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteExtract(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      final Expression expression = rewrite(node.getExpression(), context.get());
-
-      if (node.getExpression() != expression) {
-        return new Extract(expression, node.getField());
-      }
-
-      return node;
-    }
-
-    @Override
     public Expression visitCast(final Cast node, final Context<C> context) {
       if (!context.isDefaultRewrite()) {
         final Expression result =
@@ -598,20 +540,6 @@ public final class ExpressionTreeRewriter<C> {
 
       if (node.getExpression() != expression) {
         return new Cast(node.getLocation(), expression, node.getType());
-      }
-
-      return node;
-    }
-
-    @Override
-    protected Expression visitFieldReference(final FieldReference node, final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteFieldReference(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
       }
 
       return node;

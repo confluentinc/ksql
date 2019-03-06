@@ -22,17 +22,13 @@ import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.BetweenPredicate;
-import io.confluent.ksql.parser.tree.BinaryLiteral;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.DecimalLiteral;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.DoubleLiteral;
-import io.confluent.ksql.parser.tree.Extract;
-import io.confluent.ksql.parser.tree.FieldReference;
 import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.GenericLiteral;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.IntervalLiteral;
@@ -44,7 +40,6 @@ import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Map;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -57,25 +52,13 @@ import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
-import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.parser.tree.Window;
-import io.confluent.ksql.parser.tree.WindowExpression;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public class ExpressionFormatterTest {
-
-
-  @Test
-  public void shouldFormatExtract() {
-    final String result
-        = ExpressionFormatter.formatExpression(new Extract(new StringLiteral("17/12/2017"), Extract.Field.DAY));
-    assertThat(result, equalTo("EXTRACT(DAY FROM '17/12/2017')"));
-  }
 
   @Test
   public void shouldFormatBooleanLiteral() {
@@ -85,11 +68,6 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatStringLiteral() {
     assertThat(ExpressionFormatter.formatExpression(new StringLiteral("string")), equalTo("'string'"));
-  }
-
-  @Test
-  public void shouldFormatBinaryLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new BinaryLiteral("0F")), equalTo("X'0F'"));
   }
 
   @Test
@@ -113,11 +91,6 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatDecimalLiteral() {
     assertThat(ExpressionFormatter.formatExpression(new DecimalLiteral("3.5")), equalTo("DECIMAL '3.5'"));
-  }
-
-  @Test
-  public void shouldFormatGenericLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new GenericLiteral("type", "value")), equalTo("type 'value'"));
   }
 
   @Test
@@ -168,12 +141,6 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatFieldReference() {
-    assertThat(ExpressionFormatter.formatExpression(new FieldReference(1)), equalTo(":input(1)"));
-  }
-
-
-  @Test
   public void shouldFormatFunctionCallWithCount() {
     final FunctionCall functionCall = new FunctionCall(QualifiedName.of("function", "COUNT"),
         Collections.singletonList(new StringLiteral("name")));
@@ -194,19 +161,6 @@ public class ExpressionFormatterTest {
         true,
         Collections.singletonList(new StringLiteral("name")));
     assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("function.COUNT(DISTINCT 'name')"));
-  }
-
-  @Test
-  public void shouldFormatFunctionCallWithWindow() {
-    final FunctionCall functionCall = new FunctionCall(new NodeLocation(1, 1),
-        QualifiedName.of("function"),
-        Optional.of(new Window("window",
-            new WindowExpression("blah", new TumblingWindowExpression(1L, TimeUnit.SECONDS)))),
-        false,
-        Collections.singletonList(new StringLiteral("name")));
-
-    assertThat(ExpressionFormatter.formatExpression(functionCall),
-        equalTo("function('name') OVER  WINDOW  WINDOW blah  TUMBLING ( SIZE 1 SECONDS ) "));
   }
 
   @Test
@@ -241,14 +195,6 @@ public class ExpressionFormatterTest {
   public void shouldFormatIsNotNullPredicate() {
     assertThat(ExpressionFormatter.formatExpression(new IsNotNullPredicate(new StringLiteral("name"))),
         equalTo("('name' IS NOT NULL)"));
-  }
-
-  @Test
-  public void shouldFormatNullIfExpression() {
-    assertThat(ExpressionFormatter.formatExpression(new NullIfExpression(
-            new StringLiteral("first"),
-            new StringLiteral("second"))),
-        equalTo("NULLIF('first', 'second')"));
   }
 
   @Test

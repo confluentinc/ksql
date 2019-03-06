@@ -70,11 +70,6 @@ public class ExpressionRewriter<C> {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteNullIfExpression(final NullIfExpression node, final C context,
-                                            final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
   public Expression rewriteSearchedCaseExpression(
       final SearchedCaseExpression node, final C context,
       final ExpressionTreeRewriter<C> treeRewriter) {
@@ -111,11 +106,6 @@ public class ExpressionRewriter<C> {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteExists(final ExistsPredicate node, final C context,
-                                  final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
   public Expression rewriteSubqueryExpression(final SubqueryExpression node, final C context,
                                               final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
@@ -143,20 +133,10 @@ public class ExpressionRewriter<C> {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteExtract(final Extract node, final C context,
-                                   final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
   public Expression rewriteCast(
       final Cast node,
       final C context,
       final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
-  public Expression rewriteFieldReference(final FieldReference node, final C context,
-                                          final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 

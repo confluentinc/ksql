@@ -23,11 +23,8 @@ import io.confluent.ksql.parser.tree.BetweenPredicate;
 import io.confluent.ksql.parser.tree.Cast;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.Delete;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.Extract;
-import io.confluent.ksql.parser.tree.FrameBound;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
@@ -41,14 +38,11 @@ import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.NullIfExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QuerySpecification;
-import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SetOperation;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -60,8 +54,6 @@ import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.TableSubquery;
 import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.parser.tree.Window;
-import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.parser.tree.WithQuery;
 import java.util.Set;
 
@@ -74,11 +66,6 @@ public abstract class DefaultTraversalVisitor<R, C>
       process(statement, context);
     }
     return visitNode(node, context);
-  }
-
-  @Override
-  protected R visitExtract(final Extract node, final C context) {
-    return process(node.getExpression(), context);
   }
 
   @Override
@@ -169,41 +156,12 @@ public abstract class DefaultTraversalVisitor<R, C>
       process(argument, context);
     }
 
-    if (node.getWindow().isPresent()) {
-      process(node.getWindow().get(), context);
-    }
-
     return null;
   }
 
   @Override
   protected R visitDereferenceExpression(final DereferenceExpression node, final C context) {
     process(node.getBase(), context);
-    return null;
-  }
-
-  @Override
-  public R visitWindow(final Window node, final C context) {
-    process(node.getWindowExpression(), context);
-    return null;
-  }
-
-  @Override
-  public R visitWindowFrame(final WindowFrame node, final C context) {
-    process(node.getStart(), context);
-    if (node.getEnd().isPresent()) {
-      process(node.getEnd().get(), context);
-    }
-
-    return null;
-  }
-
-  @Override
-  public R visitFrameBound(final FrameBound node, final C context) {
-    if (node.getValue().isPresent()) {
-      process(node.getValue().get(), context);
-    }
-
     return null;
   }
 
@@ -225,14 +183,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     for (final Expression value : node.getValues()) {
       process(value, context);
     }
-
-    return null;
-  }
-
-  @Override
-  protected R visitNullIfExpression(final NullIfExpression node, final C context) {
-    process(node.getFirst(), context);
-    process(node.getSecond(), context);
 
     return null;
   }
@@ -311,14 +261,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitSetOperation(final SetOperation node, final C context) {
-    for (final Relation relation : node.getRelations()) {
-      process(relation, context);
-    }
-    return null;
-  }
-
-  @Override
   protected R visitValues(final Values node, final C context) {
     for (final Expression row : node.getRows()) {
       process(row, context);
@@ -382,14 +324,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     for (final Expression expression : node.getColumnExpressions()) {
       process(expression, context);
     }
-
-    return null;
-  }
-
-  @Override
-  protected R visitDelete(final Delete node, final C context) {
-    process(node.getTable(), context);
-    node.getWhere().ifPresent(where -> process(where, context));
 
     return null;
   }

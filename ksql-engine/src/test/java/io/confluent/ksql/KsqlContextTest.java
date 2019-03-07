@@ -74,6 +74,9 @@ public class KsqlContextTest {
   private final static PreparedStatement<?> STMT_1_WITH_SCHEMA = PreparedStatement
       .of("sql 1", mock(Statement.class));
 
+  private final static PreparedStatement<?> STMT_0_WITH_TOPIC = PreparedStatement
+      .of("sql 0", mock(Statement.class));
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -281,6 +284,34 @@ public class KsqlContextTest {
   public void shouldThrowIfFailedToInferSchema() {
     // Given:
     when(schemaInjector.forStatement(any()))
+        .thenThrow(new RuntimeException("Boom"));
+
+    // Then:
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("Boom");
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldInferTopic() {
+    // Given:
+    when(topicInjector.forStatement(any(), any(), any()))
+        .thenReturn((PreparedStatement) STMT_0_WITH_TOPIC);
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    verify(ksqlEngine).execute(eq(STMT_0_WITH_TOPIC), any(), any());
+  }
+
+  @Test
+  public void shouldThrowIfFailedToInferTopic() {
+    // Given:
+    when(topicInjector.forStatement(any(), any(), any()))
         .thenThrow(new RuntimeException("Boom"));
 
     // Then:

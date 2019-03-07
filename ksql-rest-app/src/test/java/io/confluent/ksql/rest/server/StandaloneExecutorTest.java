@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -30,7 +29,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -43,6 +41,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -50,11 +49,15 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -78,6 +81,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -119,17 +123,45 @@ public class StandaloneExecutorTest {
   private static final CreateStream CREATE_STREAM = new CreateStream(
       SOME_NAME, SOME_ELEMENTS, true, JSON_PROPS);
 
+  private static final CreateStreamAsSelect CREATE_STREAM_AS_SELECT = new CreateStreamAsSelect(
+      QualifiedName.of("stream"),
+      new Query(
+          new QuerySpecification(
+              new Select(true, ImmutableList.of(new AllColumns(new NodeLocation(0, 0)))),
+              new Table(QualifiedName.of("sink")),
+              true,
+              new Table(QualifiedName.of("source")),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              OptionalInt.empty()
+          ),
+          OptionalInt.empty()
+      ),
+      false,
+      ImmutableMap.of(),
+      Optional.empty()
+  );
+
+
   private final static ParsedStatement PARSED_STMT_0 = ParsedStatement
       .of("sql 0", mock(SingleStatementContext.class));
 
   private final static ParsedStatement PARSED_STMT_1 = ParsedStatement
       .of("sql 1", mock(SingleStatementContext.class));
 
+  private static final ParsedStatement PARSED_CSAS = ParsedStatement
+      .of("CSAS", mock(SingleStatementContext.class));
+
   private final static PreparedStatement<?> PREPARED_STMT_0 = PreparedStatement
       .of("sql 0", CREATE_STREAM);
 
   private final static PreparedStatement<?> PREPARED_STMT_1 = PreparedStatement
       .of("sql 1", CREATE_STREAM);
+
+  private final static PreparedStatement<?> PREPARED_CSAS = PreparedStatement.
+      of("CSAS", CREATE_STREAM_AS_SELECT);
 
   private final static PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement
       .of("sql 0", new CreateStream(
@@ -146,6 +178,10 @@ public class StandaloneExecutorTest {
           true,
           Collections.emptyMap()
       ));
+
+
+  private final static PreparedStatement<CreateStreamAsSelect> CSAS_WITH_TOPIC = PreparedStatement
+      .of("CSAS_TOPIC", CREATE_STREAM_AS_SELECT);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -200,6 +236,7 @@ public class StandaloneExecutorTest {
 
     when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
+    when(ksqlEngine.prepare(PARSED_CSAS)).thenReturn((PreparedStatement) PREPARED_CSAS);
 
     when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(persistentQuery));
 
@@ -207,8 +244,11 @@ public class StandaloneExecutorTest {
 
     when(sandBox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
+    when(sandBox.prepare(PARSED_CSAS)).thenReturn((PreparedStatement) PREPARED_CSAS);
 
     when(sandBox.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
+    when(sandBox.execute(eq(CSAS_WITH_TOPIC), any(), any()))
+        .thenReturn(ExecuteResult.of(persistentQuery));
 
     when(schemaInjectorFactory.apply(any())).thenReturn(sandBoxSchemaInjector);
     when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
@@ -618,6 +658,21 @@ public class StandaloneExecutorTest {
     // Then:
     verify(sandBox).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
     verify(ksqlEngine).execute(eq(STMT_1_WITH_SCHEMA), any(), any());
+  }
+
+  @Test
+  public void shouldSupportTopicInference() {
+    // Given:
+    givenQueryFileParsesTo(PREPARED_CSAS);
+
+    when(sandBoxTopicInjector.forStatement(eq(PREPARED_CSAS), any(), any()))
+        .thenReturn((PreparedStatement) CSAS_WITH_TOPIC);
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(sandBox).execute(eq(CSAS_WITH_TOPIC), any(), any());
   }
 
   private void givenExecutorWillFailOnNoQueries() {

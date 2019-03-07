@@ -27,16 +27,24 @@ public interface TopicInjector {
 
   /**
    * Attempt to inject the sink kafka topic properties into the supplied {@code statement}. The
-   * following conditions hold:
+   * following precedence order is maintained for deriving properties:
    *
    * <ul>
-   *   <li>If the statement is not CTAS/CSAS, this operation does nothing</li>
-   *   <li>If the statement does not have any kafka topic properties, then the topic name
-   *       partitions and replica count will be injecetd. </li>
-   *   <li>If the statement specifies a name, a name will not be injected</li>
-   *   <li>If the statement specifies number partitions, number partitions are not injected</li>
-   *   <li>If the statement specifies number replicas, number replicas are not injected</li>
+   *   <li>The statement itself, if it has a WITH clause</li>
+   *   <li>The property overrides, if present (note that this is a legacy approach)</li>
+   *   <li>The KsqlConfig property, if present (note that this is a legacy approach)</li>
+   *   <li>The topic properties from the source that it is reading from. If the source is a join,
+   *   then the left value is used as the source.</li>
+   *   <li>Generated based on some recipe - this is the case for topic name, which will never
+   *   use the source topic (obviously!)</li>
    * </ul>
+   *
+   * <p>It is possible that only partial information exists at higher levels of precedence. If
+   * this is the case, the values will be inferred in cascading fashion (e.g. topic name from
+   * WITH clause, replicas from property overrides and partitions source topic).</p>
+   *
+   * <p>If a statement that is not {@code CreateAsSelect} is passed in, this results in a
+   * no-op tha returns the incoming statement.</p>
    *
    * @param statement           the statement to inject the topic properties into
    * @param ksqlConfig          the default configurations for the service

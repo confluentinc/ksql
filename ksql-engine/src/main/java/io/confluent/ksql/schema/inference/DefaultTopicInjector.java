@@ -51,7 +51,6 @@ public class DefaultTopicInjector implements TopicInjector {
   DefaultTopicInjector(
       final KafkaTopicClient topicClient,
       final MetaStore metaStore) {
-
     this.topicClient = topicClient;
     this.metaStore = metaStore;
   }
@@ -95,17 +94,16 @@ public class DefaultTopicInjector implements TopicInjector {
         metaStore,
         ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
         .analyze(SqlFormatter.formatSql(cas), cas.getQuery());
-    final StructuredDataSource theSource = analysis.getTheSourceNode();
+    final StructuredDataSource theSource = analysis.getTheSource();
 
     final String kafkaTopicName = theSource.getKsqlTopic().getKafkaTopicName();
     return topicClient.describeTopic(kafkaTopicName);
   }
 
-  /**
-   * If the topic name is specified in the request, use that topic name directly, otherwise
-   * construct it using the default topic prefix and the name of the output source.
-   */
-  private static String topicName(final CreateAsSelect cas, final KsqlConfig cfg) {
+  private static String topicName(
+      final CreateAsSelect cas,
+      final KsqlConfig cfg
+  ) {
     final Expression topicProperty = cas.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
     return (topicProperty == null)
         ? cfg.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG) + cas.getName().getSuffix()
@@ -116,7 +114,8 @@ public class DefaultTopicInjector implements TopicInjector {
       final CreateAsSelect cas,
       final KsqlConfig cfg,
       final Map<String, Object> propertyOverrides,
-      final TopicDescription description) {
+      final TopicDescription description
+  ) {
     final Expression partitions = cas.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS);
     if (partitions != null) {
       return Integer.parseInt(partitions.toString());
@@ -137,7 +136,8 @@ public class DefaultTopicInjector implements TopicInjector {
       final CreateAsSelect cas,
       final KsqlConfig cfg,
       final Map<String, Object> propertyOverrides,
-      final TopicDescription description) {
+      final TopicDescription description
+  ) {
     final Expression replicas = cas.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS);
     if (replicas != null) {
       return Short.parseShort(replicas.toString());

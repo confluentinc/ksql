@@ -98,9 +98,7 @@ public class KsqlContext {
     this.schemaInjector = Objects.requireNonNull(schemaInjector, "schemaInjector");
     this.topicInjectorFactory = Objects
         .requireNonNull(topicInjectorFactory, "topicInjectorFactory");
-    this.topicInjector =
-        Objects.requireNonNull(
-            topicInjectorFactory.apply(ksqlEngine));
+    this.topicInjector = Objects.requireNonNull(topicInjectorFactory.apply(ksqlEngine));
   }
 
   public ServiceContext getServiceContext() {

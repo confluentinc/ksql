@@ -306,9 +306,14 @@ public class StandaloneExecutor implements Executable {
       return prepared.getStatement() instanceof QueryContainer;
     }
 
-    private PreparedStatement<?> prepare(final ParsedStatement statement) {
+    private PreparedStatement<?> prepare(
+        final ParsedStatement statement
+    ) {
       final PreparedStatement<?> prepared = executionContext.prepare(statement);
-      return schemaInjector.forStatement(prepared);
+      return topicInjector.forStatement(
+          schemaInjector.forStatement(prepared),
+          ksqlConfig,
+          configProperties);
     }
 
     private static void throwOnMissingSchema(final PreparedStatement<?> statement) {
@@ -339,9 +344,7 @@ public class StandaloneExecutor implements Executable {
     }
 
     private void handlePersistentQuery(final PreparedStatement<?> statement) {
-      final PreparedStatement<?> withInferredSinkTopic =
-          topicInjector.forStatement(statement, ksqlConfig, configProperties);
-      executionContext.execute(withInferredSinkTopic, ksqlConfig, configProperties)
+      executionContext.execute(statement, ksqlConfig, configProperties)
           .getQuery()
           .filter(q -> q instanceof PersistentQueryMetadata)
           .orElseThrow((() -> new KsqlStatementException(

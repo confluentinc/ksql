@@ -74,7 +74,7 @@ public class Analysis {
     return fromDataSources;
   }
 
-  public StructuredDataSource getTheSourceNode() {
+  public StructuredDataSource getTheSource() {
     return (join == null)
         ? getFromDataSource(0).left
         : join.getTheSourceNode().getStructuredDataSource();

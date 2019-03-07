@@ -276,7 +276,7 @@ public class KsqlGenericRowAvroSerializerTest {
       final org.apache.avro.Schema valueSchema) {
     return org.apache.avro.SchemaBuilder.record(name)
         .namespace("io.confluent.ksql.avro_schemas")
-        .prop("connect.named.map", "true")
+        .prop("connect.internal.type", "MapEntry")
         .fields()
         .name("key")
         .type().unionOf().nullType().and().stringType().endUnion()

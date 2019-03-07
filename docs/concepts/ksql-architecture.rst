@@ -3,7 +3,7 @@
 KSQL Architecture
 #################
 
-You can use KSQL to build event streaming applications from Kafka topics by
+You can use KSQL to build event streaming applications from |ak-tm| topics by
 using only SQL statements and queries. KSQL is built on Kafka Streams, so a
 KSQL application communicates with a Kafka cluster like any other Kafka Streams
 application.

@@ -4,7 +4,7 @@ Configuring Security for KSQL
 =============================
 
 KSQL supports authentication on its HTTP endpoints and also supports many of the security features
-of the other services it communicates with, like |ak| and |sr|.
+of the other services it communicates with, like |ak-tm| and |sr|.
 
 - KSQL supports Basic HTTP authentication on its RESTful and WebSocket endpoints, which means
   that the endpoints can be protected by a username and password.

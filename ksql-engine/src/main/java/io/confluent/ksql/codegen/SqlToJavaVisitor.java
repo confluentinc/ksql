@@ -52,7 +52,6 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.util.ExpressionTypeManager;
@@ -173,20 +172,6 @@ public class SqlToJavaVisitor {
       }
       final Schema schema = schemaField.get().schema();
       return new Pair<>(fieldName.replace(".", "_"), schema);
-    }
-
-    @Override
-    protected Pair<String, Schema> visitSymbolReference(
-        final SymbolReference node,
-        final Void context
-    ) {
-      final String fieldName = formatIdentifier(node.getName());
-      final Optional<Field> schemaField = SchemaUtil.getFieldByName(schema, fieldName);
-      if (!schemaField.isPresent()) {
-        throw new KsqlException("Field not found: " + fieldName);
-      }
-      final Schema schema = schemaField.get().schema();
-      return new Pair<>(fieldName, schema);
     }
 
     @Override

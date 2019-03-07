@@ -56,7 +56,6 @@ import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.WhenClause;
@@ -192,11 +191,6 @@ public final class ExpressionFormatter {
     protected String visitQualifiedNameReference(final QualifiedNameReference node,
                                                  final Boolean unmangleNames) {
       return formatQualifiedName(node.getName());
-    }
-
-    @Override
-    protected String visitSymbolReference(final SymbolReference node, final Boolean context) {
-      return formatIdentifier(node.getName());
     }
 
     @Override

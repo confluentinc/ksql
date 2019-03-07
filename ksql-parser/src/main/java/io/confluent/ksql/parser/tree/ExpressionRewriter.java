@@ -134,9 +134,4 @@ public class ExpressionRewriter<C> {
       final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
-
-  public Expression rewriteSymbolReference(final SymbolReference node, final C context,
-                                           final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
 }

@@ -527,22 +527,6 @@ public final class ExpressionTreeRewriter<C> {
 
       return node;
     }
-
-    @Override
-    protected Expression visitSymbolReference(
-        final SymbolReference node,
-        final Context<C> context) {
-      if (!context.isDefaultRewrite()) {
-        final Expression
-            result =
-            rewriter.rewriteSymbolReference(node, context.get(), ExpressionTreeRewriter.this);
-        if (result != null) {
-          return result;
-        }
-      }
-
-      return node;
-    }
   }
 
   public static final class Context<C> {

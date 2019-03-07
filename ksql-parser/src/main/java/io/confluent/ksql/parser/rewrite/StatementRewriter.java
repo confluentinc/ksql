@@ -66,7 +66,6 @@ import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TimeLiteral;
@@ -824,9 +823,5 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
           .collect(Collectors.toList())
       );
     }
-  }
-
-  protected Node visitSymbolReference(final SymbolReference node, final Object context) {
-    return new SymbolReference(node.getName());
   }
 }

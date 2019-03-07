@@ -280,8 +280,4 @@ public abstract class DefaultAstVisitor<R, C>
   protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
     return visitGroupingElement(node, context);
   }
-
-  protected R visitSymbolReference(final SymbolReference node, final C context) {
-    return visitExpression(node, context);
-  }
 }

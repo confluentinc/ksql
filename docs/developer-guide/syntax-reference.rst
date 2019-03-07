@@ -1113,6 +1113,8 @@ SHOW PROPERTIES
 List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
+.. _ksql-terminate:
+
 TERMINATE
 ---------
 

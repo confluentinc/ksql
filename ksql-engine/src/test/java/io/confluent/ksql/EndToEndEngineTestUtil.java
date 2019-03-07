@@ -40,6 +40,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -464,6 +465,7 @@ class EndToEndEngineTestUtil {
       put("cache.max.bytes.buffering", 0);
       put("auto.offset.reset", "earliest");
       put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath());
+      put(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, true);
     }};
     final Properties streamsProperties = new Properties();
     streamsProperties.putAll(config);
@@ -555,11 +557,17 @@ class EndToEndEngineTestUtil {
       case STRING:
         return avro.toString();
       case ARRAY:
-        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)) {
+        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
+            Objects.equals(
+                schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
+                AvroData.MAP_ENTRY_TYPE_NAME)
+            ) {
+          final org.apache.avro.Schema valueSchema
+              = schema.getElementType().getField("value").schema();
           return ((List) avro).stream().collect(
               Collectors.toMap(
                   m -> ((GenericData.Record) m).get("key").toString(),
-                  m -> ((GenericData.Record) m).get("value")
+                  m -> (avroToValueSpec(((GenericData.Record) m).get("value"), valueSchema, toUpper))
               )
           );
         }

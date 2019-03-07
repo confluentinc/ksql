@@ -10,7 +10,7 @@ In KSQL, a record is an immutable representation of an event in time. Each
 record carries a timestamp, which determines its position on the time axis.
 
 This is the default timestamp that KSQL uses for processing the record. The
-timestamp is set either by the producer application or by the Kafka broker,
+timestamp is set either by the producer application or by the |ak-tm| broker,
 depending on the topic's configuration. Records may be out-of-order within
 the stream. 
 

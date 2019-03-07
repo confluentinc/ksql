@@ -8,9 +8,11 @@ This guide contains troubleshooting information for many KSQL issues.
 SELECT query does not stop
 **************************
 
-KSQL queries continuously stream and must be explicitly stopped. Use ``Ctrl-C`` in the CLI to stop non-persistent queries (for example, ``SELECT * FROM myTable``). To stop a persistent query created by ``CREATE STREAM AS SELECT`` or ``CREATE TABLE AS SELECT`` use the KSQL TERMINATE statement ``TERMINATE query_id;``. See Terminate_ in the KSQL Syntax Reference.
-
-.. _Termninate: https://docs.confluent.io/current/ksql/docs/developer-guide/syntax-reference.html#terminate
+KSQL queries streams continuously and must be stopped explicitly. In the CLI,
+use Ctrl-C to stop non-persistent queries, like ``SELECT * FROM myTable``.
+To stop a persistent query created by CREATE STREAM AS SELECT or
+CREATE TABLE AS SELECT, use the TERMINATE statement: ``TERMINATE query_id;``.
+For more information, see :ref:`ksql-terminate`.
 
 SELECT query returns no results
 *******************************

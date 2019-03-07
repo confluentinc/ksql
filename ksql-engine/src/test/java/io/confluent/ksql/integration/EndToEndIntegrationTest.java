@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -302,6 +303,27 @@ public class EndToEndIntegrationTest {
     assertThat(columns.get(3).toString(), either(is("FEMALE")).or(is("MALE")));
   }
 
+  @Test
+  public void shouldCleanUpAvroSchemaOnDropSource() throws Exception {
+    final String topicName = "avro_stream_topic";
+
+    executeStatement(format(
+        "create stream avro_stream with (kafka_topic='%s',value_format='avro') as select * from %s;",
+        topicName,
+        PAGE_VIEW_STREAM));
+
+    TEST_HARNESS.produceRows(
+        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
+
+    verifySubjectPresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+
+    ksqlContext.terminateQuery(new QueryId("CSAS_AVRO_STREAM_0"));
+
+    executeStatement("DROP STREAM avro_stream DELETE TOPIC;");
+
+    verifySubjectAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+  }
+
   private QueryMetadata executeStatement(final String statement,
       final String... args) {
     final String formatted = String.format(statement, (Object[])args);
@@ -324,6 +346,32 @@ public class EndToEndIntegrationTest {
     return (QueuedQueryMetadata) queryMetadata;
   }
 
+  private void verifySubjectPresent(final String subjectName) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            return ksqlContext.getServiceContext().getSchemaRegistryClient().getAllSubjects().contains(subjectName);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "subject not present after 30 seconds. subject: " + subjectName);
+  }
+
+  private void verifySubjectAbsent(final String subjectName) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            return !ksqlContext.getServiceContext().getSchemaRegistryClient().getAllSubjects().contains(subjectName);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "subject still present after 30 seconds. subject: " + subjectName);
+  }
+
   private static List<Object> waitForFirstRow(
       final QueuedQueryMetadata queryMetadata) throws Exception {
     return verifyAvailableRows(queryMetadata, 1).get(0).getColumns();
@@ -338,7 +386,7 @@ public class EndToEndIntegrationTest {
     TestUtils.waitForCondition(
         () -> rowQueue.size() >= expectedRows,
         30_000,
-        expectedRows + " rows where not available after 30 seconds");
+        expectedRows + " rows were not available after 30 seconds");
 
     final List<KeyValue<String, GenericRow>> rows = new ArrayList<>();
     rowQueue.drainTo(rows);

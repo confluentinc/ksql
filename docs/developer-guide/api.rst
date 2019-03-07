@@ -94,7 +94,16 @@ Your output should resemble:
 Run a KSQL Statement
 --------------------
 
-The KSQL resource runs a sequence of KSQL statements. All statements, except those starting with ``SELECT``, can be run on this endpoint. To run ``SELECT`` statements use the ``/query`` endpoint.
+The ``/ksql`` resource runs a sequence of KSQL statements. All statements, except
+those starting with SELECT, can be run on this endpoint. To run SELECT
+statements use the ``/query`` endpoint.
+
+.. note::
+
+   If you use the SET or UNSET statements to assign query properties by using
+   the REST API, the assignment is scoped only to the current request. In
+   contrast, SET and UNSET assignments in the KSQL CLI persist throughout the
+   CLI session.
 
 .. http:post:: /ksql
 
@@ -240,7 +249,7 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
 Run A Query And Stream Back The Output
 --------------------------------------
 
-The query resource lets you stream the output records of a ``SELECT`` statement via a chunked transfer encoding. The response is streamed back until the ``LIMIT`` specified in the statement is reached, or the client closes the connection. If no ``LIMIT`` is specified in the statement, then the response is streamed until the client closes the connection.
+The ``/query`` resource lets you stream the output records of a ``SELECT`` statement via a chunked transfer encoding. The response is streamed back until the ``LIMIT`` specified in the statement is reached, or the client closes the connection. If no ``LIMIT`` is specified in the statement, then the response is streamed until the client closes the connection.
 
 .. http:post:: /query
 

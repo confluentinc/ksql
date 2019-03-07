@@ -27,6 +27,7 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,6 +57,7 @@ public class DefaultTopicInjectorTest {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     fakeClient = new FakeKafkaTopicClient();
     injector = new DefaultTopicInjector(fakeClient, metaStore);
+    ksqlConfig = new KsqlConfig(new HashMap<>());
   }
 
   @Test

@@ -1,4 +1,4 @@
-You can use KSQL with compatible |cp| and |ak| versions.
+You can use KSQL with compatible |cp| and |ak-tm| versions.
 
 ==================== ================
 KSQL version         |version|

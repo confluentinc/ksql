@@ -216,7 +216,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     return new CreateStreamAsSelect(
         Optional.of(getLocation(context)),
-        new Table(getQualifiedName(context.qualifiedName())),
+        new Table(getLocation(context.qualifiedName()), getQualifiedName(context.qualifiedName())),
         visitQuery(context.query()),
         context.EXISTS() != null,
         processTableProperties(context.tableProperties()),
@@ -228,7 +228,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   public Node visitCreateTableAs(final SqlBaseParser.CreateTableAsContext context) {
     return new CreateTableAsSelect(
         Optional.of(getLocation(context)),
-        new Table(getQualifiedName(context.qualifiedName())),
+        new Table(getLocation(context.qualifiedName()), getQualifiedName(context.qualifiedName())),
         visitQuery(context.query()),
         context.EXISTS() != null,
         processTableProperties(context.tableProperties())
@@ -239,8 +239,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   public Node visitInsertInto(final SqlBaseParser.InsertIntoContext context) {
 
     final QualifiedName targetName = getQualifiedName(context.qualifiedName());
+    final NodeLocation targetLocation = getLocation(context.qualifiedName());
 
-    final StructuredDataSource target = getSource(targetName);
+    final StructuredDataSource target =
+        getSource(targetName.getSuffix(), Optional.of(targetLocation));
 
     if (target.getDataSourceType() != DataSource.DataSourceType.KSTREAM) {
       throw new KsqlException(
@@ -250,7 +252,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     return new InsertInto(
         Optional.of(getLocation(context)),
-        new Table(targetName),
+        new Table(targetLocation, targetName),
         visitQuery(context.query()),
         getPartitionBy(context.identifier()));
   }
@@ -355,8 +357,9 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       }
     } else {
       final AliasedRelation fromRel = (AliasedRelation) from;
+      final Table table = (Table) fromRel.getRelation();
       final StructuredDataSource fromDataSource =
-          getSource(((Table) fromRel.getRelation()).getName());
+          getSource(table.getName().getSuffix(), table.getLocation());
 
       addFieldsFromDataSource(selectItems, fromDataSource, location,
           fromDataSource.getName(), "", allColumns);
@@ -413,7 +416,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     if (source == null) {
       throw new InvalidColumnReferenceException(
-          alias.getLocation(),
+          join.getLocation(),
           "Source for alias '" + alias + "' doesn't exist"
       );
     }
@@ -1204,22 +1207,22 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   private static Optional<Expression> getPartitionBy(
       final SqlBaseParser.IdentifierContext identifier
   ) {
-    return identifier == null
-        ? Optional.empty()
-        : Optional.of(new QualifiedNameReference(QualifiedName.of(
-            getLocation(identifier),
-            getIdentifierText(identifier))));
+    if (identifier == null) {
+      return Optional.empty();
+    }
+
+    final NodeLocation location = getLocation(identifier);
+    final QualifiedName name = QualifiedName.of(getIdentifierText(identifier));
+    return Optional.of(new QualifiedNameReference(location, name));
   }
 
   private static QualifiedName getQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
-    final NodeLocation location = getLocation(context);
-
     final List<String> parts = context
         .identifier().stream()
         .map(AstBuilder::getIdentifierText)
         .collect(toList());
 
-    return QualifiedName.of(location, parts);
+    return QualifiedName.of(parts);
   }
 
   private static ArithmeticBinaryExpression.Type getArithmeticBinaryOperator(final Token operator) {
@@ -1326,10 +1329,6 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
     return limitContext == null
         ? OptionalInt.empty()
         : OptionalInt.of(processIntegerNumber(limitContext.number(), "LIMIT"));
-  }
-
-  private StructuredDataSource getSource(final QualifiedName name) {
-    return getSource(name.getSuffix(), name.getLocation());
   }
 
   private StructuredDataSource getSource(final String name, final Optional<NodeLocation> location) {

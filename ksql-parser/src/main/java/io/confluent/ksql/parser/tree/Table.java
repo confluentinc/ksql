@@ -25,7 +25,7 @@ public class Table extends Relation {
   private final QualifiedName name;
 
   public Table(final QualifiedName name) {
-    this(name.getLocation(), name);
+    this(Optional.empty(), name);
   }
 
   public Table(final NodeLocation location, final QualifiedName name) {

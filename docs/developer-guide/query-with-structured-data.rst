@@ -8,7 +8,7 @@ You use familiar syntax to declare and access structured data, like
 ``mystruct STRUCT<fieldName1 type1, fieldName2 type2>`` and
 ``mystruct->fieldName1``. 
 
-The following example shows how to create a KSQL stream from a Kafka topic that
+The following example shows how to create a KSQL stream from an |ak-tm| topic that
 has structured data. Also, it shows how to run queries to access the structured
 data.
 

@@ -8,7 +8,7 @@ Confluent maintains images at `Docker Hub <https://hub.docker.com/u/confluentinc
 for `KSQL Server <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ and
 the `KSQL command-line interface (CLI) <https://hub.docker.com/r/confluentinc/cp-ksql-cli/>`__.
 
-KSQL runs separately from your Kafka cluster, so you specify the IP addresses
+KSQL runs separately from your |ak-tm| cluster, so you specify the IP addresses
 of the cluster's bootstrap servers when you start a container for KSQL Server.
 To set up |cp| by using containers, see :ref:`single-node-basic`.
 

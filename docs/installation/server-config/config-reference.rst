@@ -20,7 +20,7 @@ These configurations control how Kafka Streams executes queries. These configura
 ksql.streams.auto.offset.reset
 ------------------------------
 
-Determines what to do when there is no initial offset in Kafka or if the current offset does not exist on the server. The
+Determines what to do when there is no initial offset in |ak-tm| or if the current offset does not exist on the server. The
 default value in KSQL is ``latest``, which means all Kafka topics are read from the latest available offset. For example,
 to change it to earliest by using the KSQL command line:
 

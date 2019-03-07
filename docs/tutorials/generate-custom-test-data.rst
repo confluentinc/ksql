@@ -15,7 +15,7 @@ Also, you can generate data from a few simple, predefined schemas.
 **Prerequisites:** 
 
 - :ref:`Confluent Platform <installation>` is installed and running.
-  This installation includes a Kafka broker, KSQL, |c3-short|, |zk|,
+  This installation includes an |ak-tm| broker, KSQL, |c3-short|, |zk|,
   |sr|, REST Proxy, and Kafka Connect.
 - If you installed |cp| via TAR or ZIP, navigate to the installation
   directory. The paths and commands used throughout this tutorial assume

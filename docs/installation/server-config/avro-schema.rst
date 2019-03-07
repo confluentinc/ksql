@@ -10,7 +10,7 @@ manually define columns and data types in KSQL and from manual interaction with 
 Supported functionality
 ***********************
 
-KSQL currently supports Avro data in the |ak| message values.
+KSQL currently supports Avro data in the |ak-tm| message values.
 
 The following functionality is not supported yet:
 

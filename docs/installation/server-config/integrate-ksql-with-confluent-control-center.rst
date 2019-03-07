@@ -4,7 +4,7 @@ Integrate KSQL with |c3|
 ########################
 
 You can develop event streaming applications by using the KSQL user interface
-provided by |c3|. In |c3-short|, you can create Kafka topics and develop
+provided by |c3|. In |c3-short|, you can create |ak-tm| topics and develop
 persistent queries in the KSQL query editor. When you install |cp|, KSQL Server
 is integrated with |c3-short| by default, and you can configure |c3-short| to
 interact with other KSQL Server instances that run on separate hosts.

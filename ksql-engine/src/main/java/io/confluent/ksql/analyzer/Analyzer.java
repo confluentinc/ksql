@@ -130,17 +130,17 @@ class Analyzer {
     final StructuredDataSource into = sink.shouldCreateSink()
         ? new KsqlStream<>(
         sqlExpression,
-        sink.getSink().getName().getSuffix(),
+        sink.getName(),
         null,
         null,
         null,
         null,
         Serdes.String()
     )
-        : metaStore.getSource(sink.getSink().getName().getSuffix());
+        : metaStore.getSource(sink.getName());
 
     if (into == null) {
-      throw new KsqlException("Unknown sink: " + sink.getSink().getName().getSuffix());
+      throw new KsqlException("Unknown sink: " + sink.getName());
     }
 
     setIntoProperties(sink);

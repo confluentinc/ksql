@@ -727,7 +727,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   protected Node visitCreateStreamAsSelect(final CreateStreamAsSelect node, final Object context) {
     return new CreateStreamAsSelect(
         node.getLocation(),
-        (Table) process(node.getStream(), context),
+        node.getName(),
         (Query) process(node.getQuery(), context),
         node.isNotExists(),
         node.getProperties().entrySet().stream()
@@ -759,7 +759,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
 
   protected Node visitCreateTableAsSelect(final CreateTableAsSelect node, final Object context) {
     return new CreateTableAsSelect(node.getLocation(),
-        (Table) process(node.getTable(), context),
+        node.getName(),
         (Query) process(node.getQuery(), context),
         node.isNotExists(),
         node.getProperties().entrySet().stream()
@@ -771,7 +771,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
 
   protected Node visitInsertInto(final InsertInto node, final Object context) {
     return new InsertInto(node.getLocation(),
-        (Table) process(node.getTarget(), context),
+        node.getTarget(),
         (Query) process(node.getQuery(), context),
         node.getPartitionByColumn().isPresent()
             ? Optional.ofNullable(

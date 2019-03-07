@@ -809,7 +809,7 @@ public class KsqlParserTest {
 
     assertThat(statement, instanceOf(InsertInto.class));
     final InsertInto insertInto = (InsertInto) statement;
-    assertThat(insertInto.getTargetName().toString(), equalTo("TEST0"));
+    assertThat(insertInto.getTarget().toString(), equalTo("TEST0"));
     final Query query = insertInto.getQuery();
     assertThat( query.getSelect().getSelectItems().size(), equalTo(3));
     assertThat(query.getFrom(), not(nullValue()));

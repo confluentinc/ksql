@@ -27,38 +27,38 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class Sink {
 
-  private final Table sink;
+  private final String name;
   private final boolean createSink;
   private final Map<String, Expression> properties;
 
   /**
-   * Info about the target of the query.
+   * Info about the sink of a query.
    *
-   * @param sink the sink table/stream the query will output to.
-   * @param createSink indicates if sink should be created, (CSAS/CTAS), or not (INSERT INTO).
+   * @param name the name of the sink.
+   * @param createSink indicates if name should be created, (CSAS/CTAS), or not (INSERT INTO).
    * @param properties properties of the sink.
    * @return the pojo.
    */
   public static Sink of(
-      final Table sink,
+      final String name,
       final boolean createSink,
       final Map<String, Expression> properties
   ) {
-    return new Sink(sink, createSink, properties);
+    return new Sink(name, createSink, properties);
   }
 
   private Sink(
-      final Table sink,
+      final String name,
       final boolean createSink,
       final Map<String, Expression> properties
   ) {
-    this.sink = requireNonNull(sink, "sink");
+    this.name = requireNonNull(name, "name");
     this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
     this.createSink = createSink;
   }
 
-  public Table getSink() {
-    return sink;
+  public String getName() {
+    return name;
   }
 
   public boolean shouldCreateSink() {

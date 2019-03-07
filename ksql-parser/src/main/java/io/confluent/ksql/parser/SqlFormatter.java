@@ -393,7 +393,7 @@ public final class SqlFormatter {
     @Override
     protected Void visitInsertInto(final InsertInto node, final Integer indent) {
       builder.append("INSERT INTO ");
-      builder.append(node.getTargetName());
+      builder.append(node.getTarget());
       builder.append(" ");
       process(node.getQuery(), indent);
       processPartitionBy(node.getPartitionByColumn(), indent);

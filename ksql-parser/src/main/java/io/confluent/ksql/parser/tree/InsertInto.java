@@ -28,12 +28,12 @@ public class InsertInto
     extends Statement
     implements QueryContainer {
 
-  private final Table target;
+  private final QualifiedName target;
   private final Query query;
   private final Optional<Expression> partitionByColumn;
 
   public InsertInto(
-      final Table target,
+      final QualifiedName target,
       final Query query,
       final Optional<Expression> partitionByColumn
   ) {
@@ -42,7 +42,7 @@ public class InsertInto
 
   public InsertInto(
       final Optional<NodeLocation> location,
-      final Table target,
+      final QualifiedName target,
       final Query query,
       final Optional<Expression> partitionByColumn) {
     super(location);
@@ -51,11 +51,7 @@ public class InsertInto
     this.partitionByColumn = partitionByColumn;
   }
 
-  public QualifiedName getTargetName() {
-    return target.getName();
-  }
-
-  public Table getTarget() {
+  public QualifiedName getTarget() {
     return target;
   }
 
@@ -74,7 +70,7 @@ public class InsertInto
         .map(exp -> ImmutableMap.of(DdlConfig.PARTITION_BY_PROPERTY, exp))
         .orElseGet(ImmutableMap::of);
 
-    return Sink.of(target, false, properties);
+    return Sink.of(target.getSuffix(), false, properties);
   }
 
   @Override

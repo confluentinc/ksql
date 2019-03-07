@@ -216,7 +216,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     return new CreateStreamAsSelect(
         Optional.of(getLocation(context)),
-        new Table(getLocation(context.qualifiedName()), getQualifiedName(context.qualifiedName())),
+        getQualifiedName(context.qualifiedName()),
         visitQuery(context.query()),
         context.EXISTS() != null,
         processTableProperties(context.tableProperties()),
@@ -228,7 +228,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   public Node visitCreateTableAs(final SqlBaseParser.CreateTableAsContext context) {
     return new CreateTableAsSelect(
         Optional.of(getLocation(context)),
-        new Table(getLocation(context.qualifiedName()), getQualifiedName(context.qualifiedName())),
+        getQualifiedName(context.qualifiedName()),
         visitQuery(context.query()),
         context.EXISTS() != null,
         processTableProperties(context.tableProperties())
@@ -252,7 +252,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     return new InsertInto(
         Optional.of(getLocation(context)),
-        new Table(targetLocation, targetName),
+        targetName,
         visitQuery(context.query()),
         getPartitionBy(context.identifier()));
   }

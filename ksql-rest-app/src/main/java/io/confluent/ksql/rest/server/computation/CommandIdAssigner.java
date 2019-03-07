@@ -101,7 +101,7 @@ public class CommandIdAssigner {
   }
 
   private static CommandId getInsertIntoCommandId(final InsertInto insertInto) {
-    return  new CommandId(CommandId.Type.STREAM, insertInto.getTargetName().toString(),
+    return  new CommandId(CommandId.Type.STREAM, insertInto.getTarget().toString(),
         CommandId.Action.CREATE);
   }
 

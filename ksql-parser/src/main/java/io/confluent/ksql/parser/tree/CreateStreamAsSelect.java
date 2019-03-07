@@ -26,30 +26,30 @@ import java.util.Optional;
 
 public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
-  private final Table stream;
+  private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
   private final Map<String, Expression> properties;
   private final Optional<Expression> partitionByColumn;
 
   public CreateStreamAsSelect(
-      final Table stream,
+      final QualifiedName name,
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties,
       final Optional<Expression> partitionByColumn) {
-    this(Optional.empty(), stream, query, notExists, properties, partitionByColumn);
+    this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
   }
 
   public CreateStreamAsSelect(
       final Optional<NodeLocation> location,
-      final Table stream,
+      final QualifiedName name,
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties,
       final Optional<Expression> partitionByColumn) {
     super(location);
-    this.stream = requireNonNull(stream, "streaml");
+    this.name = requireNonNull(name, "name");
     this.query = query;
     this.notExists = notExists;
     this.properties = ImmutableMap.copyOf(
@@ -59,7 +59,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
   @Override
   public QualifiedName getName() {
-    return stream.getName();
+    return name;
   }
 
   @Override
@@ -77,11 +77,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
         )
         .orElse(properties);
 
-    return Sink.of(stream, true, sinkProperties);
-  }
-
-  public Table getStream() {
-    return stream;
+    return Sink.of(name.getSuffix(), true, sinkProperties);
   }
 
   public boolean isNotExists() {
@@ -105,7 +101,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
   @Override
   public int hashCode() {
-    return Objects.hash(stream, query, notExists, properties);
+    return Objects.hash(name, query, notExists, properties);
   }
 
   @Override
@@ -117,7 +113,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
       return false;
     }
     final CreateStreamAsSelect o = (CreateStreamAsSelect) obj;
-    return Objects.equals(stream, o.stream)
+    return Objects.equals(name, o.name)
            && Objects.equals(query, o.query)
            && Objects.equals(notExists, o.notExists)
            && Objects.equals(properties, o.properties);
@@ -126,7 +122,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("stream", stream)
+        .add("name", name)
         .add("query", query)
         .add("notExists", notExists)
         .add("properties", properties)

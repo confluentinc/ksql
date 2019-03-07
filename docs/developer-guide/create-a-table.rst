@@ -3,7 +3,7 @@
 Create a KSQL Table
 ###################
 
-In KSQL, you create tables from Kafka topics, and you create tables of
+In KSQL, you create tables from |ak-tm| topics, and you create tables of
 query results from other tables or streams.
 
 * Use the CREATE TABLE statement to create a table from a Kafka topic.

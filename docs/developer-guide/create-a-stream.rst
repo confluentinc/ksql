@@ -3,7 +3,7 @@
 Create a KSQL Stream
 ####################
 
-In KSQL, you create streams from Kafka topics, and you create streams of
+In KSQL, you create streams from |ak-tm| topics, and you create streams of
 query results from other streams.
 
 * Use the CREATE STREAM statement to create a stream from a Kafka topic.

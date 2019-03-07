@@ -106,8 +106,9 @@ public class DropSourceCommand implements DdlCommand {
         executeWithRetries(new Callable<Void>() {
           @Override
           public Void call() throws Exception {
-            schemaRegistryClient
-                .deleteSubject(sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+            schemaRegistryClient.deleteSubject(
+                dataSource.getKsqlTopic().getKafkaTopicName()
+                    + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
             return null;
           }
         }, "Could not clean up the schema registry for topic: " + sourceName);

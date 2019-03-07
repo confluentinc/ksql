@@ -7,6 +7,10 @@ Version 5.2.0
 KSQL 5.2 includes new features, including:
 
 * Support for :ref:`HTTPS <config-ksql-for-https>`.
+* Support for CASE expression: KSQL now supports CASE conditional expression in Searched form where KSQL evaluates each condition from left to right.
+  It returns the result for the first condition that evaluates to true. If no condition evaluates to true, the result for the ELSE clause will be returned.
+  If there is no ELSE clause, null will be returned.
+
 * A new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
 * ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
 * Support for read-after-write consistency: new commands don't execute until previous commands have finished executing.

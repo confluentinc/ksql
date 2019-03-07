@@ -7,7 +7,7 @@ KSQL enables using complex types, like arrays and maps, in your queries. You
 use familiar syntax, like ``myarray ARRAY<type>`` and ``myarray[0]`` to declare
 and access these types.
 
-The following example shows how to create a KSQL table from a Kafka topic that
+The following example shows how to create a KSQL table from an |ak-tm| topic that
 has array and map fields. Also, it shows how to run queries to access the array
 and map data. It assumes a Kafka topic, named ``users``. To see this example in
 action, create the ``users`` topic by following the procedure in

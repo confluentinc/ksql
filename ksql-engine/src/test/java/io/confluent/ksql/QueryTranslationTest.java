@@ -272,7 +272,7 @@ public class QueryTranslationTest {
     msgTopics.stream()
         .filter(topicName -> !topicsMap.containsKey(topicName))
         .forEach(topicName -> topicsMap
-            .put(topicName, (new Topic(topicName, Optional.empty(), defaultSerdeSupplier, 4))));
+            .put(topicName, (new Topic(topicName, Optional.empty(), defaultSerdeSupplier, 4, (short) 1))));
 
     return topicsMap;
   }
@@ -419,7 +419,12 @@ public class QueryTranslationTest {
       } else {
         avroSchema = Optional.empty();
       }
-      return new Topic(topicName, avroSchema, getSerdeSupplier(format), KsqlConstants.legacyDefaultSinkPartitionCount);
+      return new Topic(
+          topicName,
+          avroSchema,
+          getSerdeSupplier(format),
+          KsqlConstants.legacyDefaultSinkPartitionCount,
+          KsqlConstants.legacyDefaultSinkReplicaCount);
     };
 
     try {
@@ -460,8 +465,11 @@ public class QueryTranslationTest {
     final int numPartitions = node.has("partitions")
         ? node.get("partitions").intValue()
         : 1;
+    final short numReplicas = node.has("replicas")
+        ? node.get("replicas").shortValue()
+        : 1;
 
-    return new Topic(node.get("name").asText(), schema, serdeSupplier, numPartitions);
+    return new Topic(node.get("name").asText(), schema, serdeSupplier, numPartitions, numReplicas);
   }
 
   private static Record createRecordFromNode(

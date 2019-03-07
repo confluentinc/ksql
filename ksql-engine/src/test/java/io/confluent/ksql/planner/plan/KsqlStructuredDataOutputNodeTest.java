@@ -400,6 +400,48 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
+  public void shouldUseLegacySinkPartitionCountIfLegacyIsTrueAndReplicasIsNull() {
+    // Given:
+    Mockito.<Object>when(ksqlConfig.values()).thenReturn(ImmutableMap.<String, Object>of(
+        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 2
+    ));
+    when(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)).thenReturn(2);
+    when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn(null);
+    createOutputNode(Collections.emptyMap(), true);
+
+    // When:
+    stream = buildStream();
+
+    // Then:
+    verify(mockTopicClient).createTopic(
+        SINK_KAFKA_TOPIC_NAME,
+        2,
+        KsqlConstants.legacyDefaultSinkReplicaCount,
+        Collections.emptyMap());
+  }
+
+  @Test
+  public void shouldUseLegacySinkReplicasCountIfLegacyIsTrueAndPartitionsIsNull() {
+    // Given:
+    Mockito.<Object>when(ksqlConfig.values()).thenReturn(ImmutableMap.<String, Object>of(
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 2
+    ));
+    when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn((short) 2);
+    when(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)).thenReturn(null);
+    createOutputNode(Collections.emptyMap(), true);
+
+    // When:
+    stream = buildStream();
+
+    // Then:
+    verify(mockTopicClient).createTopic(
+        SINK_KAFKA_TOPIC_NAME,
+        KsqlConstants.legacyDefaultSinkPartitionCount,
+        (short) 2,
+        Collections.emptyMap());
+  }
+
+  @Test
   public void shouldComputeQueryIdCorrectlyForStream() {
     // When:
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);

@@ -52,6 +52,60 @@
       },
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
       "outputs": [{"topic": "S", "value": {"C1": 4}}]
+    },
+    {
+      "name": "legacy default sink properties with only partitions set",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM S as SELECT * FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO",
+          "partitions": 5,
+          "replicas" : 3
+        },
+        {
+          "name": "S",
+          "format": "AVRO",
+          "partitions": 3,
+          "replicas" : 1
+        }
+      ],
+      "properties": {
+        "ksql.sink.partitions": "3"
+      },
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
+    },
+    {
+      "name": "legacy default sink properties with only replicas set",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM S as SELECT * FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "format": "AVRO",
+          "partitions": 5,
+          "replicas" : 2
+        },
+        {
+          "name": "S",
+          "format": "AVRO",
+          "partitions": 4,
+          "replicas" : 3
+        }
+      ],
+      "properties": {
+        "ksql.sink.replicas": "3"
+      },
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "S", "value": {"C1": 4}}]
     }
   ]
 }

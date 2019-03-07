@@ -32,6 +32,7 @@ import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryLoggerUtil;
@@ -292,10 +293,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   ) {
     final int partitions = (Integer) sinkProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-        ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
+        Optional.ofNullable(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY))
+            .orElse(KsqlConstants.legacyDefaultSinkPartitionCount));
     final short replicas = (Short) sinkProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
-        ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
+        Optional.ofNullable(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY))
+            .orElse(KsqlConstants.legacyDefaultSinkReplicaCount));
     return new SourceTopicProperties(partitions, replicas);
   }
 

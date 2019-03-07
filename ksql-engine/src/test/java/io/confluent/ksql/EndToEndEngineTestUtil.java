@@ -324,17 +324,20 @@ final class EndToEndEngineTestUtil {
     private final Optional<org.apache.avro.Schema> schema;
     private final SerdeSupplier serdeSupplier;
     private final int numPartitions;
+    private final short numReplicas;
 
     Topic(
         final String name,
         final Optional<org.apache.avro.Schema> schema,
         final SerdeSupplier serdeSupplier,
-        final int numPartitions
+        final int numPartitions,
+        final short numReplicas
     ) {
       this.name = Objects.requireNonNull(name, "name");
       this.schema = Objects.requireNonNull(schema, "schema");
       this.serdeSupplier = Objects.requireNonNull(serdeSupplier, "serdeSupplier");
       this.numPartitions = numPartitions;
+      this.numReplicas = numReplicas;
     }
 
     String getName() {
@@ -615,7 +618,7 @@ final class EndToEndEngineTestUtil {
 
     void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
-        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) 1);
+        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, topic.numReplicas);
 
         topic.getSchema()
             .ifPresent(schema -> {

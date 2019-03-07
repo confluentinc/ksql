@@ -156,15 +156,15 @@ public class SchemaTranslationTest {
 
     final Topic srcTopic;
     final Topic outputTopic
-        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier(), 1);
+        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier(), 1, (short) 1);
     final List<Record> inputRecords;
     final List<Record> outputRecords;
     if (node.has("input_records")) {
-      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new ValueSpecAvroSerdeSupplier(), 1);
+      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new ValueSpecAvroSerdeSupplier(), 1, (short) 1);
       inputRecords = loadRecords(srcTopic, node.get("input_records"));
       outputRecords = loadRecords(outputTopic, node.get("output_records"));
     } else {
-      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new AvroSerdeSupplier(), 1);
+      srcTopic = new Topic(TOPIC_NAME, Optional.of(avroSchema), new AvroSerdeSupplier(), 1, (short) 1);
       inputRecords = generateInputRecords(srcTopic, avroSchema);
       outputRecords = getOutputRecords(outputTopic, inputRecords, avroSchema);
     }

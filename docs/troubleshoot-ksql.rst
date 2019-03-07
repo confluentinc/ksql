@@ -20,7 +20,7 @@ If a KSQL query returns no results and the CLI hangs, use ``Ctrl-C`` to stop the
 Verify that the query is based on the correct source topic
 ==========================================================
 
-Use the ``DESCRIBE EXTENDED`` statement to view the |ak| source topic for the stream. For example, if you have a ``pageviews`` stream on a Kafka topic named ``pageviews``, enter the following statement in the CLI:
+Use the ``DESCRIBE EXTENDED`` statement to view the |ak-tm| source topic for the stream. For example, if you have a ``pageviews`` stream on a Kafka topic named ``pageviews``, enter the following statement in the CLI:
 
 .. code:: sql
 

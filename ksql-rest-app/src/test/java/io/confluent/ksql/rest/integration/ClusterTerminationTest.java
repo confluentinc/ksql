@@ -63,7 +63,7 @@ public class ClusterTerminationTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .build();
+      .buildWithServiceContext(TEST_HARNESS::serviceContext);
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
@@ -88,13 +88,14 @@ public class ClusterTerminationTest {
   }
 
   @Test
-  public void shouldCleanUpSinkSchemasDuringClusterTermination() throws Exception {
+  public void shouldCleanUpSinkTopicsAndSchemasDuringClusterTermination() throws Exception {
     // Given:
     makeKsqlRequest("CREATE STREAM " + SINK_STREAM
-        + " WITH (kafka_topic='" + SINK_TOPIC + "',value_format='Avro')"
+        + " WITH (kafka_topic='" + SINK_TOPIC + "',value_format='avro')"
         + " AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
 
+    // Produce to stream so that schema is registered by AvroConverter
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
 
     TEST_HARNESS.verifySubjectPresent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

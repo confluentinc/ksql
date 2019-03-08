@@ -65,6 +65,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
@@ -438,6 +439,42 @@ public class IntegrationTestHarness extends ExternalResource {
 
       return toUniqueRecords(consumerRecords);
     }
+  }
+
+  /**
+   * Verify a subject with name {@code subjectName} exists in Schema Registry.
+   *
+   * @param subjectName the name of the subject to check existence for.
+   */
+  public void verifySubjectPresent(final String subjectName) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            return schemaRegistryClient().getAllSubjects().contains(subjectName);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "subject not present after 30 seconds. subject: " + subjectName);
+  }
+
+  /**
+   * Verify no subject with name {@code subjectName} exists in Schema Registry.
+   *
+   * @param subjectName the name of the subject to check absence for.
+   */
+  public void verifySubjectAbsent(final String subjectName) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            return !schemaRegistryClient().getAllSubjects().contains(subjectName);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "subject still present after 30 seconds. subject: " + subjectName);
   }
 
   protected void before() throws Exception {

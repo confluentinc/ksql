@@ -315,13 +315,13 @@ public class EndToEndIntegrationTest {
     TEST_HARNESS.produceRows(
         PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
 
-    verifySubjectPresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    TEST_HARNESS.verifySubjectPresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 
     ksqlContext.terminateQuery(new QueryId("CSAS_AVRO_STREAM_0"));
 
     executeStatement("DROP STREAM avro_stream DELETE TOPIC;");
 
-    verifySubjectAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    TEST_HARNESS.verifySubjectAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 
   private QueryMetadata executeStatement(final String statement,
@@ -344,32 +344,6 @@ public class EndToEndIntegrationTest {
     assertThat(queryMetadata, instanceOf(QueuedQueryMetadata.class));
     toClose = queryMetadata;
     return (QueuedQueryMetadata) queryMetadata;
-  }
-
-  private void verifySubjectPresent(final String subjectName) throws Exception {
-    TestUtils.waitForCondition(
-        () -> {
-          try {
-            return ksqlContext.getServiceContext().getSchemaRegistryClient().getAllSubjects().contains(subjectName);
-          } catch (Exception e) {
-            throw new RuntimeException("could not get subjects");
-          }
-        },
-        30_000,
-        "subject not present after 30 seconds. subject: " + subjectName);
-  }
-
-  private void verifySubjectAbsent(final String subjectName) throws Exception {
-    TestUtils.waitForCondition(
-        () -> {
-          try {
-            return !ksqlContext.getServiceContext().getSchemaRegistryClient().getAllSubjects().contains(subjectName);
-          } catch (Exception e) {
-            throw new RuntimeException("could not get subjects");
-          }
-        },
-        30_000,
-        "subject still present after 30 seconds. subject: " + subjectName);
   }
 
   private static List<Object> waitForFirstRow(

@@ -132,7 +132,9 @@ public class StreamedQueryResource {
       }
 
       if (statement.getStatement() instanceof PrintTopic) {
-        return handlePrintTopic(request, (PreparedStatement<PrintTopic>) statement);
+        return handlePrintTopic(
+            request.getStreamsProperties(),
+            (PreparedStatement<PrintTopic>) statement);
       }
 
       return Errors.badRequest(String.format(
@@ -169,7 +171,7 @@ public class StreamedQueryResource {
   }
 
   private Response handlePrintTopic(
-      final KsqlRequest request,
+      final Map<String, Object> streamProperties,
       final PreparedStatement<PrintTopic> statement
   ) {
     final PrintTopic printTopic = statement.getStatement();
@@ -189,7 +191,7 @@ public class StreamedQueryResource {
 
     final Map<String, Object> propertiesWithOverrides =
         new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
-    propertiesWithOverrides.putAll(request.getStreamsProperties());
+    propertiesWithOverrides.putAll(streamProperties);
 
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         serviceContext.getSchemaRegistryClient(),

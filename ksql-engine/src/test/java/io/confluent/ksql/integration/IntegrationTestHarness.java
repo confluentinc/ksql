@@ -446,6 +446,46 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
+   * Verify topics with names {@code topicNames} exist in Kafka.
+   *
+   * @param topicNames the names of the topics to check existence for.
+   */
+  public void verifyTopicsPresent(final String... topicNames) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+            return Arrays.stream(topicNames)
+                .allMatch(name -> topicClient.isTopicExists(name));
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "topics not all present after 30 seconds. topics: " + topicNames);
+  }
+
+  /**
+   * Verify topics with names {@code topicNames} do not exist in Kafka.
+   *
+   * @param topicNames the names of the topics to check absence for.
+   */
+  public void verifyTopicsAbsent(final String... topicNames) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+            return Arrays.stream(topicNames)
+                .noneMatch(name -> topicClient.isTopicExists(name));
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "topics not all absent after 30 seconds. topics: " + topicNames);
+  }
+
+  /**
    * Verify a subject with name {@code subjectName} exists in Schema Registry.
    *
    * @param subjectName the name of the subject to check existence for.

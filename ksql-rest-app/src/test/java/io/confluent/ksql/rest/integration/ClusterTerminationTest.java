@@ -95,6 +95,8 @@ public class ClusterTerminationTest {
         + " AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
 
+    TEST_HARNESS.verifyTopicsPresent(SINK_TOPIC);
+
     // Produce to stream so that schema is registered by AvroConverter
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
 
@@ -104,6 +106,8 @@ public class ClusterTerminationTest {
     terminateCluster(ImmutableList.of(SINK_TOPIC));
 
     // Then:
+    TEST_HARNESS.verifyTopicsAbsent(SINK_TOPIC);
+
     TEST_HARNESS.verifySubjectAbsent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 

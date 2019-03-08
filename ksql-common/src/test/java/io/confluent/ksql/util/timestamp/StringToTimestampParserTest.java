@@ -1,197 +1,177 @@
 package io.confluent.ksql.util.timestamp;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
 
 public class StringToTimestampParserTest {
 
+  private static final ZoneId ZID = ZoneId.systemDefault();
+  private static final ZoneId GMT_3 = ZoneId.of("GMT+3");
+  private static final ZoneId IGNORED = ZID;
+
+  private static final ZonedDateTime EPOCH =
+      ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZID);
+
+  private static final ZonedDateTime FIFTH_OF_NOVEMBER =
+      ZonedDateTime.of(1605, 11, 5, 0, 0, 0, 0, ZID);
+
   @Test
-  public void shouldParseFullTimestamp() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM/dd:HH");
+  public void shouldParseBasicLocalDate() {
+    // Given
+    final String format = "yyyy-MM-dd HH";
+    final String timestamp = "1605-11-05 10";
 
-    // When:
-    final long ts = parser.parse("1605/11/05:12");
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1605, 11, 5, 12, 0))));
+    // Then
+    assertThat(ts, sameInstant(
+        FIFTH_OF_NOVEMBER
+            .withHour(10)
+            .withZoneSameInstant(ZID)));
   }
 
   @Test
-  public void shouldParseFullTimestampWithMinutes() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM/dd HH:mm");
+  public void shouldConvertToMillis() {
+    // Given
+    final String format = "yyyy-MM-dd HH";
+    final String timestamp = "1605-11-05 10";
 
-    // When:
-    final long ts = parser.parse("1605/11/05 12:10");
+    // When
+    long ts = new StringToTimestampParser(format).parse(timestamp);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1605, 11, 5, 12, 10))));
+    // Then
+    assertThat(ts, is(
+        FIFTH_OF_NOVEMBER
+            .withHour(10)
+            .withZoneSameInstant(ZID)
+            .toInstant()
+            .toEpochMilli()));
   }
 
   @Test
-  public void shouldParseWithOptionalElements() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM/dd HH[:mm]");
+  public void shouldParseFullLocalDate() {
+    // Given
+    final String format = "yyyy-MM-dd HH:mm";
+    final String timestamp = "1605-11-05 10:10";
 
-    // When:
-    final long ts = parser.parse("1605/11/05 12");
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1605, 11, 5, 12, 0))));
+    // Then
+    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER.withHour(10).withMinute(10))));
   }
 
   @Test
-  public void shouldParseWithOptionalDefaultedFields() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM[/dd]");
+  public void shouldParseFullLocalDateWithOptionalElements() {
+    // Given
+    final String format = "yyyy-MM-dd[ HH:mm:ss]";
+    final String timestamp = "1605-11-05";
 
-    // When:
-    final long ts = parser.parse("1605/11/05");
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1605, 11, 5, 0, 0))));
+    // Then
+    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER)));
   }
 
   @Test
-  public void shouldParseClockHourOfDay() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM/dd[ k]");
+  public void shouldParseFullLocalDateWithPassedInTimeZone() {
+    // Given
+    final String format = "yyyy-MM-dd HH";
+    final String timestamp = "1605-11-05 10";
 
-    // When:
-    final long ts = parser.parse("1605/11/01 2");
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, GMT_3);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1605, 11, 1, 2, 0))));
+    // Then
+    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER.withHour(10).withZoneSameLocal(GMT_3))));
   }
 
   @Test
-  public void shouldParseWithTimeZone() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM/dd HH z");
+  public void shouldParseFullLocalDateWithTimeZone() {
+    // Given
+    final String format = "yyyy-MM-dd HH O";
+    final String timestamp = "1605-11-05 10 GMT+3";
 
-    // When:
-    final long ts = parser.parse("1605/11/01 12 UTC");
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, IGNORED);
 
-    // Then:
-    assertThat(ts, equalTo(
-        toMillis(ZonedDateTime.of(1605, 11, 1, 12, 0, 0, 0, ZoneId.of("UTC"))
-            .withZoneSameInstant(ZoneId.systemDefault())
-            .toLocalDateTime())));
+    // Then
+    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER.withHour(10).withZoneSameLocal(GMT_3))));
   }
 
   @Test
-  public void shouldResolveDefaultsWithNoFormat() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("");
+  public void shouldParseDateTimeWithDayOfYear() {
+    // Given
+    final String format = "yyyy-DDD HH";
+    final String timestamp = String.format("1605-%d 10", FIFTH_OF_NOVEMBER.getDayOfYear());
 
-    // When:
-    final long ts = parser.parse("");
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1970, 1, 1, 0, 0))));
+    // Then
+    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER.withHour(10))));
   }
 
   @Test
-  public void shouldResolveDefaultsWithPartialFormat() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy");
+  public void shouldResolveDefaultsForEmpty() {
+    // Given
+    final String format = "";
+    final String timestamp = "";
 
-    // When:
-    final long ts = parser.parse("2010");
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(2010, 1, 1, 0, 0))));
+    // Then
+    assertThat(ts, is(sameInstant(EPOCH.withZoneSameInstant(ZID))));
   }
 
   @Test
-  public void shouldResolveDefaultsWithGapFormat() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy-dd");
+  public void shouldResolveDefaultsForPartial() {
+    // Given
+    final String format = "yyyy";
+    final String timestamp = "2019";
 
-    // When:
-    final long ts = parser.parse("2010-10");
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(2010, 1, 10, 0, 0))));
+    // Then
+    assertThat(ts, is(sameInstant(EPOCH.withYear(2019).withZoneSameInstant(ZID))));
   }
 
   @Test
-  public void shouldAllowDayOfYear() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy-DDD");
+  public void shouldResolveDefaultsForDayOfYear() {
+    // Given
+    final String format = "DDD";
+    final String timestamp = "100";
 
-    // When:
-    final int fifthOfNovember = LocalDateTime.of(1605, 11, 5, 0, 0).getDayOfYear();
-    final long ts = parser.parse(String.format("%d-%3d", 1605, fifthOfNovember));
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1605, 11, 5, 0, 0))));
+    // Then
+    assertThat(ts, is(sameInstant(EPOCH.withDayOfYear(100).withZoneSameInstant(ZID))));
   }
 
-  @Test
-  public void shouldResolveDefaultsForOptionalFields() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM[/dd]");
+  private static Matcher<ZonedDateTime> sameInstant(final ZonedDateTime other) {
+    return new TypeSafeMatcher<ZonedDateTime>() {
+      @Override
+      protected boolean matchesSafely(ZonedDateTime item) {
+        return item.toInstant().equals(other.toInstant());
+      }
 
-    // When:
-    final long ts = parser.parse("1605/11");
-
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1605, 11, 1, 0, 0))));
-  }
-
-  @Test
-  public void shouldResolveDefaultsForClockHourOfDay() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM/dd[ k]");
-
-    // When:
-    final long ts = parser.parse("1605/11/01");
-
-    // Then:
-    assertThat(ts, equalTo(toMillis(LocalDateTime.of(1605, 11, 1, 0, 0))));
-  }
-
-
-  @Test
-  public void shouldResolveDefaultsWithTimeZone() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM/dd[ HH] z");
-
-    // When:
-    final long ts = parser.parse("1605/11/01 UTC", ZoneId.of("UTC"));
-
-    // Then:
-    assertThat(ts, equalTo(
-        toMillis(ZonedDateTime.of(1605, 11, 1, 0, 0, 0, 0, ZoneId.of("UTC"))
-            .withZoneSameInstant(ZoneId.systemDefault())
-            .toLocalDateTime())));
-  }
-
-  @Test
-  public void shouldResolveDefaultsWithOptionalTimeZone() {
-    // Given:
-    final StringToTimestampParser parser = new StringToTimestampParser("yyyy/MM/dd[ HH][ z]");
-
-    // When:
-    final long ts = parser.parse("1605/11/01 10");
-
-    // Then:
-    assertThat(ts, equalTo(
-        toMillis(ZonedDateTime.of(1605, 11, 1, 10, 0, 0, 0, ZoneId.systemDefault())
-            .withZoneSameInstant(ZoneId.systemDefault())
-            .toLocalDateTime())));
-  }
-
-  private long toMillis(LocalDateTime time) {
-    return Timestamp.valueOf(time).getTime();
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(other.toString());
+      }
+    };
   }
 
 }

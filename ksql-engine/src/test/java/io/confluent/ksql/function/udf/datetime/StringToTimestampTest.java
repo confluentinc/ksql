@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Before;
@@ -152,6 +153,7 @@ public class StringToTimestampTest {
     assertLikeSimpleDateFormat("2021-12-01 12 -0700", "yyyy-MM-dd HH X");
     assertLikeSimpleDateFormat("2021-12-01", "yyyy-MM-dd");
     assertLikeSimpleDateFormat("2021-12-01 PST", "yyyy-MM-dd z");
+    assertLikeSimpleDateFormat("2021-12-01 UTC", "yyyy-MM-dd z");
     assertLikeSimpleDateFormat("2021-12", "yyyy-MM");
     assertLikeSimpleDateFormat("2021", "yyyy");
     assertLikeSimpleDateFormat("12", "MM");

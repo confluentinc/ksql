@@ -15,16 +15,18 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
-import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalField;
+import java.time.temporal.TemporalQueries;
 import java.util.Locale;
 import java.util.function.Function;
+import org.apache.commons.lang3.ObjectUtils;
 
 public class StringToTimestampParser {
 
@@ -37,13 +39,32 @@ public class StringToTimestampParser {
     formatter = DateTimeFormatter.ofPattern(pattern, Locale.ROOT);
   }
 
+  /**
+   * Parse with a default time zone of {@code ZoneId#systemDefault}
+   *
+   * @see #parse(String, ZoneId)
+   */
   public long parse(final String text) {
     return parse(text, ZoneId.systemDefault());
   }
 
+  /**
+   * @param text    the textual representation of the timestamp
+   * @param zoneId  the zoneId to use, if none present in {@code text}
+   *
+   * @return the millis since epoch that {@code text} represents
+   */
   public long parse(final String text, final ZoneId zoneId) {
+    return parseZoned(text, zoneId).toInstant().toEpochMilli();
+  }
+
+  @VisibleForTesting
+  ZonedDateTime parseZoned(final String text, final ZoneId zoneId) {
     final TemporalAccessor parsed = formatter.parse(text);
-    ZonedDateTime resolved = DEFAULT_ZONED_DATE_TIME.apply(zoneId);
+    final ZoneId parsedZone = parsed.query(TemporalQueries.zone());
+
+    ZonedDateTime resolved = DEFAULT_ZONED_DATE_TIME.apply(
+        ObjectUtils.defaultIfNull(parsedZone, zoneId));
 
     for (final TemporalField override : ChronoField.values()) {
       if (parsed.isSupported(override)) {
@@ -55,8 +76,7 @@ public class StringToTimestampParser {
       }
     }
 
-    return Timestamp.valueOf(
-        resolved.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()).getTime();
+    return resolved;
   }
 
 }

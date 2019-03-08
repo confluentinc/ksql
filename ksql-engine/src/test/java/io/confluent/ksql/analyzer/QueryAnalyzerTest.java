@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
@@ -469,6 +470,22 @@ public class QueryAnalyzerTest {
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
+  }
+
+  @Test
+  public void shouldHandleValueFormat() {
+    // Given:
+    final PreparedStatement<CreateStreamAsSelect> statement = KsqlParserTestUtil.buildSingleAst(
+        "create stream s with(value_format='delimited') as select * from test1;", metaStore);
+    final Query query = statement.getStatement().getQuery();
+    final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
+
+    // When:
+    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
+
+    // Then:
+    assertThat(analysis.getInto().getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
+        is(DataSourceSerDe.DELIMITED));
   }
 
   private Query givenQuery(final String sql) {

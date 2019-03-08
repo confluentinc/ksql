@@ -39,7 +39,7 @@ public final class SandboxedConsumerTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase> getMethodsToTest() {
+    public static Collection<TestCase<Consumer>> getMethodsToTest() {
       return TestMethods.builder(Consumer.class)
           .ignore("unsubscribe")
           .ignore("close")

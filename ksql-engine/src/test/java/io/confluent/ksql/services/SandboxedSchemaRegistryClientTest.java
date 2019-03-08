@@ -46,7 +46,7 @@ public final class SandboxedSchemaRegistryClientTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase> getMethodsToTest() {
+    public static Collection<TestCase<SchemaRegistryClient>> getMethodsToTest() {
       return TestMethods.builder(SchemaRegistryClient.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("testCompatibility", String.class, Schema.class)

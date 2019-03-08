@@ -44,7 +44,7 @@ public final class SandboxedKafkaClientSupplierTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase> getMethodsToTest() {
+    public static Collection<TestCase<SandboxedKafkaClientSupplier>> getMethodsToTest() {
       return TestMethods.builder(SandboxedKafkaClientSupplier.class)
           .ignore("getAdminClient", Map.class)
           .ignore("getProducer", Map.class)

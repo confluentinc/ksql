@@ -20,7 +20,6 @@ import static java.lang.String.format;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.KsqlStdOut;
 import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
@@ -65,7 +64,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -111,9 +109,7 @@ class Analyzer {
 
   private void analyzeSink(final Optional<Sink> sink) {
     if (sink.isPresent()) {
-      final StructuredDataSource into = analyzeNonStdOutTable(sink.get());
-      analysis.setInto(into, sink.get().shouldCreateSink());
-      analyzeNonStdOutSink(sink.get().shouldCreateSink());
+      analyzeNonStdOutSink(sink.get());
       return;
     }
 
@@ -124,27 +120,6 @@ class Analyzer {
         StructuredDataSource.DataSourceType.KSTREAM);
 
     analysis.setInto(into, false);
-  }
-
-  private StructuredDataSource analyzeNonStdOutTable(final Sink sink) {
-    final StructuredDataSource into = sink.shouldCreateSink()
-        ? new KsqlStream<>(
-        sqlExpression,
-        sink.getName(),
-        null,
-        null,
-        null,
-        null,
-        Serdes.String()
-    )
-        : metaStore.getSource(sink.getName());
-
-    if (into == null) {
-      throw new KsqlException("Unknown sink: " + sink.getName());
-    }
-
-    setIntoProperties(sink);
-    return into;
   }
 
   private void setIntoProperties(final Sink sink) {
@@ -204,27 +179,52 @@ class Analyzer {
     }
   }
 
-  private void analyzeNonStdOutSink(final boolean doCreateInto) {
-    final List<Pair<StructuredDataSource, String>> fromDataSources = analysis
-        .getFromDataSources();
+  private void analyzeNonStdOutSink(final Sink sink) {
+    setIntoProperties(sink);
 
-    final StructuredDataSource intoStructuredDataSource = analysis.getInto();
-    final String intoKafkaTopicName = analysis.getIntoKafkaTopicName() == null
-        ? topicPrefix + intoStructuredDataSource.getName()
-        : analysis.getIntoKafkaTopicName();
-
-    final KsqlTopic newIntoKsqlTopic;
-    if (!doCreateInto) {
-      newIntoKsqlTopic = metaStore.getTopic(intoStructuredDataSource.getName());
-      if (newIntoKsqlTopic == null) {
-        throw new KsqlException(
-            "Sink topic " + intoKafkaTopicName + " does not exist in the metastore.");
+    if (!sink.shouldCreateSink()) {
+      final StructuredDataSource into = metaStore.getSource(sink.getName());
+      if (into == null) {
+        throw new KsqlException("Unknown source: " + sink.getName());
       }
+
+      if (metaStore.getTopic(sink.getName()) == null) {
+        throw new KsqlException(
+            "Sink topic " + sink.getName() + " does not exist in the metastore.");
+      }
+
+      analysis.setInto(into, sink.shouldCreateSink());
       return;
     }
 
-    KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
-        .getKsqlTopicSerDe();
+    final String intoKafkaTopicName = analysis.getIntoKafkaTopicName() == null
+        ? topicPrefix + sink.getName()
+        : analysis.getIntoKafkaTopicName();
+
+    final KsqlTopic intoKsqlTopic = new KsqlTopic(
+        sink.getName(),
+        intoKafkaTopicName,
+        getIntoValueSerde(),
+        true
+    );
+
+    final KsqlStream intoKsqlStream = new KsqlStream<>(
+        sqlExpression,
+        sink.getName(),
+        null,
+        null,
+        null,
+        intoKsqlTopic,
+        Serdes.String()
+    );
+
+    analysis.setInto(intoKsqlStream, true);
+  }
+
+  private KsqlTopicSerDe getIntoValueSerde() {
+    final List<Pair<StructuredDataSource, String>> fromDataSources = analysis
+        .getFromDataSources();
+
     if (analysis.getIntoFormat() != null) {
       switch (analysis.getIntoFormat().toUpperCase()) {
         case DataSource.AVRO_SERDE_NAME:
@@ -232,56 +232,31 @@ class Analyzer {
               StringUtil.cleanQuotes(
                   analysis.getIntoProperties().get(
                       DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
-          intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
-          break;
+          return new KsqlAvroTopicSerDe(schemaFullName);
+
         case DataSource.JSON_SERDE_NAME:
-          intoTopicSerde = new KsqlJsonTopicSerDe();
-          break;
+          return new KsqlJsonTopicSerDe();
+
         case DataSource.DELIMITED_SERDE_NAME:
-          intoTopicSerde = new KsqlDelimitedTopicSerDe();
-          break;
+          return new KsqlDelimitedTopicSerDe();
+
         default:
           throw new KsqlException(
               String.format("Unsupported format: %s", analysis.getIntoFormat()));
       }
-    } else {
-      if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
-        final String schemaFullName =
-            StringUtil.cleanQuotes(
-                analysis.getIntoProperties().get(
-                    DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
-        intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
-      }
     }
 
-    newIntoKsqlTopic = new KsqlTopic(
-        intoStructuredDataSource.getName(),
-        intoKafkaTopicName,
-        intoTopicSerde,
-        true
-    );
+    final KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0)
+        .getLeft()
+        .getKsqlTopic()
+        .getKsqlTopicSerDe();
 
-    final KsqlStream intoKsqlStream = new KsqlStream<>(
-        sqlExpression,
-        intoStructuredDataSource.getName(),
-        null,
-        null,
-        null,
-        newIntoKsqlTopic,
-        getKeySerde(intoStructuredDataSource)
-    );
-    analysis.setInto(intoKsqlStream, true);
-
-  }
-
-  private static Serde<?> getKeySerde(final StructuredDataSource intoStructuredDataSource) {
-    if (intoStructuredDataSource instanceof KsqlStream) {
-      return ((KsqlStream<?>) intoStructuredDataSource).getKeySerde();
-    } else if (intoStructuredDataSource instanceof KsqlTable) {
-      return ((KsqlTable<?>) intoStructuredDataSource).getKeySerde();
-    } else {
-      throw new KsqlException("source is not a stream or table");
+    if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
+      final String schemaFullName = StringUtil.cleanQuotes(
+              analysis.getIntoProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
+      return new KsqlAvroTopicSerDe(schemaFullName);
     }
+    return intoTopicSerde;
   }
 
   private void setIntoTopicName(final Sink sink) {

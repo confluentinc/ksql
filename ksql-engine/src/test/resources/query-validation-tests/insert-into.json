@@ -19,6 +19,21 @@
       ]
     },
     {
+      "name": "with custom topic name",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
+        "CREATE STREAM SOURCE2 (data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT WITH(kafka_topic='custom') AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT SELECT * FROM SOURCE2;"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "key": "k1", "value": "v1"}
+      ],
+      "outputs": [
+        {"topic": "custom", "key": "k1", "value": "v1"}
+      ]
+    },
+    {
       "name": "topic with different format",
       "statements": [
         "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",

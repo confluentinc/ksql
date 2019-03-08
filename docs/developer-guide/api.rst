@@ -10,7 +10,8 @@ The default REST API endpoint is ``http://localhost:8088/``.
 
 Change the server configuration that controls the REST API endpoint by setting
 the ``listeners`` parameter in the KSQL server config file. For more info, see
-:ref:`ksql-listeners`.
+:ref:`ksql-listeners`. To configure the endpoint to use HTTPS, see
+:ref:`config-ksql-for-https`.
 
 Content Types
 -------------
@@ -94,14 +95,16 @@ Your output should resemble:
 Run a KSQL Statement
 --------------------
 
-The KSQL resource runs a sequence of KSQL statements. Most statements, except those starting with ``SELECT``, can be run on this endpoint. To run ``SELECT`` statements use the ``/query`` endpoint.
+The ``/ksql`` resource runs a sequence of KSQL statements. All statements, except
+those starting with SELECT, can be run on this endpoint. To run SELECT
+statements use the ``/query`` endpoint.
 
 .. note::
 
-   Starting in KSQL 5.2, the KSQL REST API doesn't support the ``RUN SCRIPT``
-   statement. Instead, include the contents of the script in the main body of
-   your request. The KSQL CLI continues to support ``RUN SCRIPT``. KSQL Server
-   5.2 supports previously submitted ``RUN SCRIPT`` statements.
+   If you use the SET or UNSET statements to assign query properties by using
+   the REST API, the assignment is scoped only to the current request. In
+   contrast, SET and UNSET assignments in the KSQL CLI persist throughout the
+   CLI session.
 
 .. http:post:: /ksql
 
@@ -315,7 +318,7 @@ execute until after command number 10 has finished executing:
 Run A Query And Stream Back The Output
 --------------------------------------
 
-The query resource lets you stream the output records of a ``SELECT`` statement via a chunked transfer encoding. The response is streamed back until the ``LIMIT`` specified in the statement is reached, or the client closes the connection. If no ``LIMIT`` is specified in the statement, then the response is streamed until the client closes the connection.
+The ``/query`` resource lets you stream the output records of a ``SELECT`` statement via a chunked transfer encoding. The response is streamed back until the ``LIMIT`` specified in the statement is reached, or the client closes the connection. If no ``LIMIT`` is specified in the statement, then the response is streamed until the client closes the connection.
 
 .. http:post:: /query
 

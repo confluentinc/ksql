@@ -23,7 +23,7 @@ to a new stream:
 * The number of partitions
 * The number of replicas
 * The timestamp field and/or the timestamp format
-* The new stream's underlying Kafka topic name
+* The new stream's underlying |ak-tm| topic name
 
 For this example, imagine that you want to create a new stream by
 transforming a ``pageviews`` stream in the following way:

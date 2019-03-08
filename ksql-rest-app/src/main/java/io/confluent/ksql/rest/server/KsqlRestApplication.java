@@ -307,7 +307,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     return buildApplication(restConfig, versionCheckerFactory, maxStatementRetries, serviceContext);
   }
 
-  public static KsqlRestApplication buildApplication(
+  static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,

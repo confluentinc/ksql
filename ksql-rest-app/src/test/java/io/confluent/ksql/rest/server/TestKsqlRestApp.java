@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.util;
+package io.confluent.ksql.rest.server;
 
 import static org.easymock.EasyMock.niceMock;
 
@@ -31,10 +31,9 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
-import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;

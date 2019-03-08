@@ -30,7 +30,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.test.util.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.Collections;

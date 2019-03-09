@@ -45,7 +45,7 @@ public class KsqlDelimitedSerializerTest {
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
+    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
     final GenericRow genericRow = new GenericRow(columns);
     final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
     final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
@@ -56,7 +56,7 @@ public class KsqlDelimitedSerializerTest {
 
   @Test
   public void shouldSerializeRowWithNull() {
-    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", null);
+    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", null);
     final GenericRow genericRow = new GenericRow(columns);
     final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
     final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);

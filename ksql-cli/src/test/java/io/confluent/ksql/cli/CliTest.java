@@ -333,7 +333,7 @@ public class CliTest {
   }
 
   private static void runStatement(final String statement, final KsqlRestClient restClient) {
-    final RestResponse response = restClient.makeKsqlRequest(statement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(statement, null);
     Assert.assertThat(response.isSuccessful(), is(true));
     final KsqlEntityList entityList = ((KsqlEntityList) response.get());
     Assert.assertThat(entityList.size(), equalTo(1));
@@ -346,7 +346,7 @@ public class CliTest {
       assertThatEventually(
           "",
           () -> {
-            final RestResponse statusResponse = restClient
+            final RestResponse<?> statusResponse = restClient
                 .makeStatusRequest(entity.getCommandId().toString());
             Assert.assertThat(statusResponse.isSuccessful(), is(true));
             Assert.assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
@@ -369,7 +369,7 @@ public class CliTest {
   private static void dropStream(final String name) {
     final String dropStatement = String.format("drop stream %s;", name);
 
-    final RestResponse response = restClient.makeKsqlRequest(dropStatement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()) {
       return;
     }
@@ -390,7 +390,7 @@ public class CliTest {
   private static void maybeDropStream(final String name) {
     final String dropStatement = String.format("drop stream %s;", name);
 
-    final RestResponse response = restClient.makeKsqlRequest(dropStatement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()
         || response.getErrorMessage().toString().contains("does not exist")) {
       return;

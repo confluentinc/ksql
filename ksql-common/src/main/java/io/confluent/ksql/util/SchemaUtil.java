@@ -86,7 +86,7 @@ public final class SchemaUtil {
   private SchemaUtil() {
   }
 
-  public static Class getJavaType(final Schema schema) {
+  public static Class<?> getJavaType(final Schema schema) {
     switch (schema.type()) {
       case STRING:
         return String.class;

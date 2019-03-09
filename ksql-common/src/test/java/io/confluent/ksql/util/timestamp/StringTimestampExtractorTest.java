@@ -37,7 +37,7 @@ public class StringTimestampExtractorTest {
 
     final String stringTime = "2010-Jan-11";
     final long expectedTime = new SimpleDateFormat(format).parse(stringTime).getTime();
-    final long actualTime = timestampExtractor.extract(new ConsumerRecord("topic",
+    final long actualTime = timestampExtractor.extract(new ConsumerRecord<>("topic",
         1,
         1,
         null,

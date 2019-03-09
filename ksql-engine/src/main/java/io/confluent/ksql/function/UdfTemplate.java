@@ -90,7 +90,7 @@ public final class UdfTemplate {
 
     if (arg instanceof Number) {
       try {
-        return (T) fromNumber((Number) arg, boxedType);
+        return fromNumber((Number) arg, boxedType);
       } catch (Exception e) {
         throw new KsqlFunctionException(
             String.format("Couldn't coerce numeric argument '\"args[%d]:(%s) %s\"' to type %s",

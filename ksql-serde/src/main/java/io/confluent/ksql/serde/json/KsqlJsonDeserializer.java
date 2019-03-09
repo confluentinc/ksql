@@ -98,7 +98,7 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
     final Map<String, String> caseInsensitiveFieldNameMap =
         getCaseInsensitiveFieldNameMap(valueMap, true);
 
-    final List<Object> columns = new ArrayList(schema.fields().size());
+    final List<Object> columns = new ArrayList<>(schema.fields().size());
     for (final Field field : schema.fields()) {
       final Object columnVal = valueMap.get(caseInsensitiveFieldNameMap.get(field.name()));
       columns.add(enforceFieldType(field.schema(), columnVal));

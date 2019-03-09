@@ -225,7 +225,7 @@ public class CommandRunnerTest {
     when(commandStore.getNewCommands(any())).thenReturn(Arrays.asList(cmds));
   }
 
-  private Answer closeRunner() {
+  private Answer<?> closeRunner() {
     return inv -> {
       commandRunner.close();
       return null;

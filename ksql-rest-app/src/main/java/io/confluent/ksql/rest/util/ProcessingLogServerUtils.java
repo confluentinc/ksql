@@ -105,7 +105,7 @@ public final class ProcessingLogServerUtils {
             "CREATE STREAM %s WITH(KAFKA_TOPIC='%s', VALUE_FORMAT='JSON');", name, topicName);
     final DefaultKsqlParser parser = new DefaultKsqlParser();
     final ParsedStatement parsed = parser.parse(statementNoSchema).get(0);
-    final PreparedStatement preparedStatement = parser
+    final PreparedStatement<?> preparedStatement = parser
         .prepare(parsed, new MetaStoreImpl(new InternalFunctionRegistry()));
 
     final AbstractStreamCreateStatement streamCreateStatement

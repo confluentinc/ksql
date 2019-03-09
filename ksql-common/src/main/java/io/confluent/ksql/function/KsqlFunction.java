@@ -42,6 +42,7 @@ public final class KsqlFunction {
   /**
    * Create built in / legacy function.
    */
+  @SuppressWarnings("deprecation")  // Solution only available in Java9.
   public static KsqlFunction createLegacyBuiltIn(
       final Schema returnType,
       final List<Schema> arguments,

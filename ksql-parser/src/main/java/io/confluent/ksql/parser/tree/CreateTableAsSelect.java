@@ -47,11 +47,10 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
       final Map<String, Expression> properties
   ) {
     super(location);
-    this.name = requireNonNull(name, "name is null");
-    this.query = requireNonNull(query, "query is null");
+    this.name = requireNonNull(name, "name");
+    this.query = requireNonNull(query, "query");
     this.notExists = notExists;
-    this.properties = ImmutableMap
-        .copyOf(requireNonNull(properties, "properties is null"));
+    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
   }
 
   @Override
@@ -62,6 +61,11 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
   @Override
   public Query getQuery() {
     return query;
+  }
+
+  @Override
+  public Sink getSink() {
+    return Sink.of(name.getSuffix(), true, properties);
   }
 
   public boolean isNotExists() {

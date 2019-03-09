@@ -25,11 +25,12 @@ import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
+import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,10 +46,16 @@ public class QueryAnalyzer {
     this.outputTopicPrefix = Objects.requireNonNull(outputTopicPrefix, "outputTopicPrefix");
   }
 
-  public Analysis analyze(final String sqlExpression, final Query query) {
+  public Analysis analyze(
+      final String sqlExpression,
+      final Query query,
+      final Optional<Sink> sink
+  ) {
     final Analysis analysis = new Analysis();
-    final Analyzer analyzer = new Analyzer(sqlExpression, analysis, metaStore, outputTopicPrefix);
-    analyzer.process(query, new AnalysisContext());
+
+    new Analyzer(sqlExpression, analysis, metaStore, outputTopicPrefix)
+        .analyze(query, sink);
+
     return analysis;
   }
 
@@ -137,7 +144,7 @@ public class QueryAnalyzer {
       final Analysis analysis,
       final AggregateAnalysis aggregateAnalysis
   ) {
-    if (!((QuerySpecification) query.getQueryBody()).getGroupBy().isPresent()) {
+    if (!query.getGroupBy().isPresent()) {
       return;
     }
 

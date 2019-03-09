@@ -42,6 +42,7 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -270,10 +271,10 @@ public class PhysicalPlanBuilderTest {
     kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
 
     // Then:
-    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(ParseFailedException.class);
     expectedException.expect(statementText(is("INSERT INTO s1 SELECT col0, col1, col2 FROM test1;")));
-    expectedException.expect(rawMessage(is(
-        "Sink does not exist for the INSERT INTO statement: S1")));
+    expectedException.expect(rawMessage(containsString(
+        "Line: 2, Col: 14: S1 does not exist.")));
 
     // When:
     KsqlEngineTestUtil.execute(
@@ -318,7 +319,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
+    expectedException.expect(rawMessage(containsString(
         "INSERT INTO can only be used to insert into a stream. T2 is a table.")));
 
     // When:

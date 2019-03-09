@@ -88,24 +88,12 @@ public abstract class DefaultAstVisitor<R, C>
     return visitLiteral(node, context);
   }
 
-  protected R visitWithQuery(final WithQuery node, final C context) {
-    return visitNode(node, context);
-  }
-
   protected R visitSelect(final Select node, final C context) {
     return visitNode(node, context);
   }
 
   protected R visitRelation(final Relation node, final C context) {
     return visitNode(node, context);
-  }
-
-  protected R visitQueryBody(final QueryBody node, final C context) {
-    return visitRelation(node, context);
-  }
-
-  protected R visitQuerySpecification(final QuerySpecification node, final C context) {
-    return visitQueryBody(node, context);
   }
 
   protected R visitTimestampLiteral(final TimestampLiteral node, final C context) {
@@ -209,24 +197,12 @@ public abstract class DefaultAstVisitor<R, C>
     return visitExpression(node, context);
   }
 
-  protected R visitSubqueryExpression(final SubqueryExpression node, final C context) {
-    return visitExpression(node, context);
-  }
-
   protected R visitTable(final Table node, final C context) {
-    return visitQueryBody(node, context);
-  }
-
-  protected R visitValues(final Values node, final C context) {
-    return visitQueryBody(node, context);
+    return visitRelation(node, context);
   }
 
   protected R visitStruct(final Struct node, final C context) {
     return visitNode(node, context);
-  }
-
-  protected R visitTableSubquery(final TableSubquery node, final C context) {
-    return visitQueryBody(node, context);
   }
 
   protected R visitAliasedRelation(final AliasedRelation node, final C context) {
@@ -303,9 +279,5 @@ public abstract class DefaultAstVisitor<R, C>
 
   protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
     return visitGroupingElement(node, context);
-  }
-
-  protected R visitSymbolReference(final SymbolReference node, final C context) {
-    return visitExpression(node, context);
   }
 }

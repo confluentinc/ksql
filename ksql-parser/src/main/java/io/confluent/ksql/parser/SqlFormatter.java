@@ -38,7 +38,6 @@ import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -46,12 +45,11 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableSubquery;
-import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -101,18 +99,6 @@ public final class SqlFormatter {
     @Override
     protected Void visitQuery(final Query node, final Integer indent) {
 
-      processRelation(node.getQueryBody(), indent);
-
-      if (node.getLimit().isPresent()) {
-        append(indent, "LIMIT " + node.getLimit().getAsInt())
-                .append('\n');
-      }
-
-      return null;
-    }
-
-    @Override
-    protected Void visitQuerySpecification(final QuerySpecification node, final Integer indent) {
       process(node.getSelect(), indent);
 
       append(indent, "FROM ");
@@ -121,27 +107,28 @@ public final class SqlFormatter {
 
       if (node.getWhere().isPresent()) {
         append(indent, "WHERE " + ExpressionFormatter.formatExpression(node.getWhere().get()))
-                .append('\n');
+            .append('\n');
       }
 
       if (node.getGroupBy().isPresent()) {
         append(indent, "GROUP BY "
-                + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "")
-                + ExpressionFormatter
-                .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
-                .append('\n');
+            + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "")
+            + ExpressionFormatter
+            .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
+            .append('\n');
       }
 
       if (node.getHaving().isPresent()) {
         append(indent, "HAVING "
-                + ExpressionFormatter.formatExpression(node.getHaving().get()))
-                .append('\n');
+            + ExpressionFormatter.formatExpression(node.getHaving().get()))
+            .append('\n');
       }
 
       if (node.getLimit().isPresent()) {
         append(indent, "LIMIT " + node.getLimit().getAsInt())
                 .append('\n');
       }
+
       return null;
     }
 
@@ -237,41 +224,8 @@ public final class SqlFormatter {
       builder.append(' ')
               .append(node.getAlias());
 
-      appendAliasColumns(builder, node.getColumnNames());
-
       return null;
     }
-
-    @Override
-    protected Void visitValues(final Values node, final Integer indent) {
-      builder.append(" VALUES ");
-
-      boolean first = true;
-      for (final Expression row : node.getRows()) {
-        builder.append("\n")
-                .append(indentString(indent))
-                .append(first ? "  " : ", ");
-
-        builder.append(ExpressionFormatter.formatExpression(row));
-        first = false;
-      }
-      builder.append('\n');
-
-      return null;
-    }
-
-    @Override
-    protected Void visitTableSubquery(final TableSubquery node, final Integer indent) {
-      builder.append('(')
-              .append('\n');
-
-      process(node.getQuery(), indent + 1);
-
-      append(indent, ") ");
-
-      return null;
-    }
-
 
     @Override
     protected Void visitCreateStream(final CreateStream node, final Integer indent) {
@@ -400,6 +354,7 @@ public final class SqlFormatter {
 
       builder.append(" AS ");
       process(node.getQuery(), indent);
+      processPartitionBy(node.getPartitionByColumn(), indent);
       return null;
     }
 
@@ -439,7 +394,9 @@ public final class SqlFormatter {
     protected Void visitInsertInto(final InsertInto node, final Integer indent) {
       builder.append("INSERT INTO ");
       builder.append(node.getTarget());
+      builder.append(" ");
       process(node.getQuery(), indent);
+      processPartitionBy(node.getPartitionByColumn(), indent);
       return null;
     }
 
@@ -455,7 +412,6 @@ public final class SqlFormatter {
     }
 
     private void processRelation(final Relation relation, final Integer indent) {
-      // TODO: handle this properly
       if (relation instanceof Table) {
         builder.append("TABLE ")
                 .append(((Table) relation).getName())
@@ -465,6 +421,16 @@ public final class SqlFormatter {
       }
     }
 
+    private void processPartitionBy(
+        final Optional<Expression> partitionByColumn,
+        final Integer indent
+    ) {
+      partitionByColumn.ifPresent(partitionBy -> {
+        append(indent, "PARTITION BY " + ExpressionFormatter.formatExpression(partitionBy))
+            .append('\n');
+      });
+    }
+
     private StringBuilder append(final int indent, final String value) {
       return builder.append(indentString(indent))
               .append(value);
@@ -472,14 +438,6 @@ public final class SqlFormatter {
 
     private static String indentString(final int indent) {
       return Strings.repeat(INDENT, indent);
-    }
-  }
-
-  private static void appendAliasColumns(final StringBuilder builder, final List<String> columns) {
-    if ((columns != null) && (!columns.isEmpty())) {
-      builder.append(" (");
-      Joiner.on(", ").appendTo(builder, columns);
-      builder.append(')');
     }
   }
 }

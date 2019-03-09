@@ -39,7 +39,6 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -49,12 +48,8 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.TableSubquery;
-import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
-import io.confluent.ksql.parser.tree.WithQuery;
 import java.util.Set;
 
 public abstract class DefaultTraversalVisitor<R, C>
@@ -108,14 +103,19 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   protected R visitQuery(final Query node, final C context) {
+    process(node.getSelect(), context);
+    process(node.getFrom(), context);
 
-    process(node.getQueryBody(), context);
+    if (node.getWhere().isPresent()) {
+      process(node.getWhere().get(), context);
+    }
+    if (node.getGroupBy().isPresent()) {
+      process(node.getGroupBy().get(), context);
+    }
+    if (node.getHaving().isPresent()) {
+      process(node.getHaving().get(), context);
+    }
     return null;
-  }
-
-  @Override
-  protected R visitWithQuery(final WithQuery node, final C context) {
-    return process(node.getQuery(), context);
   }
 
   @Override
@@ -238,47 +238,11 @@ public abstract class DefaultTraversalVisitor<R, C>
   }
 
   @Override
-  protected R visitSubqueryExpression(final SubqueryExpression node, final C context) {
-    return process(node.getQuery(), context);
-  }
-
-
-  @Override
-  protected R visitQuerySpecification(final QuerySpecification node, final C context) {
-    process(node.getSelect(), context);
-    process(node.getFrom(), context);
-
-    if (node.getWhere().isPresent()) {
-      process(node.getWhere().get(), context);
-    }
-    if (node.getGroupBy().isPresent()) {
-      process(node.getGroupBy().get(), context);
-    }
-    if (node.getHaving().isPresent()) {
-      process(node.getHaving().get(), context);
-    }
-    return null;
-  }
-
-  @Override
-  protected R visitValues(final Values node, final C context) {
-    for (final Expression row : node.getRows()) {
-      process(row, context);
-    }
-    return null;
-  }
-
-  @Override
   protected R visitStruct(final Struct node, final C context) {
     for (final Struct.Field field : node.getFields()) {
       process(field.getType(), context);
     }
     return null;
-  }
-
-  @Override
-  protected R visitTableSubquery(final TableSubquery node, final C context) {
-    return process(node.getQuery(), context);
   }
 
   @Override

@@ -26,9 +26,11 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -40,6 +42,7 @@ import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -82,18 +85,30 @@ class QueryEngine {
   ) {
     LOG.info("Build logical plan for {}.", statement.getStatementText());
 
-    if (!(statement.getStatement() instanceof Query)) {
-      return new LogicalPlanNode(statement.getStatementText(), null);
+    if (statement.getStatement() instanceof Query) {
+      final PlanNode planNode = buildQueryLogicalPlan(
+          statement.getStatementText(),
+          (Query)statement.getStatement(),
+          Optional.empty(),
+          metaStore,
+          config
+      );
+
+      return new LogicalPlanNode(statement.getStatementText(), planNode);
     }
 
-    final PlanNode planNode = buildQueryLogicalPlan(
-        statement.getStatementText(),
-        (Query) statement.getStatement(),
-        metaStore,
-        config
-    );
+    if (statement.getStatement() instanceof QueryContainer) {
+      final PlanNode planNode = buildQueryLogicalPlan(
+          statement.getStatementText(),
+          (QueryContainer) statement.getStatement(),
+          metaStore,
+          config
+      );
 
-    return new LogicalPlanNode(statement.getStatementText(), planNode);
+      return new LogicalPlanNode(statement.getStatementText(), planNode);
+    }
+
+    return new LogicalPlanNode(statement.getStatementText(), null);
   }
 
   QueryMetadata buildPhysicalPlan(
@@ -149,16 +164,26 @@ class QueryEngine {
 
   private static PlanNode buildQueryLogicalPlan(
       final String sqlExpression,
-      final Query query,
+      final QueryContainer container,
       final MetaStore metaStore,
       final KsqlConfig config
   ) {
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-        metaStore,
-        config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG)
-    );
+    final Query query = container.getQuery();
+    final Sink sink = container.getSink();
+    return buildQueryLogicalPlan(sqlExpression, query, Optional.of(sink), metaStore, config);
+  }
 
-    final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query);
+  private static PlanNode buildQueryLogicalPlan(
+      final String sqlExpression,
+      final Query query,
+      final Optional<Sink> sink,
+      final MetaStore metaStore,
+      final KsqlConfig config
+  ) {
+    final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(metaStore, outputPrefix);
+
+    final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query, sink);
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     return new LogicalPlanner(analysis, aggAnalysis, metaStore).buildPlan();

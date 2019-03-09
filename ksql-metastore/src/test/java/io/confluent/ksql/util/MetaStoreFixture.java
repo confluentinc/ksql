@@ -56,10 +56,25 @@ public final class MetaStoreFixture {
         .field("COL5", SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build());
 
     final KsqlTopic
+        ksqlTopic0 =
+        new KsqlTopic("TEST0", "test0", serde.get(), false);
+
+    final KsqlStream ksqlStream0 = new KsqlStream<>("sqlexpression",
+        "TEST0",
+        test1Schema,
+        test1Schema.field("COL0"),
+        timestampExtractionPolicy,
+        ksqlTopic0,
+        Serdes.String());
+
+    metaStore.putTopic(ksqlTopic0);
+    metaStore.putSource(ksqlStream0);
+
+    final KsqlTopic
         ksqlTopic1 =
         new KsqlTopic("TEST1", "test1", serde.get(), false);
 
-    final KsqlStream ksqlStream = new KsqlStream<>("sqlexpression",
+    final KsqlStream ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
         test1Schema,
         test1Schema.field("COL0"),
@@ -68,7 +83,7 @@ public final class MetaStoreFixture {
         Serdes.String());
 
     metaStore.putTopic(ksqlTopic1);
-    metaStore.putSource(ksqlStream);
+    metaStore.putSource(ksqlStream1);
 
     final SchemaBuilder test2Schema = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)

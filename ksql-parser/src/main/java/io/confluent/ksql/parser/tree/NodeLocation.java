@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.parser.tree;
 
+import javax.annotation.concurrent.Immutable;
+
+@Immutable
 public final class NodeLocation {
 
   private final int line;
@@ -35,6 +38,6 @@ public final class NodeLocation {
 
   @Override
   public String toString() {
-    return String.format(" Line: %d, Col: %d", line, charPositionInLine + 1);
+    return String.format("Line: %d, Col: %d", line, charPositionInLine + 1);
   }
 }

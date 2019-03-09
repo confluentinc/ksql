@@ -22,39 +22,88 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-public class Query
-    extends Statement {
+public class Query extends Statement {
 
-  private final QueryBody queryBody;
+  private final Select select;
+  private final Relation from;
+  private final Optional<WindowExpression> windowExpression;
+  private final Optional<Expression> where;
+  private final Optional<GroupBy> groupBy;
+  private final Optional<Expression> having;
   private final OptionalInt limit;
 
   public Query(
-      final QueryBody queryBody,
+      final Select select,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
       final OptionalInt limit) {
-    this(Optional.empty(), queryBody, limit);
+    this(Optional.empty(), select, from, windowExpression, where, groupBy, having, limit);
   }
 
   public Query(
       final NodeLocation location,
-      final QueryBody queryBody,
+      final Select select,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
       final OptionalInt limit) {
-    this(Optional.of(location), queryBody, limit);
+    this(Optional.of(location), select, from, windowExpression, where, groupBy, having, limit);
   }
 
-  private Query(
+  public Query(
       final Optional<NodeLocation> location,
-      final QueryBody queryBody,
+      final Select select,
+      final Relation from,
+      final Optional<WindowExpression> windowExpression,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
       final OptionalInt limit) {
     super(location);
-    requireNonNull(queryBody, "queryBody is null");
+    requireNonNull(select, "select is null");
+    requireNonNull(from, "from is null");
+    requireNonNull(windowExpression, "window is null");
+    requireNonNull(where, "where is null");
+    requireNonNull(groupBy, "groupBy is null");
+    requireNonNull(having, "having is null");
     requireNonNull(limit, "limit is null");
 
-    this.queryBody = queryBody;
+    this.select = select;
+    this.from = from;
+    this.windowExpression = windowExpression;
+    this.where = where;
+    this.groupBy = groupBy;
+    this.having = having;
     this.limit = limit;
   }
 
-  public QueryBody getQueryBody() {
-    return queryBody;
+  public Select getSelect() {
+    return select;
+  }
+
+  public Relation getFrom() {
+    return from;
+  }
+
+  public Optional<WindowExpression> getWindowExpression() {
+    return windowExpression;
+  }
+
+  public Optional<Expression> getWhere() {
+    return where;
+  }
+
+  public Optional<GroupBy> getGroupBy() {
+    return groupBy;
+  }
+
+  public Optional<Expression> getHaving() {
+    return having;
   }
 
   public OptionalInt getLimit() {
@@ -69,9 +118,13 @@ public class Query
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("queryBody", queryBody)
+        .add("select", select)
+        .add("from", from)
+        .add("", windowExpression.orElse(null))
+        .add("where", where.orElse(null))
+        .add("groupBy", groupBy)
+        .add("having", having.orElse(null))
         .add("limit", limit)
-        .omitNullValues()
         .toString();
   }
 
@@ -84,12 +137,17 @@ public class Query
       return false;
     }
     final Query o = (Query) obj;
-    return Objects.equals(queryBody, o.queryBody)
-           && Objects.equals(limit, o.limit);
+    return Objects.equals(select, o.select)
+        && Objects.equals(from, o.from)
+        && Objects.equals(where, o.where)
+        && Objects.equals(windowExpression, o.windowExpression)
+        && Objects.equals(groupBy, o.groupBy)
+        && Objects.equals(having, o.having)
+        && Objects.equals(limit, o.limit);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(queryBody, limit);
+    return Objects.hash(select, from, where, windowExpression, groupBy, having, limit);
   }
 }

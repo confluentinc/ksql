@@ -17,6 +17,7 @@ package io.confluent.ksql.parser;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -102,8 +103,8 @@ public class SqlFormatterTest {
   public void setUp() {
     final Table left = new Table(QualifiedName.of(Collections.singletonList("left")));
     final Table right = new Table(QualifiedName.of(Collections.singletonList("right")));
-    leftAlias = new AliasedRelation(left, "l", Collections.emptyList());
-    rightAlias = new AliasedRelation(right, "r", Collections.emptyList());
+    leftAlias = new AliasedRelation(left, "l");
+    rightAlias = new AliasedRelation(right, "r");
 
     criteria = new JoinOn(new ComparisonExpression(ComparisonExpression.Type.EQUAL,
                                                    new StringLiteral("left.col0"),
@@ -321,6 +322,54 @@ public class SqlFormatterTest {
             + "  ADDRESS.ADDRESS \"ONE\"\n"
             + ", ADDRESS.ADDRESS \"TWO\"\n"
             + "FROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatCsasWithClause() {
+    final String statementString = "CREATE STREAM S WITH(partitions=4) AS SELECT * FROM address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, startsWith("CREATE STREAM S WITH (PARTITIONS = 4) AS SELECT"));
+  }
+
+  @Test
+  public void shouldFormatCtasWithClause() {
+    final String statementString = "CREATE TABLE S WITH(partitions=4) AS SELECT * FROM address;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, startsWith("CREATE TABLE S WITH (PARTITIONS = 4) AS SELECT"));
+  }
+
+  @Test
+  public void shouldFormatCsasPartitionBy() {
+    final String statementString = "CREATE STREAM S AS SELECT * FROM ADDRESS PARTITION BY ADDRESS;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, startsWith("CREATE STREAM S AS SELECT *\n"
+        + "FROM ADDRESS ADDRESS\n"
+        + "PARTITION BY ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatInsertIntoPartitionBy() {
+    final String statementString = "INSERT INTO ADDRESS SELECT * FROM ADDRESS PARTITION BY ADDRESS;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, startsWith("INSERT INTO ADDRESS SELECT *\n"
+        + "FROM ADDRESS ADDRESS\n"
+        + "PARTITION BY ADDRESS"));
   }
 }
 

@@ -49,7 +49,6 @@ import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.Type.SqlType;
@@ -128,11 +127,6 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatQualifiedNameReference() {
     assertThat(ExpressionFormatter.formatExpression(new QualifiedNameReference(QualifiedName.of("name"))), equalTo("name"));
-  }
-
-  @Test
-  public void shouldFormatSymbolReference() {
-    assertThat(ExpressionFormatter.formatExpression(new SymbolReference("symbol")), equalTo("symbol"));
   }
 
   @Test

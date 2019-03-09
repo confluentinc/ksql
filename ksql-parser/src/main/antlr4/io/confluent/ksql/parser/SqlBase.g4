@@ -69,7 +69,13 @@ statement
     ;
 
 query
-    :  queryNoWith
+    : SELECT selectItem (',' selectItem)*
+      FROM from=relation
+      (WINDOW  windowExpression)?
+      (WHERE where=booleanExpression)?
+      (GROUP BY groupBy)?
+      (HAVING having=booleanExpression)?
+      limitClause?
     ;
 
 tableElement
@@ -84,44 +90,16 @@ tableProperty
     : identifier EQ expression
     ;
 
-queryNoWith:
-      queryTerm
-      limitClause
-    ;
-
 printClause
-      : (FROM BEGINNING)?
-      intervalClause
-      limitClause
+      : (FROM BEGINNING)? intervalClause? limitClause?
       ;
 
 intervalClause
-    : ((INTERVAL | SAMPLE) number)?
+    : (INTERVAL | SAMPLE) number
     ;
 
 limitClause
-    : (LIMIT number)?
-    ;
-
-queryTerm
-    : queryPrimary                                                             #queryTermDefault
-    ;
-
-queryPrimary
-    : querySpecification                   #queryPrimaryDefault
-    | TABLE qualifiedName                  #table
-    | VALUES expression (',' expression)*  #inlineTable
-    | '(' queryNoWith  ')'                 #subquery
-    ;
-
-querySpecification
-    : SELECT selectItem (',' selectItem)*
-      (INTO into=relationPrimary)?
-      FROM from=relation
-      (WINDOW  windowExpression)?
-      (WHERE where=booleanExpression)?
-      (GROUP BY groupBy)?
-      (HAVING having=booleanExpression)?
+    : LIMIT number
     ;
 
 windowExpression
@@ -167,9 +145,9 @@ groupingExpressions
     | expression
     ;
 
-namedQuery
-    : name=identifier (columnAliases)? AS '(' query ')'
-    ;
+/*
+ * Dropped `namedQuery` as we don't support them.
+ */
 
 selectItem
     : expression (AS? identifier)?  #selectSingle
@@ -178,9 +156,8 @@ selectItem
     ;
 
 relation
-    : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria
-    #joinRelation
-    | aliasedRelation #relationDefault
+    : left=aliasedRelation joinType JOIN right=aliasedRelation joinWindow? joinCriteria #joinRelation
+    | aliasedRelation                                                                   #relationDefault
     ;
 
 joinType
@@ -190,7 +167,7 @@ joinType
     ;
 
 joinWindow
-    : (WITHIN withinExpression)?
+    : WITHIN withinExpression
     ;
 
 withinExpression
@@ -207,7 +184,7 @@ joinCriteria
     ;
 
 aliasedRelation
-    : relationPrimary (AS? identifier columnAliases?)?
+    : relationPrimary (AS? identifier)?
     ;
 
 columnAliases
@@ -215,10 +192,7 @@ columnAliases
     ;
 
 relationPrimary
-    :
-    qualifiedName (WITH tableProperties)?                             #tableName
-    | '(' query ')'                                                   #subqueryRelation
-    | '(' relation ')'                                                #parenthesizedRelation
+    : qualifiedName                                                   #tableName
     ;
 
 expression
@@ -243,8 +217,7 @@ predicate[ParserRuleContext value]
     : comparisonOperator right=valueExpression                            #comparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression        #between
     | NOT? IN '(' expression (',' expression)* ')'                        #inList
-    | NOT? IN '(' query ')'                                               #inSubquery
-    | NOT? LIKE pattern=valueExpression									  #like
+    | NOT? LIKE pattern=valueExpression									                  #like
     | IS NOT? NULL                                                        #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                         #distinctFrom
     ;
@@ -266,7 +239,6 @@ primaryExpression
     | STRING                                                                         #stringLiteral
     | qualifiedName '(' ASTERISK ')'                              		               #functionCall
     | qualifiedName '(' (expression (',' expression)*)? ')' 						             #functionCall
-    | '(' query ')'                                                                  #subqueryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
     | CAST '(' expression AS type ')'                                                #cast

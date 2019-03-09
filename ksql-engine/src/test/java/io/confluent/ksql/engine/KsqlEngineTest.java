@@ -202,16 +202,15 @@ public class KsqlEngineTest {
         ksqlEngine, "create table bar as select * from test2;", KSQL_CONFIG,
         Collections.emptyMap());
 
-    final PreparedStatement<?> prepared = prepare(
-        ksqlEngine.parse("insert into bar select * from test2;").get(0));
+    final ParsedStatement parsed = ksqlEngine.parse("insert into bar select * from test2;").get(0);
 
-    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(ParseFailedException.class);
     expectedException.expect(rawMessage(containsString(
         "INSERT INTO can only be used to insert into a stream. BAR is a table.")));
     expectedException.expect(statementText(is("insert into bar select * from test2;")));
 
     // When:
-    ksqlEngine.execute(prepared, KSQL_CONFIG, Collections.emptyMap());
+    prepare(parsed);
   }
 
   @Test

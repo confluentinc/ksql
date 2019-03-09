@@ -25,7 +25,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
+@Immutable
 public final class QualifiedName {
 
   private final List<String> parts;
@@ -47,7 +49,7 @@ public final class QualifiedName {
   }
 
   private QualifiedName(final List<String> parts) {
-    this.parts = parts;
+    this.parts = requireNonNull(parts, "parts");
   }
 
   public List<String> getParts() {

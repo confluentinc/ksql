@@ -52,7 +52,7 @@ class AggregateAnalyzer {
       }
     });
 
-    visitor.process(expression, new AnalysisContext());
+    visitor.process(expression, null);
 
     if (visitor.visitedAggFunction) {
       aggregateAnalysis.addAggregateSelectField(nonAggParams);
@@ -69,7 +69,7 @@ class AggregateAnalyzer {
       }
     });
 
-    visitor.process(expression, new AnalysisContext());
+    visitor.process(expression, null);
   }
 
   void processHaving(final Expression expression) {
@@ -78,10 +78,10 @@ class AggregateAnalyzer {
         aggregateAnalysis.addNonAggregateHavingField(node);
       }
     });
-    visitor.process(expression, new AnalysisContext());
+    visitor.process(expression, null);
   }
 
-  private final class AggregateVisitor extends DefaultTraversalVisitor<Node, AnalysisContext> {
+  private final class AggregateVisitor extends DefaultTraversalVisitor<Node, Void> {
 
     private final BiConsumer<Optional<String>, DereferenceExpression> dereferenceCollector;
     private Optional<String> aggFunctionName = Optional.empty();
@@ -95,7 +95,7 @@ class AggregateAnalyzer {
     }
 
     @Override
-    protected Node visitFunctionCall(final FunctionCall node, final AnalysisContext context) {
+    protected Node visitFunctionCall(final FunctionCall node, final Void context) {
       final String functionName = node.getName().getSuffix();
       final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
       if (aggregateFunc) {
@@ -127,7 +127,7 @@ class AggregateAnalyzer {
     @Override
     protected Node visitDereferenceExpression(
         final DereferenceExpression node,
-        final AnalysisContext context
+        final Void context
     ) {
       dereferenceCollector.accept(aggFunctionName, node);
       aggregateAnalysis.addRequiredColumn(node);

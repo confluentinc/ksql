@@ -106,7 +106,7 @@ public final class TestMethods {
      *
      * @return the test cases.
      */
-    public Collection<TestCase> build() {
+    public Collection<TestCase<T>> build() {
       return Arrays.stream(typeUnderTest.getDeclaredMethods())
           .filter(method -> !Modifier.isStatic(method.getModifiers()))
           .filter(method -> Modifier.isPublic(method.getModifiers()))

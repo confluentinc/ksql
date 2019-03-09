@@ -53,8 +53,6 @@ import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QueryBody;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
@@ -67,19 +65,14 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.SubqueryExpression;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
-import io.confluent.ksql.parser.tree.SymbolReference;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableSubquery;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
-import io.confluent.ksql.parser.tree.Values;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.parser.tree.WithQuery;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -183,57 +176,7 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
   }
 
 
-  protected Node visitQuery(final Query node, final Object context) {
-    return new Query((QueryBody) process(node.getQueryBody(), context),
-        node.getLimit());
-  }
-
-  protected Node visitTimeLiteral(final TimeLiteral node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new TimeLiteral(node.getLocation().get(), node.getValue());
-    } else {
-      return new TimeLiteral(node.getValue());
-    }
-  }
-
-  protected Node visitWithQuery(final WithQuery node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new WithQuery(node.getLocation().get(),
-          node.getName(),
-          (Query) process(node.getQuery(), context),
-          node.getColumnNames());
-    } else {
-      return new WithQuery(node.getName(),
-          (Query) process(node.getQuery(), context),
-          node.getColumnNames());
-    }
-  }
-
-  protected Node visitSelect(final Select node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new Select(node.getLocation().get(),
-          node.isDistinct(),
-          node.getSelectItems()
-              .stream()
-              .map(selectItem -> (SelectItem) process(selectItem, context))
-              .collect(Collectors.toList()));
-    } else {
-      return new Select(node.isDistinct(),
-          node.getSelectItems()
-              .stream()
-              .map(selectItem -> (SelectItem) process(selectItem, context))
-              .collect(Collectors.toList())
-      );
-    }
-  }
-
-  protected Node visitQuerySpecification(final QuerySpecification node, final Object context) {
+  protected Query visitQuery(final Query node, final Object context) {
     final Optional<WindowExpression> windowExpression = node.getWindowExpression().isPresent()
         ? Optional.ofNullable((WindowExpression) process(node.getWindowExpression().get(), context))
         : Optional.empty();
@@ -253,11 +196,9 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
     // gets instantiated (issue #1784)
     if (node.getLocation().isPresent()) {
-      return new QuerySpecification(
+      return new Query(
           node.getLocation().get(),
           (Select) process(node.getSelect(), context),
-          (Relation) process(node.getInto(), context),
-          node.isShouldCreateInto(),
           (Relation) process(node.getFrom(), context),
           windowExpression,
           where,
@@ -266,16 +207,44 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
           node.getLimit()
       );
     } else {
-      return new QuerySpecification(
+      return new Query(
           (Select) process(node.getSelect(), context),
-          (Relation) process(node.getInto(), context),
-          node.isShouldCreateInto(),
           (Relation) process(node.getFrom(), context),
           windowExpression,
           where,
           groupBy,
           having,
           node.getLimit()
+      );
+    }
+  }
+
+  protected Node visitTimeLiteral(final TimeLiteral node, final Object context) {
+    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
+    // gets instantiated (issue #1784)
+    if (node.getLocation().isPresent()) {
+      return new TimeLiteral(node.getLocation().get(), node.getValue());
+    } else {
+      return new TimeLiteral(node.getValue());
+    }
+  }
+
+  protected Node visitSelect(final Select node, final Object context) {
+    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
+    // gets instantiated (issue #1784)
+    if (node.getLocation().isPresent()) {
+      return new Select(node.getLocation().get(),
+          node.isDistinct(),
+          node.getSelectItems()
+              .stream()
+              .map(selectItem -> (SelectItem) process(selectItem, context))
+              .collect(Collectors.toList()));
+    } else {
+      return new Select(node.isDistinct(),
+          node.getSelectItems()
+              .stream()
+              .map(selectItem -> (SelectItem) process(selectItem, context))
+              .collect(Collectors.toList())
       );
     }
   }
@@ -637,52 +606,8 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
     }
   }
 
-  protected Node visitSubqueryExpression(final SubqueryExpression node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new SubqueryExpression(node.getLocation().get(),
-          (Query) process(node.getQuery(), context));
-    } else {
-      return new SubqueryExpression((Query) process(node.getQuery(), context));
-    }
-  }
-
   protected Node visitTable(final Table node, final Object context) {
-    final Map<String, Expression> properties = node.getProperties().entrySet().stream()
-        .collect(Collectors.toMap(
-            Map.Entry::getKey,
-            e -> (Expression) process(e.getValue(), context)
-        ));
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new Table(node.getLocation().get(),
-          node.getName(),
-          node.isStdOut(),
-          properties);
-    } else {
-      return new Table(node.getName(),
-          node.isStdOut(),
-          properties);
-    }
-  }
-
-  protected Node visitValues(final Values node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new Values(node.getLocation().get(),
-          node.getRows().stream()
-              .map(row -> (Expression) process(row, context))
-              .collect(Collectors.toList())
-      );
-    } else {
-      return new Values(node.getRows().stream()
-          .map(row -> (Expression) process(row, context))
-          .collect(Collectors.toList())
-      );
-    }
+    return node;
   }
 
   protected Node visitStruct(final Struct node, final Object context) {
@@ -691,30 +616,16 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
         .build();
   }
 
-  protected Node visitTableSubquery(final TableSubquery node, final Object context) {
-    // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
-    // gets instantiated (issue #1784)
-    if (node.getLocation().isPresent()) {
-      return new TableSubquery(node.getLocation().get(),
-          (Query) process(node.getQuery(), context)
-      );
-    } else {
-      return new TableSubquery((Query) process(node.getQuery(), context));
-    }
-  }
-
   protected Node visitAliasedRelation(final AliasedRelation node, final Object context) {
     // use an if/else block here (instead of isPresent.map(...).orElse(...)) so only one object
     // gets instantiated (issue #1784)
     if (node.getLocation().isPresent()) {
       return new AliasedRelation(node.getLocation().get(),
           (Relation) process(node.getRelation(), context),
-          node.getAlias(),
-          node.getColumnNames());
+          node.getAlias());
     } else {
       return new AliasedRelation((Relation) process(node.getRelation(), context),
-          node.getAlias(),
-          node.getColumnNames());
+          node.getAlias());
     }
   }
 
@@ -912,9 +823,5 @@ public class StatementRewriter extends DefaultAstVisitor<Node, Object> {
           .collect(Collectors.toList())
       );
     }
-  }
-
-  protected Node visitSymbolReference(final SymbolReference node, final Object context) {
-    return new SymbolReference(node.getName());
   }
 }

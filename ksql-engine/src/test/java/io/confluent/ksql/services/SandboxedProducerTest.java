@@ -38,7 +38,7 @@ public final class SandboxedProducerTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase> getMethodsToTest() {
+    public static Collection<TestCase<Producer>> getMethodsToTest() {
       return TestMethods.builder(Producer.class)
           .ignore("close")
           .ignore("close", long.class, TimeUnit.class)

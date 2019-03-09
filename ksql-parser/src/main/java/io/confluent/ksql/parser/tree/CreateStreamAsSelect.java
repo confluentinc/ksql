@@ -19,6 +19,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.ddl.DdlConfig;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,7 +49,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
       final Map<String, Expression> properties,
       final Optional<Expression> partitionByColumn) {
     super(location);
-    this.name = requireNonNull(name, "stream is null");
+    this.name = requireNonNull(name, "name");
     this.query = query;
     this.notExists = notExists;
     this.properties = ImmutableMap.copyOf(
@@ -64,6 +65,19 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
   @Override
   public Query getQuery() {
     return query;
+  }
+
+  @Override
+  public Sink getSink() {
+    final Map<String, Expression> sinkProperties = partitionByColumn
+        .map(exp -> (Map<String, Expression>)ImmutableMap.<String, Expression>builder()
+            .putAll(properties)
+            .put(DdlConfig.PARTITION_BY_PROPERTY, exp)
+            .build()
+        )
+        .orElse(properties);
+
+    return Sink.of(name.getSuffix(), true, sinkProperties);
   }
 
   public boolean isNotExists() {

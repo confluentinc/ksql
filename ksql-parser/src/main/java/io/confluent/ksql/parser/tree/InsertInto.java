@@ -18,19 +18,24 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.ddl.DdlConfig;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 public class InsertInto
     extends Statement
     implements QueryContainer {
+
   private final QualifiedName target;
   private final Query query;
   private final Optional<Expression> partitionByColumn;
 
   public InsertInto(
       final QualifiedName target,
-      final Query query, final Optional<Expression> partitionByColumn
+      final Query query,
+      final Optional<Expression> partitionByColumn
   ) {
     this(Optional.empty(), target, query, partitionByColumn);
   }
@@ -41,8 +46,8 @@ public class InsertInto
       final Query query,
       final Optional<Expression> partitionByColumn) {
     super(location);
-    this.target = requireNonNull(target, "target is null");
-    this.query = requireNonNull(query, "query is null");
+    this.target = requireNonNull(target, "target");
+    this.query = requireNonNull(query, "query");
     this.partitionByColumn = partitionByColumn;
   }
 
@@ -60,10 +65,18 @@ public class InsertInto
   }
 
   @Override
+  public Sink getSink() {
+    final Map<String, Expression> properties = partitionByColumn
+        .map(exp -> ImmutableMap.of(DdlConfig.PARTITION_BY_PROPERTY, exp))
+        .orElseGet(ImmutableMap::of);
+
+    return Sink.of(target.getSuffix(), false, properties);
+  }
+
+  @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitInsertInto(this, context);
   }
-
 
   @Override
   public int hashCode() {

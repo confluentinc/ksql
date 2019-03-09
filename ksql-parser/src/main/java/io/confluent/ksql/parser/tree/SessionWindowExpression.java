@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import java.time.Duration;
@@ -30,6 +31,7 @@ import org.apache.kafka.streams.kstream.SessionWindows;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
+@Immutable
 public class SessionWindowExpression extends KsqlWindowExpression {
 
   private final long gap;
@@ -39,8 +41,11 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     this(Optional.empty(), gap, sizeUnit);
   }
 
-  private SessionWindowExpression(final Optional<NodeLocation> location, final long gap,
-                                  final TimeUnit sizeUnit) {
+  public SessionWindowExpression(
+      final Optional<NodeLocation> location,
+      final long gap,
+      final TimeUnit sizeUnit
+  ) {
     super(location);
     this.gap = gap;
     this.sizeUnit = sizeUnit;
@@ -58,7 +63,6 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitSessionWindowExpression(this, context);
   }
-
 
   @Override
   public String toString() {

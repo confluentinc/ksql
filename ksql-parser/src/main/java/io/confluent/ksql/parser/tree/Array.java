@@ -17,9 +17,11 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public final class Array extends Type {
 
   private final Type itemType;

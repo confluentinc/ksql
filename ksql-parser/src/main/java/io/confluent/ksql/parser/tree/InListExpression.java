@@ -15,26 +15,33 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class InListExpression
-    extends Expression {
+@Immutable
+public class InListExpression extends Expression {
 
-  private final List<Expression> values;
+  private final ImmutableList<Expression> values;
 
   public InListExpression(final List<Expression> values) {
     this(Optional.empty(), values);
   }
 
-  public InListExpression(final NodeLocation location, final List<Expression> values) {
-    this(Optional.of(location), values);
-  }
-
-  private InListExpression(final Optional<NodeLocation> location, final List<Expression> values) {
+  public InListExpression(
+      final Optional<NodeLocation> location,
+      final List<Expression> values
+  ) {
     super(location);
-    this.values = values;
+    this.values = ImmutableList.copyOf(requireNonNull(values, "values"));
+
+    if (values.isEmpty()) {
+      throw new IllegalArgumentException("IN statement requires at least one value.");
+    }
   }
 
   public List<Expression> getValues() {

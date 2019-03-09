@@ -15,12 +15,13 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-public abstract class GroupingElement
-    extends Node {
+@Immutable
+public abstract class GroupingElement extends Node {
 
   public GroupingElement(final Optional<NodeLocation> location) {
     super(location);

@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -272,8 +273,8 @@ public class AggregateAnalyzerTest {
     analyzer.processSelect(emptyFunc);
 
     // Then:
-    assertThat(analysis.getAggregateFunctions(), containsInAnyOrder(emptyFunc));
     assertThat(analysis.getRequiredColumns(), contains(DEFAULT_ARGUMENT));
+    assertThat(analysis.getAggregateFunctionArguments(), contains(DEFAULT_ARGUMENT));
   }
 
   @Test
@@ -285,6 +286,8 @@ public class AggregateAnalyzerTest {
     analyzer.processSelect(emptyFunc);
 
     // Then:
-    assertThat(emptyFunc.getArguments(), contains(DEFAULT_ARGUMENT));
+    assertThat(analysis.getAggregateFunctions(), hasSize(1));
+    assertThat(analysis.getAggregateFunctions().get(0).getName(), is(emptyFunc.getName()));
+    assertThat(analysis.getAggregateFunctions().get(0).getArguments(), contains(DEFAULT_ARGUMENT));
   }
 }

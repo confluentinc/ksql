@@ -15,9 +15,14 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.ExpressionFormatter;
 import java.util.Optional;
 
+/**
+ * Expressions are the parts the make up a {@link Statement}.
+ */
+@Immutable
 public abstract class Expression extends Node {
 
   protected Expression(final Optional<NodeLocation> location) {

@@ -639,9 +639,9 @@ public class KsqlParserTest {
     Assert.assertTrue("testSelectTumblingWindow failed.", query.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
     Assert.assertTrue("testSelectTumblingWindow failed.", ((AliasedRelation)query.getFrom()).getAlias().equalsIgnoreCase("ORDERS"));
     Assert.assertTrue("testSelectTumblingWindow failed.", query
-                                                               .getWindowExpression().isPresent());
+                                                               .getWindow().isPresent());
     Assert.assertTrue("testSelectTumblingWindow failed.", query
-        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECONDS ) "));
+        .getWindow().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECONDS ) "));
   }
 
   @Test
@@ -661,8 +661,8 @@ public class KsqlParserTest {
     assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
     assertThat(((AliasedRelation)query.getFrom()).getAlias().toUpperCase(), equalTo("ORDERS"));
     Assert.assertTrue("window expression isn't present", query
-        .getWindowExpression().isPresent());
-    assertThat(query.getWindowExpression().get().toString().toUpperCase(),
+        .getWindow().isPresent());
+    assertThat(query.getWindow().get().toString().toUpperCase(),
         equalTo(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECONDS , ADVANCE BY 5 SECONDS ) "));
   }
 
@@ -681,9 +681,9 @@ public class KsqlParserTest {
     Assert.assertTrue("testSelectSessionWindow failed.", query.getWhere().get().toString().equalsIgnoreCase("(ORDERS.ORDERUNITS > 5)"));
     Assert.assertTrue("testSelectSessionWindow failed.", ((AliasedRelation)query.getFrom()).getAlias().equalsIgnoreCase("ORDERS"));
     Assert.assertTrue("testSelectSessionWindow failed.", query
-        .getWindowExpression().isPresent());
+        .getWindow().isPresent());
     Assert.assertTrue("testSelectSessionWindow failed.", query
-        .getWindowExpression().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  SESSION "
+        .getWindow().get().toString().equalsIgnoreCase(" WINDOW STREAMWINDOW  SESSION "
                                                                  + "( 30 SECONDS ) "));
   }
 
@@ -702,7 +702,7 @@ public class KsqlParserTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListStreams);
     final ListStreams listStreams = (ListStreams) statement;
-    Assert.assertTrue(listStreams.toString().equalsIgnoreCase("ListStreams{}"));
+    assertThat(listStreams.toString(), is("ListStreams{showExtended=false}"));
     Assert.assertThat(listStreams.getShowExtended(), is(false));
   }
 
@@ -712,7 +712,7 @@ public class KsqlParserTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListTables);
     final ListTables listTables = (ListTables) statement;
-    Assert.assertTrue(listTables.toString().equalsIgnoreCase("ListTables{}"));
+    assertThat(listTables.toString(), is("ListTables{showExtended=false}"));
     Assert.assertThat(listTables.getShowExtended(), is(false));
   }
 
@@ -741,7 +741,7 @@ public class KsqlParserTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof SetProperty);
     final SetProperty setProperty = (SetProperty) statement;
-    Assert.assertTrue(setProperty.toString().equalsIgnoreCase("SetProperty{}"));
+    assertThat(setProperty.toString(), is("SetProperty{propertyName='auto.offset.reset', propertyValue='earliest'}"));
     Assert.assertTrue(setProperty.getPropertyName().equalsIgnoreCase("auto.offset.reset"));
     Assert.assertTrue(setProperty.getPropertyValue().equalsIgnoreCase("earliest"));
   }
@@ -753,6 +753,7 @@ public class KsqlParserTest {
                          + " from orders where col2 is null and col3 is not null or (col3*col2 = "
                          + "12);";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+
     Assert.assertTrue("testSelectTumblingWindow failed.", statement instanceof CreateStreamAsSelect);
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
     Assert.assertTrue(query.getWhere().toString().equalsIgnoreCase("Optional[(((ORDERS.COL2 IS NULL) AND (ORDERS.COL3 IS NOT NULL)) OR ((ORDERS.COL3 * ORDERS.COL2) = 12))]"));

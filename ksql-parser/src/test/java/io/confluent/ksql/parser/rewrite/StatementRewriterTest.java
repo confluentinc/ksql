@@ -435,9 +435,9 @@ public class StatementRewriterTest {
     assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
     assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
     assertThat(((AliasedRelation)query.getFrom()).getAlias(), equalTo("ORDERS"));
-    Assert.assertTrue( query.getWindowExpression().isPresent());
+    Assert.assertTrue( query.getWindow().isPresent());
     assertThat(query
-        .getWindowExpression().get().toString(), equalTo(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECONDS ) "));
+        .getWindow().get().toString(), equalTo(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECONDS ) "));
   }
 
   @Test
@@ -460,8 +460,8 @@ public class StatementRewriterTest {
     assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
     assertThat(((AliasedRelation)query.getFrom()).getAlias().toUpperCase(), equalTo("ORDERS"));
     assertThat("window expression isn't present", query
-        .getWindowExpression().isPresent());
-    assertThat(query.getWindowExpression().get().toString().toUpperCase(),
+        .getWindow().isPresent());
+    assertThat(query.getWindow().get().toString().toUpperCase(),
         equalTo(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECONDS , ADVANCE BY 5 SECONDS ) "));
   }
 
@@ -482,9 +482,9 @@ public class StatementRewriterTest {
     assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
     assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
     assertThat(((AliasedRelation)query.getFrom()).getAlias(), equalTo("ORDERS"));
-    Assert.assertTrue( query.getWindowExpression().isPresent());
+    Assert.assertTrue( query.getWindow().isPresent());
     assertThat(query
-        .getWindowExpression().get().toString(), equalTo(" WINDOW STREAMWINDOW  SESSION "
+        .getWindow().get().toString(), equalTo(" WINDOW STREAMWINDOW  SESSION "
         + "( 30 SECONDS ) "));
   }
 

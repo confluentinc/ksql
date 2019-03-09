@@ -63,8 +63,7 @@ statement
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
-    | EXPLAIN ANALYZE?
-            (statement | qualifiedName)         #explain
+    | EXPLAIN  (statement | qualifiedName)                                  #explain
     | RUN SCRIPT STRING                                                     #runScript
     ;
 

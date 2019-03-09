@@ -15,14 +15,57 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public abstract class AbstractStreamDropStatement extends Statement {
-  public AbstractStreamDropStatement(final Optional<NodeLocation> location) {
+
+  private final QualifiedName name;
+  private final boolean ifExists;
+  private final boolean deleteTopic;
+
+  AbstractStreamDropStatement(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final boolean ifExists,
+      final boolean deleteTopic
+  ) {
     super(location);
+    this.name = Objects.requireNonNull(name, "name");
+    this.ifExists = ifExists;
+    this.deleteTopic = deleteTopic;
   }
 
-  public abstract boolean getIfExists();
+  public boolean getIfExists() {
+    return ifExists;
+  }
 
-  public abstract QualifiedName getName();
+  public QualifiedName getName() {
+    return name;
+  }
+
+  public boolean isDeleteTopic() {
+    return deleteTopic;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, ifExists, deleteTopic);
+  }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof AbstractStreamDropStatement)) {
+      return false;
+    }
+    final AbstractStreamDropStatement o = (AbstractStreamDropStatement) obj;
+    return Objects.equals(name, o.name)
+        && (ifExists == o.ifExists)
+        && (deleteTopic == o.deleteTopic);
+  }
 }

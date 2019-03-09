@@ -15,11 +15,22 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public final class PrimitiveType extends Type {
+
+  private static final ImmutableMap<SqlType, PrimitiveType> TYPES = ImmutableMap.of(
+      SqlType.BOOLEAN, new PrimitiveType(SqlType.BOOLEAN),
+      SqlType.INTEGER, new PrimitiveType(SqlType.INTEGER),
+      SqlType.BIGINT, new PrimitiveType(SqlType.BIGINT),
+      SqlType.DOUBLE, new PrimitiveType(SqlType.DOUBLE),
+      SqlType.STRING, new PrimitiveType(SqlType.STRING)
+  );
 
   public static PrimitiveType of(final String typeName) {
     switch (typeName.toUpperCase()) {
@@ -38,20 +49,11 @@ public final class PrimitiveType extends Type {
   }
 
   public static PrimitiveType of(final SqlType sqlType) {
-    switch (sqlType) {
-      case BOOLEAN:
-        return new PrimitiveType(SqlType.BOOLEAN);
-      case INTEGER:
-        return new PrimitiveType(SqlType.INTEGER);
-      case BIGINT:
-        return new PrimitiveType(SqlType.BIGINT);
-      case DOUBLE:
-        return new PrimitiveType(SqlType.DOUBLE);
-      case STRING:
-        return new PrimitiveType(SqlType.STRING);
-      default:
-        throw new KsqlException("Invalid primitive type: " + sqlType);
+    final PrimitiveType primitive = TYPES.get(sqlType);
+    if (primitive == null) {
+      throw new KsqlException("Invalid primitive type: " + sqlType);
     }
+    return primitive;
   }
 
   private PrimitiveType(final SqlType sqlType) {

@@ -38,7 +38,6 @@ import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
@@ -173,21 +172,6 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    protected String visitIntervalLiteral(final IntervalLiteral node, final Boolean unmangleNames) {
-      final String sign = (node.getSign() == IntervalLiteral.Sign.NEGATIVE) ? "- " : "";
-      final StringBuilder builder = new StringBuilder()
-              .append("INTERVAL ")
-              .append(sign)
-              .append(" '").append(node.getValue()).append("' ")
-              .append(node.getStartField());
-
-      if (node.getEndField().isPresent()) {
-        builder.append(" TO ").append(node.getEndField().get());
-      }
-      return builder.toString();
-    }
-
-    @Override
     protected String visitQualifiedNameReference(final QualifiedNameReference node,
                                                  final Boolean unmangleNames) {
       return formatQualifiedName(node.getName());
@@ -219,9 +203,6 @@ public final class ExpressionFormatter {
       String arguments = joinExpressions(node.getArguments(), unmangleNames);
       if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().getSuffix())) {
         arguments = "*";
-      }
-      if (node.isDistinct()) {
-        arguments = "DISTINCT " + arguments;
       }
 
       builder.append(formatQualifiedName(node.getName()))
@@ -290,21 +271,11 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitLikePredicate(final LikePredicate node, final Boolean unmangleNames) {
-      final StringBuilder builder = new StringBuilder();
-
-      builder.append('(')
-              .append(process(node.getValue(), unmangleNames))
-              .append(" LIKE ")
-              .append(process(node.getPattern(), unmangleNames));
-
-      if (node.getEscape() != null) {
-        builder.append(" ESCAPE ")
-                .append(process(node.getEscape(), unmangleNames));
-      }
-
-      builder.append(')');
-
-      return builder.toString();
+      return "("
+          + process(node.getValue(), unmangleNames)
+          + " LIKE "
+          + process(node.getPattern(), unmangleNames)
+          + ')';
     }
 
     @Override

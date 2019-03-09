@@ -18,8 +18,8 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
-import javax.annotation.concurrent.Immutable;
 
 /**
  * Pojo holding sink information
@@ -29,7 +29,7 @@ public final class Sink {
 
   private final String name;
   private final boolean createSink;
-  private final Map<String, Expression> properties;
+  private final ImmutableMap<String, Expression> properties;
 
   /**
    * Info about the sink of a query.

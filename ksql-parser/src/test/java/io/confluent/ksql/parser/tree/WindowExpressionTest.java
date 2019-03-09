@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -28,14 +27,6 @@ public class WindowExpressionTest {
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final String SOME_NAME = "bob";
   private static final KsqlWindowExpression SOME_WINDOW = mock(KsqlWindowExpression.class);
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(KsqlWindowExpression.class, SOME_WINDOW)
-        .testAllPublicConstructors(WindowExpression.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

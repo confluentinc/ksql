@@ -19,22 +19,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import org.junit.Test;
 
 public class ArrayTest {
 
   private static final PrimitiveType SOME_TYPE = PrimitiveType.of(SqlType.STRING);
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .testAllPublicConstructors(Array.class);
-
-    new NullPointerTester()
-        .testAllPublicStaticMethods(Array.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {

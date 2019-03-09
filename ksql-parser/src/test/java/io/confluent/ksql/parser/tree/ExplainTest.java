@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -28,13 +27,6 @@ public class ExplainTest {
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final Optional<Statement> SOME_STATEMENT = Optional.of(mock(Statement.class));
   private static final Optional<String> SOME_QUERY_ID = Optional.of("bob");
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .testAllPublicConstructors(Explain.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

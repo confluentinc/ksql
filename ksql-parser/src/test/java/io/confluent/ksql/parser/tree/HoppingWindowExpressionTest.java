@@ -22,7 +22,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.easymock.EasyMock.same;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import java.time.Duration;
@@ -42,13 +41,6 @@ public class HoppingWindowExpressionTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .testAllPublicConstructors(HoppingWindowExpression.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

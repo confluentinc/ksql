@@ -49,7 +49,7 @@ public final class PrimitiveType extends Type {
   }
 
   public static PrimitiveType of(final SqlType sqlType) {
-    final PrimitiveType primitive = TYPES.get(sqlType);
+    final PrimitiveType primitive = TYPES.get(Objects.requireNonNull(sqlType, "sqlType"));
     if (primitive == null) {
       throw new KsqlException("Invalid primitive type: " + sqlType);
     }

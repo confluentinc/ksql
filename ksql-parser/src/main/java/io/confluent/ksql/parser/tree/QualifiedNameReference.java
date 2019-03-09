@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,7 +32,7 @@ public class QualifiedNameReference extends Expression {
 
   public QualifiedNameReference(final Optional<NodeLocation> location, final QualifiedName name) {
     super(location);
-    this.name = name;
+    this.name = requireNonNull(name, "name");
   }
 
   public QualifiedName getName() {

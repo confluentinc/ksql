@@ -16,12 +16,18 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assume.assumeThat;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.testing.NullPointerTester;
+import com.google.common.testing.NullPointerTester.Visibility;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.test.util.ClassFinder;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -33,6 +39,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -58,6 +65,31 @@ public class ParserModelTest {
           OptionalDouble.class::isAssignableFrom
       )
       .reduce(type -> false, Predicate::or);
+
+  private static final Select DEFAULT_SELECT =
+      new Select(ImmutableList.of(new AllColumns(Optional.empty())));
+  private static final Table DEFAULT_RELATION = new Table(QualifiedName.of("vic"));
+  private static final PrimitiveType DEFAULT_TYPE = PrimitiveType.of(SqlType.STRING);
+
+  private static final ImmutableMap<Class<?>, Object> DEFAULTS = ImmutableMap
+      .<Class<?>, Object>builder()
+      .put(QualifiedName.class, QualifiedName.of("bob"))
+      .put(Expression.class, DEFAULT_TYPE)
+      .put(KsqlWindowExpression.class, new TumblingWindowExpression(1, TimeUnit.SECONDS))
+      .put(Relation.class, DEFAULT_RELATION)
+      .put(JoinCriteria.class, new JoinOn(DEFAULT_TYPE))
+      .put(Select.class, DEFAULT_SELECT)
+      .put(InListExpression.class, new InListExpression(ImmutableList.of(DEFAULT_TYPE)))
+      .put(io.confluent.ksql.parser.tree.Type.class, DEFAULT_TYPE)
+      .put(Query.class, new Query(
+          DEFAULT_SELECT,
+          DEFAULT_RELATION,
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
+          OptionalInt.empty()))
+      .build();
 
   private final Class<?> modelClass;
   private final String name;
@@ -94,6 +126,20 @@ public class ParserModelTest {
   @Test
   public void shouldHaveOnlyImmutableFieldTypes() {
     getFields().forEach(this::assertImmutableFieldType);
+  }
+
+  @Test
+  public void shouldThrowNpeFromConstructors() {
+    assumeThat(Modifier.isAbstract(modelClass.getModifiers()), is(false));
+
+    getNullPointerTester()
+        .testConstructors(modelClass, Visibility.PACKAGE);
+  }
+
+  @Test
+  public void shouldThrowNpeFromFactoryMethods() {
+    getNullPointerTester()
+        .testStaticMethods(modelClass, Visibility.PACKAGE);
   }
 
   private Stream<Field> getFields() {
@@ -171,5 +217,15 @@ public class ParserModelTest {
   private static void checkTypeParameters(final ParameterizedType type) {
     Arrays.stream(type.getActualTypeArguments())
         .forEach(ParserModelTest::checkImmutableType);
+  }
+
+  @SuppressWarnings({"unchecked", "UnstableApiUsage"})
+  private static NullPointerTester getNullPointerTester() {
+    final NullPointerTester tester = new NullPointerTester();
+    DEFAULTS.forEach((type, value) -> {
+      assertThat(value, is(instanceOf(type)));
+      tester.setDefault((Class) type, value);
+    });
+    return tester;
   }
 }

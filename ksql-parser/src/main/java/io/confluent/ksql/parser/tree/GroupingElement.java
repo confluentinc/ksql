@@ -23,7 +23,7 @@ import java.util.Set;
 @Immutable
 public abstract class GroupingElement extends Node {
 
-  public GroupingElement(final Optional<NodeLocation> location) {
+  GroupingElement(final Optional<NodeLocation> location) {
     super(location);
   }
 

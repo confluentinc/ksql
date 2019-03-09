@@ -19,7 +19,6 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -35,15 +34,6 @@ public class CreateStreamAsSelectTest {
   );
   private static final Query SOME_QUERY = mock(Query.class);
   private static final Optional<Expression> EXPRESSION = Optional.of(mock(Expression.class));
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(QualifiedName.class, SOME_NAME)
-        .setDefault(Query.class, SOME_QUERY)
-        .testAllPublicConstructors(CreateStreamAsSelect.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

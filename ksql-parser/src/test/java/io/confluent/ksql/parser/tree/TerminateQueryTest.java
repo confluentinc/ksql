@@ -16,7 +16,6 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -25,13 +24,6 @@ public class TerminateQueryTest {
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final String SOME_QUERY_ID = "query0";
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .testAllPublicConstructors(TerminateQuery.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

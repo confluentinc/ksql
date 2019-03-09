@@ -16,7 +16,6 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -27,14 +26,6 @@ public class BetweenPredicateTest {
   private static final Expression EXP_0 = new StringLiteral("bob");
   private static final Expression EXP_1 = new StringLiteral("jane");
   private static final Expression EXP_2 = new StringLiteral("liz");
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(Expression.class, EXP_0)
-        .testAllPublicConstructors(BetweenPredicate.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

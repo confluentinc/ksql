@@ -16,7 +16,6 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -28,14 +27,6 @@ public class AliasedRelationTest {
 
   private static final Relation SOME_RELATION = new Table(QualifiedName.of("bob"));
   private static final Relation OTHER_RELATION = new Table(QualifiedName.of("pete"));
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(Relation.class, SOME_RELATION)
-        .testAllPublicConstructors(AliasedRelation.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

@@ -87,7 +87,7 @@ public class WindowExpression extends Node {
         return TimeUnit.valueOf(windowUnitString + "S");
       }
       return TimeUnit.valueOf(windowUnitString);
-    } catch (IllegalArgumentException | NullPointerException e) {
+    } catch (IllegalArgumentException e) {
       return null;
     }
   }

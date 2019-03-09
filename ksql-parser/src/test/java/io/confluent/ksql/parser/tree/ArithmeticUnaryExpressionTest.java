@@ -19,7 +19,6 @@ import static io.confluent.ksql.parser.tree.ArithmeticUnaryExpression.Sign.MINUS
 import static io.confluent.ksql.parser.tree.ArithmeticUnaryExpression.Sign.PLUS;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -29,21 +28,6 @@ public class ArithmeticUnaryExpressionTest {
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final Expression EXPRESSION_0 = new StringLiteral("bob");
   private static final Expression EXPRESSION_1 = new StringLiteral("jane");
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(ArithmeticUnaryExpression.Sign.class, PLUS)
-        .setDefault(Expression.class, EXPRESSION_0)
-        .testAllPublicConstructors(ArithmeticUnaryExpression.class);
-
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(ArithmeticUnaryExpression.Sign.class, PLUS)
-        .setDefault(Expression.class, EXPRESSION_0)
-        .testAllPublicStaticMethods(ArithmeticUnaryExpression.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

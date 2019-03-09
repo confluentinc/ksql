@@ -17,7 +17,6 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -32,14 +31,6 @@ public class InListExpressionTest {
       new StringLiteral("jane"));
   private static final List<Expression> OTHER_EXPRESSIONS = ImmutableList.of(
       new StringLiteral("peter"));
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(QualifiedName.class, SOME_NAME)
-        .testAllPublicConstructors(InListExpression.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

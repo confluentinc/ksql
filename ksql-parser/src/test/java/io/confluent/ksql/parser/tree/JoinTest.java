@@ -19,7 +19,6 @@ import static io.confluent.ksql.parser.tree.Join.Type.INNER;
 import static io.confluent.ksql.parser.tree.Join.Type.OUTER;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
@@ -34,15 +33,6 @@ public class JoinTest {
   private static final JoinCriteria OTHER_CRITERIA = new JoinOn(new StringLiteral("p"));
   private static final Optional<WithinExpression> SOME_WITHIN =
       Optional.of(new WithinExpression(1, TimeUnit.SECONDS));
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(Relation.class, RELATION_0)
-        .setDefault(JoinCriteria.class, SOME_CRITERIA)
-        .testAllPublicConstructors(Join.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

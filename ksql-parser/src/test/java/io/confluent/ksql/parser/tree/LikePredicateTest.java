@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -29,14 +28,6 @@ public class LikePredicateTest {
   private static final Expression EXP_0 = mock(Expression.class);
   private static final Expression EXP_1 = mock(Expression.class);
   private static final Expression DIFF = mock(Expression.class);
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(Expression.class, EXP_0)
-        .testAllPublicConstructors(LikePredicate.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

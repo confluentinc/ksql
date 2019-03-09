@@ -16,7 +16,6 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -28,13 +27,6 @@ public class AllColumnsTest {
   private static final Optional<QualifiedName> SOME_PREFIX = Optional.of(
       QualifiedName.of("Bob")
   );
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .testAllPublicConstructors(AllColumns.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

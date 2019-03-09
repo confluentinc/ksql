@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
@@ -48,7 +50,7 @@ public class SessionWindowExpression extends KsqlWindowExpression {
   ) {
     super(location);
     this.gap = gap;
-    this.sizeUnit = sizeUnit;
+    this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
   }
 
   public long getGap() {

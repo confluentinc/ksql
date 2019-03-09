@@ -19,7 +19,6 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -32,13 +31,6 @@ public class StatementsTest {
   private static final List<Statement> SOME_STATEMENTS = ImmutableList.of(
       mock(Statement.class)
   );
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .testAllPublicConstructors(Statements.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

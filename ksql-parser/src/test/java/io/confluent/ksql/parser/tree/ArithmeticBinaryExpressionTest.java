@@ -17,11 +17,9 @@ package io.confluent.ksql.parser.tree;
 
 import static io.confluent.ksql.parser.tree.ArithmeticBinaryExpression.Type.ADD;
 import static io.confluent.ksql.parser.tree.ArithmeticBinaryExpression.Type.DIVIDE;
-import static io.confluent.ksql.parser.tree.ArithmeticBinaryExpression.Type.SUBTRACT;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -31,15 +29,6 @@ public class ArithmeticBinaryExpressionTest {
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final Expression EXP_0 = mock(Expression.class);
   private static final Expression EXP_1 = mock(Expression.class);
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(ArithmeticBinaryExpression.Type.class, SUBTRACT)
-        .setDefault(Expression.class, EXP_0)
-        .testAllPublicConstructors(ArithmeticBinaryExpression.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

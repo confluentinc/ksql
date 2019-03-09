@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import java.util.List;
 import java.util.Map;
@@ -36,14 +35,6 @@ public class CreateTableTest {
   private static final Map<String, Expression> SOME_PROPS = ImmutableMap.of(
       "key", new StringLiteral("value")
   );
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(QualifiedName.class, SOME_NAME)
-        .testAllPublicConstructors(CreateTable.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

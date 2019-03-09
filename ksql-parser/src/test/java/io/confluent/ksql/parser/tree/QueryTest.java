@@ -19,7 +19,6 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.NullPointerTester;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Test;
@@ -36,7 +35,6 @@ public class QueryTest {
   private static final Select OTHER_SELECT = new Select(ImmutableList.of(new SingleColumn(
       new QualifiedNameReference(QualifiedName.of("Bob")), Optional.empty(), Optional.empty())));
   private static final Relation SOME_FROM = new Table(QualifiedName.of("from"));
-  ;
   private static final Optional<WindowExpression> SOME_WINDOW = Optional.of(
       mock(WindowExpression.class)
   );
@@ -50,15 +48,6 @@ public class QueryTest {
       mock(Expression.class)
   );
   private static final OptionalInt SOME_LIMIT = OptionalInt.of(1);
-
-  @Test
-  public void shouldThrowNpeOnConstruction() {
-    new NullPointerTester()
-        .setDefault(NodeLocation.class, SOME_LOCATION)
-        .setDefault(Relation.class, SOME_RELATION)
-        .setDefault(Select.class, SOME_SELECT)
-        .testAllPublicConstructors(Query.class);
-  }
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

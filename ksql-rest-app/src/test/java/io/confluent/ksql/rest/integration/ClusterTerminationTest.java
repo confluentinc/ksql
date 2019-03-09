@@ -63,7 +63,8 @@ public class ClusterTerminationTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .buildWithServiceContext(TEST_HARNESS::serviceContext);
+      .withServiceContext(TEST_HARNESS::serviceContext)
+      .build();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);

@@ -84,16 +84,6 @@ public class TestKsqlRestApp extends ExternalResource {
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
-      final Map<String, Object> additionalProps) {
-
-    this(
-        bootstrapServers,
-        additionalProps,
-        () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps)));
-  }
-
-  private TestKsqlRestApp(
-      final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext) {
 
@@ -369,6 +359,8 @@ public class TestKsqlRestApp extends ExternalResource {
 
     private final Map<String, Object> additionalProps = new HashMap<>();
 
+    private Supplier<ServiceContext> serviceContext;
+
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
     }
@@ -385,12 +377,19 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
-    public TestKsqlRestApp build() {
-      return new TestKsqlRestApp(bootstrapServers, additionalProps);
+    public Builder withServiceContext(final Supplier<ServiceContext> serviceContext) {
+      this.serviceContext = serviceContext;
+      return this;
     }
 
-    public TestKsqlRestApp buildWithServiceContext(final Supplier<ServiceContext> serviceContext) {
-      return new TestKsqlRestApp(bootstrapServers, additionalProps, serviceContext);
+    public TestKsqlRestApp build() {
+      return new TestKsqlRestApp(
+          bootstrapServers,
+          additionalProps,
+          serviceContext == null
+              ? () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps))
+              : serviceContext
+      );
     }
   }
 }

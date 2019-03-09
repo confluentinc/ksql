@@ -36,6 +36,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import javax.ws.rs.Consumes;
@@ -131,7 +132,9 @@ public class StreamedQueryResource {
       }
 
       if (statement.getStatement() instanceof PrintTopic) {
-        return handlePrintTopic((PreparedStatement<PrintTopic>) statement);
+        return handlePrintTopic(
+            request.getStreamsProperties(),
+            (PreparedStatement<PrintTopic>) statement);
       }
 
       return Errors.badRequest(String.format(
@@ -167,7 +170,10 @@ public class StreamedQueryResource {
     return Response.ok().entity(queryStreamWriter).build();
   }
 
-  private Response handlePrintTopic(final PreparedStatement<PrintTopic> statement) {
+  private Response handlePrintTopic(
+      final Map<String, Object> streamProperties,
+      final PreparedStatement<PrintTopic> statement
+  ) {
     final PrintTopic printTopic = statement.getStatement();
     final String topicName = printTopic.getTopic().toString();
 
@@ -183,9 +189,13 @@ public class StreamedQueryResource {
               topicName)));
     }
 
+    final Map<String, Object> propertiesWithOverrides =
+        new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+    propertiesWithOverrides.putAll(streamProperties);
+
     final TopicStreamWriter topicStreamWriter = new TopicStreamWriter(
         serviceContext.getSchemaRegistryClient(),
-        ksqlConfig.getKsqlStreamConfigProps(),
+        propertiesWithOverrides,
         printTopic,
         disconnectCheckInterval
     );

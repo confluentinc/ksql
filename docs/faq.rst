@@ -7,7 +7,7 @@ Frequently Asked Questions
 What are the benefits of KSQL?
 ==============================
 
-KSQL allows you to query, read, write, and process data in |ak|
+KSQL allows you to query, read, write, and process data in |ak-tm|
 in real-time and at scale using intuitive SQL-like syntax. KSQL does not
 require proficiency with a programming language such as Java or Scala,
 and you don’t have to install a separate processing cluster technology.
@@ -217,17 +217,21 @@ Yes. KSQL can be configured to communicate with |sr-long| over HTTPS. For more i
 Where are KSQL-related data and metadata stored?
 ================================================
 
-Metadata is stored in and built from the KSQL command topic. Each KSQL server
-has its own in-memory version of the metastore. To secure the metadata, you must
-secure the command topic.
+In interactive mode, KSQL stores metatada in and builds metadata ifrom the KSQL
+command topic. To secure the metadata, you must secure the command topic.
 
 The KSQL command topic stores all data definition language (DDL) statements:
 CREATE STREAM, CREATE TABLE, DROP STREAM, and DROP TABLE. Also, the KSQL command
 topic stores TERMINATE statements, which stop persistent queries based on
 CREATE STREAM AS SELECT (CSAS) and CREATE TABLE AS SELECT (CTAS). 
 
-Currently, data manipulation language (DML) statements, like UPDATE, INSERT,
-and DELETE, aren't available.
+Currently, data manipulation language (DML) statements, like UPDATE and DELETE
+aren't available.
+
+In headless mode, KSQL stores metadata in the config topic. The config topic stores
+the KSQL properties provided to KSQL when the application was first started. KSQL
+uses these configs to ensure that your KSQL queries are built compatibly on every
+restart of the server.
 
 ===============================================
 Which KSQL queries read or write data to Kafka?

@@ -20,7 +20,7 @@ These configurations control how Kafka Streams executes queries. These configura
 ksql.streams.auto.offset.reset
 ------------------------------
 
-Determines what to do when there is no initial offset in |ak| or if the current offset does not exist on the server. The
+Determines what to do when there is no initial offset in |ak-tm| or if the current offset does not exist on the server. The
 default value in KSQL is ``latest``, which means all Kafka topics are read from the latest available offset. For example,
 to change it to earliest by using the KSQL command line:
 
@@ -236,6 +236,9 @@ bind to the default interface. For example:
 
     # Bind only to localhost.
     listeners=http://localhost:8088
+
+You can configure KSQL Server to use HTTPS. For more information, see
+:ref:`config-ksql-for-https`.
 
 .. _ksql-c3-settings:
 

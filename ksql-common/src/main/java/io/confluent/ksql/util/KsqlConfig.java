@@ -137,6 +137,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_USE_NAMED_INTERNAL_TOPICS_ON, KSQL_USE_NAMED_INTERNAL_TOPICS_OFF
   );
 
+  public static final String KSQL_USE_NAMED_AVRO_MAPS = "ksql.avro.maps.named";
+  private static final String KSQL_USE_NAMED_AVRO_MAPS_DOC = "";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -213,6 +216,14 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               "The default number of replicas for the topics created by KSQL "
                   + "in 5.1 and earlier versions."
                   + "This property should not be set for 5.2 and later versions."
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_USE_NAMED_AVRO_MAPS,
+              ConfigDef.Type.BOOLEAN,
+              false,
+              true,
+              ConfigDef.Importance.LOW,
+              KSQL_USE_NAMED_AVRO_MAPS_DOC
           )
   );
 

@@ -7,6 +7,10 @@ Version 5.2.0
 KSQL 5.2 includes new features, including:
 
 * Support for :ref:`HTTPS <config-ksql-for-https>`.
+* Support for CASE expression: KSQL now supports CASE conditional expression in Searched form where KSQL evaluates each condition from left to right.
+  It returns the result for the first condition that evaluates to true. If no condition evaluates to true, the result for the ELSE clause will be returned.
+  If there is no ELSE clause, null is returned.
+
 * A new family of UDFs for improved handling of URIs (e.g. extracting information/decoding information), see :ref:`UDF table <functions>` for all URL functions
 * ``LIMIT`` keyword support for ``PRINT`` (`#1316 <https://github.com/confluentinc/ksql/issues/1316>`_)
 * Support for read-after-write consistency: new commands don't execute until previous commands have finished executing.
@@ -20,6 +24,11 @@ KSQL 5.2 includes new features, including:
     arithmetic results, functions, string concatenations and literals.
   * literals in the projection, (a.k.a the ``SELECT`` clause).
   * Multiple ``HAVING`` clauses, including the use of aggregate functions and literals.
+* Automatic compatibility management for queries in headless mode across versions. Starting with 5.2, KSQL will automatically take care
+  of ensuring query compatiblity when upgrading. This means you won't need to worry about setting properties correctly during upgrade, as
+  has been required for previous upgrades. Refer to the :ref:`architecture documentation <ksql-architecture-config-topic>` for details.
+  Note that it is still up to the user to set properties correctly before upgrading to 5.2. The :ref:`upgrade doc <upgrading-ksql>` has
+  details about the properties required to safely upgrade to 5.2.
 
 KSQL 5.2 includes bug fixes, including:
 

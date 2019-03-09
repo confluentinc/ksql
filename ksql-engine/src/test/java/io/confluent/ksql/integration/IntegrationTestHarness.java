@@ -456,13 +456,13 @@ public class IntegrationTestHarness extends ExternalResource {
           try {
             final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
             return Arrays.stream(topicNames)
-                .allMatch(name -> topicClient.isTopicExists(name));
+                .allMatch(topicClient::isTopicExists);
           } catch (Exception e) {
             throw new RuntimeException("could not get subjects");
           }
         },
         30_000,
-        "topics not all present after 30 seconds. topics: " + topicNames);
+        "topics not all present after 30 seconds. topics: " + Arrays.toString(topicNames));
   }
 
   /**
@@ -476,13 +476,13 @@ public class IntegrationTestHarness extends ExternalResource {
           try {
             final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
             return Arrays.stream(topicNames)
-                .noneMatch(name -> topicClient.isTopicExists(name));
+                .noneMatch(topicClient::isTopicExists);
           } catch (Exception e) {
             throw new RuntimeException("could not get subjects");
           }
         },
         30_000,
-        "topics not all absent after 30 seconds. topics: " + topicNames);
+        "topics not all absent after 30 seconds. topics: " + Arrays.toString(topicNames));
   }
 
   /**

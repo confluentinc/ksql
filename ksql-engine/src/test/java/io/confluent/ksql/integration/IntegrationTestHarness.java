@@ -446,11 +446,11 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
-   * Verify topics with names {@code topicNames} exist in Kafka.
+   * Wait for topics with names {@code topicNames} to exist in Kafka.
    *
-   * @param topicNames the names of the topics to check existence for.
+   * @param topicNames the names of the topics to await existence for.
    */
-  public void verifyTopicsPresent(final String... topicNames) throws Exception {
+  public void waitForTopicsToBePresent(final String... topicNames) throws Exception {
     TestUtils.waitForCondition(
         () -> {
           try {
@@ -466,11 +466,11 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
-   * Verify topics with names {@code topicNames} do not exist in Kafka.
+   * Wait for topics with names {@code topicNames} to not exist in Kafka.
    *
-   * @param topicNames the names of the topics to check absence for.
+   * @param topicNames the names of the topics to await absence for.
    */
-  public void verifyTopicsAbsent(final String... topicNames) throws Exception {
+  public void waitForTopicsToBeAbsent(final String... topicNames) throws Exception {
     TestUtils.waitForCondition(
         () -> {
           try {
@@ -486,11 +486,11 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
-   * Verify a subject with name {@code subjectName} exists in Schema Registry.
+   * Wait for a subject with name {@code subjectName} to exist in Schema Registry.
    *
-   * @param subjectName the name of the subject to check existence for.
+   * @param subjectName the name of the subject to await existence for.
    */
-  public void verifySubjectPresent(final String subjectName) throws Exception {
+  public void waitForSubjectToBePresent(final String subjectName) throws Exception {
     TestUtils.waitForCondition(
         () -> {
           try {
@@ -504,11 +504,11 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
-   * Verify no subject with name {@code subjectName} exists in Schema Registry.
+   * Wait for the subject with name {@code subjectName} to not exist in Schema Registry.
    *
-   * @param subjectName the name of the subject to check absence for.
+   * @param subjectName the name of the subject to await absence for.
    */
-  public void verifySubjectAbsent(final String subjectName) throws Exception {
+  public void waitForSubjectToBeAbsent(final String subjectName) throws Exception {
     TestUtils.waitForCondition(
         () -> {
           try {

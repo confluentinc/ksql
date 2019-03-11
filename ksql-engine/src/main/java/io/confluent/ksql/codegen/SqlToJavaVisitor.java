@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.kafka.connect.data.Field;
@@ -146,7 +147,7 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       return new Pair<>(
-          "\"" + node.getValue().replace("\"", "\\\"") + "\"",
+          "\"" + StringEscapeUtils.escapeJava(node.getValue()) + "\"",
           Schema.OPTIONAL_STRING_SCHEMA);
     }
 

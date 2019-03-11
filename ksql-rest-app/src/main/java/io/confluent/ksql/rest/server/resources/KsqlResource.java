@@ -391,6 +391,7 @@ public class KsqlResource {
     );
   }
 
+  @SuppressWarnings("rawtypes")
   private KsqlEntity listStreams(final PreparedStatement<ListStreams> statement) {
     final List<KsqlStream> ksqlStreams = getSpecificSources(KsqlStream.class);
 
@@ -409,6 +410,7 @@ public class KsqlResource {
             .collect(Collectors.toList()));
   }
 
+  @SuppressWarnings("rawtypes")
   private KsqlEntity listTables(final PreparedStatement<ListTables> statement) {
     final List<KsqlTable> ksqlTables = getSpecificSources(KsqlTable.class);
 
@@ -961,7 +963,8 @@ public class KsqlResource {
     /**
      * @deprecated `RUN SCRIPT` is deprecated since 5.2 and will be removed in the next major rel.
      */
-    @SuppressWarnings({"MethodMayBeStatic", "DeprecatedIsStillUsed"})
+    @Deprecated
+    @SuppressWarnings("DeprecatedIsStillUsed")
     private void validateRunScript(final PreparedStatement<RunScript> statement) {
       final String sql = (String) scopedPropertyOverrides
           .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);

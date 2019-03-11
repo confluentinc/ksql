@@ -56,8 +56,10 @@ public class TestFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public KsqlAggregateFunction getAggregate(final String functionName,
-                                            final Schema expressionType) {
+  public KsqlAggregateFunction<?, ?> getAggregate(
+      final String functionName,
+      final Schema expressionType
+  ) {
     return udafs.get(functionName.toUpperCase()).getProperAggregateFunction(
         Collections.singletonList(expressionType));
   }

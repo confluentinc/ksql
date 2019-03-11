@@ -152,6 +152,11 @@ final class EndToEndEngineTestUtil {
       compare(spec, o, "VALUE-SPEC");
       return Objects.equals(spec, o);
     }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(spec);
+    }
   }
 
   protected interface SerdeSupplier<T> {
@@ -994,6 +999,8 @@ final class EndToEndEngineTestUtil {
             return valueSpecToAvro(spec, memberSchema);
           }
         }
+        throw new RuntimeException("Union must have non-null type: " + schema.getType().getName());
+
       default:
         throw new RuntimeException(
             "This test does not support the data type yet: " + schema.getType().getName());

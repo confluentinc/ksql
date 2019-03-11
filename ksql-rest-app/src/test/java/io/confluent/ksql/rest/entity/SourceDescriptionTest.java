@@ -69,7 +69,7 @@ public class SourceDescriptionTest {
         new MetadataTimestampExtractionPolicy(), topic, Serdes.String());
   }
 
-  private ConsumerRecords buildRecords(final String kafkaTopicName) {
+  private ConsumerRecords<Object, Object> buildRecords(final String kafkaTopicName) {
     return new ConsumerRecords<>(
         ImmutableMap.of(
             new TopicPartition(kafkaTopicName, 1),

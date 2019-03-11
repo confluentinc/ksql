@@ -80,15 +80,14 @@ public class CommandTopic {
   }
 
 
-  @SuppressWarnings("unchecked")
   public RecordMetadata send(final CommandId commandId, final Command command) {
-    final ProducerRecord producerRecord = new ProducerRecord<>(
+    final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
         commandTopicName,
         0,
         Objects.requireNonNull(commandId, "commandId"),
         Objects.requireNonNull(command, "command"));
     try {
-      return (RecordMetadata) commandProducer.send(producerRecord).get();
+      return commandProducer.send(producerRecord).get();
     } catch (final ExecutionException e) {
       if (e.getCause() instanceof RuntimeException) {
         throw (RuntimeException)e.getCause();

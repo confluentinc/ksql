@@ -632,9 +632,9 @@ public class StandaloneExecutorTest {
 
     IntStream.range(0, parsedStmts.size()).forEach(idx -> {
       final ParsedStatement parsed = parsedStmts.get(idx);
-      final PreparedStatement prepared = statements[idx];
-      when(sandBox.prepare(parsed)).thenReturn(prepared);
-      when(ksqlEngine.prepare(parsed)).thenReturn(prepared);
+      final PreparedStatement<?> prepared = statements[idx];
+      when(sandBox.prepare(parsed)).thenReturn((PreparedStatement)prepared);
+      when(ksqlEngine.prepare(parsed)).thenReturn((PreparedStatement)prepared);
     });
   }
 

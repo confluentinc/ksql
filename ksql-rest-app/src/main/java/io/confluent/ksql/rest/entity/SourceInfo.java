@@ -54,7 +54,7 @@ public class SourceInfo {
       super(name, topic, format);
     }
 
-    public Stream(final KsqlStream ksqlStream) {
+    public Stream(final KsqlStream<?> ksqlStream) {
       this(
           ksqlStream.getName(),
           ksqlStream.getKsqlTopic().getKafkaTopicName(),
@@ -78,7 +78,7 @@ public class SourceInfo {
       this.isWindowed = isWindowed;
     }
 
-    public Table(final KsqlTable ksqlTable) {
+    public Table(final KsqlTable<?> ksqlTable) {
       this(
           ksqlTable.getName(),
           ksqlTable.getKsqlTopic().getKafkaTopicName(),

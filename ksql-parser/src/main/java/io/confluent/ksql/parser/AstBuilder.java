@@ -557,9 +557,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   @Override
   public Node visitSelectAll(final SqlBaseParser.SelectAllContext context) {
-    final Optional<QualifiedName> prefix = context.qualifiedName() == null
-        ? Optional.empty()
-        : Optional.of(getQualifiedName(context.qualifiedName()));
+    final Optional<QualifiedName> prefix = Optional.ofNullable(context.qualifiedName())
+        .map(AstBuilder::getQualifiedName);
 
     return new AllColumns(getLocation(context), prefix);
   }

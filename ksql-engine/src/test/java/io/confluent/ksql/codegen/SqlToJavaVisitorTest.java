@@ -143,6 +143,16 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
+  public void shouldEscapeQuotesInStringLiteral() {
+    final Analysis analysis = analyzeQuery(
+        "SELECT '\"foo\"' FROM test1;", metaStore);
+
+    final String javaExpression = sqlToJavaVisitor
+        .process(analysis.getSelectExpressions().get(0));
+    assertThat(javaExpression, equalTo("\"\\\"foo\\\"\""));
+  }
+
+  @Test
   public void shouldGenerateCorrectCodeForComparisonWithNegativeNumbers() {
     final Analysis analysis = analyzeQuery(
         "SELECT * FROM test1 WHERE col3 > -10.0;", metaStore);

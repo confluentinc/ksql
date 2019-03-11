@@ -17,6 +17,7 @@ package io.confluent.ksql.streams;
 
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Joined;
 
 public interface JoinedFactory {

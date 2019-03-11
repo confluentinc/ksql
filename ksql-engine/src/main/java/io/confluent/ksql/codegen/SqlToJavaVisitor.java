@@ -145,7 +145,9 @@ public class SqlToJavaVisitor {
         final StringLiteral node,
         final Void context
     ) {
-      return new Pair<>("\"" + node.getValue() + "\"", Schema.OPTIONAL_STRING_SCHEMA);
+      return new Pair<>(
+          "\"" + node.getValue().replace("\"", "\\\"") + "\"",
+          Schema.OPTIONAL_STRING_SCHEMA);
     }
 
     @Override

@@ -26,8 +26,7 @@ Here are some common KSQL CLI properties that you can customize:
 - :ref:`ksql.streams.auto.offset.reset <ksql-auto-offset-reset>`
 - :ref:`ksql.streams.cache.max.bytes.buffering <streams_developer-guide_optional-configs>`
 - :ref:`ksql.streams.num.stream.threads <streams_developer-guide_optional-configs>`
-- :ref:`ksql.sink.partitions <ksql-sink-partitions>`
-- :ref:`ksql.sink.replicas <ksql-sink-replicas>`
+
 
 
 

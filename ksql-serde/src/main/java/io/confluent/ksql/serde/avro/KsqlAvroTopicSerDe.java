@@ -71,12 +71,19 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
         ? schemaMaybeWithSource : SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource);
     final Serializer<GenericRow> genericRowSerializer = new ThreadLocalSerializer(
         () -> new KsqlConnectSerializer(
-            new AvroDataTranslator(schema),
+            new AvroDataTranslator(
+                schema,
+                ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS)
+            ),
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig)));
     final Deserializer<GenericRow> genericRowDeserializer = new ThreadLocalDeserializer(
         () -> new KsqlConnectDeserializer(
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig),
-            new AvroDataTranslator(schema))
+            new AvroDataTranslator(
+                schema,
+                ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS)
+            )
+        )
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }

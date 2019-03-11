@@ -85,6 +85,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
+  public static final String KSQL_USE_NAMED_AVRO_MAPS = "ksql.avro.maps.named";
+  private static final String KSQL_USE_NAMED_AVRO_MAPS_DOC = "";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -113,7 +116,16 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Suffix for state store names in Tables. For instance if the suffix is "
                   + "_ksql_statestore the state "
-                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "));
+                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
+          new CompatibiltyBreakingConfigDef(
+              KSQL_USE_NAMED_AVRO_MAPS,
+              ConfigDef.Type.BOOLEAN,
+              false,
+              false,
+              ConfigDef.Importance.LOW,
+              KSQL_USE_NAMED_AVRO_MAPS_DOC
+          )
+  );
 
   private static class CompatibiltyBreakingConfigDef {
     private final String name;

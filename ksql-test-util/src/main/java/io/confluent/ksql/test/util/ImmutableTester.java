@@ -141,7 +141,7 @@ public final class ImmutableTester {
       final ParameterizedType type,
       final Predicate<Class<?>> knownImmutable
   ) {
-    final Class rawType = (Class) type.getRawType();
+    final Class<?> rawType = (Class<?>) type.getRawType();
 
     if (Collection.class.isAssignableFrom(rawType)) {
       if (!ImmutableCollection.class.isAssignableFrom(rawType)) {

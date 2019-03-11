@@ -446,15 +446,15 @@ The WITH clause for the result supports the following properties:
 |                         | set, then the format of the input stream/table is used.                                              |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
-|                         | of partitions of the input stream/table will be used. In the Join queries the properties would       |
-|                         | come from the left hand side stream/table.                                                           |
+|                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
+|                         | from the left-side stream or table.                                                                  |
 |                         | For KSQL 5.2 and earlier, if the property is not set, the value of the ``ksql.sink.partitions``      |
 |                         | property, which defaults to four partitions, will be used. The ``ksql.sink.partitions`` property can |
 |                         | be set in the properties file the KSQL server is started with, or by using the ``SET`` statement.    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | REPLICAS                | The replication factor for the topic. If this property is not set, then the number of                |
-|                         | replicas of the input stream or table will be used. In the Join queries the properties would         |
-|                         | come from the left hand side stream/table.                                                           |
+|                         | replicas of the input stream or table will be used. In join queries, the property values are take    |
+|                         | from the left-side stream or table.                                                                  |
 |                         | For KSQL 5.2 and earlier, if the REPLICAS is not set, the value of the ``ksql.sink.replicas``        |
 |                         | property, which defaults to one replica, will be used. The ``ksql.sink.replicas`` property can       |
 |                         | be set in the properties file the KSQL server is started with, or by using the ``SET`` statement.    |

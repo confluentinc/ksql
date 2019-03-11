@@ -143,11 +143,11 @@ between Kafka and |sr|:
 ::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
-    ssl.truststore.location=/etc/kafka/secrets/ksql.truststore.jks
-    ssl.truststore.password=confluent
-    ssl.keystore.location=/etc/kafka/secrets/ksql.keystore.jks
-    ssl.keystore.password=confluent
-    ssl.key.password=confluent
+    ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/ksql.truststore.jks
+    ksql.schema.registry.ssl.truststore.password=<your-secure-password>
+    ksql.schema.registry.ssl.keystore.location=/etc/kafka/secrets/ksql.keystore.jks
+    ksql.schema.registry.ssl.keystore.password=<your-secure-password>
+    ksql.schema.registry.ssl.key.password=<your-secure-password>
 
 Use the following to configure KSQL to communicate with |sr| over HTTP, without
 mutual authentication and with an explicit trustStore. These settings explicitly configure only
@@ -157,7 +157,7 @@ KSQL to |sr| SSL communication.
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
     ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/sr.truststore.jks
-    ksql.schema.registry.ssl.truststore.password=confluent
+    ksql.schema.registry.ssl.truststore.password=<your-secure-password>
 
 The exact settings will vary depending on the encryption and authentication mechanisms 
 |sr| is using, and how your SSL certificates are signed.

@@ -126,7 +126,8 @@ properties file:
 ksql.schema.registry.url
 ------------------------
 
-The |sr| URL path to connect KSQL to.
+The |sr| URL path to connect KSQL to. To communicate with |sr| over a secure
+connection, see :ref:`config-security-ksql-sr`.
 
 .. _ksql-service-id:
 

@@ -2,6 +2,7 @@ package io.confluent.ksql.ddl.commands;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -14,6 +15,7 @@ import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -36,7 +38,7 @@ public class DropSourceCommandTest {
   @Test
   public void shouldSucceedOnMissingSourceWithIfExists() {
     // Given:
-    givenDropSourceCommand();
+    givenDropSourceCommand(true);
 
     EasyMock.expect(metaStore.getSource(STREAM_NAME)).andReturn(null);
     EasyMock.replay(metaStore);
@@ -49,9 +51,25 @@ public class DropSourceCommandTest {
   }
 
   @Test
+  public void shouldFailOnMissingSourceWithNoIfExists() {
+    // Given:
+    givenDropSourceCommand(false);
+
+    EasyMock.expect(metaStore.getSource(STREAM_NAME)).andReturn(null);
+    EasyMock.replay(metaStore);
+
+    // When/Then:
+    try {
+      dropSourceCommand.run(metaStore, false);
+      fail("Should raise a Ksql Exception if source not found");
+    } catch (final KsqlException e) {
+    }
+  }
+
+  @Test
   public void shouldCleanUpSchemaIfAvroTopic() throws Exception {
     // Given:
-    givenDropSourceCommand();
+    givenDropSourceCommand(true);
 
     EasyMock.expect(metaStore.getSource(STREAM_NAME)).andReturn(dataSource);
     metaStore.deleteSource(STREAM_NAME);
@@ -80,9 +98,9 @@ public class DropSourceCommandTest {
     EasyMock.verify(schemaRegistryClient);
   }
 
-  private void givenDropSourceCommand() {
+  private void givenDropSourceCommand(final boolean ifExists) {
     dropSourceCommand = new DropSourceCommand(
-        new DropStream(QualifiedName.of(STREAM_NAME), true, true),
+        new DropStream(QualifiedName.of(STREAM_NAME), ifExists, true),
         StructuredDataSource.DataSourceType.KSTREAM,
         kafkaTopicClient,
         schemaRegistryClient,

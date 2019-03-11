@@ -1577,7 +1577,7 @@ public class KsqlResourceTest {
     makeRequest("RUN SCRIPT '/some/script.sql';");
   }
 
-  private Answer executeAgainstEngine(final String sql) {
+  private Answer<?> executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
       return null;
@@ -1586,13 +1586,13 @@ public class KsqlResourceTest {
 
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Table sourceTable(final String name) {
-    final KsqlTable table = (KsqlTable) ksqlEngine.getMetaStore().getSource(name);
+    final KsqlTable<?> table = (KsqlTable) ksqlEngine.getMetaStore().getSource(name);
     return new SourceInfo.Table(table);
   }
 
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Stream sourceStream(final String name) {
-    final KsqlStream stream = (KsqlStream) ksqlEngine.getMetaStore().getSource(name);
+    final KsqlStream<?> stream = (KsqlStream) ksqlEngine.getMetaStore().getSource(name);
     return new SourceInfo.Stream(stream);
   }
 

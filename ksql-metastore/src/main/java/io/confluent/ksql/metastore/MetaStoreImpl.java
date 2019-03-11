@@ -224,8 +224,10 @@ public final class MetaStoreImpl implements MutableMetaStore {
     return functionRegistry.isAggregate(functionName);
   }
 
-  public KsqlAggregateFunction getAggregate(final String functionName,
-                                            final Schema argumentType) {
+  public KsqlAggregateFunction<?, ?> getAggregate(
+      final String functionName,
+      final Schema argumentType
+  ) {
     return functionRegistry.getAggregate(functionName, argumentType);
   }
 

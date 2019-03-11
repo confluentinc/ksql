@@ -217,7 +217,7 @@ public class RowGenerator {
 
     if (!sessionMap.containsKey(sessionisationValue)) {
 
-      final LinkedHashMap properties =
+      final LinkedHashMap<?, ?> properties =
           (LinkedHashMap) field.schema().getObjectProps().get("arg.properties");
       final Integer max = (Integer) ((LinkedHashMap) properties.get("range")).get("max");
 

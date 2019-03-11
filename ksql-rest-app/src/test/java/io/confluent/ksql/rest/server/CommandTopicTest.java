@@ -291,11 +291,12 @@ public class CommandTopicTest {
     verify(commandConsumer).endOffsets(Collections.singletonList(TOPIC_PARTITION));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("varargs")
+  @SafeVarargs
   private static ConsumerRecords<CommandId, Command> someConsumerRecords(
-      final ConsumerRecord... consumerRecords) {
-    return new ConsumerRecords(
+      final ConsumerRecord<CommandId, Command>... consumerRecords
+  ) {
+    return new ConsumerRecords<>(
         ImmutableMap.of(TOPIC_PARTITION, ImmutableList.copyOf(consumerRecords)));
   }
-
 }

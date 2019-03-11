@@ -56,7 +56,7 @@ public interface FunctionRegistry {
    * @return the function instance.
    * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentType}.
    */
-  KsqlAggregateFunction getAggregate(String functionName, Schema argumentType);
+  KsqlAggregateFunction<?, ?> getAggregate(String functionName, Schema argumentType);
 
   /**
    * @return all UDF factories.

@@ -37,7 +37,7 @@ public class SchemaDescriptionFormatTest {
   private void shouldSerializeCorrectly(final String descriptionString,
                                         final List<FieldInfo> deserialized) throws IOException {
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    final List deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
+    final List<?> deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
     final String serialized=  objectMapper.writeValueAsString(deserialized);
     assertThat(
         objectMapper.readValue(serialized, List.class),

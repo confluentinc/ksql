@@ -67,44 +67,44 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldGetCorrectJavaClassForBoolean() {
-    final Class booleanClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final Class<?> booleanClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
     assertThat(booleanClazz, equalTo(Boolean.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForInt() {
-    final Class intClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_INT32_SCHEMA);
+    final Class<?> intClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(intClazz, equalTo(Integer.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForBigInt() {
-    final Class longClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_INT64_SCHEMA);
+    final Class<?> longClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_INT64_SCHEMA);
     assertThat(longClazz, equalTo(Long.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForDouble() {
-    final Class doubleClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final Class<?> doubleClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_FLOAT64_SCHEMA);
     assertThat(doubleClazz, equalTo(Double.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForString() {
-    final Class StringClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_STRING_SCHEMA);
+    final Class<?> StringClazz = SchemaUtil.getJavaType(Schema.OPTIONAL_STRING_SCHEMA);
     assertThat(StringClazz, equalTo(String.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForArray() {
-    final Class arrayClazz = SchemaUtil
+    final Class<?> arrayClazz = SchemaUtil
         .getJavaType(SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build());
     assertThat(arrayClazz, equalTo(List.class));
   }
 
   @Test
   public void shouldGetCorrectJavaClassForMap() {
-    final Class mapClazz = SchemaUtil.getJavaType(
+    final Class<?> mapClazz = SchemaUtil.getJavaType(
         SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional()
             .build());
     assertThat(mapClazz, equalTo(Map.class));
@@ -315,42 +315,42 @@ public class SchemaUtilTest {
   @Test
   public void shouldGetTheCorrectJavaTypeForBoolean() {
     final Schema schema = Schema.OPTIONAL_BOOLEAN_SCHEMA;
-    final Class javaClass = SchemaUtil.getJavaType(schema);
+    final Class<?> javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Boolean.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForInt() {
     final Schema schema = Schema.OPTIONAL_INT32_SCHEMA;
-    final Class javaClass = SchemaUtil.getJavaType(schema);
+    final Class<?> javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Integer.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForLong() {
     final Schema schema = Schema.OPTIONAL_INT64_SCHEMA;
-    final Class javaClass = SchemaUtil.getJavaType(schema);
+    final Class<?> javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Long.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForDouble() {
     final Schema schema = Schema.OPTIONAL_FLOAT64_SCHEMA;
-    final Class javaClass = SchemaUtil.getJavaType(schema);
+    final Class<?> javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Double.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForString() {
     final Schema schema = Schema.OPTIONAL_STRING_SCHEMA;
-    final Class javaClass = SchemaUtil.getJavaType(schema);
+    final Class<?> javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(String.class));
   }
 
   @Test
   public void shouldGetTheCorrectJavaTypeForArray() {
     final Schema schema = SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
-    final Class javaClass = SchemaUtil.getJavaType(schema);
+    final Class<?> javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(List.class));
   }
 
@@ -358,7 +358,7 @@ public class SchemaUtilTest {
   public void shouldGetTheCorrectJavaTypeForMap() {
     final Schema schema = SchemaBuilder
         .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build();
-    final Class javaClass = SchemaUtil.getJavaType(schema);
+    final Class<?> javaClass = SchemaUtil.getJavaType(schema);
     assertThat(javaClass, equalTo(Map.class));
   }
 

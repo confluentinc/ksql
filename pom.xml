@@ -361,9 +361,12 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path</arg>
+                        <arg>-Xlint:all,-options,-path,-serial,-processing</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
+                    <compilerVersion>1.8</compilerVersion>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
 

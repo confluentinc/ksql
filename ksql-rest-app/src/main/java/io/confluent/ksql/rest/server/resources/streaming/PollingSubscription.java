@@ -33,7 +33,7 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
   private volatile boolean done = false;
   private Throwable exception = null;
   private boolean draining = false;
-  private volatile ListenableFuture future;
+  private volatile ListenableFuture<?> future;
 
   public PollingSubscription(
       final ListeningScheduledExecutorService exec,

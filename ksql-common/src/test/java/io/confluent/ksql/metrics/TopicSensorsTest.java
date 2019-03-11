@@ -56,7 +56,7 @@ public class TopicSensorsTest {
   @Test
   public void shouldGetMetricValueCorrectly() {
     // Given:
-    final TopicSensors.SensorMetric sensorMetric = new SensorMetric(sensor, metric, time, false);
+    final SensorMetric<?> sensorMetric = new SensorMetric<>(sensor, metric, time, false);
 
     // When:
     when(metric.metricValue()).thenReturn(1.2345);

@@ -59,7 +59,7 @@ public final class MetaStoreFixture {
         ksqlTopic0 =
         new KsqlTopic("TEST0", "test0", serde.get(), false);
 
-    final KsqlStream ksqlStream0 = new KsqlStream<>("sqlexpression",
+    final KsqlStream<?> ksqlStream0 = new KsqlStream<>("sqlexpression",
         "TEST0",
         test1Schema,
         test1Schema.field("COL0"),
@@ -74,7 +74,7 @@ public final class MetaStoreFixture {
         ksqlTopic1 =
         new KsqlTopic("TEST1", "test1", serde.get(), false);
 
-    final KsqlStream ksqlStream1 = new KsqlStream<>("sqlexpression",
+    final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
         test1Schema,
         test1Schema.field("COL0"),
@@ -145,7 +145,7 @@ public final class MetaStoreFixture {
         ksqlTopicOrders =
         new KsqlTopic("ORDERS_TOPIC", "orders_topic", serde.get(), false);
 
-    final KsqlStream ksqlStreamOrders = new KsqlStream<>(
+    final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ORDERS",
         schemaBuilderOrders,
@@ -193,7 +193,7 @@ public final class MetaStoreFixture {
         nestedArrayStructMapTopic =
         new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", serde.get(), false);
 
-    final KsqlStream nestedArrayStructMapOrders = new KsqlStream<>(
+    final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
         "sqlexpression",
         "NESTED_STREAM",
         nestedArrayStructMapSchema,

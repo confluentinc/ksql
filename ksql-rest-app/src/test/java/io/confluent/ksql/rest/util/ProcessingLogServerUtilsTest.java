@@ -151,7 +151,7 @@ public class ProcessingLogServerUtilsTest {
   private void assertLogStream(final String topicName) {
     final StructuredDataSource dataSource = metaStore.getSource(STREAM);
     assertThat(dataSource, instanceOf(KsqlStream.class));
-    final KsqlStream stream = (KsqlStream) dataSource;
+    final KsqlStream<?> stream = (KsqlStream) dataSource;
     final Schema expected = ProcessingLogServerUtils.getMessageSchema();
     assertThat(stream.getKsqlTopicSerde(), instanceOf(KsqlJsonTopicSerDe.class));
     assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));

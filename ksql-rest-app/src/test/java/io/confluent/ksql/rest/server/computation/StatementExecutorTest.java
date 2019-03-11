@@ -539,10 +539,11 @@ public class StatementExecutorTest extends EasyMockSupport {
         .andReturn(runScript);
     final ImmutableList<ParsedStatement> parsedStatements = ImmutableList
         .of(ParsedStatement.of(queryStatement, mock(SingleStatementContext.class)));
-    final PreparedStatement preparedStatement =
+    final PreparedStatement<?> preparedStatement =
         PreparedStatement.of(queryStatement, mock(Statement.class));
     expect(mockEngine.parse(eq(queryStatement))).andReturn(parsedStatements);
-    expect(mockEngine.prepare(parsedStatements.get(0))).andReturn(preparedStatement);
+    expect(mockEngine.prepare(parsedStatements.get(0)))
+        .andReturn((PreparedStatement)preparedStatement);
     expect(mockEngine.execute(eq(preparedStatement), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of(mockQuery));
     expect(mockEngine.numberOfPersistentQueries()).andReturn(0);

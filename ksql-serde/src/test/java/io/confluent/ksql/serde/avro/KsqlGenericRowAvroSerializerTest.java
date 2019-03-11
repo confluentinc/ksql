@@ -95,7 +95,7 @@ public class KsqlGenericRowAvroSerializerTest {
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    final List columns = Arrays.asList(
+    final List<Object> columns = Arrays.asList(
         1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
         Collections.singletonMap("key1", 100.0));
 
@@ -113,8 +113,8 @@ public class KsqlGenericRowAvroSerializerTest {
     assertThat("Incorrect serialization.", genericRecord.get("orderunits".toUpperCase()), equalTo
         (10.0));
 
-    final GenericData.Array array = (GenericData.Array) genericRecord.get("arraycol".toUpperCase());
-    final Map map = (Map) genericRecord.get("mapcol".toUpperCase());
+    final GenericData.Array<?> array = (GenericData.Array) genericRecord.get("arraycol".toUpperCase());
+    final Map<?, ?> map = (Map) genericRecord.get("mapcol".toUpperCase());
 
     assertThat("Incorrect serialization.", array.size(), equalTo(1));
     assertThat("Incorrect serialization.", array.get(0), equalTo(100.0));
@@ -125,7 +125,7 @@ public class KsqlGenericRowAvroSerializerTest {
 
   @Test
   public void shouldSerializeRowWithNullCorrectly() {
-    final List columns = Arrays.asList(
+    final List<Object> columns = Arrays.asList(
         1511897796092L, 1L, null, 10.0, Arrays.asList(100.0),
         Collections.singletonMap("key1", 100.0));
 
@@ -144,8 +144,8 @@ public class KsqlGenericRowAvroSerializerTest {
     assertThat("Incorrect serialization.", genericRecord.get("orderunits".toUpperCase()), equalTo
         (10.0));
 
-    final GenericData.Array array = (GenericData.Array) genericRecord.get("arraycol".toUpperCase());
-    final Map map = (Map) genericRecord.get("mapcol".toUpperCase());
+    final GenericData.Array<?> array = (GenericData.Array) genericRecord.get("arraycol".toUpperCase());
+    final Map<?, ?> map = (Map) genericRecord.get("mapcol".toUpperCase());
 
     assertThat("Incorrect serialization.", array.size(), equalTo(1));
     assertThat("Incorrect serialization.", array.get(0), equalTo(100.0));
@@ -155,9 +155,8 @@ public class KsqlGenericRowAvroSerializerTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldSerializeRowWithNullValues() {
-    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
+    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null, null);
 
     final GenericRow genericRow = new GenericRow(columns);
     serializer.serialize("t1", genericRow);
@@ -165,7 +164,7 @@ public class KsqlGenericRowAvroSerializerTest {
 
   @Test
   public void shouldFailForIncompatibleType() {
-    final List columns = Arrays.asList(
+    final List<Object> columns = Arrays.asList(
         1511897796092L, 1L, "item_1", "10.0", Arrays.asList((Double)100.0),
         Collections.singletonMap("key1", 100.0));
 

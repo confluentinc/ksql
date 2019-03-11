@@ -161,7 +161,7 @@ public class QueryDescriptionTest {
     expect(topology.describe()).andReturn(topologyDescription);
     replay(topology, topologyDescription);
     final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
-    final KsqlStream fakeSink = new KsqlStream<>(
+    final KsqlStream<?> fakeSink = new KsqlStream<>(
         STATEMENT, "fake_sink", SCHEMA, SCHEMA.fields().get(0),
         new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes.String());
     final Map<String, Object> streamsProperties = Collections.singletonMap("k", "v");

@@ -267,7 +267,8 @@ public class ClusterTerminatorTest {
     // Given:
     givenTopicsExistInKafka("K_Fo", "K_Foo", "K_Fooo", "NotMatched");
     givenSinkTopicsExistInMetastore("K_Fo", "K_Foo", "K_Fooo", "NotMatched");
-    final ArgumentCaptor<Collection> argumentCaptor = ArgumentCaptor.forClass(Collection.class);
+    final ArgumentCaptor<Collection<String>> argumentCaptor = ArgumentCaptor
+        .forClass(Collection.class);
 
     // When:
     clusterTerminator.terminateCluster(ImmutableList.of("K_Fo.*"));

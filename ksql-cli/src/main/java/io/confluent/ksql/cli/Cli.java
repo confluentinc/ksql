@@ -320,6 +320,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
+  @SuppressWarnings("try")
   private void handleStreamedQuery(final String query) throws IOException {
 
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
@@ -385,6 +386,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
   }
 
+  @SuppressWarnings("try")
   private void handlePrintedTopic(final String printTopic)
       throws InterruptedException, ExecutionException, IOException {
     final RestResponse<InputStream> topicResponse =

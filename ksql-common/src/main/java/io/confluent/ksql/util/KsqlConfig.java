@@ -103,6 +103,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       + " VARCHAR SUBSTRING(str VARCHAR, pos INT, length INT), where pos is base-one indexed,"
       + " and the last argument is the length of the substring to extract.";
 
+  public static final String KSQL_USE_NAMED_AVRO_MAPS = "ksql.avro.maps.named";
+  private static final String KSQL_USE_NAMED_AVRO_MAPS_DOC = "";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -138,7 +141,15 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               true,
               false,
               ConfigDef.Importance.LOW,
-              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS)
+              KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_DOCS),
+          new CompatibilityBreakingConfigDef(
+              KSQL_USE_NAMED_AVRO_MAPS,
+              ConfigDef.Type.BOOLEAN,
+              false,
+              false,
+              ConfigDef.Importance.LOW,
+              KSQL_USE_NAMED_AVRO_MAPS_DOC
+          )
   );
 
   private static class CompatibilityBreakingConfigDef {

@@ -789,7 +789,8 @@ final class EndToEndEngineTestUtil {
         .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
         .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
         .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
-        .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
+        .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all")
+        .put(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, true);
 
       if(additionalConfigs != null){
           mapBuilder.putAll(additionalConfigs);
@@ -896,7 +897,11 @@ final class EndToEndEngineTestUtil {
       case STRING:
         return avro.toString();
       case ARRAY:
-        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)) {
+        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
+            Objects.equals(
+                schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
+                AvroData.MAP_ENTRY_TYPE_NAME)
+            ) {
           final org.apache.avro.Schema valueSchema
               = schema.getElementType().getField("value").schema();
           return ((List) avro).stream().collect(

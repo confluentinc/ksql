@@ -71,10 +71,6 @@ public class IntegrationTestHarness {
     return topicClient;
   }
 
-  public SchemaRegistryClient schemaRegistryClient() {
-    return schemaRegistryClient;
-  }
-
   // Topic generation
   public void createTopic(final String topicName) {
     createTopic(topicName, 1, (short) 1);

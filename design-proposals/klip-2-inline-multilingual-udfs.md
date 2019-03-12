@@ -18,7 +18,7 @@ Allowing UDFs to be written in languages other than Java (e.g. JavaScript, Pytho
 - Increase UDF-related feature adoption among non-Java developers
 - Reduce the amount of code and time that is needed to deploy simple UDFs (by forgoing the relatively tedious build / deployment process of Java-based UDFs)
 - Enable rapid prototyping of new data transformation logic
-- Strengthen feature parity between KSQL and certain RDMBSes (e.g. Postgres, which supports [inline Python UDFs][postgres])
+- Strengthen feature parity between KSQL and certain RDBMSes (e.g. Postgres, which supports [inline Python UDFs][postgres])
 
 [postgres]: https://www.postgresql.org/docs/current/plpython-funcs.html
 

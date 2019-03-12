@@ -173,8 +173,8 @@ This config parameter works in KSQL 5.3 and later.
 ksql.sink.partitions (Deprecated)
 --------------------
 
-As of 5.3 release this config parameter has been deprecated.
-For KSQL 5.2 and earlier this is the default number of partitions for the topics created by KSQL. The default is four.
+The default number of partitions for the topics created by KSQL. The default is four.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
 
 .. _ksql-sink-replicas:
 
@@ -182,8 +182,8 @@ For KSQL 5.2 and earlier this is the default number of partitions for the topics
 ksql.sink.replicas (Deprecated)
 ------------------
 
-As of 5.3 release this config parameter has been deprecated.
-For KSQL 5.2 and earlier this is the default number of replicas for the topics created by KSQL. The default is one.
+The default number of replicas for the topics created by KSQL. The default is one.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
 
 ------------------------------------
 ksql.functions.substring.legacy.args

@@ -66,6 +66,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
@@ -108,6 +109,10 @@ public class IntegrationTestHarness extends ExternalResource {
 
   public ServiceContext getServiceContext() {
     return serviceContext.get();
+  }
+
+  public SchemaRegistryClient getSchemaRegistryClient() {
+    return serviceContext.get().getSchemaRegistryClient();
   }
 
   public TestKsqlContext buildKsqlContext() {
@@ -439,6 +444,82 @@ public class IntegrationTestHarness extends ExternalResource {
 
       return toUniqueRecords(consumerRecords);
     }
+  }
+
+  /**
+   * Wait for topics with names {@code topicNames} to exist in Kafka.
+   *
+   * @param topicNames the names of the topics to await existence for.
+   */
+  public void waitForTopicsToBePresent(final String... topicNames) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+            return Arrays.stream(topicNames)
+                .allMatch(topicClient::isTopicExists);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "topics not all present after 30 seconds. topics: " + Arrays.toString(topicNames));
+  }
+
+  /**
+   * Wait for topics with names {@code topicNames} to not exist in Kafka.
+   *
+   * @param topicNames the names of the topics to await absence for.
+   */
+  public void waitForTopicsToBeAbsent(final String... topicNames) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+            return Arrays.stream(topicNames)
+                .noneMatch(topicClient::isTopicExists);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "topics not all absent after 30 seconds. topics: " + Arrays.toString(topicNames));
+  }
+
+  /**
+   * Wait for a subject with name {@code subjectName} to exist in Schema Registry.
+   *
+   * @param subjectName the name of the subject to await existence for.
+   */
+  public void waitForSubjectToBePresent(final String subjectName) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            return getSchemaRegistryClient().getAllSubjects().contains(subjectName);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "subject not present after 30 seconds. subject: " + subjectName);
+  }
+
+  /**
+   * Wait for the subject with name {@code subjectName} to not exist in Schema Registry.
+   *
+   * @param subjectName the name of the subject to await absence for.
+   */
+  public void waitForSubjectToBeAbsent(final String subjectName) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            return !getSchemaRegistryClient().getAllSubjects().contains(subjectName);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "subject still present after 30 seconds. subject: " + subjectName);
   }
 
   protected void before() throws Exception {

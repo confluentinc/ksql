@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.util;
+package io.confluent.ksql.rest.server;
 
 import static org.easymock.EasyMock.niceMock;
 
@@ -31,8 +31,9 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
-import io.confluent.ksql.rest.server.KsqlRestApplication;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
@@ -77,15 +78,18 @@ public class TestKsqlRestApp extends ExternalResource {
 
   private final Map<String, ?> baseConfig;
   private final Supplier<String> bootstrapServers;
+  private final Supplier<ServiceContext> serviceContext;
   private final List<URL> listeners = new ArrayList<>();
   private KsqlRestApplication restServer;
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
-      final Map<String, Object> additionalProps) {
+      final Map<String, Object> additionalProps,
+      final Supplier<ServiceContext> serviceContext) {
 
     this.baseConfig = buildBaseConfig(additionalProps);
     this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
   }
 
   public List<URL> getListeners() {
@@ -185,9 +189,10 @@ public class TestKsqlRestApp extends ExternalResource {
 
     try {
       restServer = KsqlRestApplication.buildApplication(
-          buildConfig(),
+          buildConfig(bootstrapServers, baseConfig),
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
-          3
+          3,
+          serviceContext.get()
       );
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
@@ -316,7 +321,10 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private KsqlRestConfig buildConfig() {
+  private static KsqlRestConfig buildConfig(
+      final Supplier<String> bootstrapServers,
+      final Map<String, ?> baseConfig) {
+
     final HashMap<String, Object> config = new HashMap<>(baseConfig);
 
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.get());
@@ -337,14 +345,26 @@ public class TestKsqlRestApp extends ExternalResource {
     return configMap;
   }
 
+  private static ServiceContext defaultServiceContext(
+      final Supplier<String> bootstrapServers,
+      final Map<String, ?> baseConfig) {
+
+    return DefaultServiceContext.create(
+        new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties()));
+  }
+
   public static final class Builder {
 
     private final Supplier<String> bootstrapServers;
 
     private final Map<String, Object> additionalProps = new HashMap<>();
 
+    private Supplier<ServiceContext> serviceContext;
+
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
+      this.serviceContext =
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps));
     }
 
     @SuppressWarnings("unused") // Part of public API
@@ -359,8 +379,13 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
+    public Builder withServiceContext(final Supplier<ServiceContext> serviceContext) {
+      this.serviceContext = serviceContext;
+      return this;
+    }
+
     public TestKsqlRestApp build() {
-      return new TestKsqlRestApp(bootstrapServers, additionalProps);
+      return new TestKsqlRestApp(bootstrapServers, additionalProps, serviceContext);
     }
   }
 }

@@ -85,7 +85,7 @@ public class StandaloneExecutorFactoryTest {
   @After
   public void tearDown() throws Exception {
     verify(constructor)
-        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any());
+        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any(), any());
 
     engineCaptor.getAllValues().forEach(KsqlEngine::close);
   }

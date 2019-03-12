@@ -67,9 +67,13 @@ public class DefaultTopicInjector implements TopicInjector {
 
     final CreateAsSelect cas = (CreateAsSelect) statement.getStatement();
 
-    final String topic = topicName(cas, ksqlConfig);
+    final Analysis analysis = new QueryAnalyzer(
+        metaStore,
+        ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
+        .analyze(SqlFormatter.formatSql(cas), cas.getQuery(), Optional.of(cas.getSink()));
 
-    final TopicDescription description = describeSource(cas, metaStore, ksqlConfig, topicClient);
+    final String topic = topicName(cas, ksqlConfig);
+    final TopicDescription description = describeSource(analysis, topicClient);
     final int partitions = numPartitions(cas, ksqlConfig, propertyOverrides, description);
     final short replicas = numReplicas(cas, ksqlConfig, propertyOverrides, description);
 
@@ -85,17 +89,10 @@ public class DefaultTopicInjector implements TopicInjector {
   }
 
   private static TopicDescription describeSource(
-      final CreateAsSelect cas,
-      final MetaStore metaStore,
-      final KsqlConfig ksqlConfig,
+      final Analysis analysis,
       final KafkaTopicClient topicClient
   ) {
-    final Analysis analysis = new QueryAnalyzer(
-        metaStore,
-        ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
-        .analyze(SqlFormatter.formatSql(cas), cas.getQuery());
     final StructuredDataSource theSource = analysis.getTheSource();
-
     final String kafkaTopicName = theSource.getKsqlTopic().getKafkaTopicName();
     return topicClient.describeTopic(kafkaTopicName);
   }

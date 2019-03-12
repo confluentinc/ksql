@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.junit.Assert.fail;
@@ -53,7 +52,6 @@ import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -126,17 +124,13 @@ public class StandaloneExecutorTest {
   private static final CreateStreamAsSelect CREATE_STREAM_AS_SELECT = new CreateStreamAsSelect(
       QualifiedName.of("stream"),
       new Query(
-          new QuerySpecification(
-              new Select(true, ImmutableList.of(new AllColumns(new NodeLocation(0, 0)))),
-              new Table(QualifiedName.of("sink")),
-              true,
-              new Table(QualifiedName.of("source")),
-              Optional.empty(),
-              Optional.empty(),
-              Optional.empty(),
-              Optional.empty(),
-              OptionalInt.empty()
-          ),
+          Optional.empty(),
+          new Select(true, ImmutableList.of(new AllColumns(new NodeLocation(0, 0)))),
+          new Table(QualifiedName.of("sink")),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
           OptionalInt.empty()
       ),
       false,

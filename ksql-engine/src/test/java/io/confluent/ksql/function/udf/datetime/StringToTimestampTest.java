@@ -21,7 +21,6 @@ import static org.junit.Assert.assertThat;
 import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.TimeZone;
 import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Before;

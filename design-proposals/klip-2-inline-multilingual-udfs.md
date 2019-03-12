@@ -7,8 +7,9 @@
 **Status**: In Discussion
 
 <!-- TODO: replace with link to PR -->
-**Discussion**: link
+**Discussion**: [link][design_pr]
 
+[design_pr]: https://github.com/confluentinc/ksql/pull/2553
 [mitch-seymour]: https://github.com/mitch-seymour
 
 ## tl;dr

@@ -58,6 +58,7 @@ public class RequestValidator {
    * @param snapshotSupplier        supplies a snapshot of the current execution state, the
    *                                snapshot returned will be owned by this class and changes
    *                                to the snapshot should not affect the source and vice versa
+   * @param serviceContext          the {@link ServiceContext} to use
    * @param ksqlConfig              the {@link KsqlConfig} to validate against
    */
   public RequestValidator(

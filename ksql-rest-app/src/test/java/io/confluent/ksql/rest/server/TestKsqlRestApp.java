@@ -363,6 +363,8 @@ public class TestKsqlRestApp extends ExternalResource {
 
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
+      this.serviceContext =
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps));
     }
 
     @SuppressWarnings("unused") // Part of public API
@@ -383,13 +385,7 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     public TestKsqlRestApp build() {
-      return new TestKsqlRestApp(
-          bootstrapServers,
-          additionalProps,
-          serviceContext == null
-              ? () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps))
-              : serviceContext
-      );
+      return new TestKsqlRestApp(bootstrapServers, additionalProps, serviceContext);
     }
   }
 }

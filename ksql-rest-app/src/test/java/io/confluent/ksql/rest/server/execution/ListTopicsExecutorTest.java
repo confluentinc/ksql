@@ -68,7 +68,7 @@ public class ListTopicsExecutorTest {
         (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
             engine.prepare("LIST TOPICS;"),
             engine.getEngine(),
-            engine.getServiceContext(),
+            serviceContext,
             engine.getKsqlConfig(),
             ImmutableMap.of()).orElseThrow(IllegalStateException::new);
 

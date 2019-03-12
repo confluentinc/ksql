@@ -23,15 +23,15 @@ import org.apache.kafka.streams.errors.StreamsException;
  */
 public class KsqlServerException extends StreamsException {
 
-  public KsqlServerException(String message) {
+  public KsqlServerException(final String message) {
     super(message);
   }
 
-  public KsqlServerException(String message, Throwable throwable) {
+  public KsqlServerException(final String message, final Throwable throwable) {
     super(message, throwable);
   }
 
-  public KsqlServerException(Throwable throwable) {
+  public KsqlServerException(final Throwable throwable) {
     super(throwable);
   }
 }

@@ -57,7 +57,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
-        this.engine.getEngine(),
+        engine,
         this.engine.getServiceContext(),
         this.engine.getKsqlConfig(),
         ImmutableMap.of()

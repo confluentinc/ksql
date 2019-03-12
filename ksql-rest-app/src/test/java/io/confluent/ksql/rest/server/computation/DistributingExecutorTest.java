@@ -24,7 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.EmptyStatement;
+import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -35,6 +35,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
 import org.junit.Rule;
@@ -51,7 +52,7 @@ public class DistributingExecutorTest {
   private static final CommandId CS_COMMAND = new CommandId(Type.STREAM, "stream", Action.CREATE);
   private static final CommandStatus SUCCESS_STATUS = new CommandStatus(Status.SUCCESS, "");
   private static final PreparedStatement<?> EMPTY_STATEMENT =
-      PreparedStatement.of("", new EmptyStatement());
+      PreparedStatement.of("", new ListProperties(Optional.empty()));
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -117,7 +118,8 @@ public class DistributingExecutorTest {
     // Given:
     final KsqlException cause = new KsqlException("fail");
     when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
-    final PreparedStatement preparedStatement = PreparedStatement.of("x", new EmptyStatement());
+    final PreparedStatement preparedStatement =
+        PreparedStatement.of("x", new ListProperties(Optional.empty()));
 
     // Expect:
     expectedException.expect(KsqlServerException.class);
@@ -132,7 +134,8 @@ public class DistributingExecutorTest {
   @Test
   public void shouldThrowFailureIfCannotInferSchema() {
     // Given:
-    final PreparedStatement preparedStatement = PreparedStatement.of("", new EmptyStatement());
+    final PreparedStatement preparedStatement =
+        PreparedStatement.of("", new ListProperties(Optional.empty()));
     when(schemaInjector.forStatement(any())).thenThrow(new KsqlException("Could not infer!"));
 
     // Expect:

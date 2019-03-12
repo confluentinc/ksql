@@ -23,21 +23,25 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
+import io.confluent.ksql.rest.server.TemporaryEngine;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ListFunctionsExecutorTest extends CustomExecutorsTest {
+public class ListFunctionsExecutorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldListFunctions() {
     // When:
     final FunctionNameList functionList = (FunctionNameList) CustomExecutors.LIST_FUNCTIONS.execute(
-        prepare("LIST FUNCTIONS;"),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.prepare("LIST FUNCTIONS;"),
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         ImmutableMap.of()
     ).orElseThrow(IllegalStateException::new);
 

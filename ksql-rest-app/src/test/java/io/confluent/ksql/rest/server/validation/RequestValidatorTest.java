@@ -90,6 +90,17 @@ public class RequestValidatorTest {
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
         .thenReturn(Integer.MAX_VALUE);
     when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    final KsqlStream source = mock(KsqlStream.class);
+    when(source.getName()).thenReturn("SOURCE");
+    when(source.getSchema()).thenReturn(SCHEMA);
+
+    final KsqlStream sink = mock(KsqlStream.class);
+    when(sink.getName()).thenReturn("SINK");
+    when(sink.getSchema()).thenReturn(SCHEMA);
+
+    metaStore.putSource(source);
+    metaStore.putSource(sink);
   }
 
   @Test
@@ -179,17 +190,6 @@ public class RequestValidatorTest {
         ImmutableMap.of()
     );
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
-
-    final KsqlStream source = mock(KsqlStream.class);
-    when(source.getName()).thenReturn("SOURCE");
-    when(source.getSchema()).thenReturn(SCHEMA);
-
-    final KsqlStream sink = mock(KsqlStream.class);
-    when(sink.getName()).thenReturn("SINK");
-    when(sink.getSchema()).thenReturn(SCHEMA);
-
-    metaStore.putSource(source);
-    metaStore.putSource(sink);
 
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(

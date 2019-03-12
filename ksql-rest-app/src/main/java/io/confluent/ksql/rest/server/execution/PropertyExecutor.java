@@ -22,32 +22,30 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Optional;
 
-public class PropertyExecutor {
+public final class PropertyExecutor {
 
-  public static class Set {
-    public static Optional<KsqlEntity> execute(
-        final PreparedStatement statement,
-        final KsqlExecutionContext executionContext,
-        final ServiceContext serviceContext,
-        final KsqlConfig ksqlConfig,
-        final Map<String, Object> propertyOverrides
-    ) {
-      executionContext.execute(statement, ksqlConfig, propertyOverrides);
-      return Optional.empty();
-    }
+  private PropertyExecutor() { }
+
+  public static Optional<KsqlEntity> set(
+      final PreparedStatement statement,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> propertyOverrides
+  ) {
+    executionContext.execute(statement, ksqlConfig, propertyOverrides);
+    return Optional.empty();
   }
 
-  public static class Unset {
-    public static Optional<KsqlEntity> execute(
-        final PreparedStatement statement,
-        final KsqlExecutionContext executionContext,
-        final ServiceContext serviceContext,
-        final KsqlConfig ksqlConfig,
-        final Map<String, Object> propertyOverrides
-    ) {
-      executionContext.execute(statement, ksqlConfig, propertyOverrides);
-      return Optional.empty();
-    }
+  public static Optional<KsqlEntity> unset(
+      final PreparedStatement statement,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> propertyOverrides
+  ) {
+    executionContext.execute(statement, ksqlConfig, propertyOverrides);
+    return Optional.empty();
   }
 
 }

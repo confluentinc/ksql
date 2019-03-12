@@ -124,7 +124,7 @@ public class KsqlResource {
             commandQueue,
             KsqlResource::shouldSynchronize,
             distributedCmdResponseTimeout)
-    );
+        );
   }
 
   @POST

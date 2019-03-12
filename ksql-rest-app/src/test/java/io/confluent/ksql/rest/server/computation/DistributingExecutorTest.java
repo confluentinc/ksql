@@ -33,6 +33,7 @@ import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
@@ -116,11 +117,12 @@ public class DistributingExecutorTest {
     // Given:
     final KsqlException cause = new KsqlException("fail");
     when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
-    final PreparedStatement preparedStatement = PreparedStatement.of("", new EmptyStatement());
+    final PreparedStatement preparedStatement = PreparedStatement.of("x", new EmptyStatement());
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not write the statement");
+    expectedException.expect(KsqlServerException.class);
+    expectedException.expectMessage(
+        "Could not write the statement 'x' into the command topic: fail");
     expectedException.expectCause(is(cause));
 
     // When:

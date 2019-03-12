@@ -19,28 +19,32 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 
+import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PropertyExecutorTest extends CustomExecutorsTest {
+public class PropertyExecutorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldSetProperty() {
     // Given:
-    givenSource(DataSourceType.KSTREAM, "stream");
+    engine.givenSource(DataSourceType.KSTREAM, "stream");
     final Map<String, Object> properties = new HashMap<>();
 
     // When:
     CustomExecutors.SET_PROPERTY.execute(
-        prepare("SET 'property' = 'value';"),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.prepare("SET 'property' = 'value';"),
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         properties
     );
 
@@ -51,16 +55,16 @@ public class PropertyExecutorTest extends CustomExecutorsTest {
   @Test
   public void shouldUnSetProperty() {
     // Given:
-    givenSource(DataSourceType.KSTREAM, "stream");
+    engine.givenSource(DataSourceType.KSTREAM, "stream");
     final Map<String, Object> properties = new HashMap<>();
     properties.put("property", "value");
 
     // When:
     CustomExecutors.UNSET_PROPERTY.execute(
-        prepare("UNSET 'property';"),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.prepare("UNSET 'property';"),
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         properties
     );
 

@@ -24,7 +24,6 @@ import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.schema.inference.SchemaInjector;
-import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -59,7 +58,6 @@ public class RequestValidator {
    * @param snapshotSupplier        supplies a snapshot of the current execution state, the
    *                                snapshot returned will be owned by this class and changes
    *                                to the snapshot should not affect the source and vice versa
-   * @param serviceContext          the {@link ServiceContext} to use
    * @param ksqlConfig              the {@link KsqlConfig} to validate against
    */
   public RequestValidator(
@@ -96,8 +94,7 @@ public class RequestValidator {
       final String sql
   ) {
     final KsqlExecutionContext ctx = snapshotSupplier.get();
-    final SchemaInjector injector = schemaInjectorFactory.apply(
-        SandboxedServiceContext.create(serviceContext));
+    final SchemaInjector injector = schemaInjectorFactory.apply(serviceContext);
 
     int numPersistentQueries = 0;
     for (ParsedStatement parsed : statements) {

@@ -23,9 +23,10 @@ import io.confluent.ksql.rest.server.execution.StatementExecutor;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -45,9 +46,11 @@ public class DistributingExecutor implements StatementExecutor  {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final Function<ServiceContext, SchemaInjector> schemaInjectorFactory) {
-    this.commandQueue = commandQueue;
-    this.distributedCmdResponseTimeout = distributedCmdResponseTimeout;
-    this.schemaInjectorFactory = schemaInjectorFactory;
+    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
+    this.schemaInjectorFactory =
+        Objects.requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
+    this.distributedCmdResponseTimeout =
+        Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
   }
 
   @SuppressWarnings("unchecked")
@@ -75,8 +78,8 @@ public class DistributingExecutor implements StatementExecutor  {
           queuedCommandStatus.getCommandSequenceNumber()
       ));
     } catch (final Exception e) {
-      throw new KsqlException(String.format(
-          "Could not write the statement '%s' into the command " + "topic.",
+      throw new KsqlServerException(String.format(
+          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
           statement.getStatementText()), e);
     }
   }

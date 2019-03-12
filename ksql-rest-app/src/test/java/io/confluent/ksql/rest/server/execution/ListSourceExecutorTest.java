@@ -36,31 +36,37 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ListSourceExecutorTest extends CustomExecutorsTest {
+public class ListSourceExecutorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
+  @Rule public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldShowStreams() {
     // Given:
-    final KsqlStream stream1 = givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream stream2 = givenSource(DataSourceType.KSTREAM, "stream2");
-    givenSource(DataSourceType.KTABLE, "table");
+    final KsqlStream stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
+    final KsqlStream stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
+    engine.givenSource(DataSourceType.KTABLE, "table");
 
     // When:
     final StreamsList descriptionList = (StreamsList)
         CustomExecutors.LIST_STREAMS.execute(
-            prepare("SHOW STREAMS;"),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.prepare("SHOW STREAMS;"),
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()
         ).orElseThrow(IllegalStateException::new);
 
@@ -74,17 +80,17 @@ public class ListSourceExecutorTest extends CustomExecutorsTest {
   @Test
   public void shouldShowStreamsExtended() {
     // Given:
-    final KsqlStream stream1 = givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream stream2 = givenSource(DataSourceType.KSTREAM, "stream2");
-    givenSource(DataSourceType.KTABLE, "table");
+    final KsqlStream stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
+    final KsqlStream stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
+    engine.givenSource(DataSourceType.KTABLE, "table");
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_STREAMS.execute(
-            prepare("SHOW STREAMS EXTENDED;"),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.prepare("SHOW STREAMS EXTENDED;"),
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()
         ).orElseThrow(IllegalStateException::new);
 
@@ -98,17 +104,17 @@ public class ListSourceExecutorTest extends CustomExecutorsTest {
   @Test
   public void shouldShowTables() {
     // Given:
-    final KsqlTable table1 = givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable table2 = givenSource(DataSourceType.KTABLE, "table2");
-    givenSource(DataSourceType.KSTREAM, "stream");
+    final KsqlTable table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
+    final KsqlTable table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
+    engine.givenSource(DataSourceType.KSTREAM, "stream");
 
     // When:
     final TablesList descriptionList = (TablesList)
         CustomExecutors.LIST_TABLES.execute(
-            prepare("LIST TABLES;"),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.prepare("LIST TABLES;"),
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()
         ).orElseThrow(IllegalStateException::new);
 
@@ -122,22 +128,22 @@ public class ListSourceExecutorTest extends CustomExecutorsTest {
   @Test
   public void shouldShowTablesExtended() {
     // Given:
-    final KsqlTable table1 = givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable table2 = givenSource(DataSourceType.KTABLE, "table2");
-    givenSource(DataSourceType.KSTREAM, "stream");
+    final KsqlTable table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
+    final KsqlTable table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
+    engine.givenSource(DataSourceType.KSTREAM, "stream");
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_TABLES.execute(
-            prepare("LIST TABLES EXTENDED;"),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.prepare("LIST TABLES EXTENDED;"),
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    final KafkaTopicClient client = serviceContext.getTopicClient();
+    final KafkaTopicClient client = engine.getServiceContext().getTopicClient();
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         new SourceDescription(table1, true, "JSON", ImmutableList.of(), ImmutableList.of(), client),
         new SourceDescription(table2, true, "JSON", ImmutableList.of(), ImmutableList.of(), client)
@@ -147,14 +153,14 @@ public class ListSourceExecutorTest extends CustomExecutorsTest {
   @Test
   public void shouldShowColumnsSource() {
     // Given:
-    givenSource(DataSourceType.KSTREAM, "SOURCE");
-    final ExecuteResult result = engine.execute(
-        prepare("CREATE STREAM SINK AS SELECT * FROM source;"),
-        ksqlConfig,
+    engine.givenSource(DataSourceType.KSTREAM, "SOURCE");
+    final ExecuteResult result = engine.getEngine().execute(
+        engine.prepare("CREATE STREAM SINK AS SELECT * FROM source;"),
+        engine.getKsqlConfig(),
         ImmutableMap.of());
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) result.getQuery()
         .orElseThrow(IllegalArgumentException::new);
-    final StructuredDataSource stream = engine.getMetaStore().getSource("SINK");
+    final StructuredDataSource stream = engine.getEngine().getMetaStore().getSource("SINK");
 
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
@@ -162,9 +168,9 @@ public class ListSourceExecutorTest extends CustomExecutorsTest {
             PreparedStatement.of(
                 "DESCRIBE SINK;",
                 new ShowColumns(QualifiedName.of("SINK"), false, false)),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()
         ).orElseThrow(IllegalStateException::new);
 
@@ -185,20 +191,21 @@ public class ListSourceExecutorTest extends CustomExecutorsTest {
   @Test
   public void shouldShowColumnsTopic() {
     // Given:
-    givenSource(DataSourceType.KSTREAM, "S");
+    engine.givenSource(DataSourceType.KSTREAM, "S");
 
     // When:
     final TopicDescription description = (TopicDescription) CustomExecutors.SHOW_COLUMNS.execute(
-        prepare("DESCRIBE TOPIC S;"),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.prepare("DESCRIBE TOPIC S;"),
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         ImmutableMap.of()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(description,
-        equalTo(new TopicDescription("DESCRIBE TOPIC S;", "S", "S", "JSON", SCHEMA.toString())));
+        equalTo(new TopicDescription("DESCRIBE TOPIC S;", "S", "S", "JSON",
+            TemporaryEngine.SCHEMA.toString())));
   }
 
   @Test
@@ -209,10 +216,10 @@ public class ListSourceExecutorTest extends CustomExecutorsTest {
 
     // When:
     CustomExecutors.SHOW_COLUMNS.execute(
-        prepare("DESCRIBE TOPIC S;"),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.prepare("DESCRIBE TOPIC S;"),
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         ImmutableMap.of()
     );
   }

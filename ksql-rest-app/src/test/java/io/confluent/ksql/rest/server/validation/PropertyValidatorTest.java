@@ -17,16 +17,22 @@ package io.confluent.ksql.rest.server.validation;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.Optional;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PropertyValidatorTest extends CustomValidatorsTest {
+public class PropertyValidatorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
+  @Rule public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldFailOnUnknownSetProperty() {
@@ -39,9 +45,9 @@ public class PropertyValidatorTest extends CustomValidatorsTest {
         PreparedStatement.of(
             "SET 'consumer.invalid'='value';",
             new SetProperty(Optional.empty(), "consumer.invalid", "value")),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         new HashMap<>()
     );
   }
@@ -53,9 +59,9 @@ public class PropertyValidatorTest extends CustomValidatorsTest {
         PreparedStatement.of(
             "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '1';",
             new SetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "1")),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         new HashMap<>()
     );
   }
@@ -72,9 +78,9 @@ public class PropertyValidatorTest extends CustomValidatorsTest {
         PreparedStatement.of(
             "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = 'invalid';",
             new SetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "invalid")),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         new HashMap<>()
     );
   }
@@ -90,9 +96,9 @@ public class PropertyValidatorTest extends CustomValidatorsTest {
         PreparedStatement.of(
             "UNSET 'consumer.invalid';",
             new UnsetProperty(Optional.empty(), "consumer.invalid")),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         new HashMap<>()
     );
   }
@@ -104,9 +110,9 @@ public class PropertyValidatorTest extends CustomValidatorsTest {
         PreparedStatement.of(
             "UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';",
             new UnsetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         new HashMap<>()
     );
   }

@@ -14,31 +14,49 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
+import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import org.eclipse.jetty.http.HttpStatus.Code;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class QueryValidatorTest extends CustomValidatorsTest {
+public class QueryValidatorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
+  @Rule public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldThrowExceptionOnQueryEndpoint() {
     // Expect:
-    expectBadRequest(
-        "SELECT and PRINT queries must use the /query endpoint",
-        "SELECT * FROM test_table;");
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
+        "SELECT and PRINT queries must use the /query endpoint"))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
+        "SELECT * FROM test_table"))));
 
     // When:
     CustomValidators.QUERY_ENDPOINT.validate(
         PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         ImmutableMap.of()
     );
   }

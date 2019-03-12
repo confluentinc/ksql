@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -41,6 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -69,15 +71,16 @@ public enum CustomValidators implements StatementValidator {
   SET_PROPERTY(SetProperty.class, PropertyValidator::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyValidator::unset),
 
-  TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate),
-  RUN_SCRIPT(RunScript.class, StatementValidator.NO_VALIDATION);
+  TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate);
 
   public static final Map<Class<? extends Statement>, StatementValidator> VALIDATOR_MAP =
-      EnumSet.allOf(CustomValidators.class)
-          .stream()
-          .collect(Collectors.toMap(
-              CustomValidators::getStatementClass,
-              Function.identity()));
+      ImmutableMap.copyOf(
+        EnumSet.allOf(CustomValidators.class)
+            .stream()
+            .collect(Collectors.toMap(
+                CustomValidators::getStatementClass,
+                Function.identity()))
+      );
 
   private final Class<? extends Statement> statementClass;
   private final StatementValidator validator;
@@ -85,11 +88,11 @@ public enum CustomValidators implements StatementValidator {
   CustomValidators(
       final Class<? extends Statement> statementClass,
       final StatementValidator validator) {
-    this.statementClass = statementClass;
-    this.validator = validator;
+    this.statementClass = Objects.requireNonNull(statementClass, "statementClass");
+    this.validator = Objects.requireNonNull(validator, "validator");
   }
 
-  public Class<? extends Statement> getStatementClass() {
+  private Class<? extends Statement> getStatementClass() {
     return statementClass;
   }
 

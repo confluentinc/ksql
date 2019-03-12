@@ -26,7 +26,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Map;
 
-public class PropertyValidator {
+public final class PropertyValidator {
+
+  private PropertyValidator() { }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
   public static void set(

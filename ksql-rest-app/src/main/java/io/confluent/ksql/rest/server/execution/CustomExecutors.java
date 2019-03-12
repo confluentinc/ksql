@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -34,6 +35,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -57,15 +59,17 @@ public enum CustomExecutors implements StatementExecutor {
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
-  SET_PROPERTY(SetProperty.class, PropertyExecutor.Set::execute),
-  UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor.Unset::execute);
+  SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
+  UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset);
 
   public static final Map<Class<? extends Statement>, StatementExecutor> EXECUTOR_MAP =
-      EnumSet.allOf(CustomExecutors.class)
-          .stream()
-          .collect(Collectors.toMap(
-              CustomExecutors::getStatementClass,
-              Function.identity()));
+      ImmutableMap.copyOf(
+          EnumSet.allOf(CustomExecutors.class)
+              .stream()
+              .collect(Collectors.toMap(
+                  CustomExecutors::getStatementClass,
+                  Function.identity()))
+      );
 
   private final Class<? extends Statement> statementClass;
   private final StatementExecutor executor;
@@ -73,11 +77,11 @@ public enum CustomExecutors implements StatementExecutor {
   CustomExecutors(
       final Class<? extends Statement> statementClass,
       final StatementExecutor executor) {
-    this.statementClass = statementClass;
-    this.executor = executor;
+    this.statementClass = Objects.requireNonNull(statementClass, "statementClass");
+    this.executor = Objects.requireNonNull(executor, "executor");
   }
 
-  public Class<? extends Statement> getStatementClass() {
+  private Class<? extends Statement> getStatementClass() {
     return statementClass;
   }
 

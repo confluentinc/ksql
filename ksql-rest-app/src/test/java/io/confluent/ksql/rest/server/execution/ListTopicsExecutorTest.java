@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
+import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import java.util.Collection;
@@ -30,18 +31,21 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
 import org.apache.kafka.common.internals.KafkaFutureImpl;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ListTopicsExecutorTest extends CustomExecutorsTest {
+public class ListTopicsExecutorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldListKafkaTopics() {
     // Given:
-    givenKsqlTopic("topic1");
-    givenKafkaTopic("topic2");
+    engine.givenKsqlTopic("topic1");
+    engine.givenKafkaTopic("topic2");
 
     final AdminClient mockAdminClient = mock(AdminClient.class);
     final ListConsumerGroupsResult result = mock(ListConsumerGroupsResult.class);
@@ -52,19 +56,19 @@ public class ListTopicsExecutorTest extends CustomExecutorsTest {
     groups.complete(ImmutableList.of());
 
     final ServiceContext serviceContext = TestServiceContext.create(
-        this.serviceContext.getKafkaClientSupplier(),
+        engine.getServiceContext().getKafkaClientSupplier(),
         mockAdminClient,
-        this.serviceContext.getTopicClient(),
-        this.serviceContext.getSchemaRegistryClientFactory()
+        engine.getServiceContext().getTopicClient(),
+        engine.getServiceContext().getSchemaRegistryClientFactory()
     );
 
     // When:
     final KafkaTopicsList topicsList =
         (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
-            prepare("LIST TOPICS;"),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.prepare("LIST TOPICS;"),
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()).orElseThrow(IllegalStateException::new);
 
     // Then:

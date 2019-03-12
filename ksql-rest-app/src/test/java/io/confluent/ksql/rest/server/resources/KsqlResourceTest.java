@@ -162,11 +162,6 @@ import org.mockito.stubbing.Answer;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlResourceTest {
 
-  // REVIEW NOTE: I left all of these tests in tact and in a follow-up PR I will remove
-  // all of the tests that are covered by the new functionality. That way it will be easy
-  // to ensure that this PR is valid.
-  // TODO: remove this note before merging
-
   private static final long STATE_CLEANUP_DELAY_MS_DEFAULT = 10 * 60 * 1000L;
   private static final int FETCH_MIN_BYTES_DEFAULT = 1;
   private static final long BUFFER_MEMORY_DEFAULT = 32 * 1024 * 1024L;
@@ -1581,7 +1576,24 @@ public class KsqlResourceTest {
     makeRequest("RUN SCRIPT '/some/script.sql';");
   }
 
-  private Answer<?> executeAgainstEngine(final String sql) {
+  @Test
+  public void shouldThrowServerErrorOnFailedToDistribute() {
+    // Given:
+    when(commandStore.enqueueCommand(any(), any(), any())).thenThrow(new KsqlException("blah"));
+    final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.INTERNAL_SERVER_ERROR)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+        "Could not write the statement '" + statement
+            + "' into the command topic: blah\nCaused by: blah"))));
+
+    // When:
+    makeRequest(statement);
+  }
+
+  private Answer executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
       return null;

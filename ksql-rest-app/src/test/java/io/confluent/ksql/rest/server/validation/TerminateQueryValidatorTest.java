@@ -14,16 +14,30 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.Optional;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.OngoingStubbing;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TerminateQueryValidatorTest extends CustomValidatorsTest {
+public class TerminateQueryValidatorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
+  @Rule public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldFailOnTerminateUnknownQueryId() {
@@ -34,9 +48,26 @@ public class TerminateQueryValidatorTest extends CustomValidatorsTest {
     // When:
     CustomValidators.TERMINATE_QUERY.validate(
         PreparedStatement.of("", new TerminateQuery("id")),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
+        ImmutableMap.of()
+    );
+  }
+
+  @Test
+  public void shouldValidateKnownQueryId() {
+    // Given:
+    final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
+    final KsqlEngine mockEngine = mock(KsqlEngine.class);
+    when(mockEngine.getPersistentQuery(any())).thenReturn(Optional.ofNullable(metadata));
+
+    // Expect nothing when:
+    CustomValidators.TERMINATE_QUERY.validate(
+        PreparedStatement.of("", new TerminateQuery("id")),
+        mockEngine,
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         ImmutableMap.of()
     );
   }

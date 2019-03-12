@@ -26,28 +26,32 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.util.KsqlConfig;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ListPropertiesExecutorTest extends CustomExecutorsTest {
+public class ListPropertiesExecutorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldListProperties() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        prepare("LIST PROPERTIES;"),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.prepare("LIST PROPERTIES;"),
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         ImmutableMap.of()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(properties.getProperties(),
-        equalTo(ksqlConfig.getAllConfigPropsWithSecretsObfuscated()));
+        equalTo(engine.getKsqlConfig().getAllConfigPropsWithSecretsObfuscated()));
     assertThat(properties.getOverwrittenProperties(), is(empty()));
   }
 
@@ -55,10 +59,10 @@ public class ListPropertiesExecutorTest extends CustomExecutorsTest {
   public void shouldListPropertiesWithOverrides() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        prepare("LIST PROPERTIES;"),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.prepare("LIST PROPERTIES;"),
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         ImmutableMap.of("auto.offset.reset", "latest")
     ).orElseThrow(IllegalStateException::new);
 
@@ -72,10 +76,10 @@ public class ListPropertiesExecutorTest extends CustomExecutorsTest {
   public void shouldNotListSslProperties() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        prepare("LIST PROPERTIES;"),
-        engine,
-        serviceContext,
-        ksqlConfig,
+        engine.prepare("LIST PROPERTIES;"),
+        engine.getEngine(),
+        engine.getServiceContext(),
+        engine.getKsqlConfig(),
         ImmutableMap.of()
     ).orElseThrow(IllegalStateException::new);
 

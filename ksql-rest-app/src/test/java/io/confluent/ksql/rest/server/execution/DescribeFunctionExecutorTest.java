@@ -19,24 +19,28 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionType;
+import io.confluent.ksql.rest.server.TemporaryEngine;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DescribeFunctionExecutorTest extends CustomExecutorsTest {
+public class DescribeFunctionExecutorTest {
+
+  @Rule public TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldDescribeUDF() {
     // When:
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
-            prepare("DESCRIBE FUNCTION CONCAT;"),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.prepare("DESCRIBE FUNCTION CONCAT;"),
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()
         ).orElseThrow(IllegalStateException::new);
 
@@ -60,10 +64,10 @@ public class DescribeFunctionExecutorTest extends CustomExecutorsTest {
     // When:
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
-            prepare("DESCRIBE FUNCTION MAX;"),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.prepare("DESCRIBE FUNCTION MAX;"),
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()
         ).orElseThrow(IllegalStateException::new);
 

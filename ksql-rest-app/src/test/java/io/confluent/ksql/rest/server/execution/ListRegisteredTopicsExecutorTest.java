@@ -21,26 +21,30 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.rest.entity.KsqlTopicInfo;
 import io.confluent.ksql.rest.entity.KsqlTopicsList;
+import io.confluent.ksql.rest.server.TemporaryEngine;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ListRegisteredTopicsExecutorTest extends CustomExecutorsTest {
+public class ListRegisteredTopicsExecutorTest {
+
+  @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldListRegisteredTopics() {
     // Given:
-    final KsqlTopic topic1 = givenKsqlTopic("topic1");
-    final KsqlTopic topic2 = givenKsqlTopic("topic2");
+    final KsqlTopic topic1 = engine.givenKsqlTopic("topic1");
+    final KsqlTopic topic2 = engine.givenKsqlTopic("topic2");
 
     // When:
     final KsqlTopicsList topicsList =
         (KsqlTopicsList) CustomExecutors.LIST_REGISTERED_TOPICS.execute(
-            prepare("LIST REGISTERED TOPICS;"),
-            engine,
-            serviceContext,
-            ksqlConfig,
+            engine.prepare("LIST REGISTERED TOPICS;"),
+            engine.getEngine(),
+            engine.getServiceContext(),
+            engine.getKsqlConfig(),
             ImmutableMap.of()).orElseThrow(IllegalStateException::new);
 
     // Then:

@@ -13,29 +13,34 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.metastore.model;
 
-import io.confluent.ksql.query.QueryId;
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
-public class KsqlStream<K> extends StructuredDataSource {
+@Immutable
+public class KsqlTable<K> extends StructuredDataSource<K> {
 
-  private final Serde<K> keySerde;
+  private final String stateStoreName;
 
-  public KsqlStream(
+  public KsqlTable(
       final String sqlExpression,
       final String datasourceName,
       final Schema schema,
-      final Field keyField,
+      final Optional<Field> keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
-      final Serde<K> keySerde
+      final String stateStoreName,
+      final SerdeFactory<K> keySerde
   ) {
     super(
         sqlExpression,
@@ -43,70 +48,36 @@ public class KsqlStream<K> extends StructuredDataSource {
         schema,
         keyField,
         timestampExtractionPolicy,
-        DataSourceType.KSTREAM,
-        ksqlTopic
+        DataSourceType.KTABLE,
+        ksqlTopic,
+        keySerde
     );
-    this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
+    this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
   }
 
-  public boolean hasWindowedKey() {
+  public boolean isWindowed() {
+    final Serde<K> keySerde = getKeySerdeFactory().create();
     return keySerde instanceof WindowedSerdes.SessionWindowedSerde
         || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
   }
 
-  public Serde<K> getKeySerde() {
-    return keySerde;
-  }
-
   @Override
-  public StructuredDataSource copy() {
-    return new KsqlStream<>(
-        sqlExpression,
-        dataSourceName,
-        schema,
-        keyField,
-        timestampExtractionPolicy,
-        ksqlTopic,
-        keySerde
-    );
-  }
-
-  @Override
-  public StructuredDataSource cloneWithTimeKeyColumns() {
-    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
-    return new KsqlStream<>(
-        sqlExpression,
-        dataSourceName,
+  public KsqlTable<K> cloneWithTimeKeyColumns() {
+    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(getSchema());
+    return new KsqlTable<>(
+        getSqlExpression(),
+        getName(),
         newSchema,
-        keyField,
-        timestampExtractionPolicy,
-        ksqlTopic,
-        keySerde
+        getKeyField(),
+        getTimestampExtractionPolicy(),
+        getKsqlTopic(),
+        stateStoreName,
+        getKeySerdeFactory()
     );
-  }
-
-  @Override
-  public StructuredDataSource cloneWithTimeExtractionPolicy(
-      final TimestampExtractionPolicy policy) {
-    return new KsqlStream<>(
-        sqlExpression,
-        dataSourceName,
-        schema,
-        keyField,
-        policy,
-        ksqlTopic,
-        keySerde
-    );
-  }
-
-  @Override
-  public QueryId getPersistentQueryId() {
-    return new QueryId("CSAS_" + dataSourceName);
   }
 
   @Override
   public String toString() {
     return getClass().getSimpleName() + " name:" + getName();
   }
-
 }

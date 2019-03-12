@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;

@@ -41,9 +41,10 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -113,10 +114,10 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private final KsqlStream dataSource = new KsqlStream<>("sqlExpression", "datasource",
       schema,
-      schema.field("key"),
+      Optional.of(schema.field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME,
-          new KsqlJsonTopicSerDe(), false), Serdes.String());
+          new KsqlJsonTopicSerDe(), false), Serdes::String);
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
       dataSource,
@@ -259,7 +260,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldCreateSinkWithCorrectCleanupPolicyNonWindowedTable() {
     // Given:
-    outputNode = getKsqlStructuredDataOutputNodeForTable(Serdes.String());
+    outputNode = getKsqlStructuredDataOutputNodeForTable(Serdes::String);
 
     // When:
     stream = buildStream();
@@ -276,7 +277,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     reset(mockTopicClient);
     outputNode = getKsqlStructuredDataOutputNodeForTable(
-        WindowedSerdes.timeWindowedSerdeFrom(String.class));
+        () -> WindowedSerdes.timeWindowedSerdeFrom(String.class));
 
     // When:
     stream = buildStream();
@@ -413,7 +414,7 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldComputeQueryIdCorrectlyForTable() {
     // Given:
     final KsqlStructuredDataOutputNode outputNode
-        = getKsqlStructuredDataOutputNodeForTable(Serdes.String());
+        = getKsqlStructuredDataOutputNodeForTable(Serdes::String);
 
     // When:
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
@@ -483,8 +484,9 @@ public class KsqlStructuredDataOutputNodeTest {
         );
   }
 
-  private KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNodeForTable(
-      final Serde<?> keySerde) {
+  private <K> KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNodeForTable(
+      final SerdeFactory<K> keySerdeFatory
+  ) {
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 3);
@@ -494,11 +496,11 @@ public class KsqlStructuredDataOutputNodeTest {
         new KsqlTable<>(
             "sqlExpression", "datasource",
             schema,
-            schema.field("key"),
+            Optional.ofNullable(schema.field("key")),
             new MetadataTimestampExtractionPolicy(),
             new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), false),
             "TableStateStore",
-            keySerde),
+            keySerdeFatory),
         schema);
 
     return new KsqlStructuredDataOutputNode(

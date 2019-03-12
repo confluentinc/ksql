@@ -24,8 +24,8 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.StructuredDataSourceNode;
@@ -76,9 +76,9 @@ public class QueryDescriptionTest {
       super(
           new PlanNodeId("fake"),
           new KsqlStream<>(
-              STATEMENT, name, SCHEMA, SCHEMA.fields().get(0),
+              STATEMENT, name, SCHEMA, Optional.of(SCHEMA.fields().get(0)),
               new MetadataTimestampExtractionPolicy(),
-              new KsqlTopic(name, name, new KsqlJsonTopicSerDe(), false), Serdes.String()),
+              new KsqlTopic(name, name, new KsqlJsonTopicSerDe(), false), Serdes::String),
           SCHEMA);
     }
   }
@@ -162,8 +162,8 @@ public class QueryDescriptionTest {
     replay(topology, topologyDescription);
     final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
     final KsqlStream<?> fakeSink = new KsqlStream<>(
-        STATEMENT, "fake_sink", SCHEMA, SCHEMA.fields().get(0),
-        new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes.String());
+        STATEMENT, "fake_sink", SCHEMA, Optional.of(SCHEMA.fields().get(0)),
+        new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes::String);
     final Map<String, Object> streamsProperties = Collections.singletonMap("k", "v");
 
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(

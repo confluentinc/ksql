@@ -17,8 +17,8 @@ package io.confluent.ksql.parser.tree;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.metastore.SerdeFactory;
 import java.util.Optional;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -36,5 +36,5 @@ public abstract class KsqlWindowExpression extends Node {
                                         UdafAggregator aggregator,
                                         Materialized<String, GenericRow, ?> materialized);
 
-  public abstract <K> Serde<Windowed<K>> getKeySerde(Class<K> innerType);
+  public abstract <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(Class<K> innerType);
 }

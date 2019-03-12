@@ -19,10 +19,10 @@ import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -50,6 +50,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -236,12 +237,12 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               outputNode.getSchema(),
-              schemaKStream.getKeyField(),
+              Optional.ofNullable(schemaKTable.getKeyField()),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               outputNode.getId().toString()
                   + ksqlConfig.getString(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
-              schemaKTable.getKeySerde()
+              schemaKTable.getKeySerdeFactory()
           );
     } else {
       sinkDataSource =
@@ -249,10 +250,10 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               outputNode.getSchema(),
-              schemaKStream.getKeyField(),
+              Optional.ofNullable(schemaKStream.getKeyField()),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
-              schemaKStream.getKeySerde()
+              schemaKStream.getKeySerdeFactory()
           );
 
     }
@@ -294,13 +295,13 @@ public class PhysicalPlanBuilder {
   }
 
   private void sinkSetUp(final KsqlStructuredDataOutputNode outputNode,
-                         final StructuredDataSource sinkDataSource) {
+                         final StructuredDataSource<?> sinkDataSource) {
     if (outputNode.isDoCreateInto()) {
       metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
       return;
     }
 
-    final StructuredDataSource structuredDataSource =
+    final StructuredDataSource<?> structuredDataSource =
         metaStore.getSource(sinkDataSource.getName());
     if (structuredDataSource.getDataSourceType() != sinkDataSource.getDataSourceType()) {
       throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
@@ -391,15 +392,18 @@ public class PhysicalPlanBuilder {
     return newStreamsProperties;
   }
 
-  private static void enforceKeyEquivalence(final Field sinkKeyField, final Field resultKeyField) {
-    if (sinkKeyField == null && resultKeyField == null) {
+  private static void enforceKeyEquivalence(
+      final Optional<Field> sinkKeyField,
+      final Optional<Field> resultKeyField
+  ) {
+    if (!sinkKeyField.isPresent() && !resultKeyField.isPresent()) {
       return;
     }
 
-    if (sinkKeyField != null
-        && resultKeyField != null
-        && sinkKeyField.name().equalsIgnoreCase(resultKeyField.name())
-        && Objects.equals(sinkKeyField.schema(), resultKeyField.schema())) {
+    if (sinkKeyField.isPresent()
+        && resultKeyField.isPresent()
+        && sinkKeyField.get().name().equalsIgnoreCase(resultKeyField.get().name())
+        && Objects.equals(sinkKeyField.get().schema(), resultKeyField.get().schema())) {
       return;
     }
 
@@ -407,17 +411,17 @@ public class PhysicalPlanBuilder {
   }
 
   private static void throwIncompatibleKeysException(
-      final Field sinkKeyField,
-      final Field resultKeyField
+      final Optional<Field> sinkKeyField,
+      final Optional<Field> resultKeyField
   ) {
     throw new KsqlException(String.format(
         "Incompatible key fields for sink and results. Sink"
             + " key field is %s (type: %s) while result key "
             + "field is %s (type: %s)",
-        sinkKeyField == null ? null : sinkKeyField.name(),
-        sinkKeyField == null ? null : sinkKeyField.schema().toString(),
-        resultKeyField == null ? null : resultKeyField.name(),
-        resultKeyField == null ? null : resultKeyField.schema().toString()));
+        sinkKeyField.map(Field::name).orElse(null),
+        sinkKeyField.map(Field::schema).orElse(null),
+        resultKeyField.map(Field::name).orElse(null),
+        resultKeyField.map(Field::schema).orElse(null)));
   }
 
   // Package private because of test

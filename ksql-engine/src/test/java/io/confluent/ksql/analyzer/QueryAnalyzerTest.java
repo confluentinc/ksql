@@ -25,13 +25,15 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 
+import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -57,7 +59,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
 public class QueryAnalyzerTest {
 
   private static final DereferenceExpression ITEM_ID = new DereferenceExpression(
@@ -111,7 +113,7 @@ public class QueryAnalyzerTest {
     final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("TEST1"));
-    assertThat(analysis.getInto().getName(), is("S"));
+    assertThat(analysis.getInto().get().getName(), is("S"));
   }
 
   @Test
@@ -134,7 +136,7 @@ public class QueryAnalyzerTest {
     final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlTable.class));
     assertThat(fromDataSource.right, equalTo("TEST2"));
-    assertThat(analysis.getInto().getName(), is("T"));
+    assertThat(analysis.getInto().get().getName(), is("T"));
   }
 
   @Test
@@ -157,7 +159,13 @@ public class QueryAnalyzerTest {
     final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("TEST1"));
-    assertThat(analysis.getInto(), is(metaStore.getSource("TEST0")));
+    assertThat(analysis.getInto().get(), is(not(Optional.empty())));
+    final Into into = analysis.getInto().get();
+    final StructuredDataSource<?> test0 = metaStore.getSource("TEST0");
+    assertThat(into.getName(), is(test0.getName()));
+    assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
+    assertThat(into.getKeySerdeFactory().create(),
+        is(instanceOf(test0.getKeySerdeFactory().create().getClass())));
   }
 
   @Test
@@ -484,7 +492,7 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
 
     // Then:
-    assertThat(analysis.getInto().getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
+    assertThat(analysis.getInto().get().getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
         is(DataSourceSerDe.DELIMITED));
   }
 

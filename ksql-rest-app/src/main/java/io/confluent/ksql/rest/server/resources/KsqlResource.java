@@ -28,10 +28,10 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -702,7 +702,7 @@ public class KsqlResource {
       final String name,
       final boolean extended
   ) {
-    final StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
+    final StructuredDataSource<?> dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",
@@ -729,7 +729,7 @@ public class KsqlResource {
         .collect(Collectors.toList());
   }
 
-  private <S extends StructuredDataSource> List<S> getSpecificSources(
+  private <S extends StructuredDataSource<?>> List<S> getSpecificSources(
       final Class<S> dataSourceClass) {
     return ksqlEngine.getMetaStore().getAllStructuredDataSources().values().stream()
         .filter(dataSourceClass::isInstance)
@@ -945,7 +945,7 @@ public class KsqlResource {
               statement.getStatementText());
         }
       } else {
-        final StructuredDataSource dataSource = executionSandbox.getMetaStore().getSource(name);
+        final StructuredDataSource<?> dataSource = executionSandbox.getMetaStore().getSource(name);
         if (dataSource == null) {
           throw new KsqlStatementException(
               "Could not find STREAM/TABLE '" + name + "' in the Metastore",

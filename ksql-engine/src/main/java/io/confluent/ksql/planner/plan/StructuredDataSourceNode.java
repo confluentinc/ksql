@@ -20,10 +20,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -90,7 +90,7 @@ public class StructuredDataSourceNode
   private static final String SOURCE_OP_NAME = "source";
   private static final String REDUCE_OP_NAME = "reduce";
 
-  private final StructuredDataSource structuredDataSource;
+  private final StructuredDataSource<?> structuredDataSource;
   private final Schema schema;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
@@ -130,7 +130,7 @@ public class StructuredDataSourceNode
 
   @Override
   public Field getKeyField() {
-    return structuredDataSource.getKeyField();
+    return structuredDataSource.getKeyField().orElse(null);
   }
 
   public StructuredDataSource getStructuredDataSource() {
@@ -207,7 +207,7 @@ public class StructuredDataSourceNode
           kTable,
           getKeyField(),
           new ArrayList<>(),
-          table.getKeySerde(),
+          table.getKeySerdeFactory(),
           SchemaKStream.Type.SOURCE,
           ksqlConfig,
           functionRegistry,
@@ -223,7 +223,7 @@ public class StructuredDataSourceNode
         kstream,
         getKeyField(),
         new ArrayList<>(),
-        stream.getKeySerde(),
+        stream.getKeySerdeFactory(),
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -297,11 +297,11 @@ public class StructuredDataSourceNode
 
     if (ksqlStream.hasWindowedKey()) {
       return stream(builder, timestampExtractor, genericRowSerde,
-          (Serde<Windowed<String>>)ksqlStream.getKeySerde(), windowedMapper);
+          (Serde<Windowed<String>>)ksqlStream.getKeySerdeFactory().create(), windowedMapper);
     }
 
     return stream(builder, timestampExtractor, genericRowSerde,
-        (Serde<String>)ksqlStream.getKeySerde(), nonWindowedValueMapper);
+        (Serde<String>)ksqlStream.getKeySerdeFactory().create(), nonWindowedValueMapper);
   }
 
   private <K> KStream<K, GenericRow> stream(
@@ -348,13 +348,13 @@ public class StructuredDataSourceNode
     if (ksqlTable.isWindowed()) {
       return table(
           builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(), windowedMapper,
-          (Serde<Windowed<String>>)ksqlTable.getKeySerde(),
+          (Serde<Windowed<String>>)ksqlTable.getKeySerdeFactory().create(),
           genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, reduceContextBuilder);
     }
 
     return table(
         builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(),
-        nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerde(),
+        nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerdeFactory().create(),
         genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, reduceContextBuilder);
   }
 

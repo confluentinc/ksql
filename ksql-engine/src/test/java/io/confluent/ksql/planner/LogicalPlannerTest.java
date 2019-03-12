@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;

@@ -34,10 +34,10 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
-import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -149,7 +149,7 @@ public class ProcessingLogServerUtilsTest {
   }
 
   private void assertLogStream(final String topicName) {
-    final StructuredDataSource dataSource = metaStore.getSource(STREAM);
+    final StructuredDataSource<?> dataSource = metaStore.getSource(STREAM);
     assertThat(dataSource, instanceOf(KsqlStream.class));
     final KsqlStream<?> stream = (KsqlStream) dataSource;
     final Schema expected = ProcessingLogServerUtils.getMessageSchema();

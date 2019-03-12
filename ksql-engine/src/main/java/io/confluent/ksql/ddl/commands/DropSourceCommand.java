@@ -19,7 +19,7 @@ import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource;

@@ -34,10 +34,10 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.FunctionCall;
@@ -109,7 +109,7 @@ public class SchemaKStreamTest {
       Serdes.String(), Serdes.String(), Serdes.String(), "join");
 
   private KStream kStream;
-  private KsqlStream ksqlStream;
+  private KsqlStream<?> ksqlStream;
   private InternalFunctionRegistry functionRegistry;
   private SchemaKStream secondSchemaKStream;
   private SchemaKTable schemaKTable;
@@ -154,7 +154,7 @@ public class SchemaKStreamTest {
                 getRowSerde(secondKsqlStream.getKsqlTopic(),
                     secondKsqlStream.getSchema())));
 
-    final KsqlTable ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
+    final KsqlTable<?> ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     final KTable kTable = builder.table(ksqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(Serdes.String(),
             getRowSerde(ksqlTable.getKsqlTopic(),
@@ -169,9 +169,9 @@ public class SchemaKStreamTest {
     schemaKTable = new SchemaKTable<>(
         ksqlTable.getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        ksqlTable.getKeyField().get(),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -421,7 +421,7 @@ public class SchemaKStreamTest {
     when(mockKStream.groupByKey(any(Grouped.class))).thenReturn(groupedStream);
     final Expression keyExpression = new DereferenceExpression(
         new QualifiedNameReference(QualifiedName.of(ksqlStream.getName())),
-        ksqlStream.getKeyField().name());
+        ksqlStream.getKeyField().get().name());
     final List<Expression> groupByExpressions = Collections.singletonList(keyExpression);
     initialSchemaKStream
         = buildSchemaKStream(mockKStream, mockGroupedFactory, mockJoinedFactory);
@@ -679,7 +679,7 @@ public class SchemaKStreamTest {
         mock(KStream.class),
         simpleSchema.field("key"),
         ImmutableList.of(parentSchemaKStream),
-        Serdes.String(),
+        Serdes::String,
         Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -700,7 +700,7 @@ public class SchemaKStreamTest {
         mock(KStream.class),
         simpleSchema.field("key"),
         Collections.emptyList(),
-        Serdes.String(),
+        Serdes::String,
         Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -726,7 +726,7 @@ public class SchemaKStreamTest {
         mock(KStream.class),
         simpleSchema.field("key"),
         ImmutableList.of(parentSchemaKStream1, parentSchemaKStream2),
-        Serdes.String(),
+        Serdes::String,
         Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -760,16 +760,16 @@ public class SchemaKStreamTest {
   }
 
   private SchemaKStream buildSchemaKStream(
-      final KsqlStream ksqlStream,
+      final KsqlStream<?> ksqlStream,
       final Schema schema,
       final KStream kStream,
       final StreamsFactories streamsFactories) {
     return new SchemaKStream(
         schema,
         kStream,
-        ksqlStream.getKeyField(),
+        ksqlStream.getKeyField().orElse(null),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -833,9 +833,9 @@ public class SchemaKStreamTest {
     initialSchemaKStream = new SchemaKStream(
         logicalPlan.getTheSourceNode().getSchema(),
         kStream,
-        ksqlStream.getKeyField(),
+        ksqlStream.getKeyField().orElse(null),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,

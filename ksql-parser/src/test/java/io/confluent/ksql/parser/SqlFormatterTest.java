@@ -24,10 +24,10 @@ import static org.junit.Assert.assertFalse;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.TestFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
@@ -123,10 +123,10 @@ public class SqlFormatterTest {
         "sqlexpression",
         "ADDRESS",
         schemaBuilderOrders,
-        schemaBuilderOrders.field("ORDERTIME"),
+        Optional.of(schemaBuilderOrders.field("ORDERTIME")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
-        Serdes.String());
+        Serdes::String);
 
     metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
@@ -138,11 +138,11 @@ public class SqlFormatterTest {
         "sqlexpression",
         "ITEMID",
         itemInfoSchema,
-        itemInfoSchema.field("ITEMID"),
+        Optional.ofNullable(itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         "items",
-        Serdes.String());
+        Serdes::String);
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
   }

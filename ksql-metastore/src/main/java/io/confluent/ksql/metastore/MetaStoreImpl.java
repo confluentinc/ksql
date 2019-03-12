@@ -19,6 +19,8 @@ import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Collections;
@@ -71,7 +73,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public StructuredDataSource getSource(final String sourceName) {
+  public StructuredDataSource<?> getSource(final String sourceName) {
     final SourceInfo source = dataSources.get(sourceName);
     if (source == null) {
       return null;
@@ -79,9 +81,10 @@ public final class MetaStoreImpl implements MutableMetaStore {
     return source.source;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
-    return dataSources.values()
+  public Optional<StructuredDataSource<?>> getSourceForTopic(final String ksqlTopicName) {
+    return (Optional)dataSources.values()
         .stream()
         .filter(p -> p.source.getKsqlTopic().getName() != null
             && p.source.getKsqlTopic().getName().equals(ksqlTopicName))
@@ -90,7 +93,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void putSource(final StructuredDataSource dataSource) {
+  public void putSource(final StructuredDataSource<?> dataSource) {
     if (dataSources.putIfAbsent(dataSource.getName(), new SourceInfo(dataSource)) != null) {
       throw new KsqlException(
           "Cannot add the new data source. Another data source with the same name already exists: "
@@ -138,7 +141,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Map<String, StructuredDataSource> getAllStructuredDataSources() {
+  public Map<String, StructuredDataSource<?>> getAllStructuredDataSources() {
     return dataSources
         .entrySet()
         .stream()
@@ -260,18 +263,18 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   private static final class SourceInfo {
 
-    private final StructuredDataSource source;
+    private final StructuredDataSource<?> source;
     private final ReferentialIntegrityTableEntry referentialIntegrity;
 
     private SourceInfo(
-        final StructuredDataSource source
+        final StructuredDataSource<?> source
     ) {
       this.source = Objects.requireNonNull(source, "source");
       this.referentialIntegrity = new ReferentialIntegrityTableEntry();
     }
 
     private SourceInfo(
-        final StructuredDataSource source,
+        final StructuredDataSource<?> source,
         final ReferentialIntegrityTableEntry referentialIntegrity
     ) {
       this.source = Objects.requireNonNull(source, "source");

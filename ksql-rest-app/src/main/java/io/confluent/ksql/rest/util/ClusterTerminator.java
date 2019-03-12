@@ -17,9 +17,8 @@ package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.services.ServiceContext;
@@ -117,12 +116,11 @@ public class ClusterTerminator {
 
   private void cleanUpSinkAvroSchemas(final List<String> topicsToBeDeleted) {
     final MetaStore metaStore = ksqlEngine.getMetaStore();
-    final Stream<StructuredDataSource> avroSourcesToCleanUp = topicsToBeDeleted.stream()
+    final Stream<String> subjectsToDelete = topicsToBeDeleted.stream()
         .map(metaStore::getSourceForTopic)
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .filter(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO));
-    final Stream<String> subjectsToDelete = avroSourcesToCleanUp
+        .filter(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO))
         .map(source -> source.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
     filterNonExistingSubjects(subjectsToDelete).forEach(this::deleteSubject);
   }

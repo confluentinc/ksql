@@ -24,9 +24,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
@@ -60,7 +60,7 @@ public class DropSourceCommandTest {
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
-  private StructuredDataSource dataSource;
+  private StructuredDataSource<?> dataSource;
   @Mock
   private KsqlTopic ksqlTopic;
 
@@ -69,9 +69,10 @@ public class DropSourceCommandTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    when(metaStore.getSource(STREAM_NAME)).thenReturn(dataSource);
+    when(metaStore.getSource(STREAM_NAME)).thenReturn((StructuredDataSource)dataSource);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlTopic.getKafkaTopicName()).thenReturn(TOPIC_NAME);

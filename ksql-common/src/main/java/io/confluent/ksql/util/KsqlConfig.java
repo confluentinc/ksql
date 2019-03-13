@@ -87,11 +87,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT = "transient_";
 
   public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";
-  public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
-
-  public static final String
       KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
   private static final String KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS =
       "A prefix to add to any output topic names, where the statement does not include an explicit "
@@ -160,15 +155,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Second part of the prefix for persistent queries. For instance if "
                   + "the prefix is query_ the query name will be ksql_query_1."),
-          new CompatibilityBreakingConfigDef(
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
-              ConfigDef.Type.STRING,
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-              ConfigDef.Importance.MEDIUM,
-              "Suffix for state store names in Tables. For instance if the suffix is "
-                  + "_ksql_statestore the state "
-                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
           new CompatibilityBreakingConfigDef(
               KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
               ConfigDef.Type.BOOLEAN,

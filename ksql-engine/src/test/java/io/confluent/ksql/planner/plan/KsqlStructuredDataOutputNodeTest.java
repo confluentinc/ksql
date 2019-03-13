@@ -497,7 +497,6 @@ public class KsqlStructuredDataOutputNodeTest {
             schema.field("key"),
             new MetadataTimestampExtractionPolicy(),
             new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), false),
-            "TableStateStore",
             keySerde),
         schema);
 

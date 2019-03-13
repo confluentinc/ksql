@@ -26,7 +26,6 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class KsqlTable<K> extends StructuredDataSource {
 
-  private final String stateStoreName;
   private final Serde<K> keySerde;
 
   public KsqlTable(
@@ -36,7 +35,6 @@ public class KsqlTable<K> extends StructuredDataSource {
       final Field keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
-      final String stateStoreName,
       final Serde<K> keySerde
   ) {
     super(
@@ -48,7 +46,6 @@ public class KsqlTable<K> extends StructuredDataSource {
         DataSourceType.KTABLE,
         ksqlTopic
     );
-    this.stateStoreName = stateStoreName;
     this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
   }
 
@@ -70,7 +67,6 @@ public class KsqlTable<K> extends StructuredDataSource {
         keyField,
         timestampExtractionPolicy,
         ksqlTopic,
-        stateStoreName,
         keySerde
     );
   }
@@ -85,7 +81,6 @@ public class KsqlTable<K> extends StructuredDataSource {
         keyField,
         timestampExtractionPolicy,
         ksqlTopic,
-        stateStoreName,
         keySerde
     );
   }
@@ -100,7 +95,6 @@ public class KsqlTable<K> extends StructuredDataSource {
         keyField,
         policy,
         ksqlTopic,
-        stateStoreName,
         keySerde
     );
   }

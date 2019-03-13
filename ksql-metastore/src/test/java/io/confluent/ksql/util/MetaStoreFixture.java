@@ -104,7 +104,6 @@ public final class MetaStoreFixture {
         test2Schema.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic2,
-        "TEST2",
         Serdes.String());
 
     metaStore.putTopic(ksqlTopic2);
@@ -176,7 +175,6 @@ public final class MetaStoreFixture {
         schemaBuilderTestTable3.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic3,
-        "TEST3",
         Serdes.String());
 
     metaStore.putTopic(ksqlTopic3);

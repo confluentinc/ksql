@@ -100,12 +100,12 @@ public class PhysicalPlanBuilder {
   }
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
-    final OutputNode outputNode = logicalPlanNode.getNode()
+    final OutputNode logicalNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
+    final QueryId queryId = logicalNode.getQueryId(queryIdGenerator);
 
-    final SchemaKStream resultStream = outputNode
+    final SchemaKStream resultStream = logicalNode
         .buildStream(
             builder,
             ksqlConfig,
@@ -115,6 +115,7 @@ public class PhysicalPlanBuilder {
             queryId
         );
 
+    final OutputNode outputNode = resultStream.outputNode();
     final boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 
     // Check to make sure the logical and physical plans match up;

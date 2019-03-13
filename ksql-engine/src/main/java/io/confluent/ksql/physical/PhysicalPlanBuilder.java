@@ -29,7 +29,6 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.ServiceContext;
@@ -100,17 +99,13 @@ public class PhysicalPlanBuilder {
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
   }
 
-  private QueryId computeQueryId(final PlanNode planNode) {
-    if (planNode instanceof OutputNode) {
-      return ((OutputNode) planNode).getQueryId(queryIdGenerator);
-    }
-    throw new RuntimeException("Unexpected output node for query");
-  }
-
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
-    final QueryId queryId = computeQueryId(logicalPlanNode.getNode());
-    final SchemaKStream resultStream = logicalPlanNode
-        .getNode()
+    final OutputNode outputNode = logicalPlanNode.getNode()
+        .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
+
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
+
+    final SchemaKStream resultStream = outputNode
         .buildStream(
             builder,
             ksqlConfig,
@@ -119,7 +114,7 @@ public class PhysicalPlanBuilder {
             functionRegistry,
             queryId
         );
-    final OutputNode outputNode = resultStream.outputNode();
+
     final boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 
     // Check to make sure the logical and physical plans match up;
@@ -154,7 +149,7 @@ public class PhysicalPlanBuilder {
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) outputNode;
       ksqlStructuredDataOutputNode = ksqlStructuredDataOutputNode.cloneWithDoCreateInto(
-          ((KsqlStructuredDataOutputNode) logicalPlanNode.getNode()).isDoCreateInto()
+          ((KsqlStructuredDataOutputNode) outputNode).isDoCreateInto()
       );
       return buildPlanForStructuredOutputNode(
           logicalPlanNode.getStatementText(),

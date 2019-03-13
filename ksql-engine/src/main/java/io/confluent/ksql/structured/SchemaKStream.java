@@ -624,6 +624,7 @@ public class SchemaKStream<K> {
     return output;
   }
 
+  // Todo(ac):
   public void setOutputNode(final OutputNode output) {
     this.output = output;
   }

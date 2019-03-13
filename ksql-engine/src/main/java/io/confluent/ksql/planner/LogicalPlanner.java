@@ -61,7 +61,7 @@ public class LogicalPlanner {
     this.functionRegistry = functionRegistry;
   }
 
-  public PlanNode buildPlan() {
+  public OutputNode buildPlan() {
     PlanNode currentNode;
     if (analysis.getJoin() != null) {
       currentNode = analysis.getJoin();

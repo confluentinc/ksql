@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.planner.LogicalPlanner;
-import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,7 +36,7 @@ public final class AnalysisTestUtil {
     return new Analyzer(queryStr, metaStore).analysis;
   }
 
-  public static PlanNode buildLogicalPlan(final String queryStr, final MetaStore metaStore) {
+  public static OutputNode buildLogicalPlan(final String queryStr, final MetaStore metaStore) {
     final Analyzer analyzer = new Analyzer(queryStr, metaStore);
 
     final LogicalPlanner logicalPlanner = new LogicalPlanner(

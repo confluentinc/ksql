@@ -159,7 +159,7 @@ public class QueryAnalyzerTest {
     final Pair<StructuredDataSource, String> fromDataSource = analysis.getFromDataSource(0);
     assertThat(fromDataSource.left, instanceOf(KsqlStream.class));
     assertThat(fromDataSource.right, equalTo("TEST1"));
-    assertThat(analysis.getInto().get(), is(not(Optional.empty())));
+    assertThat(analysis.getInto(), is(not(Optional.empty())));
     final Into into = analysis.getInto().get();
     final StructuredDataSource<?> test0 = metaStore.getSource("TEST0");
     assertThat(into.getName(), is(test0.getName()));

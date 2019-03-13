@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 /**
  * Immutable KSQL logical schema.
@@ -61,16 +60,19 @@ public final class KsqlSchema {
       throw new IllegalArgumentException("Mutable schema found: " + schema);
     }
 
-    if (schema.type() == Type.STRUCT) {
-      schema.fields().forEach(field -> throwIfMutable(field.schema()));
-    }
-
-    if (schema.type() == Type.MAP) {
-      throwIfMutable(schema.keySchema());
-    }
-
-    if (schema.type() == Type.MAP || schema.type() == Type.ARRAY) {
-      throwIfMutable(schema.valueSchema());
+    switch (schema.type()) {
+      case STRUCT:
+        schema.fields().forEach(field -> throwIfMutable(field.schema()));
+        break;
+      case MAP:
+        throwIfMutable(schema.keySchema());
+        throwIfMutable(schema.valueSchema());
+        break;
+      case ARRAY:
+        throwIfMutable(schema.valueSchema());
+        break;
+      default:
+        break;
     }
   }
 }

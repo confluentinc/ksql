@@ -485,7 +485,7 @@ public class AggregateNode extends PlanNode {
     private Expression resolveToInternal(final Expression exp) {
       final String name = expressionToInternalColumnNameMap.get(exp.toString());
       if (name != null) {
-        return new QualifiedNameReference(QualifiedName.of(name));
+        return new QualifiedNameReference(exp.getLocation(), QualifiedName.of(name));
       }
 
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter(), exp);
@@ -501,7 +501,7 @@ public class AggregateNode extends PlanNode {
       ) {
         final String name = expressionToInternalColumnNameMap.get(node.toString());
         if (name != null) {
-          return new QualifiedNameReference(QualifiedName.of(name));
+          return new QualifiedNameReference(node.getLocation(), QualifiedName.of(name));
         }
 
         throw new KsqlException("Unknown source column: " + node.toString());

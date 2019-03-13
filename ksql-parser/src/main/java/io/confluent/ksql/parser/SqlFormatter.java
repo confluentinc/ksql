@@ -45,7 +45,6 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +111,6 @@ public final class SqlFormatter {
 
       if (node.getGroupBy().isPresent()) {
         append(indent, "GROUP BY "
-            + (node.getGroupBy().get().isDistinct() ? " DISTINCT " : "")
             + ExpressionFormatter
             .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
             .append('\n');
@@ -135,9 +133,6 @@ public final class SqlFormatter {
     @Override
     protected Void visitSelect(final Select node, final Integer indent) {
       append(indent, "SELECT");
-      if (node.isDistinct()) {
-        builder.append(" DISTINCT");
-      }
 
       final List<SelectItem> selectItems = node.getSelectItems()
           .stream()
@@ -196,7 +191,7 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitJoin(final Join node, final Integer indent) {
-      final String type = node.getFormattedType();
+      final String type = node.getType().getFormatted();
       process(node.getLeft(), indent);
 
       builder.append('\n');
@@ -204,9 +199,7 @@ public final class SqlFormatter {
 
       process(node.getRight(), indent);
 
-      final JoinCriteria criteria = node.getCriteria().orElseThrow(() ->
-          new KsqlException("Join criteria is missing")
-      );
+      final JoinCriteria criteria = node.getCriteria();
 
       node.getWithinExpression().map((e) -> builder.append(e.toString()));
       final JoinOn on = (JoinOn) criteria;
@@ -307,13 +300,11 @@ public final class SqlFormatter {
     @Override
     protected Void visitExplain(final Explain node, final Integer indent) {
       builder.append("EXPLAIN ");
-      if (node.isAnalyze()) {
-        builder.append("ANALYZE ");
-      }
-
       builder.append("\n");
 
-      process(node.getStatement(), indent);
+      node.getQueryId().ifPresent(queryId -> append(indent, queryId));
+
+      node.getStatement().ifPresent(stmt -> process(stmt, indent));
 
       return null;
     }

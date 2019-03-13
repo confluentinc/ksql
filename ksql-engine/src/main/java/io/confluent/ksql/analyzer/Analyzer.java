@@ -354,7 +354,7 @@ class Analyzer {
 
       node.getWhere().ifPresent(this::analyzeWhere);
       node.getGroupBy().ifPresent(this::analyzeGroupBy);
-      node.getWindowExpression().ifPresent(this::analyzeWindowExpression);
+      node.getWindow().ifPresent(this::analyzeWindowExpression);
       node.getHaving().ifPresent(this::analyzeHaving);
       node.getLimit().ifPresent(analysis::setLimitClause);
 
@@ -408,15 +408,7 @@ class Analyzer {
 
       final JoinNode.JoinType joinType = getJoinType(node);
 
-      if (!node.getCriteria().isPresent()) {
-        throw new KsqlException(String.format(
-            "%s Join criteria is not set.",
-            node.getLocation().isPresent()
-                ? node.getLocation().get().toString()
-                : ""
-        ));
-      }
-      final JoinOn joinOn = (JoinOn) (node.getCriteria().get());
+      final JoinOn joinOn = (JoinOn) node.getCriteria();
       final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
           .getExpression();
 
@@ -514,9 +506,8 @@ class Analyzer {
         throw new KsqlException(
             String.format(
                 "%s : Invalid join criteria %s. Could not find a join criteria operand for %s. ",
-                comparisonExpression.getLocation().isPresent()
-                    ? comparisonExpression.getLocation().get().toString()
-                    : "", comparisonExpression, sourceAlias
+                comparisonExpression.getLocation().map(Objects::toString).orElse(""),
+                comparisonExpression, sourceAlias
             )
         );
       }
@@ -589,7 +580,7 @@ class Analyzer {
             final JoinNode joinNode = analysis.getJoin();
             for (final Field field : joinNode.getLeft().getSchema().fields()) {
               final QualifiedNameReference qualifiedNameReference =
-                  new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+                  new QualifiedNameReference(allColumns.getLocation(), QualifiedName
                       .of(joinNode.getLeftAlias() + "." + field.name()));
               analysis.addSelectItem(
                   qualifiedNameReference,
@@ -599,7 +590,7 @@ class Analyzer {
             for (final Field field : joinNode.getRight().getSchema().fields()) {
               final QualifiedNameReference qualifiedNameReference =
                   new QualifiedNameReference(
-                      allColumns.getLocation().get(),
+                      allColumns.getLocation(),
                       QualifiedName.of(joinNode.getRightAlias() + "." + field.name())
                   );
               analysis.addSelectItem(
@@ -611,7 +602,7 @@ class Analyzer {
             for (final Field field : analysis.getFromDataSources().get(0).getLeft().getSchema()
                 .fields()) {
               final QualifiedNameReference qualifiedNameReference =
-                  new QualifiedNameReference(allColumns.getLocation().get(), QualifiedName
+                  new QualifiedNameReference(allColumns.getLocation(), QualifiedName
                       .of(analysis.getFromDataSources().get(0).getRight() + "." + field
                           .name()));
               analysis.addSelectItem(qualifiedNameReference, field.name());

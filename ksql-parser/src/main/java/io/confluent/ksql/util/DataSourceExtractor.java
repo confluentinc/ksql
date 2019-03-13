@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.Table;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -173,8 +174,7 @@ public class DataSourceExtractor {
         return null;
       }
 
-      // TODO: Figure out if the call to toUpperCase() here is really necessary
-      return new AliasedRelation(getLocation(context), table, alias.toUpperCase());
+      return new AliasedRelation(getLocation(context), table, alias);
     }
 
     @Override
@@ -217,13 +217,13 @@ public class DataSourceExtractor {
     return QualifiedName.of(parts);
   }
 
-  private static NodeLocation getLocation(final ParserRuleContext parserRuleContext) {
+  private static Optional<NodeLocation> getLocation(final ParserRuleContext parserRuleContext) {
     requireNonNull(parserRuleContext, "parserRuleContext is null");
     return getLocation(parserRuleContext.getStart());
   }
 
-  private static NodeLocation getLocation(final Token token) {
+  private static Optional<NodeLocation> getLocation(final Token token) {
     requireNonNull(token, "token is null");
-    return new NodeLocation(token.getLine(), token.getCharPositionInLine());
+    return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
   }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.metastore.SerdeFactory;
@@ -25,9 +26,10 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 
+@Immutable
 public abstract class KsqlWindowExpression extends Node {
 
-  protected KsqlWindowExpression(final Optional<NodeLocation> location) {
+  KsqlWindowExpression(final Optional<NodeLocation> location) {
     super(location);
   }
 
@@ -37,4 +39,9 @@ public abstract class KsqlWindowExpression extends Node {
                                         Materialized<String, GenericRow, ?> materialized);
 
   public abstract <K> SerdeFactory<Windowed<K>> getKeySerdeFactory(Class<K> innerType);
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitKsqlWindowExpression(this, context);
+  }
 }

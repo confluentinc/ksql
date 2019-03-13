@@ -96,7 +96,7 @@ public final class ExpressionTreeRewriter<C> {
 
       final Expression child = rewrite(node.getValue(), context.get());
       if (child != node.getValue()) {
-        return new ArithmeticUnaryExpression(node.getSign(), child);
+        return new ArithmeticUnaryExpression(node.getLocation(), node.getSign(), child);
       }
 
       return node;
@@ -119,7 +119,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression right = rewrite(node.getRight(), context.get());
 
       if (left != node.getLeft() || right != node.getRight()) {
-        return new ArithmeticBinaryExpression(node.getType(), left, right);
+        return new ArithmeticBinaryExpression(node.getLocation(), node.getType(), left, right);
       }
 
       return node;
@@ -142,7 +142,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression index = rewrite(node.getIndex(), context.get());
 
       if (base != node.getBase() || index != node.getIndex()) {
-        return new SubscriptExpression(base, index);
+        return new SubscriptExpression(node.getLocation(), base, index);
       }
 
       return node;
@@ -165,7 +165,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression right = rewrite(node.getRight(), context.get());
 
       if (left != node.getLeft() || right != node.getRight()) {
-        return new ComparisonExpression(node.getType(), left, right);
+        return new ComparisonExpression(node.getLocation(), node.getType(), left, right);
       }
 
       return node;
@@ -212,7 +212,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression right = rewrite(node.getRight(), context.get());
 
       if (left != node.getLeft() || right != node.getRight()) {
-        return new LogicalBinaryExpression(node.getType(), left, right);
+        return new LogicalBinaryExpression(node.getLocation(), node.getType(), left, right);
       }
 
       return node;
@@ -232,7 +232,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression value = rewrite(node.getValue(), context.get());
 
       if (value != node.getValue()) {
-        return new NotExpression(value);
+        return new NotExpression(node.getLocation(), value);
       }
 
       return node;
@@ -254,7 +254,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression value = rewrite(node.getValue(), context.get());
 
       if (value != node.getValue()) {
-        return new IsNullPredicate(value);
+        return new IsNullPredicate(node.getLocation(), value);
       }
 
       return node;
@@ -276,7 +276,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression value = rewrite(node.getValue(), context.get());
 
       if (value != node.getValue()) {
-        return new IsNotNullPredicate(value);
+        return new IsNotNullPredicate(node.getLocation(), value);
       }
 
       return node;
@@ -305,7 +305,7 @@ public final class ExpressionTreeRewriter<C> {
 
       if (!sameElements(node.getDefaultValue(), defaultValue) || !sameElements(
           node.getWhenClauses(), builder.build())) {
-        return new SearchedCaseExpression(builder.build(), defaultValue);
+        return new SearchedCaseExpression(node.getLocation(), builder.build(), defaultValue);
       }
 
       return node;
@@ -337,7 +337,7 @@ public final class ExpressionTreeRewriter<C> {
       if (operand != node.getOperand()
           || !sameElements(node.getDefaultValue(), defaultValue)
           || !sameElements(node.getWhenClauses(), builder.build())) {
-        return new SimpleCaseExpression(operand, builder.build(), defaultValue);
+        return new SimpleCaseExpression(node.getLocation(), operand, builder.build(), defaultValue);
       }
 
       return node;
@@ -358,7 +358,7 @@ public final class ExpressionTreeRewriter<C> {
       final Expression result = rewrite(node.getResult(), context.get());
 
       if (operand != node.getOperand() || result != node.getResult()) {
-        return new WhenClause(operand, result);
+        return new WhenClause(node.getLocation(), operand, result);
       }
       return node;
     }
@@ -379,8 +379,7 @@ public final class ExpressionTreeRewriter<C> {
           .collect(Collectors.toList());
 
       if (!node.getArguments().equals(args)) {
-        return new FunctionCall(
-            node.getLocation(), node.getName(), node.isDistinct(), args);
+        return new FunctionCall(node.getLocation(), node.getName(), args);
       }
 
       return node;
@@ -399,13 +398,9 @@ public final class ExpressionTreeRewriter<C> {
 
       final Expression value = rewrite(node.getValue(), context.get());
       final Expression pattern = rewrite(node.getPattern(), context.get());
-      Expression escape = null;
-      if (node.getEscape() != null) {
-        escape = rewrite(node.getEscape(), context.get());
-      }
 
-      if (value != node.getValue() || pattern != node.getPattern() || escape != node.getEscape()) {
-        return new LikePredicate(value, pattern, escape);
+      if (value != node.getValue() || pattern != node.getPattern()) {
+        return new LikePredicate(node.getLocation(), value, pattern);
       }
 
       return node;
@@ -423,10 +418,10 @@ public final class ExpressionTreeRewriter<C> {
       }
 
       final Expression value = rewrite(node.getValue(), context.get());
-      final Expression list = rewrite(node.getValueList(), context.get());
+      final InListExpression list = rewrite(node.getValueList(), context.get());
 
       if (node.getValue() != value || node.getValueList() != list) {
-        return new InPredicate(value, list);
+        return new InPredicate(node.getLocation(), value, list);
       }
 
       return node;
@@ -451,7 +446,7 @@ public final class ExpressionTreeRewriter<C> {
       }
 
       if (!sameElements(node.getValues(), builder.build())) {
-        return new InListExpression(builder.build());
+        return new InListExpression(node.getLocation(), builder.build());
       }
 
       return node;
@@ -503,7 +498,7 @@ public final class ExpressionTreeRewriter<C> {
 
       final Expression base = rewrite(node.getBase(), context.get());
       if (base != node.getBase()) {
-        return new DereferenceExpression(base, node.getFieldName());
+        return new DereferenceExpression(node.getLocation(), base, node.getFieldName());
       }
 
       return node;

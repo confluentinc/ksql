@@ -43,7 +43,6 @@ import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
@@ -326,7 +325,7 @@ public class QueryAnalyzerTest {
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
         new QualifiedNameReference(QualifiedName.of("KSQL_AGG_VARIABLE_1")),
-        new IntegerLiteral(new NodeLocation(0, 0), 10))));
+        new IntegerLiteral(10))));
   }
 
   @Test

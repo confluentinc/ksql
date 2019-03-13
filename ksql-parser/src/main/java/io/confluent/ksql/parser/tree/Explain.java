@@ -17,50 +17,43 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class Explain
-    extends Statement {
+@Immutable
+public class Explain extends Statement {
 
-  private final Statement statement;
-  private final String queryId;
-  private final boolean analyze;
+  private final Optional<Statement> statement;
+  private final Optional<String> queryId;
 
   public Explain(
-      final String queryId,
-      final Statement statement,
-      final boolean analyze
+      final Optional<String> queryId,
+      final Optional<Statement> statement
   ) {
-    this(Optional.empty(), analyze, queryId, statement);
+    this(Optional.empty(), queryId, statement);
   }
 
-  private Explain(
+  public Explain(
       final Optional<NodeLocation> location,
-      final boolean analyze,
-      final String queryId,
-      final Statement statement
+      final Optional<String> queryId,
+      final Optional<Statement> statement
   ) {
     super(location);
-    this.statement = statement;
-    this.analyze = analyze;
+    this.statement = Objects.requireNonNull(statement, "statement");
     this.queryId = queryId;
 
-    if (statement == null && queryId == null) {
-      throw new NullPointerException("Must supply either queryId or statement");
+    if (statement.isPresent() == queryId.isPresent()) {
+      throw new IllegalArgumentException("Must supply either queryId or statement");
     }
   }
 
-  public Statement getStatement() {
+  public Optional<Statement> getStatement() {
     return statement;
   }
 
-  public String getQueryId() {
+  public Optional<String> getQueryId() {
     return queryId;
-  }
-
-  public boolean isAnalyze() {
-    return analyze;
   }
 
   @Override
@@ -70,7 +63,7 @@ public class Explain
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, analyze);
+    return Objects.hash(statement, queryId);
   }
 
   @Override
@@ -83,14 +76,14 @@ public class Explain
     }
     final Explain o = (Explain) obj;
     return Objects.equals(statement, o.statement)
-           && Objects.equals(analyze, o.analyze);
+           && Objects.equals(queryId, o.queryId);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
         .add("statement", statement)
-        .add("analyze", analyze)
+        .add("queryId", queryId)
         .toString();
   }
 }

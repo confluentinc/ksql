@@ -19,40 +19,41 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-public class RegisterTopic
-    extends Statement implements ExecutableDdlStatement {
+@Immutable
+public class RegisterTopic extends Statement implements ExecutableDdlStatement {
 
   private final QualifiedName name;
   private final boolean notExists;
-  private final Map<String, Expression> properties;
+  private final ImmutableMap<String, Expression> properties;
 
-  public RegisterTopic(final QualifiedName name, final boolean notExists,
-                       final Map<String, Expression> properties) {
+  public RegisterTopic(
+      final QualifiedName name,
+      final boolean notExists,
+      final Map<String, Expression> properties
+  ) {
     this(Optional.empty(), name, notExists, properties);
   }
 
-  public RegisterTopic(final NodeLocation location, final QualifiedName name,
-                       final boolean notExists, final Map<String, Expression> properties) {
-    this(Optional.of(location), name, notExists, properties);
-  }
-
-  private RegisterTopic(final Optional<NodeLocation> location, final QualifiedName name,
-                        final boolean notExists,
-                        final Map<String, Expression> properties) {
+  public RegisterTopic(
+      final Optional<NodeLocation> location,
+      final QualifiedName name,
+      final boolean notExists,
+      final Map<String, Expression> properties
+  ) {
     super(location);
-    this.name = requireNonNull(name, "topic is null");
+    this.name = requireNonNull(name, "name");
     this.notExists = notExists;
-    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
+    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
   }
 
   public QualifiedName getName() {
     return name;
   }
-
 
   public boolean isNotExists() {
     return notExists;
@@ -82,8 +83,8 @@ public class RegisterTopic
     }
     final RegisterTopic o = (RegisterTopic) obj;
     return Objects.equals(name, o.name)
-           && Objects.equals(notExists, o.notExists)
-           && Objects.equals(properties, o.properties);
+        && notExists == o.notExists
+        && Objects.equals(properties, o.properties);
   }
 
   @Override

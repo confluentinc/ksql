@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.parser.tree.Array;
@@ -31,14 +32,12 @@ import io.confluent.ksql.parser.tree.DoubleLiteral;
 import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
-import io.confluent.ksql.parser.tree.IntervalLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Map;
-import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -108,23 +107,6 @@ public class ExpressionFormatterTest {
   }
 
   @Test
-  public void shouldFormatIntervalLiteralWithoutEnd() {
-    assertThat(ExpressionFormatter.formatExpression(
-        new IntervalLiteral("10/1/2012",
-            IntervalLiteral.Sign.POSITIVE,
-            IntervalLiteral.IntervalField.SECOND)), equalTo("INTERVAL  '10/1/2012' SECOND"));
-  }
-
-  @Test
-  public void shouldFormatIntervalLiteralWithEnd() {
-    assertThat(ExpressionFormatter.formatExpression(
-        new IntervalLiteral("10/1/2012",
-            IntervalLiteral.Sign.POSITIVE,
-            IntervalLiteral.IntervalField.SECOND,
-            Optional.of(IntervalLiteral.IntervalField.MONTH))), equalTo("INTERVAL  '10/1/2012' SECOND TO MONTH"));
-  }
-
-  @Test
   public void shouldFormatQualifiedNameReference() {
     assertThat(ExpressionFormatter.formatExpression(new QualifiedNameReference(QualifiedName.of("name"))), equalTo("name"));
   }
@@ -150,11 +132,10 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionWithDistinct() {
-    final FunctionCall functionCall = new FunctionCall(new NodeLocation(1, 1),
+    final FunctionCall functionCall = new FunctionCall(
         QualifiedName.of("function", "COUNT"),
-        true,
         Collections.singletonList(new StringLiteral("name")));
-    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("function.COUNT(DISTINCT 'name')"));
+    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("function.COUNT('name')"));
   }
 
   @Test
@@ -193,8 +174,8 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatArithmeticUnary() {
-    assertThat(ExpressionFormatter.formatExpression(new ArithmeticUnaryExpression(ArithmeticUnaryExpression.Sign.MINUS,
-        new LongLiteral(1))),
+    assertThat(ExpressionFormatter.formatExpression(
+        ArithmeticUnaryExpression.negative(Optional.empty(), new LongLiteral(1))),
         equalTo("-1"));
   }
 
@@ -207,15 +188,14 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatLikePredicate() {
-    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"), new StringLiteral("\\"));
-    assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('string' LIKE '*' ESCAPE '\\')"));
+    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"));
+    assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('string' LIKE '*')"));
   }
 
   @Test
   public void shouldFormatCast() {
     // Given:
     final Cast cast = new Cast(
-        new NodeLocation(0, 0),
         new LongLiteral(1),
         PrimitiveType.of("DOUBLE"));
 
@@ -281,8 +261,11 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatInPredicate() {
-    assertThat(ExpressionFormatter.formatExpression(new InPredicate(new StringLiteral("foo"), new StringLiteral("a"))),
-        equalTo("('foo' IN 'a')"));
+    final InPredicate predicate = new InPredicate(
+        new StringLiteral("foo"),
+        new InListExpression(ImmutableList.of(new StringLiteral("a"))));
+
+    assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('foo' IN ('a'))"));
   }
 
   @Test

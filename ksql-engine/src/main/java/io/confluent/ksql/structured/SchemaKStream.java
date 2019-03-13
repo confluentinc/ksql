@@ -119,10 +119,6 @@ public class SchemaKStream<K> {
     this.queryContext = Objects.requireNonNull(queryContext);
   }
 
-  public QueuedSchemaKStream toQueue(final QueryContext.Stacker contextStacker) {
-    return new QueuedSchemaKStream<>(this, contextStacker.getQueryContext());
-  }
-
   public Serde<K> getKeySerde() {
     return keySerde;
   }

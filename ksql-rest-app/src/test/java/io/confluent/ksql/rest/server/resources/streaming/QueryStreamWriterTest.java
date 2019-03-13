@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.io.ByteArrayOutputStream;
@@ -80,10 +80,10 @@ public class QueryStreamWriterTest {
   private BlockingQueue<KeyValue<String, GenericRow>> rowQueue;
   private Capture<Thread.UncaughtExceptionHandler> ehCapture;
   private Capture<Collection<KeyValue<String, GenericRow>>> drainCapture;
-  private Capture<OutputNode.LimitHandler> limitHandlerCapture;
+  private Capture<LimitHandler> limitHandlerCapture;
   private QueryStreamWriter writer;
   private ByteArrayOutputStream out;
-  private OutputNode.LimitHandler limitHandler;
+  private LimitHandler limitHandler;
   private ObjectMapper objectMapper;
 
   @Before

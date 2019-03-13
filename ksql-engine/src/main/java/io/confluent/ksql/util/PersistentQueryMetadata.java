@@ -18,16 +18,19 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
+/**
+ * Metadata of a persistent query, e.g. {@code SELECT CREATE STREAM FOO AS SELECT * FROM BAR;}.
+ */
 public class PersistentQueryMetadata extends QueryMetadata {
 
   private final QueryId id;
@@ -35,24 +38,28 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final Set<String> sinkNames;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  public PersistentQueryMetadata(final String statementString,
-                                 final KafkaStreams kafkaStreams,
-                                 final OutputNode outputNode,
-                                 final StructuredDataSource sinkDataSource,
-                                 final String executionPlan,
-                                 final QueryId id,
-                                 final DataSource.DataSourceType dataSourceType,
-                                 final String queryApplicationId,
-                                 final KsqlTopic resultTopic,
-                                 final Topology topology,
-                                 final Map<String, Object> streamsProperties,
-                                 final Map<String, Object> overriddenProperties,
-                                 final Consumer<QueryMetadata> closeCallback) {
+  public PersistentQueryMetadata(
+      final String statementString,
+      final KafkaStreams kafkaStreams,
+      final Schema resultSchema,
+      final Set<String> sourceNames,
+      final StructuredDataSource sinkDataSource,
+      final String executionPlan,
+      final QueryId id,
+      final DataSource.DataSourceType dataSourceType,
+      final String queryApplicationId,
+      final KsqlTopic resultTopic,
+      final Topology topology,
+      final Map<String, Object> streamsProperties,
+      final Map<String, Object> overriddenProperties,
+      final Consumer<QueryMetadata> closeCallback
+  ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         statementString,
         kafkaStreams,
-        outputNode,
+        resultSchema,
+        sourceNames,
         executionPlan,
         dataSourceType,
         queryApplicationId,
@@ -90,10 +97,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public KsqlTopic getResultTopic() {
     return resultTopic;
-  }
-
-  public String getEntity() {
-    return getOutputNode().getId().toString();
   }
 
   public Set<String> getSinkNames() {

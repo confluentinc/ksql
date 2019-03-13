@@ -18,6 +18,11 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.physical.LimitQueueCallback;
+import io.confluent.ksql.physical.LimitedQueueCallback;
+import io.confluent.ksql.physical.QueueCallback;
+import io.confluent.ksql.physical.UnlimitedQueueCallback;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
@@ -38,9 +43,13 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
       new LinkedBlockingQueue<>(100);
+  private final LimitQueueCallback callback;
 
   @SuppressWarnings("unchecked") // needs investigating
-  QueuedSchemaKStream(final SchemaKStream<K> schemaKStream, final QueryContext queryContext) {
+  public QueuedSchemaKStream(
+      final SchemaKStream<K> schemaKStream,
+      final QueryContext queryContext
+  ) {
     super(
         schemaKStream.schema,
         schemaKStream.getKstream(),
@@ -54,12 +63,21 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
     );
 
     final OutputNode output = schemaKStream.outputNode();
+
+    this.callback = output.getLimit()
+        .map(limit -> (LimitQueueCallback) new LimitedQueueCallback(limit))
+        .orElseGet(UnlimitedQueueCallback::new);
+
     setOutputNode(output);
-    kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, output.getCallback()));
+    kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, callback));
   }
 
   public BlockingQueue<KeyValue<String, GenericRow>> getQueue() {
     return rowQueue;
+  }
+
+  public void setLimitHandler(final LimitHandler limitHandler) {
+    callback.setLimitHandler(limitHandler);
   }
 
   @Override
@@ -135,13 +153,13 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   }
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  private static final class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
+  static final class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
     private final BlockingQueue<KeyValue<String, GenericRow>> queue;
-    private final OutputNode.Callback callback;
+    private final QueueCallback callback;
 
     QueuePopulator(
         final BlockingQueue<KeyValue<String, GenericRow>> queue,
-        final OutputNode.Callback callback
+        final QueueCallback callback
     ) {
       this.queue = queue;
       this.callback = Objects.requireNonNull(callback, "callback");

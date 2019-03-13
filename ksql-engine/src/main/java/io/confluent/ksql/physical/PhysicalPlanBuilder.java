@@ -26,6 +26,7 @@ import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -50,6 +51,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -202,7 +204,9 @@ public class PhysicalPlanBuilder {
     return new QueuedQueryMetadata(
         statement,
         streams,
-        bareOutputNode,
+        bareOutputNode.getSchema(),
+        getSourceNames(bareOutputNode),
+        schemaKStream::setLimitHandler,
         schemaKStream.getExecutionPlan(""),
         schemaKStream.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable)
@@ -214,7 +218,6 @@ public class PhysicalPlanBuilder {
         queryCloseCallback
     );
   }
-
 
   private QueryMetadata buildPlanForStructuredOutputNode(
       final String sqlExpression, final SchemaKStream<?> schemaKStream,
@@ -278,7 +281,8 @@ public class PhysicalPlanBuilder {
     return new PersistentQueryMetadata(
         statement,
         streams,
-        outputNode,
+        outputNode.getSchema(),
+        getSourceNames(outputNode),
         sinkDataSource,
         schemaKStream.getExecutionPlan(""),
         queryId,
@@ -424,6 +428,12 @@ public class PhysicalPlanBuilder {
   String getServiceId() {
     return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
            + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+  }
+
+  private static Set<String> getSourceNames(final PlanNode outputNode) {
+    final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
+    visitor.process(outputNode, null);
+    return visitor.getSourceNames();
   }
 }
 

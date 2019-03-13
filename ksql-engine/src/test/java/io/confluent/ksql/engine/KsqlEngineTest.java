@@ -150,15 +150,17 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldCreatePersistentQueries() {
+    // When"
     final List<QueryMetadata> queries
         = KsqlEngineTestUtil.execute(ksqlEngine, "create table bar as select * from test2;" +
         "create table foo as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
-    assertThat(queries.size(), equalTo(2));
-    final PersistentQueryMetadata queryOne = (PersistentQueryMetadata) queries.get(0);
-    final PersistentQueryMetadata queryTwo = (PersistentQueryMetadata) queries.get(1);
-    assertThat(queryOne.getEntity(), equalTo("BAR"));
-    assertThat(queryTwo.getEntity(), equalTo("FOO"));
+    // Then:
+    assertThat(queries, hasSize(2));
+    assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
+    assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
+    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkNames(), contains("BAR"));
+    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkNames(), contains("FOO"));
   }
 
   @Test

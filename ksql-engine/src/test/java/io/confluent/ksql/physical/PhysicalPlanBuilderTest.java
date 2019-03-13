@@ -44,8 +44,6 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.planner.LogicalPlanNode;
-import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
-import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
@@ -59,8 +57,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -199,9 +199,22 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldHaveOutputNode() {
+  public void shouldMakeBareQuery() {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
-    assertThat(queryMetadata.getOutputNode(), instanceOf(KsqlBareOutputNode.class));
+    assertThat(queryMetadata, instanceOf(QueuedQueryMetadata.class));
+  }
+
+  @Test
+  public void shouldMakePersistentQuery() {
+    // Given:
+    givenKafkaTopicExists("test1");
+
+    // When:
+    final QueryMetadata queryMetadata =
+        buildPhysicalPlan("CREATE STREAM FOO AS " + simpleSelectFilter);
+
+    // Then:
+    assertThat(queryMetadata, instanceOf(PersistentQueryMetadata.class));
   }
 
   @Test
@@ -238,7 +251,7 @@ public class PhysicalPlanBuilderTest {
         + "col2 FROM "
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    givenKafkaTopicExists("test1");
 
     final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
         ksqlEngine,
@@ -255,11 +268,10 @@ public class PhysicalPlanBuilderTest {
         "\t\t > [ PROJECT ] | Schema: [COL0 : BIGINT, COL1 : VARCHAR, COL2 : DOUBLE] | Logger: InsertQuery_1.Project");
     Assert.assertEquals(lines[2],
         "\t\t\t\t > [ SOURCE ] | Schema: [TEST1.ROWTIME : BIGINT, TEST1.ROWKEY : VARCHAR, TEST1.COL0 : BIGINT, TEST1.COL1 : VARCHAR, TEST1.COL2 : DOUBLE] | Logger: InsertQuery_1.KsqlTopic");
-    assertThat(queryMetadataList.get(1).getOutputNode(),
-        instanceOf(KsqlStructuredDataOutputNode.class));
-    final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode = (KsqlStructuredDataOutputNode)
-        queryMetadataList.get(1).getOutputNode();
-    assertThat(ksqlStructuredDataOutputNode.getKsqlTopic().getKsqlTopicSerDe().getSerDe(),
+    assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
+    final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
+        queryMetadataList.get(1);
+    assertThat(persistentQuery.getResultTopic().getKsqlTopicSerDe().getSerDe(),
         equalTo(DataSource.DataSourceSerDe.DELIMITED));
     closeQueries(queryMetadataList);
   }
@@ -268,7 +280,7 @@ public class PhysicalPlanBuilderTest {
   public void shouldFailIfInsertSinkDoesNotExist() {
     // Given:
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    givenKafkaTopicExists("test1");
 
     // Then:
     expectedException.expect(ParseFailedException.class);
@@ -289,7 +301,7 @@ public class PhysicalPlanBuilderTest {
     // Given:
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1 FROM test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    givenKafkaTopicExists("test1");
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
@@ -315,7 +327,7 @@ public class PhysicalPlanBuilderTest {
         + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON', KEY = 'COL1' );";
     final String csasQuery = "CREATE TABLE T2 AS SELECT * FROM T1;";
     final String insertIntoQuery = "INSERT INTO T2 SELECT *  FROM T1;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1);
+    givenKafkaTopicExists("test1");
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
@@ -336,7 +348,7 @@ public class PhysicalPlanBuilderTest {
         + "WITH (KAFKA_TOPIC='test1', VALUE_FORMAT='JSON');";
     final String csas = "CREATE STREAM s0 AS SELECT * FROM test1;";
     final String insertInto = "INSERT INTO s0 SELECT * FROM test1;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1);
+    givenKafkaTopicExists("test1");
 
     // When:
     final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(ksqlEngine,
@@ -370,8 +382,8 @@ public class PhysicalPlanBuilderTest {
     final String csasQuery = "CREATE STREAM S2 AS SELECT * FROM TEST1;";
     final String insertIntoQuery = "INSERT INTO S2 SELECT col0, col1, col2, col3 FROM T1;";
     // No need for setting the correct clean up policy in test.
-    kafkaTopicClient.createTopic("t1", 1, (short) 1, Collections.emptyMap());
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    givenKafkaTopicExists("t1");
+    givenKafkaTopicExists("test1");
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
@@ -390,7 +402,7 @@ public class PhysicalPlanBuilderTest {
   public void shouldCheckSinkAndResultKeysDoNotMatch() {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    givenKafkaTopicExists("test1");
 
     final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
         ksqlEngine,
@@ -415,7 +427,7 @@ public class PhysicalPlanBuilderTest {
   public void shouldFailIfSinkAndResultKeysDoNotMatch() {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    givenKafkaTopicExists("test1");
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
@@ -660,14 +672,14 @@ public class PhysicalPlanBuilderTest {
         + "col2 FROM "
         + "test1;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    givenKafkaTopicExists("test1");
     final List<QueryMetadata> queryMetadataList = KsqlEngineTestUtil.execute(
         ksqlEngine, createStream + "\n " +
         csasQuery + "\n " +
         insertIntoQuery,
         ksqlConfig,
         Collections.emptyMap());
-    final Schema resultSchema = queryMetadataList.get(0).getOutputNode().getSchema();
+    final Schema resultSchema = queryMetadataList.get(0).getResultSchema();
     resultSchema.fields().forEach(
         field -> Assert.assertTrue(field.schema().isOptional())
     );
@@ -678,7 +690,7 @@ public class PhysicalPlanBuilderTest {
   public void shouldSetIsKSQLSinkInMetastoreCorrectly() {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1;";
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
-    kafkaTopicClient.createTopic("test1", 1, (short) 1, Collections.emptyMap());
+    givenKafkaTopicExists("test1");
     KsqlEngineTestUtil.execute(
         ksqlEngine,
         createStream + "\n " + csasQuery + "\n " + ctasQuery,
@@ -692,5 +704,9 @@ public class PhysicalPlanBuilderTest {
 
   private static void closeQueries(final List<QueryMetadata> queryMetadataList) {
     queryMetadataList.forEach(QueryMetadata::close);
+  }
+
+  private void givenKafkaTopicExists(final String name) {
+    kafkaTopicClient.createTopic(name, 1, (short) 1, Collections.emptyMap());
   }
 }

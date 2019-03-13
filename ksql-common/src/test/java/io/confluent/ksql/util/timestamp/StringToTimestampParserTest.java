@@ -57,16 +57,40 @@ public class StringToTimestampParserTest {
   }
 
   @Test
-  public void shouldParseFullLocalDate() {
+  public void shouldParseFullLocalDateWithPartialSeconds() {
     // Given
-    final String format = "yyyy-MM-dd HH:mm";
-    final String timestamp = "1605-11-05 10:10";
+    final String format = "yyyy-MM-dd HH:mm:ss:SSS";
+    final String timestamp = "1605-11-05 10:10:10:010";
 
     // When
     ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
 
     // Then
-    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER.withHour(10).withMinute(10))));
+    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER
+        .withHour(10)
+        .withMinute(10)
+        .withSecond(10)
+        .withNano(10_000_000))));
+  }
+
+  @Test
+  public void shouldParseFullLocalDateWithNanoSeconds() {
+    // Given
+    final String format = "yyyy-MM-dd HH:mm:ss:nnnnnnnnn";
+    // Note that there is an issue when resolving nanoseconds that occur below the
+    // micro-second granularity. Since this is a private API (the only one exposed
+    // converts it to millis) we can safely ignore it.
+    final String timestamp = "1605-11-05 10:10:10:001000000";
+
+    // When
+    ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+
+    // Then
+    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER
+        .withHour(10)
+        .withMinute(10)
+        .withSecond(10)
+        .withNano(1_000_000))));
   }
 
   @Test
@@ -98,8 +122,10 @@ public class StringToTimestampParserTest {
   @Test
   public void shouldParseFullLocalDateWithTimeZone() {
     // Given
-    final String format = "yyyy-MM-dd HH O";
-    final String timestamp = "1605-11-05 10 GMT+3";
+    // NOTE: a trailing space is required due to JDK bug, fixed in JDK 9b116
+    // https://bugs.openjdk.java.net/browse/JDK-8154050
+    final String format = "yyyy-MM-dd HH O ";
+    final String timestamp = "1605-11-05 10 GMT+3 ";
 
     // When
     ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, IGNORED);

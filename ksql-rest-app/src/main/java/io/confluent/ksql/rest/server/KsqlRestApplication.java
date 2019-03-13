@@ -299,11 +299,21 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries
   ) {
+    final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
+
+    return buildApplication(restConfig, versionCheckerFactory, maxStatementRetries, serviceContext);
+  }
+
+  static KsqlRestApplication buildApplication(
+      final KsqlRestConfig restConfig,
+      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
+      final int maxStatementRetries,
+      final ServiceContext serviceContext
+  ) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
-
-    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(restConfig.getOriginals());

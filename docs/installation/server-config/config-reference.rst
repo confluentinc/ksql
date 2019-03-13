@@ -161,18 +161,20 @@ will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` become
 .. _ksql-sink-partitions:
 
 --------------------
-ksql.sink.partitions
+ksql.sink.partitions (Deprecated)
 --------------------
 
 The default number of partitions for the topics created by KSQL. The default is four.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
 
 .. _ksql-sink-replicas:
 
 ------------------
-ksql.sink.replicas
+ksql.sink.replicas (Deprecated)
 ------------------
 
 The default number of replicas for the topics created by KSQL. The default is one.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
 
 ------------------------------------
 ksql.functions.substring.legacy.args

@@ -13,10 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.structured;
+package io.confluent.ksql.physical;
 
-import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -26,18 +26,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.physical.TransientQueryQueue.QueuePopulator;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.structured.QueuedSchemaKStream.QueuePopulator;
-import io.confluent.ksql.structured.SchemaKStream.Type;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.structured.QueuedSchemaKStream;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.stream.IntStream;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.junit.Before;
@@ -50,7 +44,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("ConstantConditions")
 @RunWith(MockitoJUnitRunner.class)
-public class QueuedSchemaKStreamTest {
+public class TransientQueryQueueTest {
 
   private static final int SOME_LIMIT = 4;
   private static final GenericRow ROW_ONE = mock(GenericRow.class);
@@ -59,36 +53,19 @@ public class QueuedSchemaKStreamTest {
   @Mock
   private LimitHandler limitHandler;
   @Mock
-  private QueryContext queryContext;
-  @Mock
   private KStream<String, GenericRow> kStreamsApp;
   @Mock
-  private KsqlConfig ksqlConfig;
-  @Mock
-  private Field keyField;
-  @Mock
-  private FunctionRegistry functionRegistry;
-  @Mock
   private OutputNode outputNode;
+  @Mock
+  private QueuedSchemaKStream<String> queuedKStream;
   @Captor
   private ArgumentCaptor<QueuePopulator<String>> queuePopulatorCaptor;
-  private SchemaKStream<String> schemaKStream;
   private Queue<KeyValue<String, GenericRow>> queue;
 
   @Before
   public void setUp() {
-    schemaKStream = new SchemaKStream<>(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        kStreamsApp,
-        keyField,
-        emptyList(),
-        Serdes.String(),
-        Type.SOURCE,
-        ksqlConfig,
-        functionRegistry,
-        queryContext);
-
-    schemaKStream.setOutputNode(outputNode);
+    when(queuedKStream.outputNode()).thenReturn(outputNode);
+    when(queuedKStream.getKstream()).thenReturn(kStreamsApp);
   }
 
   @Test
@@ -106,6 +83,18 @@ public class QueuedSchemaKStreamTest {
     assertThat(queue.remove().value, is(ROW_ONE));
     assertThat(queue.peek().key, is("key2"));
     assertThat(queue.remove().value, is(ROW_TWO));
+  }
+
+  @Test
+  public void shouldNotQueueNullValues() {
+    // Given:
+    final QueuePopulator<String> queuePopulator = getQueuePopulator();
+
+    // When:
+    queuePopulator.apply("key1", null);
+
+    // Then:
+    assertThat(queue, is(empty()));
   }
 
   @Test
@@ -165,8 +154,7 @@ public class QueuedSchemaKStreamTest {
   }
 
   private QueuePopulator<String> getQueuePopulator() {
-    final QueuedSchemaKStream<String> queuer = new QueuedSchemaKStream<>(schemaKStream,
-        queryContext);
+    final TransientQueryQueue<String> queuer = new TransientQueryQueue<>(queuedKStream);
     queue = queuer.getQueue();
     queuer.setLimitHandler(limitHandler);
     verify(kStreamsApp).foreach(queuePopulatorCaptor.capture());

@@ -103,18 +103,6 @@ public class KsqlBareOutputNodeTest {
   }
 
   @Test
-  public void shouldBuildMapValuesNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FILTER_MAPVALUES_NODE);
-    verifyProcessorNode(node, Collections.singletonList(FILTER_NODE), Collections.singletonList(FOREACH_NODE));
-  }
-
-  @Test
-  public void shouldBuildForEachNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FOREACH_NODE);
-    verifyProcessorNode(node, Collections.singletonList(FILTER_MAPVALUES_NODE), Collections.emptyList());
-  }
-
-  @Test
   public void shouldCreateCorrectSchema() {
     final Schema schema = stream.getSchema();
     assertThat(schema.fields(), equalTo(Arrays.asList(new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),

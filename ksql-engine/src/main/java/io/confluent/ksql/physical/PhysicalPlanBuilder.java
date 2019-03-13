@@ -111,7 +111,7 @@ public class PhysicalPlanBuilder {
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
     final QueryId queryId = computeQueryId(logicalPlanNode.getNode());
-    final SchemaKStream resultStream = logicalPlanNode
+    final SchemaKStream<?> resultStream = logicalPlanNode
         .getNode()
         .buildStream(
             builder,
@@ -121,59 +121,62 @@ public class PhysicalPlanBuilder {
             functionRegistry,
             queryId
         );
+
     final OutputNode outputNode = resultStream.outputNode();
-    final boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 
-    // Check to make sure the logical and physical plans match up;
-    // important to do this BEFORE actually starting up
-    // the corresponding Kafka Streams job
-    if (isBareQuery && !(resultStream instanceof QueuedSchemaKStream)) {
-      throw new KsqlException(String.format(
-          "Mismatch between logical and physical output; "
-          + "expected a QueuedSchemaKStream based on logical "
-          + "KsqlBareOutputNode, found a %s instead",
-          resultStream.getClass().getCanonicalName()
-      ));
-    }
-    final String serviceId = getServiceId();
-    final String persistanceQueryPrefix =
-        ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String transientQueryPrefix =
-        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
+    if (outputNode instanceof KsqlBareOutputNode) {
+      if (!(resultStream instanceof QueuedSchemaKStream)) {
+        throw new KsqlException(String.format(
+            "Mismatch between logical and physical output; "
+                + "expected a QueuedSchemaKStream based on logical "
+                + "KsqlBareOutputNode, found a %s instead",
+            resultStream.getClass().getCanonicalName()
+        ));
+      }
 
-    if (isBareQuery) {
+      final String transientQueryPrefix =
+          ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
+
       return buildPlanForBareQuery(
-          (QueuedSchemaKStream) resultStream,
+          (QueuedSchemaKStream<?>) resultStream,
           (KsqlBareOutputNode) outputNode,
-          serviceId,
+          getServiceId(),
           transientQueryPrefix,
           queryId,
           logicalPlanNode.getStatementText()
       );
+    }
 
-    } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
+    if (outputNode instanceof KsqlStructuredDataOutputNode) {
+      if (resultStream instanceof QueuedSchemaKStream) {
+        throw new KsqlException(String.format(
+            "Mismatch between logical and physical output; "
+                + "expected a SchemaKStream based on logical "
+                + "KsqlBareOutputNode, found a %s instead",
+            resultStream.getClass().getCanonicalName()
+        ));
+      }
 
       KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) outputNode;
       ksqlStructuredDataOutputNode = ksqlStructuredDataOutputNode.cloneWithDoCreateInto(
           ((KsqlStructuredDataOutputNode) logicalPlanNode.getNode()).isDoCreateInto()
       );
+
+      final String persistanceQueryPrefix =
+          ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
+
       return buildPlanForStructuredOutputNode(
           logicalPlanNode.getStatementText(),
           resultStream,
           ksqlStructuredDataOutputNode,
-          serviceId,
+          getServiceId(),
           persistanceQueryPrefix,
           queryId,
           logicalPlanNode.getStatementText());
-
-
-    } else {
-      throw new KsqlException(
-          "Sink data source of type: "
-          + outputNode.getClass()
-          + " is not supported.");
     }
+
+    throw new KsqlException("Sink data source type unsupported: " + outputNode.getClass());
   }
 
   private QueryMetadata buildPlanForBareQuery(
@@ -197,6 +200,9 @@ public class PhysicalPlanBuilder {
         queryId,
         processingLogContext
     );
+
+    final TransientQueryQueue<?> queue = new TransientQueryQueue<>(schemaKStream);
+
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
     final SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
@@ -206,9 +212,9 @@ public class PhysicalPlanBuilder {
         streams,
         bareOutputNode.getSchema(),
         getSourceNames(bareOutputNode),
-        schemaKStream::setLimitHandler,
+        queue::setLimitHandler,
         schemaKStream.getExecutionPlan(""),
-        schemaKStream.getQueue(),
+        queue.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable)
             ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,

@@ -21,7 +21,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
@@ -63,17 +62,24 @@ public class KsqlBareOutputNode extends OutputNode {
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final QueryId queryId) {
-    final SchemaKStream<?> schemaKStream = getSource().buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId);
+      final QueryId queryId
+  ) {
+    final SchemaKStream<?> schemaKStream = getSource()
+        .buildStream(
+            builder,
+            ksqlConfig,
+            serviceContext,
+            processingLogContext,
+            functionRegistry,
+            queryId
+        );
 
-    schemaKStream.setOutputNode(this);
-    final Stacker contextStacker = buildNodeContext(queryId);
-    return new QueuedSchemaKStream<>(schemaKStream, contextStacker.getQueryContext());
+    final QueuedSchemaKStream<?> queued = new QueuedSchemaKStream<>(
+        schemaKStream,
+        buildNodeContext(queryId).getQueryContext()
+    );
+
+    queued.setOutputNode(this);
+    return queued;
   }
 }

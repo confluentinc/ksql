@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical;
 
+import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -30,6 +31,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
@@ -46,6 +48,7 @@ import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PlanTestUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -79,6 +82,8 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.TopologyDescription.Processor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -93,6 +98,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class PhysicalPlanBuilderTest {
+
+  private static final String FILTER_NODE = "KSTREAM-FILTER-0000000003";
+  private static final String FILTER_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000004";
+  private static final String FOREACH_NODE = "KSTREAM-FOREACH-0000000005";
 
   private static final String createStream = "CREATE STREAM TEST1 (COL0 BIGINT, COL1 VARCHAR, COL2 DOUBLE) WITH ( "
       + "KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON' );";
@@ -215,6 +224,29 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(queryMetadata, instanceOf(PersistentQueryMetadata.class));
+  }
+
+  @Test
+  public void shouldBuildMapValuesNodeForTransientQueries() {
+    final QueryMetadata query = buildPhysicalPlan(simpleSelectFilter);
+
+    final TopologyDescription.Processor node = getNodeByName(query, FILTER_MAPVALUES_NODE);
+
+    verifyProcessorNode(node, ImmutableList.of(FILTER_NODE), ImmutableList.of(FOREACH_NODE));
+  }
+
+  private static Processor getNodeByName(final QueryMetadata query, final String nodeName) {
+    return (Processor)
+        PlanTestUtil.getNodeByName(query.getTopology(), nodeName);
+  }
+
+  @Test
+  public void shouldBuildForEachNodeForTransientQueries() {
+    final QueryMetadata query = buildPhysicalPlan(simpleSelectFilter);
+
+    final TopologyDescription.Processor node = getNodeByName(query, FOREACH_NODE);
+
+    verifyProcessorNode(node, ImmutableList.of(FILTER_MAPVALUES_NODE), ImmutableList.of());
   }
 
   @Test

@@ -18,34 +18,16 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.physical.LimitHandler;
-import io.confluent.ksql.physical.LimitQueueCallback;
-import io.confluent.ksql.physical.LimitedQueueCallback;
-import io.confluent.ksql.physical.QueueCallback;
-import io.confluent.ksql.physical.UnlimitedQueueCallback;
-import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Windowed;
 
 public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
-  private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
-      new LinkedBlockingQueue<>(100);
-  private final LimitQueueCallback callback;
-
-  @SuppressWarnings("unchecked") // needs investigating
   public QueuedSchemaKStream(
       final SchemaKStream<K> schemaKStream,
       final QueryContext queryContext
@@ -61,23 +43,6 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
         schemaKStream.functionRegistry,
         queryContext
     );
-
-    final OutputNode output = schemaKStream.outputNode();
-
-    this.callback = output.getLimit()
-        .map(limit -> (LimitQueueCallback) new LimitedQueueCallback(limit))
-        .orElseGet(UnlimitedQueueCallback::new);
-
-    setOutputNode(output);
-    kstream.foreach(new QueuedSchemaKStream.QueuePopulator(rowQueue, callback));
-  }
-
-  public BlockingQueue<KeyValue<String, GenericRow>> getQueue() {
-    return rowQueue;
-  }
-
-  public void setLimitHandler(final LimitHandler limitHandler) {
-    callback.setLimitHandler(limitHandler);
   }
 
   @Override
@@ -150,48 +115,5 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   @Override
   public List<SchemaKStream> getSourceSchemaKStreams() {
     return super.getSourceSchemaKStreams();
-  }
-
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  static final class QueuePopulator<K> implements ForeachAction<K, GenericRow> {
-    private final BlockingQueue<KeyValue<String, GenericRow>> queue;
-    private final QueueCallback callback;
-
-    QueuePopulator(
-        final BlockingQueue<KeyValue<String, GenericRow>> queue,
-        final QueueCallback callback
-    ) {
-      this.queue = queue;
-      this.callback = Objects.requireNonNull(callback, "callback");
-    }
-
-    @Override
-    public void apply(final K key, final GenericRow row) {
-      try {
-        if (row == null) {
-          return;
-        }
-
-        if (!callback.shouldQueue()) {
-          return;
-        }
-
-        final String keyString = getStringKey(key);
-        queue.put(new KeyValue<>(keyString, row));
-
-        callback.onQueued();
-      } catch (final InterruptedException exception) {
-        throw new KsqlException("InterruptedException while enqueueing:" + key);
-      }
-    }
-
-    private String getStringKey(final K key) {
-      if (key instanceof Windowed) {
-        final Windowed windowedKey = (Windowed) key;
-        return String.format("%s : %s", windowedKey.key(), windowedKey.window());
-      }
-
-      return Objects.toString(key);
-    }
   }
 }

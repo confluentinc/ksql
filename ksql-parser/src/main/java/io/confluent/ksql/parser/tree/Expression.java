@@ -20,7 +20,8 @@ import io.confluent.ksql.parser.ExpressionFormatter;
 import java.util.Optional;
 
 /**
- * Expressions are the parts the make up a {@link Statement}.
+ * Expressions are used to declare select items, where and having clauses and join criteria in
+ * queries.
  */
 @Immutable
 public abstract class Expression extends Node {

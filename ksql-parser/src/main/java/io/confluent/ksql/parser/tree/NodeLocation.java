@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
-import javax.annotation.concurrent.Immutable;
+import com.google.errorprone.annotations.Immutable;
 
 @Immutable
 public final class NodeLocation {

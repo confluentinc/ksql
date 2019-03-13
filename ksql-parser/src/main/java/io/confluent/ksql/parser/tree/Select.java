@@ -19,38 +19,26 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class Select
-    extends Node {
+@Immutable
+public class Select extends Node {
 
-  private final boolean distinct;
-  private final List<SelectItem> selectItems;
+  private final ImmutableList<SelectItem> selectItems;
 
-  public Select(final boolean distinct, final List<SelectItem> selectItems) {
-    this(Optional.empty(), distinct, selectItems);
+  public Select(final List<SelectItem> selectItems) {
+    this(Optional.empty(), selectItems);
   }
 
   public Select(
-      final NodeLocation location,
-      final boolean distinct,
-      final List<SelectItem> selectItems) {
-    this(Optional.of(location), distinct, selectItems);
-  }
-
-  private Select(
       final Optional<NodeLocation> location,
-      final boolean distinct,
-      final List<SelectItem> selectItems) {
+      final List<SelectItem> selectItems
+  ) {
     super(location);
-    this.distinct = distinct;
     this.selectItems = ImmutableList.copyOf(requireNonNull(selectItems, "selectItems"));
-  }
-
-  public boolean isDistinct() {
-    return distinct;
   }
 
   public List<SelectItem> getSelectItems() {
@@ -65,7 +53,6 @@ public class Select
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("distinct", distinct)
         .add("selectItems", selectItems)
         .omitNullValues()
         .toString();
@@ -81,12 +68,11 @@ public class Select
     }
 
     final Select select = (Select) o;
-    return (distinct == select.distinct)
-           && Objects.equals(selectItems, select.selectItems);
+    return Objects.equals(selectItems, select.selectItems);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(distinct, selectItems);
+    return Objects.hash(selectItems);
   }
 }

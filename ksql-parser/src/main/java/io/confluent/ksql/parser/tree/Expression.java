@@ -15,9 +15,15 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.ExpressionFormatter;
 import java.util.Optional;
 
+/**
+ * Expressions are used to declare select items, where and having clauses and join criteria in
+ * queries.
+ */
+@Immutable
 public abstract class Expression extends Node {
 
   protected Expression(final Optional<NodeLocation> location) {

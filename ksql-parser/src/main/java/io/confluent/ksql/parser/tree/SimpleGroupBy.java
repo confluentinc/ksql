@@ -21,35 +21,31 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.ExpressionFormatter;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-public class SimpleGroupBy
-    extends GroupingElement {
+@Immutable
+public class SimpleGroupBy extends GroupingElement {
 
-  private final List<Expression> columns;
+  private final ImmutableList<Expression> columns;
 
-  public SimpleGroupBy(final List<Expression> simpleGroupByExpressions) {
-    this(Optional.empty(), simpleGroupByExpressions);
+  public SimpleGroupBy(final List<Expression> columns) {
+    this(Optional.empty(), columns);
   }
 
   public SimpleGroupBy(
-      final NodeLocation location,
-      final List<Expression> simpleGroupByExpressions) {
-    this(Optional.of(location), simpleGroupByExpressions);
-  }
-
-  private SimpleGroupBy(
       final Optional<NodeLocation> location,
-      final List<Expression> simpleGroupByExpressions) {
+      final List<Expression> columns
+  ) {
     super(location);
-    this.columns = requireNonNull(simpleGroupByExpressions);
+    this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns"));
   }
 
-  public List<Expression> getColumnExpressions() {
+  public List<Expression> getColumns() {
     return columns;
   }
 

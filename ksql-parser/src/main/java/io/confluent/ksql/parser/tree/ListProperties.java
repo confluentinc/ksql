@@ -17,9 +17,11 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class ListProperties extends Statement {
 
   public ListProperties(final Optional<NodeLocation> location) {
@@ -28,12 +30,16 @@ public class ListProperties extends Statement {
 
   @Override
   public int hashCode() {
-    return Objects.hash("ListProperties");
+    return Objects.hash(getClass());
   }
 
   @Override
   public boolean equals(final Object obj) {
-    return this == obj;
+    if (this == obj) {
+      return true;
+    }
+
+    return obj != null && obj.getClass().equals(getClass());
   }
 
   @Override

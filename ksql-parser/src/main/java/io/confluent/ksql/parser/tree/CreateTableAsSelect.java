@@ -19,16 +19,18 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class CreateTableAsSelect extends Statement implements CreateAsSelect {
 
   private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
-  private final Map<String, Expression> properties;
+  private final ImmutableMap<String, Expression> properties;
 
   public CreateTableAsSelect(
       final QualifiedName name,

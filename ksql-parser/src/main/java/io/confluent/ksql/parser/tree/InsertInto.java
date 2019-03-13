@@ -19,11 +19,13 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.ddl.DdlConfig;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class InsertInto
     extends Statement
     implements QueryContainer {
@@ -44,11 +46,12 @@ public class InsertInto
       final Optional<NodeLocation> location,
       final QualifiedName target,
       final Query query,
-      final Optional<Expression> partitionByColumn) {
+      final Optional<Expression> partitionByColumn
+  ) {
     super(location);
     this.target = requireNonNull(target, "target");
     this.query = requireNonNull(query, "query");
-    this.partitionByColumn = partitionByColumn;
+    this.partitionByColumn = requireNonNull(partitionByColumn, "partitionByColumn");
   }
 
   public QualifiedName getTarget() {
@@ -102,6 +105,7 @@ public class InsertInto
     return toStringHelper(this)
         .add("target", target)
         .add("query", query)
+        .add("partitionBy", partitionByColumn)
         .toString();
   }
 }

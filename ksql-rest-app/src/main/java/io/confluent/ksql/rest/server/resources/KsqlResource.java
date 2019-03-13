@@ -113,6 +113,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
@@ -517,23 +518,24 @@ public class KsqlResource {
     return explain(statement, propertyOverrides, ksqlConfig, ksqlEngine);
   }
 
+  @SuppressWarnings("ConstantConditions")
   private static QueryDescriptionEntity explain(
       final PreparedStatement<Explain> statement,
       final Map<String, Object> propertyOverrides,
       final KsqlConfig ksqlConfig,
       final KsqlExecutionContext executionContext
   ) {
-    final String queryId = statement.getStatement().getQueryId();
+    final Optional<String> queryId = statement.getStatement().getQueryId();
 
     try {
-      final QueryDescription queryDescription = queryId == null
-          ? explainStatement(
-          statement.getStatement().getStatement(),
-          statement.getStatementText().substring("EXPLAIN ".length()),
-          executionContext,
-          ksqlConfig,
-          propertyOverrides)
-          : explainQuery(queryId, executionContext);
+      final QueryDescription queryDescription = queryId
+          .map(s -> explainQuery(s, executionContext))
+          .orElseGet(() -> explainStatement(
+              statement.getStatement().getStatement().get(),
+              statement.getStatementText().substring("EXPLAIN ".length()),
+              executionContext,
+              ksqlConfig,
+              propertyOverrides));
 
       return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
     } catch (final KsqlException e) {

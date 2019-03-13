@@ -15,14 +15,14 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ShowColumns
-    extends Statement {
+@Immutable
+public class ShowColumns extends Statement {
 
   private final QualifiedName table;
   private final boolean isTopic;
@@ -33,22 +33,13 @@ public class ShowColumns
   }
 
   public ShowColumns(
-      final NodeLocation location,
-      final QualifiedName table,
-      final boolean isTopic,
-      final boolean isExtended
-  ) {
-    this(Optional.of(location), table, isTopic, isExtended);
-  }
-
-  private ShowColumns(
       final Optional<NodeLocation> location,
       final QualifiedName table,
       final boolean isTopic,
       final boolean isExtended
   ) {
     super(location);
-    this.table = requireNonNull(table, "table is null");
+    this.table = requireNonNull(table, "table");
     this.isTopic = isTopic;
     this.isExtended = isExtended;
   }
@@ -71,26 +62,30 @@ public class ShowColumns
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(table);
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final ShowColumns that = (ShowColumns) o;
+    return isTopic == that.isTopic
+        && isExtended == that.isExtended
+        && Objects.equals(table, that.table);
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if ((obj == null) || (getClass() != obj.getClass())) {
-      return false;
-    }
-    final ShowColumns o = (ShowColumns) obj;
-    return Objects.equals(table, o.table);
+  public int hashCode() {
+    return Objects.hash(table, isTopic, isExtended);
   }
 
   @Override
   public String toString() {
-    return toStringHelper(this)
-        .add("table", table)
-        .toString();
+    return "ShowColumns{"
+        + "table=" + table
+        + ", isTopic=" + isTopic
+        + ", isExtended=" + isExtended
+        + '}';
   }
 }

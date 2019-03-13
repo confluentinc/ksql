@@ -16,35 +16,29 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.base.MoreObjects;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class RunScript extends Statement {
 
-  final String schemaFilePath;
-
-  public RunScript(final Optional<NodeLocation> location, final String catalogFilePath) {
+  public RunScript(final Optional<NodeLocation> location) {
     super(location);
-    if (catalogFilePath.startsWith("'") && catalogFilePath.endsWith("'")) {
-      this.schemaFilePath = catalogFilePath.substring(1, catalogFilePath.length() - 1);
-    } else {
-      this.schemaFilePath = catalogFilePath;
-    }
-
-  }
-
-  public String getSchemaFilePath() {
-    return schemaFilePath;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash("ListStreams");
+    return Objects.hash(getClass());
   }
 
   @Override
   public boolean equals(final Object obj) {
-    return this == obj;
+    if (this == obj) {
+      return true;
+    }
+
+    return obj != null && obj.getClass().equals(getClass());
   }
 
   @Override

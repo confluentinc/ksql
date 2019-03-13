@@ -17,8 +17,8 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public abstract class Node {

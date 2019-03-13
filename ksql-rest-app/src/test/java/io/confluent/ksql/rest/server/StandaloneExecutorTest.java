@@ -125,7 +125,7 @@ public class StandaloneExecutorTest {
       QualifiedName.of("stream"),
       new Query(
           Optional.empty(),
-          new Select(true, ImmutableList.of(new AllColumns(new NodeLocation(0, 0)))),
+          new Select(ImmutableList.of(new AllColumns(Optional.empty()))),
           new Table(QualifiedName.of("sink")),
           Optional.empty(),
           Optional.empty(),
@@ -224,13 +224,11 @@ public class StandaloneExecutorTest {
     givenQueryFileContains("something");
 
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
-    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
 
     when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0));
 
     when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
-    when(ksqlEngine.prepare(PARSED_CSAS)).thenReturn((PreparedStatement) PREPARED_CSAS);
 
     when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(persistentQuery));
 
@@ -238,7 +236,6 @@ public class StandaloneExecutorTest {
 
     when(sandBox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
-    when(sandBox.prepare(PARSED_CSAS)).thenReturn((PreparedStatement) PREPARED_CSAS);
 
     when(sandBox.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
     when(sandBox.execute(eq(CSAS_WITH_TOPIC), any(), any()))

@@ -284,7 +284,6 @@ public class DefaultTopicInjectorTest {
                 SCHEMA.fields().get(0),
                 new MetadataTimestampExtractionPolicy(),
                 ksqlTopic,
-                "store",
                 Serdes.String()
             );
         break;

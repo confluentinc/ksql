@@ -205,8 +205,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               null,
               Importance.LOW,
               "The legacy default number of partitions for the topics created by KSQL"
-                  + "in 5.1 and earlier versions."
-                  + "This property should not be set for 5.2 and later versions."),
+                  + "in 5.2 and earlier versions."
+                  + "This property should not be set for 5.3 and later versions."),
           new CompatibilityBreakingConfigDef(
               SINK_NUMBER_OF_REPLICAS_PROPERTY,
               ConfigDef.Type.SHORT,
@@ -214,8 +214,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               null,
               ConfigDef.Importance.LOW,
               "The default number of replicas for the topics created by KSQL "
-                  + "in 5.1 and earlier versions."
-                  + "This property should not be set for 5.2 and later versions."
+                  + "in 5.2 and earlier versions."
+                  + "This property should not be set for 5.3 and later versions."
           ),
           new CompatibilityBreakingConfigDef(
               KSQL_USE_NAMED_AVRO_MAPS,

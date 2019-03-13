@@ -558,6 +558,18 @@ public class CodeGenRunnerTest {
     }
 
     @Test
+    public void shouldHandleStringLiteralWithCharactersThatMustBeEscaped() {
+        // Given:
+        final String query = "SELECT CONCAT(CONCAT('\\\"', 'foo'), '\\\"') FROM CODEGEN_TEST;";
+
+        // When:
+        final List<Object> columns = executeExpression(query, Collections.emptyMap());
+
+        // Then:
+        assertThat(columns, contains("\\\"foo\\\""));
+    }
+
+    @Test
     public void shouldHandleMathUdfs() {
         // Given:
         final String query =

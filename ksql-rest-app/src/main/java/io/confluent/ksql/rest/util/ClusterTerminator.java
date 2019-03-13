@@ -29,7 +29,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -115,14 +114,15 @@ public class ClusterTerminator {
   }
 
   private void cleanUpSinkAvroSchemas(final List<String> topicsToBeDeleted) {
-    final MetaStore metaStore = ksqlEngine.getMetaStore();
     final Stream<String> subjectsToDelete = topicsToBeDeleted.stream()
-        .map(metaStore::getSourceForTopic)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .filter(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO))
-        .map(source -> source.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+        .filter(this::hasAvroSource)
+        .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
     filterNonExistingSubjects(subjectsToDelete).forEach(this::deleteSubject);
+  }
+
+  private boolean hasAvroSource(final String topicName) {
+    return ksqlEngine.getMetaStore().getSourcesForKafkaTopic(topicName).stream()
+        .anyMatch(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO));
   }
 
   private Stream<String> filterNonExistingSubjects(final Stream<String> subjects) {

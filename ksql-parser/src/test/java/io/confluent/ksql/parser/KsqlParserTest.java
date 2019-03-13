@@ -158,7 +158,6 @@ public class KsqlParserTest {
         Optional.ofNullable(itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
-        "items",
         Serdes::String);
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);

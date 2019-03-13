@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.metastore.model;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.util.SchemaUtil;
@@ -30,8 +28,6 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 @Immutable
 public class KsqlTable<K> extends StructuredDataSource<K> {
 
-  private final String stateStoreName;
-
   public KsqlTable(
       final String sqlExpression,
       final String datasourceName,
@@ -39,7 +35,6 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
       final Optional<Field> keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
-      final String stateStoreName,
       final SerdeFactory<K> keySerde
   ) {
     super(
@@ -52,7 +47,6 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         ksqlTopic,
         keySerde
     );
-    this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
   }
 
   public boolean isWindowed() {
@@ -71,7 +65,6 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         getKeyField(),
         getTimestampExtractionPolicy(),
         getKsqlTopic(),
-        stateStoreName,
         getKeySerdeFactory()
     );
   }

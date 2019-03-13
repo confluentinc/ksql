@@ -1804,7 +1804,7 @@ public class KsqlResourceTest {
       metaStore.putSource(
           new KsqlTable<>(
               "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, "statestore", Serdes::String));
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
   }
 

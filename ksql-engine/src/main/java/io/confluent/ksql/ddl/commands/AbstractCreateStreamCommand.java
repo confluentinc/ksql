@@ -192,7 +192,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     validSet.add(DdlConfig.KEY_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.WINDOW_TYPE_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_NAME_PROPERTY.toUpperCase());
-    validSet.add(DdlConfig.STATE_STORE_NAME_PROPERTY.toUpperCase());
     validSet.add(DdlConfig.TOPIC_NAME_PROPERTY.toUpperCase());
     validSet.add(KsqlConstants.AVRO_SCHEMA_ID.toUpperCase());
     validSet.add(DdlConfig.TIMESTAMP_FORMAT_PROPERTY.toUpperCase());

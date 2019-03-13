@@ -84,14 +84,10 @@ public boolean isValid(
 ```
 
 There is more work to be done in order to support `Struct` as the return value of UDFs, namely we
-must have some mechanism to create the output schema. There are two ways to resolve the output
-schema:
-
-* Resolve the schema at runtime, inferring it from the output object. This can work, but runs the
-risk that the UDF is inconsistent (e.g. returns two structs with different schemas).
-* Resolve the schema as part of the UDF specification. This adds more structure and predictability,
-but may become tricky to evolve and we need a good API to do this, especially if it is necessary to
-specify complicated nested structs. Below are three candidate ways to specify the schema:
+must have some mechanism to create the output schema. To address this, we can resolve the schema as 
+part of the UDF specification. This adds more structure and predictability, but may become tricky to
+evolve and we need a good API to do this, especially if it is necessary to specify complicated 
+nested structs. Below are three candidate ways to specify the schema:
 
 ```java
 @UdfSchema
@@ -129,17 +125,30 @@ signature is something like `<T> List<T> convert(List<String> list)`. This can b
 compilation by following a simple rule: any generic type used in the output must be present in at
 least one of the parameters. We can access this information via reflection.
 
-**NOTE:** Supporting a wildcard type (e.g. `<?>`) is not covered by this design since we would not
-be able to generate the output schema of select statements.
+**NOTE:** Supporting a wildcard output type is not covered by this design since we would not be able 
+to generate the output schema for select statements, however supporting wildcards in the input types 
+(e.g. `Long length(List<?> list)`) should be possible.
 
 ### Varargs
 
 Varargs boils down to supporting native Java arrays as parameters and ensuring that component types 
 are resolved properly. Anytime a method is registered with variable args (e.g. `String... args`) we 
 will register a corresponding function with the wrapping array type (e.g. `String[]`). At runtime, 
-if no function matches the explicit parameter types, we will fallback to search for any array-type 
-parameter method declaration of the same type iff all parameters are of a single type. If any
-parameter is null, it will be considered valid for any vararg declaration.
+we resolve methods using the following fallback logic:
+```
+Type[] desired
+if signature_exists(desired): 
+  return method
+else:
+  vararg = desired[-1]
+  while desired[-1] == vararg:
+    if signature_exists(desired, arrayOf(vararg)) return method 
+    desired = desired[:-1]
+  fail
+```
+This will allows us to resolve methods such as `foo(Int, String...)` and `foo(String, String...)`,
+as well as accept empty arguments to `foo(String...)`. If any parameter is `null`, it will be 
+considered valid for any vararg declaration.
 
 This proposal does not cover supporting `Object` as a parameter to a method in order to allow for 
 "generic variable argument" UDFs, but supporting it can be an extension.
@@ -160,7 +169,8 @@ introduce a new interface `Exportable`, that UDFs may implement. Only UDAFs that
 interface will have the `mapValues` stage applied to them.
 
 ```java
-class AverageUdaf implements Udaf<Long, Struct>, Exportable<Struct, Long> {
+// This UDAF accepts `Long` values, aggregates on a `Struct` and exports a `Double`
+class AverageUdaf implements Udaf<Long, Struct>, Exportable<Struct, Double> {
   
   private static final Schema SUM_SCHEMA = 
       SchemaBuilder.struct()
@@ -192,8 +202,8 @@ class AverageUdaf implements Udaf<Long, Struct>, Exportable<Struct, Long> {
   * of this method.
   */
   @Override
-  public Integer export(final Struct agg) {
-    return agg.getInt64("sum") / agg.getInt64("count");
+  public Double export(final Struct agg) {
+    return ((Double) agg.getInt64("sum")) / agg.getInt64("count");
   }
   
 }
@@ -203,7 +213,20 @@ class AverageUdaf implements Udaf<Long, Struct>, Exportable<Struct, Long> {
 extra work. For the scope of this KLIP, however, supporting just KSQL types (including `Struct`) 
 should suffice.
 
-#### Alternative
+#### Alternative 1
+
+Instead of introducing a new `Exportable<A, VR>` interface, we can introduce an interface that
+inherits from `Udaf` instead:
+
+```java
+interface ExportableUdaf<V, VR, A> extends Udaf<V, A> {
+  VR export(A agg);
+}
+```
+
+The behavior will be the same, but it allows us to specify the type parameter for `A` only once.
+
+#### Alternative 2
 
 If we expect UDAFs to commonly require exportable functionality, then we can make this change in a
 backwards incompatible change and introduce the `export` (or `terminate`) method into the UDAF

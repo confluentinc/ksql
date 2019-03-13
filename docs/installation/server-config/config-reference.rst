@@ -158,6 +158,16 @@ By default, the service ID of KSQL servers is ``default_``. The service ID is al
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 
+.. _ksql-internal-topic-replicas:
+
+--------------------
+ksql.internal.topic.replicas
+--------------------
+
+The number of replicas for the internal topics created by KSQL Server. The default is one.
+This config parameter works in KSQL 5.3 and later.
+Note that replicas for record processing log topic should be configrued separately. For more info refer to :ref:`KSQL Processing Log <ksql_processing_log>`.
+
 .. _ksql-sink-partitions:
 
 --------------------
@@ -362,11 +372,14 @@ When deploying KSQL to production, the following settings are recommended in you
     # Kafka cluster is unavailable.
     ksql.streams.producer.max.block.ms=9223372036854775807
 
-    # Set the replication factor for internal topics, the command topic, and
-    # output topics to be 3 for better fault tolerance and durability. Note:
-    # the value 3 requires at least 3 brokers in your Kafka cluster.
+    # For better fault tolerance and durability, set the replication factor for the KSQL
+    # Server's internal topics. Note: the value 3 requires at least 3 brokers in your Kafka cluster.
+    ksql.internal.topic.replicas=3
+
+    # For better fault tolerance and durability, set the replication factor for
+    # the internal topics that Kafka Streams creates for some queries.
+    # Note: the value 3 requires at least 3 brokers in your Kafka cluster.
     ksql.streams.replication.factor=3
-    ksql.sink.replicas=3
 
     # Set the storage directory for stateful operations like aggregations and
     # joins to be at a durable location. By default, they are stored in /tmp.

@@ -55,6 +55,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
 
+  public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
+
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
@@ -381,6 +383,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             DEFAULT_EXT_DIR,
             ConfigDef.Importance.LOW,
             "The path to look for and load extensions such as UDFs from."
+        ).define(
+            KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY,
+            Type.SHORT,
+            (short) 1,
+            ConfigDef.Importance.LOW,
+            "The replication factor for the internal topics of KSQL server."
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,

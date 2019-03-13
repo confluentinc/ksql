@@ -372,9 +372,14 @@ When deploying KSQL to production, the following settings are recommended in you
     # Kafka cluster is unavailable.
     ksql.streams.producer.max.block.ms=9223372036854775807
 
-    # Set the replication factor for the KSQL Server's internal topics. Note:
-    # the value 3 requires at least 3 brokers in your Kafka cluster.
+    # For better fault tolerance and durability, set the replication factor for the KSQL
+    # Server's internal topics. Note: the value 3 requires at least 3 brokers in your Kafka cluster.
     ksql.internal.topic.replicas=3
+
+    # For better fault tolerance and durability, set the replication factor for
+    # the internal topics that Kafka Streams creates for some queries.
+    # Note: the value 3 requires at least 3 brokers in your Kafka cluster.
+    ksql.streams.replication.factor=3
 
     # Set the storage directory for stateful operations like aggregations and
     # joins to be at a durable location. By default, they are stored in /tmp.

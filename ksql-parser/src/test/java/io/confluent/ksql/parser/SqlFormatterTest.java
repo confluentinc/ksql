@@ -141,7 +141,6 @@ public class SqlFormatterTest {
         itemInfoSchema.field("ITEMID"),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
-        "items",
         Serdes.String());
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);

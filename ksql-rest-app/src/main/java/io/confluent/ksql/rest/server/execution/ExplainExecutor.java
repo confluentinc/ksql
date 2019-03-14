@@ -66,17 +66,20 @@ public final class ExplainExecutor {
       final KsqlConfig ksqlConfig,
       final KsqlExecutionContext executionContext
   ) {
-    final String queryId = statement.getStatement().getQueryId();
+    final Optional<String> queryId = statement.getStatement().getQueryId();
 
     try {
-      final QueryDescription queryDescription = (queryId == null)
-          ? explainStatement(
-              statement.getStatement().getStatement(),
+      final QueryDescription queryDescription = queryId
+          .map(s -> explainQuery(s, executionContext))
+          .orElseGet(() -> explainStatement(
+              statement.getStatement().getStatement().orElseThrow(
+                  () -> new KsqlStatementException(
+                      "must have either queryID or statement",
+                      statement.getStatementText())),
               statement.getStatementText().substring("EXPLAIN ".length()),
               executionContext,
               ksqlConfig,
-              propertyOverrides)
-          : explainQuery(queryId, executionContext);
+              propertyOverrides));
 
       return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
     } catch (final KsqlException e) {

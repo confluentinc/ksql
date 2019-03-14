@@ -102,6 +102,8 @@ public class RequestValidatorTest {
 
     metaStore.putSource(source);
     metaStore.putSource(sink);
+
+    givenRequestValidator(ImmutableMap.of());
   }
 
   @Test
@@ -112,7 +114,7 @@ public class RequestValidatorTest {
     );
 
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
+        givenParsed("CREATE STREAM x WITH (kafka_topic='x');");
 
     // When:
     validator.validate(statements, ImmutableMap.of(), "sql");
@@ -130,12 +132,7 @@ public class RequestValidatorTest {
   @Test
   public void shouldExecuteOnEngineIfNoCustomExecutor() {
     // Given:
-    givenRequestValidator(
-        ImmutableMap.of()
-    );
-
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("SET 'property'='value';");
+    final List<ParsedStatement> statements = givenParsed("SET 'property'='value';");
 
     // When:
     validator.validate(statements, ImmutableMap.of(), "sql");
@@ -157,7 +154,7 @@ public class RequestValidatorTest {
         .when(statementValidator).validate(any(), any(), any(), any(), any());
 
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
+        givenParsed("CREATE STREAM x WITH (kafka_topic='x');");
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -170,11 +167,8 @@ public class RequestValidatorTest {
   @Test
   public void shouldThrowIfNoValidatorAvailable() {
     // Given:
-    givenRequestValidator(
-        ImmutableMap.of()
-    );
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("EXPLAIN X;");
+        givenParsed("EXPLAIN X;");
 
     // Expect:
     expectedException.expect(KsqlStatementException.class);
@@ -187,13 +181,10 @@ public class RequestValidatorTest {
   @Test
   public void shouldThrowIfTooManyPersistentQueries() {
     // Given:
-    givenRequestValidator(
-        ImmutableMap.of()
-    );
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
 
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(
+        givenParsed(
             "CREATE STREAM sink AS SELECT * FROM source;"
                 + "CREATE STREAM sink2 as SELECT * FROM sink;"
         );
@@ -217,7 +208,7 @@ public class RequestValidatorTest {
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
 
     final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse(
+        givenParsed(
             "CREATE STREAM a WITH (kafka_topic='a', value_format='json');"
                 + "EXPLAIN x;"
         );
@@ -238,8 +229,7 @@ public class RequestValidatorTest {
         ImmutableMap.of(CreateStream.class, statementValidator)
     );
 
-    final List<ParsedStatement> statements =
-        new DefaultKsqlParser().parse("RUN SCRIPT '/some/script.sql';");
+    final List<ParsedStatement> statements = givenParsed("RUN SCRIPT '/some/script.sql';");
 
     // When:
     validator.validate(statements, props, "sql");
@@ -252,6 +242,10 @@ public class RequestValidatorTest {
         eq(ksqlConfig),
         any()
     );
+  }
+
+  private List<ParsedStatement> givenParsed(final String sql) {
+    return new DefaultKsqlParser().parse(sql);
   }
 
   private void givenRequestValidator(

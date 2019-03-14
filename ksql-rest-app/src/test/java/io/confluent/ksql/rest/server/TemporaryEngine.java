@@ -101,7 +101,7 @@ public class TemporaryEngine extends ExternalResource {
         source =
             new KsqlTable<>(
                 "statement", name, SCHEMA, SCHEMA.field("val"),
-                new MetadataTimestampExtractionPolicy(), topic, "store", Serdes.String());
+                new MetadataTimestampExtractionPolicy(), topic, Serdes.String());
         break;
       case KTOPIC:
       default:

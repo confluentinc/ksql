@@ -21,7 +21,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.test.util.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import java.util.Collections;
 import java.util.Optional;
 import javax.ws.rs.client.Client;

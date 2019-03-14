@@ -315,13 +315,13 @@ public class EndToEndIntegrationTest {
     TEST_HARNESS.produceRows(
         PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
 
-    TEST_HARNESS.verifySubjectPresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    TEST_HARNESS.waitForSubjectToBePresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 
     ksqlContext.terminateQuery(new QueryId("CSAS_AVRO_STREAM_0"));
 
     executeStatement("DROP STREAM avro_stream DELETE TOPIC;");
 
-    TEST_HARNESS.verifySubjectAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    TEST_HARNESS.waitForSubjectToBeAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 
   private QueryMetadata executeStatement(final String statement,

@@ -83,10 +83,20 @@ public final class MetaStoreImpl implements MutableMetaStore {
   public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
     return dataSources.values()
         .stream()
-        .filter(p -> p.source.getKsqlTopic().getName() != null
-            && p.source.getKsqlTopic().getName().equals(ksqlTopicName))
+        .filter(p -> p.source.getTopicName() != null
+            && p.source.getTopicName().equals(ksqlTopicName))
         .map(sourceInfo -> sourceInfo.source)
         .findFirst();
+  }
+
+  @Override
+  public List<StructuredDataSource> getSourcesForKafkaTopic(final String kafkaTopicName) {
+    return dataSources.values()
+        .stream()
+        .filter(p -> p.source.getKafkaTopicName() != null
+            && p.source.getKafkaTopicName().equals(kafkaTopicName))
+        .map(sourceInfo -> sourceInfo.source)
+        .collect(Collectors.toList());
   }
 
   @Override

@@ -106,6 +106,10 @@ public class IntegrationTestHarness extends ExternalResource {
     return kafkaCluster.bootstrapServers();
   }
 
+  public ServiceContext serviceContext() {
+    return serviceContext.get();
+  }
+
   public SchemaRegistryClient schemaRegistryClient() {
     return serviceContext.get().getSchemaRegistryClient();
   }
@@ -442,11 +446,51 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
-   * Verify a subject with name {@code subjectName} exists in Schema Registry.
+   * Wait for topics with names {@code topicNames} to exist in Kafka.
    *
-   * @param subjectName the name of the subject to check existence for.
+   * @param topicNames the names of the topics to await existence for.
    */
-  public void verifySubjectPresent(final String subjectName) throws Exception {
+  public void waitForTopicsToBePresent(final String... topicNames) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+            return Arrays.stream(topicNames)
+                .allMatch(topicClient::isTopicExists);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "topics not all present after 30 seconds. topics: " + Arrays.toString(topicNames));
+  }
+
+  /**
+   * Wait for topics with names {@code topicNames} to not exist in Kafka.
+   *
+   * @param topicNames the names of the topics to await absence for.
+   */
+  public void waitForTopicsToBeAbsent(final String... topicNames) throws Exception {
+    TestUtils.waitForCondition(
+        () -> {
+          try {
+            final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+            return Arrays.stream(topicNames)
+                .noneMatch(topicClient::isTopicExists);
+          } catch (Exception e) {
+            throw new RuntimeException("could not get subjects");
+          }
+        },
+        30_000,
+        "topics not all absent after 30 seconds. topics: " + Arrays.toString(topicNames));
+  }
+
+  /**
+   * Wait for a subject with name {@code subjectName} to exist in Schema Registry.
+   *
+   * @param subjectName the name of the subject to await existence for.
+   */
+  public void waitForSubjectToBePresent(final String subjectName) throws Exception {
     TestUtils.waitForCondition(
         () -> {
           try {
@@ -460,11 +504,11 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
-   * Verify no subject with name {@code subjectName} exists in Schema Registry.
+   * Wait for the subject with name {@code subjectName} to not exist in Schema Registry.
    *
-   * @param subjectName the name of the subject to check absence for.
+   * @param subjectName the name of the subject to await absence for.
    */
-  public void verifySubjectAbsent(final String subjectName) throws Exception {
+  public void waitForSubjectToBeAbsent(final String subjectName) throws Exception {
     TestUtils.waitForCondition(
         () -> {
           try {

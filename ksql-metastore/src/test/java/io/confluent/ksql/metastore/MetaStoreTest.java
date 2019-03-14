@@ -18,18 +18,22 @@ package io.confluent.ksql.metastore;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.List;
 import org.apache.kafka.common.serialization.Serdes;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class MetastoreTest {
+public class MetaStoreTest {
 
   private MutableMetaStore metaStore;
 
@@ -81,11 +85,41 @@ public class MetastoreTest {
   }
 
   @Test
-  public void shouldGetTheCorrectSourceNameForTopic() {
-    final StructuredDataSource structuredDataSource = metaStore.getSourceForTopic("TEST2").get();
-    assertThat(structuredDataSource, instanceOf(KsqlTable.class));
-    assertThat(structuredDataSource.getDataSourceType(), equalTo(DataSourceType.KTABLE));
-    assertThat(structuredDataSource.getName(), equalTo("TEST2"));
+  public void shouldGetSourcesForKafkaTopicWithSingleSource() {
+    // When:
+    final List<StructuredDataSource> sources = metaStore.getSourcesForKafkaTopic("test2");
+
+    // Then:
+    assertThat(sources, hasSize(1));
+    final StructuredDataSource source = sources.get(0);
+    assertThat(source, instanceOf(KsqlTable.class));
+    assertThat(source.getDataSourceType(), equalTo(DataSourceType.KTABLE));
+    assertThat(source.getKafkaTopicName(), equalTo("test2"));
   }
 
+  @Test
+  public void shouldGetSourcesForKafkaTopicWithMultipleSources() {
+    // Given:
+    final StructuredDataSource mockSource = mock(StructuredDataSource.class);
+    when(mockSource.getKafkaTopicName()).thenReturn("test1");
+    when(mockSource.getName()).thenReturn("new source name");
+    metaStore.putSource(mockSource);
+
+    // When:
+    final List<StructuredDataSource> sources = metaStore.getSourcesForKafkaTopic("test1");
+
+    // Then:
+    assertThat(sources, hasSize(2));
+    assertThat(sources.get(0).getKafkaTopicName(), equalTo("test1"));
+    assertThat(sources.get(1).getKafkaTopicName(), equalTo("test1"));
+  }
+
+  @Test
+  public void shouldGetSourcesForKafkaTopicWithNoSources() {
+    // When:
+    final List<StructuredDataSource> sources = metaStore.getSourcesForKafkaTopic("not a topic name");
+
+    // Then:
+    assertThat(sources, hasSize(0));
+  }
 }

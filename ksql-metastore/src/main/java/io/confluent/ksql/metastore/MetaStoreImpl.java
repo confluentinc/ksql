@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -77,16 +76,6 @@ public final class MetaStoreImpl implements MutableMetaStore {
       return null;
     }
     return source.source;
-  }
-
-  @Override
-  public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
-    return dataSources.values()
-        .stream()
-        .filter(p -> p.source.getTopicName() != null
-            && p.source.getTopicName().equals(ksqlTopicName))
-        .map(sourceInfo -> sourceInfo.source)
-        .findFirst();
   }
 
   @Override

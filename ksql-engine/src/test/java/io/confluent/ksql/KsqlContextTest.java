@@ -32,7 +32,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.inference.SchemaInjector;
-import io.confluent.ksql.schema.inference.TopicInjector;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;

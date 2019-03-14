@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -26,13 +28,13 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -48,6 +50,7 @@ public class RequestValidator {
   private static final Logger LOG = LoggerFactory.getLogger(RequestValidator.class);
 
   private final Map<Class<? extends Statement>, StatementValidator<?>> customValidators;
+  private final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
   private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
   private final Supplier<KsqlExecutionContext> snapshotSupplier;
   private final ServiceContext serviceContext;
@@ -65,15 +68,17 @@ public class RequestValidator {
   public RequestValidator(
       final Map<Class<? extends Statement>, StatementValidator<?>> customValidators,
       final Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
+      final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory,
       final Supplier<KsqlExecutionContext> snapshotSupplier,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig
   ) {
-    this.customValidators = Objects.requireNonNull(customValidators, "customValidators");
-    this.schemaInjectorFactory = Objects.requireNonNull(schemaInjectorFactory, "schemaInjector");
-    this.snapshotSupplier = Objects.requireNonNull(snapshotSupplier, "snapshotSupplier");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.customValidators = requireNonNull(customValidators, "customValidators");
+    this.schemaInjectorFactory = requireNonNull(schemaInjectorFactory, "schemaInjector");
+    this.topicInjectorFactory = requireNonNull(topicInjectorFactory, "topicInjectorFactory");
+    this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   /**
@@ -96,7 +101,8 @@ public class RequestValidator {
       final String sql
   ) {
     final KsqlExecutionContext ctx = snapshotSupplier.get();
-    final SchemaInjector injector = schemaInjectorFactory.apply(serviceContext);
+    final SchemaInjector schemaInjector = schemaInjectorFactory.apply(serviceContext);
+    final TopicInjector topicInjector = topicInjectorFactory.apply(ctx);
 
     int numPersistentQueries = 0;
     for (ParsedStatement parsed : statements) {
@@ -104,7 +110,7 @@ public class RequestValidator {
 
       numPersistentQueries += (prepared.getStatement() instanceof RunScript)
           ? validateRunScript(prepared, propertyOverrides, ctx)
-          : validate(prepared, ksqlConfig, propertyOverrides, ctx, injector);
+          : validate(prepared, ksqlConfig, propertyOverrides, ctx, schemaInjector, topicInjector);
     }
 
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig, numPersistentQueries)) {
@@ -125,8 +131,8 @@ public class RequestValidator {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides,
       final KsqlExecutionContext executionContext,
-      final SchemaInjector schemaInjector
-  ) throws KsqlStatementException  {
+      final SchemaInjector schemaInjector,
+      final TopicInjector topicInjector) throws KsqlStatementException  {
     final Statement statement = prepared.getStatement();
     final Class<? extends Statement> statementClass = statement.getClass();
     final StatementValidator<T> customValidator = (StatementValidator<T>)
@@ -137,7 +143,8 @@ public class RequestValidator {
           prepared, executionContext, serviceContext, ksqlConfig, propertyOverrides);
     } else if (KsqlEngine.isExecutableStatement(prepared)) {
       executionContext.execute(
-          schemaInjector.forStatement(prepared),
+          topicInjector.forStatement(
+              schemaInjector.forStatement(prepared), ksqlConfig, propertyOverrides),
           ksqlConfig,
           propertyOverrides
       );

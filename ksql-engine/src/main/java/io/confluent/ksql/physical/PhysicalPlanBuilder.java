@@ -152,7 +152,7 @@ public class PhysicalPlanBuilder {
         throw new KsqlException(String.format(
             "Mismatch between logical and physical output; "
                 + "expected a SchemaKStream based on logical "
-                + "KsqlBareOutputNode, found a %s instead",
+                + "QueuedSchemaKStream, found a %s instead",
             resultStream.getClass().getCanonicalName()
         ));
       }

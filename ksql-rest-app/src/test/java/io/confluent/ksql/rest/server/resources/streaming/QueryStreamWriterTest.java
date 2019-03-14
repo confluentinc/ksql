@@ -58,10 +58,6 @@ import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
-/**
- * @author andy
- * created 19/04/2018
- */
 @SuppressWarnings({"unchecked", "ConstantConditions"})
 @RunWith(EasyMockRunner.class)
 public class QueryStreamWriterTest {

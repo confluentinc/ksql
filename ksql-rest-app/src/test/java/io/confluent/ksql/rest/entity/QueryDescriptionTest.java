@@ -64,7 +64,7 @@ public class QueryDescriptionTest {
       new FieldInfo("field2", new SchemaInfo(Type.STRING, null, null)));
 
   private static final String STATEMENT = "statement";
-  private static final Map<String, Object> STREAM_PROPS = Collections.singletonMap("k1", "v1");
+  private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
   private static final Map<String, Object> PROP_OVERRIDES = Collections.singletonMap("k2", "v2");
 
   @Mock
@@ -97,7 +97,7 @@ public class QueryDescriptionTest {
         DataSource.DataSourceType.KSTREAM,
         "app id",
         topology,
-        STREAM_PROPS,
+        STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback);
 
@@ -134,7 +134,7 @@ public class QueryDescriptionTest {
         "app id",
         sinkTopic,
         topology,
-        STREAM_PROPS,
+        STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback);
 

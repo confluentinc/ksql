@@ -29,7 +29,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 
 /**
- * Metadata of a persistent query, e.g. {@code SELECT CREATE STREAM FOO AS SELECT * FROM BAR;}.
+ * Metadata of a persistent query, e.g. {@code CREATE STREAM FOO AS SELECT * FROM BAR;}.
  */
 public class PersistentQueryMetadata extends QueryMetadata {
 

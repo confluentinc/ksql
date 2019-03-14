@@ -21,7 +21,7 @@ package io.confluent.ksql.physical;
 public interface QueueCallback {
 
   /**
-   * Called to determine is an output row should be queued for output.
+   * Called to determine if an output row should be queued for output.
    *
    * @return {@code true} if it should be sent, {@code false} otherwise.
    */

@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.physical;
 
-/**
- * @author andy created 2019-03-13
- */
 public interface LimitHandler {
 
   /**

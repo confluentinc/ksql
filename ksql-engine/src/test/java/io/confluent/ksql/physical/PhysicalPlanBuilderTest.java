@@ -228,24 +228,25 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldBuildMapValuesNodeForTransientQueries() {
+    // Given:
     final QueryMetadata query = buildPhysicalPlan(simpleSelectFilter);
 
+    // When:
     final TopologyDescription.Processor node = getNodeByName(query, FILTER_MAPVALUES_NODE);
 
+    // Then:
     verifyProcessorNode(node, ImmutableList.of(FILTER_NODE), ImmutableList.of(FOREACH_NODE));
-  }
-
-  private static Processor getNodeByName(final QueryMetadata query, final String nodeName) {
-    return (Processor)
-        PlanTestUtil.getNodeByName(query.getTopology(), nodeName);
   }
 
   @Test
   public void shouldBuildForEachNodeForTransientQueries() {
+    // Given:
     final QueryMetadata query = buildPhysicalPlan(simpleSelectFilter);
 
+    // When:
     final TopologyDescription.Processor node = getNodeByName(query, FOREACH_NODE);
 
+    // Then:
     verifyProcessorNode(node, ImmutableList.of(FILTER_MAPVALUES_NODE), ImmutableList.of());
   }
 
@@ -740,5 +741,9 @@ public class PhysicalPlanBuilderTest {
 
   private void givenKafkaTopicExists(final String name) {
     kafkaTopicClient.createTopic(name, 1, (short) 1, Collections.emptyMap());
+  }
+
+  private static Processor getNodeByName(final QueryMetadata query, final String nodeName) {
+    return (Processor) PlanTestUtil.getNodeByName(query.getTopology(), nodeName);
   }
 }

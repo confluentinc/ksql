@@ -6,8 +6,7 @@ KSQL Syntax Reference
 KSQL has similar semantics to SQL:
 
 - Terminate KSQL statements with a semicolon ``;``
-- Use a back-slash ``\`` to indicate continuation of a multi-line statement on the next line
-- You can escape ' characters inside string literals by using '', i.e., 'yyyy-MM-dd''T''HH:mm:ssX'
+- Escape ' characters inside string literals by using '', for example, 'yyyy-MM-dd''T''HH:mm:ssX'
 
 ===========
 Terminology

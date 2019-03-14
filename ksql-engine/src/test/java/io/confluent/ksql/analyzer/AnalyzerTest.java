@@ -237,7 +237,7 @@ public class AnalyzerTest {
     Assert.assertNotNull("INTO is null", analysis.getInto());
     final StructuredDataSource structuredDataSource = analysis.getInto();
     final KsqlTopic createdKsqlTopic = structuredDataSource.getKsqlTopic();
-    assertThat(createdKsqlTopic.getTopicName(), is("FOO"));
+    assertThat(createdKsqlTopic.getKsqlTopicName(), is("FOO"));
     assertThat(createdKsqlTopic.getKafkaTopicName(), is("TEST_TOPIC1"));
   }
 

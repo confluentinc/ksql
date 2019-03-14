@@ -93,7 +93,7 @@ public abstract class StructuredDataSource implements DataSource {
       TimestampExtractionPolicy policy);
 
   public String getTopicName() {
-    return ksqlTopic.getTopicName();
+    return ksqlTopic.getKsqlTopicName();
   }
 
   public String getKafkaTopicName() {

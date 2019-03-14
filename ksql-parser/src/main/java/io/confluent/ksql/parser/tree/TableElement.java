@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.schema.ksql.LogicalSchemas.LogicalToSqlTypeConverter;
 import java.util.List;
@@ -26,24 +27,27 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
-public final class TableElement
-    extends Node {
+@Immutable
+public final class TableElement extends Node {
 
   private final String name;
   private final Type type;
 
-  public TableElement(final String name, final Type type) {
+  public TableElement(
+      final String name,
+      final Type type
+  ) {
     this(Optional.empty(), name, type);
   }
 
-  public TableElement(final NodeLocation location, final String name, final Type type) {
-    this(Optional.of(location), name, type);
-  }
-
-  private TableElement(final Optional<NodeLocation> location, final String name, final Type type) {
+  public TableElement(
+      final Optional<NodeLocation> location,
+      final String name,
+      final Type type
+  ) {
     super(location);
-    this.name = requireNonNull(name, "name is null");
-    this.type = requireNonNull(type, "type is null");
+    this.name = requireNonNull(name, "name");
+    this.type = requireNonNull(type, "type");
   }
 
   public String getName() {

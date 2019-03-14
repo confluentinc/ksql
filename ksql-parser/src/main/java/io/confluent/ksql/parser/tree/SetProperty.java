@@ -15,25 +15,26 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class SetProperty extends Statement implements ExecutableDdlStatement {
 
   private final String propertyName;
   private final String propertyValue;
 
-
-  public SetProperty(final Optional<NodeLocation> location, final String propertyName,
-                      final String propertyValue) {
+  public SetProperty(
+      final Optional<NodeLocation> location,
+      final String propertyName,
+      final String propertyValue
+  ) {
     super(location);
-    requireNonNull(propertyName, "propertyName is null");
-    requireNonNull(propertyValue, "propertyValue is null");
-    this.propertyName = propertyName;
-    this.propertyValue = propertyValue;
+    this.propertyName = requireNonNull(propertyName, "propertyName");
+    this.propertyValue = requireNonNull(propertyValue, "propertyValue");
   }
 
   public String getPropertyName() {
@@ -45,11 +46,6 @@ public class SetProperty extends Statement implements ExecutableDdlStatement {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(propertyName, propertyValue);
-  }
-
-  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -57,21 +53,21 @@ public class SetProperty extends Statement implements ExecutableDdlStatement {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+    final SetProperty that = (SetProperty) o;
+    return Objects.equals(propertyName, that.propertyName)
+        && Objects.equals(propertyValue, that.propertyValue);
+  }
 
-    final SetProperty setProperty = (SetProperty) o;
-
-    if (!propertyName.equals(setProperty.propertyName)) {
-      return false;
-    }
-    if (!propertyValue.equals(setProperty.propertyValue)) {
-      return false;
-    }
-
-    return true;
+  @Override
+  public int hashCode() {
+    return Objects.hash(propertyName, propertyValue);
   }
 
   @Override
   public String toString() {
-    return toStringHelper(this).toString();
+    return "SetProperty{"
+        + "propertyName='" + propertyName + '\''
+        + ", propertyValue='" + propertyValue + '\''
+        + '}';
   }
 }

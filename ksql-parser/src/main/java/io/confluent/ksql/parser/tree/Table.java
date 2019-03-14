@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class Table extends Relation {
@@ -26,10 +26,6 @@ public class Table extends Relation {
 
   public Table(final QualifiedName name) {
     this(Optional.empty(), name);
-  }
-
-  public Table(final NodeLocation location, final QualifiedName name) {
-    this(Optional.of(location), name);
   }
 
   public Table(

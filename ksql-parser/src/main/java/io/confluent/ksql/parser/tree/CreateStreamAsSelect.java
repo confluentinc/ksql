@@ -29,7 +29,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
   private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
-  private final Map<String, Expression> properties;
+  private final ImmutableMap<String, Expression> properties;
   private final Optional<Expression> partitionByColumn;
 
   public CreateStreamAsSelect(
@@ -37,7 +37,8 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties,
-      final Optional<Expression> partitionByColumn) {
+      final Optional<Expression> partitionByColumn
+  ) {
     this(Optional.empty(), name, query, notExists, properties, partitionByColumn);
   }
 
@@ -47,14 +48,14 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
       final Query query,
       final boolean notExists,
       final Map<String, Expression> properties,
-      final Optional<Expression> partitionByColumn) {
+      final Optional<Expression> partitionByColumn
+  ) {
     super(location);
     this.name = requireNonNull(name, "name");
-    this.query = query;
+    this.query = requireNonNull(query, "query");
     this.notExists = notExists;
-    this.properties = ImmutableMap.copyOf(
-        requireNonNull(properties, "properties is null"));
-    this.partitionByColumn = partitionByColumn;
+    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
+    this.partitionByColumn = requireNonNull(partitionByColumn, "partitionByColumn");
   }
 
   @Override
@@ -101,7 +102,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, query, notExists, properties);
+    return Objects.hash(name, query, notExists, properties, partitionByColumn);
   }
 
   @Override
@@ -116,6 +117,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
     return Objects.equals(name, o.name)
            && Objects.equals(query, o.query)
            && Objects.equals(notExists, o.notExists)
+           && Objects.equals(partitionByColumn, o.partitionByColumn)
            && Objects.equals(properties, o.properties);
   }
 
@@ -126,6 +128,7 @@ public class CreateStreamAsSelect extends Statement implements CreateAsSelect {
         .add("query", query)
         .add("notExists", notExists)
         .add("properties", properties)
+        .add("partitionByColumn", partitionByColumn)
         .toString();
   }
 }

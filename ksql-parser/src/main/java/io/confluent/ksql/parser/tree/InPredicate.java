@@ -15,38 +15,40 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class InPredicate
-    extends Expression {
+@Immutable
+public class InPredicate extends Expression {
 
   private final Expression value;
-  private final Expression valueList;
+  private final InListExpression valueList;
 
-  public InPredicate(final Expression value, final Expression valueList) {
+  public InPredicate(
+      final Expression value,
+      final InListExpression valueList
+  ) {
     this(Optional.empty(), value, valueList);
   }
 
   public InPredicate(
-      final NodeLocation location,
+      final Optional<NodeLocation> location,
       final Expression value,
-      final Expression valueList) {
-    this(Optional.of(location), value, valueList);
-  }
-
-  private InPredicate(
-      final Optional<NodeLocation> location, final Expression value, final Expression valueList) {
+      final InListExpression valueList
+  ) {
     super(location);
-    this.value = value;
-    this.valueList = valueList;
+    this.value = requireNonNull(value, "value");
+    this.valueList = requireNonNull(valueList, "valueList");
   }
 
   public Expression getValue() {
     return value;
   }
 
-  public Expression getValueList() {
+  public InListExpression getValueList() {
     return valueList;
   }
 

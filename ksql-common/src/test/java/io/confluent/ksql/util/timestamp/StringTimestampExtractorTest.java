@@ -51,7 +51,6 @@ public class StringTimestampExtractorTest {
   }
 
 
-  @SuppressWarnings("unchecked")
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullFormat() {
     new StringTimestampExtractor(null, -1);

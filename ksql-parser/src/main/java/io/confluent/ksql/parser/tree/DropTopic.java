@@ -16,6 +16,8 @@
 package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.hash;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -25,21 +27,20 @@ public class DropTopic extends Statement implements ExecutableDdlStatement {
   private final QualifiedName topicName;
   private final boolean exists;
 
-  public DropTopic(final QualifiedName tableName, final boolean exists) {
+  public DropTopic(
+      final QualifiedName tableName,
+      final boolean exists
+  ) {
     this(Optional.empty(), tableName, exists);
   }
 
   public DropTopic(
-      final NodeLocation location,
-      final QualifiedName tableName,
-      final boolean exists) {
-    this(Optional.of(location), tableName, exists);
-  }
-
-  private DropTopic(
-      final Optional<NodeLocation> location, final QualifiedName topicName, final boolean exists) {
+      final Optional<NodeLocation> location,
+      final QualifiedName topicName,
+      final boolean exists
+  ) {
     super(location);
-    this.topicName = topicName;
+    this.topicName = requireNonNull(topicName, "topicName");
     this.exists = exists;
   }
 
@@ -58,7 +59,7 @@ public class DropTopic extends Statement implements ExecutableDdlStatement {
 
   @Override
   public int hashCode() {
-    return Objects.hash(topicName, exists);
+    return hash(topicName, exists);
   }
 
   @Override

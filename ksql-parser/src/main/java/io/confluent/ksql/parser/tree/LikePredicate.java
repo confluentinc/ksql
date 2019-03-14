@@ -17,38 +17,31 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class LikePredicate
-    extends Expression {
+@Immutable
+public class LikePredicate extends Expression {
 
   private final Expression value;
   private final Expression pattern;
-  private final Expression escape;
 
-  public LikePredicate(final Expression value, final Expression pattern, final Expression escape) {
-    this(Optional.empty(), value, pattern, escape);
+  public LikePredicate(
+      final Expression value,
+      final Expression pattern
+  ) {
+    this(Optional.empty(), value, pattern);
   }
 
   public LikePredicate(
-      final NodeLocation location,
+      final Optional<NodeLocation> location,
       final Expression value,
-      final Expression pattern,
-      final Expression escape) {
-    this(Optional.of(location), value, pattern, escape);
-  }
-
-  private LikePredicate(
-      final Optional<NodeLocation> location, final Expression value, final Expression pattern,
-                        final Expression escape) {
+      final Expression pattern
+  ) {
     super(location);
-    requireNonNull(value, "value is null");
-    requireNonNull(pattern, "pattern is null");
-
-    this.value = value;
-    this.pattern = pattern;
-    this.escape = escape;
+    this.value = requireNonNull(value, "value");
+    this.pattern = requireNonNull(pattern, "pattern");
   }
 
   public Expression getValue() {
@@ -57,10 +50,6 @@ public class LikePredicate
 
   public Expression getPattern() {
     return pattern;
-  }
-
-  public Expression getEscape() {
-    return escape;
   }
 
   @Override
@@ -79,12 +68,11 @@ public class LikePredicate
 
     final LikePredicate that = (LikePredicate) o;
     return Objects.equals(value, that.value)
-           && Objects.equals(pattern, that.pattern)
-           && Objects.equals(escape, that.escape);
+           && Objects.equals(pattern, that.pattern);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(value, pattern, escape);
+    return Objects.hash(value, pattern);
   }
 }

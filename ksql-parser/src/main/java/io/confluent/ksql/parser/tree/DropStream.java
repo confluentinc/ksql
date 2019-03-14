@@ -17,64 +17,32 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-import java.util.Objects;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
-public class DropStream
-    extends AbstractStreamDropStatement implements ExecutableDdlStatement {
-
-  private final QualifiedName streamName;
-  private final boolean ifExists;
-  private final boolean deleteTopic;
+@Immutable
+public class DropStream extends AbstractStreamDropStatement implements ExecutableDdlStatement {
 
   public DropStream(
-      final QualifiedName tableName,
+      final QualifiedName streamName,
       final boolean ifExists,
-      final boolean deleteTopic) {
-    this(Optional.empty(), tableName, ifExists, deleteTopic);
+      final boolean deleteTopic
+  ) {
+    this(Optional.empty(), streamName, ifExists, deleteTopic);
   }
 
-  public DropStream(final NodeLocation location,
-                    final QualifiedName tableName,
-                    final boolean ifExists,
-                    final boolean deleteTopic) {
-    this(Optional.of(location), tableName, ifExists, deleteTopic);
-  }
-
-  private DropStream(final Optional<NodeLocation> location,
-                     final QualifiedName streamName,
-                     final boolean ifExists,
-                     final boolean deleteTopic) {
-    super(location);
-    this.streamName = streamName;
-    this.ifExists = ifExists;
-    this.deleteTopic = deleteTopic;
-  }
-
-  public QualifiedName getName() {
-    return streamName;
-  }
-
-  public boolean getIfExists() {
-    return ifExists;
-  }
-
-  public QualifiedName getStreamName() {
-    return streamName;
-  }
-
-  public boolean isDeleteTopic() {
-    return deleteTopic;
+  public DropStream(
+      final Optional<NodeLocation> location,
+      final QualifiedName streamName,
+      final boolean ifExists,
+      final boolean deleteTopic
+  ) {
+    super(location, streamName, ifExists, deleteTopic);
   }
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDropStream(this, context);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(streamName, ifExists);
   }
 
   @Override
@@ -85,18 +53,16 @@ public class DropStream
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    final DropStream o = (DropStream) obj;
-    return Objects.equals(streamName, o.streamName)
-           && (ifExists == o.ifExists)
-           && (deleteTopic == o.deleteTopic);
+
+    return super.equals(obj);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("tableName", streamName)
-        .add("ifExists", ifExists)
-        .add("deleteTopic", deleteTopic)
+        .add("streamName", getName())
+        .add("ifExists", getIfExists())
+        .add("deleteTopic", isDeleteTopic())
         .toString();
   }
 }

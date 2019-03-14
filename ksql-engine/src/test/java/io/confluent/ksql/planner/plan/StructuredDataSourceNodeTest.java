@@ -284,7 +284,6 @@ public class StructuredDataSourceNodeTest {
             new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
                 new KsqlJsonTopicSerDe(), false),
-            "statestore",
             Serdes.String()),
         realSchema);
     final SchemaKStream result = build(node);
@@ -301,7 +300,6 @@ public class StructuredDataSourceNodeTest {
             new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
                 new KsqlJsonTopicSerDe(), false),
-            "statestore",
             Serdes.String()),
         realSchema);
     realBuilder = new StreamsBuilder();

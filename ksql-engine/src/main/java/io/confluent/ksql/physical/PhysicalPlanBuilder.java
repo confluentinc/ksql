@@ -248,8 +248,6 @@ public class PhysicalPlanBuilder {
               schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
-              outputNode.getId().toString()
-                  + ksqlConfig.getString(KsqlConfig.KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG),
               schemaKTable.getKeySerde()
           );
     } else {

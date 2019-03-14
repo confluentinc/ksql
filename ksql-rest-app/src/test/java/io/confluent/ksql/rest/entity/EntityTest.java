@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.rest.util.ClassFinder;
+import io.confluent.ksql.test.util.ClassFinder;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;

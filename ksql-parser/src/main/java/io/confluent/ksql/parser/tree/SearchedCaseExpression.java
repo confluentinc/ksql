@@ -18,38 +18,32 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class SearchedCaseExpression
-    extends Expression {
+@Immutable
+public class SearchedCaseExpression extends Expression {
 
-  private final List<WhenClause> whenClauses;
+  private final ImmutableList<WhenClause> whenClauses;
   private final Optional<Expression> defaultValue;
 
   public SearchedCaseExpression(
       final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue) {
+      final Optional<Expression> defaultValue
+  ) {
     this(Optional.empty(), whenClauses, defaultValue);
   }
 
   public SearchedCaseExpression(
-      final NodeLocation location,
-      final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue) {
-    this(Optional.of(location), whenClauses, defaultValue);
-  }
-
-  private SearchedCaseExpression(
       final Optional<NodeLocation> location,
       final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue) {
+      final Optional<Expression> defaultValue
+  ) {
     super(location);
-    requireNonNull(whenClauses, "whenClauses is null");
-    requireNonNull(defaultValue, "defaultValue is null");
-    this.whenClauses = ImmutableList.copyOf(whenClauses);
-    this.defaultValue = defaultValue;
+    this.whenClauses = ImmutableList.copyOf(requireNonNull(whenClauses, "whenClauses"));
+    this.defaultValue = requireNonNull(defaultValue, "defaultValue");
   }
 
   public List<WhenClause> getWhenClauses() {

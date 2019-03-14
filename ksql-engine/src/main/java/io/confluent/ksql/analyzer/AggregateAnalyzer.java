@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -98,6 +99,11 @@ class AggregateAnalyzer {
     protected Node visitFunctionCall(final FunctionCall node, final Void context) {
       final String functionName = node.getName().getSuffix();
       final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
+
+      final FunctionCall functionCall = aggregateFunc && node.getArguments().isEmpty()
+          ? new FunctionCall(node.getLocation(), node.getName(), ImmutableList.of(defaultArgument))
+          : node;
+
       if (aggregateFunc) {
         if (aggFunctionName.isPresent()) {
           throw new KsqlException("Aggregate functions can not be nested: "
@@ -107,15 +113,11 @@ class AggregateAnalyzer {
         visitedAggFunction = true;
         aggFunctionName = Optional.of(functionName);
 
-        if (node.getArguments().isEmpty()) {
-          node.getArguments().add(defaultArgument);
-        }
-
-        node.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
-        aggregateAnalysis.addAggFunction(node);
+        functionCall.getArguments().forEach(aggregateAnalysis::addAggregateFunctionArgument);
+        aggregateAnalysis.addAggFunction(functionCall);
       }
 
-      final Node result = super.visitFunctionCall(node, context);
+      final Node result = super.visitFunctionCall(functionCall, context);
 
       if (aggregateFunc) {
         aggFunctionName = Optional.empty();

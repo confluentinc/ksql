@@ -17,20 +17,21 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public final class Cast extends Expression {
 
   private final Expression expression;
   private final Type type;
 
   public Cast(
-      final NodeLocation location,
       final Expression expression,
       final Type type
   ) {
-    this(Optional.of(location), expression, type);
+    this(Optional.empty(), expression, type);
   }
 
   public Cast(

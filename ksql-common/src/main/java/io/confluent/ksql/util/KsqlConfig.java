@@ -55,6 +55,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
 
   public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
 
+  public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
+
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
@@ -85,11 +87,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG = "ksql.transient.prefix";
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT = "transient_";
-
-  public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";
-  public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
 
   public static final String
       KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
@@ -160,15 +157,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Second part of the prefix for persistent queries. For instance if "
                   + "the prefix is query_ the query name will be ksql_query_1."),
-          new CompatibilityBreakingConfigDef(
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
-              ConfigDef.Type.STRING,
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-              ConfigDef.Importance.MEDIUM,
-              "Suffix for state store names in Tables. For instance if the suffix is "
-                  + "_ksql_statestore the state "
-                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
           new CompatibilityBreakingConfigDef(
               KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
               ConfigDef.Type.BOOLEAN,
@@ -381,6 +369,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             DEFAULT_EXT_DIR,
             ConfigDef.Importance.LOW,
             "The path to look for and load extensions such as UDFs from."
+        ).define(
+            KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY,
+            Type.SHORT,
+            (short) 1,
+            ConfigDef.Importance.LOW,
+            "The replication factor for the internal topics of KSQL server."
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,

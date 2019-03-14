@@ -17,11 +17,12 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ComparisonExpression
-    extends Expression {
+@Immutable
+public class ComparisonExpression extends Expression {
 
   public enum Type {
     EQUAL("="),
@@ -87,29 +88,24 @@ public class ComparisonExpression
   private final Expression left;
   private final Expression right;
 
-  public ComparisonExpression(final Type type, final Expression left, final Expression right) {
+  public ComparisonExpression(
+      final Type type,
+      final Expression left,
+      final Expression right
+  ) {
     this(Optional.empty(), type, left, right);
   }
 
   public ComparisonExpression(
-      final NodeLocation location,
+      final Optional<NodeLocation> location,
       final Type type,
       final Expression left,
-      final Expression right) {
-    this(Optional.of(location), type, left, right);
-  }
-
-  private ComparisonExpression(
-      final Optional<NodeLocation> location, final Type type, final Expression left,
-                               final Expression right) {
+      final Expression right
+  ) {
     super(location);
-    requireNonNull(type, "type is null");
-    requireNonNull(left, "left is null");
-    requireNonNull(right, "right is null");
-
-    this.type = type;
-    this.left = left;
-    this.right = right;
+    this.type = requireNonNull(type, "type");
+    this.left = requireNonNull(left, "left");
+    this.right = requireNonNull(right, "right");;
   }
 
   public Type getType() {

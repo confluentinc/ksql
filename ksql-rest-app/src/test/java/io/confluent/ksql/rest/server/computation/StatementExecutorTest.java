@@ -48,7 +48,6 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
@@ -497,16 +496,9 @@ public class StatementExecutorTest extends EasyMockSupport {
   private DropStream mockDropStream(final String name) {
     final DropStream mockDropStream = mock(DropStream.class);
     expect(mockDropStream.getName()).andStubReturn(QualifiedName.of(name));
-    expect(mockDropStream.getStreamName()).andStubReturn(QualifiedName.of(name));
     expect(mockParser.parseSingleStatement("DROP"))
         .andReturn(PreparedStatement.of("DROP", mockDropStream));
     return mockDropStream;
-  }
-
-  private Statement mockTerminate(final QueryId queryId) {
-    final TerminateQuery mockStatement = mock(TerminateQuery.class);
-    expect(mockStatement.getQueryId()).andStubReturn(queryId);
-    return mockStatement;
   }
 
   private PersistentQueryMetadata mockReplayCSAS(

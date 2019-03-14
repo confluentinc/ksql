@@ -17,64 +17,37 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class FunctionCall extends Expression {
 
   private final QualifiedName name;
-  private final boolean distinct;
-  private final List<Expression> arguments;
-
-  public FunctionCall(final QualifiedName name, final List<Expression> arguments) {
-    this(Optional.empty(), name, false, arguments);
-  }
-
-  public FunctionCall(
-      final NodeLocation location,
-      final QualifiedName name,
-      final List<Expression> arguments) {
-    this(Optional.of(location), name, false, arguments);
-  }
+  private final ImmutableList<Expression> arguments;
 
   public FunctionCall(
       final QualifiedName name,
-      final boolean distinct,
-      final List<Expression> arguments) {
-    this(Optional.empty(), name, distinct, arguments);
-  }
-
-  public FunctionCall(
-      final NodeLocation location,
-      final QualifiedName name,
-      final boolean distinct,
-      final List<Expression> arguments) {
-    this(Optional.of(location), name, distinct, arguments);
+      final List<Expression> arguments
+  ) {
+    this(Optional.empty(), name,  arguments);
   }
 
   public FunctionCall(
       final Optional<NodeLocation> location,
       final QualifiedName name,
-      final boolean distinct,
-      final List<Expression> arguments) {
+      final List<Expression> arguments
+  ) {
     super(location);
-    requireNonNull(name, "name is null");
-    requireNonNull(arguments, "arguments is null");
-
-    this.name = name;
-    this.distinct = distinct;
-    this.arguments = arguments;
+    this.name = requireNonNull(name, "name");
+    this.arguments = ImmutableList.copyOf(requireNonNull(arguments, "arguments"));
   }
 
   public QualifiedName getName() {
     return name;
-  }
-
-  public boolean isDistinct() {
-    return distinct;
   }
 
   public List<Expression> getArguments() {
@@ -96,12 +69,11 @@ public class FunctionCall extends Expression {
     }
     final FunctionCall o = (FunctionCall) obj;
     return Objects.equals(name, o.name)
-           && Objects.equals(distinct, o.distinct)
            && Objects.equals(arguments, o.arguments);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, distinct, arguments);
+    return Objects.hash(name, arguments);
   }
 }

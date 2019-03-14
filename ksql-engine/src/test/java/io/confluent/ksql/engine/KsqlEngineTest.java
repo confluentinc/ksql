@@ -678,7 +678,7 @@ public class KsqlEngineTest {
   public void shouldRemovePersistentQueryFromEngineWhenClosed() {
     // Given:
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
-    final int startingPersistentQueries = ksqlEngine.numberOfPersistentQueries();
+    final int startingPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
@@ -690,7 +690,7 @@ public class KsqlEngineTest {
     // Then:
     assertThat(ksqlEngine.getPersistentQuery(getQueryId(query)), is(Optional.empty()));
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
-    assertThat(ksqlEngine.numberOfPersistentQueries(), is(startingPersistentQueries));
+    assertThat(ksqlEngine.getPersistentQueries().size(), is(startingPersistentQueries));
   }
 
   @Test
@@ -1020,7 +1020,7 @@ public class KsqlEngineTest {
   public void shouldNotUpdateMetaStoreDuringTryExecute() {
     // Given:
     final int numberOfLiveQueries = ksqlEngine.numberOfLiveQueries();
-    final int numPersistentQueries = ksqlEngine.numberOfPersistentQueries();
+    final int numPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final List<ParsedStatement> statements = parse(
         "SET 'auto.offset.reset' = 'earliest';"
@@ -1041,7 +1041,7 @@ public class KsqlEngineTest {
     assertThat(metaStore.getSource("BAR"), is(nullValue()));
     assertThat(metaStore.getSource("FOO"), is(nullValue()));
     assertThat("live", ksqlEngine.numberOfLiveQueries(), is(numberOfLiveQueries));
-    assertThat("peristent", ksqlEngine.numberOfPersistentQueries(), is(numPersistentQueries));
+    assertThat("peristent", ksqlEngine.getPersistentQueries().size(), is(numPersistentQueries));
   }
 
   @Test

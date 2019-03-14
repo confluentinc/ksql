@@ -156,7 +156,7 @@ public class KsqlEngineMetricsTest {
 
   @Test
   public void shouldRecordNumberOfPersistentQueries() {
-    when(ksqlEngine.numberOfPersistentQueries()).thenReturn(3);
+    when(ksqlEngine.getPersistentQueries().size()).thenReturn(3);
 
     final double value = getMetricValue(engineMetrics.getMetrics(), metricNamePrefix + "num-persistent-queries");
     assertEquals(3.0, value, 0.0);

@@ -216,7 +216,7 @@ public class KsqlEngineMetrics implements Closeable {
         new MeasurableStat() {
           @Override
           public double measure(final MetricConfig metricConfig, final long l) {
-            return ksqlEngine.numberOfPersistentQueries();
+            return ksqlEngine.getPersistentQueries().size();
           }
 
           @Override

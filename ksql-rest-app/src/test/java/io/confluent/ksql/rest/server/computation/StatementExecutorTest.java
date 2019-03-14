@@ -240,7 +240,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         CommandId.Action.CREATE);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
+    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     expect(mockEngine.execute(csasStatement, expectedConfig, Collections.emptyMap()))
         .andReturn(ExecuteResult.of(mockQueryMetadata));
     mockQueryMetadata.start();
@@ -512,7 +512,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockParser.parseSingleStatement(statement))
         .andReturn(csas);
     expect(mockMetaStore.getSource(name)).andStubReturn(null);
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
+    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     expect(mockEngine.execute(eq(csas), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of(mockQuery));
     return mockQuery;
@@ -538,7 +538,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         .andReturn((PreparedStatement)preparedStatement);
     expect(mockEngine.execute(eq(preparedStatement), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of(mockQuery));
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
+    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     return mockQuery;
   }
 

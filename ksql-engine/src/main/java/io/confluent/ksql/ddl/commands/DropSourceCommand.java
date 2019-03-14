@@ -109,7 +109,7 @@ public class DropSourceCommand implements DdlCommand {
             dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
       } catch (final Exception e) {
         throw new KsqlException("Could not clean up the schema registry for topic: "
-            + sourceName, e);
+            + dataSource.getKafkaTopicName(), e);
       }
     }
   }

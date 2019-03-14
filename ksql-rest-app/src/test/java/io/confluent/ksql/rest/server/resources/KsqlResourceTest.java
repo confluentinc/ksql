@@ -1879,6 +1879,8 @@ public class KsqlResourceTest {
   }
 
   private void givenPersistentQueryCount(final int value) {
-    when(sandbox.getPersistentQueries()).thenReturn(ImmutableList.of());
+    final List<PersistentQueryMetadata> queries = mock(List.class);
+    when(queries.size()).thenReturn(value);
+    when(sandbox.getPersistentQueries()).thenReturn(queries);
   }
 }

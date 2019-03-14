@@ -157,11 +157,8 @@ public class PhysicalPlanBuilder {
         ));
       }
 
-      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
+      final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) outputNode;
-      ksqlStructuredDataOutputNode = ksqlStructuredDataOutputNode.cloneWithDoCreateInto(
-          ((KsqlStructuredDataOutputNode) logicalPlanNode.getNode()).isDoCreateInto()
-      );
 
       final String persistanceQueryPrefix =
           ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);

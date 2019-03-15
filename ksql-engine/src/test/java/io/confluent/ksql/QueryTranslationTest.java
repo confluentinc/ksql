@@ -22,20 +22,28 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.buildTestName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.findExpectedTopologyDirectories;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
+import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.is;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
+import com.google.common.collect.Streams;
 import io.confluent.connect.avro.AvroData;
-import io.confluent.ksql.EndToEndEngineTestUtil.JsonTestCase;
+import io.confluent.ksql.EndToEndEngineTestUtil.InvalidFieldException;
+import io.confluent.ksql.EndToEndEngineTestUtil.MissingFieldException;
 import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
+import io.confluent.ksql.EndToEndEngineTestUtil.TestFile;
 import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -59,20 +67,15 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -88,6 +91,7 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class QueryTranslationTest {
+
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology/";
@@ -112,11 +116,9 @@ public class QueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions();
     return buildTestCases()
-          .flatMap(q -> buildVersionedTestCases(q, expectedTopologies))
-          .map(testCase -> new Object[]{testCase.getName(), testCase})
-          .collect(Collectors.toCollection(ArrayList::new));
+        .map(testCase -> new Object[]{testCase.getName(), testCase})
+        .collect(Collectors.toCollection(ArrayList::new));
   }
 
   private static List<TopologiesAndVersion> loadTopologiesAndVersions() {
@@ -161,190 +163,13 @@ public class QueryTranslationTest {
 
   static Stream<TestCase> buildTestCases() {
     final List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
+    final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions();
 
-    return EndToEndEngineTestUtil.findTestCases(QUERY_VALIDATION_TEST_DIR, testFiles)
-        .flatMap(test -> {
-          final JsonNode formatsNode = test.getNode().get("format");
-          if (formatsNode == null) {
-            return Stream.of(createTest(test, ""));
-          }
-
-          final Spliterator<JsonNode> formats = Spliterators.spliteratorUnknownSize(
-              formatsNode.iterator(), Spliterator.ORDERED);
-
-          return StreamSupport.stream(formats, false)
-              .map(format -> createTest(test, format.asText()));
-        });
-  }
-
-  private static TestCase createTest(final JsonTestCase test, final String format) {
-    final String testName = buildTestName(test, format);
-
-    try {
-      final JsonNode testCase = test.getNode();
-
-      final Map<String, Object> properties = getTestCaseProperties(testCase);
-
-      final List<String> statements = getTestCaseStatements(testCase, format);
-
-      final Optional<ExpectedException> expectedException =
-          getTestCaseExpectedException(testCase, Iterables.getLast(statements));
-
-      final Map<String, Topic> topics =
-          getTestCaseTopics(testCase, statements, expectedException.isPresent());
-
-      final List<Record> inputs = getTestCaseTopicMessages(testCase, topics, "inputs");
-
-      final List<Record> outputs = getTestCaseTopicMessages(testCase, topics, "outputs");
-
-      if (inputs.isEmpty() && !expectedException.isPresent()) {
-        throw new InvalidFieldException("inputs", "is empty and 'expectedException' is not defind");
-      }
-
-      return new TestCase(
-          test.getTestPath(),
-          testName,
-          properties,
-          topics.values(),
-          inputs,
-          outputs,
-          statements,
-          expectedException.orElseGet(ExpectedException::none)
-      );
-    } catch (final Exception e) {
-      throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);
-    }
-  }
-
-  private static List<Record> getTestCaseTopicMessages(
-      final JsonNode testCase,
-      final Map<String, Topic> topics,
-      final String fieldName
-  ) {
-    final List<Record> messages = new ArrayList<>();
-    getOptionalJsonField(testCase, fieldName)
-        .ifPresent(node -> node.elements().forEachRemaining(
-            message -> messages.add(
-                createRecordFromNode(topics, message, fieldName + "[]"))));
-
-    return messages;
-  }
-
-  private static Map<String, Topic> getTestCaseTopics(
-      final JsonNode testCase,
-      final List<String> statements,
-      final boolean expectsException
-  ) {
-    final Map<String, Topic> topicsMap = new HashMap<>();
-
-    // Add all topics from topic nodes to the map
-    getOptionalJsonField(testCase, "topics")
-        .ifPresent(topicsNode -> topicsNode.forEach(
-            topicNode -> {
-              final Topic topic = createTopicFromNode(topicNode);
-              topicsMap.put(topic.getName(), createTopicFromNode(topicNode));
-            }
-        ));
-
-    // Infer topics if not added already
-    statements.stream()
-        .map(QueryTranslationTest::createTopicFromStatement)
-        .filter(Objects::nonNull)
-        .forEach(
-            topic -> topicsMap.putIfAbsent(topic.getName(), topic)
-        );
-
-    if (topicsMap.isEmpty()) {
-      if (expectsException) {
-        return topicsMap;
-      }
-      throw new InvalidFieldException("statements/topics", "The test does not define any topics");
-    }
-
-    final SerdeSupplier defaultSerdeSupplier =
-        topicsMap.values().iterator().next().getSerdeSupplier();
-
-    // Get topics from inputs field:
-    final Set<String> msgTopics = getTestCaseMessageTopicNames(testCase, "inputs");
-    msgTopics.addAll(getTestCaseMessageTopicNames(testCase, "outputs"));
-
-    msgTopics.stream()
-        .filter(topicName -> !topicsMap.containsKey(topicName))
-        .forEach(topicName -> topicsMap
-            .put(topicName, (new Topic(topicName, Optional.empty(), defaultSerdeSupplier, 4))));
-
-    return topicsMap;
-  }
-
-  private static Set<String> getTestCaseMessageTopicNames(
-      final JsonNode testCase,
-      final String fieldName
-  ) {
-    final Set<String> allTopics = new HashSet<>();
-
-    getOptionalJsonField(testCase, fieldName)
-        .ifPresent(messages -> messages.elements().forEachRemaining(
-            message -> allTopics
-                .add(getRequiredJsonField(message, "topic", fieldName + "[]").asText())));
-
-    return allTopics;
-  }
-
-  private static List<String> getTestCaseStatements(final JsonNode testCase, final String format) {
-    final List<String> statements = new ArrayList<>();
-    getRequiredJsonField(testCase, "statements").elements()
-        .forEachRemaining(
-            statement -> statements.add(statement.asText().replace("{FORMAT}", format)));
-    return statements;
-  }
-
-  private static Map<String, Object> getTestCaseProperties(final JsonNode testCase) {
-    final Map<String, Object> properties = new HashMap<>();
-    getOptionalJsonField(testCase, "properties")
-        .ifPresent(propNode -> propNode.fields().forEachRemaining(
-            property -> properties.put(property.getKey(), property.getValue().asText())));
-
-    return properties;
-  }
-
-  private static Optional<ExpectedException> getTestCaseExpectedException(
-      final JsonNode testCase,
-      final String lastStatement
-  ) {
-    return getOptionalJsonField(testCase, "expectedException")
-        .map(eeNode -> {
-          final ExpectedException expectedException = ExpectedException.none();
-
-          getOptionalJsonField(eeNode, "type")
-              .map(JsonNode::asText)
-              .map(QueryTranslationTest::parseThrowable)
-              .ifPresent(type -> {
-                expectedException.expect(type);
-
-                if (KsqlStatementException.class.isAssignableFrom(type)) {
-                  // Ensure exception contains last statement, otherwise the test case is invalid:
-                  expectedException.expect(statementText(is(lastStatement)));
-                }
-              });
-
-          getOptionalJsonField(eeNode, "message")
-              .ifPresent(msg -> expectedException.expectMessage(msg.asText()));
-
-          return expectedException;
-        });
-  }
-
-  private static String buildTestName(final JsonTestCase testCase, final String format) {
-    try {
-      final String fileName = Files.getNameWithoutExtension(testCase.getTestPath().toString());
-      final String testName = getRequiredJsonField(testCase.getNode(), "name").asText();
-      final String formatPostFix = format.isEmpty() ? "" : " - " + format;
-
-      return fileName + " - " + testName + formatPostFix;
-    } catch (final MissingFieldException e) {
-      throw new AssertionError(
-          "Test file contains an invalid test case: " + testCase.getTestPath(), e);
-    }
+    return EndToEndEngineTestUtil.findTestCases(
+        QUERY_VALIDATION_TEST_DIR,
+        testFiles,
+        QttTestFile.class)
+        .flatMap(q -> buildVersionedTestCases(q, expectedTopologies));
   }
 
   private static SerdeSupplier getSerdeSupplier(final String format) {
@@ -354,8 +179,11 @@ public class QueryTranslationTest {
       case DataSource.JSON_SERDE_NAME:
         return new ValueSpecJsonSerdeSupplier();
       case DataSource.DELIMITED_SERDE_NAME:
-      default:
         return new StringSerdeSupplier();
+      default:
+        throw new InvalidFieldException("format", format.isEmpty()
+            ? "missing or empty"
+            : "unknown value: " + format);
     }
   }
 
@@ -418,7 +246,12 @@ public class QueryTranslationTest {
       } else {
         avroSchema = Optional.empty();
       }
-      return new Topic(topicName, avroSchema, getSerdeSupplier(format), KsqlConstants.legacyDefaultSinkPartitionCount);
+      return new Topic(topicName,
+          avroSchema,
+          getSerdeSupplier(format),
+          KsqlConstants.legacyDefaultSinkPartitionCount,
+          KsqlConstants.legacyDefaultSinkReplicaCount
+      );
     };
 
     try {
@@ -440,148 +273,6 @@ public class QueryTranslationTest {
     }
   }
 
-  private static Topic createTopicFromNode(final JsonNode node) {
-    final Optional<org.apache.avro.Schema> schema;
-    if (node.has("schema")) {
-      try {
-        final String schemaString = objectMapper.writeValueAsString(node.get("schema"));
-        final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-        schema = Optional.of(parser.parse(schemaString));
-      } catch (final JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
-    } else {
-      schema = Optional.empty();
-    }
-
-    final SerdeSupplier serdeSupplier = getSerdeSupplier(node.get("format").asText());
-
-    final int numPartitions = node.has("partitions")
-        ? node.get("partitions").intValue()
-        : 1;
-
-    return new Topic(node.get("name").asText(), schema, serdeSupplier, numPartitions);
-  }
-
-  private static Record createRecordFromNode(
-      final Map<String, Topic> topics,
-      final JsonNode node,
-      final String scope
-  ) {
-    final String topicName = getRequiredJsonField(node, "topic", scope).asText();
-
-    final String key = getOptionalJsonField(node, "key")
-        .map(JsonNode::asText)
-        .orElse("");
-
-    final Object topicValue;
-    if (node.findValue("value").asText().equals("null")) {
-      topicValue = null;
-    } else if (topics.get(topicName).getSerdeSupplier() instanceof StringSerdeSupplier) {
-      topicValue = node.findValue("value").asText();
-    } else {
-      try {
-        topicValue = objectMapper.readValue(
-            objectMapper.writeValueAsString(node.findValue("value")), Object.class);
-      } catch (final IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    final long timestamp = getOptionalJsonField(node, "timestamp")
-        .map(JsonNode::asLong)
-        .orElse(0L);
-
-    final WindowData window = createWindowIfExists(node);
-
-
-    return new Record(
-        topics.get(topicName),
-        key,
-        topicValue,
-        timestamp,
-        window
-    );
-  }
-
-  private static WindowData createWindowIfExists(final JsonNode node) {
-    final JsonNode windowNode = node.findValue("window");
-    if (windowNode == null) {
-      return null;
-    }
-
-    return new WindowData(
-        windowNode.findValue("start").asLong(),
-        windowNode.findValue("end").asLong(),
-        windowNode.findValue("type").asText());
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Class<? extends Throwable> parseThrowable(final String className) {
-    try {
-      final Class<?> theClass = Class.forName(className);
-      if (!Throwable.class.isAssignableFrom(theClass)) {
-        throw new InvalidFieldException("expectedException.type", "Type was not a Throwable");
-        }
-        return (Class<? extends Throwable>) theClass;
-    } catch (final ClassNotFoundException e) {
-      throw new InvalidFieldException("expectedException.type", "Type was not found", e);
-    }
-  }
-
-  private static JsonNode getRequiredJsonField(
-      final JsonNode query,
-      final String fieldName
-  ) {
-    return getRequiredJsonField(query, fieldName, "");
-  }
-
-  private static JsonNode getRequiredJsonField(
-      final JsonNode query,
-      final String fieldName,
-      final String scope
-  ) {
-    if (!query.has(fieldName)) {
-      throw new MissingFieldException(scope + "." + fieldName);
-    }
-    return query.findValue(fieldName);
-  }
-
-  private static Optional<JsonNode> getOptionalJsonField(
-      final JsonNode node,
-      final String fieldName
-  ) {
-    if (node.hasNonNull(fieldName)) {
-      return Optional.of(node.findValue(fieldName));
-    }
-    return Optional.empty();
-  }
-
-  private static final class MissingFieldException extends RuntimeException {
-
-    private MissingFieldException(final String fieldName) {
-      super("test it must define '" + fieldName + "' field");
-    }
-  }
-
-  private static final class InvalidFieldException extends RuntimeException {
-
-    private InvalidFieldException(
-        final String fieldName,
-        final String reason
-    ) {
-      super("'" + fieldName + "': " + reason);
-    }
-
-    private InvalidFieldException(
-        final String fieldName,
-        final String reason,
-        final Throwable cause
-    ) {
-      super(fieldName + ": " + reason, cause);
-    }
-  }
-
   private static class TopologiesAndVersion {
 
     private final String version;
@@ -600,4 +291,319 @@ public class QueryTranslationTest {
       return topologies.get(name);
     }
   }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  static class QttTestFile implements TestFile<TestCase> {
+
+    private final List<TestCaseNode> tests;
+
+    QttTestFile(@JsonProperty("tests") final List<TestCaseNode> tests) {
+      this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
+    }
+
+    @Override
+    public Stream<TestCase> buildTests(final Path testPath) {
+      if (tests.isEmpty()) {
+        throw new IllegalArgumentException(testPath + ": test file did not contain any tests");
+      }
+
+      try {
+        return tests.stream().flatMap(node -> node.buildTests(testPath));
+      } catch (final Exception e) {
+        throw new IllegalArgumentException(testPath + ": " + e.getMessage(), e);
+      }
+    }
+  }
+
+  static final class ExpectedExceptionNode {
+
+    private final Optional<String> type;
+    private final Optional<String> message;
+
+    ExpectedExceptionNode(
+        @JsonProperty("type") final String type,
+        @JsonProperty("message") final String message
+    ) {
+      this.type = Optional.ofNullable(type);
+      this.message = Optional.ofNullable(message);
+    }
+
+    ExpectedException build(final String lastStatement) {
+      if (!type.isPresent() && !message.isPresent()) {
+        throw new MissingFieldException("expectedException.type or expectedException.message");
+      }
+
+      final ExpectedException expectedException = ExpectedException.none();
+
+      type
+          .map(t -> EndToEndEngineTestUtil.parseThrowable(t, "expectedException.type"))
+          .ifPresent(type -> {
+            expectedException.expect(type);
+
+            if (KsqlStatementException.class.isAssignableFrom(type)) {
+              // Ensure exception contains last statement, otherwise the test case is invalid:
+              expectedException.expect(statementText(is(lastStatement)));
+            }
+          });
+
+      message.ifPresent(expectedException::expectMessage);
+      return expectedException;
+    }
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  static class TestCaseNode {
+
+    private final String name;
+    private final List<String> formats;
+    private final List<RecordNode> inputs;
+    private final List<RecordNode> outputs;
+    private final List<TopicNode> topics;
+    private final List<String> statements;
+    private final Map<String, Object> properties;
+    private final Optional<ExpectedExceptionNode> expectedException;
+
+    TestCaseNode(
+        @JsonProperty("name") final String name,
+        @JsonProperty("format") final List<String> formats,
+        @JsonProperty("inputs") final List<RecordNode> inputs,
+        @JsonProperty("outputs") final List<RecordNode> outputs,
+        @JsonProperty("topics") final List<TopicNode> topics,
+        @JsonProperty("statements") final List<String> statements,
+        @JsonProperty("properties") final Map<String, Object> properties,
+        @JsonProperty("expectedException") ExpectedExceptionNode expectedException
+    ) {
+      this.name = name == null ? "" : name;
+      this.formats = formats == null ? ImmutableList.of() : ImmutableList.copyOf(formats);
+      this.statements = statements == null ? ImmutableList.of() : ImmutableList.copyOf(statements);
+      this.inputs = inputs == null ? ImmutableList.of() : ImmutableList.copyOf(inputs);
+      this.outputs = outputs == null ? ImmutableList.of() : ImmutableList.copyOf(outputs);
+      this.topics = topics == null ? ImmutableList.of() : ImmutableList.copyOf(topics);
+      this.properties = properties == null ? ImmutableMap.of() : ImmutableMap.copyOf(properties);
+      this.expectedException = Optional.ofNullable(expectedException);
+    }
+
+    Stream<TestCase> buildTests(final Path testPath) {
+      if (name.isEmpty()) {
+        throw new MissingFieldException("name");
+      }
+
+      try {
+        if (statements.isEmpty()) {
+          throw new InvalidFieldException("statements", "was empty");
+        }
+
+        if (inputs.isEmpty() != outputs.isEmpty()) {
+          throw new InvalidFieldException("inputs and outputs",
+              "either both, or neither, field should be set");
+        }
+
+        if (!inputs.isEmpty() && expectedException.isPresent()) {
+          throw new InvalidFieldException("inputs and expectedException",
+              "can not both be set");
+        }
+
+        return formats.isEmpty()
+            ? Stream.of(createTest("", testPath))
+            : formats.stream().map(format -> createTest(format, testPath));
+      } catch (final Exception e) {
+        throw new IllegalArgumentException("test '" + name + "': " + e.getMessage(), e);
+      }
+    }
+
+    private TestCase createTest(final String format, final Path testPath) {
+      final String testName = buildTestName(testPath, name, format);
+
+      try {
+        final List<String> statements = buildStatements(format);
+
+        final Optional<ExpectedException> ee = buildExpectedException(statements);
+
+        final Map<String, Topic> topics = getTestCaseTopics(statements, ee.isPresent());
+
+        final List<Record> inputRecords = inputs.stream()
+            .map(node -> node.build(topics))
+            .collect(Collectors.toList());
+
+        final List<Record> outputRecords = outputs.stream()
+            .map(node -> node.build(topics))
+            .collect(Collectors.toList());
+
+        return new TestCase(
+            testPath,
+            testName,
+            properties,
+            topics.values(),
+            inputRecords,
+            outputRecords,
+            statements,
+            ee.orElseGet(ExpectedException::none)
+        );
+      } catch (final Exception e) {
+        throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);
+      }
+    }
+
+    private Optional<ExpectedException> buildExpectedException(final List<String> statements) {
+      return this.expectedException
+          .map(ee -> ee.build(Iterables.getLast(statements)));
+    }
+
+    private List<String> buildStatements(final String format) {
+      return statements.stream()
+          .map(stmt -> stmt.replace("{FORMAT}", format))
+          .collect(Collectors.toList());
+    }
+
+    private Map<String, Topic> getTestCaseTopics(
+        final List<String> statements,
+        final boolean expectsException
+    ) {
+      final Map<String, Topic> allTopics = new HashMap<>();
+
+      // Add all topics from topic nodes to the map:
+      topics.stream()
+          .map(TopicNode::build)
+          .forEach(topic -> allTopics.put(topic.getName(), topic));
+
+      // Infer topics if not added already:
+      statements.stream()
+          .map(QueryTranslationTest::createTopicFromStatement)
+          .filter(Objects::nonNull)
+          .forEach(
+              topic -> allTopics.putIfAbsent(topic.getName(), topic)
+          );
+
+      if (allTopics.isEmpty()) {
+        if (expectsException) {
+          return ImmutableMap.of();
+        }
+        throw new InvalidFieldException("statements/topics", "The test does not define any topics");
+      }
+
+      final SerdeSupplier defaultSerdeSupplier =
+          allTopics.values().iterator().next().getSerdeSupplier();
+
+      // Get topics from inputs and outputs fields:
+      Streams.concat(inputs.stream(), outputs.stream())
+          .map(RecordNode::topicName)
+          .map(topicName -> new Topic(topicName, Optional.empty(), defaultSerdeSupplier, 4, 1))
+          .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
+
+      return allTopics;
+    }
+  }
+
+  static class TopicNode {
+
+    private final String name;
+    private final String format;
+    private final int numPartitions;
+    private final JsonNode schema;
+    private final int replicas;
+
+    TopicNode(
+        @JsonProperty("name") final String name,
+        @JsonProperty("schema") final JsonNode schema,
+        @JsonProperty("format") final String format,
+        @JsonProperty("partitions") final Integer numPartitions,
+        @JsonProperty("replicas") final Integer replicas
+    ) {
+      this.name = name == null ? "" : name;
+      this.schema = requireNonNull(schema, "schema");
+      this.format = format == null ? "" : format;
+      this.numPartitions = numPartitions == null ? 1 : numPartitions;
+      this.replicas = replicas == null ? 1 : replicas;
+    }
+
+    Topic build() {
+      if (name.isEmpty()) {
+        throw new InvalidFieldException("name", "empty or missing");
+      }
+
+      return new Topic(
+          name,
+          buildAvroSchema(),
+          getSerdeSupplier(format),
+          numPartitions,
+          replicas
+      );
+    }
+
+    private Optional<org.apache.avro.Schema> buildAvroSchema() {
+      if (schema instanceof NullNode) {
+        return Optional.empty();
+      }
+
+      try {
+        final String schemaString = objectMapper.writeValueAsString(schema);
+        final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+        return Optional.of(parser.parse(schemaString));
+      } catch (final Exception e) {
+        throw new InvalidFieldException("schema", "failed to parse", e);
+      }
+    }
+  }
+
+  static class RecordNode {
+
+    private final String topicName;
+    private final String key;
+    private final JsonNode value;
+    private final long timestamp;
+    private final Optional<WindowData> window;
+
+    RecordNode(
+        @JsonProperty("topic") final String topicName,
+        @JsonProperty("key") final String key,
+        @JsonProperty("value") final JsonNode value,
+        @JsonProperty("timestamp") final Long timestamp,
+        @JsonProperty("window") final WindowData window
+    ) {
+      this.topicName = topicName == null ? "" : topicName;
+      this.key = key == null ? "" : key;
+      this.value = requireNonNull(value, "value");
+      this.timestamp = timestamp == null ? 0L : timestamp;
+      this.window = Optional.ofNullable(window);
+    }
+
+    public String topicName() {
+      if (topicName.isEmpty()) {
+        throw new MissingFieldException("topic");
+      }
+
+      return topicName;
+    }
+
+    private Record build(final Map<String, Topic> topics) {
+      final Topic topic = topics.get(topicName());
+
+      final Object topicValue = buildValue(topic);
+
+      return new Record(
+          topic,
+          key,
+          topicValue,
+          timestamp,
+          window.orElse(null)
+      );
+    }
+
+    private Object buildValue(final Topic topic) {
+      if (value.asText().equals("null")) {
+        return null;
+      }
+
+      if (topic.getSerdeSupplier() instanceof StringSerdeSupplier) {
+        return value.asText();
+      }
+
+      try {
+        return objectMapper.readValue(objectMapper.writeValueAsString(value), Object.class);
+      } catch (final IOException e) {
+        throw new InvalidFieldException("value", "failed to parse", e);
+      }
+    }
+  }
 }
+

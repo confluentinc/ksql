@@ -106,9 +106,7 @@
           "format": "AVRO",
           "partitions": 4
         }
-      ],
-      "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "S", "value": {"C1": 4}}]
+      ]
     }
   ]
 }

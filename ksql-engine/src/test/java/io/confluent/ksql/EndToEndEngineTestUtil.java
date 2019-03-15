@@ -14,6 +14,7 @@
  */
 package io.confluent.ksql;
 
+import static java.util.Objects.requireNonNull;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -24,10 +25,12 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -50,6 +53,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -66,11 +70,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -131,13 +132,13 @@ final class EndToEndEngineTestUtil {
         assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
         assertThat("keyset mismatch at " + path, ((Map) o1).keySet(), equalTo(((Map)o2).keySet()));
         for (final Object k : ((Map) o1).keySet()) {
-          compare(((Map) o1).get(k), ((Map) o2).get(k), path + "." + String.valueOf(k));
+          compare(((Map) o1).get(k), ((Map) o2).get(k), path + "." + k);
         }
       } else if (o1 instanceof List) {
         assertThat("type mismatch at " + path, o2, instanceOf(List.class));
         assertThat("list size mismatch at " + path, ((List) o1).size(), equalTo(((List)o2).size()));
         for (int i = 0; i < ((List) o1).size(); i++) {
-          compare(((List) o1).get(i), ((List) o2).get(i), path + "." + String.valueOf(i));
+          compare(((List) o1).get(i), ((List) o2).get(i), path + "." + i);
         }
       } else {
         assertThat("type mismatch at " + path, o1.getClass(), equalTo(o2.getClass()));
@@ -329,17 +330,20 @@ final class EndToEndEngineTestUtil {
     private final Optional<org.apache.avro.Schema> schema;
     private final SerdeSupplier serdeSupplier;
     private final int numPartitions;
+    private final int replicas;
 
     Topic(
         final String name,
         final Optional<org.apache.avro.Schema> schema,
         final SerdeSupplier serdeSupplier,
-        final int numPartitions
+        final int numPartitions,
+        final int replicas
     ) {
-      this.name = Objects.requireNonNull(name, "name");
-      this.schema = Objects.requireNonNull(schema, "schema");
-      this.serdeSupplier = Objects.requireNonNull(serdeSupplier, "serdeSupplier");
+      this.name = requireNonNull(name, "name");
+      this.schema = requireNonNull(schema, "schema");
+      this.serdeSupplier = requireNonNull(serdeSupplier, "serdeSupplier");
       this.numPartitions = numPartitions;
+      this.replicas = replicas;
     }
 
     String getName() {
@@ -366,14 +370,19 @@ final class EndToEndEngineTestUtil {
   static class WindowData {
 
     enum Type {SESSION, TIME}
-    private final long start;
-    private final long end;
-    private final Type type;
 
-    WindowData(final long start, final long end, final String type) {
+    final long start;
+    final long end;
+    final Type type;
+
+    WindowData(
+        @JsonProperty("start") final long start,
+        @JsonProperty("end") final long end,
+        @JsonProperty("type") final String type
+    ) {
       this.start = start;
       this.end = end;
-      this.type = Type.valueOf(Objects.requireNonNull(type, "type").toUpperCase());
+      this.type = Type.valueOf(requireNonNull(type, "type").toUpperCase());
     }
 
     public long size() {
@@ -493,6 +502,7 @@ final class EndToEndEngineTestUtil {
   }
 
   static class TestCase {
+
     private final Path testPath;
     private final String name;
     private final Map<String, Object> properties;
@@ -620,7 +630,7 @@ final class EndToEndEngineTestUtil {
 
     void initializeTopics(final ServiceContext serviceContext) {
       for (final Topic topic : topics) {
-        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) 1);
+        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) topic.replicas);
 
         topic.getSchema()
             .ifPresent(schema -> {
@@ -861,18 +871,20 @@ final class EndToEndEngineTestUtil {
     return Arrays.asList(ksqlTestFiles.split(","));
   }
 
-  static Stream<JsonTestCase> findTestCases(final Path dir, final List<String> files) {
-    final ClassLoader classLoader = EndToEndEngineTestUtil.class.getClassLoader();
+  interface TestFile<TestType> {
 
+    Stream<TestType> buildTests(final Path testPath);
+  }
+
+  static <TF extends TestFile<T>, T> Stream<T> findTestCases(
+      final Path dir,
+      final List<String> files,
+      final Class<TF> testFileType
+  ) {
     return getTestPaths(dir, files).stream()
         .flatMap(testPath -> {
-          final JsonNode rootNode = loadTest(classLoader, testPath);
-
-          final Spliterator<JsonNode> tests = Spliterators.spliteratorUnknownSize(
-              rootNode.findValue("tests").elements(), Spliterator.ORDERED);
-
-          return StreamSupport.stream(tests, false)
-              .map(jsonNode -> new JsonTestCase(testPath, jsonNode));
+          final TF testFile = loadTest(testPath, testFileType);
+          return testFile.buildTests(testPath);
         });
   }
 
@@ -888,9 +900,11 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static JsonNode loadTest(final ClassLoader classLoader, final Path testPath) {
-    try {
-      return OBJECT_MAPPER.readTree(classLoader.getResourceAsStream(testPath.toString()));
+  private static <T> T loadTest(final Path testPath, final Class<T> testFileType) {
+    try (InputStream stream = EndToEndEngineTestUtil.class
+        .getClassLoader()
+        .getResourceAsStream(testPath.toString())) {
+      return OBJECT_MAPPER.readValue(stream, testFileType);
     } catch (IOException e) {
       throw new RuntimeException("Unable to load test at path " + testPath, e);
     }
@@ -1094,6 +1108,71 @@ final class EndToEndEngineTestUtil {
     TopologyAndConfigs(final String topology, final Map<String, String> configs) {
       this.topology = topology;
       this.configs = configs;
+    }
+  }
+
+  static String buildTestName(
+      final Path testPath,
+      final String testName,
+      final String postfix
+  ) {
+    final String fileName = com.google.common.io.Files.getNameWithoutExtension(testPath.toString());
+    final String pf = postfix.isEmpty() ? "" : " - " + postfix;
+    return fileName + " - " + testName + pf;
+  }
+
+  static Optional<org.apache.avro.Schema> buildAvroSchema(final JsonNode schema) {
+    if (schema instanceof NullNode) {
+      return Optional.empty();
+    }
+
+    try {
+      final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
+      final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
+      return Optional.of(parser.parse(schemaString));
+    } catch (final Exception e) {
+      throw new InvalidFieldException("schema", "failed to parse", e);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  static Class<? extends Throwable> parseThrowable(
+      final String className,
+      final String fieldName
+  ) {
+    try {
+      final Class<?> theClass = Class.forName(className);
+      if (!Throwable.class.isAssignableFrom(theClass)) {
+        throw new InvalidFieldException(fieldName, "Type was not a Throwable");
+      }
+      return (Class<? extends Throwable>) theClass;
+    } catch (final ClassNotFoundException e) {
+      throw new InvalidFieldException(fieldName, "Type was not found", e);
+    }
+  }
+
+  static final class MissingFieldException extends RuntimeException {
+
+    MissingFieldException(final String fieldName) {
+      super("test must define '" + fieldName + "' field");
+    }
+  }
+
+  static final class InvalidFieldException extends RuntimeException {
+
+    InvalidFieldException(
+        final String fieldName,
+        final String reason
+    ) {
+      super(fieldName + ": " + reason);
+    }
+
+    InvalidFieldException(
+        final String fieldName,
+        final String reason,
+        final Throwable cause
+    ) {
+      super(fieldName + ": " + reason, cause);
     }
   }
 }

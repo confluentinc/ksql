@@ -42,7 +42,7 @@ public interface StatementValidator {
    *                       given parameters
    */
   void validate(
-      PreparedStatement statement,
+      PreparedStatement<?> statement,
       KsqlExecutionContext executionContext,
       ServiceContext serviceContext,
       KsqlConfig ksqlConfig,

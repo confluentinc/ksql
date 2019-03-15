@@ -35,7 +35,7 @@ public interface StatementExecutor {
    * @return the execution result, if present, else {@link Optional#empty()}
    */
   Optional<KsqlEntity> execute(
-      PreparedStatement statement,
+      PreparedStatement<?> statement,
       KsqlExecutionContext executionContext,
       ServiceContext serviceContext,
       KsqlConfig ksqlConfig,

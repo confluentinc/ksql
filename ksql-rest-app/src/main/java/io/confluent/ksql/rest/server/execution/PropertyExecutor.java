@@ -28,7 +28,7 @@ public final class PropertyExecutor {
   private PropertyExecutor() { }
 
   public static Optional<KsqlEntity> set(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
@@ -39,7 +39,7 @@ public final class PropertyExecutor {
   }
 
   public static Optional<KsqlEntity> unset(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

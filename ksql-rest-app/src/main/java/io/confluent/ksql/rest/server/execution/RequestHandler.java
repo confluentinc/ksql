@@ -80,7 +80,7 @@ public class RequestHandler {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
     for (ParsedStatement parsed : statements) {
-      final PreparedStatement prepared = ksqlEngine.prepare(parsed);
+      final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
       if (prepared.getStatement() instanceof RunScript) {
         final KsqlEntityList result = executeRunScript(prepared, propertyOverrides);
         if (!result.isEmpty()) {

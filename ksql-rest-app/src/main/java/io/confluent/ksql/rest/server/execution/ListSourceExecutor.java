@@ -53,13 +53,15 @@ public final class ListSourceExecutor {
   private ListSourceExecutor() { }
 
   public static Optional<KsqlEntity> streams(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
-    final List<KsqlStream> ksqlStreams = getSpecificSources(executionContext, KsqlStream.class);
+    final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
+    final KsqlStream stream = ksqlStreams.get(0);
+    System.out.println(stream);
 
     final ListStreams listStreams = (ListStreams) statement.getStatement();
     if (listStreams.getShowExtended()) {
@@ -79,13 +81,13 @@ public final class ListSourceExecutor {
   }
 
   public static Optional<KsqlEntity> tables(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
-    final List<KsqlTable> ksqlTables = getSpecificSources(executionContext, KsqlTable.class);
+    final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
 
     final ListTables listTables = (ListTables) statement.getStatement();
     if (listTables.getShowExtended()) {
@@ -104,7 +106,7 @@ public final class ListSourceExecutor {
   }
 
   public static Optional<KsqlEntity> columns(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
@@ -140,15 +142,25 @@ public final class ListSourceExecutor {
     ));
   }
 
-  private static <S extends StructuredDataSource> List<S> getSpecificSources(
-      final KsqlExecutionContext executionContext,
-      final Class<S> dataSourceClass
+  private static List<KsqlTable<?>> getSpecificTables(
+      final KsqlExecutionContext executionContext
   ) {
     return executionContext.getMetaStore().getAllStructuredDataSources().values().stream()
-        .filter(dataSourceClass::isInstance)
+        .filter(KsqlTable.class::isInstance)
         .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
             KsqlRestApplication.getCommandsStreamName()))
-        .map(dataSourceClass::cast)
+        .map(table -> (KsqlTable<?>) table)
+        .collect(Collectors.toList());
+  }
+
+  private static List<KsqlStream<?>> getSpecificStreams(
+      final KsqlExecutionContext executionContext
+  ) {
+    return executionContext.getMetaStore().getAllStructuredDataSources().values().stream()
+        .filter(KsqlStream.class::isInstance)
+        .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
+            KsqlRestApplication.getCommandsStreamName()))
+        .map(table -> (KsqlStream<?>) table)
         .collect(Collectors.toList());
   }
 
@@ -158,7 +170,7 @@ public final class ListSourceExecutor {
       final String name,
       final boolean extended,
       final String statementText) {
-    final StructuredDataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
+    final StructuredDataSource<?> dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",

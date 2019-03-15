@@ -98,7 +98,7 @@ public enum CustomValidators implements StatementValidator {
 
   @Override
   public void validate(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

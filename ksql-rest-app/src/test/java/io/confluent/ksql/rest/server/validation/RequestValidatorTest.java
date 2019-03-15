@@ -96,11 +96,11 @@ public class RequestValidatorTest {
         .thenReturn(Integer.MAX_VALUE);
     when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    final KsqlStream source = mock(KsqlStream.class);
+    final KsqlStream<?> source = mock(KsqlStream.class);
     when(source.getName()).thenReturn("SOURCE");
     when(source.getSchema()).thenReturn(SCHEMA);
 
-    final KsqlStream sink = mock(KsqlStream.class);
+    final KsqlStream<?> sink = mock(KsqlStream.class);
     when(sink.getName()).thenReturn("SINK");
     when(sink.getSchema()).thenReturn(SCHEMA);
 

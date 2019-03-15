@@ -118,7 +118,7 @@ public class DistributingExecutorTest {
     // Given:
     final KsqlException cause = new KsqlException("fail");
     when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
-    final PreparedStatement preparedStatement =
+    final PreparedStatement<?> preparedStatement =
         PreparedStatement.of("x", new ListProperties(Optional.empty()));
 
     // Expect:
@@ -134,7 +134,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldThrowFailureIfCannotInferSchema() {
     // Given:
-    final PreparedStatement preparedStatement =
+    final PreparedStatement<?> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     when(schemaInjector.forStatement(any())).thenThrow(new KsqlException("Could not infer!"));
 

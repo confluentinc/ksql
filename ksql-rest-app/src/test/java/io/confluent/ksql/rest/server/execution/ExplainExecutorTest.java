@@ -48,7 +48,7 @@ public class ExplainExecutorTest {
   @Test
   public void shouldExplainQueryId() {
     // Given:
-    final PreparedStatement explain = engine.prepare("EXPLAIN id;");
+    final PreparedStatement<?> explain = engine.prepare("EXPLAIN id;");
     final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
 
     KsqlEngine engine = mock(KsqlEngine.class);
@@ -73,7 +73,7 @@ public class ExplainExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "Y");
     final String statementText = "CREATE STREAM X AS SELECT * FROM Y;";
-    final PreparedStatement explain = engine.prepare("EXPLAIN " + statementText);
+    final PreparedStatement<?> explain = engine.prepare("EXPLAIN " + statementText);
 
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
@@ -95,7 +95,7 @@ public class ExplainExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "Y");
     final String statementText = "SELECT * FROM Y;";
-    final PreparedStatement explain = engine.prepare("EXPLAIN " + statementText);
+    final PreparedStatement<?> explain = engine.prepare("EXPLAIN " + statementText);
 
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(

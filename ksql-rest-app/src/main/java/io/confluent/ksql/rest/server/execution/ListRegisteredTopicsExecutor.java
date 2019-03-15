@@ -29,7 +29,7 @@ public final class ListRegisteredTopicsExecutor {
   private ListRegisteredTopicsExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

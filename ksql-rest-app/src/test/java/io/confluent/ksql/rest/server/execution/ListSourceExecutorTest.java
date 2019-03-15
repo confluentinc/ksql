@@ -59,8 +59,8 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowStreams() {
     // Given:
-    final KsqlStream stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
+    final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
+    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
     engine.givenSource(DataSourceType.KTABLE, "table");
 
     // When:
@@ -83,8 +83,8 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowStreamsExtended() {
     // Given:
-    final KsqlStream stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
+    final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
+    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2");
     engine.givenSource(DataSourceType.KTABLE, "table");
 
     // When:
@@ -107,8 +107,8 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowTables() {
     // Given:
-    final KsqlTable table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
+    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
     // When:
@@ -131,8 +131,8 @@ public class ListSourceExecutorTest {
   @Test
   public void shouldShowTablesExtended() {
     // Given:
-    final KsqlTable table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
+    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2");
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
     // When:
@@ -163,7 +163,7 @@ public class ListSourceExecutorTest {
         ImmutableMap.of());
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) result.getQuery()
         .orElseThrow(IllegalArgumentException::new);
-    final StructuredDataSource stream = engine.getEngine().getMetaStore().getSource("SINK");
+    final StructuredDataSource<?> stream = engine.getEngine().getMetaStore().getSource("SINK");
 
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)

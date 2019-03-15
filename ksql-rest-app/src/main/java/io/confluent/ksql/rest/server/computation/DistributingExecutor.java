@@ -56,12 +56,12 @@ public class DistributingExecutor implements StatementExecutor  {
   @SuppressWarnings("unchecked")
   @Override
   public Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides) {
-    final PreparedStatement withSchema =
+    final PreparedStatement<?> withSchema =
         schemaInjectorFactory.apply(serviceContext).forStatement(statement);
 
     try {

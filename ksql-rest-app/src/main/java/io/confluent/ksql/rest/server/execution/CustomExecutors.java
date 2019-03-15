@@ -88,7 +88,7 @@ public enum CustomExecutors implements StatementExecutor {
 
   @Override
   public Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionCtx,
       final ServiceContext serviceCtx,
       final KsqlConfig ksqlConfig,

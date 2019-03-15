@@ -34,7 +34,7 @@ public final class ListPropertiesExecutor {
   private ListPropertiesExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

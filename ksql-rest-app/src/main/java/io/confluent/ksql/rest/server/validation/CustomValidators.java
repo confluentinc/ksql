@@ -43,7 +43,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -52,7 +51,8 @@ import java.util.stream.Collectors;
  * is assumed that the {@code PreparedStatement} that is passed in matches the
  * expected class.
  */
-public enum CustomValidators implements StatementValidator {
+@SuppressWarnings({"unchecked", "rawtypes"})
+public enum CustomValidators {
 
   QUERY_ENDPOINT(Query.class, QueryValidator::validate),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
@@ -73,13 +73,13 @@ public enum CustomValidators implements StatementValidator {
 
   TERMINATE_QUERY(TerminateQuery.class, TerminateQueryValidator::validate);
 
-  public static final Map<Class<? extends Statement>, StatementValidator> VALIDATOR_MAP =
+  public static final Map<Class<? extends Statement>, StatementValidator<?>> VALIDATOR_MAP =
       ImmutableMap.copyOf(
         EnumSet.allOf(CustomValidators.class)
             .stream()
             .collect(Collectors.toMap(
                 CustomValidators::getStatementClass,
-                Function.identity()))
+                CustomValidators::getValidator))
       );
 
   private final Class<? extends Statement> statementClass;
@@ -96,7 +96,10 @@ public enum CustomValidators implements StatementValidator {
     return statementClass;
   }
 
-  @Override
+  private StatementValidator<?> getValidator() {
+    return this::validate;
+  }
+
   public void validate(
       final PreparedStatement<?> statement,
       final KsqlExecutionContext executionContext,

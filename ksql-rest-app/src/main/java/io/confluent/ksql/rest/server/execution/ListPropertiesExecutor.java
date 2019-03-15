@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.services.ServiceContext;
@@ -34,7 +35,7 @@ public final class ListPropertiesExecutor {
   private ListPropertiesExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement<?> statement,
+      final PreparedStatement<ListProperties> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

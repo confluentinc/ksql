@@ -17,6 +17,8 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -28,7 +30,7 @@ public final class PropertyExecutor {
   private PropertyExecutor() { }
 
   public static Optional<KsqlEntity> set(
-      final PreparedStatement<?> statement,
+      final PreparedStatement<SetProperty> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
@@ -39,7 +41,7 @@ public final class PropertyExecutor {
   }
 
   public static Optional<KsqlEntity> unset(
-      final PreparedStatement<?> statement,
+      final PreparedStatement<UnsetProperty> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

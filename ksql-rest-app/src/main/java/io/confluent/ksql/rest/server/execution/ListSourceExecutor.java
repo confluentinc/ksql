@@ -53,17 +53,15 @@ public final class ListSourceExecutor {
   private ListSourceExecutor() { }
 
   public static Optional<KsqlEntity> streams(
-      final PreparedStatement<?> statement,
+      final PreparedStatement<ListStreams> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
     final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
-    final KsqlStream stream = ksqlStreams.get(0);
-    System.out.println(stream);
 
-    final ListStreams listStreams = (ListStreams) statement.getStatement();
+    final ListStreams listStreams = statement.getStatement();
     if (listStreams.getShowExtended()) {
       return Optional.of(new SourceDescriptionList(
           statement.getStatementText(),
@@ -81,7 +79,7 @@ public final class ListSourceExecutor {
   }
 
   public static Optional<KsqlEntity> tables(
-      final PreparedStatement<?> statement,
+      final PreparedStatement<ListTables> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
@@ -89,7 +87,7 @@ public final class ListSourceExecutor {
   ) {
     final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
 
-    final ListTables listTables = (ListTables) statement.getStatement();
+    final ListTables listTables = statement.getStatement();
     if (listTables.getShowExtended()) {
       return Optional.of(new SourceDescriptionList(
           statement.getStatementText(),
@@ -106,13 +104,13 @@ public final class ListSourceExecutor {
   }
 
   public static Optional<KsqlEntity> columns(
-      final PreparedStatement<?> statement,
+      final PreparedStatement<ShowColumns> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
-    final ShowColumns showColumns = (ShowColumns) statement.getStatement();
+    final ShowColumns showColumns = statement.getStatement();
     if (showColumns.isTopic()) {
       final String name = showColumns.getTable().getSuffix();
       final KsqlTopic ksqlTopic = executionContext.getMetaStore().getTopic(name);

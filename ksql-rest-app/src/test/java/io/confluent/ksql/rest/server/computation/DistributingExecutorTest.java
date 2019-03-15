@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListProperties;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -51,7 +52,7 @@ public class DistributingExecutorTest {
   private static final Duration DURATION_10_MS = Duration.ofMillis(10);
   private static final CommandId CS_COMMAND = new CommandId(Type.STREAM, "stream", Action.CREATE);
   private static final CommandStatus SUCCESS_STATUS = new CommandStatus(Status.SUCCESS, "");
-  private static final PreparedStatement<?> EMPTY_STATEMENT =
+  private static final PreparedStatement<Statement> EMPTY_STATEMENT =
       PreparedStatement.of("", new ListProperties(Optional.empty()));
 
   @Rule
@@ -118,7 +119,7 @@ public class DistributingExecutorTest {
     // Given:
     final KsqlException cause = new KsqlException("fail");
     when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
-    final PreparedStatement<?> preparedStatement =
+    final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("x", new ListProperties(Optional.empty()));
 
     // Expect:
@@ -134,7 +135,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldThrowFailureIfCannotInferSchema() {
     // Given:
-    final PreparedStatement<?> preparedStatement =
+    final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     when(schemaInjector.forStatement(any())).thenThrow(new KsqlException("Could not infer!"));
 

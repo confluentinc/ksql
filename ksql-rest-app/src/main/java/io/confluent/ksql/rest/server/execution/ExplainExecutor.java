@@ -44,7 +44,7 @@ public final class ExplainExecutor {
 
   @SuppressWarnings("unchecked")
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement<?> statement,
+      final PreparedStatement<Explain> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
@@ -52,7 +52,7 @@ public final class ExplainExecutor {
   ) {
     return Optional
         .of(ExplainExecutor.explain(
-            (PreparedStatement<Explain>) statement,
+            statement,
             propertyOverrides,
             ksqlConfig,
             executionContext));

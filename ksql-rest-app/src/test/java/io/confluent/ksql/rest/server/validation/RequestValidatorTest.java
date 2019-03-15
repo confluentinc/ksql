@@ -73,7 +73,7 @@ public class RequestValidatorTest {
   @Mock
   KsqlConfig ksqlConfig;
   @Mock
-  StatementValidator statementValidator;
+  StatementValidator<?> statementValidator;
   @Mock
   SchemaInjector schemaInjector;
 
@@ -253,7 +253,7 @@ public class RequestValidatorTest {
   }
 
   private void givenRequestValidator(
-      Map<Class<? extends Statement>, StatementValidator> customValidators
+      Map<Class<? extends Statement>, StatementValidator<?>> customValidators
   ) {
     validator = new RequestValidator(
         customValidators,

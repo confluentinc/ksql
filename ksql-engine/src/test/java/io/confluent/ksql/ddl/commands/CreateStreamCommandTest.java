@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -28,13 +29,17 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
@@ -48,6 +53,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CreateStreamCommandTest {
+
+  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -64,7 +72,7 @@ public class CreateStreamCommandTest {
   public void setUp() {
     givenPropertiesWith((Collections.emptyMap()));
     when(createStreamStatement.getName()).thenReturn(QualifiedName.of("name"));
-    when(createStreamStatement.getElements()).thenReturn(ImmutableList.of());
+    when(createStreamStatement.getElements()).thenReturn(SOME_ELEMENTS);
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }
 

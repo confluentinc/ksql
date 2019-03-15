@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,34 +19,27 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class GroupBy
-    extends Node {
+@Immutable
+public class GroupBy extends Node {
 
-  private final boolean isDistinct;
-  private final List<GroupingElement> groupingElements;
+  private final ImmutableList<GroupingElement> groupingElements;
 
-  public GroupBy(final boolean isDistinct, final List<GroupingElement> groupingElements) {
-    this(Optional.empty(), isDistinct, groupingElements);
+  public GroupBy(final List<GroupingElement> groupingElements) {
+    this(Optional.empty(), groupingElements);
   }
 
-  public GroupBy(final NodeLocation location, final boolean isDistinct,
-                 final List<GroupingElement> groupingElements) {
-    this(Optional.of(location), isDistinct, groupingElements);
-  }
-
-  private GroupBy(final Optional<NodeLocation> location, final boolean isDistinct,
-                  final List<GroupingElement> groupingElements) {
+  public GroupBy(
+      final Optional<NodeLocation> location,
+      final List<GroupingElement> groupingElements
+  ) {
     super(location);
-    this.isDistinct = isDistinct;
-    this.groupingElements = ImmutableList.copyOf(requireNonNull(groupingElements));
-  }
-
-  public boolean isDistinct() {
-    return isDistinct;
+    this.groupingElements = ImmutableList
+        .copyOf(requireNonNull(groupingElements, "groupingElements"));
   }
 
   public List<GroupingElement> getGroupingElements() {
@@ -66,19 +60,17 @@ public class GroupBy
       return false;
     }
     final GroupBy groupBy = (GroupBy) o;
-    return isDistinct == groupBy.isDistinct
-           && Objects.equals(groupingElements, groupBy.groupingElements);
+    return Objects.equals(groupingElements, groupBy.groupingElements);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(isDistinct, groupingElements);
+    return Objects.hash(groupingElements);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("isDistinct", isDistinct)
         .add("groupingElements", groupingElements)
         .toString();
   }

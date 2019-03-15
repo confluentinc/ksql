@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,6 +16,7 @@
 package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.function.FunctionRegistry;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +28,8 @@ public interface MetaStore extends FunctionRegistry {
   StructuredDataSource getSource(String sourceName);
 
   Optional<StructuredDataSource> getSourceForTopic(String ksqlTopicName);
+
+  List<StructuredDataSource> getSourcesForKafkaTopic(String kafkaTopicName);
 
   Map<String, StructuredDataSource> getAllStructuredDataSources();
 

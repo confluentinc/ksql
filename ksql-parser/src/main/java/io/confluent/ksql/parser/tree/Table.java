@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,76 +15,29 @@
 
 package io.confluent.ksql.parser.tree;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class Table
-    extends QueryBody {
+@Immutable
+public class Table extends Relation {
 
-  private final boolean isStdOut;
-  private final Map<String, Expression> properties  = new HashMap<>();
   private final QualifiedName name;
 
   public Table(final QualifiedName name) {
-    this(Optional.empty(), name, false);
-  }
-
-  public Table(final QualifiedName name,final  boolean isStdOut) {
-    this(Optional.empty(), name, isStdOut);
-  }
-
-  public Table(final NodeLocation location, final QualifiedName name) {
-    this(Optional.of(location), name, false);
-  }
-
-  public Table(final NodeLocation location, final QualifiedName name, final boolean isStdOut) {
-    this(Optional.of(location), name, isStdOut);
+    this(Optional.empty(), name);
   }
 
   public Table(
-      final NodeLocation location,
-      final QualifiedName name,
-      final boolean isStdOut,
-      final Map<String, Expression> properties) {
-    this(Optional.ofNullable(location), name, isStdOut);
-    this.setProperties(properties);
-  }
-
-  public Table(
-      final QualifiedName name,
-      final boolean isStdOut,
-      final  Map<String, Expression> properties) {
-    this(Optional.empty(), name, isStdOut);
-    this.setProperties(properties);
-  }
-
-  private Table(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
-      final boolean isStdOut) {
+      final QualifiedName name
+  ) {
     super(location);
-    this.name = name;
-    this.isStdOut = isStdOut;
+    this.name = Objects.requireNonNull(name, "name");
   }
 
   public QualifiedName getName() {
     return name;
-  }
-
-  public boolean isStdOut() {
-    return isStdOut;
-  }
-
-  public Map<String, Expression> getProperties() {
-    return properties;
-  }
-
-  public void setProperties(
-      final Map<String, Expression> properties) {
-    this.properties.clear();
-    this.properties.putAll(properties);
   }
 
   @Override

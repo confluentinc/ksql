@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,32 +15,37 @@
 
 package io.confluent.ksql.analyzer;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class Analysis {
 
   private StructuredDataSource into;
-  private Map<String, Object> intoProperties = new HashMap<>();
+  private final Map<String, Object> intoProperties = new HashMap<>();
   private String intoFormat = null;
   private boolean doCreateInto;
-  // TODO: Maybe have all as properties. At the moment this will only be set if format is avro.
   private String intoKafkaTopicName = null;
-  private List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
+  private final List<Pair<StructuredDataSource, String>> fromDataSources = new ArrayList<>();
   private JoinNode join;
   private Expression whereExpression = null;
-  private List<Expression> selectExpressions = new ArrayList<>();
-  private List<String> selectExpressionAlias = new ArrayList<>();
+  private final List<Expression> selectExpressions = new ArrayList<>();
+  private final List<String> selectExpressionAlias = new ArrayList<>();
 
-  private List<Expression> groupByExpressions = new ArrayList<>();
+  private final List<Expression> groupByExpressions = new ArrayList<>();
   private WindowExpression windowExpression = null;
 
   private Expression havingExpression = null;
@@ -111,7 +117,11 @@ public class Analysis {
   }
 
   public List<Expression> getGroupByExpressions() {
-    return groupByExpressions;
+    return ImmutableList.copyOf(groupByExpressions);
+  }
+
+  void addGroupByExpressions(final Set<Expression> expressions) {
+    groupByExpressions.addAll(expressions);
   }
 
   public WindowExpression getWindowExpression() {
@@ -148,6 +158,15 @@ public class Analysis {
 
   void addDataSource(final Pair<StructuredDataSource, String> fromDataSource) {
     fromDataSources.add(fromDataSource);
+  }
+
+  public DereferenceExpression getDefaultArgument() {
+    final String base = join == null
+        ? fromDataSources.get(0).getRight()
+        : join.getLeftAlias();
+
+    final Expression baseExpression = new QualifiedNameReference(QualifiedName.of(base));
+    return new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
   }
 }
 

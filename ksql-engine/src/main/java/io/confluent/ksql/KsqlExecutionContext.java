@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,6 +15,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -58,6 +60,14 @@ public interface KsqlExecutionContext {
    * @return the query's details or else {@code Optional.empty()} if no found.
    */
   Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
+
+  /**
+   * Retrieves the list of all running persistent queries.
+   *
+   * @return the list of all persistent queries
+   * @see #getPersistentQuery(QueryId)
+   */
+  List<PersistentQueryMetadata> getPersistentQueries();
 
   /**
    * Parse the statement(s) in supplied {@code sql}.

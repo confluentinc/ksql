@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -30,6 +31,7 @@ import io.confluent.ksql.parser.tree.Table;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -137,7 +139,7 @@ public class DataSourceExtractor {
   private final class Visitor extends SqlBaseBaseVisitor<Node> {
 
     @Override
-    public Node visitQuerySpecification(final SqlBaseParser.QuerySpecificationContext ctx) {
+    public Node visitQuery(final SqlBaseParser.QueryContext ctx) {
       visit(ctx.from);
       return visitChildren(ctx);
     }
@@ -172,10 +174,7 @@ public class DataSourceExtractor {
         return null;
       }
 
-      // TODO: Figure out if the call to toUpperCase() here is really necessary
-      return new AliasedRelation(getLocation(context), table, alias.toUpperCase(),
-          getColumnAliases(context.columnAliases()));
-
+      return new AliasedRelation(getLocation(context), table, alias);
     }
 
     @Override
@@ -218,25 +217,13 @@ public class DataSourceExtractor {
     return QualifiedName.of(parts);
   }
 
-  private static List<String> getColumnAliases(
-      final SqlBaseParser.ColumnAliasesContext columnAliasesContext) {
-    if (columnAliasesContext == null) {
-      return null;
-    }
-
-    return columnAliasesContext
-        .identifier().stream()
-        .map(AstBuilder::getIdentifierText)
-        .collect(toList());
-  }
-
-  private static NodeLocation getLocation(final ParserRuleContext parserRuleContext) {
+  private static Optional<NodeLocation> getLocation(final ParserRuleContext parserRuleContext) {
     requireNonNull(parserRuleContext, "parserRuleContext is null");
     return getLocation(parserRuleContext.getStart());
   }
 
-  private static NodeLocation getLocation(final Token token) {
+  private static Optional<NodeLocation> getLocation(final Token token) {
     requireNonNull(token, "token is null");
-    return new NodeLocation(token.getLine(), token.getCharPositionInLine());
+    return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
   }
 }

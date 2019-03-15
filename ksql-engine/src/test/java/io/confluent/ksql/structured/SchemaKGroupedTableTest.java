@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -29,6 +30,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
@@ -38,12 +40,12 @@ import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
+import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -96,7 +98,7 @@ public class SchemaKGroupedTableTest {
                 ksqlTable.getSchema(),
                 new KsqlConfig(Collections.emptyMap()),
                 false,
-                MockSchemaRegistryClient::new, 
+                MockSchemaRegistryClient::new,
                 "test",
                 processingLogContext)));
 
@@ -104,8 +106,9 @@ public class SchemaKGroupedTableTest {
 
   private SchemaKGroupedTable buildSchemaKGroupedTableFromQuery(
       final String query,
-      final String...groupByColumns) {
-    final PlanNode logicalPlan = LogicalPlanBuilderTestUtil.buildLogicalPlan(query, metaStore);
+      final String...groupByColumns
+  ) {
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
     final SchemaKTable initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,

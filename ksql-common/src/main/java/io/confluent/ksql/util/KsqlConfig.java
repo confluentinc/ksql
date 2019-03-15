@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -33,6 +34,8 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Importance;
+import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
@@ -51,6 +54,8 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
   public static final String SINK_NUMBER_OF_REPLICAS_PROPERTY = "ksql.sink.replicas";
+
+  public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
@@ -82,11 +87,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG = "ksql.transient.prefix";
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT = "transient_";
-
-  public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG = "ksql.statestore.suffix";
-  public static final String
-      KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT = "_ksql_statestore";
 
   public static final String
       KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
@@ -134,6 +134,9 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
       KSQL_USE_NAMED_INTERNAL_TOPICS_ON, KSQL_USE_NAMED_INTERNAL_TOPICS_OFF
   );
 
+  public static final String KSQL_USE_NAMED_AVRO_MAPS = "ksql.avro.maps.named";
+  private static final String KSQL_USE_NAMED_AVRO_MAPS_DOC = "";
+
   public static final String
       defaultSchemaRegistryUrl = "http://localhost:8081";
 
@@ -154,15 +157,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               ConfigDef.Importance.MEDIUM,
               "Second part of the prefix for persistent queries. For instance if "
                   + "the prefix is query_ the query name will be ksql_query_1."),
-          new CompatibilityBreakingConfigDef(
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_CONFIG,
-              ConfigDef.Type.STRING,
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-              KSQL_TABLE_STATESTORE_NAME_SUFFIX_DEFAULT,
-              ConfigDef.Importance.MEDIUM,
-              "Suffix for state store names in Tables. For instance if the suffix is "
-                  + "_ksql_statestore the state "
-                  + "store name would be ksql_query_1_ksql_statestore _ksql_statestore "),
           new CompatibilityBreakingConfigDef(
               KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
               ConfigDef.Type.BOOLEAN,
@@ -191,7 +185,34 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
               KSQL_USE_NAMED_INTERNAL_TOPICS_ON,
               ConfigDef.Importance.LOW,
               KSQL_USE_NAMED_INTERNAL_TOPICS_DOC,
-              KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR)
+              KSQL_USE_NAMED_INTERNAL_TOPICS_VALIDATOR),
+          new CompatibilityBreakingConfigDef(
+              SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+              Type.INT,
+              4,
+              null,
+              Importance.LOW,
+              "The legacy default number of partitions for the topics created by KSQL"
+                  + "in 5.2 and earlier versions."
+                  + "This property should not be set for 5.3 and later versions."),
+          new CompatibilityBreakingConfigDef(
+              SINK_NUMBER_OF_REPLICAS_PROPERTY,
+              ConfigDef.Type.SHORT,
+              (short) 1,
+              null,
+              ConfigDef.Importance.LOW,
+              "The default number of replicas for the topics created by KSQL "
+                  + "in 5.2 and earlier versions."
+                  + "This property should not be set for 5.3 and later versions."
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_USE_NAMED_AVRO_MAPS,
+              ConfigDef.Type.BOOLEAN,
+              false,
+              true,
+              ConfigDef.Importance.LOW,
+              KSQL_USE_NAMED_AVRO_MAPS_DOC
+          )
   );
 
   private enum ConfigGeneration {
@@ -314,18 +335,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             ConfigDef.Importance.LOW,
             KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS
         ).define(
-            SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-            ConfigDef.Type.INT,
-            KsqlConstants.defaultSinkNumberOfPartitions,
-            ConfigDef.Importance.MEDIUM,
-            "The default number of partitions for the topics created by KSQL."
-        ).define(
-            SINK_NUMBER_OF_REPLICAS_PROPERTY,
-            ConfigDef.Type.SHORT,
-            KsqlConstants.defaultSinkNumberOfReplications,
-            ConfigDef.Importance.MEDIUM,
-            "The default number of replicas for the topics created by KSQL."
-        ).define(
             SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
             ConfigDef.Type.LONG,
             KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention,
@@ -360,6 +369,12 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
             DEFAULT_EXT_DIR,
             ConfigDef.Importance.LOW,
             "The path to look for and load extensions such as UDFs from."
+        ).define(
+            KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY,
+            Type.SHORT,
+            (short) 1,
+            ConfigDef.Importance.LOW,
+            "The replication factor for the internal topics of KSQL server."
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,

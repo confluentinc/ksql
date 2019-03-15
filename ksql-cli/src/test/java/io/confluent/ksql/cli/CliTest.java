@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -53,11 +54,11 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
-import io.confluent.ksql.test.util.TestKsqlRestApp;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -303,16 +304,8 @@ public class CliTest {
         // SESSION OVERRIDES:
         ImmutableList.of(
             KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-            SESSION_OVERRIDE, "latest"),
+            SESSION_OVERRIDE, "latest")
 
-        // DEFAULTS:
-        ImmutableList.of(
-            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
-            "" + KsqlConstants.defaultSinkNumberOfReplications)
-        ,
-        ImmutableList.of(
-            KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "",
-            "" + KsqlConstants.defaultSinkNumberOfReplications)
     );
   }
 
@@ -340,7 +333,7 @@ public class CliTest {
   }
 
   private static void runStatement(final String statement, final KsqlRestClient restClient) {
-    final RestResponse response = restClient.makeKsqlRequest(statement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(statement, null);
     Assert.assertThat(response.isSuccessful(), is(true));
     final KsqlEntityList entityList = ((KsqlEntityList) response.get());
     Assert.assertThat(entityList.size(), equalTo(1));
@@ -353,7 +346,7 @@ public class CliTest {
       assertThatEventually(
           "",
           () -> {
-            final RestResponse statusResponse = restClient
+            final RestResponse<?> statusResponse = restClient
                 .makeStatusRequest(entity.getCommandId().toString());
             Assert.assertThat(statusResponse.isSuccessful(), is(true));
             Assert.assertThat(statusResponse.get(), instanceOf(CommandStatus.class));
@@ -376,7 +369,7 @@ public class CliTest {
   private static void dropStream(final String name) {
     final String dropStatement = String.format("drop stream %s;", name);
 
-    final RestResponse response = restClient.makeKsqlRequest(dropStatement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()) {
       return;
     }
@@ -397,7 +390,7 @@ public class CliTest {
   private static void maybeDropStream(final String name) {
     final String dropStatement = String.format("drop stream %s;", name);
 
-    final RestResponse response = restClient.makeKsqlRequest(dropStatement, null);
+    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()
         || response.getErrorMessage().toString().contains("does not exist")) {
       return;

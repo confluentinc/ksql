@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,27 +18,36 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.LogicalSchemas.LogicalToSqlTypeConverter;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.Schema;
 
-public final class TableElement
-    extends Node {
+@Immutable
+public final class TableElement extends Node {
 
   private final String name;
   private final Type type;
 
-  public TableElement(final String name, final Type type) {
+  public TableElement(
+      final String name,
+      final Type type
+  ) {
     this(Optional.empty(), name, type);
   }
 
-  public TableElement(final NodeLocation location, final String name, final Type type) {
-    this(Optional.of(location), name, type);
-  }
-
-  private TableElement(final Optional<NodeLocation> location, final String name, final Type type) {
+  public TableElement(
+      final Optional<NodeLocation> location,
+      final String name,
+      final Type type
+  ) {
     super(location);
-    this.name = requireNonNull(name, "name is null");
-    this.type = requireNonNull(type, "type is null");
+    this.name = requireNonNull(name, "name");
+    this.type = requireNonNull(type, "type");
   }
 
   public String getName() {
@@ -77,5 +87,17 @@ public final class TableElement
         .add("name", name)
         .add("type", type)
         .toString();
+  }
+
+  public static List<TableElement> fromSchema(final Schema schema) {
+    final LogicalToSqlTypeConverter toSqlTypeConverter = LogicalSchemas
+        .toSqlTypeConverter();
+
+    return schema.fields().stream()
+        .map(f -> new TableElement(
+            f.name().toUpperCase(),
+            toSqlTypeConverter.toSqlType(f.schema()))
+        )
+        .collect(Collectors.toList());
   }
 }

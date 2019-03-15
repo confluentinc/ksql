@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,6 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
@@ -35,11 +37,14 @@ import io.confluent.ksql.parser.tree.LikePredicate;
 import io.confluent.ksql.parser.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.WhenClause;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -98,10 +103,16 @@ public class ExpressionTypeManager
   }
 
   @Override
-  protected Expression visitCast(final Cast node,
-      final ExpressionTypeContext expressionTypeContext) {
+  protected Expression visitCast(
+      final Cast node,
+      final ExpressionTypeContext expressionTypeContext
+  ) {
+    final Type sqlType = node.getType();
+    if (!(sqlType instanceof PrimitiveType)) {
+      throw new KsqlFunctionException("Only casts to primitive types are supported: " + sqlType);
+    }
 
-    final Schema castType = SchemaUtil.getTypeSchema(node.getType());
+    final Schema castType = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
     expressionTypeContext.setSchema(castType);
     return null;
   }
@@ -239,10 +250,14 @@ public class ExpressionTypeManager
       final ExpressionTypeContext expressionTypeContext) {
 
     if (functionRegistry.isAggregate(node.getName().getSuffix())) {
-      final KsqlAggregateFunction ksqlAggregateFunction =
-          functionRegistry.getAggregate(
-              node.getName().getSuffix(), getExpressionSchema(node.getArguments().get(0)));
-      expressionTypeContext.setSchema(ksqlAggregateFunction.getReturnType());
+      final Schema schema = node.getArguments().isEmpty()
+          ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
+          : getExpressionSchema(node.getArguments().get(0));
+
+      final KsqlAggregateFunction aggFunc = functionRegistry
+          .getAggregate(node.getName().getSuffix(), schema);
+
+      expressionTypeContext.setSchema(aggFunc.getReturnType());
       return null;
     }
     if (node.getName().getSuffix().equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {

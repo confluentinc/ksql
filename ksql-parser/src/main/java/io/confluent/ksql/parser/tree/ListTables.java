@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,11 +17,14 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class ListTables extends Statement {
-  boolean showExtended;
+
+  private final boolean showExtended;
 
   public ListTables(final Optional<NodeLocation> location, final boolean showExtended) {
     super(location);
@@ -32,17 +36,26 @@ public class ListTables extends Statement {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash("ListTables");
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final ListTables that = (ListTables) o;
+    return showExtended == that.showExtended;
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    return this == obj;
+  public int hashCode() {
+    return Objects.hash(showExtended);
   }
 
   @Override
   public String toString() {
-    return toStringHelper(this).toString();
+    return toStringHelper(this)
+        .add("showExtended", showExtended)
+        .toString();
   }
 }

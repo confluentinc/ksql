@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,11 +15,11 @@
 
 package io.confluent.ksql.serde.json;
 
-import static io.confluent.ksql.processing.log.ProcessingLoggerUtil.join;
+import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.util.SerdeUtils;
@@ -55,8 +56,7 @@ public class KsqlJsonTopicSerDe extends KsqlTopicSerDe {
         schema,
         isInternal,
         processingLogContext.getLoggerFactory().getLogger(
-            join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME)),
-        processingLogContext
+            join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
     );
 
     genericRowDeserializer.configure(serdeProps, false);

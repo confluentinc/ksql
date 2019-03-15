@@ -6,8 +6,7 @@ KSQL Syntax Reference
 KSQL has similar semantics to SQL:
 
 - Terminate KSQL statements with a semicolon ``;``
-- Use a back-slash ``\`` to indicate continuation of a multi-line statement on the next line
-- You can escape ' characters inside string literals by using '', i.e., 'yyyy-MM-dd''T''HH:mm:ssX'
+- Escape ' characters inside string literals by using '', for example, 'yyyy-MM-dd''T''HH:mm:ssX'
 
 ===========
 Terminology
@@ -20,7 +19,7 @@ Stream
 
 A stream is an unbounded sequence of structured data (“facts”). For example, we could have a stream of financial transactions
 such as “Alice sent $100 to Bob, then Charlie sent $50 to Bob”. Facts in a stream are immutable, which means new facts can
-be inserted to a stream, but existing facts can never be updated or deleted. Streams can be created from a Kafka topic or
+be inserted to a stream, but existing facts can never be updated or deleted. Streams can be created from an |ak-tm| topic or
 derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a Kafka topic on the Kafka
 brokers.
 
@@ -81,6 +80,22 @@ For more info, see :ref:`operators`.
 
 .. note:: You can’t create new nested ``STRUCT`` data as the result of a query,
    but you can copy existing ``STRUCT`` fields as-is.
+
+.. _ksql-time-units:
+
+KSQL Time Units
+---------------
+
+The following list shows valid time units for the SIZE, ADVANCE BY, SESSION, and
+WITHIN clauses.
+
+* DAY, DAYS 
+* HOUR, HOURS
+* MINUTE, MINUTES
+* SECOND, SECONDS
+* MILLISECOND, MILLISECONDS
+
+For more information, see :ref:`windows_in_ksql_queries`.
 
 =================
 KSQL CLI Commands
@@ -430,12 +445,18 @@ The WITH clause for the result supports the following properties:
 |                         | set, then the format of the input stream/table is used.                                              |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
-|                         | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
-|                         | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the                 |
-|                         | properties file the KSQL server is started with, or by using the ``SET`` statement.                  |
+|                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
+|                         | from the left-side stream or table.                                                                  |
+|                         | For KSQL 5.2 and earlier, if the property is not set, the value of the ``ksql.sink.partitions``      |
+|                         | property, which defaults to four partitions, will be used. The ``ksql.sink.partitions`` property can |
+|                         | be set in the properties file the KSQL server is started with, or by using the ``SET`` statement.    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | REPLICAS                | The replication factor for the topic. If this property is not set, then the number of                |
-|                         | replicas of the input stream or table will be used.                                                  |
+|                         | replicas of the input stream or table will be used. In join queries, the property values are taken   |
+|                         | from the left-side stream or table.                                                                  |
+|                         | For KSQL 5.2 and earlier, if the REPLICAS is not set, the value of the ``ksql.sink.replicas``        |
+|                         | property, which defaults to one replica, will be used. The ``ksql.sink.replicas`` property can       |
+|                         | be set in the properties file the KSQL server is started with, or by using the ``SET`` statement.    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP               | Sets a field within this stream's schema to be used as the default source of ``ROWTIME`` for         |
 |                         | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
@@ -511,12 +532,18 @@ The WITH clause supports the following properties:
 |                         | set, then the format of the input stream or table is used.                                           |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
-|                         | of partitions is taken from the value of the ``ksql.sink.partitions`` property, which                |
-|                         | defaults to four partitions. The ``ksql.sink.partitions`` property can be set in the                 |
-|                         | properties file the KSQL server is started with, or by using the ``SET`` statement.                  |
+|                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
+|                         | from the left-side stream or table.                                                                  |
+|                         | For KSQL 5.2 and earlier, if the property is not set, the value of the ``ksql.sink.partitions``      |
+|                         | property, which defaults to four partitions, will be used. The ``ksql.sink.partitions`` property can |
+|                         | be set in the properties file the KSQL server is started with, or by using the ``SET`` statement.    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | REPLICAS                | The replication factor for the topic. If this property is not set, then the number of                |
-|                         | replicas of the input stream or table will be used.                                                  |
+|                         | replicas of the input stream or table will be used. In join queries, the property values are taken   |
+|                         | from the left-side stream or table.                                                                  |
+|                         | For KSQL 5.2 and earlier, if the REPLICAS is not set, the value of the ``ksql.sink.replicas``        |
+|                         | property, which defaults to one replica, will be used. The ``ksql.sink.replicas`` property can       |
+|                         | be set in the properties file the KSQL server is started with, or by using the ``SET`` statement.    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP               | Sets a field within this tables's schema to be used as the default source of ``ROWTIME`` for         |
 |                         | any downstream queries. Downstream queries that use time-based operations, such as windowing,        |
@@ -919,8 +946,6 @@ the following WINDOW types:
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
 
-For more information, see :ref:`windows_in_ksql_queries`.
-
 CAST
 ~~~~
 
@@ -1098,6 +1123,8 @@ SHOW PROPERTIES
 
 List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
+
+.. _ksql-terminate:
 
 TERMINATE
 ---------

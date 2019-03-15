@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -32,12 +33,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.logging.processing.ProcessingLogConstants;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
 import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.processing.log.ProcessingLogConstants;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
-import io.confluent.ksql.processing.log.ProcessingLoggerUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -283,7 +284,6 @@ public class StructuredDataSourceNodeTest {
             new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
                 new KsqlJsonTopicSerDe(), false),
-            "statestore",
             Serdes.String()),
         realSchema);
     final SchemaKStream result = build(node);
@@ -300,7 +300,6 @@ public class StructuredDataSourceNodeTest {
             new LongColumnTimestampExtractionPolicy("timestamp"),
             new KsqlTopic("topic2", "topic2",
                 new KsqlJsonTopicSerDe(), false),
-            "statestore",
             Serdes.String()),
         realSchema);
     realBuilder = new StreamsBuilder();

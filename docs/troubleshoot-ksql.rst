@@ -8,9 +8,11 @@ This guide contains troubleshooting information for many KSQL issues.
 SELECT query does not stop
 **************************
 
-KSQL queries continuously stream and must be explicitly stopped. Use ``Ctrl-C`` in the CLI to stop non-persistent queries (for example, ``SELECT * FROM myTable``). To stop a persistent query created by ``CREATE STREAM AS SELECT`` or ``CREATE TABLE AS SELECT`` use the KSQL TERMINATE statement ``TERMINATE query_id;``. See Terminate_ in the KSQL Syntax Reference.
-
-.. _Termninate: https://docs.confluent.io/current/ksql/docs/developer-guide/syntax-reference.html#terminate
+KSQL queries streams continuously and must be stopped explicitly. In the CLI,
+use Ctrl-C to stop non-persistent queries, like ``SELECT * FROM myTable``.
+To stop a persistent query created by CREATE STREAM AS SELECT or
+CREATE TABLE AS SELECT, use the TERMINATE statement: ``TERMINATE query_id;``.
+For more information, see :ref:`ksql-terminate`.
 
 SELECT query returns no results
 *******************************
@@ -20,7 +22,7 @@ If a KSQL query returns no results and the CLI hangs, use ``Ctrl-C`` to stop the
 Verify that the query is based on the correct source topic
 ==========================================================
 
-Use the ``DESCRIBE EXTENDED`` statement to view the Kafka source topic for the stream. For example, if you have a ``pageviews`` stream on a Kafka topic named ``pageviews``, enter the following statement in the CLI:
+Use the ``DESCRIBE EXTENDED`` statement to view the |ak-tm| source topic for the stream. For example, if you have a ``pageviews`` stream on a Kafka topic named ``pageviews``, enter the following statement in the CLI:
 
 .. code:: sql
 

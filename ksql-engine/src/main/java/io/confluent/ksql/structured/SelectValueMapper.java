@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,9 +15,8 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import java.util.ArrayList;
@@ -27,19 +27,16 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
   private final List<String> selectFieldNames;
   private final List<ExpressionMetadata> expressionEvaluators;
-  private final StructuredLogger processingLogger;
-  private final ProcessingLogContext processingLogContext;
+  private final ProcessingLogger processingLogger;
 
   SelectValueMapper(
       final List<String> selectFieldNames,
       final List<ExpressionMetadata> expressionEvaluators,
-      final StructuredLogger processingLogger,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogger processingLogger
   ) {
     this.selectFieldNames = Objects.requireNonNull(selectFieldNames);
     this.expressionEvaluators = Objects.requireNonNull(expressionEvaluators);
     this.processingLogger = Objects.requireNonNull(processingLogger);
-    this.processingLogContext = Objects.requireNonNull(processingLogContext);
 
     if (selectFieldNames.size() != expressionEvaluators.size()) {
       throw new IllegalArgumentException("must have field names for all expressions");
@@ -74,8 +71,9 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
       processingLogger.error(
           EngineProcessingLogMessageFactory.recordProcessingError(
               errorMsg,
-              row,
-              processingLogContext.getConfig()));
+              row
+          )
+      );
       return null;
     }
   }

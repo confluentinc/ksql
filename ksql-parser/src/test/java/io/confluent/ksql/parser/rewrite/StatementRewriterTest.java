@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,6 +18,7 @@ package io.confluent.ksql.parser.rewrite;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNot.not;
 
@@ -32,11 +34,10 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QuerySpecification;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Assert;
 import org.junit.Before;
@@ -63,11 +64,9 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().size() , equalTo(3));
-    assertThat(querySpecification.getSelect().getSelectItems().get(0), instanceOf(SingleColumn.class));
-    final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
+    assertThat(query.getSelect().getSelectItems().size() , equalTo(3));
+    assertThat(query.getSelect().getSelectItems().get(0), instanceOf(SingleColumn.class));
+    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
     assertThat(column0.getAlias().get(), equalTo("COL0"));
     assertThat(column0.getExpression().toString(), equalTo("TEST1.COL0"));
   }
@@ -83,19 +82,17 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat("testProjectionWithArrayMap fails", query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat("testProjectionWithArrayMap fails", querySpecification.getSelect().getSelectItems()
+    assertThat(query.getSelect().getSelectItems()
         .size(), equalTo(5));
-    assertThat("testProjectionWithArrayMap fails", querySpecification.getSelect().getSelectItems().get(0) instanceof SingleColumn);
-    final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
-    assertThat("testProjectionWithArrayMap fails", column0.getAlias().get(), equalTo("COL0"));
-    assertThat("testProjectionWithArrayMap fails", column0.getExpression().toString(), equalTo("TEST1.COL0"));
+    assertThat(query.getSelect().getSelectItems().get(0), instanceOf(SingleColumn.class));
+    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
+    assertThat(column0.getAlias().get(), equalTo("COL0"));
+    assertThat(column0.getExpression().toString(), equalTo("TEST1.COL0"));
 
-    final SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
-    final SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
-    assertThat("testProjectionWithArrayMap fails", column3.getExpression().toString(), equalTo("TEST1.COL4[0]"));
-    assertThat("testProjectionWithArrayMap fails", column4.getExpression().toString(), equalTo("TEST1.COL5['key1']"));
+    final SingleColumn column3 = (SingleColumn)query.getSelect().getSelectItems().get(3);
+    final SingleColumn column4 = (SingleColumn)query.getSelect().getSelectItems().get(4);
+    assertThat(column3.getExpression().toString(), equalTo("TEST1.COL4[0]"));
+    assertThat(column4.getExpression().toString(), equalTo("TEST1.COL5['key1']"));
   }
 
   @Test
@@ -108,13 +105,11 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat("testProjectFilter fails", query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
 
-    assertThat("testProjectFilter fails", querySpecification.getWhere().get(), instanceOf(ComparisonExpression.class));
-    final ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
-    assertThat("testProjectFilter fails", comparisonExpression.toString(), equalTo("(TEST1.COL0 > 100)"));
-    assertThat("testProjectFilter fails", querySpecification.getSelect().getSelectItems().size(), equalTo(3));
+    assertThat(query.getWhere().get(), instanceOf(ComparisonExpression.class));
+    final ComparisonExpression comparisonExpression = (ComparisonExpression)query.getWhere().get();
+    assertThat(comparisonExpression.toString(), equalTo("(TEST1.COL0 > 100)"));
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(3));
 
   }
 
@@ -128,9 +123,7 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
+    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
     assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("(TEST1.COL0 + 10)"));
   }
@@ -145,9 +138,7 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
+    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
     assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("(TEST1.COL0 = 10)"));
     assertThat(column0.getExpression(), instanceOf(ComparisonExpression.class));
@@ -163,29 +154,27 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
+    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
     assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("10"));
 
-    final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
+    final SingleColumn column1 = (SingleColumn)query.getSelect().getSelectItems().get(1);
     assertThat(column1.getAlias().get(), equalTo("COL2"));
     assertThat(column1.getExpression().toString(), equalTo("TEST1.COL2"));
 
-    final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
+    final SingleColumn column2 = (SingleColumn)query.getSelect().getSelectItems().get(2);
     assertThat(column2.getAlias().get(), equalTo("KSQL_COL_2"));
     assertThat(column2.getExpression().toString(), equalTo("'test'"));
 
-    final SingleColumn column3 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(3);
+    final SingleColumn column3 = (SingleColumn)query.getSelect().getSelectItems().get(3);
     assertThat(column3.getAlias().get(), equalTo("KSQL_COL_3"));
     assertThat(column3.getExpression().toString(), equalTo("2.5"));
 
-    final SingleColumn column4 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(4);
+    final SingleColumn column4 = (SingleColumn)query.getSelect().getSelectItems().get(4);
     assertThat(column4.getAlias().get(), equalTo("KSQL_COL_4"));
     assertThat(column4.getExpression().toString(), equalTo("true"));
 
-    final SingleColumn column5 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(5);
+    final SingleColumn column5 = (SingleColumn)query.getSelect().getSelectItems().get(5);
     assertThat(column5.getAlias().get(), equalTo("KSQL_COL_5"));
     assertThat(column5.getExpression().toString(), equalTo("-5"));
   }
@@ -201,17 +190,15 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
+    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
     assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("10"));
 
-    final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
+    final SingleColumn column1 = (SingleColumn)query.getSelect().getSelectItems().get(1);
     assertThat(column1.getAlias().get(), equalTo("COL2"));
     assertThat(column1.getExpression().toString(), equalTo("TEST1.COL2"));
 
-    final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
+    final SingleColumn column2 = (SingleColumn)query.getSelect().getSelectItems().get(2);
     assertThat(column2.getAlias().get(), equalTo("KSQL_COL_2"));
     assertThat(column2.getExpression().toString(), equalTo("'test'"));
 
@@ -229,10 +216,8 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat(querySpecification.getFrom(), instanceOf(Join.class));
-    final Join join = (Join) querySpecification.getFrom();
+    assertThat(query.getFrom(), instanceOf(Join.class));
+    final Join join = (Join) query.getFrom();
     assertThat(join.getType().toString(), equalTo("LEFT"));
 
     assertThat(((AliasedRelation)join.getLeft()).getAlias(), equalTo("T1"));
@@ -252,16 +237,14 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat(querySpecification.getFrom(), instanceOf(Join.class));
-    final Join join = (Join) querySpecification.getFrom();
+    assertThat(query.getFrom(), instanceOf(Join.class));
+    final Join join = (Join) query.getFrom();
     assertThat(join.getType().toString(), equalTo("LEFT"));
 
     assertThat(((AliasedRelation)join.getLeft()).getAlias(), equalTo("T1"));
     assertThat(((AliasedRelation)join.getRight()).getAlias(), equalTo("T2"));
 
-    assertThat(querySpecification.getWhere().get().toString(), equalTo("(T2.COL2 = 'test')"));
+    assertThat(query.getWhere().get().toString(), equalTo("(T2.COL2 = 'test')"));
   }
 
   @Test
@@ -274,9 +257,7 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(8));
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(8));
   }
 
   @Test
@@ -290,12 +271,9 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat("testSelectAllJoin fails", querySpecification.getFrom() instanceof Join);
-    final Join join = (Join) querySpecification.getFrom();
-    assertThat("testSelectAllJoin fails", querySpecification.getSelect().getSelectItems
-        ().size() == 15);
+    assertThat(query.getFrom(), instanceOf(Join.class));
+    final Join join = (Join) query.getFrom();
+    assertThat(query.getSelect().getSelectItems(), hasSize(15));
     assertThat(((AliasedRelation)join.getLeft()).getAlias(), equalTo("T1"));
     assertThat(((AliasedRelation)join.getRight()).getAlias(), equalTo("T2"));
   }
@@ -310,18 +288,16 @@ public class StatementRewriterTest {
     assertThat(rewrittenStatement, instanceOf(Query.class));
 
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
 
-    final SingleColumn column0 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(0);
+    final SingleColumn column0 = (SingleColumn)query.getSelect().getSelectItems().get(0);
     assertThat(column0.getAlias().get(), equalTo("KSQL_COL_0"));
     assertThat(column0.getExpression().toString(), equalTo("LCASE(T1.COL1)"));
 
-    final SingleColumn column1 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(1);
+    final SingleColumn column1 = (SingleColumn)query.getSelect().getSelectItems().get(1);
     assertThat(column1.getAlias().get(), equalTo("KSQL_COL_1"));
     assertThat(column1.getExpression().toString(), equalTo("CONCAT(T1.COL2, 'hello')"));
 
-    final SingleColumn column2 = (SingleColumn)querySpecification.getSelect().getSelectItems().get(2);
+    final SingleColumn column2 = (SingleColumn)query.getSelect().getSelectItems().get(2);
     assertThat(column2.getAlias().get(), equalTo("KSQL_COL_2"));
     assertThat(column2.getExpression().toString(), equalTo("FLOOR(ABS(T1.COL3))"));
   }
@@ -345,7 +321,7 @@ public class StatementRewriterTest {
   }
 
   @Test
-  public void testCreateStreamWithTopicWithStruct() throws Exception {
+  public void testCreateStreamWithTopicWithStruct() {
     final String queryStr =
         "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
             + "double, arraycol array<double>, mapcol map<varchar, double>, "
@@ -360,20 +336,20 @@ public class StatementRewriterTest {
     assertThat(createStream.getName().toString().toUpperCase(), equalTo("ORDERS"));
     assertThat(createStream.getElements().size(), equalTo(7));
     assertThat(createStream.getElements().get(0).getName().toLowerCase(), equalTo("ordertime"));
-    assertThat(createStream.getElements().get(6).getType().getKsqlType(), equalTo(Type.KsqlType.STRUCT));
+    assertThat(createStream.getElements().get(6).getType().getSqlType(), equalTo(SqlType.STRUCT));
     final Struct struct = (Struct) createStream.getElements().get(6).getType();
-    assertThat(struct.getItems().size(), equalTo(5));
-    assertThat(struct.getItems().get(0).getRight().getKsqlType(), equalTo(Type.KsqlType.STRING));
+    assertThat(struct.getFields(), hasSize(5));
+    assertThat(struct.getFields().get(0).getType().getSqlType(), equalTo(SqlType.STRING));
     assertThat(createStream.getProperties().get(DdlConfig.TOPIC_NAME_PROPERTY).toString().toLowerCase(),
         equalTo("'orders_topic'"));
   }
 
   @Test
-  public void testCreateStream() throws Exception {
+  public void testCreateStream() {
     final String queryStr =
-        "CREATE STREAM orders (ordertime bigint, orderid varchar, itemid varchar, orderunits "
-            + "double) WITH (value_format = 'avro', "
-            + "avroschemafile='/Users/hojjat/avro_order_schema.avro',kafka_topic='orders_topic');";
+        "CREATE STREAM orders "
+            + "(ordertime bigint, orderid varchar, itemid varchar, orderunits double) "
+            + "WITH (value_format = 'avro',kafka_topic='orders_topic');";
     final Statement statement = parse(queryStr);
     final StatementRewriter statementRewriter = new StatementRewriter();
     final Statement rewrittenStatement = (Statement) statementRewriter.process(statement, null);
@@ -387,7 +363,6 @@ public class StatementRewriterTest {
     assertThat(createStream.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY).toString(), equalTo("'orders_topic'"));
     assertThat(createStream.getProperties().get(DdlConfig
         .VALUE_FORMAT_PROPERTY).toString(), equalTo("'avro'"));
-    assertThat(createStream.getProperties().get(DdlConfig.AVRO_SCHEMA_FILE).toString(), equalTo("'/Users/hojjat/avro_order_schema.avro'"));
   }
 
   @Test
@@ -438,11 +413,10 @@ public class StatementRewriterTest {
     assertThat("testCreateStreamAsSelect failed.", rewrittenStatement instanceof CreateStreamAsSelect);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect)rewrittenStatement;
     assertThat(createStreamAsSelect.getName().toString(), equalTo("BIGORDERS_JSON"));
-    assertThat(createStreamAsSelect.getQuery().getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification) createStreamAsSelect.getQuery().getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(8));
-    assertThat(querySpecification.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)querySpecification.getFrom()).getAlias(), equalTo("ORDERS"));
+    final Query query = createStreamAsSelect.getQuery();
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(8));
+    assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
+    assertThat(((AliasedRelation)query.getFrom()).getAlias(), equalTo("ORDERS"));
   }
 
 
@@ -458,14 +432,12 @@ public class StatementRewriterTest {
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    assertThat(querySpecification.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)querySpecification.getFrom()).getAlias(), equalTo("ORDERS"));
-    Assert.assertTrue( querySpecification.getWindowExpression().isPresent());
-    assertThat(querySpecification
-        .getWindowExpression().get().toString(), equalTo(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECONDS ) "));
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
+    assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
+    assertThat(((AliasedRelation)query.getFrom()).getAlias(), equalTo("ORDERS"));
+    Assert.assertTrue( query.getWindow().isPresent());
+    assertThat(query
+        .getWindow().get().toString(), equalTo(" WINDOW STREAMWINDOW  TUMBLING ( SIZE 30 SECONDS ) "));
   }
 
   @Test
@@ -484,14 +456,12 @@ public class StatementRewriterTest {
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    assertThat(querySpecification.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)querySpecification.getFrom()).getAlias().toUpperCase(), equalTo("ORDERS"));
-    assertThat("window expression isn't present", querySpecification
-        .getWindowExpression().isPresent());
-    assertThat(querySpecification.getWindowExpression().get().toString().toUpperCase(),
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
+    assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
+    assertThat(((AliasedRelation)query.getFrom()).getAlias().toUpperCase(), equalTo("ORDERS"));
+    assertThat("window expression isn't present", query
+        .getWindow().isPresent());
+    assertThat(query.getWindow().get().toString().toUpperCase(),
         equalTo(" WINDOW STREAMWINDOW  HOPPING ( SIZE 30 SECONDS , ADVANCE BY 5 SECONDS ) "));
   }
 
@@ -509,14 +479,12 @@ public class StatementRewriterTest {
 
     assertThat(rewrittenStatement, instanceOf(Query.class));
     final Query query = (Query) rewrittenStatement;
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(2));
-    assertThat(querySpecification.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
-    assertThat(((AliasedRelation)querySpecification.getFrom()).getAlias(), equalTo("ORDERS"));
-    Assert.assertTrue( querySpecification.getWindowExpression().isPresent());
-    assertThat(querySpecification
-        .getWindowExpression().get().toString(), equalTo(" WINDOW STREAMWINDOW  SESSION "
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
+    assertThat(query.getWhere().get().toString(), equalTo("(ORDERS.ORDERUNITS > 5)"));
+    assertThat(((AliasedRelation)query.getFrom()).getAlias(), equalTo("ORDERS"));
+    Assert.assertTrue( query.getWindow().isPresent());
+    assertThat(query
+        .getWindow().get().toString(), equalTo(" WINDOW STREAMWINDOW  SESSION "
         + "( 30 SECONDS ) "));
   }
 
@@ -534,17 +502,14 @@ public class StatementRewriterTest {
 
     assertThat(rewrittenStatement, instanceOf(CreateStreamAsSelect.class));
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) rewrittenStatement;
-    assertThat(createStreamAsSelect.getQuery().getQueryBody()
-        , instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)
-        createStreamAsSelect.getQuery().getQueryBody();
-    assertThat(querySpecification.getWhere().toString(), equalTo("Optional[(((ORDERS.COL2 IS NULL) AND (ORDERS.COL3 IS NOT NULL)) OR ((ORDERS.COL3 * ORDERS.COL2) = 12))]"));
+    final Query query = createStreamAsSelect.getQuery();
+    assertThat(query.getWhere().toString(), equalTo("Optional[(((ORDERS.COL2 IS NULL) AND (ORDERS.COL3 IS NOT NULL)) OR ((ORDERS.COL3 * ORDERS.COL2) = 12))]"));
   }
 
   @Test
   public void testInsertInto() {
-    final String insertIntoString = "INSERT INTO test2 SELECT col0, col2, col3 FROM test1 WHERE col0 > "
-        + "100;";
+    final String insertIntoString = "INSERT INTO test0 "
+        + "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
     final Statement statement = parse(insertIntoString);
 
     final StatementRewriter statementRewriter = new StatementRewriter();
@@ -552,17 +517,14 @@ public class StatementRewriterTest {
 
     assertThat(rewrittenStatement, instanceOf(InsertInto.class));
     final InsertInto insertInto = (InsertInto) rewrittenStatement;
-    assertThat(insertInto.getTarget().toString(), equalTo("TEST2"));
+    assertThat(insertInto.getTarget().toString(), equalTo("TEST0"));
     final Query query = insertInto.getQuery();
-    assertThat(query.getQueryBody(), instanceOf(QuerySpecification.class));
-    final QuerySpecification querySpecification = (QuerySpecification)query.getQueryBody();
-    assertThat(querySpecification.getSelect().getSelectItems().size(), equalTo(3));
-    assertThat(querySpecification.getFrom(), not(nullValue()));
-    assertThat(querySpecification.getWhere().isPresent(), equalTo(true));
-    assertThat(querySpecification.getWhere().get(),  instanceOf(ComparisonExpression.class));
-    final ComparisonExpression comparisonExpression = (ComparisonExpression)querySpecification.getWhere().get();
+    assertThat(query.getSelect().getSelectItems().size(), equalTo(3));
+    assertThat(query.getFrom(), not(nullValue()));
+    assertThat(query.getWhere().isPresent(), equalTo(true));
+    assertThat(query.getWhere().get(),  instanceOf(ComparisonExpression.class));
+    final ComparisonExpression comparisonExpression = (ComparisonExpression)query.getWhere().get();
     assertThat(comparisonExpression.getType().getValue(), equalTo(">"));
-
   }
 
   private Statement parse(final String sql) {

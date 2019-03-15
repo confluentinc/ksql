@@ -6,11 +6,62 @@ Upgrading KSQL
 Upgrade one KSQL server at a time (i.e. rolling restart). The remaining KSQL servers should have sufficient spare
 capacity to take over temporarily for unavailable, restarting servers.
 
+Upgrading from KSQL 5.2 to KSQL 5.3
+-----------------------------------
+
+Notable changes in 5.3:
+
+* Configuration:
+
+    * ``ksql.sink.partitions`` and ``ksql.sink.replicas`` are deprecated. All new queries will use the source topic partition count and replica count for the sink topic instead unless partitions and replicas are set in the WITH clause.
+
 
 Upgrading from KSQL 5.1 to KSQL 5.2
--------------------------------------------------------
+-----------------------------------
 
-Notable changes in 5.2:
+ Notable changes in 5.2:
+
+* KSQL Server
+
+    * Interactive mode:
+
+        * The use of the ``RUN SCRIPT`` statement via the REST API is now deprecated and will be
+          removed in the next major release.
+          (`Github issue 2179 <https://github.com/confluentinc/ksql/issues/2179>`_).
+          The feature circumnavigates certain correctness checks and is unnecessary,
+          given the script content can be supplied in the main body of the request.
+          If you are using the ``RUN SCRIPT`` functionality from the KSQL CLI you will not be
+          affected, as this will continue to be supported.
+          If you are using the ``RUN SCRIPT`` functionality directly against the REST API your
+          requests will work with the 5.2 server, but will be rejected after the next major version
+          release.
+          Instead, include the contents of the script in the main body of your request.
+
+* Configuration:
+
+    * When upgrading your headless (non-interactive) mode application from version 5.0.0 and below, you must include the configs specified in the :ref:`5.1 upgrade instructions <5-1-upgrade>`.
+    * When upgrading your headless (non-interactive) mode application, you must include the following properties in your properties file:
+
+::
+
+    ksql.windowed.session.key.legacy=true
+    ksql.named.internal.topics=off
+    ksql.streams.topology.optimization=none
+
+.. _5-1-upgrade:
+
+Upgrading from KSQL 5.0.0 and below to KSQL 5.1
+-----------------------------------------------
+
+* KSQL server:
+
+    * The KSQL engine metrics are now prefixed with the ``ksql.service.id``. If you have been using any metric monitoring
+      tool you need to update your metric names.
+      For instance, assuming ``ksql.service.id`` is set to ``default_``, ``messages-produced-per-sec`` will be changed to ``_confluent-ksql-default_messages-consumed-per-sec``.
+
+* Configuration:
+
+    * When upgrading your headless (non-interactive) mode application, you must either update your queries to use the new SUBSTRING indexing semantics, or set ``ksql.functions.substring.legacy.args`` to ``true``. If possible, we recommend that you update your queries accordingly, instead of enabling this configuration setting. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details on how to do so. Note that this is NOT required for interactive mode KSQL.
 
 Upgrading from KSQL 0.x (Developer Preview) to KSQL 4.1
 -------------------------------------------------------
@@ -44,16 +95,3 @@ Notable changes in 4.1:
 * Configuration: Advanced KSQL users can configure the Kafka Streams and Kafka producer/consumer client settings used
   by KSQL.  This is achieved by using prefixes for the respective configuration settings.
   See :ref:`ksql-param-reference` as well as :ref:`ksql-server-config` and :ref:`install_cli-config` for details.
-
-Upgrading from KSQL 5.0.0 and below to KSQL 5.1
------------------------------------------------
-
-* KSQL server:
-
-    * The KSQL engine metrics are now prefixed with the ``ksql.service.id``. If you have been using any metric monitoring
-      tool you need to update your metric names.
-      For instance, assuming ``ksql.service.id`` is set to ``default``, ``messages-produced-per-sec`` will be changed to ``_confluent-ksql-default_messages-consumed-per-sec``.
-
-* Configuration:
-
-    * When upgrading your headless (non-interactive) mode application, you must either update your queries to use the new SUBSTRING indexing semantics, or set ``ksql.functions.substring.legacy.args`` to ``true``. If possible, we recommend that you update your queries accordingly, instead of enabling this configuration setting. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details on how to do so. Note that this is NOT required for interactive mode KSQL.

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -19,17 +20,17 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 
 public class KsqlTopic implements DataSource {
 
-  private final String topicName;
+  private final String ksqlTopicName;
   private final String kafkaTopicName;
   private final KsqlTopicSerDe ksqlTopicSerDe;
   private final boolean isKsqlSink;
 
   public KsqlTopic(
-      final String topicName,
+      final String ksqlTopicName,
       final String kafkaTopicName,
       final KsqlTopicSerDe ksqlTopicSerDe,
       final boolean isKsqlSink) {
-    this.topicName = topicName;
+    this.ksqlTopicName = ksqlTopicName;
     this.kafkaTopicName = kafkaTopicName;
     this.ksqlTopicSerDe = ksqlTopicSerDe;
     this.isKsqlSink = isKsqlSink;
@@ -43,8 +44,8 @@ public class KsqlTopic implements DataSource {
     return kafkaTopicName;
   }
 
-  public String getTopicName() {
-    return topicName;
+  public String getKsqlTopicName() {
+    return ksqlTopicName;
   }
 
   public boolean isKsqlSink() {
@@ -53,7 +54,7 @@ public class KsqlTopic implements DataSource {
 
   @Override
   public String getName() {
-    return topicName;
+    return ksqlTopicName;
   }
 
   @Override

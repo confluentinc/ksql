@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -151,6 +152,7 @@ public class StringToTimestampTest {
     assertLikeSimpleDateFormat("2021-12-01 12 -0700", "yyyy-MM-dd HH X");
     assertLikeSimpleDateFormat("2021-12-01", "yyyy-MM-dd");
     assertLikeSimpleDateFormat("2021-12-01 PST", "yyyy-MM-dd z");
+    assertLikeSimpleDateFormat("2021-12-01 UTC", "yyyy-MM-dd z");
     assertLikeSimpleDateFormat("2021-12", "yyyy-MM");
     assertLikeSimpleDateFormat("2021", "yyyy");
     assertLikeSimpleDateFormat("12", "MM");

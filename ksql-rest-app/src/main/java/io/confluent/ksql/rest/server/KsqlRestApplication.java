@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,19 +18,19 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.confluent.ksql.KsqlEngine;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.ddl.commands.RegisterTopicCommand;
-import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Expression;
@@ -38,11 +39,8 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
-import io.confluent.ksql.processing.log.ProcessingLogConfig;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.server.computation.CommandIdAssigner;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -55,9 +53,12 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -92,7 +93,6 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
-import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
@@ -118,7 +118,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final StreamedQueryResource streamedQueryResource;
   private final KsqlResource ksqlResource;
   private final ServerInfo serverInfo;
-  private final Thread commandRunnerThread;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
 
@@ -159,8 +158,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         Version.getVersion(),
         getKafkaClusterId(serviceContext),
         ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
-
-    this.commandRunnerThread = new Thread(commandRunner, "CommandRunner");
   }
 
   @Override
@@ -175,7 +172,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   @Override
   public void start() throws Exception {
-    commandRunnerThread.start();
+    commandRunner.start();
     super.start();
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
@@ -196,7 +193,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     try {
       commandRunner.close();
-      commandRunnerThread.join();
     } catch (final Exception e) {
       log.error("Exception while waiting for CommandRunner thread to complete", e);
     }
@@ -303,12 +299,21 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries
   ) {
+    final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
+    return buildApplication(restConfig, versionCheckerFactory, maxStatementRetries, serviceContext);
+  }
+
+  static KsqlRestApplication buildApplication(
+      final KsqlRestConfig restConfig,
+      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
+      final int maxStatementRetries,
+      final ServiceContext serviceContext
+  ) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
-
-    final ServiceContext serviceContext = DefaultServiceContext.create(ksqlConfig);
 
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(restConfig.getOriginals());
@@ -325,9 +330,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
-    final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    final String commandTopic = KsqlRestConfig.getCommandTopic(ksqlServiceId);
-    ensureCommandTopic(restConfig, serviceContext.getTopicClient(), commandTopic);
+    final String commandTopic = KsqlInternalTopicUtils.getTopicName(
+        ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
+    KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
 
     final Map<String, Expression> commandTopicProperties = new HashMap<>();
     commandTopicProperties.put(
@@ -351,7 +356,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
             QualifiedName.of(COMMANDS_STREAM_NAME),
             Collections.singletonList(new TableElement(
                 "STATEMENT",
-                new PrimitiveType(Type.KsqlType.STRING)
+                PrimitiveType.of(SqlType.STRING)
             )),
             false,
             Collections.singletonMap(
@@ -364,11 +369,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    final CommandStore commandStore = new CommandStore(
+    final CommandStore commandStore = CommandStore.Factory.create(
         commandTopic,
         restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties(),
-        new CommandIdAssigner(ksqlEngine.getMetaStore()));
+        restConfig.getCommandProducerProperties());
 
     final StatementExecutor statementExecutor = new StatementExecutor(
         ksqlConfig,
@@ -394,13 +398,18 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
+    final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
+        new DefaultSchemaInjector(
+            new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
+
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
         serviceContext,
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime
+        versionChecker::updateLastRequestTime,
+        schemaInjectorFactory
     );
 
     final Optional<String> processingLogTopic =
@@ -454,51 +463,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       );
     } catch (final Exception e) {
       throw new KsqlException("Failed to get Kafka cluster information", e);
-    }
-  }
-
-  static void ensureCommandTopic(final KsqlRestConfig restConfig,
-                                 final KafkaTopicClient topicClient,
-                                 final String commandTopic) {
-    final long requiredTopicRetention = Long.MAX_VALUE;
-    if (topicClient.isTopicExists(commandTopic)) {
-      final ImmutableMap<String, Object> requiredConfig =
-          ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention);
-
-      if (topicClient.addTopicConfig(commandTopic, requiredConfig)) {
-        log.info("Corrected retention.ms on command topic. topic:{}, retention.ms:{}",
-                 commandTopic, requiredTopicRetention);
-      }
-
-      return;
-    }
-
-    try {
-      short replicationFactor = 1;
-      if (restConfig.getOriginals().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
-        replicationFactor = Short.parseShort(
-            restConfig
-                .getOriginals()
-                .get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
-                .toString()
-        );
-      }
-      if (replicationFactor < 2) {
-        log.warn("Creating topic {} with replication factor of {} which is less than 2. "
-                 + "This is not advisable in a production environment. ",
-                commandTopic, replicationFactor);
-      }
-
-      // for now we create the command topic with infinite retention so that we
-      // don't lose any data in case of fail over etc.
-      topicClient.createTopic(
-          commandTopic,
-          1,
-          replicationFactor,
-          Collections.singletonMap(TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention)
-      );
-    } catch (final KafkaTopicExistsException e) {
-      log.info("Command Topic Exists: {}", e.getMessage());
     }
   }
 

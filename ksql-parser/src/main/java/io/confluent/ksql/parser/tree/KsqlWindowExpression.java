@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import java.util.Optional;
@@ -24,9 +26,10 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 
+@Immutable
 public abstract class KsqlWindowExpression extends Node {
 
-  protected KsqlWindowExpression(final Optional<NodeLocation> location) {
+  KsqlWindowExpression(final Optional<NodeLocation> location) {
     super(location);
   }
 
@@ -36,4 +39,9 @@ public abstract class KsqlWindowExpression extends Node {
                                         Materialized<String, GenericRow, ?> materialized);
 
   public abstract <K> Serde<Windowed<K>> getKeySerde(Class<K> innerType);
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitKsqlWindowExpression(this, context);
+  }
 }

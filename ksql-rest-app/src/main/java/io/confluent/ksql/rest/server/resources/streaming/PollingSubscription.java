@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -32,7 +33,7 @@ public abstract class PollingSubscription<T> implements Flow.Subscription {
   private volatile boolean done = false;
   private Throwable exception = null;
   private boolean draining = false;
-  private volatile ListenableFuture future;
+  private volatile ListenableFuture<?> future;
 
   public PollingSubscription(
       final ListeningScheduledExecutorService exec,

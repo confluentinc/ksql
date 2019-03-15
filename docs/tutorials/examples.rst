@@ -12,7 +12,7 @@ Creating streams
 ----------------
 
 Prerequisite:
-    The corresponding Kafka topics must already exist in your Kafka cluster.
+    The corresponding Kafka topics must already exist in your |ak-tm| cluster.
 
 Create a stream with three columns on the Kafka topic that is named ``pageviews``.
 

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -28,11 +29,6 @@ public abstract class AstVisitor<R, C> {
 
   protected R visitExpression(final Expression node, final C context) {
     return visitNode(node, context);
-  }
-
-
-  protected R visitExtract(final Extract node, final C context) {
-    return visitExpression(node, context);
   }
 
   protected R visitArithmeticBinary(final ArithmeticBinaryExpression node, final C context) {
@@ -80,36 +76,12 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
-  protected R visitShowPartitions(final ShowPartitions node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitShowCreate(final ShowCreate node, final C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitShowFunctions(final ListFunctions node, final C context) {
     return visitStatement(node, context);
   }
 
-  protected R visitSetSession(final SetSession node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitGenericLiteral(final GenericLiteral node, final C context) {
-    return visitLiteral(node, context);
-  }
-
   protected R visitTimeLiteral(final TimeLiteral node, final C context) {
     return visitLiteral(node, context);
-  }
-
-  protected R visitExplainOption(final ExplainOption node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitWithQuery(final WithQuery node, final C context) {
-    return visitNode(node, context);
   }
 
   protected R visitSelect(final Select node, final C context) {
@@ -120,28 +92,12 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
-  protected R visitQueryBody(final QueryBody node, final C context) {
-    return visitRelation(node, context);
-  }
-
-  protected R visitQuerySpecification(final QuerySpecification node, final C context) {
-    return visitQueryBody(node, context);
-  }
-
-  protected R visitSetOperation(final SetOperation node, final C context) {
-    return visitQueryBody(node, context);
-  }
-
   protected R visitTimestampLiteral(final TimestampLiteral node, final C context) {
     return visitLiteral(node, context);
   }
 
   protected R visitWhenClause(final WhenClause node, final C context) {
     return visitExpression(node, context);
-  }
-
-  protected R visitIntervalLiteral(final IntervalLiteral node, final C context) {
-    return visitLiteral(node, context);
   }
 
   protected R visitInPredicate(final InPredicate node, final C context) {
@@ -160,10 +116,6 @@ public abstract class AstVisitor<R, C> {
     return visitLiteral(node, context);
   }
 
-  protected R visitBinaryLiteral(final BinaryLiteral node, final C context) {
-    return visitLiteral(node, context);
-  }
-
   protected R visitBooleanLiteral(final BooleanLiteral node, final C context) {
     return visitLiteral(node, context);
   }
@@ -177,10 +129,6 @@ public abstract class AstVisitor<R, C> {
   }
 
   protected R visitDereferenceExpression(final DereferenceExpression node, final C context) {
-    return visitExpression(node, context);
-  }
-
-  protected R visitNullIfExpression(final NullIfExpression node, final C context) {
     return visitExpression(node, context);
   }
 
@@ -240,16 +188,8 @@ public abstract class AstVisitor<R, C> {
     return visitExpression(node, context);
   }
 
-  protected R visitSubqueryExpression(final SubqueryExpression node, final C context) {
-    return visitExpression(node, context);
-  }
-
   protected R visitTable(final Table node, final C context) {
-    return visitQueryBody(node, context);
-  }
-
-  protected R visitValues(final Values node, final C context) {
-    return visitQueryBody(node, context);
+    return visitRelation(node, context);
   }
 
   protected R visitPrimitiveType(final PrimitiveType node, final C context) {
@@ -268,10 +208,6 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
-  protected R visitTableSubquery(final TableSubquery node, final C context) {
-    return visitQueryBody(node, context);
-  }
-
   protected R visitAliasedRelation(final AliasedRelation node, final C context) {
     return visitRelation(node, context);
   }
@@ -280,44 +216,32 @@ public abstract class AstVisitor<R, C> {
     return visitRelation(node, context);
   }
 
-  protected R visitExists(final ExistsPredicate node, final C context) {
-    return visitExpression(node, context);
+  protected R visitWithinExpression(final WithinExpression node, final C context) {
+    return visitNode(node, context);
   }
 
   protected R visitCast(final Cast node, final C context) {
     return visitExpression(node, context);
   }
 
-  protected R visitFieldReference(final FieldReference node, final C context) {
-    return visitExpression(node, context);
-  }
-
-  protected R visitWindow(final Window node, final C context) {
-    return visitNode(node, context);
-  }
-
   protected R visitWindowExpression(final WindowExpression node, final C context) {
     return visitNode(node, context);
   }
 
-  protected R visitTumblingWindowExpression(final TumblingWindowExpression node, final C context) {
+  protected R visitKsqlWindowExpression(final KsqlWindowExpression node, final C context) {
     return visitNode(node, context);
+  }
+
+  protected R visitTumblingWindowExpression(final TumblingWindowExpression node, final C context) {
+    return visitKsqlWindowExpression(node, context);
   }
 
   protected R visitHoppingWindowExpression(final HoppingWindowExpression node, final C context) {
-    return visitNode(node, context);
+    return visitKsqlWindowExpression(node, context);
   }
 
   protected R visitSessionWindowExpression(final SessionWindowExpression node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitWindowFrame(final WindowFrame node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitFrameBound(final FrameBound node, final C context) {
-    return visitNode(node, context);
+    return visitKsqlWindowExpression(node, context);
   }
 
   protected R visitTableElement(final TableElement node, final C context) {
@@ -360,26 +284,6 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
-  protected R visitRenameTable(final RenameTable node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitRenameColumn(final RenameColumn node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitCreateView(final CreateView node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitDropView(final DropView node, final C context) {
-    return visitStatement(node, context);
-  }
-
-  protected R visitDelete(final Delete node, final C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitGroupBy(final GroupBy node, final C context) {
     return visitNode(node, context);
   }
@@ -390,9 +294,5 @@ public abstract class AstVisitor<R, C> {
 
   protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
     return visitGroupingElement(node, context);
-  }
-
-  protected R visitSymbolReference(final SymbolReference node, final C context) {
-    return visitExpression(node, context);
   }
 }

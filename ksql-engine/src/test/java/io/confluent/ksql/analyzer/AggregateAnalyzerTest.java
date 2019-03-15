@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,205 +15,279 @@
 
 package io.confluent.ksql.analyzer;
 
-import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
-import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.util.MetaStoreFixture;
-import org.junit.Assert;
+import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
+import java.util.ArrayList;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("unchecked")
 public class AggregateAnalyzerTest {
 
-  private MetaStore metaStore;
-  private InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private static final DereferenceExpression DEFAULT_ARGUMENT = new DereferenceExpression(
+      new QualifiedNameReference(QualifiedName.of("ORDERS")), SchemaUtil.ROWTIME_NAME);
+
+  private static final DereferenceExpression COL0 = new DereferenceExpression(
+      new QualifiedNameReference(QualifiedName.of("ORDERS")), "COL0");
+
+  private static final DereferenceExpression COL1 = new DereferenceExpression(
+      new QualifiedNameReference(QualifiedName.of("ORDERS")), "COL1");
+
+  private static final DereferenceExpression COL2 = new DereferenceExpression(
+      new QualifiedNameReference(QualifiedName.of("ORDERS")), "COL2");
+
+  private static final FunctionCall FUNCTION_CALL = new FunctionCall(QualifiedName.of("UCASE"),
+      ImmutableList.of(COL0));
+
+  private static final FunctionCall AGG_FUNCTION_CALL = new FunctionCall(QualifiedName.of("MAX"),
+      ImmutableList.of(COL0, COL1));
+
+  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private MutableAggregateAnalysis analysis;
+  private AggregateAnalyzer analyzer;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
-  }
-
-  private AggregateAnalysis analyzeAggregates(final String queryStr) {
-    System.out.println("Test query:" + queryStr);
-    final Analysis analysis = analyzeQuery(queryStr, metaStore);
-    final AggregateAnalysis aggregateAnalysis = new AggregateAnalysis();
-    final AggregateAnalyzer aggregateAnalyzer = new AggregateAnalyzer(aggregateAnalysis, analysis,
-                                                                functionRegistry);
-    final AggregateExpressionRewriter aggregateExpressionRewriter = new AggregateExpressionRewriter(
-        functionRegistry);
-    for (final Expression expression: analysis.getSelectExpressions()) {
-      aggregateAnalyzer.process(expression, new AnalysisContext(null));
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.addNonAggResultColumns(expression);
-      }
-      aggregateAnalysis.addFinalSelectExpression(
-          ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter, expression));
-      aggregateAnalyzer.setHasAggregateFunction(false);
-    }
-
-    if (analysis.getHavingExpression() != null) {
-      aggregateAnalyzer.process(analysis.getHavingExpression(), new AnalysisContext(null));
-      if (!aggregateAnalyzer.isHasAggregateFunction()) {
-        aggregateAnalysis.addNonAggResultColumns(analysis.getHavingExpression());
-      }
-      aggregateAnalysis.setHavingExpression(ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter,
-                                                                               analysis.getHavingExpression()));
-      aggregateAnalyzer.setHasAggregateFunction(false);
-    }
-
-    return aggregateAnalysis;
+    analysis = new MutableAggregateAnalysis();
+    analyzer = new AggregateAnalyzer(analysis, DEFAULT_ARGUMENT, functionRegistry);
   }
 
   @Test
-  public void testSimpleAggregateQueryAnalysis() throws Exception {
-    final String queryStr = "SELECT col1, count(col1) FROM test1 WHERE col0 > 100 group by col1;";
-    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
-    Assert.assertNotNull(aggregateAnalysis);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 1);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
-                          .equalsIgnoreCase("count"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(0).toString()
-                          .equalsIgnoreCase("test1.col1"));
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().size() == 1);
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().get(0).toString()
-                          .equalsIgnoreCase("test1.col1"));
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsMap().size() == 1);
-    Assert.assertTrue(aggregateAnalysis.getFinalSelectExpressions().size() == 2);
+  public void shouldCaptureSelectNonAggregateFunctionArguments() {
+    // When:
+    analyzer.processSelect(FUNCTION_CALL);
 
+    // Then:
+    assertThat(analysis.getNonAggregateSelectExpressions().get(FUNCTION_CALL), contains(COL0));
   }
 
   @Test
-  public void testMultipleAggregateQueryAnalysis() throws Exception {
-    final String queryStr = "SELECT col1, sum(col3), count(col1) FROM test1 WHERE col0 > 100 group by "
-                      + "col1;";
-    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 2);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(1).getName().getSuffix()
-                          .equalsIgnoreCase("count"));
-    Assert.assertTrue(aggregateAnalysis.getNonAggResultColumns().size() == 1);
-    Assert.assertTrue(aggregateAnalysis.getNonAggResultColumns().get(0).toString()
-                          .equalsIgnoreCase("test1.col1"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(0).toString()
-                          .equalsIgnoreCase("test1.col3"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(1).toString()
-                          .equalsIgnoreCase("test1.col1"));
-    Assert.assertTrue(aggregateAnalysis.getFinalSelectExpressions().size() == 3);
-    Assert.assertTrue(aggregateAnalysis.getFinalSelectExpressions().get(0).toString()
-                          .equalsIgnoreCase("test1.col1"));
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().size() == 2);
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().get(1).toString()
-                          .equalsIgnoreCase("test1.col3"));
+  public void shouldCaptureSelectDereferencedExpression() {
+    // When:
+    analyzer.processSelect(COL0);
+
+    // Then:
+    assertThat(analysis.getNonAggregateSelectExpressions().get(COL0), contains(COL0));
   }
 
   @Test
-  public void testExpressionArgAggregateQueryAnalysis() {
-    final String queryStr = "SELECT col1, sum(col3*col0), sum(floor(col3)*3.0) FROM test1 window w "
-                      + "TUMBLING ( size 2 second) WHERE col0 > "
-                      + "100 "
-                      + "group "
-                      + "by "
-                      + "col1;";
-    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 2);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(1).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().size() == 2);
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(0).toString()
-                          .equalsIgnoreCase("(TEST1.COL3 * TEST1.COL0)"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(1).toString()
-                          .equalsIgnoreCase("(FLOOR(TEST1.COL3) * 3.0)"));
-    Assert.assertTrue(aggregateAnalysis.getNonAggResultColumns().get(0).toString()
-                          .equalsIgnoreCase("test1.col1"));
+  public void shouldCaptureOtherSelectsWithEmptySet() {
+    // Given:
+    final Expression someExpression = mock(Expression.class);
 
-    Assert.assertTrue(aggregateAnalysis.getFinalSelectExpressions().size() == 3);
+    // When:
+    analyzer.processSelect(someExpression);
 
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().size() == 3);
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().get(1).toString()
-                          .equalsIgnoreCase("test1.col3"));
+    // Then:
+    assertThat(analysis.getNonAggregateSelectExpressions().get(someExpression), is(empty()));
   }
 
   @Test
-  public void testAggregateWithExpressionQueryAnalysis() {
-    final String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0) FROM test1 "
-                      + "window w "
-                      + "TUMBLING ( size 2 second) WHERE col0 > "
-                      + "100 "
-                      + "group "
-                      + "by "
-                      + "col1;";
-    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 3);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(1).getName().getSuffix()
-                          .equalsIgnoreCase("count"));
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(2).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
+  public void shouldNotCaptureOtherNonAggregateFunctionArgumentsAsNonAggSelectColumns() {
+    // When:
+    analyzer.processGroupBy(FUNCTION_CALL);
+    analyzer.processHaving(FUNCTION_CALL);
 
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().size() == 3);
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(0).toString()
-                          .equalsIgnoreCase("(TEST1.COL3 * TEST1.COL0)"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(1).toString()
-                          .equalsIgnoreCase("TEST1.COL1"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(2).toString()
-                          .equalsIgnoreCase("(FLOOR(TEST1.COL3) * 3.0)"));
-    Assert.assertTrue(aggregateAnalysis.getNonAggResultColumns().get(0).toString()
-                          .equalsIgnoreCase("test1.col1"));
-
-    Assert.assertTrue(aggregateAnalysis.getFinalSelectExpressions().size() == 3);
-
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().size() == 3);
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().get(1).toString()
-                          .equalsIgnoreCase("test1.col3"));
+    // Then:
+    assertThat(analysis.getNonAggregateSelectExpressions().keySet(), is(empty()));
   }
 
   @Test
-  public void testAggregateWithExpressionHavingQueryAnalysis() {
-    final String queryStr = "SELECT col1, sum(col3*col0)/count(col1), sum(floor(col3)*3.0) FROM test1 "
-                      + "window w "
-                      + "TUMBLING ( size 2 second) WHERE col0 > "
-                      + "100 "
-                      + "group "
-                      + "by "
-                      + "col1 "
-                      + "having count(col1) > 10;";
-    final AggregateAnalysis aggregateAnalysis = analyzeAggregates(queryStr);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().size() == 4);
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(0).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(1).getName().getSuffix()
-                          .equalsIgnoreCase("count"));
-    Assert.assertTrue(aggregateAnalysis.getFunctionList().get(2).getName().getSuffix()
-                          .equalsIgnoreCase("sum"));
+  public void shouldNotCaptureAggregateFunctionArgumentsAsNonAggSelectColumns() {
+    // When:
+    analyzer.processSelect(AGG_FUNCTION_CALL);
+    analyzer.processHaving(AGG_FUNCTION_CALL);
 
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().size() == 4);
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(0).toString()
-                          .equalsIgnoreCase("(TEST1.COL3 * TEST1.COL0)"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(1).toString()
-                          .equalsIgnoreCase("TEST1.COL1"));
-    Assert.assertTrue(aggregateAnalysis.getAggregateFunctionArguments().get(2).toString()
-                          .equalsIgnoreCase("(FLOOR(TEST1.COL3) * 3.0)"));
-    Assert.assertTrue(aggregateAnalysis.getNonAggResultColumns().get(0).toString()
-                          .equalsIgnoreCase("test1.col1"));
+    // Then:
+    assertThat(analysis.getNonAggregateSelectExpressions().keySet(), is(empty()));
+  }
 
-    Assert.assertTrue(aggregateAnalysis.getFinalSelectExpressions().size() == 3);
+  @Test
+  public void shouldThrowOnGroupByAggregateFunction() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "GROUP BY does not support aggregate functions: MAX is an aggregate function.");
 
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().size() == 3);
-    Assert.assertTrue(aggregateAnalysis.getRequiredColumnsList().get(1).toString()
-                          .equalsIgnoreCase("test1.col3"));
-    Assert.assertTrue(aggregateAnalysis.getHavingExpression() instanceof ComparisonExpression);
-    Assert.assertTrue(aggregateAnalysis.getHavingExpression().toString().equalsIgnoreCase(""
-                                                                                          + ""
-                                                                                          + "(KSQL_AGG_VARIABLE_3 > 10)"));
+    // When:
+    analyzer.processGroupBy(AGG_FUNCTION_CALL);
+  }
 
+  @Test
+  public void shouldCaptureSelectNonAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processSelect(FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0));
+  }
+
+  @Test
+  public void shouldCaptureHavingNonAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processHaving(FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0));
+  }
+
+  @Test
+  public void shouldCaptureGroupByNonAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processGroupBy(FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0));
+  }
+
+  @Test
+  public void shouldCaptureSelectAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processSelect(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0, COL1));
+  }
+
+  @Test
+  public void shouldCaptureHavingAggregateFunctionArgumentsAsRequired() {
+    // When:
+    analyzer.processHaving(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(COL0, COL1));
+  }
+
+  @Test
+  public void shouldNotCaptureNonAggregateFunction() {
+    // When:
+    analyzer.processSelect(FUNCTION_CALL);
+    analyzer.processHaving(FUNCTION_CALL);
+    analyzer.processGroupBy(FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getAggregateFunctions(), is(empty()));
+  }
+
+  @Test
+  public void shouldCaptureSelectAggregateFunction() {
+    // When:
+    analyzer.processSelect(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getAggregateFunctions(), contains(AGG_FUNCTION_CALL));
+  }
+
+  @Test
+  public void shouldCaptureHavingAggregateFunction() {
+    // When:
+    analyzer.processHaving(AGG_FUNCTION_CALL);
+
+    // Then:
+    assertThat(analysis.getAggregateFunctions(), contains(AGG_FUNCTION_CALL));
+  }
+
+  @Test
+  public void shouldThrowOnNestedSelectAggFunctions() {
+    // Given:
+    final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
+        ImmutableList.of(AGG_FUNCTION_CALL, COL2));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Aggregate functions can not be nested: MIN(MAX())");
+
+    // When:
+    analyzer.processSelect(nestedCall);
+  }
+
+  @Test
+  public void shouldThrowOnNestedHavingAggFunctions() {
+    // Given:
+    final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
+        ImmutableList.of(AGG_FUNCTION_CALL, COL2));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Aggregate functions can not be nested: MIN(MAX())");
+
+    // When:
+    analyzer.processHaving(nestedCall);
+  }
+
+  @Test
+  public void shouldCaptureNonAggregateFunctionArgumentsWithNestedAggFunction() {
+    // Given:
+    final FunctionCall nonAggWithNestedAggFunc = new FunctionCall(QualifiedName.of("SUBSTRING"),
+        ImmutableList.of(COL2, AGG_FUNCTION_CALL, COL1));
+
+    // When:
+    analyzer.processSelect(nonAggWithNestedAggFunc);
+
+    // Then:
+    assertThat(analysis.getAggregateSelectFields(), containsInAnyOrder(COL1, COL2));
+  }
+
+  @Test
+  public void shouldNotCaptureNonAggregateFunctionArgumentsWhenNestedInsideAggFunction() {
+    // Given:
+    final FunctionCall nonAggFunc = new FunctionCall(QualifiedName.of("ROUND"),
+        ImmutableList.of(COL0));
+
+    final FunctionCall aggFuncWithNestedNonAgg = new FunctionCall(QualifiedName.of("MAX"),
+        ImmutableList.of(COL1, nonAggFunc));
+
+    // When:
+    analyzer.processSelect(aggFuncWithNestedNonAgg);
+
+    // Then:
+    assertThat(analysis.getNonAggregateSelectExpressions().keySet(), is(empty()));
+  }
+
+  @Test
+  public void shouldCaptureDefaultFunctionArguments() {
+    // Given:
+    final FunctionCall emptyFunc = new FunctionCall(QualifiedName.of("COUNT"), new ArrayList<>());
+
+    // When:
+    analyzer.processSelect(emptyFunc);
+
+    // Then:
+    assertThat(analysis.getRequiredColumns(), contains(DEFAULT_ARGUMENT));
+    assertThat(analysis.getAggregateFunctionArguments(), contains(DEFAULT_ARGUMENT));
+  }
+
+  @Test
+  public void shouldAddDefaultArgToFunctionCallWithNoArgs() {
+    // Given:
+    final FunctionCall emptyFunc = new FunctionCall(QualifiedName.of("COUNT"), new ArrayList<>());
+
+    // When:
+    analyzer.processSelect(emptyFunc);
+
+    // Then:
+    assertThat(analysis.getAggregateFunctions(), hasSize(1));
+    assertThat(analysis.getAggregateFunctions().get(0).getName(), is(emptyFunc.getName()));
+    assertThat(analysis.getAggregateFunctions().get(0).getArguments(), contains(DEFAULT_ARGUMENT));
   }
 }

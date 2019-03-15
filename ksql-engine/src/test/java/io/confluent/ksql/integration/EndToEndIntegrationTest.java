@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -28,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -301,6 +303,27 @@ public class EndToEndIntegrationTest {
     assertThat(columns.get(3).toString(), either(is("FEMALE")).or(is("MALE")));
   }
 
+  @Test
+  public void shouldCleanUpAvroSchemaOnDropSource() throws Exception {
+    final String topicName = "avro_stream_topic";
+
+    executeStatement(format(
+        "create stream avro_stream with (kafka_topic='%s',value_format='avro') as select * from %s;",
+        topicName,
+        PAGE_VIEW_STREAM));
+
+    TEST_HARNESS.produceRows(
+        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
+
+    TEST_HARNESS.waitForSubjectToBePresent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+
+    ksqlContext.terminateQuery(new QueryId("CSAS_AVRO_STREAM_0"));
+
+    executeStatement("DROP STREAM avro_stream DELETE TOPIC;");
+
+    TEST_HARNESS.waitForSubjectToBeAbsent(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+  }
+
   private QueryMetadata executeStatement(final String statement,
       final String... args) {
     final String formatted = String.format(statement, (Object[])args);
@@ -337,7 +360,7 @@ public class EndToEndIntegrationTest {
     TestUtils.waitForCondition(
         () -> rowQueue.size() >= expectedRows,
         30_000,
-        expectedRows + " rows where not available after 30 seconds");
+        expectedRows + " rows were not available after 30 seconds");
 
     final List<KeyValue<String, GenericRow>> rows = new ArrayList<>();
     rowQueue.drainTo(rows);

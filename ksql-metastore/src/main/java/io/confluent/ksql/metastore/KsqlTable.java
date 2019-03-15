@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -25,7 +26,6 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 public class KsqlTable<K> extends StructuredDataSource {
 
-  private final String stateStoreName;
   private final Serde<K> keySerde;
 
   public KsqlTable(
@@ -35,7 +35,6 @@ public class KsqlTable<K> extends StructuredDataSource {
       final Field keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
-      final String stateStoreName,
       final Serde<K> keySerde
   ) {
     super(
@@ -47,7 +46,6 @@ public class KsqlTable<K> extends StructuredDataSource {
         DataSourceType.KTABLE,
         ksqlTopic
     );
-    this.stateStoreName = stateStoreName;
     this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
   }
 
@@ -69,7 +67,6 @@ public class KsqlTable<K> extends StructuredDataSource {
         keyField,
         timestampExtractionPolicy,
         ksqlTopic,
-        stateStoreName,
         keySerde
     );
   }
@@ -84,7 +81,6 @@ public class KsqlTable<K> extends StructuredDataSource {
         keyField,
         timestampExtractionPolicy,
         ksqlTopic,
-        stateStoreName,
         keySerde
     );
   }
@@ -99,7 +95,6 @@ public class KsqlTable<K> extends StructuredDataSource {
         keyField,
         policy,
         ksqlTopic,
-        stateStoreName,
         keySerde
     );
   }

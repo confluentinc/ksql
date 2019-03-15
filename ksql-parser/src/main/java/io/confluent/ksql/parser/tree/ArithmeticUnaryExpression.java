@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,9 +17,11 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class ArithmeticUnaryExpression extends Expression {
 
   public enum Sign {
@@ -29,45 +32,28 @@ public class ArithmeticUnaryExpression extends Expression {
   private final Expression value;
   private final Sign sign;
 
-  public ArithmeticUnaryExpression(final Sign sign, final Expression value) {
-    this(Optional.empty(), sign, value);
-  }
-
   public ArithmeticUnaryExpression(
-      final NodeLocation location,
+      final Optional<NodeLocation> location,
       final Sign sign,
-      final Expression value) {
-    this(Optional.of(location), sign, value);
-  }
-
-  private ArithmeticUnaryExpression(
-      final Optional<NodeLocation> location, final Sign sign, final Expression value) {
+      final Expression value
+  ) {
     super(location);
-    requireNonNull(value, "value is null");
-    requireNonNull(sign, "sign is null");
-
-    this.value = value;
-    this.sign = sign;
+    this.value = requireNonNull(value, "value");
+    this.sign = requireNonNull(sign, "sign");
   }
 
   public static ArithmeticUnaryExpression positive(
-      final NodeLocation location,
-      final Expression value) {
-    return new ArithmeticUnaryExpression(Optional.of(location), Sign.PLUS, value);
-  }
-
-  public static ArithmeticUnaryExpression positive(final Expression value) {
-    return new ArithmeticUnaryExpression(Optional.empty(), Sign.PLUS, value);
+      final Optional<NodeLocation> location,
+      final Expression value
+  ) {
+    return new ArithmeticUnaryExpression(location, Sign.PLUS, value);
   }
 
   public static ArithmeticUnaryExpression negative(
-      final NodeLocation location,
-      final Expression value) {
-    return new ArithmeticUnaryExpression(Optional.of(location), Sign.MINUS, value);
-  }
-
-  public static ArithmeticUnaryExpression negative(final Expression value) {
-    return new ArithmeticUnaryExpression(Optional.empty(), Sign.MINUS, value);
+      final Optional<NodeLocation> location,
+      final Expression value
+  ) {
+    return new ArithmeticUnaryExpression(location, Sign.MINUS, value);
   }
 
   public Expression getValue() {

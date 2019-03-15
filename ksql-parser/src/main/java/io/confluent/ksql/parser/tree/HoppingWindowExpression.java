@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,6 +15,9 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
 import java.time.Duration;
@@ -29,6 +33,7 @@ import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
+@Immutable
 public class HoppingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
@@ -45,7 +50,7 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
     this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
   }
 
-  private HoppingWindowExpression(
+  public HoppingWindowExpression(
       final Optional<NodeLocation> location,
       final long size,
       final TimeUnit sizeUnit,
@@ -54,9 +59,9 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   ) {
     super(location);
     this.size = size;
-    this.sizeUnit = sizeUnit;
+    this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
     this.advanceBy = advanceBy;
-    this.advanceByUnit = advanceByUnit;
+    this.advanceByUnit = requireNonNull(advanceByUnit, "advanceByUnit");
   }
 
   public long getSize() {

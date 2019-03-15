@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -551,6 +552,18 @@ public class CodeGenRunnerTest {
                 + "CAST((col4 - col0) AS STRING)"
                 + "FROM codegen_test;",
             inputValues), contains(3, 3L, 3.0, "3.0"));
+    }
+
+    @Test
+    public void shouldHandleStringLiteralWithCharactersThatMustBeEscaped() {
+        // Given:
+        final String query = "SELECT CONCAT(CONCAT('\\\"', 'foo'), '\\\"') FROM CODEGEN_TEST;";
+
+        // When:
+        final List<Object> columns = executeExpression(query, Collections.emptyMap());
+
+        // Then:
+        assertThat(columns, contains("\\\"foo\\\""));
     }
 
     @Test

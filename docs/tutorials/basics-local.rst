@@ -1,7 +1,7 @@
 .. _ksql_quickstart-local:
 
-Writing Streaming Queries Against Kafka Using KSQL (Local)
-==========================================================
+Writing Streaming Queries Against |ak-tm| Using KSQL (Local)
+============================================================
 
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
 

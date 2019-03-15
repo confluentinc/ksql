@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,12 +15,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class TerminateQuery extends Statement {
 
   private final QueryId queryId;
@@ -28,11 +29,7 @@ public class TerminateQuery extends Statement {
     this(Optional.empty(), queryId);
   }
 
-  public TerminateQuery(final NodeLocation location, final String queryId) {
-    this(Optional.of(location), queryId);
-  }
-
-  private TerminateQuery(final Optional<NodeLocation> location, final String queryId) {
+  public TerminateQuery(final Optional<NodeLocation> location, final String queryId) {
     super(location);
     this.queryId = new QueryId(queryId);
   }
@@ -42,18 +39,27 @@ public class TerminateQuery extends Statement {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash("TerminateQuery");
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final TerminateQuery that = (TerminateQuery) o;
+    return Objects.equals(queryId, that.queryId);
   }
 
   @Override
-  public boolean equals(final Object obj) {
-    return this == obj;
+  public int hashCode() {
+
+    return Objects.hash(queryId);
   }
 
   @Override
   public String toString() {
-    return toStringHelper(this)
-        .toString();
+    return "TerminateQuery{"
+        + "queryId=" + queryId
+        + '}';
   }
 }

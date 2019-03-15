@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -45,7 +46,7 @@ public final class SandboxedSchemaRegistryClientTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase> getMethodsToTest() {
+    public static Collection<TestCase<SchemaRegistryClient>> getMethodsToTest() {
       return TestMethods.builder(SchemaRegistryClient.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("testCompatibility", String.class, Schema.class)

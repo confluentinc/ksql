@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,10 +17,10 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.processing.log.ProcessingLogConfig;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema;
-import io.confluent.ksql.processing.log.ProcessingLogMessageSchema.MessageType;
-import java.util.function.Supplier;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
+import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
@@ -32,12 +33,11 @@ public final class EngineProcessingLogMessageFactory {
   private EngineProcessingLogMessageFactory() {
   }
 
-  public static Supplier<SchemaAndValue> recordProcessingError(
+  public static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
       final String errorMsg,
-      final GenericRow record,
-      final ProcessingLogConfig config
+      final GenericRow record
   ) {
-    return () -> {
+    return (config) -> {
       final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId());
       final Struct recordProcessingError =

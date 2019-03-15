@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,11 +15,14 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class QualifiedNameReference
-    extends Expression {
+@Immutable
+public class QualifiedNameReference extends Expression {
 
   private final QualifiedName name;
 
@@ -26,13 +30,9 @@ public class QualifiedNameReference
     this(Optional.empty(), name);
   }
 
-  public QualifiedNameReference(final NodeLocation location, final QualifiedName name) {
-    this(Optional.of(location), name);
-  }
-
-  private QualifiedNameReference(final Optional<NodeLocation> location, final QualifiedName name) {
+  public QualifiedNameReference(final Optional<NodeLocation> location, final QualifiedName name) {
     super(location);
-    this.name = name;
+    this.name = requireNonNull(name, "name");
   }
 
   public QualifiedName getName() {

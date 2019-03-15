@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -36,9 +37,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
  * the beginning until now, or any new messages since then), and writing to it.
  */
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandStore implements CommandQueue, Closeable {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
 
@@ -47,16 +46,22 @@ public class CommandStore implements CommandQueue, Closeable {
   private final Map<CommandId, CommandStatusFuture> commandStatusMap;
   private final SequenceNumberFutureStore sequenceNumberFutureStore;
 
-  public CommandStore(
-      final String commandTopicName,
-      final Map<String, Object> kafkaConsumerProperties,
-      final Map<String, Object> kafkaProducerProperties,
-      final CommandIdAssigner commandIdAssigner
-  ) {
-    this(
-        new CommandTopic(commandTopicName, kafkaConsumerProperties, kafkaProducerProperties),
-        commandIdAssigner,
-        new SequenceNumberFutureStore());
+  public static final class Factory {
+
+    private Factory() {
+    }
+
+    public static CommandStore create(
+        final String commandTopicName,
+        final Map<String, Object> kafkaConsumerProperties,
+        final Map<String, Object> kafkaProducerProperties
+    ) {
+      return new CommandStore(
+          new CommandTopic(commandTopicName, kafkaConsumerProperties, kafkaProducerProperties),
+          new CommandIdAssigner(),
+          new SequenceNumberFutureStore()
+      );
+    }
   }
 
   CommandStore(
@@ -71,23 +76,16 @@ public class CommandStore implements CommandQueue, Closeable {
         Objects.requireNonNull(sequenceNumberFutureStore, "sequenceNumberFutureStore");
   }
 
-  /**
-   * Close the store, rendering it unable to read or write commands
-   */
+  @Override
+  public void wakeup() {
+    commandTopic.wakeup();
+  }
+
   @Override
   public void close() {
     commandTopic.close();
   }
 
-  /**
-   * Write the given statement to the command topic, to be read by all nodes in the current
-   * cluster.
-   * Does not return until the statement has been successfully written, or an exception is thrown.
-   *
-   * @param statement The statement to be distributed
-   * @param overwriteProperties Any command-specific Streams properties to use.
-   * @return The status of the enqueued command
-   */
   @Override
   public QueuedCommandStatus enqueueCommand(
       final PreparedStatement<?> statement,
@@ -98,7 +96,7 @@ public class CommandStore implements CommandQueue, Closeable {
         statement.getStatementText(),
         overwriteProperties,
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-    final CommandStatusFuture statusFuture = this.commandStatusMap.compute(
+    final CommandStatusFuture statusFuture = commandStatusMap.compute(
         commandId,
         (k, v) -> {
           if (v == null) {
@@ -130,16 +128,11 @@ public class CommandStore implements CommandQueue, Closeable {
     }
   }
 
-  /**
-   * Poll for new commands, blocking until at least one is available.
-   *
-   * @return The commands that have been polled from the command topic
-   */
-  public List<QueuedCommand> getNewCommands() {
+  public List<QueuedCommand> getNewCommands(final Duration timeout) {
     completeSatisfiedSequenceNumberFutures();
 
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
-    commandTopic.getNewCommands(Duration.ofMillis(Long.MAX_VALUE)).forEach(
+    commandTopic.getNewCommands(timeout).forEach(
         c -> {
           if (c.value() != null) {
             queuedCommands.add(

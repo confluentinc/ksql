@@ -3,7 +3,7 @@
 KSQL Architecture
 #################
 
-You can use KSQL to build event streaming applications from Kafka topics by
+You can use KSQL to build event streaming applications from |ak-tm| topics by
 using only SQL statements and queries. KSQL is built on Kafka Streams, so a
 KSQL application communicates with a Kafka cluster like any other Kafka Streams
 application.
@@ -153,6 +153,15 @@ In interactive mode, you can:
 * Start one or more CLIs or REST Clients and point them to a server:
   ``<path-to-confluent>/bin/ksql https://<ksql-server-ip-address>:8090``
 
+Command Topic
+-------------
+
+In interactive mode, KSQL shares statements with servers in the cluster over the
+*command topic*. The command topic stores every KSQL statement, along with some
+metadata that ensures the statements are built compatibly across KSQL restarts
+and upgrades. KSQL names the command topic ``_confluent-ksql-<service id>_command_topic``,
+where ``<service id>`` is the value in the ``ksql.service.id`` property.
+
 Headless Deployment
 ===================
 
@@ -174,6 +183,17 @@ In headless mode you can:
 * Version-control your queries and transformations as code
 * Ensure resource isolation
 * Leave resource management to dedicated systems, like Kubernetes
+
+.. _ksql-architecture-config-topic:
+
+Config Topic
+------------
+
+In headless mode, you supply KSQL statements to each server in its SQL file. However
+KSQL still needs to store some internal metadata to ensure that it builds queries
+compatibly across restarts and upgrades. KSQL stores this metadata in an internal topic
+called the *config topic*. KSQL names the config topic ``_confluent-ksql-<service id>_configs``,
+where ``<service id>`` is the value in the ``ksql.service.id`` property.
 
 Supported Operations in Headless and Interactive Modes
 ======================================================

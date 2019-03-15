@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,12 +23,9 @@ import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
 import java.util.Map;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
-
-  private final String stateStoreName;
 
   CreateTableCommand(
       final String sqlExpression,
@@ -42,14 +40,6 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
       throw new KsqlException(
           "Cannot define a TABLE without providing the KEY column name in the WITH clause."
       );
-    }
-
-    if (properties.containsKey(DdlConfig.STATE_STORE_NAME_PROPERTY)) {
-      this.stateStoreName = StringUtil.cleanQuotes(
-          properties.get(DdlConfig.STATE_STORE_NAME_PROPERTY).toString()
-      );
-    } else {
-      this.stateStoreName = createTable.getName().toString() + "_statestore";
     }
   }
 
@@ -73,7 +63,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
           ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),
-        stateStoreName, keySerde
+        keySerde
     );
 
     metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());

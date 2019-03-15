@@ -10,7 +10,8 @@ The default REST API endpoint is ``http://localhost:8088/``.
 
 Change the server configuration that controls the REST API endpoint by setting
 the ``listeners`` parameter in the KSQL server config file. For more info, see
-:ref:`ksql-listeners`.
+:ref:`ksql-listeners`. To configure the endpoint to use HTTPS, see
+:ref:`config-ksql-for-https`.
 
 Content Types
 -------------
@@ -94,7 +95,16 @@ Your output should resemble:
 Run a KSQL Statement
 --------------------
 
-The KSQL resource runs a sequence of KSQL statements. All statements, except those starting with ``SELECT``, can be run on this endpoint. To run ``SELECT`` statements use the ``/query`` endpoint.
+The ``/ksql`` resource runs a sequence of KSQL statements. All statements, except
+those starting with SELECT, can be run on this endpoint. To run SELECT
+statements use the ``/query`` endpoint.
+
+.. note::
+
+   If you use the SET or UNSET statements to assign query properties by using
+   the REST API, the assignment is scoped only to the current request. In
+   contrast, SET and UNSET assignments in the KSQL CLI persist throughout the
+   CLI session.
 
 .. http:post:: /ksql
 
@@ -227,7 +237,8 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
           "commandStatus": {
             "status":"SUCCESS",
             "message":"Stream created and running"
-          }
+          },
+          "commandSequenceNumber":10
         },
         {
           "statementText":"CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice';",
@@ -235,14 +246,79 @@ The KSQL resource runs a sequence of KSQL statements. All statements, except tho
           "commandStatus": {
             "status":"SUCCESS",
             "message":"Stream created and running"
-          }
+          },
+          "commandSequenceNumber":11
         }
       ]
+
+.. _coordinate_multiple_requests
+
+Coordinate Multiple Requests
+----------------------------
+
+To submit multiple, interdependent requests, there are two options. The first is to submit them as a single request,
+similar to the example request above:
+
+.. code:: http
+
+   POST /ksql HTTP/1.1
+   Accept: application/vnd.ksql.v1+json
+   Content-Type: application/vnd.ksql.v1+json
+
+   {
+     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;"
+   }
+
+The second method is to submit the statements as separate requests and incorporate the interdependency by using ``commandSequenceNumber``.
+Send the first request:
+
+.. code:: http
+
+   POST /ksql HTTP/1.1
+   Accept: application/vnd.ksql.v1+json
+   Content-Type: application/vnd.ksql.v1+json
+
+   {
+     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';"
+   }
+
+Make note of the ``commandSequenceNumber`` returned in the response:
+
+.. code:: http
+
+   HTTP/1.1 200 OK
+   Content-Type: application/vnd.ksql.v1+json
+
+   [
+     {
+       "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';",
+       "commandId":"stream/PAGEVIEWS_HOME/create",
+       "commandStatus": {
+         "status":"SUCCESS",
+         "message":"Stream created and running"
+       },
+       "commandSequenceNumber":10
+     }
+   ]
+
+Provide this ``commandSequenceNumber`` as part of the second request, indicating that this request should not
+execute until after command number 10 has finished executing:
+
+.. code:: http
+
+   POST /ksql HTTP/1.1
+   Accept: application/vnd.ksql.v1+json
+   Content-Type: application/vnd.ksql.v1+json
+
+   {
+     "ksql": "CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;",
+     "commandSequenceNumber":10
+   }
 
 Run A Query And Stream Back The Output
 --------------------------------------
 
-The query resource lets you stream the output records of a ``SELECT`` statement via a chunked transfer encoding. The response is streamed back until the ``LIMIT`` specified in the statement is reached, or the client closes the connection. If no ``LIMIT`` is specified in the statement, then the response is streamed until the client closes the connection.
+The ``/query`` resource lets you stream the output records of a ``SELECT`` statement via a chunked transfer encoding. The response is streamed back until the ``LIMIT`` specified in the statement is reached, or the client closes the connection. If no ``LIMIT`` is specified in the statement, then the response is streamed until the client closes the connection.
 
 .. http:post:: /query
 

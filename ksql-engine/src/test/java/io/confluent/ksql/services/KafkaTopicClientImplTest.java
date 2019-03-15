@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -20,6 +21,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,18 +80,18 @@ public class KafkaTopicClientImplTest {
   private static final String topicName2 = "topic2";
   private static final String topicName3 = "topic3";
   private static final String internalTopic1 = String.format("%s%s_%s",
-                                                      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
-                                                      "default",
-                                                      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
-                                                      + "-STATE-STORE-0000000006-repartition");
+      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+      "default",
+      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
+          + "-STATE-STORE-0000000006-repartition");
   private static final String internalTopic2 = String.format("%s%s_%s",
-                                                      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
-                                                      "default",
-                                                      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
-                                                      + "-STATE-STORE-0000000006-changelog");
+      KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+      "default",
+      "query_CTAS_USERS_BY_CITY-KSTREAM-AGGREGATE"
+          + "-STATE-STORE-0000000006-changelog");
   private static final String confluentInternalTopic =
       String.format("%s-%s", KsqlConstants.CONFLUENT_INTERNAL_TOPIC_PREFIX,
-                    "confluent-control-center");
+          "confluent-control-center");
   private Node node;
   @Mock
   private AdminClient adminClient;
@@ -100,7 +101,7 @@ public class KafkaTopicClientImplTest {
     node = new Node(1, "host", 9092);
     expect(adminClient.describeCluster()).andReturn(describeClusterResult());
     expect(adminClient.describeConfigs(describeBrokerRequest()))
-        .andReturn(describeBrokerResult());
+        .andReturn(describeBrokerResult(Collections.emptyList()));
   }
 
   @Test
@@ -239,9 +240,53 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     final String applicationId = String.format("%s%s",
-                                         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
-                                         "default_query_CTAS_USERS_BY_CITY");
+        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
+        "default_query_CTAS_USERS_BY_CITY");
     kafkaTopicClient.deleteInternalTopics(applicationId);
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldDeleteTopicsIfDeleteTopicEnableTrue() {
+    // Given:
+    givenDeleteTopicEnableTrue();
+    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
+
+    // Then:
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldDeleteTopicsIfBrokerDoesNotReturnValueForDeleteTopicEnable() {
+    // Given:
+    givenDeleteTopicEnableNotReturnedByBroker();
+    expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
+
+    // Then:
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldNotDeleteTopicIfDeleteTopicEnableFalse() {
+    // Given:
+    givenDeleteTopicEnableFalse();
+    replay(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+
+    // When:
+    kafkaTopicClient.deleteTopics(Collections.singletonList(topicName2));
+
+    // Then:
     verify(adminClient);
   }
 
@@ -306,9 +351,9 @@ public class KafkaTopicClientImplTest {
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic(topicName1,
-                                 1,
-                                 (short) 1,
-                                 Collections.singletonMap("cleanup.policy", "compact"));
+        1,
+        (short) 1,
+        Collections.singletonMap("cleanup.policy", "compact"));
     verify(adminClient);
   }
 
@@ -350,7 +395,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(topicConfigResponse(
             "peter",
             overriddenConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG,
-                                  TopicConfig.CLEANUP_POLICY_COMPACT)
+                TopicConfig.CLEANUP_POLICY_COMPACT)
         ));
 
     replay(adminClient);
@@ -461,8 +506,8 @@ public class KafkaTopicClientImplTest {
   private ListTopicsResult getListTopicsResultWithInternalTopics() {
     final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
     final List<String> topicNamesList = Arrays.asList(topicName1, topicName2, topicName3,
-                                                internalTopic1, internalTopic2,
-                                                confluentInternalTopic);
+        internalTopic1, internalTopic2,
+        confluentInternalTopic);
     expect(listTopicsResult.names())
         .andReturn(KafkaFuture.completedFuture(new HashSet<>(topicNamesList)));
     replay(listTopicsResult);
@@ -490,13 +535,35 @@ public class KafkaTopicClientImplTest {
     return Collections.singleton(new ConfigResource(ConfigResource.Type.BROKER, node.idString()));
   }
 
-  private DescribeConfigsResult describeBrokerResult() {
-    final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
+  private void givenDeleteTopicEnableTrue() {
+    reset(adminClient);
+    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+
     final ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "true");
-    final List<ConfigEntry> configEntries = new ArrayList<>();
-    configEntries.add(configEntryDeleteEnable);
+    expect(adminClient.describeConfigs(describeBrokerRequest()))
+        .andReturn(describeBrokerResult(Collections.singletonList(configEntryDeleteEnable)));
+  }
+
+  private void givenDeleteTopicEnableFalse() {
+    reset(adminClient);
+    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+
+    final ConfigEntry configEntryDeleteEnable = new ConfigEntry("delete.topic.enable", "false");
+    expect(adminClient.describeConfigs(describeBrokerRequest()))
+        .andReturn(describeBrokerResult(Collections.singletonList(configEntryDeleteEnable)));
+  }
+
+  private void givenDeleteTopicEnableNotReturnedByBroker() {
+    reset(adminClient);
+    expect(adminClient.describeCluster()).andReturn(describeClusterResult());
+    expect(adminClient.describeConfigs(describeBrokerRequest()))
+        .andReturn(describeBrokerResult(Collections.emptyList()));
+  }
+
+  private DescribeConfigsResult describeBrokerResult(final List<ConfigEntry> brokerConfigs) {
+    final DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
     final Map<ConfigResource, Config> config = ImmutableMap.of(
-        new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(configEntries));
+        new ConfigResource(ConfigResource.Type.BROKER, node.idString()), new Config(brokerConfigs));
     expect(describeConfigsResult.all()).andReturn(KafkaFuture.completedFuture(config));
     replay(describeConfigsResult);
     return describeConfigsResult;
@@ -527,7 +594,7 @@ public class KafkaTopicClientImplTest {
   }
 
   private static DescribeConfigsResult topicConfigResponse(final String topicName,
-                                                           final ConfigEntry... entries) {
+      final ConfigEntry... entries) {
 
     final Map<ConfigResource, Config> config = ImmutableMap.of(
         new ConfigResource(ConfigResource.Type.TOPIC, topicName),
@@ -579,7 +646,7 @@ public class KafkaTopicClientImplTest {
    * https://issues.apache.org/jira/browse/KAFKA-6727
    */
   private static Map<ConfigResource, Config> withResourceConfig(final ConfigResource resource,
-                                                                final ConfigEntry... entries) {
+      final ConfigEntry... entries) {
     final Set<ConfigEntry> expected = Arrays.stream(entries)
         .collect(Collectors.toSet());
 
@@ -623,9 +690,9 @@ public class KafkaTopicClientImplTest {
 
         final NewTopic actual = newTopics.iterator().next();
         return Objects.equals(actual.name(), expected.name())
-               && Objects.equals(actual.replicationFactor(), expected.replicationFactor())
-               && Objects.equals(actual.numPartitions(), expected.numPartitions())
-               && Objects.equals(actual.configs(), expected.configs());
+            && Objects.equals(actual.replicationFactor(), expected.replicationFactor())
+            && Objects.equals(actual.numPartitions(), expected.numPartitions())
+            && Objects.equals(actual.configs(), expected.configs());
       }
 
       @Override

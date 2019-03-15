@@ -2,8 +2,9 @@
 <!--
   ~ Copyright 2018 Confluent Inc.
   ~
-  ~ Licensed under the Confluent Community License; you may not use this file
-  ~ except in compliance with the License.  You may obtain a copy of the License at
+  ~ Licensed under the Confluent Community License (the "License"); you may not use
+  ~ this file except in compliance with the License.  You may obtain a copy of the
+  ~ License at
   ~
   ~ http://www.confluent.io/confluent-community-license
   ~
@@ -80,6 +81,17 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-options,-path,-serial,-rawtypes,-processing</arg>
+                        <arg>-Werror</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>

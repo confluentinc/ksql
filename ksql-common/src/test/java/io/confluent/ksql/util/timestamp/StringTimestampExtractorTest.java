@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -36,7 +37,7 @@ public class StringTimestampExtractorTest {
 
     final String stringTime = "2010-Jan-11";
     final long expectedTime = new SimpleDateFormat(format).parse(stringTime).getTime();
-    final long actualTime = timestampExtractor.extract(new ConsumerRecord("topic",
+    final long actualTime = timestampExtractor.extract(new ConsumerRecord<>("topic",
         1,
         1,
         null,
@@ -50,7 +51,6 @@ public class StringTimestampExtractorTest {
   }
 
 
-  @SuppressWarnings("unchecked")
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullFormat() {
     new StringTimestampExtractor(null, -1);

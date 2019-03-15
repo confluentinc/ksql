@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -35,12 +36,13 @@ import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +51,8 @@ public class CommandFactoriesTest {
 
   private static final java.util.Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
+  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
 
   private final KafkaTopicClient topicClient = EasyMock.createNiceMock(KafkaTopicClient.class);
   private final ServiceContext serviceContext = EasyMock.createNiceMock(ServiceContext.class);
@@ -85,7 +89,7 @@ public class CommandFactoriesTest {
   public void shouldCreateCommandForCreateStream() {
     final DdlCommand result = commandFactories.create(
         sqlExpression, new CreateStream(QualifiedName.of("foo"),
-            Collections.emptyList(), true, properties),
+            SOME_ELEMENTS, true, properties),
         NO_PROPS);
 
     assertThat(result, instanceOf(CreateStreamCommand.class));
@@ -202,8 +206,8 @@ public class CommandFactoriesTest {
   private static CreateTable createTable(final HashMap<String, Expression> tableProperties) {
     return new CreateTable(QualifiedName.of("foo"),
         ImmutableList.of(
-            new TableElement("COL1", new PrimitiveType(Type.KsqlType.BIGINT)),
-            new TableElement("COL2", new PrimitiveType(Type.KsqlType.STRING))),
+            new TableElement("COL1", PrimitiveType.of(SqlType.BIGINT)),
+            new TableElement("COL2", PrimitiveType.of(SqlType.STRING))),
         true, tableProperties);
   }
 

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -74,6 +75,7 @@ public class CommandStoreTest {
   private static final Duration TIMEOUT = Duration.ofMillis(1000);
   private static final AtomicInteger COUNTER = new AtomicInteger();
   private static final String statementText = "test-statement";
+  private static final Duration NEW_CMDS_TIMEOUT = Duration.ofSeconds(30);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -124,7 +126,6 @@ public class CommandStoreTest {
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-
     commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
 
     expectedException.expect(IllegalStateException.class);
@@ -152,7 +153,7 @@ public class CommandStoreTest {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
     commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
-    commandStore.getNewCommands();
+    commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
     // Should:
     commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
@@ -164,7 +165,7 @@ public class CommandStoreTest {
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
     when(commandTopic.send(any(), any())).thenAnswer(
         invocation -> {
-          final QueuedCommand queuedCommand = commandStore.getNewCommands().get(0);
+          final QueuedCommand queuedCommand = commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
           assertThat(queuedCommand.getCommandId(), equalTo(commandId));
           assertThat(queuedCommand.getStatus().isPresent(), equalTo(true));
           assertThat(
@@ -190,7 +191,7 @@ public class CommandStoreTest {
     when(commandTopic.getNewCommands(any())).thenReturn(records);
 
     // When:
-    final List<QueuedCommand> commands = commandStore.getNewCommands();
+    final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
     // Then:
     assertThat(commands, hasSize(1));
@@ -250,7 +251,7 @@ public class CommandStoreTest {
     when(commandTopic.getCommandTopicConsumerPosition()).thenReturn(22L);
 
     // When:
-    commandStore.getNewCommands();
+    commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
     // Then:
     final InOrder inOrder = inOrder(sequenceNumberFutureStore, commandTopic);
@@ -275,6 +276,24 @@ public class CommandStoreTest {
 
     // When/Then:
     assertThat(commandStore.isEmpty(), is(true));
+  }
+
+  @Test
+  public void shouldWakeUp() {
+    // When:
+    commandStore.wakeup();
+
+    // Then:
+    verify(commandTopic).wakeup();
+  }
+
+  @Test
+  public void shouldClose() {
+    // When:
+    commandStore.close();
+
+    // Then:
+    verify(commandTopic).close();
   }
 
   private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {

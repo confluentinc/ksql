@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,32 +18,29 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.util.Pair;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class Struct
-    extends Type {
+@Immutable
+public final class Struct extends Type {
 
-  private final List<Pair<String, Type>> items;
+  private final ImmutableList<Field> fields;
 
-  public Struct(final List<Pair<String, Type>> items) {
-    this(Optional.empty(), items);
+  public static Builder builder() {
+    return new Builder();
   }
 
-  public Struct(final NodeLocation location, final List<Pair<String, Type>> items) {
-    this(Optional.of(location), items);
+  private Struct(final List<Field> fields) {
+    super(Optional.empty(), SqlType.STRUCT);
+    this.fields = ImmutableList.copyOf(requireNonNull(fields, "fields"));
   }
 
-  private Struct(final Optional<NodeLocation> location, final List<Pair<String, Type>> items) {
-    super(location, KsqlType.STRUCT);
-    requireNonNull(items, "items is null");
-    this.items = ImmutableList.copyOf(items);
-  }
-
-  public List<Pair<String, Type>> getItems() {
-    return items;
+  public List<Field> getFields() {
+    return fields;
   }
 
   @Override
@@ -52,7 +50,7 @@ public final class Struct
 
   @Override
   public int hashCode() {
-    return Objects.hash(items);
+    return Objects.hash(fields);
   }
 
   @Override
@@ -64,6 +62,90 @@ public final class Struct
       return false;
     }
     final Struct other = (Struct) obj;
-    return Objects.equals(this.items, other.items);
+    return Objects.equals(this.fields, other.fields);
+  }
+
+  @Immutable
+  public static final class Field {
+
+    private final String name;
+    private final Type type;
+
+    public Field(final String name, final Type type) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.type = Objects.requireNonNull(type, "type");
+
+      if (name.trim().isEmpty()) {
+        throw new IllegalArgumentException("Name can not be empty");
+      }
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Type getType() {
+      return type;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final Field field = (Field) o;
+      return Objects.equals(name, field.name)
+          && Objects.equals(type, field.type);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, type);
+    }
+
+    @Override
+    public String toString() {
+      return name + " " + type;
+    }
+  }
+
+  public static final class Builder {
+
+    private final List<Field> fields = new ArrayList<>();
+
+    public Builder addFields(final List<Field> fields) {
+      fields.forEach(this::addField);
+      return this;
+    }
+
+    public Builder addField(final String fieldName, final Type fieldType) {
+      return addField(new Field(fieldName, fieldType));
+    }
+
+    private Builder addField(final Field field) {
+      throwOnDuplicateFieldName(field);
+      fields.add(field);
+      return this;
+    }
+
+    public Struct build() {
+      if (fields.isEmpty()) {
+        throw new KsqlException("STRUCT type must define fields");
+      }
+      return new Struct(fields);
+    }
+
+    private void throwOnDuplicateFieldName(final Field other) {
+      fields.stream()
+          .filter(f -> f.getName().equals(other.getName()))
+          .findAny()
+          .ifPresent(duplicate -> {
+            throw new KsqlException("Duplicate field names found in STRUCT: "
+                + "'" + duplicate + "' and '" + other + "'");
+          });
+    }
   }
 }

@@ -20,7 +20,7 @@ These configurations control how Kafka Streams executes queries. These configura
 ksql.streams.auto.offset.reset
 ------------------------------
 
-Determines what to do when there is no initial offset in Kafka or if the current offset does not exist on the server. The
+Determines what to do when there is no initial offset in |ak-tm| or if the current offset does not exist on the server. The
 default value in KSQL is ``latest``, which means all Kafka topics are read from the latest available offset. For example,
 to change it to earliest by using the KSQL command line:
 
@@ -85,6 +85,16 @@ ksql.streams.num.stream.threads
 This number of stream threads in an instance of the Kafka Streams application. The stream processing code runs in these
 threads. For more information about Kafka Streams threading model, see :ref:`streams_architecture_threads`.
 
+-----------------------------
+ksql.output.topic.name.prefix
+-----------------------------
+
+The default prefix for automatically created topic names. Unless a user
+defines an explicit topic name in a KSQL statement, KSQL prepends the value of
+``ksql.output.topic.name.prefix`` to the names of automatically created output
+topics. For example, you might use "ksql-interactive-" to name output topics
+in a KSQL Server cluster that's deployed in interactive mode. For more information, see
+:ref:`Configuring Security for KSQL <config-security-ksql-acl-interactive_post_ak_2_0>`.
 
 KSQL Query Settings
 -------------------
@@ -132,7 +142,8 @@ encountered the error will shut down. To log the error message to the
 ksql.schema.registry.url
 ------------------------
 
-The |sr| URL path to connect KSQL to.
+The |sr| URL path to connect KSQL to. To communicate with |sr| over a secure
+connection, see :ref:`config-security-ksql-sr`.
 
 .. _ksql-service-id:
 
@@ -147,21 +158,33 @@ By default, the service ID of KSQL servers is ``default_``. The service ID is al
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 
+.. _ksql-internal-topic-replicas:
+
+--------------------
+ksql.internal.topic.replicas
+--------------------
+
+The number of replicas for the internal topics created by KSQL Server. The default is one.
+This config parameter works in KSQL 5.3 and later.
+Note that replicas for record processing log topic should be configrued separately. For more info refer to :ref:`KSQL Processing Log <ksql_processing_log>`.
+
 .. _ksql-sink-partitions:
 
 --------------------
-ksql.sink.partitions
+ksql.sink.partitions (Deprecated)
 --------------------
 
 The default number of partitions for the topics created by KSQL. The default is four.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
 
 .. _ksql-sink-replicas:
 
 ------------------
-ksql.sink.replicas
+ksql.sink.replicas (Deprecated)
 ------------------
 
 The default number of replicas for the topics created by KSQL. The default is one.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
 
 ------------------------------------
 ksql.functions.substring.legacy.args
@@ -227,6 +250,9 @@ bind to the default interface. For example:
     # Bind only to localhost.
     listeners=http://localhost:8088
 
+You can configure KSQL Server to use HTTPS. For more information, see
+:ref:`config-ksql-for-https`.
+
 .. _ksql-c3-settings:
 
 |c3| Settings
@@ -251,7 +277,7 @@ These configurations control the behavior of the :ref:`KSQL processing log <ksql
 .. _ksql-processing-log-topic-auto-create:
 
 -------------------------------------
-ksql.processing.log.topic.auto.create
+ksql.logging.processing.topic.auto.create
 -------------------------------------
 
 Toggles automatic processing log topic creation. If set to true, then KSQL will automatically try
@@ -264,7 +290,7 @@ to create a processing log topic at startup. The name of the topic is the value 
 .. _ksql-processing-log-topic-name:
 
 ------------------------------
-ksql.processing.log.topic.name
+ksql.logging.processing.topic.name
 ------------------------------
 
 If automatic processing log topic creation is enabled, KSQL sets the name of the topic to the value of
@@ -275,7 +301,7 @@ is the value of the :ref:`ksql-service-id` property.
 .. _ksql-processing-log-topic-partitions:
 
 ------------------------------------
-ksql.processing.log.topic.partitions
+ksql.logging.processing.topic.partitions
 ------------------------------------
 
 If automatic processing log topic creation is enabled, KSQL creates the topic with number of partitions set
@@ -284,7 +310,7 @@ to the value of this property. By default, this property has the value ``1``.
 .. _ksql-processing-log-replication-factor:
 
 --------------------------------------------
-ksql.processing.log.topic.replication.factor
+ksql.logging.processing.topic.replication.factor
 --------------------------------------------
 
 If automatic processing log topic creation is enabled, KSQL creates the topic with  number of replicas set
@@ -293,7 +319,7 @@ to the value of this property. By default, this property has the value ``1``.
 .. _ksql-processing-log-stream-auto-create:
 
 --------------------------------------
-ksql.processing.log.stream.auto.create
+ksql.logging.processing.stream.auto.create
 --------------------------------------
 
 Toggles automatic processing log stream creation. If set to true, and KSQL is running in interactive mode on a new cluster,
@@ -304,7 +330,7 @@ the :ref:`ksql-processing-log-topic-name` property. By default, this property ha
 .. _ksql-processing-log-stream-name:
 
 -------------------------------
-ksql.processing.log.stream.name
+ksql.logging.processing.stream.name
 -------------------------------
 
 If automatic processing log stream creation is enabled, KSQL sets the name of the stream to the value of this
@@ -313,7 +339,7 @@ property. By default, this property has the value ``KSQL_PROCESSING_LOG``.
 .. _ksql-processing-log-include-rows:
 
 --------------------------------
-ksql.processing.log.include.rows
+ksql.logging.processing.rows.include
 --------------------------------
 
 Toggles whether or not the processing log should include rows in log messages. By default, this property has the
@@ -346,11 +372,14 @@ When deploying KSQL to production, the following settings are recommended in you
     # Kafka cluster is unavailable.
     ksql.streams.producer.max.block.ms=9223372036854775807
 
-    # Set the replication factor for internal topics, the command topic, and
-    # output topics to be 3 for better fault tolerance and durability. Note:
-    # the value 3 requires at least 3 brokers in your Kafka cluster.
+    # For better fault tolerance and durability, set the replication factor for the KSQL
+    # Server's internal topics. Note: the value 3 requires at least 3 brokers in your Kafka cluster.
+    ksql.internal.topic.replicas=3
+
+    # For better fault tolerance and durability, set the replication factor for
+    # the internal topics that Kafka Streams creates for some queries.
+    # Note: the value 3 requires at least 3 brokers in your Kafka cluster.
     ksql.streams.replication.factor=3
-    ksql.sink.replicas=3
 
     # Set the storage directory for stateful operations like aggregations and
     # joins to be at a durable location. By default, they are stored in /tmp.

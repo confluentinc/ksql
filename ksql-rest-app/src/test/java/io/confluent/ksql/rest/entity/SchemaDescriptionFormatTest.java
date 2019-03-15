@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -36,7 +37,7 @@ public class SchemaDescriptionFormatTest {
   private void shouldSerializeCorrectly(final String descriptionString,
                                         final List<FieldInfo> deserialized) throws IOException {
     final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    final List deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
+    final List<?> deserializedGeneric = objectMapper.readValue(descriptionString, List.class);
     final String serialized=  objectMapper.writeValueAsString(deserialized);
     assertThat(
         objectMapper.readValue(serialized, List.class),

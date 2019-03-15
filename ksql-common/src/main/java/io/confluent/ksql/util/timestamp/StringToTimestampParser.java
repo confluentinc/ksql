@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,53 +15,68 @@
 
 package io.confluent.ksql.util.timestamp;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalField;
+import java.time.temporal.TemporalQueries;
+import java.util.Locale;
+import java.util.function.Function;
+import org.apache.commons.lang3.ObjectUtils;
 
 public class StringToTimestampParser {
+
+  private static final Function<ZoneId, ZonedDateTime> DEFAULT_ZONED_DATE_TIME =
+      zid -> ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, zid);
+
   private final DateTimeFormatter formatter;
 
   public StringToTimestampParser(final String pattern) {
-    formatter = new DateTimeFormatterBuilder()
-        .appendPattern(pattern)
-        .parseDefaulting(ChronoField.YEAR_OF_ERA, 1970)
-        .parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
-        .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
-        .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-        .toFormatter();
+    formatter = DateTimeFormatter.ofPattern(pattern, Locale.ROOT);
   }
 
+  /**
+   * Parse with a default time zone of {@code ZoneId#systemDefault}
+   *
+   * @see #parse(String, ZoneId)
+   */
   public long parse(final String text) {
     return parse(text, ZoneId.systemDefault());
   }
 
+  /**
+   * @param text    the textual representation of the timestamp
+   * @param zoneId  the zoneId to use, if none present in {@code text}
+   *
+   * @return the millis since epoch that {@code text} represents
+   */
   public long parse(final String text, final ZoneId zoneId) {
-    TemporalAccessor parsed = formatter.parseBest(
-        text,
-        ZonedDateTime::from,
-        LocalDateTime::from);
+    return parseZoned(text, zoneId).toInstant().toEpochMilli();
+  }
 
-    if (parsed == null) {
-      throw new KsqlException("text value: "
-          + text
-          +  "cannot be parsed into a timestamp");
+  @VisibleForTesting
+  ZonedDateTime parseZoned(final String text, final ZoneId zoneId) {
+    final TemporalAccessor parsed = formatter.parse(text);
+    final ZoneId parsedZone = parsed.query(TemporalQueries.zone());
+
+    ZonedDateTime resolved = DEFAULT_ZONED_DATE_TIME.apply(
+        ObjectUtils.defaultIfNull(parsedZone, zoneId));
+
+    for (final TemporalField override : ChronoField.values()) {
+      if (parsed.isSupported(override)) {
+        if (!resolved.isSupported(override)) {
+          throw new KsqlException(
+              "Unsupported temporal field in timestamp: " + text + " (" + override + ")");
+        }
+        resolved = resolved.with(override, parsed.getLong(override));
+      }
     }
 
-    if (parsed instanceof LocalDateTime) {
-      parsed = ((LocalDateTime) parsed).atZone(zoneId);
-    }
-
-    final LocalDateTime dateTime = ((ZonedDateTime) parsed)
-        .withZoneSameInstant(ZoneId.systemDefault())
-        .toLocalDateTime();
-    return Timestamp.valueOf(dateTime).getTime();
+    return resolved;
   }
 
 }

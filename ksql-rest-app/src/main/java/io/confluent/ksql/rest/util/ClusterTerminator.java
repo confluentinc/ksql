@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,10 +16,9 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.DataSource.DataSourceSerDe;
 import io.confluent.ksql.services.ServiceContext;
@@ -29,7 +29,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -115,15 +114,15 @@ public class ClusterTerminator {
   }
 
   private void cleanUpSinkAvroSchemas(final List<String> topicsToBeDeleted) {
-    final MetaStore metaStore = ksqlEngine.getMetaStore();
-    final Stream<StructuredDataSource> avroSourcesToCleanUp = topicsToBeDeleted.stream()
-        .map(metaStore::getSourceForTopic)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .filter(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO));
-    final Stream<String> subjectsToDelete = avroSourcesToCleanUp
-        .map(source -> source.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    final Stream<String> subjectsToDelete = topicsToBeDeleted.stream()
+        .filter(this::hasAvroSource)
+        .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
     filterNonExistingSubjects(subjectsToDelete).forEach(this::deleteSubject);
+  }
+
+  private boolean hasAvroSource(final String topicName) {
+    return ksqlEngine.getMetaStore().getSourcesForKafkaTopic(topicName).stream()
+        .anyMatch(dataSource -> dataSource.isSerdeFormat(DataSourceSerDe.AVRO));
   }
 
   private Stream<String> filterNonExistingSubjects(final Stream<String> subjects) {

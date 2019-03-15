@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,56 +17,32 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
-import java.util.Objects;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
+@Immutable
 public class DropTable extends AbstractStreamDropStatement implements ExecutableDdlStatement {
-
-  private final QualifiedName tableName;
-  private final boolean ifExists;
-  private final boolean deleteTopic;
 
   public DropTable(
       final QualifiedName tableName,
       final boolean ifExists,
-      final boolean deleteTopic) {
+      final boolean deleteTopic
+  ) {
     this(Optional.empty(), tableName, ifExists, deleteTopic);
   }
 
-  public DropTable(final Optional<NodeLocation> location,
-                    final QualifiedName tableName,
-                    final boolean ifExists,
-                    final boolean deleteTopic) {
-    super(location);
-    this.tableName = tableName;
-    this.ifExists = ifExists;
-    this.deleteTopic = deleteTopic;
-  }
-
-  public QualifiedName getName() {
-    return tableName;
-  }
-
-  public boolean getIfExists() {
-    return ifExists;
-  }
-
-  public QualifiedName getTableName() {
-    return tableName;
-  }
-
-  public boolean isDeleteTopic() {
-    return deleteTopic;
+  public DropTable(
+      final Optional<NodeLocation> location,
+      final QualifiedName tableName,
+      final boolean ifExists,
+      final boolean deleteTopic
+  ) {
+    super(location, tableName, ifExists, deleteTopic);
   }
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitDropTable(this, context);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(tableName, ifExists);
   }
 
   @Override
@@ -76,18 +53,16 @@ public class DropTable extends AbstractStreamDropStatement implements Executable
     if ((obj == null) || (getClass() != obj.getClass())) {
       return false;
     }
-    final DropTable o = (DropTable) obj;
-    return Objects.equals(tableName, o.tableName)
-           && (ifExists == o.ifExists)
-           && (deleteTopic == o.deleteTopic);
+
+    return super.equals(obj);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("tableName", tableName)
-        .add("ifExists", ifExists)
-        .add("deleteTopic", deleteTopic)
+        .add("tableName", getName())
+        .add("ifExists", getIfExists())
+        .add("deleteTopic", isDeleteTopic())
         .toString();
   }
 }

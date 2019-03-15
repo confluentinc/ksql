@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,6 +17,7 @@ package io.confluent.ksql.metrics;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.Time;
+import io.confluent.ksql.metrics.TopicSensors.SensorMetric;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,11 +35,12 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.Total;
 
-public class ProducerCollector implements MetricCollector, ProducerInterceptor {
+public class ProducerCollector implements MetricCollector, ProducerInterceptor<Object, Object> {
   public static final String PRODUCER_MESSAGES_PER_SEC = "messages-per-sec";
   public static final String PRODUCER_TOTAL_MESSAGES = "total-messages";
 
-  private final Map<String, TopicSensors<ProducerRecord>> topicSensors = new HashMap<>();
+  private final Map<String, TopicSensors<ProducerRecord<Object, Object>>> topicSensors =
+      new HashMap<>();
   private Metrics metrics;
   private String id;
   private Time time;
@@ -63,12 +66,12 @@ public class ProducerCollector implements MetricCollector, ProducerInterceptor {
   }
 
   @Override
-  public ProducerRecord onSend(final ProducerRecord record) {
+  public ProducerRecord<Object, Object> onSend(final ProducerRecord<Object, Object> record) {
     collect(record, false);
     return record;
   }
 
-  private void collect(final ProducerRecord record, final boolean isError) {
+  private void collect(final ProducerRecord<Object, Object> record, final boolean isError) {
     collect(isError, record.topic().toLowerCase());
   }
 
@@ -79,8 +82,8 @@ public class ProducerCollector implements MetricCollector, ProducerInterceptor {
   }
 
 
-  private List<TopicSensors.SensorMetric<ProducerRecord>> buildSensors(final String key) {
-    final List<TopicSensors.SensorMetric<ProducerRecord>> sensors = new ArrayList<>();
+  private List<SensorMetric<ProducerRecord<Object, Object>>> buildSensors(final String key) {
+    final List<SensorMetric<ProducerRecord<Object, Object>>> sensors = new ArrayList<>();
 
     // Note: synchronized due to metrics registry not handling concurrent add/check-exists
     // activity in a reliable way
@@ -95,7 +98,7 @@ public class ProducerCollector implements MetricCollector, ProducerInterceptor {
       final String key,
       final String metricNameString,
       final MeasurableStat stat,
-      final List<TopicSensors.SensorMetric<ProducerRecord>> results
+      final List<SensorMetric<ProducerRecord<Object, Object>>> results
   ) {
     final String name = "prod-" + key + "-" + metricNameString + "-" + id;
 
@@ -114,12 +117,13 @@ public class ProducerCollector implements MetricCollector, ProducerInterceptor {
     }
     final KafkaMetric metric = metrics.metrics().get(metricName);
 
-    results.add(new TopicSensors.SensorMetric<ProducerRecord>(sensor, metric, time, false) {
-      void record(final ProducerRecord record) {
-        sensor.record(1);
-        super.record(record);
-      }
-    });
+    results.add(
+        new SensorMetric<ProducerRecord<Object, Object>>(sensor, metric, time, false) {
+          void record(final ProducerRecord<Object, Object> record) {
+            sensor.record(1);
+            super.record(record);
+          }
+        });
   }
 
 

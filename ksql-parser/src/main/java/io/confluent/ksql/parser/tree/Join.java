@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -15,78 +16,63 @@
 package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class Join
-    extends Relation {
-
-  private final Optional<WithinExpression> withinExpression;
-
-  public Join(
-      final Type type,
-      final Relation left,
-      final Relation right,
-      final Optional<JoinCriteria> criteria) {
-    this(Optional.empty(), type, left, right, criteria, null);
-  }
-
-  public Join(
-      final NodeLocation location,
-      final Type type,
-      final Relation left,
-      final Relation right,
-      final Optional<JoinCriteria> criteria,
-      final Optional<WithinExpression> withinExpression) {
-    this(Optional.of(location), type, left, right, criteria, withinExpression);
-  }
-
-  private Join(
-      final Optional<NodeLocation> location,
-      final Type type,
-      final Relation left,
-      final Relation right,
-      final Optional<JoinCriteria> criteria,
-      final Optional<WithinExpression> withinExpression) {
-    super(location);
-    requireNonNull(left, "left is null");
-    requireNonNull(right, "right is null");
-    checkArgument(criteria.isPresent(), "No join criteria specified");
-
-    this.type = type;
-    this.left = left;
-    this.right = right;
-    this.criteria = criteria;
-    this.withinExpression = withinExpression;
-  }
-
-  public enum Type {
-    INNER, LEFT, OUTER
-  }
+@Immutable
+public class Join extends Relation {
 
   private final Type type;
   private final Relation left;
   private final Relation right;
-  private final Optional<JoinCriteria> criteria;
+  private final JoinCriteria criteria;
+  private final Optional<WithinExpression> withinExpression;
+
+  public enum Type {
+    INNER("INNER"), LEFT("LEFT OUTER"), OUTER("FULL OUTER");
+
+    private final String formattedText;
+
+    Type(final String formattedText) {
+      this.formattedText = Objects.requireNonNull(formattedText, "formattedText");
+    }
+
+    public String getFormatted() {
+      return formattedText;
+    }
+  }
+
+  public Join(
+      final Type type,
+      final Relation left,
+      final Relation right,
+      final JoinCriteria criteria,
+      final Optional<WithinExpression> withinExpression
+  ) {
+    this(Optional.empty(), type, left, right, criteria, withinExpression);
+  }
+
+  public Join(
+      final Optional<NodeLocation> location,
+      final Type type,
+      final Relation left,
+      final Relation right,
+      final JoinCriteria criteria,
+      final Optional<WithinExpression> withinExpression
+  ) {
+    super(location);
+    this.type = requireNonNull(type, "type");
+    this.left = requireNonNull(left, "left");
+    this.right = requireNonNull(right, "right");
+    this.criteria = requireNonNull(criteria, "criteria");
+    this.withinExpression = requireNonNull(withinExpression, "withinExpression");
+  }
 
   public Type getType() {
     return type;
-  }
-
-  public String getFormattedType() {
-    switch (type) {
-      case INNER:
-        return "INNER";
-      case LEFT:
-        return "LEFT OUTER";
-      case OUTER:
-        return "FULL OUTER";
-      default:
-        throw new RuntimeException("Unknown join type encountered: " + type.toString());
-    }
   }
 
   public Relation getLeft() {
@@ -97,7 +83,7 @@ public class Join
     return right;
   }
 
-  public Optional<JoinCriteria> getCriteria() {
+  public JoinCriteria getCriteria() {
     return criteria;
   }
 

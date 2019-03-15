@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -17,43 +18,76 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-public class Query
-    extends Statement {
+@Immutable
+public class Query extends Statement {
 
-  private final QueryBody queryBody;
+  private final Select select;
+  private final Relation from;
+  private final Optional<WindowExpression> window;
+  private final Optional<Expression> where;
+  private final Optional<GroupBy> groupBy;
+  private final Optional<Expression> having;
   private final OptionalInt limit;
 
   public Query(
-      final QueryBody queryBody,
-      final OptionalInt limit) {
-    this(Optional.empty(), queryBody, limit);
+      final Select select,
+      final Relation from,
+      final Optional<WindowExpression> window,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
+      final OptionalInt limit
+  ) {
+    this(Optional.empty(), select, from, window, where, groupBy, having, limit);
   }
 
   public Query(
-      final NodeLocation location,
-      final QueryBody queryBody,
-      final OptionalInt limit) {
-    this(Optional.of(location), queryBody, limit);
-  }
-
-  private Query(
       final Optional<NodeLocation> location,
-      final QueryBody queryBody,
-      final OptionalInt limit) {
+      final Select select,
+      final Relation from,
+      final Optional<WindowExpression> window,
+      final Optional<Expression> where,
+      final Optional<GroupBy> groupBy,
+      final Optional<Expression> having,
+      final OptionalInt limit
+  ) {
     super(location);
-    requireNonNull(queryBody, "queryBody is null");
-    requireNonNull(limit, "limit is null");
-
-    this.queryBody = queryBody;
-    this.limit = limit;
+    this.select = requireNonNull(select, "select");
+    this.from = requireNonNull(from, "from");
+    this.window = requireNonNull(window, "window");
+    this.where = requireNonNull(where, "where");
+    this.groupBy = requireNonNull(groupBy, "groupBy");
+    this.having = requireNonNull(having, "having");
+    this.limit = requireNonNull(limit, "limit");
   }
 
-  public QueryBody getQueryBody() {
-    return queryBody;
+  public Select getSelect() {
+    return select;
+  }
+
+  public Relation getFrom() {
+    return from;
+  }
+
+  public Optional<WindowExpression> getWindow() {
+    return window;
+  }
+
+  public Optional<Expression> getWhere() {
+    return where;
+  }
+
+  public Optional<GroupBy> getGroupBy() {
+    return groupBy;
+  }
+
+  public Optional<Expression> getHaving() {
+    return having;
   }
 
   public OptionalInt getLimit() {
@@ -68,7 +102,12 @@ public class Query
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("queryBody", queryBody)
+        .add("select", select)
+        .add("from", from)
+        .add("window", window.orElse(null))
+        .add("where", where.orElse(null))
+        .add("groupBy", groupBy.orElse(null))
+        .add("having", having.orElse(null))
         .add("limit", limit)
         .omitNullValues()
         .toString();
@@ -83,12 +122,17 @@ public class Query
       return false;
     }
     final Query o = (Query) obj;
-    return Objects.equals(queryBody, o.queryBody)
-           && Objects.equals(limit, o.limit);
+    return Objects.equals(select, o.select)
+        && Objects.equals(from, o.from)
+        && Objects.equals(where, o.where)
+        && Objects.equals(window, o.window)
+        && Objects.equals(groupBy, o.groupBy)
+        && Objects.equals(having, o.having)
+        && Objects.equals(limit, o.limit);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(queryBody, limit);
+    return Objects.hash(select, from, where, window, groupBy, having, limit);
   }
 }

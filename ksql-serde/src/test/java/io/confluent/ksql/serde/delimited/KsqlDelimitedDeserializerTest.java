@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,12 +19,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.SerdeTestUtils;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Schema;
@@ -38,11 +40,12 @@ import org.mockito.junit.MockitoRule;
 
 public class KsqlDelimitedDeserializerTest {
   private Schema orderSchema;
-  private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  private final ProcessingLogConfig processingLogConfig
+      = new ProcessingLogConfig(Collections.emptyMap());
   private KsqlDelimitedDeserializer delimitedDeserializer;
 
   @Mock
-  private StructuredLogger recordLogger;
+  private ProcessingLogger recordLogger;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -57,8 +60,7 @@ public class KsqlDelimitedDeserializerTest {
         .build();
     delimitedDeserializer = new KsqlDelimitedDeserializer(
         orderSchema,
-        recordLogger,
-        processingLogContext);
+        recordLogger);
   }
 
   @Test
@@ -89,8 +91,8 @@ public class KsqlDelimitedDeserializerTest {
         recordLogger,
         SerdeProcessingLogMessageFactory.deserializationErrorMsg(
             cause,
-            Optional.ofNullable(record),
-            processingLogContext.getConfig()).get());
+            Optional.ofNullable(record)).apply(processingLogConfig),
+        processingLogConfig);
   }
 
   @Test

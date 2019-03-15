@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
-import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
@@ -81,7 +82,7 @@ class StreamingTestUtils {
       final Integer interval,
       final Integer limit) {
     return new PrintTopic(
-        new NodeLocation(0, 1),
+        Optional.empty(),
         QualifiedName.of(name),
         fromBeginning,
         interval == null ? OptionalInt.empty() : OptionalInt.of(interval),

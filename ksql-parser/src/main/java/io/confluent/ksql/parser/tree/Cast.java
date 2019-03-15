@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,67 +17,39 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class Cast
-    extends Expression {
+@Immutable
+public final class Cast extends Expression {
 
   private final Expression expression;
-  private final String type;
-  private final boolean typeOnly;
-
-  public Cast(final Expression expression, final String type) {
-    this(Optional.empty(), expression, type, false);
-  }
+  private final Type type;
 
   public Cast(
       final Expression expression,
-      final String type,
-      final boolean typeOnly) {
-    this(Optional.empty(), expression, type, typeOnly);
-  }
-
-
-  public Cast(
-      final NodeLocation location,
-      final Expression expression,
-      final String type) {
-    this(Optional.of(location), expression, type, false);
+      final Type type
+  ) {
+    this(Optional.empty(), expression, type);
   }
 
   public Cast(
-      final NodeLocation location,
-      final Expression expression,
-      final String type,
-      final boolean typeOnly) {
-    this(Optional.of(location), expression, type, typeOnly);
-  }
-
-  private Cast(
       final Optional<NodeLocation> location,
       final Expression expression,
-      final String type,
-      final boolean typeOnly) {
+      final Type type
+  ) {
     super(location);
-    requireNonNull(expression, "expression is null");
-    requireNonNull(type, "type is null");
-
-    this.expression = expression;
-    this.type = type;
-    this.typeOnly = typeOnly;
+    this.expression = requireNonNull(expression, "expression");
+    this.type = requireNonNull(type, "type");
   }
 
   public Expression getExpression() {
     return expression;
   }
 
-  public String getType() {
+  public Type getType() {
     return type;
-  }
-
-  public boolean isTypeOnly() {
-    return typeOnly;
   }
 
   @Override
@@ -94,12 +67,11 @@ public final class Cast
     }
     final Cast o = (Cast) obj;
     return Objects.equals(this.expression, o.expression)
-           && Objects.equals(this.type, o.type)
-           && Objects.equals(this.typeOnly, o.typeOnly);
+           && Objects.equals(this.type, o.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(expression, type, typeOnly);
+    return Objects.hash(expression, type);
   }
 }

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -32,7 +33,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.Type.KsqlType;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -68,7 +69,7 @@ public class CreateTableCommandTest {
     givenPropertiesWith((Collections.emptyMap()));
     when(createTableStatement.getName()).thenReturn(QualifiedName.of("name"));
     when(createTableStatement.getElements()).thenReturn(ImmutableList.of(
-        new TableElement("SOME-KEY", new PrimitiveType(KsqlType.STRING))
+        new TableElement("SOME-KEY", PrimitiveType.of(SqlType.STRING))
     ));
     when(topicClient.isTopicExists(any())).thenReturn(true);
   }

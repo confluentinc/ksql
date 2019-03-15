@@ -1,7 +1,7 @@
 .. _join-streams-and-tables:
 
-Join Streams and Tables with KSQL
-#################################
+Join Event Streams with KSQL
+############################
 
 You can use KSQL to merge streams of data in real time by using a SQL-like
 *join* syntax. A KSQL join and a relational database join are similar in that
@@ -82,7 +82,7 @@ KEY property
     If you set the KEY property when you create a table, ensure that both of the
     following conditions are true:
 
-    * For every record, the contents of the message key of the Kafka message itself must be
+    * For every record, the contents of the message key of the |ak-tm| message itself must be
       the same as the contents of the column set in KEY.
     * The KEY property must be set to a column of type VARCHAR or STRING.
 

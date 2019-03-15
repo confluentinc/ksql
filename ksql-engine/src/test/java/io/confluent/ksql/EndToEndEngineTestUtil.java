@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -36,6 +37,8 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -148,6 +151,11 @@ final class EndToEndEngineTestUtil {
     public boolean equals(final Object o) {
       compare(spec, o, "VALUE-SPEC");
       return Objects.equals(spec, o);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(spec);
     }
   }
 
@@ -438,7 +446,7 @@ final class EndToEndEngineTestUtil {
 
   @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
   static class ExpectedException {
-    private final List<Matcher<? super Throwable>> matchers = new ArrayList<>();
+    private final List<Matcher<?>> matchers = new ArrayList<>();
 
     public static ExpectedException none() {
       return new ExpectedException();
@@ -446,6 +454,10 @@ final class EndToEndEngineTestUtil {
 
     public void expect(final Class<? extends Throwable> type) {
       matchers.add(instanceOf(type));
+    }
+
+    public void expect(final Matcher<?> matcher) {
+      matchers.add(matcher);
     }
 
     public void expectMessage(final String substring) {
@@ -456,8 +468,9 @@ final class EndToEndEngineTestUtil {
       matchers.add(ThrowableMessageMatcher.hasMessage(matcher));
     }
 
+    @SuppressWarnings("unchecked")
     private Matcher<Throwable> build() {
-      return allOf(matchers);
+      return allOf(new ArrayList(matchers));
     }
   }
 
@@ -677,8 +690,13 @@ final class EndToEndEngineTestUtil {
     final String sql = testCase.statements().stream()
         .collect(Collectors.joining(System.lineSeparator()));
 
-    final List<QueryMetadata> queries =
-        KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, testCase.properties());
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        sql,
+        ksqlConfig,
+        testCase.properties(),
+        Optional.of(serviceContext.getSchemaRegistryClient())
+    );
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return queries.get(queries.size() - 1);
@@ -981,6 +999,8 @@ final class EndToEndEngineTestUtil {
             return valueSpecToAvro(spec, memberSchema);
           }
         }
+        throw new RuntimeException("Union must have non-null type: " + schema.getType().getName());
+
       default:
         throw new RuntimeException(
             "This test does not support the data type yet: " + schema.getType().getName());
@@ -1011,7 +1031,11 @@ final class EndToEndEngineTestUtil {
       case STRING:
         return avro.toString();
       case ARRAY:
-        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)) {
+        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
+            Objects.equals(
+                schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
+                AvroData.MAP_ENTRY_TYPE_NAME)
+            ) {
           final org.apache.avro.Schema valueSchema
               = schema.getElementType().getField("value").schema();
           return ((List) avro).stream().collect(

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,8 +23,8 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.KsqlEngine;
-import io.confluent.ksql.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.KsqlTopic;
@@ -38,6 +39,9 @@ import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -55,6 +59,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.connect.data.Schema;
@@ -98,9 +103,8 @@ public class RecoveryTest {
     private int offset;
 
     FakeCommandQueue(
-        final CommandIdAssigner commandIdAssigner,
         final List<QueuedCommand> commandLog) {
-      this.commandIdAssigner = commandIdAssigner;
+      this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
     }
 
@@ -124,7 +128,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public List<QueuedCommand> getNewCommands() {
+    public List<QueuedCommand> getNewCommands(final Duration timeout) {
       final List<QueuedCommand> commands = commandLog.subList(offset, commandLog.size());
       offset = commandLog.size();
       return commands;
@@ -147,6 +151,10 @@ public class RecoveryTest {
     }
 
     @Override
+    public void wakeup() {
+    }
+
+    @Override
     public void close() {
     }
   }
@@ -154,24 +162,26 @@ public class RecoveryTest {
   private class KsqlServer {
     final KsqlEngine ksqlEngine;
     final KsqlResource ksqlResource;
-    final CommandIdAssigner commandIdAssigner;
     final FakeCommandQueue fakeCommandQueue;
     final StatementExecutor statementExecutor;
     final CommandRunner commandRunner;
 
     KsqlServer(final List<QueuedCommand> commandLog) {
       this.ksqlEngine = createKsqlEngine();
-      this.commandIdAssigner = new CommandIdAssigner(ksqlEngine.getMetaStore());
-      this.fakeCommandQueue = new FakeCommandQueue(
-          new CommandIdAssigner(ksqlEngine.getMetaStore()),
-          commandLog);
+      this.fakeCommandQueue = new FakeCommandQueue(commandLog);
+
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
+          new DefaultSchemaInjector(
+              new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
+
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,
           serviceContext,
           fakeCommandQueue,
           Duration.ofMillis(0),
-          ()->{}
+          ()->{},
+          schemaInjectorFactory
       );
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,

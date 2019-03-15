@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -69,11 +70,6 @@ public class ExpressionRewriter<C> {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteNullIfExpression(final NullIfExpression node, final C context,
-                                            final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
   public Expression rewriteSearchedCaseExpression(
       final SearchedCaseExpression node, final C context,
       final ExpressionTreeRewriter<C> treeRewriter) {
@@ -110,16 +106,6 @@ public class ExpressionRewriter<C> {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteExists(final ExistsPredicate node, final C context,
-                                  final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
-  public Expression rewriteSubqueryExpression(final SubqueryExpression node, final C context,
-                                              final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
   public Expression rewriteLiteral(final Literal node, final C context,
                                    final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
@@ -142,25 +128,10 @@ public class ExpressionRewriter<C> {
     return rewriteExpression(node, context, treeRewriter);
   }
 
-  public Expression rewriteExtract(final Extract node, final C context,
-                                   final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
   public Expression rewriteCast(
       final Cast node,
       final C context,
       final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
-  public Expression rewriteFieldReference(final FieldReference node, final C context,
-                                          final ExpressionTreeRewriter<C> treeRewriter) {
-    return rewriteExpression(node, context, treeRewriter);
-  }
-
-  public Expression rewriteSymbolReference(final SymbolReference node, final C context,
-                                           final ExpressionTreeRewriter<C> treeRewriter) {
     return rewriteExpression(node, context, treeRewriter);
   }
 }

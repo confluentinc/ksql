@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,22 +15,28 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
-public class NullLiteral
-    extends Literal {
+@Immutable
+public class NullLiteral extends Literal {
 
   public NullLiteral() {
     super(Optional.empty());
   }
 
-  public NullLiteral(final NodeLocation location) {
-    super(Optional.of(location));
+  public NullLiteral(final Optional<NodeLocation> location) {
+    super(location);
   }
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitNullLiteral(this, context);
+  }
+
+  @Override
+  public String getValue() {
+    return "null";
   }
 
   @Override

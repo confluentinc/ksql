@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -44,7 +45,7 @@ public final class MetaStoreFixture {
         = new MetadataTimestampExtractionPolicy();
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
 
-    final SchemaBuilder schemaBuilder1 = SchemaBuilder.struct()
+    final SchemaBuilder test1Schema = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -55,21 +56,36 @@ public final class MetaStoreFixture {
         .field("COL5", SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA).optional().build());
 
     final KsqlTopic
+        ksqlTopic0 =
+        new KsqlTopic("TEST0", "test0", serde.get(), false);
+
+    final KsqlStream<?> ksqlStream0 = new KsqlStream<>("sqlexpression",
+        "TEST0",
+        test1Schema,
+        test1Schema.field("COL0"),
+        timestampExtractionPolicy,
+        ksqlTopic0,
+        Serdes.String());
+
+    metaStore.putTopic(ksqlTopic0);
+    metaStore.putSource(ksqlStream0);
+
+    final KsqlTopic
         ksqlTopic1 =
         new KsqlTopic("TEST1", "test1", serde.get(), false);
 
-    final KsqlStream ksqlStream = new KsqlStream<>("sqlexpression",
+    final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
-        schemaBuilder1,
-        schemaBuilder1.field("COL0"),
+        test1Schema,
+        test1Schema.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic1,
         Serdes.String());
 
     metaStore.putTopic(ksqlTopic1);
-    metaStore.putSource(ksqlStream);
+    metaStore.putSource(ksqlStream1);
 
-    final SchemaBuilder schemaBuilder2 = SchemaBuilder.struct()
+    final SchemaBuilder test2Schema = SchemaBuilder.struct()
         .field("ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("ROWKEY", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
@@ -84,11 +100,10 @@ public final class MetaStoreFixture {
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
         "TEST2",
-        schemaBuilder2,
-        schemaBuilder2.field("COL0"),
+        test2Schema,
+        test2Schema.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic2,
-        "TEST2",
         Serdes.String());
 
     metaStore.putTopic(ksqlTopic2);
@@ -129,7 +144,7 @@ public final class MetaStoreFixture {
         ksqlTopicOrders =
         new KsqlTopic("ORDERS_TOPIC", "orders_topic", serde.get(), false);
 
-    final KsqlStream ksqlStreamOrders = new KsqlStream<>(
+    final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ORDERS",
         schemaBuilderOrders,
@@ -160,7 +175,6 @@ public final class MetaStoreFixture {
         schemaBuilderTestTable3.field("COL0"),
         timestampExtractionPolicy,
         ksqlTopic3,
-        "TEST3",
         Serdes.String());
 
     metaStore.putTopic(ksqlTopic3);
@@ -177,7 +191,7 @@ public final class MetaStoreFixture {
         nestedArrayStructMapTopic =
         new KsqlTopic("NestedArrayStructMap", "NestedArrayStructMap_topic", serde.get(), false);
 
-    final KsqlStream nestedArrayStructMapOrders = new KsqlStream<>(
+    final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
         "sqlexpression",
         "NESTED_STREAM",
         nestedArrayStructMapSchema,

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -16,27 +17,25 @@ package io.confluent.ksql.parser.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class AllColumns
-    extends SelectItem {
+@Immutable
+public class AllColumns extends SelectItem {
 
   private final Optional<QualifiedName> prefix;
 
-  public AllColumns(final NodeLocation location) {
-    super(Optional.of(location));
-    prefix = Optional.empty();
+  public AllColumns(final Optional<QualifiedName> prefix) {
+    this(Optional.empty(), prefix);
   }
 
-  public AllColumns(final NodeLocation location, final QualifiedName prefix) {
-    this(Optional.of(location), prefix);
-  }
-
-  private AllColumns(final Optional<NodeLocation> location, final QualifiedName prefix) {
+  public AllColumns(
+      final Optional<NodeLocation> location,
+      final Optional<QualifiedName> prefix
+  ) {
     super(location);
-    requireNonNull(prefix, "prefix is null");
-    this.prefix = Optional.of(prefix);
+    this.prefix = requireNonNull(prefix, "prefix");
   }
 
   public Optional<QualifiedName> getPrefix() {
@@ -69,6 +68,5 @@ public class AllColumns
   @Override
   public String toString() {
     return prefix.map(qualifiedName -> qualifiedName + ".*").orElse("*");
-
   }
 }

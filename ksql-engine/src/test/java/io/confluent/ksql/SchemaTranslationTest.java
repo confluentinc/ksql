@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -155,7 +156,7 @@ public class SchemaTranslationTest {
 
     final Topic srcTopic;
     final Topic outputTopic
-        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier(), 4);
+        = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), new ValueSpecAvroSerdeSupplier(), 1);
     final List<Record> inputRecords;
     final List<Record> outputRecords;
     if (node.has("input_records")) {

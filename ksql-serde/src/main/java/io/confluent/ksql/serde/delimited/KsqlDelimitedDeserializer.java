@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,9 +15,8 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import io.confluent.common.logging.StructuredLogger;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.processing.log.ProcessingLogContext;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.charset.StandardCharsets;
@@ -35,16 +35,13 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
 
   private final Schema schema;
-  private final StructuredLogger recordLogger;
-  private final ProcessingLogContext processingLogContext;
+  private final ProcessingLogger recordLogger;
 
   KsqlDelimitedDeserializer(
       final Schema schema,
-      final StructuredLogger recordLogger,
-      final ProcessingLogContext processingLogContext) {
+      final ProcessingLogger recordLogger) {
     this.schema = Objects.requireNonNull(schema);
     this.recordLogger = Objects.requireNonNull(recordLogger);
-    this.processingLogContext = Objects.requireNonNull(processingLogContext);
   }
 
   @Override
@@ -92,8 +89,8 @@ public class KsqlDelimitedDeserializer implements Deserializer<GenericRow> {
       recordLogger.error(
           SerdeProcessingLogMessageFactory.deserializationErrorMsg(
               e,
-              Optional.ofNullable(bytes),
-              processingLogContext.getConfig()));
+              Optional.ofNullable(bytes))
+      );
       throw new SerializationException(
           "Exception in deserializing the delimited row: " + recordCsvString,
           e

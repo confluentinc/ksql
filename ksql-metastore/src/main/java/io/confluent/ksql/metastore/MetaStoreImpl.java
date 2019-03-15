@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -82,10 +83,20 @@ public final class MetaStoreImpl implements MutableMetaStore {
   public Optional<StructuredDataSource> getSourceForTopic(final String ksqlTopicName) {
     return dataSources.values()
         .stream()
-        .filter(p -> p.source.getKsqlTopic().getName() != null
-            && p.source.getKsqlTopic().getName().equals(ksqlTopicName))
+        .filter(p -> p.source.getKsqlTopicName() != null
+            && p.source.getKsqlTopicName().equals(ksqlTopicName))
         .map(sourceInfo -> sourceInfo.source)
         .findFirst();
+  }
+
+  @Override
+  public List<StructuredDataSource> getSourcesForKafkaTopic(final String kafkaTopicName) {
+    return dataSources.values()
+        .stream()
+        .filter(p -> p.source.getKafkaTopicName() != null
+            && p.source.getKafkaTopicName().equals(kafkaTopicName))
+        .map(sourceInfo -> sourceInfo.source)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -223,8 +234,10 @@ public final class MetaStoreImpl implements MutableMetaStore {
     return functionRegistry.isAggregate(functionName);
   }
 
-  public KsqlAggregateFunction getAggregate(final String functionName,
-                                            final Schema argumentType) {
+  public KsqlAggregateFunction<?, ?> getAggregate(
+      final String functionName,
+      final Schema argumentType
+  ) {
     return functionRegistry.getAggregate(functionName, argumentType);
   }
 

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -24,7 +25,6 @@ public class KsqlStdOut extends StructuredDataSource {
   public static final String KSQL_STDOUT_NAME = "KSQL_STDOUT_NAME";
 
   public KsqlStdOut(
-      final String datasourceName,
       final Schema schema,
       final Field keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
@@ -32,7 +32,7 @@ public class KsqlStdOut extends StructuredDataSource {
   ) {
     super(
         "not-applicable-for-stdout",
-        datasourceName,
+        KSQL_STDOUT_NAME,
         schema,
         keyField,
         timestampExtractionPolicy,

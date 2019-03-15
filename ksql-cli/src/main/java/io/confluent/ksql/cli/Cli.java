@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -22,7 +23,6 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
-import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -37,9 +37,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.util.CliUtils;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -273,8 +271,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
       } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
         consecutiveStatements = unsetProperty(consecutiveStatements, statementContext);
-      } else if (statementContext.statement() instanceof SqlBaseParser.RegisterTopicContext) {
-        registerTopic(consecutiveStatements, statementContext, statementText);
       } else {
         consecutiveStatements.append(statementText);
       }
@@ -282,18 +278,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     if (consecutiveStatements.length() != 0) {
       makeKsqlRequest(consecutiveStatements.toString());
     }
-  }
-
-  private void registerTopic(
-      final StringBuilder consecutiveStatements,
-      final SqlBaseParser.SingleStatementContext statementContext,
-      final String statementText
-  ) {
-    final CliUtils cliUtils = new CliUtils();
-    final Optional<String> avroSchema = cliUtils.getAvroSchemaIfAvroTopic(
-        (SqlBaseParser.RegisterTopicContext) statementContext.statement());
-    avroSchema.ifPresent(s -> setProperty(DdlConfig.AVRO_SCHEMA, s));
-    consecutiveStatements.append(statementText);
   }
 
   private StringBuilder printOrDisplayQueryResults(
@@ -336,6 +320,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
+  @SuppressWarnings("try")
   private void handleStreamedQuery(final String query) throws IOException {
 
     final RestResponse<KsqlRestClient.QueryStream> queryResponse =
@@ -401,6 +386,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
   }
 
+  @SuppressWarnings("try")
   private void handlePrintedTopic(final String printTopic)
       throws InterruptedException, ExecutionException, IOException {
     final RestResponse<InputStream> topicResponse =
@@ -449,13 +435,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   private void setProperty(final String property, final String value) {
     final Object priorValue = restClient.setProperty(property, value);
-
-    if (property.equalsIgnoreCase(DdlConfig.AVRO_SCHEMA)
-        || property.equalsIgnoreCase(KsqlConstants.RUN_SCRIPT_STATEMENTS_CONTENT)) {
-
-      // Don't output.
-      return;
-    }
 
     terminal.writer().printf(
         "Successfully changed local property '%s'%s to '%s'.%s%n",

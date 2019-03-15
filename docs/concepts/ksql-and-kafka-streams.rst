@@ -3,13 +3,14 @@
 KSQL and Kafka Streams
 ######################
 
-KSQL is the streaming SQL engine for Apache Kafka®. With KSQL, you can write
+KSQL is the streaming SQL engine for |ak-tm|. With KSQL, you can write
 real-time streaming applications by using a SQL-like query language.
 
-Kafka Streams is the Apache Kafka® library for writing streaming applications
+Kafka Streams is the |ak-tm| library for writing streaming applications
 and microservices in Java and Scala.
 
-KSQL is built on Kafka Streams and occupies the top of the stack in |cp|.
+KSQL is built on Kafka Streams, a robust stream processing framework that is
+part of Kafka.
 
 .. image:: ../img/ksql-kafka-streams-core-kafka-stack.png
    :alt: The Confluent Platform stack, with KSQL at the highest level of abstraction 

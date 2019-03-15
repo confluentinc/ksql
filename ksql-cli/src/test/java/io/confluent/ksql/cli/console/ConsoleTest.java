@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -56,8 +57,8 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.DataSource;
-import io.confluent.ksql.util.SchemaUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -384,7 +385,7 @@ public class ConsoleTest {
   private static List<FieldInfo> buildTestSchema(final int size) {
     final SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
     for (int i = 0; i < size; i++) {
-      dataSourceBuilder.field("f_" + i, SchemaUtil.getTypeSchema("STRING"));
+      dataSourceBuilder.field("f_" + i, LogicalSchemas.STRING);
     }
     return EntityUtil.buildSourceSchemaEntity(dataSourceBuilder.build());
   }

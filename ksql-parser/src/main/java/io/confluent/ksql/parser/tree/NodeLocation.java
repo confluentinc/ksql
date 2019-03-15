@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,6 +15,9 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
+
+@Immutable
 public final class NodeLocation {
 
   private final int line;
@@ -34,6 +38,6 @@ public final class NodeLocation {
 
   @Override
   public String toString() {
-    return String.format(" Line: %d, Col: %d", line, charPositionInLine + 1);
+    return String.format("Line: %d, Col: %d", line, charPositionInLine + 1);
   }
 }

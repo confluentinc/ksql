@@ -1,8 +1,9 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -89,7 +90,7 @@ public final class UdfTemplate {
 
     if (arg instanceof Number) {
       try {
-        return (T) fromNumber((Number) arg, boxedType);
+        return fromNumber((Number) arg, boxedType);
       } catch (Exception e) {
         throw new KsqlFunctionException(
             String.format("Couldn't coerce numeric argument '\"args[%d]:(%s) %s\"' to type %s",

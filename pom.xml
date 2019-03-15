@@ -2,8 +2,9 @@
 <!--
   ~ Copyright 2018 Confluent Inc.
   ~
-  ~ Licensed under the Confluent Community License; you may not use this file
-  ~ except in compliance with the License.  You may obtain a copy of the License at
+  ~ Licensed under the Confluent Community License (the "License"); you may not use
+  ~ this file except in compliance with the License.  You may obtain a copy of the
+  ~ License at
   ~
   ~ http://www.confluent.io/confluent-community-license
   ~
@@ -360,9 +361,12 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path</arg>
+                        <arg>-Xlint:all,-options,-path,-serial,-processing</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
+                    <compilerVersion>1.8</compilerVersion>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
 
@@ -371,6 +375,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
                     <propertiesLocation>checkstyle/checkstyle.properties</propertiesLocation>
+                    <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
                 </configuration>
             </plugin>
 

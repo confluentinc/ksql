@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -63,7 +64,7 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
+    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, Arrays.asList(100.0),
                                        Collections.singletonMap("key1", 100.0));
     final GenericRow genericRow = new GenericRow(columns);
     final KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
@@ -76,7 +77,7 @@ public class KsqlJsonSerializerTest {
 
   @Test
   public void shouldSerializeRowWithNull() {
-    final List columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null,
+    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, null,
                                        null);
     final GenericRow genericRow = new GenericRow(columns);
     final KsqlJsonSerializer ksqlJsonDeserializer = new KsqlJsonSerializer(orderSchema);
@@ -113,15 +114,15 @@ public class KsqlJsonSerializerTest {
         .field("orderid", Schema.OPTIONAL_INT64_SCHEMA)
         .field("itemid", itemSchema)
         .field("orderunits", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("arraycol", schemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("mapcol", schemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("arraycol", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
+        .field("mapcol", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
         .field("address", addressSchema).build();
 
     return schema;
   }
 
   private GenericRow getGenericRow() {
-    final List<Object> columns = new ArrayList();
+    final List<Object> columns = new ArrayList<>();
     long currentTime = System.currentTimeMillis();
     currentTime = (long) (1000 * Math.random()) + currentTime;
     // ordertime

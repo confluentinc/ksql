@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,16 +19,18 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public class CreateTableAsSelect extends Statement implements CreateAsSelect {
 
   private final QualifiedName name;
   private final Query query;
   private final boolean notExists;
-  private final Map<String, Expression> properties;
+  private final ImmutableMap<String, Expression> properties;
 
   public CreateTableAsSelect(
       final QualifiedName name,
@@ -46,11 +49,10 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
       final Map<String, Expression> properties
   ) {
     super(location);
-    this.name = requireNonNull(name, "name is null");
-    this.query = requireNonNull(query, "query is null");
+    this.name = requireNonNull(name, "name");
+    this.query = requireNonNull(query, "query");
     this.notExists = notExists;
-    this.properties = ImmutableMap
-        .copyOf(requireNonNull(properties, "properties is null"));
+    this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties"));
   }
 
   @Override
@@ -61,6 +63,11 @@ public class CreateTableAsSelect extends Statement implements CreateAsSelect {
   @Override
   public Query getQuery() {
     return query;
+  }
+
+  @Override
+  public Sink getSink() {
+    return Sink.of(name.getSuffix(), true, properties);
   }
 
   public boolean isNotExists() {

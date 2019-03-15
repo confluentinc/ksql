@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -18,7 +19,7 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
-import io.confluent.ksql.rest.util.CommandTopicJsonSerdeUtil;
+import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -56,13 +57,13 @@ public class CommandTopic {
         commandTopicName,
         new KafkaConsumer<>(
             Objects.requireNonNull(kafkaConsumerProperties, "kafkaClientProperties"),
-            CommandTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
-            CommandTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
+            InternalTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
+            InternalTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
         ),
         new KafkaProducer<>(
             Objects.requireNonNull(kafkaProducerProperties, "kafkaClientProperties"),
-            CommandTopicJsonSerdeUtil.getJsonSerializer(true),
-            CommandTopicJsonSerdeUtil.getJsonSerializer(false)
+            InternalTopicJsonSerdeUtil.getJsonSerializer(true),
+            InternalTopicJsonSerdeUtil.getJsonSerializer(false)
         ));
   }
 
@@ -79,15 +80,14 @@ public class CommandTopic {
   }
 
 
-  @SuppressWarnings("unchecked")
   public RecordMetadata send(final CommandId commandId, final Command command) {
-    final ProducerRecord producerRecord = new ProducerRecord<>(
+    final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
         commandTopicName,
         0,
         Objects.requireNonNull(commandId, "commandId"),
         Objects.requireNonNull(command, "command"));
     try {
-      return (RecordMetadata) commandProducer.send(producerRecord).get();
+      return commandProducer.send(producerRecord).get();
     } catch (final ExecutionException e) {
       if (e.getCause() instanceof RuntimeException) {
         throw (RuntimeException)e.getCause();
@@ -137,8 +137,11 @@ public class CommandTopic {
         .get(commandTopicPartition);
   }
 
-  public void close() {
+  public void wakeup() {
     commandConsumer.wakeup();
+  }
+
+  public void close() {
     commandConsumer.close();
     commandProducer.close();
   }

@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,17 +15,22 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.KsqlEngine;
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,17 +41,20 @@ import org.slf4j.LoggerFactory;
  * {@link StatementExecutor}. Also responsible for taking care of any exceptions that occur in the
  * process.
  */
-public class CommandRunner implements Runnable, Closeable {
+public class CommandRunner implements Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
 
   private static final int STATEMENT_RETRY_MS = 100;
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
+  private static final Duration NEW_CMDS_TIMEOUT = Duration.ofMillis(MAX_STATEMENT_RETRY_MS);
+  private static final int SHUTDOWN_TIMEOUT_MS = 3 * MAX_STATEMENT_RETRY_MS;
 
   private final StatementExecutor statementExecutor;
   private final KsqlEngine ksqlEngine;
   private final CommandQueue commandStore;
-  private volatile boolean closed;
+  private final ExecutorService executor;
+  private volatile boolean closed = false;
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
 
@@ -56,30 +65,40 @@ public class CommandRunner implements Runnable, Closeable {
       final int maxRetries,
       final ClusterTerminator clusterTerminator
   ) {
+    this(
+        statementExecutor,
+        commandStore,
+        ksqlEngine,
+        maxRetries,
+        clusterTerminator,
+        Executors.newSingleThreadExecutor(r -> new Thread(r, "CommandRunner"))
+    );
+  }
+
+  @VisibleForTesting
+  CommandRunner(
+      final StatementExecutor statementExecutor,
+      final CommandQueue commandStore,
+      final KsqlEngine ksqlEngine,
+      final int maxRetries,
+      final ClusterTerminator clusterTerminator,
+      final ExecutorService executor
+  ) {
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.maxRetries = maxRetries;
-    closed = false;
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
+    this.executor = Objects.requireNonNull(executor, "executor");
   }
 
   /**
    * Begin a continuous poll-execute loop for the command topic, stopping only if either a
    * {@link WakeupException} is thrown or the {@link #close()} method is called.
    */
-  @Override
-  public void run() {
-    try {
-      while (!closed) {
-        log.debug("Polling for new writes to command topic");
-        fetchAndRunCommands();
-      }
-    } catch (final WakeupException wue) {
-      if (!closed) {
-        throw wue;
-      }
-    }
+  public void start() {
+    executor.submit(new Runner());
+    executor.shutdown();
   }
 
   /**
@@ -87,19 +106,14 @@ public class CommandRunner implements Runnable, Closeable {
    */
   @Override
   public void close() {
-    closed = true;
-    commandStore.close();
-  }
-
-  void fetchAndRunCommands() {
-    final List<QueuedCommand> commands = commandStore.getNewCommands();
-    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
-    if (terminateCmd.isPresent()) {
-      terminateCluster(terminateCmd.get().getCommand());
-      return;
+    try {
+      closed = true;
+      commandStore.wakeup();
+      executor.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
-    log.trace("Found {} new writes to command topic", commands.size());
-    commands.forEach(this::executeStatement);
+    commandStore.close();
   }
 
   /**
@@ -125,13 +139,45 @@ public class CommandRunner implements Runnable, Closeable {
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
 
+  void fetchAndRunCommands() {
+    final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
+    if (commands.isEmpty()) {
+      return;
+    }
+
+    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
+    if (terminateCmd.isPresent()) {
+      terminateCluster(terminateCmd.get().getCommand());
+      return;
+    }
+
+    log.trace("Found {} new writes to command topic", commands.size());
+    for (final QueuedCommand command : commands) {
+      if (closed) {
+        return;
+      }
+
+      executeStatement(command);
+    }
+  }
+
   private void executeStatement(final QueuedCommand queuedCommand) {
     log.info("Executing statement: " + queuedCommand.getCommand().getStatement());
+
+    final Runnable task = () -> {
+      if (closed) {
+        log.info("Execution aborted as system is closing down");
+      } else {
+        statementExecutor.handleStatement(queuedCommand);
+        log.info("Executed statement: " + queuedCommand.getCommand().getStatement());
+      }
+    };
+
     RetryUtil.retryWithBackoff(
         maxRetries,
         STATEMENT_RETRY_MS,
         MAX_STATEMENT_RETRY_MS,
-        () -> statementExecutor.handleStatement(queuedCommand),
+        task,
         WakeupException.class
     );
   }
@@ -157,4 +203,20 @@ public class CommandRunner implements Runnable, Closeable {
     log.info("The KSQL server was terminated.");
   }
 
+  private class Runner implements Runnable {
+
+    @Override
+    public void run() {
+      try {
+        while (!closed) {
+          log.debug("Polling for new writes to command topic");
+          fetchAndRunCommands();
+        }
+      } catch (final WakeupException wue) {
+        if (!closed) {
+          throw wue;
+        }
+      }
+    }
+  }
 }

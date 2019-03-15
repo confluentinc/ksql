@@ -1,8 +1,9 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -30,10 +31,12 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.KsqlEngine;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -42,16 +45,22 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.processing.log.ProcessingLogConfig;
+import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -65,6 +74,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.test.TestUtils;
@@ -88,10 +98,22 @@ public class StandaloneExecutorTest {
           ProcessingLogConfig.TOPIC_NAME, PROCESSING_LOG_TOPIC_NAME
       ));
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
+
+  private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
+      new TableElement("bob", PrimitiveType.of(SqlType.STRING)));
+
   private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
 
+  private static final ImmutableMap<String, Expression> JSON_PROPS = ImmutableMap
+      .of("VALUE_FORMAT", new StringLiteral("json"));
+
+  private static final String SOME_TOPIC = "some-topic";
+  private static final ImmutableMap<String, Expression> AVRO_PROPS = ImmutableMap.of(
+      "VALUE_FORMAT", new StringLiteral("avro"),
+      "KAFKA_TOPIC", new StringLiteral(SOME_TOPIC));
+
   private static final CreateStream CREATE_STREAM = new CreateStream(
-      SOME_NAME, Collections.emptyList(), true, Collections.emptyMap());
+      SOME_NAME, SOME_ELEMENTS, true, JSON_PROPS);
 
   private final static ParsedStatement PARSED_STMT_0 = ParsedStatement
       .of("sql 0", mock(SingleStatementContext.class));
@@ -104,6 +126,22 @@ public class StandaloneExecutorTest {
 
   private final static PreparedStatement<?> PREPARED_STMT_1 = PreparedStatement
       .of("sql 1", CREATE_STREAM);
+
+  private final static PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement
+      .of("sql 0", new CreateStream(
+          QualifiedName.of("CS 0"),
+          SOME_ELEMENTS,
+          true,
+          Collections.emptyMap()
+      ));
+
+  private final static PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement
+      .of("sql 1", new CreateStream(
+          QualifiedName.of("CS 1"),
+          SOME_ELEMENTS,
+          true,
+          Collections.emptyMap()
+      ));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -123,21 +161,30 @@ public class StandaloneExecutorTest {
   @Mock
   private QueryMetadata nonPersistentQueryMd;
   @Mock
-  private VersionCheckerAgent versionCheckerAgent;
+  private VersionCheckerAgent versionChecker;
   @Mock
   private ServiceContext serviceContext;
   @Mock
   private KafkaTopicClient kafkaTopicClient;
+  @Mock
+  private SchemaRegistryClient srClient;
+  @Mock
+  private Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
+  @Mock
+  private SchemaInjector schemaInjector;
+  @Mock
+  private SchemaInjector sandBoxSchemaInjector;
 
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
 
   @Before
-  public void before() throws IOException {
+  public void before() throws Exception {
     queriesFile = Paths.get(TestUtils.tempFile().getPath());
     givenQueryFileContains("something");
 
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
 
     when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0));
 
@@ -153,6 +200,11 @@ public class StandaloneExecutorTest {
 
     when(sandBox.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
 
+    when(schemaInjectorFactory.apply(any())).thenReturn(sandBoxSchemaInjector);
+    when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
+    when(sandBoxSchemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
         processingLogConfig,
@@ -161,7 +213,8 @@ public class StandaloneExecutorTest {
         queriesFile.toString(),
         udfLoader,
         false,
-        versionCheckerAgent);
+        versionChecker,
+        schemaInjectorFactory);
   }
 
   @Test
@@ -169,7 +222,7 @@ public class StandaloneExecutorTest {
     // When:
     standaloneExecutor.start();
 
-    verify(versionCheckerAgent).start(eq(KsqlModuleType.SERVER), any());
+    verify(versionChecker).start(eq(KsqlModuleType.SERVER), any());
   }
 
   @Test
@@ -228,7 +281,8 @@ public class StandaloneExecutorTest {
         queriesFile.toString(),
         udfLoader,
         false,
-        versionCheckerAgent
+        versionChecker,
+        schemaInjectorFactory
     );
 
     // When:
@@ -248,8 +302,8 @@ public class StandaloneExecutorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unsupported statement: DROP Test\n"
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expectMessage("Unsupported statement. "
         + "Only the following statements are supporting in standalone mode:\n"
         + "CREAETE STREAM AS SELECT\n"
         + "CREATE STREAM\n"
@@ -282,7 +336,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsStatement() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
 
     givenQueryFileParsesTo(cs);
 
@@ -297,7 +351,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCtStatement() {
     // Given:
     final PreparedStatement<CreateTable> ct = PreparedStatement.of("CT",
-        new CreateTable(SOME_NAME, emptyList(), false, emptyMap()));
+        new CreateTable(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
 
     givenQueryFileParsesTo(ct);
 
@@ -315,7 +369,7 @@ public class StandaloneExecutorTest {
         new SetProperty(Optional.empty(), "name", "value"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
 
     givenQueryFileParsesTo(setProp, cs);
 
@@ -336,7 +390,7 @@ public class StandaloneExecutorTest {
         new UnsetProperty(Optional.empty(), "name"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, emptyList(), false, emptyMap()));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
 
     givenQueryFileParsesTo(setProp, unsetProp, cs);
 
@@ -509,6 +563,45 @@ public class StandaloneExecutorTest {
     inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_1), any(), any());
   }
 
+  @Test
+  public void shouldThrowOnCreateStatementWithNoElements() {
+    // Given:
+    final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
+        new CreateStream(SOME_NAME, emptyList(), false, JSON_PROPS));
+
+    givenQueryFileParsesTo(cs);
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expectMessage(
+        "statement does not define the schema and the supplied format does not support schema inference");
+
+    // When:
+    standaloneExecutor.start();
+  }
+
+  @Test
+  public void shouldSupportSchemaInference() {
+    // Given:
+    final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
+        new CreateStream(SOME_NAME, emptyList(), false, AVRO_PROPS));
+
+    givenQueryFileParsesTo(cs);
+
+    when(sandBoxSchemaInjector.forStatement(cs))
+        .thenReturn(STMT_0_WITH_SCHEMA);
+
+    when(schemaInjector.forStatement(cs))
+        .thenReturn(STMT_1_WITH_SCHEMA);
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(sandBox).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
+    verify(ksqlEngine).execute(eq(STMT_1_WITH_SCHEMA), any(), any());
+  }
+
   private void givenExecutorWillFailOnNoQueries() {
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
@@ -518,7 +611,9 @@ public class StandaloneExecutorTest {
         queriesFile.toString(),
         udfLoader,
         true,
-        versionCheckerAgent);
+        versionChecker,
+        schemaInjectorFactory
+    );
   }
 
   private void givenFileContainsAPersistentQuery() {
@@ -537,9 +632,9 @@ public class StandaloneExecutorTest {
 
     IntStream.range(0, parsedStmts.size()).forEach(idx -> {
       final ParsedStatement parsed = parsedStmts.get(idx);
-      final PreparedStatement prepared = statements[idx];
-      when(sandBox.prepare(parsed)).thenReturn(prepared);
-      when(ksqlEngine.prepare(parsed)).thenReturn(prepared);
+      final PreparedStatement<?> prepared = statements[idx];
+      when(sandBox.prepare(parsed)).thenReturn((PreparedStatement)prepared);
+      when(ksqlEngine.prepare(parsed)).thenReturn((PreparedStatement)prepared);
     });
   }
 

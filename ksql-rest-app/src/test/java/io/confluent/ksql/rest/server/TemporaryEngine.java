@@ -43,6 +43,7 @@ import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -94,14 +95,14 @@ public class TemporaryEngine extends ExternalResource {
       case KSTREAM:
         source =
             new KsqlStream<>(
-                "statement", name, SCHEMA, SCHEMA.field("val"),
-                new MetadataTimestampExtractionPolicy(), topic, Serdes.String());
+                "statement", name, SCHEMA, Optional.of(SCHEMA.field("val")),
+                new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       case KTABLE:
         source =
             new KsqlTable<>(
-                "statement", name, SCHEMA, SCHEMA.field("val"),
-                new MetadataTimestampExtractionPolicy(), topic, Serdes.String());
+                "statement", name, SCHEMA, Optional.of(SCHEMA.field("val")),
+                new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       case KTOPIC:
       default:

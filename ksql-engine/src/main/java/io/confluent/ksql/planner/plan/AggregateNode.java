@@ -229,10 +229,8 @@ public class AggregateNode extends PlanNode {
             groupByContext);
 
     // Aggregate computations
-    final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
     final Map<Integer, Integer> aggValToValColumnMap = createAggregateValueToValueColumnMap(
         aggregateArgExpanded,
-        aggregateSchema,
         internalSchema
     );
 
@@ -256,7 +254,7 @@ public class AggregateNode extends PlanNode {
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
 
     final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = createAggValToFunctionMap(
-        aggregateArgExpanded, aggregateSchema, initializer, aggValToValColumnMap.size(),
+        aggregateArgExpanded, initializer, aggValToValColumnMap.size(),
         functionRegistry, internalSchema);
 
     final SchemaKTable<?> schemaKTable = schemaKGroupedStream.aggregate(
@@ -298,7 +296,6 @@ public class AggregateNode extends PlanNode {
 
   private Map<Integer, Integer> createAggregateValueToValueColumnMap(
       final SchemaKStream aggregateArgExpanded,
-      final SchemaBuilder aggregateSchema,
       final InternalSchema internalSchema
   ) {
     final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
@@ -309,8 +306,6 @@ public class AggregateNode extends PlanNode {
       final int index = SchemaUtil.getIndexInSchema(exprStr, aggregateArgExpanded.getSchema());
       aggValToValColumnMap.put(nonAggColumnIndex, index);
       nonAggColumnIndex++;
-      final Field field = aggregateArgExpanded.getSchema().fields().get(index);
-      aggregateSchema.field(field.name(), field.schema());
     }
     return aggValToValColumnMap;
   }
@@ -318,7 +313,6 @@ public class AggregateNode extends PlanNode {
 
   private Map<Integer, KsqlAggregateFunction> createAggValToFunctionMap(
       final SchemaKStream aggregateArgExpanded,
-      final SchemaBuilder aggregateSchema,
       final KudafInitializer initializer,
       final int initialUdafIndex,
       final FunctionRegistry functionRegistry,
@@ -335,9 +329,6 @@ public class AggregateNode extends PlanNode {
 
         aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
         initializer.addAggregateIntializer(aggregateFunction.getInitialValueSupplier());
-
-        aggregateSchema.field("AGG_COL_"
-            + udafIndexInAggSchema, aggregateFunction.getReturnType());
       }
       return aggValToAggFunctionMap;
     } catch (final Exception e) {
@@ -351,10 +342,12 @@ public class AggregateNode extends PlanNode {
     }
   }
 
-  private KsqlAggregateFunction getAggregateFunction(final FunctionRegistry functionRegistry,
+  private static KsqlAggregateFunction getAggregateFunction(
+      final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema,
       final FunctionCall functionCall,
-      final Schema schema) {
+      final Schema schema
+  ) {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
     final List<Expression> functionArgs = internalSchema.getInternalArgsExpressionList(

@@ -71,7 +71,7 @@ public class DropSourceCommand implements DdlCommand {
       ));
     }
     final DropTopicCommand dropTopicCommand =
-        new DropTopicCommand(dataSource.getKsqlTopic().getTopicName());
+        new DropTopicCommand(dataSource.getTopicName());
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore);
 
@@ -81,7 +81,7 @@ public class DropSourceCommand implements DdlCommand {
         true,
         "Source " + sourceName + " was dropped. "
             + (deleteTopic ? "Topic '"
-            + dataSource.getKsqlTopic().getKafkaTopicName()
+            + dataSource.getKafkaTopicName()
             + "' was marked for deletion. Actual deletion "
             + "and removal from brokers may take some time "
             + "to complete." : ""));
@@ -94,21 +94,22 @@ public class DropSourceCommand implements DdlCommand {
 
     try {
       final List<String> topic = Collections
-          .singletonList(dataSource.getKsqlTopic().getKafkaTopicName());
+          .singletonList(dataSource.getKafkaTopicName());
 
       ExecutorUtil.executeWithRetries(() -> kafkaTopicClient.deleteTopics(topic), ALWAYS);
     } catch (final Exception e) {
       throw new KsqlException("Could not delete the corresponding kafka topic: "
-          + dataSource.getKsqlTopic().getKafkaTopicName(), e);
+          + dataSource.getKafkaTopicName(), e);
     }
 
     if (dataSource.isSerdeFormat(DataSource.DataSourceSerDe.AVRO)) {
       try {
         SchemaRegistryUtil.deleteSubjectWithRetries(
-            schemaRegistryClient, sourceName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+            schemaRegistryClient,
+            dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
       } catch (final Exception e) {
         throw new KsqlException("Could not clean up the schema registry for topic: "
-            + sourceName, e);
+            + dataSource.getKafkaTopicName(), e);
       }
     }
   }

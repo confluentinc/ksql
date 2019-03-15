@@ -152,11 +152,9 @@ public class PhysicalPlanBuilder {
 
     } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
 
-      KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
+      final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) outputNode;
-      ksqlStructuredDataOutputNode = ksqlStructuredDataOutputNode.cloneWithDoCreateInto(
-          ((KsqlStructuredDataOutputNode) logicalPlanNode.getNode()).isDoCreateInto()
-      );
+
       return buildPlanForStructuredOutputNode(
           logicalPlanNode.getStatementText(),
           resultStream,

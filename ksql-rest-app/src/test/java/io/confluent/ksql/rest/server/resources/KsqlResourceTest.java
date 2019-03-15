@@ -1023,7 +1023,6 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-//    when(sandbox.getMetaStore()).thenReturn(metaStore);
     when(sandbox.execute(any(), any(), any()))
         .thenThrow(new RuntimeException("internal error"));
 
@@ -1095,7 +1094,7 @@ public class KsqlResourceTest {
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
-         new KsqlRequest("UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';\n"
+        new KsqlRequest("UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';\n"
             + csas, localOverrides, null),
         CommandStatusEntity.class);
 
@@ -1446,11 +1445,11 @@ public class KsqlResourceTest {
   public void shouldNeverEnqueueIfErrorIsThrown() {
     // Given:
     givenMockEngine();
-//    when(ksqlEngine.execute(any(), any(), any())).thenThrow(new KsqlException("Fail"));
+    when(ksqlEngine.getMetaStore()).thenThrow(new KsqlException("Fail"));
 
     // When:
     makeFailingRequest(
-        "REGISTER TOPIC X WITH (kafka_topic='bar', value_format='json';",
+        "LIST TOPICS;",
         Code.BAD_REQUEST);
 
     // Then:
@@ -1578,7 +1577,24 @@ public class KsqlResourceTest {
     makeRequest("RUN SCRIPT '/some/script.sql';");
   }
 
-  private Answer<?> executeAgainstEngine(final String sql) {
+  @Test
+  public void shouldThrowServerErrorOnFailedToDistribute() {
+    // Given:
+    when(commandStore.enqueueCommand(any(), any(), any())).thenThrow(new KsqlException("blah"));
+    final String statement = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+
+    // Expect:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.INTERNAL_SERVER_ERROR)));
+    expectedException.expect(exceptionErrorMessage(errorMessage(is(
+        "Could not write the statement '" + statement
+            + "' into the command topic: blah\nCaused by: blah"))));
+
+    // When:
+    makeRequest(statement);
+  }
+
+  private Answer executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
       return null;

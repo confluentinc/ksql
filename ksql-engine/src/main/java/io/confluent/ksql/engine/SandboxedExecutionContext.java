@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -56,6 +57,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   @Override
   public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
     return engineContext.getPersistentQuery(queryId);
+  }
+
+  @Override
+  public List<PersistentQueryMetadata> getPersistentQueries() {
+    return ImmutableList.copyOf(engineContext.getPersistentQueries().values());
   }
 
   @Override

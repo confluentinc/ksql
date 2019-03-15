@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -61,8 +60,6 @@ public class DropSourceCommandTest {
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
   private StructuredDataSource<?> dataSource;
-  @Mock
-  private KsqlTopic ksqlTopic;
 
   private DropSourceCommand dropSourceCommand;
 
@@ -73,9 +70,8 @@ public class DropSourceCommandTest {
   @Before
   public void setUp() {
     when(metaStore.getSource(STREAM_NAME)).thenReturn((StructuredDataSource)dataSource);
-    when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
-    when(ksqlTopic.getKafkaTopicName()).thenReturn(TOPIC_NAME);
+    when(dataSource.getKafkaTopicName()).thenReturn(TOPIC_NAME);
   }
 
   @Test
@@ -99,6 +95,19 @@ public class DropSourceCommandTest {
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Source foo does not exist.");
+
+    // When:
+    dropSourceCommand.run(metaStore);
+  }
+
+  @Test
+  public void shouldFailOnDropIncompatibleSource() {
+    // Given:
+    givenIncompatibleDropSourceCommand();
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Incompatible data source type is STREAM");
 
     // When:
     dropSourceCommand.run(metaStore);
@@ -139,7 +148,7 @@ public class DropSourceCommandTest {
 
     // Then:
     verify(schemaRegistryClient)
-        .deleteSubject(STREAM_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+        .deleteSubject(TOPIC_NAME + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
   }
 
   @Test
@@ -162,6 +171,15 @@ public class DropSourceCommandTest {
         kafkaTopicClient,
         schemaRegistryClient,
         deleteTopic);
+  }
+
+  private void givenIncompatibleDropSourceCommand() {
+    dropSourceCommand = new DropSourceCommand(
+        new DropStream(QualifiedName.of(STREAM_NAME), true, true),
+        DataSourceType.KTABLE,
+        kafkaTopicClient,
+        schemaRegistryClient,
+        true);
   }
 
   private void givenSourceDoesNotExist() {

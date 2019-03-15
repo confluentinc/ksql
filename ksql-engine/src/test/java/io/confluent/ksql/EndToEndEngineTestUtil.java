@@ -870,10 +870,7 @@ final class EndToEndEngineTestUtil {
       final Class<TF> testFileType
   ) {
     return getTestPaths(dir, files).stream()
-        .flatMap(testPath -> {
-          final TF testFile = loadTest(testPath, testFileType);
-          return testFile.buildTests(testPath);
-        });
+        .flatMap(testPath -> buildTests(testPath, testFileType));
   }
 
   /**
@@ -888,12 +885,17 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  private static <T> T loadTest(final Path testPath, final Class<T> testFileType) {
+  private static <TF extends TestFile<T>, T> Stream<T> buildTests(
+      final Path testPath,
+      final Class<TF> testFileType
+  ) {
     try (InputStream stream = EndToEndEngineTestUtil.class
         .getClassLoader()
-        .getResourceAsStream(testPath.toString())) {
-      return OBJECT_MAPPER.readValue(stream, testFileType);
-    } catch (IOException e) {
+        .getResourceAsStream(testPath.toString())
+    ) {
+      final TF testFile = OBJECT_MAPPER.readValue(stream, testFileType);
+      return testFile.buildTests(testPath);
+    } catch (Exception e) {
       throw new RuntimeException("Unable to load test at path " + testPath, e);
     }
   }

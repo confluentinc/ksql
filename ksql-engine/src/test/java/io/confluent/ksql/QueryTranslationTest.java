@@ -22,6 +22,7 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.StringSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecJsonSerdeSupplier;
+import static io.confluent.ksql.EndToEndEngineTestUtil.buildAvroSchema;
 import static io.confluent.ksql.EndToEndEngineTestUtil.buildTestName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.findExpectedTopologyDirectories;
 import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
@@ -34,7 +35,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -293,55 +293,15 @@ public class QueryTranslationTest {
 
     QttTestFile(@JsonProperty("tests") final List<TestCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
+
+      if (tests.isEmpty()) {
+        throw new IllegalArgumentException("test file did not contain any tests");
+      }
     }
 
     @Override
     public Stream<TestCase> buildTests(final Path testPath) {
-      if (tests.isEmpty()) {
-        throw new IllegalArgumentException(testPath + ": test file did not contain any tests");
-      }
-
-      try {
-        return tests.stream().flatMap(node -> node.buildTests(testPath));
-      } catch (final Exception e) {
-        throw new IllegalArgumentException(testPath + ": " + e.getMessage(), e);
-      }
-    }
-  }
-
-  static final class ExpectedExceptionNode {
-
-    private final Optional<String> type;
-    private final Optional<String> message;
-
-    ExpectedExceptionNode(
-        @JsonProperty("type") final String type,
-        @JsonProperty("message") final String message
-    ) {
-      this.type = Optional.ofNullable(type);
-      this.message = Optional.ofNullable(message);
-    }
-
-    ExpectedException build(final String lastStatement) {
-      if (!type.isPresent() && !message.isPresent()) {
-        throw new MissingFieldException("expectedException.type or expectedException.message");
-      }
-
-      final ExpectedException expectedException = ExpectedException.none();
-
-      type
-          .map(t -> EndToEndEngineTestUtil.parseThrowable(t, "expectedException.type"))
-          .ifPresent(type -> {
-            expectedException.expect(type);
-
-            if (KsqlStatementException.class.isAssignableFrom(type)) {
-              // Ensure exception contains last statement, otherwise the test case is invalid:
-              expectedException.expect(statementText(is(lastStatement)));
-            }
-          });
-
-      message.ifPresent(expectedException::expectMessage);
-      return expectedException;
+      return tests.stream().flatMap(node -> node.buildTests(testPath));
     }
   }
 
@@ -375,33 +335,33 @@ public class QueryTranslationTest {
       this.topics = topics == null ? ImmutableList.of() : ImmutableList.copyOf(topics);
       this.properties = properties == null ? ImmutableMap.of() : ImmutableMap.copyOf(properties);
       this.expectedException = Optional.ofNullable(expectedException);
-    }
 
-    Stream<TestCase> buildTests(final Path testPath) {
-      if (name.isEmpty()) {
+      if (this.name.isEmpty()) {
         throw new MissingFieldException("name");
       }
 
+      if (this.statements.isEmpty()) {
+        throw new InvalidFieldException("statements", "was empty");
+      }
+
+      if (this.inputs.isEmpty() != this.outputs.isEmpty()) {
+        throw new InvalidFieldException("inputs and outputs",
+            "either both, or neither, field should be set");
+      }
+
+      if (!this.inputs.isEmpty() && this.expectedException.isPresent()) {
+        throw new InvalidFieldException("inputs and expectedException",
+            "can not both be set");
+      }
+    }
+
+    Stream<TestCase> buildTests(final Path testPath) {
       try {
-        if (statements.isEmpty()) {
-          throw new InvalidFieldException("statements", "was empty");
-        }
-
-        if (inputs.isEmpty() != outputs.isEmpty()) {
-          throw new InvalidFieldException("inputs and outputs",
-              "either both, or neither, field should be set");
-        }
-
-        if (!inputs.isEmpty() && expectedException.isPresent()) {
-          throw new InvalidFieldException("inputs and expectedException",
-              "can not both be set");
-        }
-
         return formats.isEmpty()
             ? Stream.of(createTest("", testPath))
             : formats.stream().map(format -> createTest(format, testPath));
       } catch (final Exception e) {
-        throw new IllegalArgumentException("test '" + name + "': " + e.getMessage(), e);
+        throw new AssertionError("Invalid test '" + name + "': " + e.getMessage(), e);
       }
     }
 
@@ -488,12 +448,48 @@ public class QueryTranslationTest {
     }
   }
 
+  static final class ExpectedExceptionNode {
+
+    private final Optional<String> type;
+    private final Optional<String> message;
+
+    ExpectedExceptionNode(
+        @JsonProperty("type") final String type,
+        @JsonProperty("message") final String message
+    ) {
+      this.type = Optional.ofNullable(type);
+      this.message = Optional.ofNullable(message);
+
+      if (!this.type.isPresent() && !this.message.isPresent()) {
+        throw new MissingFieldException("expectedException.type or expectedException.message");
+      }
+    }
+
+    ExpectedException build(final String lastStatement) {
+      final ExpectedException expectedException = ExpectedException.none();
+
+      type
+          .map(t -> EndToEndEngineTestUtil.parseThrowable(t, "expectedException.type"))
+          .ifPresent(type -> {
+            expectedException.expect(type);
+
+            if (KsqlStatementException.class.isAssignableFrom(type)) {
+              // Ensure exception contains last statement, otherwise the test case is invalid:
+              expectedException.expect(statementText(is(lastStatement)));
+            }
+          });
+
+      message.ifPresent(expectedException::expectMessage);
+      return expectedException;
+    }
+  }
+
   static class TopicNode {
 
     private final String name;
     private final String format;
+    private final Optional<org.apache.avro.Schema> schema;
     private final int numPartitions;
-    private final JsonNode schema;
     private final int replicas;
 
     TopicNode(
@@ -504,38 +500,24 @@ public class QueryTranslationTest {
         @JsonProperty("replicas") final Integer replicas
     ) {
       this.name = name == null ? "" : name;
-      this.schema = requireNonNull(schema, "schema");
+      this.schema = buildAvroSchema(requireNonNull(schema, "schema"));
       this.format = format == null ? "" : format;
       this.numPartitions = numPartitions == null ? 1 : numPartitions;
       this.replicas = replicas == null ? 1 : replicas;
+
+      if (this.name.isEmpty()) {
+        throw new InvalidFieldException("name", "empty or missing");
+      }
     }
 
     Topic build() {
-      if (name.isEmpty()) {
-        throw new InvalidFieldException("name", "empty or missing");
-      }
-
       return new Topic(
           name,
-          buildAvroSchema(),
+          schema,
           getSerdeSupplier(format),
           numPartitions,
           replicas
       );
-    }
-
-    private Optional<org.apache.avro.Schema> buildAvroSchema() {
-      if (schema instanceof NullNode) {
-        return Optional.empty();
-      }
-
-      try {
-        final String schemaString = objectMapper.writeValueAsString(schema);
-        final org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-        return Optional.of(parser.parse(schemaString));
-      } catch (final Exception e) {
-        throw new InvalidFieldException("schema", "failed to parse", e);
-      }
     }
   }
 
@@ -559,13 +541,13 @@ public class QueryTranslationTest {
       this.value = requireNonNull(value, "value");
       this.timestamp = timestamp == null ? 0L : timestamp;
       this.window = Optional.ofNullable(window);
+
+      if (this.topicName.isEmpty()) {
+        throw new MissingFieldException("topic");
+      }
     }
 
     public String topicName() {
-      if (topicName.isEmpty()) {
-        throw new MissingFieldException("topic");
-      }
-
       return topicName;
     }
 

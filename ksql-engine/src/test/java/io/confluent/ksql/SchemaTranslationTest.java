@@ -114,9 +114,9 @@ public class SchemaTranslationTest {
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class SttTestFile implements TestFile<TestCase> {
 
-    private final List<TestCaseNode> tests;
+    private final List<SttCaseNode> tests;
 
-    SttTestFile(@JsonProperty("tests") final List<TestCaseNode> tests) {
+    SttTestFile(@JsonProperty("tests") final List<SttCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
     }
 
@@ -135,42 +135,41 @@ public class SchemaTranslationTest {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  static class TestCaseNode {
+  static class SttCaseNode {
 
     private final String name;
-    private final JsonNode schema;
+    private final Schema schema;
 
-    TestCaseNode(
+    SttCaseNode(
         @JsonProperty("name") final String name,
         @JsonProperty("schema") final JsonNode schema
     ) {
       this.name = name == null ? "" : name;
-      this.schema = requireNonNull(schema, "schema");
+      this.schema = buildAvroSchema(requireNonNull(schema, "schema"))
+          .orElseThrow(() -> new MissingFieldException("schema"));
+
+      if (this.name.isEmpty()) {
+        throw new MissingFieldException("name");
+      }
     }
 
     Stream<TestCase> buildTests(final Path testPath) {
-      if (name.isEmpty()) {
-        throw new MissingFieldException("name");
-      }
 
       final String testName = buildTestName(testPath, name, "");
 
       try {
-        final Schema avroSchema = buildAvroSchema(schema)
-            .orElseThrow(() -> new MissingFieldException("schema"));
-
         final Topic srcTopic = new Topic(
             TOPIC_NAME,
-            Optional.of(avroSchema),
+            Optional.of(schema),
             new AvroSerdeSupplier(),
             1,
             1
         );
 
-        final List<Record> inputRecords = generateInputRecords(srcTopic, avroSchema);
-        final List<Record> outputRecords = getOutputRecords(OUTPUT_TOPIC, inputRecords, avroSchema);
+        final List<Record> inputRecords = generateInputRecords(srcTopic, schema);
+        final List<Record> outputRecords = getOutputRecords(OUTPUT_TOPIC, inputRecords, schema);
 
-        final String csasStatement = avroSchema.getFields()
+        final String csasStatement = schema.getFields()
             .stream()
             .map(Schema.Field::name)
             .collect(

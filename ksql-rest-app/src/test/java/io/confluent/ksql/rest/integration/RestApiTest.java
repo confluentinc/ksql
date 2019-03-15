@@ -19,13 +19,10 @@ import static org.junit.Assert.assertEquals;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
-import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import java.util.Collections;
 import java.util.Optional;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -59,7 +56,7 @@ public class RestApiTest {
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    createStreams();
+    RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }
 
   @Before
@@ -117,28 +114,6 @@ public class RestApiTest {
       builder = builder.header("Content-Type", contentType.get());
     }
 
-    return builder.post(ksqlRequest(sql));
-  }
-
-  private static void createStreams() {
-    final Client client = TestKsqlRestApp.buildClient();
-
-    try (final Response response = client
-        .target(REST_APP.getHttpListener())
-        .path("ksql")
-        .request(MediaType.APPLICATION_JSON_TYPE)
-        .post(ksqlRequest(
-            "CREATE STREAM " + PAGE_VIEW_STREAM + " "
-                + "(viewtime bigint, pageid varchar, userid varchar) "
-                + "WITH (kafka_topic='" + PAGE_VIEW_TOPIC + "', value_format='json');"))) {
-
-      assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-    } finally {
-      client.close();
-    }
-  }
-
-  private static Entity<?> ksqlRequest(final String sql) {
-    return Entity.json(new KsqlRequest(sql, Collections.emptyMap(), null));
+    return builder.post(RestIntegrationTestUtil.ksqlRequest(sql));
   }
 }

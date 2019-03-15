@@ -31,8 +31,8 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -86,7 +86,7 @@ public class SchemaKGroupedTableTest {
       = new QueryContext.Stacker(new QueryId("query")).push("node");
 
   private KTable kTable;
-  private KsqlTable ksqlTable;
+  private KsqlTable<?> ksqlTable;
 
   @Before
   public void init() {
@@ -109,12 +109,12 @@ public class SchemaKGroupedTableTest {
       final String...groupByColumns
   ) {
     final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
-    final SchemaKTable initialSchemaKTable = new SchemaKTable<>(
+    final SchemaKTable<?> initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        ksqlTable.getKeyField().get(),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,

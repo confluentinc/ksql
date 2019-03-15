@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.delimited;
 
 import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -34,6 +35,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 
 
+@Immutable
 public class KsqlDelimitedTopicSerDe extends KsqlTopicSerDe {
 
   public KsqlDelimitedTopicSerDe() {

@@ -19,17 +19,11 @@ import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
-import io.confluent.ksql.parser.tree.Select;
-import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
@@ -44,9 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.slf4j.Logger;
@@ -136,30 +127,6 @@ class QueryEngine {
     );
 
     return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
-  }
-
-  @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.
-  StructuredDataSource getResultDatasource(final Select select, final String name) {
-
-    SchemaBuilder dataSource = SchemaBuilder.struct().name(name);
-    for (final SelectItem selectItem : select.getSelectItems()) {
-      if (selectItem instanceof SingleColumn) {
-        final SingleColumn singleColumn = (SingleColumn) selectItem;
-        final String fieldName = singleColumn.getAlias().get();
-        dataSource = dataSource.field(fieldName, Schema.OPTIONAL_BOOLEAN_SCHEMA);
-      }
-    }
-
-    final KsqlTopic ksqlTopic = new KsqlTopic(name, name, null, true);
-    return new KsqlStream<>(
-        "QueryEngine-DDLCommand-Not-Needed",
-        name,
-        dataSource.schema(),
-        null,
-        null,
-        ksqlTopic,
-        Serdes.String()
-    );
   }
 
   private static PlanNode buildQueryLogicalPlan(

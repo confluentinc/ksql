@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,26 +15,17 @@
 
 package io.confluent.ksql.metastore;
 
-import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
-import java.util.Set;
+import com.google.errorprone.annotations.Immutable;
+import org.apache.kafka.common.serialization.Serde;
 
-public interface MutableMetaStore extends MetaStore {
+@Immutable
+@FunctionalInterface
+public interface SerdeFactory<K> {
 
-  void putTopic(KsqlTopic topic);
-
-  void putSource(StructuredDataSource<?> dataSource);
-
-  void deleteTopic(String topicName);
-
-  void deleteSource(String sourceName);
-
-  void updateForPersistentQuery(
-      String queryId,
-      Set<String> sourceNames,
-      Set<String> sinkNames);
-
-  void removePersistentQuery(String queryId);
-
-  MutableMetaStore copy();
+  /**
+   * Create a Serde instance.
+   *
+   * @return the serde instance.
+   */
+  Serde<K> create();
 }

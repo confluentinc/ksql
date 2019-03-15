@@ -13,29 +13,29 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.metastore.model;
 
-import io.confluent.ksql.query.QueryId;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
-public class KsqlStream<K> extends StructuredDataSource {
-
-  private final Serde<K> keySerde;
+@Immutable
+public class KsqlStream<K> extends StructuredDataSource<K> {
 
   public KsqlStream(
       final String sqlExpression,
       final String datasourceName,
       final Schema schema,
-      final Field keyField,
+      final Optional<Field> keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
-      final Serde<K> keySerde
+      final SerdeFactory<K> keySerde
   ) {
     super(
         sqlExpression,
@@ -44,69 +44,33 @@ public class KsqlStream<K> extends StructuredDataSource {
         keyField,
         timestampExtractionPolicy,
         DataSourceType.KSTREAM,
-        ksqlTopic
+        ksqlTopic,
+        keySerde
     );
-    this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
   }
 
   public boolean hasWindowedKey() {
+    final Serde<K> keySerde = getKeySerdeFactory().create();
     return keySerde instanceof WindowedSerdes.SessionWindowedSerde
         || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
   }
 
-  public Serde<K> getKeySerde() {
-    return keySerde;
-  }
-
   @Override
-  public StructuredDataSource copy() {
+  public KsqlStream<K> cloneWithTimeKeyColumns() {
+    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(getSchema());
     return new KsqlStream<>(
-        sqlExpression,
-        dataSourceName,
-        schema,
-        keyField,
-        timestampExtractionPolicy,
-        ksqlTopic,
-        keySerde
-    );
-  }
-
-  @Override
-  public StructuredDataSource cloneWithTimeKeyColumns() {
-    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema);
-    return new KsqlStream<>(
-        sqlExpression,
-        dataSourceName,
+        getSqlExpression(),
+        getName(),
         newSchema,
-        keyField,
-        timestampExtractionPolicy,
-        ksqlTopic,
-        keySerde
+        getKeyField(),
+        getTimestampExtractionPolicy(),
+        getKsqlTopic(),
+        getKeySerdeFactory()
     );
-  }
-
-  @Override
-  public StructuredDataSource cloneWithTimeExtractionPolicy(
-      final TimestampExtractionPolicy policy) {
-    return new KsqlStream<>(
-        sqlExpression,
-        dataSourceName,
-        schema,
-        keyField,
-        policy,
-        ksqlTopic,
-        keySerde
-    );
-  }
-
-  @Override
-  public QueryId getPersistentQueryId() {
-    return new QueryId("CSAS_" + dataSourceName);
   }
 
   @Override
   public String toString() {
     return getClass().getSimpleName() + " name:" + getName();
   }
-
 }

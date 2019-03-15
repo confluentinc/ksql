@@ -114,7 +114,7 @@ public class SchemaKGroupedStreamTest {
     when(windowEndFunc.getFunctionName()).thenReturn("WindowEnd");
     when(otherFunc.getFunctionName()).thenReturn("NotWindowStartFunc");
     when(windowExp.getKsqlWindowExpression()).thenReturn(ksqlWindowExp);
-    when(ksqlWindowExp.getKeySerde(String.class)).thenReturn(windowedKeySerde);
+    when(ksqlWindowExp.getKeySerdeFactory(String.class)).thenReturn(() -> windowedKeySerde);
     when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
     when(config.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
     when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
@@ -167,7 +167,7 @@ public class SchemaKGroupedStreamTest {
             initializer,emptyMap(), emptyMap(), null, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(), instanceOf(Serdes.String().getClass()));
+    assertThat(result.getKeySerdeFactory().create(), instanceOf(Serdes.String().getClass()));
   }
 
   @Test
@@ -177,7 +177,7 @@ public class SchemaKGroupedStreamTest {
         .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(), is(sameInstance(windowedKeySerde)));
+    assertThat(result.getKeySerdeFactory().create(), is(sameInstance(windowedKeySerde)));
   }
 
   @Test
@@ -193,7 +193,7 @@ public class SchemaKGroupedStreamTest {
         .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
-    assertThat(result.getKeySerde(),
+    assertThat(result.getKeySerdeFactory().create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
   }
 
@@ -286,7 +286,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldUseMaterializedFactoryWindowedStateStore() {
     // Given:
     final Materialized materialized = whenMaterializedFactoryCreates();
-    when(ksqlWindowExp.getKeySerde(String.class)).thenReturn(windowedKeySerde);
+    when(ksqlWindowExp.getKeySerdeFactory(String.class)).thenReturn(() -> windowedKeySerde);
     when(ksqlWindowExp.applyAggregate(any(), any(), any(), same(materialized)))
         .thenReturn(table);
 

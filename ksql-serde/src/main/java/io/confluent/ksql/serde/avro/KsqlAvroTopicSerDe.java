@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.avro;
 import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -41,7 +42,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 
-
+@Immutable
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
   private final String fullSchemaName;
@@ -99,5 +100,25 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
         )
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    final KsqlAvroTopicSerDe that = (KsqlAvroTopicSerDe) o;
+    return Objects.equals(fullSchemaName, that.fullSchemaName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), fullSchemaName);
   }
 }

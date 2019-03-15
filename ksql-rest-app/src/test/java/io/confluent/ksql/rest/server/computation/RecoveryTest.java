@@ -27,10 +27,10 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -274,8 +274,8 @@ public class RecoveryTest {
   }
 
   private static class StructuredDataSourceMatcher
-      extends TypeSafeDiagnosingMatcher<StructuredDataSource> {
-    final StructuredDataSource source;
+      extends TypeSafeDiagnosingMatcher<StructuredDataSource<?>> {
+    final StructuredDataSource<?> source;
     final Matcher<StructuredDataSource.DataSourceType> typeMatcher;
     final Matcher<String> nameMatcher;
     final Matcher<Schema> schemaMatcher;
@@ -283,7 +283,7 @@ public class RecoveryTest {
     final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
     final Matcher<KsqlTopic> topicMatcher;
 
-    StructuredDataSourceMatcher(final StructuredDataSource source) {
+    StructuredDataSourceMatcher(final StructuredDataSource<?> source) {
       this.source = source;
       this.typeMatcher = equalTo(source.getDataSourceType());
       this.nameMatcher = equalTo(source.getName());
@@ -309,7 +309,7 @@ public class RecoveryTest {
 
     @Override
     protected boolean matchesSafely(
-        final StructuredDataSource other,
+        final StructuredDataSource<?> other,
         final Description description) {
       if (!test(
           typeMatcher,
@@ -354,12 +354,12 @@ public class RecoveryTest {
     }
   }
 
-  private static Matcher<StructuredDataSource> sameSource(final StructuredDataSource source) {
+  private static Matcher<StructuredDataSource<?>> sameSource(final StructuredDataSource<?> source) {
     return new StructuredDataSourceMatcher(source);
   }
 
   private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
-    final Map<String, Matcher<StructuredDataSource>> sourceMatchers;
+    final Map<String, Matcher<StructuredDataSource<?>>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
       this.sourceMatchers = metaStore.getAllStructuredDataSources().entrySet().stream()
@@ -387,7 +387,7 @@ public class RecoveryTest {
         return false;
       }
 
-      for (final Entry<String, Matcher<StructuredDataSource>> e : sourceMatchers.entrySet()) {
+      for (final Entry<String, Matcher<StructuredDataSource<?>>> e : sourceMatchers.entrySet()) {
         final String name = e.getKey();
         if (!test(
             e.getValue(),

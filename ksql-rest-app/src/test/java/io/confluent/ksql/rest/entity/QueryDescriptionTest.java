@@ -21,8 +21,8 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.SchemaInfo.Type;
@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import org.apache.kafka.common.serialization.Serdes;
@@ -119,8 +120,8 @@ public class QueryDescriptionTest {
     // Given:
     final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
     final KsqlStream<?> fakeSink = new KsqlStream<>(
-        STATEMENT, "fake_sink", SCHEMA, SCHEMA.fields().get(0),
-        new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes.String());
+        STATEMENT, "fake_sink", SCHEMA, Optional.of(SCHEMA.fields().get(0)),
+        new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes::String);
 
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(
         "test statement",

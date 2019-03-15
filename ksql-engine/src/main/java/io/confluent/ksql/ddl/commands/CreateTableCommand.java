@@ -16,14 +16,15 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
+import java.util.Optional;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 
@@ -60,10 +61,10 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         sourceName,
         schema,
         (keyColumnName.isEmpty())
-          ? null : SchemaUtil.getFieldByName(schema, keyColumnName).orElse(null),
+          ? Optional.empty() : SchemaUtil.getFieldByName(schema, keyColumnName),
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),
-        keySerde
+        keySerdeFactory
     );
 
     metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());

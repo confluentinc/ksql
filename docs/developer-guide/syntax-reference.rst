@@ -1243,12 +1243,15 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CURRENTDATE            |  ``CURRENTDATE()``                                                        | Gets an integer representing days since epoch.    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| CURRENTTIMESTAMP       |  ``CURRENTTIMESTAMP([TIMEZONE])``                                         | Gets the current timestamp in milliseconds,       |
+| UNIX_TIMESTAMP         |  ``UNIX_TIMESTAMP([TIMEZONE])``                                           | Gets the Unix timestamp in milliseconds,          |
 |                        |                                                                           | represented as a BIGINT.                          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | ``java.util.TimeZone`` ID format, for example:    |
 |                        |                                                                           | "UTC", "America/Los_Angeles", "PDT",              |
 |                        |                                                                           | "Europe/London".                                  |
+|                        |                                                                           | Notice that the returned timestamp might be       |
+|                        |                                                                           | different in case of the local time in KSQL       |
+|                        |                                                                           | servers are not synchronized between them.        |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |

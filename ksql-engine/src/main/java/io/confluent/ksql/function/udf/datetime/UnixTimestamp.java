@@ -21,18 +21,18 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 
-@UdfDescription(name = "currenttimestamp",
-    description = "Gets the current timestamp in milliseconds, represented as a BIGINT.")
-public class CurrentTimestamp {
+@UdfDescription(name = "unix_timestamp",
+    description = "Gets the Unix timestamp in milliseconds, represented as a BIGINT.")
+public class UnixTimestamp {
 
-  @Udf(description = "Gets a BIGINT millisecond from the current timestamp.")
-  public long currentTimestamp() {
-    return new Timestamp(System.currentTimeMillis()).getTime();
+  @Udf(description = "Gets a BIGINT millisecond from the Unix timestamp.")
+  public long unixTimestamp() {
+    return System.currentTimeMillis();
   }
 
-  @Udf(description = "Gets a BIGINT millisecond from the current timestamp"
+  @Udf(description = "Gets a BIGINT millisecond from the Unix timestamp"
       + " in the given time zone.")
-  public long currentTimestamp(
+  public long unixTimestamp(
       @UdfParameter(value = "timeZone",
           description =  "timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
               + " \"America/Los_Angeles\", \"PDT\", \"Europe/London\"") final String timeZone) {
@@ -42,7 +42,7 @@ public class CurrentTimestamp {
       timestamp.toLocalDateTime().atZone(zoneId);
       return timestamp.getTime();
     } catch (final RuntimeException e) {
-      throw new KsqlFunctionException("Failed to get the current timestamp': "
+      throw new KsqlFunctionException("Failed to get the Unix timestamp': "
           + "' at timezone '" + timeZone + "': " + e.getMessage(), e);
     }
   }

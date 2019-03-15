@@ -31,9 +31,13 @@ public class CurrentDateTest {
 
   @Test
   public void shouldGetTheCurrentDate() {
+    // Given:
     final int now = ((int) LocalDate.now().toEpochDay());
+
+    // When:
     final int result = udf.currentDate();
 
+    // Then:
     assertEquals(now, result);
   }
 

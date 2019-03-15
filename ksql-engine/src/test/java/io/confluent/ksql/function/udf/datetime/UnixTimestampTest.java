@@ -25,47 +25,55 @@ import java.time.ZoneId;
 
 import static org.junit.Assert.assertTrue;
 
-public class CurrentTimestampTest {
+public class UnixTimestampTest {
 
-  private CurrentTimestamp udf;
+  private UnixTimestamp udf;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
-    udf = new CurrentTimestamp();
+    udf = new UnixTimestamp();
   }
 
   @Test
-  public void shouldGetTheCurrentTimestamp() {
-    final long before = new Timestamp(System.currentTimeMillis()).getTime();
-    final long result = udf.currentTimestamp();
-    final long after = new Timestamp(System.currentTimeMillis()).getTime();
+  public void shouldGetTheUnixTimestamp() {
+    // Given:
+    final long before = System.currentTimeMillis();
 
+    // When:
+    final long result = udf.unixTimestamp();
+    final long after = System.currentTimeMillis();
+
+    // Then:
     assertTrue(before <= result && result <= after);
   }
 
   @Test
-  public void shouldGetTheCurrentTimestampWithTimeZone() {
+  public void shouldGetTheUnixTimestampWithTimeZone() {
+    // Given:
     final String timeZone = "UTC";
-
     final Timestamp before = new Timestamp(System.currentTimeMillis());
     before.toLocalDateTime().atZone(ZoneId.of(timeZone));
 
-    final long result = udf.currentTimestamp("UTC");
-
+    // When:
+    final long result = udf.unixTimestamp(timeZone);
     final Timestamp after = new Timestamp(System.currentTimeMillis());
     after.toLocalDateTime().atZone(ZoneId.of(timeZone));
 
+    // Then:
     assertTrue(before.getTime() <= result && result <= after.getTime());
   }
 
   @Test
   public void shouldThrowIfInvalidTimeZone() {
+    // Given:
     expectedException.expect(KsqlFunctionException.class);
     expectedException.expectMessage("Unknown time-zone ID: PST");
-    udf.currentTimestamp("PST");
+
+    // When:
+    udf.unixTimestamp("PST");
   }
 
 }

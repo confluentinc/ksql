@@ -114,11 +114,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public int numberOfPersistentQueries() {
-    return primaryContext.numberOfPersistentQueries();
-  }
-
-  @Override
   public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
     return primaryContext.getPersistentQuery(queryId);
   }

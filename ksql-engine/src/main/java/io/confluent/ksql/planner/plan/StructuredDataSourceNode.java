@@ -120,7 +120,7 @@ public class StructuredDataSourceNode
   }
 
   public String getTopicName() {
-    return structuredDataSource.getTopicName();
+    return structuredDataSource.getKsqlTopicName();
   }
 
   @Override

@@ -36,6 +36,9 @@ import javax.ws.rs.core.Response;
 
 final class RestIntegrationTestUtil {
 
+  private RestIntegrationTestUtil() {
+  }
+
   static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final KsqlRestClient restClient, final String sql) {
     final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
 

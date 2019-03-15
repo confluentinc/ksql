@@ -440,7 +440,7 @@ public class KsqlStructuredDataOutputNodeTest {
   private static KsqlTopic mockTopic(final KsqlTopicSerDe topicSerde) {
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getKafkaTopicName()).thenReturn("output");
-    when(ksqlTopic.getTopicName()).thenReturn("output");
+    when(ksqlTopic.getKsqlTopicName()).thenReturn("output");
     when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(topicSerde);
     return ksqlTopic;
   }

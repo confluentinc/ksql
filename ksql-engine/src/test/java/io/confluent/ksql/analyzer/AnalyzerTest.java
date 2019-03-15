@@ -240,7 +240,7 @@ public class AnalyzerTest {
     final Optional<Into> into = analysis.getInto();
     assertThat(into, is(not((Optional.empty()))));
     final KsqlTopic createdKsqlTopic = into.get().getKsqlTopic();
-    assertThat(createdKsqlTopic.getTopicName(), is("FOO"));
+    assertThat(createdKsqlTopic.getKsqlTopicName(), is("FOO"));
     assertThat(createdKsqlTopic.getKafkaTopicName(), is("TEST_TOPIC1"));
   }
 

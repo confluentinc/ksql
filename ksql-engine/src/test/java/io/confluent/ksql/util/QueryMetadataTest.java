@@ -21,11 +21,15 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import java.util.Collections;
+import java.util.Set;
 import java.util.function.Consumer;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -40,6 +44,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
+  private static final Schema SOME_SCHEMA = SchemaBuilder.OPTIONAL_STRING_SCHEMA;
+  private static final Set<String> SOME_SOURCES = ImmutableSet.of("s1", "s2");
 
   @Mock
   private OutputNode outputNode;
@@ -58,7 +64,8 @@ public class QueryMetadataTest {
     query = new QueryMetadata(
         "foo",
         kafkaStreams,
-        outputNode,
+        SOME_SCHEMA,
+        SOME_SOURCES,
         "bar",
         DataSourceType.KSTREAM,
         QUERY_APPLICATION_ID,
@@ -137,5 +144,15 @@ public class QueryMetadataTest {
     final InOrder inOrder = inOrder(kafkaStreams);
     inOrder.verify(kafkaStreams).close();
     inOrder.verify(kafkaStreams).cleanUp();
+  }
+
+  @Test
+  public void shouldReturnSources() {
+    assertThat(query.getSourceNames(), is(SOME_SOURCES));
+  }
+
+  @Test
+  public void shouldReturnSchema() {
+    assertThat(query.getResultSchema(), is(SOME_SCHEMA));
   }
 }

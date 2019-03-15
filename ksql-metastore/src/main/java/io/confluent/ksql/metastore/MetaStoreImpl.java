@@ -86,8 +86,8 @@ public final class MetaStoreImpl implements MutableMetaStore {
   public Optional<StructuredDataSource<?>> getSourceForTopic(final String ksqlTopicName) {
     return (Optional)dataSources.values()
         .stream()
-        .filter(p -> p.source.getTopicName() != null
-            && p.source.getTopicName().equals(ksqlTopicName))
+        .filter(p -> p.source.getKsqlTopicName() != null
+            && p.source.getKsqlTopicName().equals(ksqlTopicName))
         .map(sourceInfo -> sourceInfo.source)
         .findFirst();
   }

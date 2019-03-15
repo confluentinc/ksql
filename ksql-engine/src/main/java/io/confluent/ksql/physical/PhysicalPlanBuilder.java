@@ -26,6 +26,7 @@ import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -51,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -110,7 +112,7 @@ public class PhysicalPlanBuilder {
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
     final QueryId queryId = computeQueryId(logicalPlanNode.getNode());
-    final SchemaKStream resultStream = logicalPlanNode
+    final SchemaKStream<?> resultStream = logicalPlanNode
         .getNode()
         .buildStream(
             builder,
@@ -120,57 +122,59 @@ public class PhysicalPlanBuilder {
             functionRegistry,
             queryId
         );
+
     final OutputNode outputNode = resultStream.outputNode();
-    final boolean isBareQuery = outputNode instanceof KsqlBareOutputNode;
 
-    // Check to make sure the logical and physical plans match up;
-    // important to do this BEFORE actually starting up
-    // the corresponding Kafka Streams job
-    if (isBareQuery && !(resultStream instanceof QueuedSchemaKStream)) {
-      throw new KsqlException(String.format(
-          "Mismatch between logical and physical output; "
-          + "expected a QueuedSchemaKStream based on logical "
-          + "KsqlBareOutputNode, found a %s instead",
-          resultStream.getClass().getCanonicalName()
-      ));
-    }
-    final String serviceId = getServiceId();
-    final String persistanceQueryPrefix =
-        ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String transientQueryPrefix =
-        ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
+    if (outputNode instanceof KsqlBareOutputNode) {
+      if (!(resultStream instanceof QueuedSchemaKStream)) {
+        throw new KsqlException(String.format(
+            "Mismatch between logical and physical output; "
+                + "expected a QueuedSchemaKStream based on logical "
+                + "KsqlBareOutputNode, found a %s instead",
+            resultStream.getClass().getCanonicalName()
+        ));
+      }
 
-    if (isBareQuery) {
+      final String transientQueryPrefix =
+          ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
+
       return buildPlanForBareQuery(
-          (QueuedSchemaKStream) resultStream,
+          (QueuedSchemaKStream<?>) resultStream,
           (KsqlBareOutputNode) outputNode,
-          serviceId,
+          getServiceId(),
           transientQueryPrefix,
           queryId,
           logicalPlanNode.getStatementText()
       );
+    }
 
-    } else if (outputNode instanceof KsqlStructuredDataOutputNode) {
+    if (outputNode instanceof KsqlStructuredDataOutputNode) {
+      if (resultStream instanceof QueuedSchemaKStream) {
+        throw new KsqlException(String.format(
+            "Mismatch between logical and physical output; "
+                + "expected a SchemaKStream based on logical "
+                + "QueuedSchemaKStream, found a %s instead",
+            resultStream.getClass().getCanonicalName()
+        ));
+      }
 
       final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) outputNode;
+
+      final String persistanceQueryPrefix =
+          ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
 
       return buildPlanForStructuredOutputNode(
           logicalPlanNode.getStatementText(),
           resultStream,
           ksqlStructuredDataOutputNode,
-          serviceId,
+          getServiceId(),
           persistanceQueryPrefix,
           queryId,
           logicalPlanNode.getStatementText());
-
-
-    } else {
-      throw new KsqlException(
-          "Sink data source of type: "
-          + outputNode.getClass()
-          + " is not supported.");
     }
+
+    throw new KsqlException("Sink data source type unsupported: " + outputNode.getClass());
   }
 
   private QueryMetadata buildPlanForBareQuery(
@@ -194,6 +198,9 @@ public class PhysicalPlanBuilder {
         queryId,
         processingLogContext
     );
+
+    final TransientQueryQueue<?> queue = new TransientQueryQueue<>(schemaKStream);
+
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
     final SchemaKStream sourceSchemaKstream = schemaKStream.getSourceSchemaKStreams().get(0);
@@ -201,9 +208,11 @@ public class PhysicalPlanBuilder {
     return new QueuedQueryMetadata(
         statement,
         streams,
-        bareOutputNode,
+        bareOutputNode.getSchema(),
+        getSourceNames(bareOutputNode),
+        queue::setLimitHandler,
         schemaKStream.getExecutionPlan(""),
-        schemaKStream.getQueue(),
+        queue.getQueue(),
         (sourceSchemaKstream instanceof SchemaKTable)
             ? DataSource.DataSourceType.KTABLE : DataSource.DataSourceType.KSTREAM,
         applicationId,
@@ -213,7 +222,6 @@ public class PhysicalPlanBuilder {
         queryCloseCallback
     );
   }
-
 
   private QueryMetadata buildPlanForStructuredOutputNode(
       final String sqlExpression, final SchemaKStream<?> schemaKStream,
@@ -275,7 +283,8 @@ public class PhysicalPlanBuilder {
     return new PersistentQueryMetadata(
         statement,
         streams,
-        outputNode,
+        outputNode.getSchema(),
+        getSourceNames(outputNode),
         sinkDataSource,
         schemaKStream.getExecutionPlan(""),
         queryId,
@@ -424,6 +433,12 @@ public class PhysicalPlanBuilder {
   String getServiceId() {
     return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
            + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+  }
+
+  private static Set<String> getSourceNames(final PlanNode outputNode) {
+    final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
+    visitor.process(outputNode, null);
+    return visitor.getSourceNames();
   }
 }
 

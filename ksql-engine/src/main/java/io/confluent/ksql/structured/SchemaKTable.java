@@ -123,11 +123,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return this;
   }
 
-  @Override
-  public QueuedSchemaKStream toQueue(final QueryContext.Stacker contextStacker) {
-    return new QueuedSchemaKStream<>(this, contextStacker.getQueryContext());
-  }
-
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<K> filter(

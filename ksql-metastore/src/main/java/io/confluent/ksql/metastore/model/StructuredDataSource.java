@@ -97,8 +97,8 @@ public abstract class StructuredDataSource<K> implements DataSource {
     return timestampExtractionPolicy;
   }
 
-  public String getTopicName() {
-    return ksqlTopic.getTopicName();
+  public String getKsqlTopicName() {
+    return ksqlTopic.getKsqlTopicName();
   }
 
   public String getKafkaTopicName() {

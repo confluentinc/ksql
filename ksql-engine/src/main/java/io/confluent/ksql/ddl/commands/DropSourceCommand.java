@@ -71,7 +71,7 @@ public class DropSourceCommand implements DdlCommand {
       ));
     }
     final DropTopicCommand dropTopicCommand =
-        new DropTopicCommand(dataSource.getTopicName());
+        new DropTopicCommand(dataSource.getKsqlTopicName());
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore);
 

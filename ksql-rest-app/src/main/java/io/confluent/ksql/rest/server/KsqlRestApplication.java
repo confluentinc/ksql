@@ -247,6 +247,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
+    config.property(ServerProperties.WADL_FEATURE_DISABLE, true);
   }
 
   @Override

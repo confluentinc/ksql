@@ -15,17 +15,18 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
-public class NullLiteral
-    extends Literal {
+@Immutable
+public class NullLiteral extends Literal {
 
   public NullLiteral() {
     super(Optional.empty());
   }
 
-  public NullLiteral(final NodeLocation location) {
-    super(Optional.of(location));
+  public NullLiteral(final Optional<NodeLocation> location) {
+    super(location);
   }
 
   @Override

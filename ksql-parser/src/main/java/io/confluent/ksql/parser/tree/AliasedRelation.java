@@ -18,11 +18,12 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class AliasedRelation
-    extends Relation {
+@Immutable
+public class AliasedRelation extends Relation {
 
   private final Relation relation;
   private final String alias;
@@ -34,21 +35,15 @@ public class AliasedRelation
     this(Optional.empty(), relation, alias);
   }
 
-  public AliasedRelation(final NodeLocation location, final Relation relation, final String alias) {
-    this(Optional.of(location), relation, alias);
-  }
-
-  private AliasedRelation(
+  public AliasedRelation(
       final Optional<NodeLocation> location,
       final Relation relation,
       final String alias
   ) {
     super(location);
-    requireNonNull(relation, "relation is null");
-    requireNonNull(alias, " is null");
-
-    this.relation = relation;
-    this.alias = alias.toUpperCase();
+    this.relation = requireNonNull(relation, "relation");
+    this.alias = requireNonNull(alias, "alias")
+        .toUpperCase();
   }
 
   public Relation getRelation() {

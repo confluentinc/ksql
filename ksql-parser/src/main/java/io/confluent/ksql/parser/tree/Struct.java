@@ -18,15 +18,17 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+@Immutable
 public final class Struct extends Type {
 
-  private final List<Field> fields;
+  private final ImmutableList<Field> fields;
 
   public static Builder builder() {
     return new Builder();
@@ -63,6 +65,7 @@ public final class Struct extends Type {
     return Objects.equals(this.fields, other.fields);
   }
 
+  @Immutable
   public static final class Field {
 
     private final String name;

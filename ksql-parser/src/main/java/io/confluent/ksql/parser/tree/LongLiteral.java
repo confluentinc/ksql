@@ -15,9 +15,10 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
-
+@Immutable
 public class LongLiteral extends Literal {
 
   private final long value;
@@ -26,11 +27,7 @@ public class LongLiteral extends Literal {
     this(Optional.empty(), value);
   }
 
-  public LongLiteral(final NodeLocation location, final long value) {
-    this(Optional.of(location), value);
-  }
-
-  private LongLiteral(final Optional<NodeLocation> location, final long value) {
+  public LongLiteral(final Optional<NodeLocation> location, final long value) {
     super(location);
     this.value = value;
   }
@@ -55,12 +52,7 @@ public class LongLiteral extends Literal {
     }
 
     final LongLiteral that = (LongLiteral) o;
-
-    if (value != that.value) {
-      return false;
-    }
-
-    return true;
+    return value == that.value;
   }
 
   @Override

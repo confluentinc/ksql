@@ -18,15 +18,17 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 
+@Immutable
 public class Query extends Statement {
 
   private final Select select;
   private final Relation from;
-  private final Optional<WindowExpression> windowExpression;
+  private final Optional<WindowExpression> window;
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
   private final Optional<Expression> having;
@@ -35,51 +37,33 @@ public class Query extends Statement {
   public Query(
       final Select select,
       final Relation from,
-      final Optional<WindowExpression> windowExpression,
+      final Optional<WindowExpression> window,
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
-      final OptionalInt limit) {
-    this(Optional.empty(), select, from, windowExpression, where, groupBy, having, limit);
-  }
-
-  public Query(
-      final NodeLocation location,
-      final Select select,
-      final Relation from,
-      final Optional<WindowExpression> windowExpression,
-      final Optional<Expression> where,
-      final Optional<GroupBy> groupBy,
-      final Optional<Expression> having,
-      final OptionalInt limit) {
-    this(Optional.of(location), select, from, windowExpression, where, groupBy, having, limit);
+      final OptionalInt limit
+  ) {
+    this(Optional.empty(), select, from, window, where, groupBy, having, limit);
   }
 
   public Query(
       final Optional<NodeLocation> location,
       final Select select,
       final Relation from,
-      final Optional<WindowExpression> windowExpression,
+      final Optional<WindowExpression> window,
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
-      final OptionalInt limit) {
+      final OptionalInt limit
+  ) {
     super(location);
-    requireNonNull(select, "select is null");
-    requireNonNull(from, "from is null");
-    requireNonNull(windowExpression, "window is null");
-    requireNonNull(where, "where is null");
-    requireNonNull(groupBy, "groupBy is null");
-    requireNonNull(having, "having is null");
-    requireNonNull(limit, "limit is null");
-
-    this.select = select;
-    this.from = from;
-    this.windowExpression = windowExpression;
-    this.where = where;
-    this.groupBy = groupBy;
-    this.having = having;
-    this.limit = limit;
+    this.select = requireNonNull(select, "select");
+    this.from = requireNonNull(from, "from");
+    this.window = requireNonNull(window, "window");
+    this.where = requireNonNull(where, "where");
+    this.groupBy = requireNonNull(groupBy, "groupBy");
+    this.having = requireNonNull(having, "having");
+    this.limit = requireNonNull(limit, "limit");
   }
 
   public Select getSelect() {
@@ -90,8 +74,8 @@ public class Query extends Statement {
     return from;
   }
 
-  public Optional<WindowExpression> getWindowExpression() {
-    return windowExpression;
+  public Optional<WindowExpression> getWindow() {
+    return window;
   }
 
   public Optional<Expression> getWhere() {
@@ -120,11 +104,12 @@ public class Query extends Statement {
     return toStringHelper(this)
         .add("select", select)
         .add("from", from)
-        .add("", windowExpression.orElse(null))
+        .add("window", window.orElse(null))
         .add("where", where.orElse(null))
-        .add("groupBy", groupBy)
+        .add("groupBy", groupBy.orElse(null))
         .add("having", having.orElse(null))
         .add("limit", limit)
+        .omitNullValues()
         .toString();
   }
 
@@ -140,7 +125,7 @@ public class Query extends Statement {
     return Objects.equals(select, o.select)
         && Objects.equals(from, o.from)
         && Objects.equals(where, o.where)
-        && Objects.equals(windowExpression, o.windowExpression)
+        && Objects.equals(window, o.window)
         && Objects.equals(groupBy, o.groupBy)
         && Objects.equals(having, o.having)
         && Objects.equals(limit, o.limit);
@@ -148,6 +133,6 @@ public class Query extends Statement {
 
   @Override
   public int hashCode() {
-    return Objects.hash(select, from, where, windowExpression, groupBy, having, limit);
+    return Objects.hash(select, from, where, window, groupBy, having, limit);
   }
 }

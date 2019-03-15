@@ -15,13 +15,12 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static java.util.Objects.requireNonNull;
-
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class IntegerLiteral
-    extends Literal {
+@Immutable
+public class IntegerLiteral extends Literal {
 
   private final int value;
 
@@ -29,13 +28,8 @@ public class IntegerLiteral
     this (Optional.empty(), value);
   }
 
-  public IntegerLiteral(final NodeLocation location, final int value) {
-    this(Optional.of(location), value);
-  }
-
-  private IntegerLiteral(final Optional<NodeLocation> location, final int value) {
+  public IntegerLiteral(final Optional<NodeLocation> location, final int value) {
     super(location);
-    requireNonNull(value, "value is null");
     this.value = value;
   }
 

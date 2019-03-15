@@ -318,21 +318,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return ksqlTopic.getKsqlTopicSerDe();
   }
 
-  public KsqlStructuredDataOutputNode cloneWithDoCreateInto(final boolean newDoCreateInto) {
-    return new KsqlStructuredDataOutputNode(
-        getId(),
-        getSource(),
-        getSchema(),
-        getTimestampExtractionPolicy(),
-        getKeyField(),
-        getKsqlTopic(),
-        getKafkaTopicName(),
-        outputProperties,
-        getLimit(),
-        newDoCreateInto
-    );
-  }
-
   private static class SourceTopicProperties {
 
     private final int partitions;

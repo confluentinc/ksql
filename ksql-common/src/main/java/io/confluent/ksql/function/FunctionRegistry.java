@@ -21,6 +21,8 @@ import org.apache.kafka.connect.data.Schema;
 
 public interface FunctionRegistry {
 
+  Schema DEFAULT_FUNCTION_ARG_SCHEMA = Schema.OPTIONAL_INT64_SCHEMA;
+
   /**
    * Test if the supplied {@code functionName} is an aggregate function.
    *
@@ -51,8 +53,12 @@ public interface FunctionRegistry {
   /**
    * Get an instance of an aggregate function.
    *
+   * <p>The current assumption is that all aggregate functions take a single argument.
+   * For functions that have no arguments pass {@link #DEFAULT_FUNCTION_ARG_SCHEMA} for the
+   * {@code argumentType} parameter.
+   *
    * @param functionName the name of the function.
-   * @param argumentType the schema of the argument.
+   * @param argumentType the schema of the argument or {@link #DEFAULT_FUNCTION_ARG_SCHEMA}.
    * @return the function instance.
    * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentType}.
    */

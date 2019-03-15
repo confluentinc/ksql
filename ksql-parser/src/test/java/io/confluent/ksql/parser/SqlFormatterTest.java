@@ -17,6 +17,7 @@ package io.confluent.ksql.parser;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
@@ -35,7 +36,6 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
@@ -63,7 +63,6 @@ public class SqlFormatterTest {
   private AliasedRelation leftAlias;
   private AliasedRelation rightAlias;
   private JoinCriteria criteria;
-  private NodeLocation location;
 
   private MutableMetaStore metaStore;
 
@@ -109,7 +108,6 @@ public class SqlFormatterTest {
     criteria = new JoinOn(new ComparisonExpression(ComparisonExpression.Type.EQUAL,
                                                    new StringLiteral("left.col0"),
                                                    new StringLiteral("right.col0")));
-    location = new NodeLocation(0, 0);
 
     metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
 
@@ -141,7 +139,6 @@ public class SqlFormatterTest {
         itemInfoSchema.field("ITEMID"),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
-        "items",
         Serdes.String());
     metaStore.putTopic(ksqlTopicItems);
     metaStore.putSource(ksqlTableOrders);
@@ -189,8 +186,8 @@ public class SqlFormatterTest {
 
   @Test
   public void shouldFormatLeftJoinWithWithin() {
-    final Join join = new Join(location, Join.Type.LEFT, leftAlias, rightAlias,
-                         Optional.of(criteria),
+    final Join join = new Join(Join.Type.LEFT, leftAlias, rightAlias,
+                         criteria,
                          Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
     final String expected = "left L\nLEFT OUTER JOIN right R WITHIN 10 SECONDS ON "
@@ -200,8 +197,8 @@ public class SqlFormatterTest {
 
   @Test
   public void shouldFormatLeftJoinWithoutJoinWindow() {
-    final Join join = new Join(location, Join.Type.LEFT, leftAlias, rightAlias,
-                               Optional.of(criteria), Optional.empty());
+    final Join join = new Join(Join.Type.LEFT, leftAlias, rightAlias,
+                               criteria, Optional.empty());
 
     final String result = SqlFormatter.formatSql(join);
     final String expected = "left L\nLEFT OUTER JOIN right R ON (('left.col0' = 'right.col0'))";
@@ -210,8 +207,8 @@ public class SqlFormatterTest {
 
   @Test
   public void shouldFormatInnerJoin() {
-    final Join join = new Join(location, Join.Type.INNER, leftAlias, rightAlias,
-                               Optional.of(criteria),
+    final Join join = new Join(Join.Type.INNER, leftAlias, rightAlias,
+                               criteria,
                                Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
     final String expected = "left L\nINNER JOIN right R WITHIN 10 SECONDS ON "
@@ -221,8 +218,8 @@ public class SqlFormatterTest {
 
   @Test
   public void shouldFormatInnerJoinWithoutJoinWindow() {
-    final Join join = new Join(location, Join.Type.INNER, leftAlias, rightAlias,
-                               Optional.of(criteria),
+    final Join join = new Join(Join.Type.INNER, leftAlias, rightAlias,
+                               criteria,
                                Optional.empty());
 
     final String expected = "left L\nINNER JOIN right R ON (('left.col0' = 'right.col0'))";
@@ -232,8 +229,8 @@ public class SqlFormatterTest {
 
   @Test
   public void shouldFormatOuterJoin() {
-    final Join join = new Join(location, Join.Type.OUTER, leftAlias, rightAlias,
-                               Optional.of(criteria),
+    final Join join = new Join(Join.Type.OUTER, leftAlias, rightAlias,
+                               criteria,
                                Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
     final String expected = "left L\nFULL OUTER JOIN right R WITHIN 10 SECONDS ON"
@@ -244,8 +241,8 @@ public class SqlFormatterTest {
 
   @Test
   public void shouldFormatOuterJoinWithoutJoinWindow() {
-    final Join join = new Join(location, Join.Type.OUTER, leftAlias, rightAlias,
-                               Optional.of(criteria),
+    final Join join = new Join(Join.Type.OUTER, leftAlias, rightAlias,
+                               criteria,
                                Optional.empty());
 
     final String expected = "left L\nFULL OUTER JOIN right R ON (('left.col0' = 'right.col0'))";
@@ -370,6 +367,28 @@ public class SqlFormatterTest {
     assertThat(result, startsWith("INSERT INTO ADDRESS SELECT *\n"
         + "FROM ADDRESS ADDRESS\n"
         + "PARTITION BY ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatExplainQuery() {
+    final String statementString = "EXPLAIN foo;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("EXPLAIN \nfoo"));
+  }
+
+  @Test
+  public void shouldFormatExplainStatement() {
+    final String statementString = "EXPLAIN SELECT * FROM ADDRESS;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("EXPLAIN \nSELECT *\nFROM ADDRESS ADDRESS"));
   }
 }
 

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.test.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.URL;
@@ -65,7 +65,7 @@ public final class ClassFinder {
       return Collections.emptyList();
     }
 
-    try (final Stream<Path> paths = Files.walk(directory)) {
+    try (Stream<Path> paths = Files.walk(directory)) {
       return paths
           .filter(Files::isRegularFile)
           .filter(CLASS_MATCHER::matches)

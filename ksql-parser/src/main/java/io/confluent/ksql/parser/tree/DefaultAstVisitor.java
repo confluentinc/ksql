@@ -53,11 +53,11 @@ public abstract class DefaultAstVisitor<R, C>
   }
 
   protected R visitDoubleLiteral(final DoubleLiteral node, final C context) {
-    return null;
+    return visitLiteral(node, context);
   }
 
   protected R visitDecimalLiteral(final DecimalLiteral node, final C context) {
-    return null;
+    return visitLiteral(node, context);
   }
 
   protected R visitStatements(final Statements node, final C context) {
@@ -102,10 +102,6 @@ public abstract class DefaultAstVisitor<R, C>
 
   protected R visitWhenClause(final WhenClause node, final C context) {
     return visitExpression(node, context);
-  }
-
-  protected R visitIntervalLiteral(final IntervalLiteral node, final C context) {
-    return visitLiteral(node, context);
   }
 
   protected R visitInPredicate(final InPredicate node, final C context) {
@@ -221,16 +217,20 @@ public abstract class DefaultAstVisitor<R, C>
     return visitNode(node, context);
   }
 
-  protected R visitTumblingWindowExpression(final TumblingWindowExpression node, final C context) {
+  protected R visitKsqlWindowExpression(final KsqlWindowExpression node, final C context) {
     return visitNode(node, context);
+  }
+
+  protected R visitTumblingWindowExpression(final TumblingWindowExpression node, final C context) {
+    return visitKsqlWindowExpression(node, context);
   }
 
   protected R visitHoppingWindowExpression(final HoppingWindowExpression node, final C context) {
-    return visitNode(node, context);
+    return visitKsqlWindowExpression(node, context);
   }
 
   protected R visitSessionWindowExpression(final SessionWindowExpression node, final C context) {
-    return visitNode(node, context);
+    return visitKsqlWindowExpression(node, context);
   }
 
   protected R visitTableElement(final TableElement node, final C context) {

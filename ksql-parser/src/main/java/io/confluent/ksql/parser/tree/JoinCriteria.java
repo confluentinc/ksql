@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.errorprone.annotations.Immutable;
+
+@Immutable
 public abstract class JoinCriteria {
 
   // Force subclasses to have a proper equals and hashcode implementation

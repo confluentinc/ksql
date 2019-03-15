@@ -45,7 +45,6 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
@@ -57,9 +56,8 @@ public abstract class DefaultTraversalVisitor<R, C>
 
   @Override
   protected R visitStatements(final Statements node, final C context) {
-    for (final Statement statement : node.statementList) {
-      process(statement, context);
-    }
+    node.getStatements()
+        .forEach(stmt -> process(stmt, context));
     return visitNode(node, context);
   }
 
@@ -212,10 +210,6 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitLikePredicate(final LikePredicate node, final C context) {
     process(node.getValue(), context);
     process(node.getPattern(), context);
-    if (node.getEscape() != null) {
-      process(node.getEscape(), context);
-    }
-
     return null;
   }
 
@@ -255,9 +249,9 @@ public abstract class DefaultTraversalVisitor<R, C>
     process(node.getLeft(), context);
     process(node.getRight(), context);
 
-    node.getCriteria()
-        .filter(criteria -> criteria instanceof JoinOn)
-        .map(criteria -> process(((JoinOn) criteria).getExpression(), context));
+    if (node.getCriteria() instanceof JoinOn) {
+      process(((JoinOn) node.getCriteria()).getExpression(), context);
+    }
 
     return null;
   }
@@ -285,7 +279,7 @@ public abstract class DefaultTraversalVisitor<R, C>
   protected R visitSimpleGroupBy(final SimpleGroupBy node, final C context) {
     visitGroupingElement(node, context);
 
-    for (final Expression expression : node.getColumnExpressions()) {
+    for (final Expression expression : node.getColumns()) {
       process(expression, context);
     }
 

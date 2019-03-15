@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -51,8 +52,8 @@ public class DefaultTopicInjector implements TopicInjector {
   DefaultTopicInjector(
       final KafkaTopicClient topicClient,
       final MetaStore metaStore) {
-    this.topicClient = topicClient;
-    this.metaStore = metaStore;
+    this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
   @SuppressWarnings("unchecked")
@@ -67,13 +68,8 @@ public class DefaultTopicInjector implements TopicInjector {
 
     final CreateAsSelect cas = (CreateAsSelect) statement.getStatement();
 
-    final Analysis analysis = new QueryAnalyzer(
-        metaStore,
-        ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
-        .analyze(SqlFormatter.formatSql(cas), cas.getQuery(), Optional.of(cas.getSink()));
-
     final String topic = topicName(cas, ksqlConfig);
-    final TopicDescription description = describeSource(analysis, topicClient);
+    final TopicDescription description = describeSource(topicClient, ksqlConfig, statement, cas);
     final int partitions = numPartitions(cas, ksqlConfig, propertyOverrides, description);
     final short replicas = numReplicas(cas, ksqlConfig, propertyOverrides, description);
 
@@ -88,10 +84,17 @@ public class DefaultTopicInjector implements TopicInjector {
     return (PreparedStatement<T>) PreparedStatement.of(withTopicText, withTopic);
   }
 
-  private static TopicDescription describeSource(
-      final Analysis analysis,
-      final KafkaTopicClient topicClient
+  private <T extends Statement> TopicDescription describeSource(
+      final KafkaTopicClient topicClient,
+      final KsqlConfig ksqlConfig,
+      final PreparedStatement<T> statement,
+      final CreateAsSelect cas
   ) {
+    final Analysis analysis = new QueryAnalyzer(
+        metaStore,
+        ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
+        .analyze(statement.getStatementText(), cas.getQuery(), Optional.of(cas.getSink()));
+
     final StructuredDataSource theSource = analysis.getTheSource();
     final String kafkaTopicName = theSource.getKsqlTopic().getKafkaTopicName();
     return topicClient.describeTopic(kafkaTopicName);

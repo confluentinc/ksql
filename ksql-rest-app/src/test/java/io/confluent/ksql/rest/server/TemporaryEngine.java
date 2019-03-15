@@ -84,13 +84,13 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends StructuredDataSource> T givenSource(
+  public <T extends StructuredDataSource<?>> T givenSource(
       final DataSource.DataSourceType type,
       final String name) {
     final KsqlTopic topic = givenKsqlTopic(name);
     givenKafkaTopic(name);
 
-    final StructuredDataSource source;
+    final StructuredDataSource<?> source;
     switch (type) {
       case KSTREAM:
         source =
@@ -125,7 +125,7 @@ public class TemporaryEngine extends ExternalResource {
         .preconditionTopicExists(name, 1, (short) 1, Collections.emptyMap());
   }
 
-  public PreparedStatement prepare(final String sql) {
+  public PreparedStatement<?> prepare(final String sql) {
     return getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0));
   }
 

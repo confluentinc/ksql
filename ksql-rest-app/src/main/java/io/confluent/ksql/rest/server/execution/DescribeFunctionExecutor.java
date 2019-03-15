@@ -40,13 +40,13 @@ public final class DescribeFunctionExecutor {
   private DescribeFunctionExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final PreparedStatement<DescribeFunction> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
-    final DescribeFunction describeFunction = (DescribeFunction) statement.getStatement();
+    final DescribeFunction describeFunction = statement.getStatement();
     final String functionName = describeFunction.getFunctionName();
 
     if (executionContext.getMetaStore().isAggregate(functionName)) {

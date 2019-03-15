@@ -28,7 +28,7 @@ public final class QueryValidator {
   private QueryValidator() { }
 
   public static void validate(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext context,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

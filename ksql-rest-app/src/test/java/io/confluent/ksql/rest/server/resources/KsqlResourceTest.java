@@ -1594,7 +1594,7 @@ public class KsqlResourceTest {
     makeRequest(statement);
   }
 
-  private Answer executeAgainstEngine(final String sql) {
+  private Answer<?> executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
       return null;

@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -27,7 +28,7 @@ import java.util.Optional;
  * An interface that allows for arbitrary execution code of a prepared statement.
  */
 @FunctionalInterface
-public interface StatementExecutor {
+public interface StatementExecutor<T extends Statement> {
 
   /**
    * Executes the query against the parameterized {@code ksqlEngine}.
@@ -35,7 +36,7 @@ public interface StatementExecutor {
    * @return the execution result, if present, else {@link Optional#empty()}
    */
   Optional<KsqlEntity> execute(
-      PreparedStatement statement,
+      PreparedStatement<T> statement,
       KsqlExecutionContext executionContext,
       ServiceContext serviceContext,
       KsqlConfig ksqlConfig,

@@ -88,7 +88,8 @@ public class RequestHandlerTest {
   public void shouldUseCustomExecutor() {
     // Given
     final KsqlEntity entity = mock(KsqlEntity.class);
-    final StatementExecutor customExecutor = givenReturningExecutor(CreateStream.class, entity);
+    final StatementExecutor<CreateStream> customExecutor =
+        givenReturningExecutor(CreateStream.class, entity);
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
 
     // When
@@ -153,7 +154,7 @@ public class RequestHandlerTest {
     final KsqlEntity entity2 = mock(KsqlEntity.class);
     final KsqlEntity entity3 = mock(KsqlEntity.class);
 
-    final StatementExecutor customExecutor = givenReturningExecutor(
+    final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class, entity1, entity2, entity3);
     givenRequestHandler(
         ImmutableMap.of(CreateStream.class, customExecutor)
@@ -183,7 +184,7 @@ public class RequestHandlerTest {
         KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT,
         "CREATE STREAM X WITH (kafka_topic='x');");
 
-    final StatementExecutor customExecutor = givenReturningExecutor(
+    final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class,
         (KsqlEntity) null);
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
@@ -214,7 +215,7 @@ public class RequestHandlerTest {
         "CREATE STREAM X WITH (kafka_topic='x');"
             + "CREATE STREAM Y WITH (kafka_topic='y');");
 
-    final StatementExecutor customExecutor = givenReturningExecutor(
+    final StatementExecutor<CreateStream> customExecutor = givenReturningExecutor(
         CreateStream.class, entity1, entity2);
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
 
@@ -228,7 +229,7 @@ public class RequestHandlerTest {
   }
 
   private void givenRequestHandler(
-      final Map<Class<? extends Statement>, StatementExecutor> executors) {
+      final Map<Class<? extends Statement>, StatementExecutor<?>> executors) {
     handler = new RequestHandler(
         executors,
         distributor,
@@ -239,12 +240,13 @@ public class RequestHandlerTest {
     );
   }
 
-  private StatementExecutor givenReturningExecutor(
-      final Class<? extends Statement> statementClass,
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> StatementExecutor<T> givenReturningExecutor(
+      final Class<T> statementClass,
       final KsqlEntity... returnedEntities
   ) {
     final AtomicInteger scn = new AtomicInteger();
-    final StatementExecutor customExecutor = mock(StatementExecutor.class);
+    final StatementExecutor<T> customExecutor = mock(StatementExecutor.class);
     when(customExecutor.execute(
         argThat(is(preparedStatement(instanceOf(statementClass)))),
         eq(ksqlEngine),

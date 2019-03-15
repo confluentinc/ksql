@@ -16,6 +16,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -36,7 +37,7 @@ import java.util.function.Function;
  * duration for the command to be executed remotely if configured with a
  * {@code distributedCmdResponseTimeout}.
  */
-public class DistributingExecutor implements StatementExecutor  {
+public class DistributingExecutor implements StatementExecutor<Statement> {
 
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
@@ -53,15 +54,14 @@ public class DistributingExecutor implements StatementExecutor  {
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final PreparedStatement<Statement> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides) {
-    final PreparedStatement withSchema =
+    final PreparedStatement<?> withSchema =
         schemaInjectorFactory.apply(serviceContext).forStatement(statement);
 
     try {

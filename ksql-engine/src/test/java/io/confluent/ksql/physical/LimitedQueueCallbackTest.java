@@ -44,30 +44,14 @@ public class LimitedQueueCallbackTest {
   }
 
   @Test
-  public void shouldAllowQueuingIfLimitNotReached() {
+  public void shouldAllowQueuingUpToTheLimit() {
     // When:
-    IntStream.range(0, SOME_LIMIT - 1).forEach(idx -> callback.onQueued());
+    IntStream.range(0, SOME_LIMIT).forEach(idx ->
+        assertThat(callback.shouldQueue(), is(true)));
 
     // Then:
-    assertThat(callback.shouldQueue(), is(true));
-  }
-
-  @Test
-  public void shouldNotAllowingQueuingOnceLimitReached() {
-    // When:
-    IntStream.range(0, SOME_LIMIT).forEach(idx -> callback.onQueued());
-
-    // Then:
-    assertThat(callback.shouldQueue(), is(false));
-  }
-
-  @Test
-  public void shouldNotAllowQueueingShouldLimitBeExceeded() {
-    // When:
-    IntStream.range(0, SOME_LIMIT + 1).forEach(idx -> callback.onQueued());
-
-    // Then:
-    assertThat(callback.shouldQueue(), is(false));
+    IntStream.range(0, SOME_LIMIT).forEach(idx ->
+        assertThat(callback.shouldQueue(), is(false)));
   }
 
   @Test
@@ -91,9 +75,33 @@ public class LimitedQueueCallbackTest {
   @Test
   public void shouldOnlyCallLimitHandlerOnce() {
     // When:
-    IntStream.range(0, SOME_LIMIT + 1).forEach(idx -> callback.onQueued());
+    IntStream.range(0, SOME_LIMIT * 2).forEach(idx -> callback.onQueued());
 
     // Then:
+    verify(limitHandler, times(1)).limitReached();
+  }
+
+  @Test
+  public void shouldBeThreadSafe() {
+    // Given:
+    final int theLimit = 100;
+    callback = new LimitedQueueCallback(theLimit);
+    callback.setLimitHandler(limitHandler);
+
+    // When:
+    final int enqueued = IntStream.range(0, theLimit * 2)
+        .parallel()
+        .map(idx -> {
+          if (!callback.shouldQueue()) {
+            return 0;
+          }
+          callback.onQueued();
+          return 1;
+        })
+        .sum();
+
+    // Then:
+    assertThat(enqueued, is(theLimit));
     verify(limitHandler, times(1)).limitReached();
   }
 }

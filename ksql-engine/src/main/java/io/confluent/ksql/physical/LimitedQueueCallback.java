@@ -17,21 +17,25 @@ package io.confluent.ksql.physical;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * A {@code LimitQueueCallback} that limits the number of events queued and fires the
  * {@code LimitHandler} when the limit is reached.
  */
+@ThreadSafe
 public final class LimitedQueueCallback implements LimitQueueCallback {
 
+  private final AtomicInteger remaining;
   private final AtomicInteger queued;
   private volatile LimitHandler limitHandler = () -> {
   };
 
-  public LimitedQueueCallback(final int limit) {
+  LimitedQueueCallback(final int limit) {
     if (limit <= 0) {
       throw new IllegalArgumentException("limit must be positive, was:" + limit);
     }
+    this.remaining = new AtomicInteger(limit);
     this.queued = new AtomicInteger(limit);
   }
 
@@ -42,7 +46,7 @@ public final class LimitedQueueCallback implements LimitQueueCallback {
 
   @Override
   public boolean shouldQueue() {
-    return queued.get() > 0;
+    return remaining.decrementAndGet() >= 0;
   }
 
   @Override

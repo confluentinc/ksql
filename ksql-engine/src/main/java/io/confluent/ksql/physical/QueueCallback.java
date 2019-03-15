@@ -15,9 +15,15 @@
 
 package io.confluent.ksql.physical;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 /**
  * A callback called before and after things are queued.
+ *
+ * <p>Implementations must be thread-safe as they will be called from multiple threads
+ * simultaneously.
  */
+@ThreadSafe
 public interface QueueCallback {
 
   /**

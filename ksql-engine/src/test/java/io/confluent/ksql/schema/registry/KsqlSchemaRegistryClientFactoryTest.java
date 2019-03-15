@@ -45,10 +45,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-/**
- * @author andy
- * created 3/26/18
- */
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlSchemaRegistryClientFactoryTest {
 

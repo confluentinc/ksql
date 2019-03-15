@@ -17,8 +17,6 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
-import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.serde.DataSource;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Map;
@@ -38,7 +36,6 @@ public class QueryMetadata {
 
   private final String statementString;
   private final KafkaStreams kafkaStreams;
-  private final OutputNode outputNode;
   private final String executionPlan;
   private final DataSource.DataSourceType dataSourceType;
   private final String queryApplicationId;
@@ -47,14 +44,17 @@ public class QueryMetadata {
   private final Map<String, Object> overriddenProperties;
   private final Consumer<QueryMetadata> closeCallback;
   private final Set<String> sourceNames;
+  private final Schema schema;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   protected QueryMetadata(
       final String statementString,
       final KafkaStreams kafkaStreams,
-      final OutputNode outputNode,
+      final Schema schema,
+      final Set<String> sourceNames,
       final String executionPlan,
       final DataSource.DataSourceType dataSourceType,
       final String queryApplicationId,
@@ -63,9 +63,9 @@ public class QueryMetadata {
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
-    this.outputNode = Objects.requireNonNull(outputNode, "outputNode");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
@@ -77,16 +77,13 @@ public class QueryMetadata {
         ImmutableMap.copyOf(
             Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
-
-    final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
-    visitor.process(outputNode, null);
-    this.sourceNames = visitor.getSourceNames();
+    this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
+    this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
     this.statementString = other.statementString;
     this.kafkaStreams = other.kafkaStreams;
-    this.outputNode = other.outputNode;
     this.executionPlan = other.executionPlan;
     this.dataSourceType = other.dataSourceType;
     this.queryApplicationId = other.queryApplicationId;
@@ -94,6 +91,7 @@ public class QueryMetadata {
     this.streamsProperties = other.streamsProperties;
     this.overriddenProperties = other.overriddenProperties;
     this.sourceNames = other.sourceNames;
+    this.schema = other.schema;
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
   }
 
@@ -118,10 +116,6 @@ public class QueryMetadata {
     return kafkaStreams.state().toString();
   }
 
-  public OutputNode getOutputNode() {
-    return outputNode;
-  }
-
   public String getExecutionPlan() {
     return executionPlan;
   }
@@ -143,7 +137,7 @@ public class QueryMetadata {
   }
 
   public Schema getResultSchema() {
-    return outputNode.getSchema();
+    return schema;
   }
 
   public Set<String> getSourceNames() {

@@ -21,6 +21,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -44,10 +45,6 @@ public class KsqlBareOutputNode extends OutputNode {
     super(id, source, schema, limit, extractionPolicy);
   }
 
-  public String getKafkaTopicName() {
-    return null;
-  }
-
   @Override
   public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
     return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
@@ -65,16 +62,24 @@ public class KsqlBareOutputNode extends OutputNode {
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final QueryId queryId) {
-    final SchemaKStream schemaKStream = getSource().buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId);
+      final QueryId queryId
+  ) {
+    final SchemaKStream<?> schemaKStream = getSource()
+        .buildStream(
+            builder,
+            ksqlConfig,
+            serviceContext,
+            processingLogContext,
+            functionRegistry,
+            queryId
+        );
 
-    schemaKStream.setOutputNode(this);
-    return schemaKStream.toQueue(buildNodeContext(queryId));
+    final QueuedSchemaKStream<?> queued = new QueuedSchemaKStream<>(
+        schemaKStream,
+        buildNodeContext(queryId).getQueryContext()
+    );
+
+    queued.setOutputNode(this);
+    return queued;
   }
 }

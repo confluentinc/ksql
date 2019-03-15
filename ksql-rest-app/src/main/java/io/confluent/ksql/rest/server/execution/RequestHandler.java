@@ -40,7 +40,7 @@ import java.util.Optional;
  */
 public class RequestHandler {
 
-  private final Map<Class<? extends Statement>, StatementExecutor> customExecutors;
+  private final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors;
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final ServiceContext serviceContext;
@@ -58,7 +58,7 @@ public class RequestHandler {
    * @param serviceContext  a service context
    */
   public RequestHandler(
-      final Map<Class<? extends Statement>, StatementExecutor> customExecutors,
+      final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors,
       final DistributingExecutor distributor,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
@@ -80,7 +80,7 @@ public class RequestHandler {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
     for (ParsedStatement parsed : statements) {
-      final PreparedStatement prepared = ksqlEngine.prepare(parsed);
+      final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
       if (prepared.getStatement() instanceof RunScript) {
         final KsqlEntityList result = executeRunScript(prepared, propertyOverrides);
         if (!result.isEmpty()) {
@@ -96,15 +96,17 @@ public class RequestHandler {
     return entities;
   }
 
-  private Optional<KsqlEntity> executeStatement(
-      final PreparedStatement<?> prepared,
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> Optional<KsqlEntity> executeStatement(
+      final PreparedStatement<T> prepared,
       final Map<String, Object> propertyOverrides,
       final KsqlEntityList entities
   ) {
     final Class<? extends Statement> statementClass = prepared.getStatement().getClass();
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
-    final StatementExecutor executor = customExecutors.getOrDefault(statementClass, distributor);
+    final StatementExecutor<T> executor = (StatementExecutor<T>)
+        customExecutors.getOrDefault(statementClass, distributor);
     return executor.execute(
         prepared,
         ksqlEngine,

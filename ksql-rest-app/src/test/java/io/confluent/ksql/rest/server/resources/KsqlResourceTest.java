@@ -64,10 +64,10 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -134,6 +134,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -1593,7 +1594,7 @@ public class KsqlResourceTest {
     makeRequest(statement);
   }
 
-  private Answer executeAgainstEngine(final String sql) {
+  private Answer<?> executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
       return null;
@@ -1761,7 +1762,7 @@ public class KsqlResourceTest {
     final QueryDescriptionEntity queryDescriptionEntity = (QueryDescriptionEntity) entity;
     final QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
     assertThat(queryDescription.getFields(), is(
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getOutputNode().getSchema())));
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getResultSchema())));
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 
@@ -1812,14 +1813,14 @@ public class KsqlResourceTest {
     if (type == DataSource.DataSourceType.KSTREAM) {
       metaStore.putSource(
           new KsqlStream<>(
-              "statementText", sourceName, schema, schema.fields().get(0),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes.String()));
+              "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
     if (type == DataSource.DataSourceType.KTABLE) {
       metaStore.putSource(
           new KsqlTable<>(
-              "statementText", sourceName, schema, schema.fields().get(0),
-              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes.String()));
+              "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
+              new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
   }
 
@@ -1879,6 +1880,8 @@ public class KsqlResourceTest {
   }
 
   private void givenPersistentQueryCount(final int value) {
-    when(sandbox.numberOfPersistentQueries()).thenReturn(value);
+    final List<PersistentQueryMetadata> queries = mock(List.class);
+    when(queries.size()).thenReturn(value);
+    when(sandbox.getPersistentQueries()).thenReturn(queries);
   }
 }

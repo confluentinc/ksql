@@ -18,14 +18,15 @@ package io.confluent.ksql.analyzer;
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
+import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -50,6 +51,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class AnalyzerTest {
 
   private MutableMetaStore jsonMetaStore;
@@ -235,9 +237,10 @@ public class AnalyzerTest {
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
-    final StructuredDataSource structuredDataSource = analysis.getInto();
-    final KsqlTopic createdKsqlTopic = structuredDataSource.getKsqlTopic();
-    assertThat(createdKsqlTopic.getTopicName(), is("FOO"));
+    final Optional<Into> into = analysis.getInto();
+    assertThat(into, is(not((Optional.empty()))));
+    final KsqlTopic createdKsqlTopic = into.get().getKsqlTopic();
+    assertThat(createdKsqlTopic.getKsqlTopicName(), is("FOO"));
     assertThat(createdKsqlTopic.getKafkaTopicName(), is("TEST_TOPIC1"));
   }
 
@@ -305,14 +308,14 @@ public class AnalyzerTest {
             .field("FIELD1", Schema.INT64_SCHEMA)
             .build();
 
-    final KsqlStream ksqlStream = new KsqlStream<>(
+    final KsqlStream<?> ksqlStream = new KsqlStream<>(
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
             schema,
-            schema.field("FIELD1"),
+            Optional.of(schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic,
-            Serdes.String());
+            Serdes::String);
 
     newAvroMetaStore.putTopic(ksqlTopic);
     newAvroMetaStore.putSource(ksqlStream);

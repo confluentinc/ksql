@@ -15,13 +15,15 @@
 
 package io.confluent.ksql.metastore;
 
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import java.util.Set;
 
 public interface MutableMetaStore extends MetaStore {
 
   void putTopic(KsqlTopic topic);
 
-  void putSource(StructuredDataSource dataSource);
+  void putSource(StructuredDataSource<?> dataSource);
 
   void deleteTopic(String topicName);
 

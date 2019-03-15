@@ -25,9 +25,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Schema;
 
@@ -40,26 +38,6 @@ public abstract class OutputNode
   private final Schema schema;
   private final Optional<Integer> limit;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
-  private final InternalCallback callback;
-
-  public interface LimitHandler {
-    void limitReached();
-  }
-
-  public interface Callback {
-
-    /**
-     * Called to determine is an output row should be queued for output.
-     *
-     * @return {@code true} if it should be sent, {@code false} otherwise.
-     */
-    boolean shouldQueue();
-
-    /**
-     * Called once a row has been queued for output.
-     */
-    void onQueued();
-  }
 
   @JsonCreator
   protected OutputNode(
@@ -77,9 +55,6 @@ public abstract class OutputNode
     this.schema = schema;
     this.limit = limit;
     this.timestampExtractionPolicy = timestampExtractionPolicy;
-    this.callback = limit
-        .map(l -> (InternalCallback) new LimitCallback(l))
-        .orElseGet(NoCallback::new);
   }
 
   @Override
@@ -94,17 +69,6 @@ public abstract class OutputNode
 
   public Optional<Integer> getLimit() {
     return limit;
-  }
-
-  /**
-   * @return a callback to be called before outputting.
-   */
-  public Callback getCallback() {
-    return callback;
-  }
-
-  public void setLimitHandler(final LimitHandler limitHandler) {
-    callback.setLimitHandler(limitHandler);
   }
 
   @JsonProperty
@@ -126,59 +90,5 @@ public abstract class OutputNode
     return timestampExtractionPolicy;
   }
 
-  private interface InternalCallback extends Callback {
-
-    void setLimitHandler(LimitHandler limitHandler);
-  }
-
-  private static final class LimitCallback implements InternalCallback {
-
-    private final AtomicInteger remaining;
-    private final AtomicInteger queued;
-    private volatile LimitHandler limitHandler = () -> {
-    };
-
-    private LimitCallback(final int limit) {
-      if (limit <= 0) {
-        throw new IllegalArgumentException("limit must be positive, was:" + limit);
-      }
-      this.remaining = new AtomicInteger(limit);
-      this.queued = new AtomicInteger(limit);
-    }
-
-    @Override
-    public void setLimitHandler(final LimitHandler limitHandler) {
-      this.limitHandler = Objects.requireNonNull(limitHandler, "limitHandler");
-    }
-
-    @Override
-    public boolean shouldQueue() {
-      return remaining.decrementAndGet() >= 0;
-    }
-
-    @Override
-    public void onQueued() {
-      if (queued.decrementAndGet() == 0) {
-        limitHandler.limitReached();
-      }
-    }
-  }
-
   public abstract QueryId getQueryId(QueryIdGenerator queryIdGenerator);
-
-  private static class NoCallback implements InternalCallback {
-
-    @Override
-    public void setLimitHandler(final LimitHandler limitHandler) {
-    }
-
-    @Override
-    public boolean shouldQueue() {
-      return true;
-    }
-
-    @Override
-    public void onQueued() {
-    }
-  }
 }

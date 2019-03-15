@@ -165,7 +165,7 @@ public final class SchemaUtil {
     for (final Field field : schema.fields()) {
       newSchema.field((alias + "." + field.name()), field.schema());
     }
-    return newSchema;
+    return newSchema.build();
   }
 
   private static final ImmutableMap<String, String> TYPE_MAP =

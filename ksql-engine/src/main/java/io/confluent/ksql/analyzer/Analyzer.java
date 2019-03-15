@@ -17,12 +17,11 @@ package io.confluent.ksql.analyzer;
 
 import static java.lang.String.format;
 
+import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.metastore.KsqlStdOut;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -108,18 +107,7 @@ class Analyzer {
   }
 
   private void analyzeSink(final Optional<Sink> sink) {
-    if (sink.isPresent()) {
-      analyzeNonStdOutSink(sink.get());
-      return;
-    }
-
-    final StructuredDataSource into = new KsqlStdOut(
-        null,
-        null,
-        null,
-        StructuredDataSource.DataSourceType.KSTREAM);
-
-    analysis.setInto(into, false);
+    sink.ifPresent(this::analyzeNonStdOutSink);
   }
 
   private void setIntoProperties(final Sink sink) {
@@ -183,8 +171,8 @@ class Analyzer {
     setIntoProperties(sink);
 
     if (!sink.shouldCreateSink()) {
-      final StructuredDataSource into = metaStore.getSource(sink.getName());
-      if (into == null) {
+      final StructuredDataSource<?> existing = metaStore.getSource(sink.getName());
+      if (existing == null) {
         throw new KsqlException("Unknown source: " + sink.getName());
       }
 
@@ -193,7 +181,13 @@ class Analyzer {
             "Sink topic " + sink.getName() + " does not exist in the metastore.");
       }
 
-      analysis.setInto(into, sink.shouldCreateSink());
+      analysis.setInto(Into.of(
+          sqlExpression,
+          sink.getName(),
+          false,
+          existing.getKsqlTopic(),
+          existing.getKeySerdeFactory()
+      ));
       return;
     }
 
@@ -208,17 +202,13 @@ class Analyzer {
         true
     );
 
-    final KsqlStream intoKsqlStream = new KsqlStream<>(
+    analysis.setInto(Into.of(
         sqlExpression,
         sink.getName(),
-        null,
-        null,
-        null,
+        true,
         intoKsqlTopic,
-        Serdes.String()
-    );
-
-    analysis.setInto(intoKsqlStream, true);
+        Serdes::String
+    ));
   }
 
   private KsqlTopicSerDe getIntoValueSerde() {
@@ -564,7 +554,7 @@ class Analyzer {
 
       final Pair<StructuredDataSource, String> fromDataSource =
           new Pair<>(
-              metaStore.getSource(structuredDataSourceName).copy(),
+              metaStore.getSource(structuredDataSourceName),
               node.getAlias()
           );
       analysis.addDataSource(fromDataSource);

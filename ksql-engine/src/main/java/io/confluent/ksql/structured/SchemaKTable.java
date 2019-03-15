@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
@@ -49,7 +50,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final KTable<K, GenericRow> ktable,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
-      final Serde<K> keySerde,
+      final SerdeFactory<K> keySerdeFactory,
       final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
@@ -60,7 +61,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         ktable,
         keyField,
         sourceSchemaKStreams,
-        keySerde,
+        keySerdeFactory,
         type,
         ksqlConfig,
         functionRegistry,
@@ -74,7 +75,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final KTable<K, GenericRow> ktable,
       final Field keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
-      final Serde<K> keySerde,
+      final SerdeFactory<K> keySerdeFactory,
       final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
@@ -86,7 +87,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         null,
         keyField,
         sourceSchemaKStreams,
-        keySerde,
+        keySerdeFactory,
         type,
         ksqlConfig,
         functionRegistry,
@@ -117,14 +118,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
               }
               return new GenericRow(columns);
             }
-        ).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
+        ).to(kafkaTopicName, Produced.with(keySerdeFactory.create(), topicValueSerDe));
 
     return this;
-  }
-
-  @Override
-  public QueuedSchemaKStream toQueue(final QueryContext.Stacker contextStacker) {
-    return new QueuedSchemaKStream<>(this, contextStacker.getQueryContext());
   }
 
   @SuppressWarnings("unchecked")
@@ -149,7 +145,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         filteredKTable,
         keyField,
         Collections.singletonList(this),
-        keySerde,
+        keySerdeFactory,
         Type.FILTER,
         ksqlConfig,
         functionRegistry,
@@ -173,7 +169,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         ktable.mapValues(selection.getSelectValueMapper()),
         selection.getKey(),
         Collections.singletonList(this),
-        keySerde,
+        keySerdeFactory,
         Type.PROJECT,
         ksqlConfig,
         functionRegistry,
@@ -236,7 +232,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinedKTable,
         joinKey,
         ImmutableList.of(this, schemaKTable),
-        keySerde,
+        keySerdeFactory,
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
@@ -262,7 +258,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinedKTable,
         joinKey,
         ImmutableList.of(this, schemaKTable),
-        keySerde,
+        keySerdeFactory,
         Type.JOIN,
         ksqlConfig,
         functionRegistry,
@@ -288,7 +284,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinedKTable,
         joinKey,
         ImmutableList.of(this, schemaKTable),
-        keySerde,
+        keySerdeFactory,
         Type.JOIN,
         ksqlConfig,
         functionRegistry,

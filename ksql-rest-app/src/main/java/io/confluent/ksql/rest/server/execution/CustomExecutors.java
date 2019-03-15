@@ -38,7 +38,6 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -47,7 +46,8 @@ import java.util.stream.Collectors;
  * assumed that the {@code PreparedStatement} that is passed in matches the
  * expected class.
  */
-public enum CustomExecutors implements StatementExecutor {
+@SuppressWarnings({"unchecked", "rawtypes"})
+public enum CustomExecutors {
 
   LIST_TOPICS(ListTopics.class, ListTopicsExecutor::execute),
   LIST_REGISTERED_TOPICS(ListRegisteredTopics.class, ListRegisteredTopicsExecutor::execute),
@@ -63,13 +63,13 @@ public enum CustomExecutors implements StatementExecutor {
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset);
 
-  public static final Map<Class<? extends Statement>, StatementExecutor> EXECUTOR_MAP =
+  public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =
       ImmutableMap.copyOf(
           EnumSet.allOf(CustomExecutors.class)
               .stream()
               .collect(Collectors.toMap(
                   CustomExecutors::getStatementClass,
-                  Function.identity()))
+                  CustomExecutors::getExecutor))
       );
 
   private final Class<? extends Statement> statementClass;
@@ -86,9 +86,12 @@ public enum CustomExecutors implements StatementExecutor {
     return statementClass;
   }
 
-  @Override
+  private StatementExecutor<?> getExecutor() {
+    return this::execute;
+  }
+
   public Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext executionCtx,
       final ServiceContext serviceCtx,
       final KsqlConfig ksqlConfig,

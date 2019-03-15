@@ -34,13 +34,13 @@ public final class ListQueriesExecutor {
   private ListQueriesExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement statement,
+      final PreparedStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
-    final ListQueries listQueries = (ListQueries) statement.getStatement();
+    final ListQueries listQueries = statement.getStatement();
     if (listQueries.getShowExtended()) {
       return Optional.of(new QueryDescriptionList(
           statement.getStatementText(),

@@ -150,15 +150,17 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldCreatePersistentQueries() {
+    // When:
     final List<QueryMetadata> queries
         = KsqlEngineTestUtil.execute(ksqlEngine, "create table bar as select * from test2;" +
         "create table foo as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
 
-    assertThat(queries.size(), equalTo(2));
-    final PersistentQueryMetadata queryOne = (PersistentQueryMetadata) queries.get(0);
-    final PersistentQueryMetadata queryTwo = (PersistentQueryMetadata) queries.get(1);
-    assertThat(queryOne.getEntity(), equalTo("BAR"));
-    assertThat(queryTwo.getEntity(), equalTo("FOO"));
+    // Then:
+    assertThat(queries, hasSize(2));
+    assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
+    assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
+    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkNames(), contains("BAR"));
+    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkNames(), contains("FOO"));
   }
 
   @Test
@@ -678,7 +680,7 @@ public class KsqlEngineTest {
   public void shouldRemovePersistentQueryFromEngineWhenClosed() {
     // Given:
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
-    final int startingPersistentQueries = ksqlEngine.numberOfPersistentQueries();
+    final int startingPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
@@ -690,7 +692,7 @@ public class KsqlEngineTest {
     // Then:
     assertThat(ksqlEngine.getPersistentQuery(getQueryId(query)), is(Optional.empty()));
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
-    assertThat(ksqlEngine.numberOfPersistentQueries(), is(startingPersistentQueries));
+    assertThat(ksqlEngine.getPersistentQueries().size(), is(startingPersistentQueries));
   }
 
   @Test
@@ -1020,7 +1022,7 @@ public class KsqlEngineTest {
   public void shouldNotUpdateMetaStoreDuringTryExecute() {
     // Given:
     final int numberOfLiveQueries = ksqlEngine.numberOfLiveQueries();
-    final int numPersistentQueries = ksqlEngine.numberOfPersistentQueries();
+    final int numPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
     final List<ParsedStatement> statements = parse(
         "SET 'auto.offset.reset' = 'earliest';"
@@ -1041,7 +1043,7 @@ public class KsqlEngineTest {
     assertThat(metaStore.getSource("BAR"), is(nullValue()));
     assertThat(metaStore.getSource("FOO"), is(nullValue()));
     assertThat("live", ksqlEngine.numberOfLiveQueries(), is(numberOfLiveQueries));
-    assertThat("peristent", ksqlEngine.numberOfPersistentQueries(), is(numPersistentQueries));
+    assertThat("peristent", ksqlEngine.getPersistentQueries().size(), is(numPersistentQueries));
   }
 
   @Test

@@ -35,25 +35,6 @@
       "outputs": []
     },
     {
-      "name": "select delimited value_format with tab separated values using CsvFormat constant",
-      "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='TDF');",
-        "CREATE STREAM S2 as SELECT id, name, value FROM test;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0\tzero\t0", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0\t100\t100", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100\t100\t500", "timestamp": 0},
-        {"topic": "test_topic", "key": 100, "value": "100\t100\t100", "timestamp": 0}
-      ],
-      "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,zero,0", "timestamp": 0},
-        {"topic": "S2", "key": 0, "value": "0,100,100", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,100,500", "timestamp": 0},
-        {"topic": "S2", "key": 100, "value": "100,100,100", "timestamp": 0}
-      ]
-    },
-    {
       "name": "select delimited value_format with tab separated values using custom delimiter character",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='\t');",
@@ -92,10 +73,10 @@
       ]
     },
     {
-      "name": "select delimited value_format with pipe separated values using custom delimiter character",
+      "name": "Serialize delimited value_format with $",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='|');",
-        "CREATE STREAM S2 WITH(value_format='DELIMITED', value_delimiter='$') AS SELECT * FROM test;"
+        "CREATE STREAM S2 WITH(value_delimiter='$') AS SELECT * FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0|zero|0", "timestamp": 0},

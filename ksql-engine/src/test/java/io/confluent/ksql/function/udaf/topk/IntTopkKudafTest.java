@@ -105,10 +105,8 @@ public class IntTopkKudafTest {
     topkKudaf = new TopKAggregateFunctionFactory(topKSize)
         .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
     final List<Integer> initialAggregate = IntStream.range(0, topKSize)
-        .boxed()
-        .collect(Collectors.toList());
+            .boxed().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 
-    initialAggregate.sort(Comparator.reverseOrder());
     // When:
     final List<Integer> result = topkKudaf.aggregate(10, initialAggregate);
     final List<Integer> combined = topkKudaf.getMerger().apply("key", result, initialAggregate);

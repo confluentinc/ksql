@@ -73,7 +73,7 @@ class StreamingTestUtils {
         recordMap.computeIfAbsent(tp, ignored -> new ArrayList<>()).addAll(records.records(tp));
       }
     }
-    return new ConsumerRecords<K, V>(recordMap);
+    return new ConsumerRecords<>(recordMap);
   }
 
   static PrintTopic printTopic(

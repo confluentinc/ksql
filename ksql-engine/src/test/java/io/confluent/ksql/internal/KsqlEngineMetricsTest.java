@@ -88,9 +88,7 @@ public class KsqlEngineMetricsTest {
 
     engineMetrics.close();
 
-    engineMetrics.registeredSensors().forEach(sensor -> {
-      assertThat(engineMetrics.getMetrics().getSensor(sensor.name()), is(nullValue()));
-    });
+    engineMetrics.registeredSensors().forEach(sensor -> assertThat(engineMetrics.getMetrics().getSensor(sensor.name()), is(nullValue())));
   }
 
   @Test

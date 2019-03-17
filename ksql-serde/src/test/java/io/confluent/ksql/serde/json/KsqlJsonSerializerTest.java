@@ -126,7 +126,7 @@ public class KsqlJsonSerializerTest {
     long currentTime = System.currentTimeMillis();
     currentTime = (long) (1000 * Math.random()) + currentTime;
     // ordertime
-    columns.add(Long.valueOf(currentTime));
+    columns.add(currentTime);
 
     //orderid
     columns.add(10L);
@@ -136,7 +136,7 @@ public class KsqlJsonSerializerTest {
     category.put("NAME", Math.random() > 0.5 ? "Produce" : "Food");
 
     final Struct item = new Struct(itemSchema);
-    item.put("ITEMID", 10l);
+    item.put("ITEMID", 10L);
     item.put("NAME", "Item_10");
     item.put("CATEGORIES", Collections.singletonList(category));
 

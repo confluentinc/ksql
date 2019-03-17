@@ -197,8 +197,8 @@ public class PhysicalPlanBuilderTest {
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {
-    final PlanNode logical = AnalysisTestUtil.buildLogicalPlan(query, metaStore);;
-    return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
+    final PlanNode logical = AnalysisTestUtil.buildLogicalPlan(query, metaStore);
+      return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
   }
 
   @Test

@@ -27,8 +27,8 @@ import org.junit.Test;
 public class DoubleTopkDistinctKudafTest {
 
   private final List<Double> valuesArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0,
-      80.0, 35.0, 25.0, 60.0, 80.0);;
-  private final TopkDistinctKudaf<Double> doubleTopkDistinctKudaf
+      80.0, 35.0, 25.0, 60.0, 80.0);
+    private final TopkDistinctKudaf<Double> doubleTopkDistinctKudaf
       = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.OPTIONAL_FLOAT64_SCHEMA);
 
   @Test

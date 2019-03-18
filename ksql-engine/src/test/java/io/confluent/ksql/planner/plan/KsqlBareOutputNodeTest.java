@@ -123,7 +123,7 @@ public class KsqlBareOutputNodeTest {
         .mapToObj(i -> node.getQueryId(queryIdGenerator))
         .collect(Collectors.toSet());
 
-      // Then:
+    // Then:
     assertThat(ids.size(), equalTo(100));
     verifyNoMoreInteractions(queryIdGenerator);
   }

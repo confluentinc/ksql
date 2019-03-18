@@ -72,7 +72,7 @@ public final class KsqlContextTestUtil {
     final DefaultSchemaInjector schemaInjector = new DefaultSchemaInjector(
         new SchemaRegistryTopicSchemaSupplier(serviceContext.getSchemaRegistryClient()));
     return new KsqlContext(
-        serviceContext, ksqlConfig, engine, schemaInjector, DefaultTopicInjector::new);
+        serviceContext, ksqlConfig, engine, sc -> schemaInjector, DefaultTopicInjector::new);
   }
 
   public static KsqlConfig createKsqlConfig(final EmbeddedSingleNodeKafkaCluster kafkaCluster) {

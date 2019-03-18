@@ -30,10 +30,13 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -66,34 +69,37 @@ public class DefaultTopicInjector implements TopicInjector {
       return statement;
     }
 
-    final CreateAsSelect cas = (CreateAsSelect) statement.getStatement();
+    final PreparedStatement<? extends CreateAsSelect> cas =
+        (PreparedStatement<? extends CreateAsSelect>) statement;
 
-    final String topic = topicName(cas, ksqlConfig);
-    final TopicDescription description = describeSource(topicClient, ksqlConfig, statement, cas);
+    final String topic = topicName(cas.getStatement(), ksqlConfig);
+    final TopicDescription description = describeSource(topicClient, ksqlConfig, cas);
     final int partitions = numPartitions(cas, ksqlConfig, propertyOverrides, description);
     final short replicas = numReplicas(cas, ksqlConfig, propertyOverrides, description);
 
-    final Map<String, Expression> properties = new HashMap<>(cas.getProperties());
+    final Map<String, Expression> properties = new HashMap<>(cas.getStatement().getProperties());
     properties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(topic));
     properties.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
     properties.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
 
-    final CreateAsSelect withTopic = cas.copyWith(properties);
+    final CreateAsSelect withTopic = cas.getStatement().copyWith(properties);
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
 
     return (PreparedStatement<T>) PreparedStatement.of(withTopicText, withTopic);
   }
 
-  private <T extends Statement> TopicDescription describeSource(
+  private TopicDescription describeSource(
       final KafkaTopicClient topicClient,
       final KsqlConfig ksqlConfig,
-      final PreparedStatement<T> statement,
-      final CreateAsSelect cas
+      final PreparedStatement<? extends CreateAsSelect> cas
   ) {
     final Analysis analysis = new QueryAnalyzer(
         metaStore,
         ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
-        .analyze(statement.getStatementText(), cas.getQuery(), Optional.of(cas.getSink()));
+        .analyze(
+            cas.getStatementText(),
+            cas.getStatement().getQuery(),
+            Optional.of(cas.getStatement().getSink()));
 
     final StructuredDataSource theSource = analysis.getTheSource();
     final String kafkaTopicName = theSource.getKsqlTopic().getKafkaTopicName();
@@ -111,46 +117,86 @@ public class DefaultTopicInjector implements TopicInjector {
   }
 
   private static int numPartitions(
-      final CreateAsSelect cas,
+      final PreparedStatement<? extends CreateAsSelect> cas,
       final KsqlConfig cfg,
       final Map<String, Object> propertyOverrides,
       final TopicDescription description
   ) {
-    final Expression partitions = cas.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS);
-    if (partitions != null) {
-      return Integer.parseInt(partitions.toString());
+    final Optional<Integer> inProperties = checkedParse(
+        Integer::parseInt, cas, KsqlConstants.SINK_NUMBER_OF_PARTITIONS);
+    if (inProperties.isPresent()) {
+      return inProperties.get();
     }
 
-    final Object override = propertyOverrides.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
     final Integer legacyNumPartitions = cfg.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
-
-    return Optional.ofNullable(override)
-        .map(Object::toString)
-        .map(Integer::parseInt)
+    return checkedParse(
+          Integer::parseInt,
+          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+          propertyOverrides)
         .orElseGet(() -> ObjectUtils.defaultIfNull(
             legacyNumPartitions,
             description.partitions().size()));
   }
 
   private static short numReplicas(
-      final CreateAsSelect cas,
+      final PreparedStatement<? extends CreateAsSelect> cas,
       final KsqlConfig cfg,
       final Map<String, Object> propertyOverrides,
       final TopicDescription description
   ) {
-    final Expression replicas = cas.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS);
-    if (replicas != null) {
-      return Short.parseShort(replicas.toString());
+    final Optional<Short> inProperties = checkedParse(
+        Short::parseShort, cas, KsqlConstants.SINK_NUMBER_OF_REPLICAS);
+    if (inProperties.isPresent()) {
+      return inProperties.get();
     }
 
-    final Object override = propertyOverrides.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
     final Short legacyNumReplicas = cfg.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-
-    return Optional.ofNullable(override)
-        .map(Object::toString)
-        .map(Short::parseShort)
+    return checkedParse(
+          Short::parseShort,
+          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
+          propertyOverrides)
         .orElseGet(() -> ObjectUtils.defaultIfNull(
             legacyNumReplicas,
             (short) description.partitions().get(0).replicas().size()));
+  }
+
+  private static <T extends Number> Optional<T> checkedParse(
+      final Function<String, T> parse,
+      final PreparedStatement<? extends CreateAsSelect> cas,
+      final String property
+  ) {
+    final Object exp = cas.getStatement().getProperties().get(property);
+    if (exp == null) {
+      return Optional.empty();
+    }
+
+    final String val = exp.toString();
+    try {
+      return Optional.ofNullable(parse.apply(val));
+    } catch (NumberFormatException e) {
+      throw new KsqlStatementException(
+          String.format("Invalid value for property %s: %s",
+              property, val),
+          cas.getStatementText());
+    }
+  }
+
+  private static <T extends Number> Optional<T> checkedParse(
+      final Function<String, T> parse,
+      final String property,
+      final Map<String, ?> propertyOverrides) {
+    final Object override = propertyOverrides.get(property);
+    if (override == null) {
+      return Optional.empty();
+    }
+
+    final String val = override.toString();
+    try {
+      return Optional.ofNullable(parse.apply(val));
+    } catch (NumberFormatException e) {
+      throw new KsqlException(
+          String.format("Invalid property override %s: %s (all overrides: %s)",
+              property, val, propertyOverrides));
+    }
   }
 }

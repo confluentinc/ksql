@@ -26,8 +26,10 @@ import java.util.Map;
 public interface TopicInjector {
 
   /**
-   * Attempt to inject the sink kafka topic properties into the supplied {@code statement}. The
-   * following precedence order is maintained for deriving properties:
+   * Attempt to inject topic name, number of partitions and number of replicas into the topic
+   * properties of the supplied {@code statement}.
+   *
+   * The following precedence order is maintained for deriving properties:
    *
    * <ul>
    *   <li>The statement itself, if it has a WITH clause</li>

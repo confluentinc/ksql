@@ -17,9 +17,11 @@ package io.confluent.ksql;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +50,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.verification.VerificationMode;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlContextTest {
@@ -76,6 +79,9 @@ public class KsqlContextTest {
 
   private final static PreparedStatement<?> STMT_0_WITH_TOPIC = PreparedStatement
       .of("sql 0", mock(Statement.class));
+
+  private final static PreparedStatement<?> STMT_1_WITH_TOPIC = PreparedStatement
+      .of("sql 1", mock(Statement.class));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -124,7 +130,7 @@ public class KsqlContextTest {
         .thenAnswer(inv -> inv.getArgument(0));
 
     ksqlContext = new KsqlContext(
-        serviceContext, SOME_CONFIG, ksqlEngine, schemaInjector, topicInjectorFactory);
+        serviceContext, SOME_CONFIG, ksqlEngine, sc -> schemaInjector, topicInjectorFactory);
 
   }
 
@@ -309,6 +315,19 @@ public class KsqlContextTest {
   }
 
   @Test
+  public void shouldInferTopicWithValidArgs() {
+    // Given:
+    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    verify(topicInjector, times(2) /* once to validate, once to execute */)
+        .forStatement(PREPARED_STMT_0, SOME_CONFIG, SOME_PROPERTIES);
+  }
+
+  @Test
   public void shouldThrowIfFailedToInferTopic() {
     // Given:
     when(topicInjector.forStatement(any(), any(), any()))
@@ -320,5 +339,20 @@ public class KsqlContextTest {
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldInferTopicAfterInferringSchema() {
+    // Given:
+    when(schemaInjector.forStatement(any())).thenReturn((PreparedStatement) STMT_1_WITH_SCHEMA);
+    when(topicInjector.forStatement(eq(STMT_1_WITH_SCHEMA), any(), any()))
+        .thenReturn((PreparedStatement) STMT_1_WITH_TOPIC);
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    verify(ksqlEngine).execute(eq(STMT_1_WITH_TOPIC), any(), any());
   }
 }

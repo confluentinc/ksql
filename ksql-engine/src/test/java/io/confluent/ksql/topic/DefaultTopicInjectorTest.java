@@ -1,294 +1,288 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"; you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.topic;
 
+import static io.confluent.ksql.topic.TopicInjectorFixture.hasTopicInfo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
-import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
-import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.services.FakeKafkaTopicClient;
+import io.confluent.ksql.topic.TopicInjectorFixture.Inject;
+import io.confluent.ksql.topic.TopicInjectorFixture.Type;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import java.util.HashMap;
+import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import javax.annotation.Nullable;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
-import org.junit.Before;
+import java.util.stream.Collectors;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-@SuppressWarnings("SameParameterValue")
+@RunWith(Enclosed.class)
 public class DefaultTopicInjectorTest {
 
-  private static final Schema SCHEMA = SchemaBuilder.struct()
-      .field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+  public static class Tests {
+    @Rule
+    public final TopicInjectorFixture fixture = new TopicInjectorFixture();
 
-  private MutableMetaStore metaStore;
-  private KsqlConfig ksqlConfig;
-  private FakeKafkaTopicClient fakeClient;
-  private DefaultTopicInjector injector;
+    @Rule
+    public final ExpectedException expectedException = ExpectedException.none();
 
-  @Before
-  public void setUp() {
-    metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    fakeClient = new FakeKafkaTopicClient();
-    injector = new DefaultTopicInjector(fakeClient, metaStore);
-    ksqlConfig = new KsqlConfig(new HashMap<>());
+    @Test
+    public void shouldInferTopicName() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (value_format='JSON') AS SELECT * FROM source;"
+      );
+
+      // When:
+      final PreparedStatement<CreateStreamAsSelect> csas = fixture.inject();
+
+      // Then:
+      assertThat(
+          csas.getStatement().getProperties(),
+          hasEntry(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("SINK")));
+    }
+
+    @Test
+    public void shouldUseTopicNameInWith() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (kafka_topic='topic', value_format='JSON') "
+              + "AS SELECT * FROM source;"
+      );
+
+      // When:
+      final PreparedStatement<CreateStreamAsSelect> csas = fixture.inject();
+
+      // Then:
+      assertThat(
+          csas.getStatement().getProperties(),
+          hasEntry(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic")));
+    }
+
+    @Test
+    public void shouldInferFromLeftJoin() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (value_format='JSON') "
+              + "AS SELECT * FROM source "
+              + "JOIN source2 ON source.f1 = source2.f1;"
+      );
+
+      // When:
+      final PreparedStatement<CreateStreamAsSelect> csas = fixture.inject();
+
+      // Then:
+      assertThat(csas, hasTopicInfo("SINK", Inject.SOURCE.partitions, Inject.SOURCE.replicas));
+    }
+
+    @Test
+    public void testMalformedReplicaProperty() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (replicas='hi', value_format='JSON') AS SELECT * FROM source;"
+      );
+
+      // Expect:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage("Invalid number of replications in WITH clause: 'hi'");
+
+      // When:
+      fixture.inject();
+    }
+
+    @Test
+    public void testMalformedReplicaPropertyNumber() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (replicas=.5, value_format='JSON') AS SELECT * FROM source;"
+      );
+
+      // Expect:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage("Invalid number of replications in WITH clause: 0.5");
+
+      // When:
+      fixture.inject();
+    }
+
+    @Test
+    public void testMalformedReplicaPropertyInOverrides() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (value_format='JSON') AS SELECT * FROM source;"
+      );
+      fixture.propertyOverrides.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "hi");
+
+      // Expect:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage(
+          "Invalid property override ksql.sink.replicas: hi "
+              + "(all overrides: {ksql.sink.replicas=hi})");
+
+      // When:
+      fixture.inject();
+    }
+
+    @Test
+    public void testMalformedPartitionsProperty() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (partitions='hi', value_format='JSON') AS SELECT * FROM source;"
+      );
+
+      // Expect:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage("Invalid number of partitions in WITH clause: 'hi'");
+
+      // When:
+      fixture.inject();
+    }
+
+    @Test
+    public void testMalformedPartitionsPropertyNumber() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (partitions=.5, value_format='JSON') AS SELECT * FROM source;"
+      );
+
+      // Expect:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage("Invalid number of partitions in WITH clause: 0.5");
+
+      // When:
+      fixture.inject();
+    }
+
+    @Test
+    public void testMalformedPartitionsPropertyInOverrides() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (value_format='JSON') AS SELECT * FROM source;"
+      );
+      fixture.propertyOverrides.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "hi");
+
+      // Expect:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage(
+          "Invalid property override ksql.sink.partitions: hi "
+              + "(all overrides: {ksql.sink.partitions=hi})");
+
+      // When:
+      fixture.inject();
+    }
+
+    @Test
+    public void shouldDoNothingForNonCAS() {
+      // Given:
+      final PreparedStatement<?> statement = fixture.givenStatement(
+          "SHOW TOPICS;"
+      );
+
+      // When:
+      final PreparedStatement<?> injected = fixture.inject(statement);
+
+      // Then:
+      assertThat(injected, is(sameInstance(statement)));
+    }
   }
 
-  @Test
-  public void shouldInferDirectlyFromWith() {
-    // Given:
-    givenSource("SOURCE", "source", DataSourceType.KSTREAM, 4, (short) 2);
-    final PreparedStatement<CreateStreamAsSelect> csas = givenCSAS(
-        "CREATE STREAM x WITH(kafka_topic='topic', partitions=20, replicas=5) "
-            + "AS SELECT * FROM SOURCE;"
-    );
-    final KsqlConfig config = givenConfig(null, null);
+  /**
+   * This class tests all combinations of possible ways to get the topic
+   * information. There are four place to get the information: with clause,
+   * overrides, the ksql config and the source. For each place, there are
+   * four options: both partitions/replicas are present, only partitions is
+   * present, only replicas is present and nothing is present.
+   */
+  @RunWith(Parameterized.class)
+  public static class PrecedenceTest {
 
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> withTopic =
-        injector.forStatement(csas, config, ImmutableMap.of());
+    @Rule
+    public final TopicInjectorFixture fixture = new TopicInjectorFixture();
 
-    // Then:
-    assertThat(withTopic, hasProperties("topic", 20, (short) 5));
-  }
+    @Parameters(name="given {0} -> expect({1},{2})")
+    public static Iterable<Object[]> data() {
+      final List<Inject> withs = EnumSet.allOf(Inject.class)
+          .stream().filter(i -> i.type == Type.WITH).collect(Collectors.toList());
+      final List<Inject> overrides = EnumSet.allOf(Inject.class)
+          .stream().filter(i -> i.type == Type.OVERRIDES).collect(Collectors.toList());
+      final List<Inject> ksqlConfigs = EnumSet.allOf(Inject.class)
+          .stream().filter(i -> i.type == Type.KSQL_CONFIG).collect(Collectors.toList());
 
-  @Test
-  public void shouldInferPartiallyFromWith() {
-    // Given:
-    givenSource("SOURCE", "source", DataSourceType.KSTREAM, 4, (short) 2);
-    final PreparedStatement<CreateStreamAsSelect> csas = givenCSAS(
-        "CREATE STREAM x WITH(kafka_topic='topic')AS SELECT * FROM SOURCE;"
-    );
-    final KsqlConfig config = givenConfig(null, null);
+      final List<Object[]> parameters = new ArrayList<>();
+      for (List<Inject> injects : Lists.cartesianProduct(withs, overrides, ksqlConfigs)) {
+        // sort by precedence order
+        injects = new ArrayList<>(injects);
+        injects.sort(Comparator.comparing(i -> i.type));
 
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> withTopic =
-        injector.forStatement(csas, config, ImmutableMap.of());
+        final Inject expectedPartitions =
+            injects.stream().filter(i -> i.partitions != null).findFirst().orElse(Inject.SOURCE);
+        final Inject expectedReplicas =
+            injects.stream().filter(i -> i.replicas != null).findFirst().orElse(Inject.SOURCE);
 
-    // Then:
-    assertThat(withTopic, hasProperties("topic", 4, (short) 2));
-  }
-
-  @Test
-  public void shouldInferTopicInfoFromSource() {
-    // Given:
-    givenSource("SOURCE", "source", DataSourceType.KSTREAM, 4, (short) 2);
-    final PreparedStatement<CreateStreamAsSelect> csas = givenCSAS("source", "sink");
-    final KsqlConfig config = givenConfig(null, null);
-
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> withTopic =
-        injector.forStatement(csas, config, ImmutableMap.of());
-
-    // Then:
-    assertThat(withTopic, hasProperties("SINK", 4, (short) 2));
-  }
-
-  @Test
-  public void shouldInferTopicInfoFromConfigIfPresent() {
-    // Given:
-    givenSource("SOURCE", "source", DataSourceType.KSTREAM, 4, (short) 2);
-    final PreparedStatement<CreateStreamAsSelect> csas = givenCSAS("source", "sink");
-    final KsqlConfig config = givenConfig(1, (short) 1);
-
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> withTopic =
-        injector.forStatement(csas, config, ImmutableMap.of());
-
-    // Then:
-    assertThat(withTopic, hasProperties("SINK", 1, (short) 1));
-  }
-
-  @Test
-  public void shouldInferTopicInfoFromBothConfigAndSourceIfPartial() {
-    // Given:
-    givenSource("SOURCE", "source", DataSourceType.KSTREAM, 4, (short) 2);
-    final PreparedStatement<CreateStreamAsSelect> csas = givenCSAS("source", "sink");
-    final KsqlConfig config = givenConfig(1, null);
-
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> withTopic =
-        injector.forStatement(csas, config, ImmutableMap.of());
-
-    // Then:
-    assertThat(withTopic, hasProperties("SINK", 1, (short) 2));
-  }
-
-  @Test
-  public void shouldInferTopicInfoFromOverrideIfPresent() {
-    // Given:
-    givenSource("SOURCE", "source", DataSourceType.KSTREAM, 4, (short) 2);
-    final PreparedStatement<CreateStreamAsSelect> csas = givenCSAS("source", "sink");
-    final KsqlConfig config = givenConfig(1, (short) 1);
-
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> withTopic =
-        injector.forStatement(
-            csas,
-            config,
-            ImmutableMap.of(
-                KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 10,
-                KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, 10
-            ));
-
-    // Then:
-    assertThat(withTopic, hasProperties("SINK", 10, (short) 10));
-  }
-
-  @Test
-  public void shouldInferTopicInfoFromBothOverrideAndSourceIfPartial() {
-    // Given:
-    givenSource("SOURCE", "source", DataSourceType.KSTREAM, 4, (short) 2);
-    final PreparedStatement<CreateStreamAsSelect> csas = givenCSAS("source", "sink");
-    final KsqlConfig config = givenConfig(1, null);
-
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> withTopic =
-        injector.forStatement(
-            csas,
-            config,
-            ImmutableMap.of(
-                KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 10
-            ));
-
-    // Then:
-    assertThat(withTopic, hasProperties("SINK", 10, (short) 2));
-  }
-
-  @Test
-  public void shouldDoNothingForNonCAS() {
-    // Given:
-    final PreparedStatement<ListProperties> prepared =
-        PreparedStatement.of("", new ListProperties(Optional.empty()));
-
-    // When:
-    final PreparedStatement<ListProperties> output =
-        injector.forStatement(prepared, ksqlConfig, ImmutableMap.of());
-
-    // Then:
-    assertThat(output, is(prepared));
-  }
-
-  private Matcher<PreparedStatement<CreateStreamAsSelect>> hasProperties(
-      final String name,
-      final int partitions,
-      final short replicas
-  ) {
-    return new TypeSafeMatcher<PreparedStatement<CreateStreamAsSelect>>() {
-      @Override
-      protected boolean matchesSafely(PreparedStatement<CreateStreamAsSelect> item) {
-        final Map<?, ?> properties = item.getStatement().getProperties();
-        return properties.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY)
-              .equals(new StringLiteral(name))
-            && properties.get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS)
-              .equals(new IntegerLiteral(partitions))
-            && properties.get(KsqlConstants.SINK_NUMBER_OF_REPLICAS)
-              .equals(new IntegerLiteral(replicas));
+        parameters.add(new Object[]{
+            injects.toString(),
+            expectedPartitions,
+            expectedReplicas,
+            injects.toArray(new Inject[]{})});
       }
 
-      @Override
-      public void describeTo(Description description) {
-        description.appendText(
-            String.format("Expected (name = %s, partitions = %d, repliacs = %d)",
-                name,
-                partitions,
-                replicas));
-      }
-    };
-  }
-
-  private KsqlConfig givenConfig(
-      @Nullable final Integer numPartitions,
-      @Nullable final Short numReplicas
-  ) {
-    final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
-    if (numPartitions != null) {
-      builder.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, numPartitions);
+      return parameters;
     }
-    if (numReplicas != null) {
-      builder.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numReplicas);
+
+    @Parameter
+    public String description;
+
+    @Parameter(1)
+    public Inject expectedPartitions;
+
+    @Parameter(2)
+    public Inject expectedReplicas;
+
+    @Parameter(3)
+    public Inject[] injects;
+
+    @Test
+    public void test() {
+      // Given:
+      fixture.givenStatement(
+          "CREATE STREAM sink WITH (value_format='JSON') AS SELECT * FROM source;");
+      fixture.givenInjects(injects);
+
+      // When:
+      final PreparedStatement<CreateStreamAsSelect> csas = fixture.inject();
+
+      // Then:
+      assertThat(csas,
+          hasTopicInfo("SINK", expectedPartitions.partitions, expectedReplicas.replicas));
     }
-    return new KsqlConfig(builder.build());
-  }
-
-  private PreparedStatement<CreateStreamAsSelect> givenCSAS(final String source, final String sink) {
-    final String sql = String.format("CREATE STREAM %s AS SELECT * FROM %s;", sink, source);
-    return givenCSAS(sql);
-  }
-
-  @SuppressWarnings("unchecked")
-  private PreparedStatement<CreateStreamAsSelect> givenCSAS(final String sql) {
-    final DefaultKsqlParser parser = new DefaultKsqlParser();
-    final List<ParsedStatement> statements = parser
-        .parse(sql);
-    return (PreparedStatement<CreateStreamAsSelect>) parser.prepare(statements.get(0), metaStore);
-  }
-
-  private void givenSource(
-      final String name,
-      final String topicName,
-      final DataSourceType type,
-      final int numPartitions,
-      final short numReplicas
-  ) {
-    final KsqlTopic ksqlTopic =
-        new KsqlTopic(topicName, topicName, new KsqlJsonTopicSerDe(), false);
-    fakeClient.createTopic(topicName, numPartitions, numReplicas);
-
-    final StructuredDataSource dataSource;
-    switch (type) {
-      case KSTREAM:
-        dataSource =
-            new KsqlStream<>(
-                "",
-                name,
-                SCHEMA,
-                SCHEMA.fields().get(0),
-                new MetadataTimestampExtractionPolicy(),
-                ksqlTopic,
-                Serdes.String()
-            );
-        break;
-      case KTABLE:
-        dataSource =
-            new KsqlTable<>(
-                "",
-                name,
-                SCHEMA,
-                SCHEMA.fields().get(0),
-                new MetadataTimestampExtractionPolicy(),
-                ksqlTopic,
-                Serdes.String()
-            );
-        break;
-      default:
-        throw new IllegalArgumentException("Unexpected type: " + type);
-    }
-    metaStore.putSource(dataSource);
   }
 
 }

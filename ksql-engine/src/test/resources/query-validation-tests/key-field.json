@@ -61,7 +61,6 @@
         {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "BAR": 2}}
       ],
       "post": {
-        "issues": ["key field of OUTPUT has INCORRECT type: should be 'STRING'."],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
@@ -81,7 +80,6 @@
         {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "BAR": 2}}
       ],
       "post": {
-        "issues": ["key field of OUTPUT has INCORRECT type: should be 'STRING'."],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
@@ -172,10 +170,6 @@
         {"topic": "OUTPUT", "value": {"FOO":1, "BAR": 2}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
@@ -196,9 +190,7 @@
       ],
       "post": {
         "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT name: should be 'ALIASED'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
+          "key field of output has INCORRECT name: should be 'ALIASED'."
           ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
@@ -220,7 +212,6 @@
       ],
       "post": {
         "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
           "key field of output INCORRECT: should be null."
         ],
         "sources": [
@@ -242,10 +233,6 @@
         {"topic": "OUTPUT", "key":"1", "value": {"FOO":1, "BAR": 2}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
@@ -265,10 +252,6 @@
         {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "BAR": 2}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
@@ -299,10 +282,6 @@
         {"topic": "OUTPUT", "key":"2", "value": {"FOO": 1, "BAR": 2}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "BAR", "schema": {"type": "INT"}}}
@@ -322,10 +301,6 @@
         {"topic": "OUTPUT", "key":"2", "value": {"FOO": 1, "ALIASED": 2}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
@@ -356,10 +331,6 @@
         {"topic": "OUTPUT", "key":"1", "value": {"FOO":1, "KSQL_COL_1": 1}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
@@ -379,10 +350,6 @@
         {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
@@ -536,10 +503,6 @@
         {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "BAR": 2}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "table", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
@@ -559,10 +522,6 @@
         {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "BAR": 2}}
       ],
       "post": {
-        "issues": [
-          "key field of input has INCORRECT type: should be 'STRING'.",
-          "key field of output has INCORRECT type: should be 'STRING'."
-        ],
         "sources": [
           {"name": "INPUT", "type": "table", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}

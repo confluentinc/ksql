@@ -32,7 +32,6 @@ import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -57,12 +56,13 @@ import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.metastore.StructuredDataSourceMatchers;
 import io.confluent.ksql.metastore.StructuredDataSourceMatchers.FieldMatchers;
+import io.confluent.ksql.metastore.StructuredDataSourceMatchers.OptionalMatchers;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -644,7 +644,7 @@ public class QueryTranslationTest {
           .map(SourceNode::build)
           .toArray(Matcher[]::new);
 
-      final Matcher<Iterable<StructuredDataSource>> sourcesMatcher = hasItems(matchers);
+      final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher = hasItems(matchers);
       return new PostConditions(sourcesMatcher);
     }
   }
@@ -724,13 +724,14 @@ public class QueryTranslationTest {
         throw new InvalidFieldException("name", "missing or empty");
       }
 
-      final Matcher<StructuredDataSource> nameMatcher = StructuredDataSourceMatchers.hasName(name);
+      final Matcher<StructuredDataSource<?>> nameMatcher =
+          StructuredDataSourceMatchers.hasName(name);
 
       final Matcher<Object> typeMatcher = type
           .map(IsInstanceOf::instanceOf)
           .orElse(null);
 
-      final Matcher<StructuredDataSource> keyFieldMatcher = keyField
+      final Matcher<StructuredDataSource<?>> keyFieldMatcher = keyField
           .map(FieldNode::build)
           .map(StructuredDataSourceMatchers::hasKeyField)
           .orElse(null);
@@ -780,15 +781,16 @@ public class QueryTranslationTest {
     }
 
     @SuppressWarnings("unchecked")
-    Matcher<Field> build() {
+    Matcher<Optional<Field>> build() {
       if (this == NULL) {
-        return nullValue(Field.class);
+        return is(Optional.empty());
       }
 
-      final Matcher<Field> nameMatcher = FieldMatchers.hasName(name);
+      final Matcher<Optional<Field>> nameMatcher = OptionalMatchers.of(FieldMatchers.hasName(name));
 
-      final Matcher<Field> schemaMatcher = schema
+      final Matcher<Optional<Field>> schemaMatcher = schema
           .map(FieldMatchers::hasSchema)
+          .map(OptionalMatchers::of)
           .orElse(null);
 
       final Matcher[] matchers = Stream.of(nameMatcher, schemaMatcher)
@@ -816,7 +818,10 @@ public class QueryTranslationTest {
 
       final JsonNode node = jp.getCodec().readTree(jp);
 
-      final String type = buildString("type", node, jp);
+      final String type = node.get("type")
+          .traverse(jp.getCodec())
+          .readValueAs(String.class);
+
       if (type == null) {
         throw new MissingFieldException("type");
       }
@@ -828,30 +833,6 @@ public class QueryTranslationTest {
       } catch (final Exception e) {
         throw new InvalidFieldException("type", "only primitive types supported", e);
       }
-    }
-
-    private static String buildString(
-        final String name,
-        final JsonNode node,
-        final JsonParser jp
-    ) throws IOException {
-      return node.get(name).traverse(jp.getCodec()).readValueAs(String.class);
-    }
-
-    private static Optional<FieldNode> buildKeyField(
-        final JsonNode node,
-        final JsonParser jp
-    ) throws IOException {
-      if (!node.has("keyField")) {
-        return Optional.empty();
-      }
-
-      final JsonNode keyField = node.get("keyField");
-      if (keyField instanceof NullNode) {
-        return Optional.of(FieldNode.NULL);
-      }
-
-      return Optional.of(keyField.traverse(jp.getCodec()).readValueAs(FieldNode.class));
     }
   }
 }

@@ -17,35 +17,41 @@ package io.confluent.ksql.metastore;
 
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.metastore.model.StructuredDataSource;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 public final class StructuredDataSourceMatchers {
 
   private StructuredDataSourceMatchers() {
   }
 
-  public static Matcher<StructuredDataSource> hasName(final String name) {
-    return new FeatureMatcher<StructuredDataSource, String>
+  public static Matcher<StructuredDataSource<?>> hasName(final String name) {
+    return new FeatureMatcher<StructuredDataSource<?>, String>
         (is(name), "source with name", "name") {
       @Override
-      protected String featureValueOf(final StructuredDataSource actual) {
+      protected String featureValueOf(final StructuredDataSource<?> actual) {
         return actual.getName();
       }
     };
   }
 
-  public static Matcher<StructuredDataSource> hasKeyField(final String keyFieldName) {
-    return hasKeyField(FieldMatchers.hasName(keyFieldName));
+  public static Matcher<StructuredDataSource<?>> hasKeyField(final String keyFieldName) {
+    return hasKeyField(OptionalMatchers.of(FieldMatchers.hasName(keyFieldName)));
   }
 
-  public static Matcher<StructuredDataSource> hasKeyField(final Matcher<Field> fieldMatcher) {
-    return new FeatureMatcher<StructuredDataSource, Field>
+  public static Matcher<StructuredDataSource<?>> hasKeyField(
+      final Matcher<Optional<Field>> fieldMatcher
+  ) {
+    return new FeatureMatcher<StructuredDataSource<?>, Optional<Field>>
         (fieldMatcher, "source with key field", "key field") {
       @Override
-      protected Field featureValueOf(final StructuredDataSource actual) {
+      protected Optional<Field> featureValueOf(final StructuredDataSource<?> actual) {
         return actual.getKeyField();
       }
     };
@@ -72,6 +78,39 @@ public final class StructuredDataSourceMatchers {
         @Override
         protected Schema featureValueOf(final Field actual) {
           return actual.schema();
+        }
+      };
+    }
+  }
+
+  public static final class OptionalMatchers {
+
+    private OptionalMatchers() {
+    }
+
+    public static <T> Matcher<Optional<T>> of(final Matcher<T> valueMatcher) {
+      return new TypeSafeDiagnosingMatcher<Optional<T>>() {
+        @Override
+        protected boolean matchesSafely(
+            final Optional<T> item,
+            final Description mismatchDescription
+        ) {
+          if (!item.isPresent()) {
+            mismatchDescription.appendText("not present");
+            return false;
+          }
+
+          if (!valueMatcher.matches(item.get())) {
+            valueMatcher.describeMismatch(item.get(), mismatchDescription);
+            return false;
+          }
+
+          return true;
+        }
+
+        @Override
+        public void describeTo(final Description description) {
+          description.appendText("optional with value ").appendDescriptionOf(valueMatcher);
         }
       };
     }

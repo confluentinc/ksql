@@ -14,7 +14,7 @@
     <suppress files="(PersistentQueryMetadata|SourceDescription|JoinNode).java"
               checks="ParameterNumber"/>
     <suppress files="(Console|Main|Generator|KsqlResource).java" checks="JavaNCSSCheck"/>
-    <suppress files="Generator.java" checks="NPathComplexity"/>
+    <suppress files="(Generator|DataGen).java" checks="NPathComplexity"/>
     <suppress files="(ExpressionTreeRewriter|AstBuilder|KsqlParser|SchemaKTable).java"
               checks="ClassDataAbstractionCouplingCheck"/>
     <suppress

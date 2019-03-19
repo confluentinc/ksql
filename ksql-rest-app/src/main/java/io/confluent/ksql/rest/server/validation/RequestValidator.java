@@ -47,7 +47,7 @@ public class RequestValidator {
 
   private static final Logger LOG = LoggerFactory.getLogger(RequestValidator.class);
 
-  private final Map<Class<? extends Statement>, StatementValidator> customValidators;
+  private final Map<Class<? extends Statement>, StatementValidator<?>> customValidators;
   private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
   private final Supplier<KsqlExecutionContext> snapshotSupplier;
   private final ServiceContext serviceContext;
@@ -63,7 +63,7 @@ public class RequestValidator {
    * @param ksqlConfig              the {@link KsqlConfig} to validate against
    */
   public RequestValidator(
-      final Map<Class<? extends Statement>, StatementValidator> customValidators,
+      final Map<Class<? extends Statement>, StatementValidator<?>> customValidators,
       final Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
       final Supplier<KsqlExecutionContext> snapshotSupplier,
       final ServiceContext serviceContext,
@@ -119,8 +119,9 @@ public class RequestValidator {
    *
    * @throws KsqlStatementException if the statement cannot be validated
    */
-  private int validate(
-      final PreparedStatement<?> prepared,
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> int validate(
+      final PreparedStatement<T> prepared,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides,
       final KsqlExecutionContext executionContext,
@@ -128,7 +129,8 @@ public class RequestValidator {
   ) throws KsqlStatementException  {
     final Statement statement = prepared.getStatement();
     final Class<? extends Statement> statementClass = statement.getClass();
-    final StatementValidator customValidator = customValidators.get(statementClass);
+    final StatementValidator<T> customValidator = (StatementValidator<T>)
+        customValidators.get(statementClass);
 
     if (customValidator != null) {
       customValidator.validate(

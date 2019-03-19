@@ -38,7 +38,7 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -240,7 +240,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         CommandId.Action.CREATE);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
+    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     expect(mockEngine.execute(csasStatement, expectedConfig, Collections.emptyMap()))
         .andReturn(ExecuteResult.of(mockQueryMetadata));
     mockQueryMetadata.start();
@@ -512,7 +512,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockParser.parseSingleStatement(statement))
         .andReturn(csas);
     expect(mockMetaStore.getSource(name)).andStubReturn(null);
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
+    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     expect(mockEngine.execute(eq(csas), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of(mockQuery));
     return mockQuery;
@@ -538,7 +538,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         .andReturn((PreparedStatement)preparedStatement);
     expect(mockEngine.execute(eq(preparedStatement), anyObject(), anyObject()))
         .andReturn(ExecuteResult.of(mockQuery));
-    expect(mockEngine.numberOfPersistentQueries()).andReturn(0);
+    expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     return mockQuery;
   }
 

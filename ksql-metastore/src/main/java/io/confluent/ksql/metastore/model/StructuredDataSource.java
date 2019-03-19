@@ -13,42 +13,50 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.metastore.model;
 
-import io.confluent.ksql.query.QueryId;
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
-public abstract class StructuredDataSource implements DataSource {
+@Immutable
+public abstract class StructuredDataSource<K> implements DataSource {
 
-  protected final String dataSourceName;
-  protected final DataSourceType dataSourceType;
-  protected final Schema schema;
-  protected final Field keyField;
-  protected final TimestampExtractionPolicy timestampExtractionPolicy;
-
-  protected final KsqlTopic ksqlTopic;
-  protected final String sqlExpression;
+  private final String dataSourceName;
+  private final DataSourceType dataSourceType;
+  private final KsqlSchema schema;
+  private final Optional<Field> keyField;
+  private final TimestampExtractionPolicy timestampExtractionPolicy;
+  private final SerdeFactory<K> keySerde;
+  private final KsqlTopic ksqlTopic;
+  private final String sqlExpression;
 
   public StructuredDataSource(
       final String sqlExpression,
       final String dataSourceName,
       final Schema schema,
-      final Field keyField,
-      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final Optional<Field> keyField,
+      final TimestampExtractionPolicy tsExtractionPolicy,
       final DataSourceType dataSourceType,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final SerdeFactory<K> keySerde
   ) {
-    this.sqlExpression = sqlExpression;
-    this.dataSourceName = dataSourceName;
-    this.schema = schema;
-    this.keyField = keyField;
-    this.timestampExtractionPolicy = timestampExtractionPolicy;
-    this.dataSourceType = dataSourceType;
-    this.ksqlTopic = ksqlTopic;
+    this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
+    this.dataSourceName = requireNonNull(dataSourceName, "dataSourceName");
+    this.schema = KsqlSchema.of(schema);
+    this.keyField = requireNonNull(keyField, "keyField");
+    this.timestampExtractionPolicy = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
+    this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
+    this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
+    this.keySerde = requireNonNull(keySerde, "keySerde");
   }
 
   @Override
@@ -62,15 +70,19 @@ public abstract class StructuredDataSource implements DataSource {
   }
 
   public Schema getSchema() {
-    return this.schema;
+    return schema.getSchema();
   }
 
-  public Field getKeyField() {
-    return this.keyField;
+  public Optional<Field> getKeyField() {
+    return keyField;
   }
 
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
+  }
+
+  public SerdeFactory<K> getKeySerdeFactory() {
+    return keySerde;
   }
 
   public KsqlTopicSerDe getKsqlTopicSerde() {
@@ -85,13 +97,6 @@ public abstract class StructuredDataSource implements DataSource {
     return timestampExtractionPolicy;
   }
 
-  public abstract StructuredDataSource copy();
-
-  public abstract StructuredDataSource cloneWithTimeKeyColumns();
-
-  public abstract StructuredDataSource cloneWithTimeExtractionPolicy(
-      TimestampExtractionPolicy policy);
-
   public String getKsqlTopicName() {
     return ksqlTopic.getKsqlTopicName();
   }
@@ -100,9 +105,9 @@ public abstract class StructuredDataSource implements DataSource {
     return ksqlTopic.getKafkaTopicName();
   }
 
-  public abstract QueryId getPersistentQueryId();
-
   public String getSqlExpression() {
     return sqlExpression;
   }
+
+  public abstract StructuredDataSource<?> cloneWithTimeKeyColumns();
 }

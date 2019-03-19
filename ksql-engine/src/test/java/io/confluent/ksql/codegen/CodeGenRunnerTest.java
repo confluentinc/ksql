@@ -37,20 +37,22 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -163,10 +165,11 @@ public class CodeGenRunnerTest {
             new KsqlJsonTopicSerDe(), false);
         final KsqlStream ksqlStream = new KsqlStream<>(
             "sqlexpression",
-            "CODEGEN_TEST", metaStoreSchema,
-            metaStoreSchema.field("COL0"),
-            null,
-            ksqlTopic,Serdes.String());
+            "CODEGEN_TEST",
+            metaStoreSchema,
+            Optional.of(metaStoreSchema.field("COL0")),
+            new MetadataTimestampExtractionPolicy(),
+            ksqlTopic,Serdes::String);
         metaStore.putTopic(ksqlTopic);
         metaStore.putSource(ksqlStream);
         codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);

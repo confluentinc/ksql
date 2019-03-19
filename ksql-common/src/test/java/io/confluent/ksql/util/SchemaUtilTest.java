@@ -164,8 +164,7 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldCreateCorrectAvroSchemaWithNullableFields() {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    schemaBuilder
+    final Schema schema = SchemaBuilder.struct()
         .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
         .field("orderid", Schema.OPTIONAL_STRING_SCHEMA)
         .field("itemid", Schema.OPTIONAL_STRING_SCHEMA)
@@ -174,7 +173,7 @@ public class SchemaUtilTest {
         .field("mapcol",
             SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA))
         .optional().build();
-    final String avroSchemaString = SchemaUtil.buildAvroSchema(schemaBuilder.build(), "orders")
+    final String avroSchemaString = SchemaUtil.buildAvroSchema(schema, "orders")
         .toString();
     assertThat(avroSchemaString, equalTo(
         "{\"type\":\"record\",\"name\":\"orders\",\"namespace\":\"ksql\",\"fields\":"

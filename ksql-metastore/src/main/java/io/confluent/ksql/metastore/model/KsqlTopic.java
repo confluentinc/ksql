@@ -13,11 +13,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore;
+package io.confluent.ksql.metastore.model;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 
+@Immutable
 public class KsqlTopic implements DataSource {
 
   private final String ksqlTopicName;
@@ -29,10 +33,11 @@ public class KsqlTopic implements DataSource {
       final String ksqlTopicName,
       final String kafkaTopicName,
       final KsqlTopicSerDe ksqlTopicSerDe,
-      final boolean isKsqlSink) {
-    this.ksqlTopicName = ksqlTopicName;
-    this.kafkaTopicName = kafkaTopicName;
-    this.ksqlTopicSerDe = ksqlTopicSerDe;
+      final boolean isKsqlSink
+  ) {
+    this.ksqlTopicName = requireNonNull(ksqlTopicName, "ksqlTopicName");
+    this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
+    this.ksqlTopicSerDe = requireNonNull(ksqlTopicSerDe, "ksqlTopicSerDe");
     this.isKsqlSink = isKsqlSink;
   }
 

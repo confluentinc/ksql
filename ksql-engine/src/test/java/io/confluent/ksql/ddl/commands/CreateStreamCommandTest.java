@@ -82,7 +82,7 @@ public class CreateStreamCommandTest {
     final CreateStreamCommand cmd = createCmd();
 
     // Then:
-    assertThat(cmd.keySerde, is(instanceOf(Serdes.String().getClass())));
+    assertThat(cmd.keySerdeFactory.create(), is(instanceOf(Serdes.String().getClass())));
   }
 
   @Test
@@ -95,7 +95,7 @@ public class CreateStreamCommandTest {
     final CreateStreamCommand cmd = createCmd();
 
     // Then:
-    assertThat(cmd.keySerde,
+    assertThat(cmd.keySerdeFactory.create(),
         is(instanceOf(WindowedSerdes.sessionWindowedSerdeFrom(String.class).getClass())));
   }
 
@@ -109,7 +109,7 @@ public class CreateStreamCommandTest {
     final CreateStreamCommand cmd = createCmd();
 
     // Then:
-    assertThat(cmd.keySerde,
+    assertThat(cmd.keySerdeFactory.create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
   }
 
@@ -123,7 +123,7 @@ public class CreateStreamCommandTest {
     final CreateStreamCommand cmd = createCmd();
 
     // Then:
-    assertThat(cmd.keySerde,
+    assertThat(cmd.keySerdeFactory.create(),
         is(instanceOf(WindowedSerdes.timeWindowedSerdeFrom(String.class).getClass())));
   }
 

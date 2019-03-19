@@ -16,6 +16,8 @@
 package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,13 +27,13 @@ public interface MetaStore extends FunctionRegistry {
 
   KsqlTopic getTopic(String topicName);
 
-  StructuredDataSource getSource(String sourceName);
+  StructuredDataSource<?> getSource(String sourceName);
 
-  Optional<StructuredDataSource> getSourceForTopic(String ksqlTopicName);
+  Optional<StructuredDataSource<?>> getSourceForTopic(String ksqlTopicName);
 
-  List<StructuredDataSource> getSourcesForKafkaTopic(String kafkaTopicName);
+  List<StructuredDataSource<?>> getSourcesForKafkaTopic(String kafkaTopicName);
 
-  Map<String, StructuredDataSource> getAllStructuredDataSources();
+  Map<String, StructuredDataSource<?>> getAllStructuredDataSources();
 
   Map<String, KsqlTopic> getAllKsqlTopics();
 

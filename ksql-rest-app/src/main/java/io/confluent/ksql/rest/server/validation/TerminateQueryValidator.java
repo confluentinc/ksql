@@ -29,7 +29,7 @@ public final class TerminateQueryValidator {
   private TerminateQueryValidator() { }
 
   public static void validate(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext context,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

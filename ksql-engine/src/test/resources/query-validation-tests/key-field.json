@@ -25,9 +25,10 @@
     "",
     "Not all combinations are valid, e.g. can not have an alias is there is no key.",
     "",
-    "issue: this is currently an inconsistency between how GROUP BY's and PARTITION BY's handling of aliases:",
-    " - PARTITION BY requires the target name, (i.e. the alias), failing if the source field name is used.",
-    " - GROUP BY requires the source field name, failing if the target field name, (i.e. the alias), is used."
+    "issues:",
+    " There is currently an inconsistency between how GROUP BY's and PARTITION BY's handling of aliases:",
+    "  - PARTITION BY requires the target name, (i.e. the alias), failing if the source field name is used.",
+    "  - GROUP BY requires the source field name, failing if the target field name, (i.e. the alias), is used."
   ],
   "tests": [
     {
@@ -110,7 +111,10 @@
         {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "KSQL_COL_1": 1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'FOO'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'FOO'.",
+          "key field of output has INCORRECT type: should be 'INT"
+        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
@@ -130,7 +134,10 @@
         {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'ALIASED'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
@@ -150,7 +157,10 @@
         {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'ALIASED'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
@@ -387,7 +397,10 @@
         {"topic": "OUTPUT", "key":"2", "value": {"BAR":2, "KSQL_COL_1": 1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'BAR'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'BAR'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
@@ -406,7 +419,10 @@
         {"topic": "OUTPUT", "key":"2", "value": {"ALIASED":2, "KSQL_COL_1": 1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'ALIASED'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
@@ -464,7 +480,9 @@
         {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'FOO'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'FOO'.",
+          "key field of output has INCORRECT type: should be 'INT'."],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
@@ -484,7 +502,10 @@
         {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'FOO'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'FOO'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
@@ -559,7 +580,10 @@
         {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1":  1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'FOO'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'FOO'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
@@ -578,7 +602,10 @@
         {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1":  1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'ALIASED'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
@@ -616,7 +643,10 @@
         {"topic": "OUTPUT", "key": "2", "value": {"BAR": 2, "KSQL_COL_1":  1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'BAR'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'BAR'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
@@ -635,7 +665,10 @@
         {"topic": "OUTPUT", "key": "2", "value": {"ALIASED": 2, "KSQL_COL_1":  1}}
       ],
       "post": {
-        "issues": ["key field of output has INCORRECT name: should be 'ALIASED'."],
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]

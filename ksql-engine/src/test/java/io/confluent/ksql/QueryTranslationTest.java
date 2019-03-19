@@ -29,12 +29,20 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.formatQueryName;
 import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static java.util.Objects.requireNonNull;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -42,13 +50,19 @@ import com.google.common.collect.Streams;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.EndToEndEngineTestUtil.InvalidFieldException;
 import io.confluent.ksql.EndToEndEngineTestUtil.MissingFieldException;
+import io.confluent.ksql.EndToEndEngineTestUtil.PostConditions;
 import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
 import io.confluent.ksql.EndToEndEngineTestUtil.TestFile;
 import io.confluent.ksql.EndToEndEngineTestUtil.TopologyAndConfigs;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTable;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.StructuredDataSourceMatchers;
+import io.confluent.ksql.metastore.StructuredDataSourceMatchers.FieldMatchers;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -56,7 +70,9 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.LogicalSchemas.SqlTypeToLogicalConverter;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -76,9 +92,12 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.hamcrest.Matcher;
+import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -106,7 +125,7 @@ public class QueryTranslationTest {
    */
   @SuppressWarnings("unused")
   public QueryTranslationTest(final String name, final TestCase testCase) {
-    this.testCase = Objects.requireNonNull(testCase, "testCase");
+    this.testCase = requireNonNull(testCase, "testCase");
   }
 
   @Test
@@ -311,6 +330,7 @@ public class QueryTranslationTest {
     }
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class TestCaseNode {
 
@@ -322,6 +342,7 @@ public class QueryTranslationTest {
     private final List<String> statements;
     private final Map<String, Object> properties;
     private final Optional<ExpectedExceptionNode> expectedException;
+    private final Optional<PostConditionsNode> postConditions;
 
     TestCaseNode(
         @JsonProperty("name") final String name,
@@ -331,7 +352,8 @@ public class QueryTranslationTest {
         @JsonProperty("topics") final List<TopicNode> topics,
         @JsonProperty("statements") final List<String> statements,
         @JsonProperty("properties") final Map<String, Object> properties,
-        @JsonProperty("expectedException") ExpectedExceptionNode expectedException
+        @JsonProperty("expectedException") final ExpectedExceptionNode expectedException,
+        @JsonProperty("post") final PostConditionsNode postConditions
     ) {
       this.name = name == null ? "" : name;
       this.formats = formats == null ? ImmutableList.of() : ImmutableList.copyOf(formats);
@@ -341,6 +363,7 @@ public class QueryTranslationTest {
       this.topics = topics == null ? ImmutableList.of() : ImmutableList.copyOf(topics);
       this.properties = properties == null ? ImmutableMap.of() : ImmutableMap.copyOf(properties);
       this.expectedException = Optional.ofNullable(expectedException);
+      this.postConditions = Optional.ofNullable(postConditions);
 
       if (this.name.isEmpty()) {
         throw new MissingFieldException("name");
@@ -389,6 +412,10 @@ public class QueryTranslationTest {
             .map(node -> node.build(topics))
             .collect(Collectors.toList());
 
+        final PostConditions post = postConditions
+            .map(PostConditionsNode::build)
+            .orElse(PostConditions.NONE);
+
         return new TestCase(
             testPath,
             testName,
@@ -397,7 +424,8 @@ public class QueryTranslationTest {
             inputRecords,
             outputRecords,
             statements,
-            ee.orElseGet(ExpectedException::none)
+            ee.orElseGet(ExpectedException::none),
+            post
         );
       } catch (final Exception e) {
         throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);
@@ -475,7 +503,7 @@ public class QueryTranslationTest {
       final ExpectedException expectedException = ExpectedException.none();
 
       type
-          .map(t -> EndToEndEngineTestUtil.parseThrowable(t, "expectedException.type"))
+          .map(ExpectedExceptionNode::parseThrowable)
           .ifPresent(type -> {
             expectedException.expect(type);
 
@@ -487,6 +515,19 @@ public class QueryTranslationTest {
 
       message.ifPresent(expectedException::expectMessage);
       return expectedException;
+    }
+
+    @SuppressWarnings("unchecked")
+    static Class<? extends Throwable> parseThrowable(final String className) {
+      try {
+        final Class<?> theClass = Class.forName(className);
+        if (!Throwable.class.isAssignableFrom(theClass)) {
+          throw new InvalidFieldException("expectedException.type", "Type was not a Throwable");
+        }
+        return (Class<? extends Throwable>) theClass;
+      } catch (final ClassNotFoundException e) {
+        throw new InvalidFieldException("expectedException.type", "Type was not found", e);
+      }
     }
   }
 
@@ -585,6 +626,232 @@ public class QueryTranslationTest {
       } catch (final IOException e) {
         throw new InvalidFieldException("value", "failed to parse", e);
       }
+    }
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  static class PostConditionsNode {
+
+    private final List<SourceNode> sources;
+
+    PostConditionsNode(@JsonProperty("sources") final List<SourceNode> sources) {
+      this.sources = sources == null ? ImmutableList.of() : ImmutableList.copyOf(sources);
+    }
+
+    @SuppressWarnings("unchecked")
+    PostConditions build() {
+      final Matcher<StructuredDataSource>[] matchers = sources.stream()
+          .map(SourceNode::build)
+          .toArray(Matcher[]::new);
+
+      final Matcher<Iterable<StructuredDataSource>> sourcesMatcher = hasItems(matchers);
+      return new PostConditions(sourcesMatcher);
+    }
+  }
+
+  static class SourceNodeDeserializer extends StdDeserializer<SourceNode> {
+
+    public SourceNodeDeserializer() {
+      super(SourceNode.class);
+    }
+
+    @Override
+    public SourceNode deserialize(
+        final JsonParser jp,
+        final DeserializationContext ctxt
+    ) throws IOException {
+
+      final JsonNode node = jp.getCodec().readTree(jp);
+
+      final String name = buildString("name", node, jp);
+      final String type = buildString("type", node, jp);
+      final Optional<FieldNode> keyField = buildKeyField(node, jp);
+
+      return new SourceNode(name, type, keyField);
+    }
+
+    private static String buildString(
+        final String name,
+        final JsonNode node,
+        final JsonParser jp
+    ) throws IOException {
+      return node.get(name).traverse(jp.getCodec()).readValueAs(String.class);
+    }
+
+    private static Optional<FieldNode> buildKeyField(
+        final JsonNode node,
+        final JsonParser jp
+    ) throws IOException {
+      if (!node.has("keyField")) {
+        return Optional.empty();
+      }
+
+      final JsonNode keyField = node.get("keyField");
+      if (keyField instanceof NullNode) {
+        return Optional.of(FieldNode.NULL);
+      }
+
+      return Optional.of(keyField.traverse(jp.getCodec()).readValueAs(FieldNode.class));
+    }
+  }
+
+  @JsonDeserialize(using = SourceNodeDeserializer.class)
+  static class SourceNode {
+
+    private final String name;
+    private final Optional<Class<? extends StructuredDataSource>> type;
+    private final Optional<FieldNode> keyField;
+
+    SourceNode(
+        @JsonProperty("name") final String name,
+        @JsonProperty("type") final String type,
+        @JsonProperty("keyField") final Optional<FieldNode> keyField
+    ) {
+      this.name = name == null ? "" : name;
+      this.keyField = keyField;
+      this.type = Optional.ofNullable(type)
+          .map(String::toUpperCase)
+          .map(SourceNode::toType);
+
+      if (this.name.isEmpty()) {
+        throw new InvalidFieldException("name", "empty or missing");
+      }
+    }
+
+    @SuppressWarnings("unchecked")
+    Matcher<? super StructuredDataSource> build() {
+      if (name.isEmpty()) {
+        throw new InvalidFieldException("name", "missing or empty");
+      }
+
+      final Matcher<StructuredDataSource> nameMatcher = StructuredDataSourceMatchers.hasName(name);
+
+      final Matcher<Object> typeMatcher = type
+          .map(IsInstanceOf::instanceOf)
+          .orElse(null);
+
+      final Matcher<StructuredDataSource> keyFieldMatcher = keyField
+          .map(FieldNode::build)
+          .map(StructuredDataSourceMatchers::hasKeyField)
+          .orElse(null);
+
+      final Matcher[] matchers = Stream.of(nameMatcher, typeMatcher, keyFieldMatcher)
+          .filter(Objects::nonNull)
+          .toArray(Matcher[]::new);
+
+      return allOf(matchers);
+    }
+
+    private static Class<? extends StructuredDataSource> toType(final String type) {
+      switch (type) {
+        case "STREAM":
+          return KsqlStream.class;
+
+        case "TABLE":
+          return KsqlTable.class;
+
+        default:
+          throw new InvalidFieldException("type", "must be either STREAM or TABLE");
+      }
+    }
+  }
+
+  static class FieldNode {
+
+    static final FieldNode NULL = new FieldNode("explicitly set to NULL", Optional.empty());
+
+    private final String name;
+    private final Optional<ConnectSchema> schema;
+
+    FieldNode(
+        @JsonProperty("name")
+        final String name,
+
+        @JsonProperty("schema")
+        @JsonDeserialize(using = ConnectSchemaDeserializer.class)
+        final Optional<ConnectSchema> schema
+    ) {
+      this.name = name == null ? "" : name;
+      this.schema = Objects.requireNonNull(schema, "schema");
+
+      if (this.name.isEmpty()) {
+        throw new InvalidFieldException("name", "empty or missing");
+      }
+    }
+
+    @SuppressWarnings("unchecked")
+    Matcher<Field> build() {
+      if (this == NULL) {
+        return nullValue(Field.class);
+      }
+
+      final Matcher<Field> nameMatcher = FieldMatchers.hasName(name);
+
+      final Matcher<Field> schemaMatcher = schema
+          .map(FieldMatchers::hasSchema)
+          .orElse(null);
+
+      final Matcher[] matchers = Stream.of(nameMatcher, schemaMatcher)
+          .filter(Objects::nonNull)
+          .toArray(Matcher[]::new);
+
+      return allOf(matchers);
+    }
+  }
+
+  static class ConnectSchemaDeserializer extends StdDeserializer<Optional<ConnectSchema>> {
+
+    private final SqlTypeToLogicalConverter sqlTypeToLogicalConverter =
+        LogicalSchemas.fromSqlTypeConverter();
+
+    public ConnectSchemaDeserializer() {
+      super(ConnectSchema.class);
+    }
+
+    @Override
+    public Optional<ConnectSchema> deserialize(
+        final JsonParser jp,
+        final DeserializationContext ctxt
+    ) throws IOException {
+
+      final JsonNode node = jp.getCodec().readTree(jp);
+
+      final String type = buildString("type", node, jp);
+      if (type == null) {
+        throw new MissingFieldException("type");
+      }
+
+      try {
+        final PrimitiveType sqlType = PrimitiveType.of(type.toUpperCase());
+
+        return Optional.of((ConnectSchema) sqlTypeToLogicalConverter.fromSqlType(sqlType));
+      } catch (final Exception e) {
+        throw new InvalidFieldException("type", "only primitive types supported", e);
+      }
+    }
+
+    private static String buildString(
+        final String name,
+        final JsonNode node,
+        final JsonParser jp
+    ) throws IOException {
+      return node.get(name).traverse(jp.getCodec()).readValueAs(String.class);
+    }
+
+    private static Optional<FieldNode> buildKeyField(
+        final JsonNode node,
+        final JsonParser jp
+    ) throws IOException {
+      if (!node.has("keyField")) {
+        return Optional.empty();
+      }
+
+      final JsonNode keyField = node.get("keyField");
+      if (keyField instanceof NullNode) {
+        return Optional.of(FieldNode.NULL);
+      }
+
+      return Optional.of(keyField.traverse(jp.getCodec()).readValueAs(FieldNode.class));
     }
   }
 }

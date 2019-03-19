@@ -19,6 +19,8 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.anything;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -44,8 +46,10 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.StructuredDataSource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -483,24 +487,6 @@ final class EndToEndEngineTestUtil {
     }
   }
 
-  static class JsonTestCase {
-    private final Path testPath;
-    private final JsonNode node;
-
-    JsonTestCase(final Path testPath, final JsonNode node) {
-      this.testPath = testPath;
-      this.node = node;
-    }
-
-    Path getTestPath() {
-      return testPath;
-    }
-
-    public JsonNode getNode() {
-      return node;
-    }
-  }
-
   static class TestCase {
 
     private final Path testPath;
@@ -514,6 +500,7 @@ final class EndToEndEngineTestUtil {
     private String generatedTopology;
     private String expectedTopology;
     private Map<String, String> persistedProperties;
+    private final PostConditions postConditions;
 
     public String getName() {
       return name;
@@ -527,7 +514,9 @@ final class EndToEndEngineTestUtil {
         final List<Record> inputRecords,
         final List<Record> outputRecords,
         final List<String> statements,
-        final ExpectedException expectedException) {
+        final ExpectedException expectedException,
+        final PostConditions postConditions
+    ) {
       this.topics = topics;
       this.inputRecords = inputRecords;
       this.outputRecords = outputRecords;
@@ -536,6 +525,7 @@ final class EndToEndEngineTestUtil {
       this.properties = ImmutableMap.copyOf(properties);
       this.statements = statements;
       this.expectedException = expectedException;
+      this.postConditions = Objects.requireNonNull(postConditions, "postConditions");
     }
 
     TestCase copyWithName(String newName) {
@@ -547,7 +537,8 @@ final class EndToEndEngineTestUtil {
           inputRecords,
           outputRecords,
           statements,
-          expectedException);
+          expectedException,
+          postConditions);
       copy.setGeneratedTopology(generatedTopology);
       copy.setExpectedTopology(expectedTopology);
       copy.setPersistedProperties(persistedProperties);
@@ -644,6 +635,10 @@ final class EndToEndEngineTestUtil {
       }
     }
 
+    void verifyMetastore(final MetaStore metaStore) {
+      postConditions.verify(metaStore);
+    }
+
     boolean isAnyExceptionExpected() {
       return !expectedException.matchers.isEmpty();
     }
@@ -660,6 +655,35 @@ final class EndToEndEngineTestUtil {
       } else {
         throw e;
       }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  static class PostConditions {
+
+    static final PostConditions NONE = new PostConditions(hasItems(anything()));
+
+    final Matcher<Iterable<StructuredDataSource>> sourcesMatcher;
+
+    PostConditions(
+        final Matcher<Iterable<StructuredDataSource>> sourcesMatcher
+    ) {
+      this.sourcesMatcher = Objects.requireNonNull(sourcesMatcher, "sourcesMatcher");
+    }
+
+    public void verify(final MetaStore metaStore) {
+      final Collection<StructuredDataSource> values = metaStore
+          .getAllStructuredDataSources()
+          .values();
+
+      final String text = values.stream()
+          .map(s -> s.getDataSourceType() + ":" + s.getName()
+              + ", key:" + s.getKeyField()
+              + ", value:" + s.getSchema())
+          .collect(Collectors.joining(System.lineSeparator()));
+
+      assertThat("metastore sources after the statements have run:"
+          + System.lineSeparator() + text, values, sourcesMatcher);
     }
   }
 
@@ -966,6 +990,7 @@ final class EndToEndEngineTestUtil {
       assertEquals(testCase.expectedTopology, testCase.generatedTopology);
       testCase.processInput(testDriver, serviceContext.getSchemaRegistryClient());
       testCase.verifyOutput(testDriver, serviceContext.getSchemaRegistryClient());
+      testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
     }
@@ -1113,6 +1138,7 @@ final class EndToEndEngineTestUtil {
     }
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   static String buildTestName(
       final Path testPath,
       final String testName,
@@ -1134,22 +1160,6 @@ final class EndToEndEngineTestUtil {
       return Optional.of(parser.parse(schemaString));
     } catch (final Exception e) {
       throw new InvalidFieldException("schema", "failed to parse", e);
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  static Class<? extends Throwable> parseThrowable(
-      final String className,
-      final String fieldName
-  ) {
-    try {
-      final Class<?> theClass = Class.forName(className);
-      if (!Throwable.class.isAssignableFrom(theClass)) {
-        throw new InvalidFieldException(fieldName, "Type was not a Throwable");
-      }
-      return (Class<? extends Throwable>) theClass;
-    } catch (final ClassNotFoundException e) {
-      throw new InvalidFieldException(fieldName, "Type was not found", e);
     }
   }
 

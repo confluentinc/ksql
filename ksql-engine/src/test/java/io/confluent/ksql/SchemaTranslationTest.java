@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.EndToEndEngineTestUtil.MissingFieldException;
+import io.confluent.ksql.EndToEndEngineTestUtil.PostConditions;
 import io.confluent.ksql.EndToEndEngineTestUtil.TestFile;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -187,7 +188,9 @@ public class SchemaTranslationTest {
             inputRecords,
             outputRecords,
             ImmutableList.of(DDL_STATEMENT, csasStatement),
-            EndToEndEngineTestUtil.ExpectedException.none()));
+            EndToEndEngineTestUtil.ExpectedException.none(),
+            PostConditions.NONE
+        ));
       } catch (final Exception e) {
         throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);
       }

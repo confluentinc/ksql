@@ -141,7 +141,6 @@ public class UdfLoader {
         .scan();
   }
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private ClassAnnotationMatchProcessor handleUdafAnnotation(final ClassLoader loader,
                                                              final String path
   ) {
@@ -197,7 +196,6 @@ public class UdfLoader {
     };
   }
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private MethodAnnotationMatchProcessor handleUdfAnnotation(final ClassLoader loader,
                                                              final String path) {
     return (theClass, executable) ->  {
@@ -254,7 +252,7 @@ public class UdfLoader {
     final List<Schema> parameters = IntStream.range(0, method.getParameterCount()).mapToObj(idx -> {
       final Type type = method.getGenericParameterTypes()[idx];
       final Optional<UdfParameter> annotation = Arrays.stream(method.getParameterAnnotations()[idx])
-          .filter(t -> t instanceof UdfParameter)
+          .filter(UdfParameter.class::isInstance)
           .map(UdfParameter.class::cast)
           .findAny();
 
@@ -278,12 +276,13 @@ public class UdfLoader {
             ((Configurable)actualUdf)
                 .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
           }
-          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);
+          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf, method);
           return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),
               theUdf,
               Time.SYSTEM)).orElse(theUdf);
         }, udfAnnotation.description(),
-        path));
+        path,
+        method.isVarArgs()));
   }
 
   private static Object instantiateUdfClass(final Method method,

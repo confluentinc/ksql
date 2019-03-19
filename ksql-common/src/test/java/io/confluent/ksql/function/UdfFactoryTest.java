@@ -16,6 +16,8 @@
 package io.confluent.ksql.function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -48,74 +51,6 @@ public class UdfFactoryTest {
   }
 
   @Test
-  public void shouldFindFirstMatchingFunctionWhenNullTypeInArgs() {
-    final KsqlFunction expected = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-        functionName,
-        TestFunc.class
-    );
-    factory.addFunction(expected);
-    factory.addFunction(KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
-        functionName,
-        TestFunc.class
-    ));
-
-    final KsqlFunction function = factory.getFunction(Collections.singletonList(null));
-    assertThat(function, equalTo(expected));
-  }
-
-  @Test
-  public void shouldNotMatchingFunctionWhenNullTypeInArgsIfParamLengthsDiffer() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("VARCHAR(STRING), null");
-    final KsqlFunction function = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-        functionName,
-        TestFunc.class
-    );
-    factory.addFunction(function);
-    factory.getFunction(Arrays.asList(Schema.STRING_SCHEMA, null));
-  }
-
-  @Test
-  public void shouldThrowExceptionWhenAtLeastOneArgumentOtherThanNullDoesntMatch() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("BIGINT, null");
-    final KsqlFunction function = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
-        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-        functionName,
-        TestFunc.class
-    );
-    factory.addFunction(function);
-    factory.getFunction(Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, null));
-  }
-
-  @Test
-  public void shouldThrowWhenNullAndPrimitiveTypeArg() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("VARCHAR(STRING), null");
-    final KsqlFunction function = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
-        Arrays.asList(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT32_SCHEMA),
-        functionName,
-        TestFunc.class
-    );
-    factory.addFunction(function);
-    factory.getFunction(Arrays.asList(Schema.STRING_SCHEMA, null));
-  }
-
-  @Test
-  public void shouldMatchNullWithStringSchema() {
-    final KsqlFunction function = KsqlFunction.createLegacyBuiltIn(Schema.STRING_SCHEMA,
-        Arrays.asList(Schema.INT64_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-        functionName,
-        TestFunc.class
-    );
-    factory.addFunction(function);
-    factory.getFunction(Arrays.asList(Schema.OPTIONAL_INT64_SCHEMA, null));
-  }
-
-  @Test
   public void shouldThrowExceptionIfAddingFunctionWithDifferentPath() {
     expectedException.expect(KafkaException.class);
     expectedException.expectMessage("as a function with the same name has been loaded from a different jar");
@@ -126,7 +61,8 @@ public class UdfFactoryTest {
         TestFunc.class,
         ksqlConfig -> null,
         "",
-        "not the same path"
+        "not the same path",
+        false
     ));
   }
 

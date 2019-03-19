@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -25,6 +27,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 
 @Immutable
 public final class KsqlFunction {
@@ -38,6 +41,7 @@ public final class KsqlFunction {
   private final Function<KsqlConfig, Kudf> udfFactory;
   private final String description;
   private final String pathLoadedFrom;
+  private final boolean isVarArgs;
 
   /**
    * Create built in / legacy function.
@@ -47,7 +51,18 @@ public final class KsqlFunction {
       final Schema returnType,
       final List<Schema> arguments,
       final String functionName,
-      final Class<? extends Kudf> kudfClass
+      final Class<? extends Kudf> kudfClass) {
+    return createBuiltInVarargs(
+        returnType, arguments, functionName, kudfClass, false);
+  }
+
+  @VisibleForTesting
+  static KsqlFunction createBuiltInVarargs(
+      final Schema returnType,
+      final List<Schema> arguments,
+      final String functionName,
+      final Class<? extends Kudf> kudfClass,
+      final boolean isVarArgs
   ) {
     final Function<KsqlConfig, Kudf> udfFactory = ksqlConfig -> {
       try {
@@ -59,7 +74,7 @@ public final class KsqlFunction {
     };
 
     return create(
-        returnType, arguments, functionName, kudfClass, udfFactory, "", INTERNAL_PATH);
+        returnType, arguments, functionName, kudfClass, udfFactory, "", INTERNAL_PATH, isVarArgs);
   }
 
   /**
@@ -74,10 +89,18 @@ public final class KsqlFunction {
       final Class<? extends Kudf> kudfClass,
       final Function<KsqlConfig, Kudf> udfFactory,
       final String description,
-      final String pathLoadedFrom
+      final String pathLoadedFrom,
+      final boolean isVarArgs
   ) {
     return new KsqlFunction(
-        returnType, arguments, functionName, kudfClass, udfFactory, description, pathLoadedFrom);
+        returnType,
+        arguments,
+        functionName,
+        kudfClass,
+        udfFactory,
+        description,
+        pathLoadedFrom,
+        isVarArgs);
   }
 
   private KsqlFunction(
@@ -87,8 +110,8 @@ public final class KsqlFunction {
       final Class<? extends Kudf> kudfClass,
       final Function<KsqlConfig, Kudf> udfFactory,
       final String description,
-      final String pathLoadedFrom
-  ) {
+      final String pathLoadedFrom,
+      final boolean isVarArgs) {
     this.returnType = Objects.requireNonNull(returnType, "returnType");
     this.arguments = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
     this.functionName = Objects.requireNonNull(functionName, "functionName");
@@ -96,11 +119,23 @@ public final class KsqlFunction {
     this.udfFactory = Objects.requireNonNull(udfFactory, "udfFactory");
     this.description = Objects.requireNonNull(description, "description");
     this.pathLoadedFrom  = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom");
+    this.isVarArgs = isVarArgs;
 
     if (arguments.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
     }
+    if (isVarArgs) {
+      if (arguments.isEmpty()) {
+        throw new IllegalArgumentException(
+            "KSQL vararg functions must have at least one parameter");
+      }
+      if (!Iterables.getLast(arguments).type().equals(Type.ARRAY)) {
+        throw new IllegalArgumentException(
+            "KSQL vararg functions must have ARRAY type as their last parameter");
+      }
+    }
   }
+
 
   public Schema getReturnType() {
     return returnType;
@@ -126,6 +161,10 @@ public final class KsqlFunction {
     return pathLoadedFrom;
   }
 
+  public boolean isVarArgs() {
+    return isVarArgs;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -139,12 +178,13 @@ public final class KsqlFunction {
         && Objects.equals(arguments, that.arguments)
         && Objects.equals(functionName, that.functionName)
         && Objects.equals(kudfClass, that.kudfClass)
-        && Objects.equals(pathLoadedFrom, that.pathLoadedFrom);
+        && Objects.equals(pathLoadedFrom, that.pathLoadedFrom)
+        && (isVarArgs == ((KsqlFunction) o).isVarArgs);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom);
+    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom, isVarArgs);
   }
 
   @Override
@@ -156,6 +196,7 @@ public final class KsqlFunction {
         + ", kudfClass=" + kudfClass
         + ", description='" + description + "'"
         + ", pathLoadedFrom='" + pathLoadedFrom + "'"
+        + ", isVarArgs=" + isVarArgs
         + '}';
   }
 

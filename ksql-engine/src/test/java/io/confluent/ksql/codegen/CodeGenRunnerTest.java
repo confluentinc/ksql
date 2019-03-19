@@ -787,6 +787,17 @@ public class CodeGenRunnerTest {
     }
 
     @Test
+    public void shouldHandleFunctionWithVarargs() {
+        final String query =
+            "SELECT test_udf(col0, col0, col0, col0, col0) FROM codegen_test;";
+
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final List<Object> columns = executeExpression(query, inputValues);
+        // test
+        assertThat(columns, equalTo(Collections.singletonList("doStuffLongVarargs")));
+    }
+
+    @Test
     public void shouldChoseFunctionWithCorrectNumberOfArgsWhenNullArgument() {
         final String query =
             "SELECT test_udf(col0, col0, NULL) FROM codegen_test;";

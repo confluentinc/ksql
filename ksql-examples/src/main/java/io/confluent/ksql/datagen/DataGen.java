@@ -59,9 +59,8 @@ public final class DataGen {
     }
 
     final Generator generator = new Generator(arguments.schemaFile, new Random());
-    final DataGenProducer dataProducer = new ProducerFactory()
-        .getProducer(arguments.format, arguments.schemaRegistryUrl);
     final Properties props = getProperties(arguments);
+    final DataGenProducer dataProducer = new ProducerFactory().getProducer(arguments.format, props);
 
     dataProducer.populateTopic(
         props,

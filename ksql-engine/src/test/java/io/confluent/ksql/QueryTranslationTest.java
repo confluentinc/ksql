@@ -30,8 +30,8 @@ import static io.confluent.ksql.EndToEndEngineTestUtil.loadExpectedTopologies;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -502,7 +502,7 @@ public class QueryTranslationTest {
 
             if (KsqlStatementException.class.isAssignableFrom(type)) {
               // Ensure exception contains last statement, otherwise the test case is invalid:
-              expectedException.expect(statementText(is(lastStatement)));
+              expectedException.expect(statementText(containsString(lastStatement)));
             }
           });
 

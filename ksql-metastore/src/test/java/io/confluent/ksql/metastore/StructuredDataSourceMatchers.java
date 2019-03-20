@@ -110,7 +110,7 @@ public final class StructuredDataSourceMatchers {
 
         @Override
         public void describeTo(final Description description) {
-          description.appendText("optional with value ").appendDescriptionOf(valueMatcher);
+          description.appendText("optional ").appendDescriptionOf(valueMatcher);
         }
       };
     }

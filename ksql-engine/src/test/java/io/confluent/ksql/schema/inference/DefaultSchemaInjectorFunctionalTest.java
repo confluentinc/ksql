@@ -422,7 +422,7 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     final SchemaBuilder ksqlStreamSchemaBuilder = SchemaBuilder.struct();
     if (expectedKsqlSchema != null) {
-      ksqlStreamSchemaBuilder.field("FIELD0", expectedKsqlSchema).build();
+      ksqlStreamSchemaBuilder.field("FIELD0", expectedKsqlSchema);
     }
 
     shouldInferSchema(avroStreamSchema, ksqlStreamSchemaBuilder.build());

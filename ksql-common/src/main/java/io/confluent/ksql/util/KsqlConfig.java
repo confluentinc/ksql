@@ -17,7 +17,6 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
@@ -41,7 +40,7 @@ import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 
-public class KsqlConfig extends AbstractConfig implements Cloneable {
+public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
@@ -585,11 +584,6 @@ public class KsqlConfig extends AbstractConfig implements Cloneable {
         )
     );
     return Collections.unmodifiableMap(allPropsCleaned);
-  }
-
-  @SuppressFBWarnings("CN_IDIOM_NO_SUPER_CALL")
-  public KsqlConfig clone() {
-    return new KsqlConfig(ConfigGeneration.CURRENT, values(), ksqlStreamConfigProps);
   }
 
   public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {

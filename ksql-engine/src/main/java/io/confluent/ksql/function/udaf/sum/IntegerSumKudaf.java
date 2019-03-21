@@ -35,15 +35,18 @@ public class IntegerSumKudaf
   }
 
   @Override
-  public Integer aggregate(final Integer currentValue, final Integer aggregateValue) {
-    if (currentValue == null) {
+  public Integer aggregate(final Integer valueToAdd, final Integer aggregateValue) {
+    if (valueToAdd == null) {
       return aggregateValue;
     }
-    return currentValue + aggregateValue;
+    return aggregateValue + valueToAdd;
   }
 
   @Override
   public Integer undo(final Integer valueToUndo, final Integer aggregateValue) {
+    if (valueToUndo == null) {
+      return aggregateValue;
+    }
     return aggregateValue - valueToUndo;
   }
 

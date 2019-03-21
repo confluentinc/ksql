@@ -261,6 +261,51 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldHaveCorrectOriginalsAfterCloneWithOverwrite() {
+    // Given:
+    final KsqlConfig initial = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "original-id",
+        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS, "on"
+    ));
+
+    // When:
+    final KsqlConfig cloned = initial.cloneWithPropertyOverwrite(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
+    ));
+
+    // Then:
+    assertThat(cloned.originals(), is(ImmutableMap.of(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG, "overridden-id",
+        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS, "on",
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "bob"
+    )));
+  }
+
+  @Test
+  public void shouldCloneWithUdfProperty() {
+    // Given:
+    final String functionName = "bob";
+    final String settingPrefix = KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + functionName + ".";
+
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        settingPrefix + "one", "should-be-cloned",
+        settingPrefix + "two", "should-be-overwritten"
+    ));
+
+    // When:
+    final KsqlConfig cloned = config.cloneWithPropertyOverwrite(ImmutableMap.of(
+        settingPrefix + "two", "should-be-new-value"
+    ));
+
+    // Then:
+    assertThat(cloned.getKsqlFunctionsConfigProps(functionName), is(ImmutableMap.of(
+        settingPrefix + "one", "should-be-cloned",
+        settingPrefix + "two", "should-be-new-value"
+    )));
+  }
+
+  @Test
   public void shouldCloneWithMultipleOverwrites() {
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
         ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "123",

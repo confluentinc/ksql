@@ -441,7 +441,7 @@ public class AvroSchemaInferenceTest {
         .endRecord();
     final SchemaBuilder ksqlStreamSchemaBuilder = SchemaBuilder.struct();
     if (ksqlSchema != null) {
-      ksqlStreamSchemaBuilder.field("FIELD0", ksqlSchema).build();
+      ksqlStreamSchemaBuilder.field("FIELD0", ksqlSchema);
     }
     shouldInferSchema(avroStreamSchema, ksqlStreamSchemaBuilder.build());
   }

@@ -8,6 +8,7 @@ KSQL Tutorials and Examples
 
     basics-docker
     basics-local
+    basics-control-center
     clickstream-docker
     generate-custom-test-data
     examples

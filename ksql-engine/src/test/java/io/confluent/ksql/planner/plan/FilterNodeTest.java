@@ -16,23 +16,15 @@
 package io.confluent.ksql.planner.plan;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
-import java.util.Map;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,24 +33,20 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class FilterNodeTest {
-  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final PlanNodeId nodeId = new PlanNodeId("nodeid");
-  private final Map<String, Object> props = Collections.emptyMap();
-  private final QueryId queryId = new QueryId("queryid");
 
   @Mock
   private Expression predicate;
-  @Mock
-  private StreamsBuilder builder;
   @Mock
   private PlanNode sourceNode;
   @Mock
   private SchemaKStream schemaKStream;
   @Mock
-  private ServiceContext serviceContext;
-  @Mock
   private ProcessingLogContext processingLogContext;
+  @Mock
+  private KsqlQueryBuilder ksqlStreamBuilder;
+  @Mock
+  private Stacker stacker;
 
   private FilterNode node;
 
@@ -68,38 +56,26 @@ public class FilterNodeTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    when(sourceNode.buildStream(any(), any(), any(), any(), any(), any()))
+    when(sourceNode.buildStream(any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(schemaKStream.filter(any(), any(), any()))
         .thenReturn(schemaKStream);
+
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(ksqlStreamBuilder.buildNodeContext(nodeId)).thenReturn(stacker);
+
+
     node = new FilterNode(nodeId, sourceNode, predicate);
   }
 
   @Test
   public void shouldApplyFilterCorrectly() {
     // When:
-    node.buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId
-    );
+    node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(sourceNode).buildStream(
-        same(builder),
-        same(ksqlConfig),
-        same(serviceContext),
-        same(processingLogContext),
-        same(functionRegistry),
-        same(queryId)
-    );
-    verify(schemaKStream).filter(
-        same(predicate),
-        eq(node.buildNodeContext(queryId)),
-        same(processingLogContext));
+    verify(sourceNode).buildStream(ksqlStreamBuilder);
+    verify(schemaKStream).filter(predicate, stacker, processingLogContext);
   }
 }

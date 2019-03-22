@@ -112,15 +112,18 @@ public class PhysicalPlanBuilder {
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
     final QueryId queryId = computeQueryId(logicalPlanNode.getNode());
+
     final SchemaKStream<?> resultStream = logicalPlanNode
         .getNode()
         .buildStream(
-            builder,
-            ksqlConfig,
-            serviceContext,
-            processingLogContext,
-            functionRegistry,
-            queryId
+            KsqlQueryBuilder.of(
+                builder,
+                ksqlConfig,
+                serviceContext,
+                processingLogContext,
+                functionRegistry,
+                queryId
+            )
         );
 
     final OutputNode outputNode = resultStream.outputNode();

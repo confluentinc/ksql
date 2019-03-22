@@ -32,13 +32,13 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogConstants;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -71,7 +71,6 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.Aggregator;
-import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
@@ -83,13 +82,14 @@ import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class StructuredDataSourceNodeTest {
+
   private static final String TIMESTAMP_FIELD = "timestamp";
 
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
@@ -132,22 +132,19 @@ public class StructuredDataSourceNodeTest {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
-  private KStream kStream;
+  private KStream<?, ?> kStream;
   @Mock
   private KGroupedStream kGroupedStream;
   @Mock
   private KTable kTable;
-  @Mock
-  private InternalFunctionRegistry functionRegistry;
   @Mock
   private Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
   @Mock
   private MaterializedFactory materializedFactory;
   @Mock
   private Materialized materialized;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
+  @Mock
+  private KsqlQueryBuilder ksqlStreamBuilder;
 
   private ServiceContext serviceContext;
   private ProcessingLogContext processingLogContext;
@@ -158,7 +155,16 @@ public class StructuredDataSourceNodeTest {
     serviceContext = TestServiceContext.create();
     processingLogContext = ProcessingLogContext.create();
     realBuilder = new StreamsBuilder();
-    realStream = build(node);
+
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
+    when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+        new QueryContext.Stacker(queryId)
+            .push(inv.getArgument(0).toString()));
+
+    realStream = node.buildStream(ksqlStreamBuilder);
 
     when(tableSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(tableSource.isWindowed()).thenReturn(false);
@@ -176,7 +182,6 @@ public class StructuredDataSourceNodeTest {
         any(ProcessingLogContext.class))).thenReturn(rowSerde);
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
-    when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(kStream.transformValues(any(ValueTransformerSupplier.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapperWithKey.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
@@ -203,14 +208,7 @@ public class StructuredDataSourceNodeTest {
     final StructuredDataSourceNode node = nodeWithMockTableSource();
 
     // When:
-    node.buildStream(
-        streamsBuilder,
-        realConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId
-    );
+    node.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(materializedFactorySupplier).apply(realConfig);
@@ -287,7 +285,7 @@ public class StructuredDataSourceNodeTest {
                 new KsqlJsonTopicSerDe(), false),
             Serdes::String),
         realSchema);
-    final SchemaKStream result = build(node);
+    final SchemaKStream result = node.buildStream(ksqlStreamBuilder);
     assertThat(result.getClass(), equalTo(SchemaKTable.class));
   }
 
@@ -304,7 +302,8 @@ public class StructuredDataSourceNodeTest {
             Serdes::String),
         realSchema);
     realBuilder = new StreamsBuilder();
-    build(node);
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
+    node.buildStream(ksqlStreamBuilder);
     final Topology topology = realBuilder.build();
     final TopologyDescription description = topology.describe();
 
@@ -333,17 +332,11 @@ public class StructuredDataSourceNodeTest {
     }
   }
 
-  private SchemaKStream build(final StructuredDataSourceNode node) {
-    return node.buildStream(
-        realBuilder,
-        realConfig,
-        serviceContext,
-        processingLogContext,
-        new InternalFunctionRegistry(),
-        queryId);
-  }
-
+  @SuppressWarnings("unchecked")
   private StructuredDataSourceNode nodeWithMockTableSource() {
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
+    when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
+
     return new StructuredDataSourceNode(
         realNodeId,
         tableSource,

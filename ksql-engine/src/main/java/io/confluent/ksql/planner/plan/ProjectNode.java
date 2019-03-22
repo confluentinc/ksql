@@ -18,14 +18,10 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
@@ -34,7 +30,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
 
 @Immutable
 public class ProjectNode
@@ -100,23 +95,12 @@ public class ProjectNode
   }
 
   @Override
-  public SchemaKStream<?> buildStream(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final FunctionRegistry functionRegistry,
-      final QueryId queryId) {
-    return getSource().buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId
-    ).select(
-        getProjectSelectExpressions(),
-        buildNodeContext(queryId),
-        processingLogContext);
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+    return getSource().buildStream(builder)
+        .select(
+            getProjectSelectExpressions(),
+            builder.buildNodeContext(getId()),
+            builder.getProcessingLogContext()
+        );
   }
 }

@@ -20,14 +20,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -46,7 +45,6 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
 
 public class KsqlStructuredDataOutputNode extends OutputNode {
   private final String kafkaTopicName;
@@ -101,25 +99,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final FunctionRegistry functionRegistry,
-      final QueryId queryId
-  ) {
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final PlanNode source = getSource();
-    final SchemaKStream schemaKStream = source.buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId
-    );
+    final SchemaKStream schemaKStream = source.buildStream(builder);
 
-    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
+    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
 
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
     final Builder outputNodeBuilder = Builder.from(this);
@@ -133,8 +117,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
         outputNodeBuilder,
-        ksqlConfig,
-        functionRegistry,
+        builder.getKsqlConfig(),
+        builder.getFunctionRegistry(),
         outputProperties,
         contextStacker
     );
@@ -144,12 +128,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final SourceTopicProperties sourceTopicProperties = getSourceTopicProperties(
           getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
           outputProperties,
-          serviceContext.getTopicClient(),
-          ksqlConfig
+          builder.getServiceContext().getTopicClient(),
+          builder.getKsqlConfig()
       );
       createSinkTopic(
           noRowKey.getKafkaTopicName(),
-          serviceContext.getTopicClient(),
+          builder.getServiceContext().getTopicClient(),
           shouldBeCompacted(result),
           sourceTopicProperties.partitions,
           sourceTopicProperties.replicas);
@@ -159,11 +143,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
             .getGenericRowSerde(
                 noRowKey.getSchema(),
-                ksqlConfig,
+                builder.getKsqlConfig(),
                 false,
-                serviceContext.getSchemaRegistryClientFactory(),
+                builder.getServiceContext().getSchemaRegistryClientFactory(),
                 QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
-                processingLogContext),
+                builder.getProcessingLogContext()),
         rowkeyIndexes
     );
 

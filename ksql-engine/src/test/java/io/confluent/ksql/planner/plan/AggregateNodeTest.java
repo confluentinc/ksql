@@ -45,6 +45,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConstants;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
@@ -96,6 +97,8 @@ public class AggregateNodeTest {
 
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private KsqlQueryBuilder ksqlStreamBuilder;
   private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder = new StreamsBuilder();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
@@ -385,13 +388,16 @@ public class AggregateNodeTest {
   }
 
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
-        return aggregateNode.buildStream(
-            builder,
-            ksqlConfig,
-            serviceContext,
-            processingLogContext,
-            new InternalFunctionRegistry(),
-            queryId);
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
+    when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
+    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+        new QueryContext.Stacker(queryId)
+            .push(inv.getArgument(0).toString()));
+
+    return aggregateNode.buildStream(ksqlStreamBuilder);
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {

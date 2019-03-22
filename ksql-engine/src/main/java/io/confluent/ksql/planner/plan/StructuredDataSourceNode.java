@@ -18,17 +18,14 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.physical.AddTimestampColumn;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.structured.QueryContext;
@@ -158,15 +155,8 @@ public class StructuredDataSourceNode
 
   @SuppressWarnings("unchecked")
   @Override
-  public SchemaKStream<?> buildStream(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final FunctionRegistry functionRegistry,
-      final QueryId queryId
-  ) {
-    final QueryContext.Stacker contextStacker = buildNodeContext(queryId);
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
     final int timeStampColumnIndex = getTimeStampColumnIndex();
     final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
         .create(timeStampColumnIndex);
@@ -176,30 +166,30 @@ public class StructuredDataSourceNode
     final Serde<GenericRow> genericRowSerde =
         ksqlTopicSerDe.getGenericRowSerde(
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
-            ksqlConfig,
+            builder.getKsqlConfig(),
             false,
-            serviceContext.getSchemaRegistryClientFactory(), 
+            builder.getServiceContext().getSchemaRegistryClientFactory(),
             QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext()),
-            processingLogContext
+            builder.getProcessingLogContext()
         );
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
       final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
       final KTable<?, GenericRow> kTable = createKTable(
-          builder,
-          getAutoOffsetReset(ksqlConfig.getKsqlStreamConfigProps()),
+          builder.getStreamsBuilder(),
+          getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
           genericRowSerde,
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
               getSchema(),
-              ksqlConfig,
+              builder.getKsqlConfig(),
               true,
-              serviceContext.getSchemaRegistryClientFactory(),
+              builder.getServiceContext().getSchemaRegistryClientFactory(),
               QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext()),
-              processingLogContext
+              builder.getProcessingLogContext()
           ),
           timestampExtractor,
-          ksqlConfig,
+          builder.getKsqlConfig(),
           reduceContextStacker.getQueryContext()
       );
       return new SchemaKTable<>(
@@ -209,14 +199,18 @@ public class StructuredDataSourceNode
           new ArrayList<>(),
           table.getKeySerdeFactory(),
           SchemaKStream.Type.SOURCE,
-          ksqlConfig,
-          functionRegistry,
+          builder.getKsqlConfig(),
+          builder.getFunctionRegistry(),
           contextStacker.getQueryContext()
       );
     }
 
     final KsqlStream stream = (KsqlStream) getStructuredDataSource();
-    final KStream kstream = createKStream(builder, timestampExtractor, genericRowSerde);
+    final KStream kstream = createKStream(
+        builder.getStreamsBuilder(),
+        timestampExtractor,
+        genericRowSerde
+    );
 
     return new SchemaKStream<>(
         getSchema(),
@@ -225,8 +219,8 @@ public class StructuredDataSourceNode
         new ArrayList<>(),
         stream.getKeySerdeFactory(),
         SchemaKStream.Type.SOURCE,
-        ksqlConfig,
-        functionRegistry,
+        builder.getKsqlConfig(),
+        builder.getFunctionRegistry(),
         contextStacker.getQueryContext()
     );
   }

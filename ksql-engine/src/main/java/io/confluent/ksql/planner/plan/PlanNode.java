@@ -18,19 +18,13 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
 
 
 public abstract class PlanNode {
@@ -73,17 +67,7 @@ public abstract class PlanNode {
     return null;
   }
 
-  QueryContext.Stacker buildNodeContext(final QueryId queryId) {
-    return new QueryContext.Stacker(queryId).push(id.toString());
-  }
-
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
 
-  public abstract SchemaKStream<?> buildStream(
-      StreamsBuilder builder,
-      KsqlConfig ksqlConfig,
-      ServiceContext serviceContext,
-      ProcessingLogContext processingLogContext,
-      FunctionRegistry functionRegistry,
-      QueryId queryId);
+  public abstract SchemaKStream<?> buildStream(KsqlQueryBuilder builder);
 }

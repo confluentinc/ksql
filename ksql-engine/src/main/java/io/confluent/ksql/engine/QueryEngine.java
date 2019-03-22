@@ -29,7 +29,7 @@ import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
-import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -77,7 +77,7 @@ class QueryEngine {
     LOG.info("Build logical plan for {}.", statement.getStatementText());
 
     if (statement.getStatement() instanceof Query) {
-      final PlanNode planNode = buildQueryLogicalPlan(
+      final OutputNode outputNode = buildQueryLogicalPlan(
           statement.getStatementText(),
           (Query)statement.getStatement(),
           Optional.empty(),
@@ -85,21 +85,21 @@ class QueryEngine {
           config
       );
 
-      return new LogicalPlanNode(statement.getStatementText(), planNode);
+      return new LogicalPlanNode(statement.getStatementText(), Optional.of(outputNode));
     }
 
     if (statement.getStatement() instanceof QueryContainer) {
-      final PlanNode planNode = buildQueryLogicalPlan(
+      final OutputNode outputNode = buildQueryLogicalPlan(
           statement.getStatementText(),
           (QueryContainer) statement.getStatement(),
           metaStore,
           config
       );
 
-      return new LogicalPlanNode(statement.getStatementText(), planNode);
+      return new LogicalPlanNode(statement.getStatementText(), Optional.of(outputNode));
     }
 
-    return new LogicalPlanNode(statement.getStatementText(), null);
+    return new LogicalPlanNode(statement.getStatementText(), Optional.empty());
   }
 
   QueryMetadata buildPhysicalPlan(
@@ -129,7 +129,7 @@ class QueryEngine {
     return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
   }
 
-  private static PlanNode buildQueryLogicalPlan(
+  private static OutputNode buildQueryLogicalPlan(
       final String sqlExpression,
       final QueryContainer container,
       final MetaStore metaStore,
@@ -140,7 +140,7 @@ class QueryEngine {
     return buildQueryLogicalPlan(sqlExpression, query, Optional.of(sink), metaStore, config);
   }
 
-  private static PlanNode buildQueryLogicalPlan(
+  private static OutputNode buildQueryLogicalPlan(
       final String sqlExpression,
       final Query query,
       final Optional<Sink> sink,

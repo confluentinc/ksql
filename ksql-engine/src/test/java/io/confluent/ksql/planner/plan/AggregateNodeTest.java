@@ -39,8 +39,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogConstants;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
@@ -87,12 +85,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
-
-  private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-
-  static {
-    UdfLoaderUtil.load(functionRegistry);
-  }
 
   @Mock
   private ServiceContext serviceContext;

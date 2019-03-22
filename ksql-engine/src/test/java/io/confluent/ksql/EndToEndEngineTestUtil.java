@@ -44,8 +44,7 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -103,7 +102,6 @@ import org.junit.internal.matchers.ThrowableMessageMatcher;
 
 final class EndToEndEngineTestUtil {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private static final String CONFIG_END_MARKER = "CONFIGS_END";
 
   // Pass a single test or multiple tests separated by commas to the test framework.
@@ -111,10 +109,6 @@ final class EndToEndEngineTestUtil {
   //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
   //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
   private static final String KSQL_TEST_FILES = "ksql.test.files";
-
-  static {
-    UdfLoaderUtil.load(functionRegistry);
-  }
 
   private EndToEndEngineTestUtil(){}
 
@@ -942,7 +936,7 @@ final class EndToEndEngineTestUtil {
   }
 
   private static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
-    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    final MutableMetaStore metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
     return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
   }
 

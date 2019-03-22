@@ -27,10 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-/**
- * @author andy
- * created 19/04/2018
- */
 @RunWith(EasyMockRunner.class)
 public class KsqlServerMainTest {
   private KsqlServerMain main;

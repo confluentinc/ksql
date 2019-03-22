@@ -60,7 +60,7 @@ public class ListQueriesExecutorTest {
   @Test
   public void shouldListQueriesBasic() {
     // Given
-    final PreparedStatement showQueries = engine.prepare("SHOW QUERIES;");
+    final PreparedStatement<?> showQueries = engine.prepare("SHOW QUERIES;");
     final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
@@ -85,7 +85,7 @@ public class ListQueriesExecutorTest {
   @Test
   public void shouldListQueriesExtended() {
     // Given
-    final PreparedStatement showQueries = engine.prepare("SHOW QUERIES EXTENDED;");
+    final PreparedStatement<?> showQueries = engine.prepare("SHOW QUERIES EXTENDED;");
     final PersistentQueryMetadata metadata = engine.givenPersistentQuery("id");
 
     final KsqlEngine engine = mock(KsqlEngine.class);

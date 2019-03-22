@@ -55,7 +55,7 @@ public class KsqlBareOutputNodeTest {
   private static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000002";
   private static final String FILTER_NODE = "KSTREAM-FILTER-0000000003";
   private static final String FILTER_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000004";
-  private static final String FOREACH_NODE = "KSTREAM-FOREACH-0000000005";
+
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -100,18 +100,6 @@ public class KsqlBareOutputNodeTest {
   public void shouldBuildFilterNode() {
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FILTER_NODE);
     verifyProcessorNode(node, Collections.singletonList(TRANSFORM_NODE), Collections.singletonList(FILTER_MAPVALUES_NODE));
-  }
-
-  @Test
-  public void shouldBuildMapValuesNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FILTER_MAPVALUES_NODE);
-    verifyProcessorNode(node, Collections.singletonList(FILTER_NODE), Collections.singletonList(FOREACH_NODE));
-  }
-
-  @Test
-  public void shouldBuildForEachNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FOREACH_NODE);
-    verifyProcessorNode(node, Collections.singletonList(FILTER_MAPVALUES_NODE), Collections.emptyList());
   }
 
   @Test

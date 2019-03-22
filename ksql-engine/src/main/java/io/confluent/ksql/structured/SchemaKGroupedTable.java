@@ -126,7 +126,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         aggKtable,
         keyField,
         sourceSchemaKStreams,
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,

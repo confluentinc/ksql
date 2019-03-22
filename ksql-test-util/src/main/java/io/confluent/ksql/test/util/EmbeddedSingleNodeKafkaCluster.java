@@ -282,10 +282,18 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     final Properties effectiveConfig = new Properties();
     effectiveConfig.putAll(brokerConfig);
     effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
+    // Allow tests to delete topics:
     effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
+    // Do not clean logs from under the tests or waste resources doing so:
     effectiveConfig.put(KafkaConfig.LogCleanerEnableProp(), false);
+    // Only single node, so only single RF on offset topic partitions:
     effectiveConfig.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
+    // Tests do not need large numbers of offset topic partitions:
+    effectiveConfig.put(KafkaConfig.OffsetsTopicPartitionsProp(), "2");
+    // Shutdown quick:
     effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
+    effectiveConfig.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
     return effectiveConfig;
   }
 

@@ -31,9 +31,9 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -68,10 +68,14 @@ public class RequestValidatorTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
-  @Mock KsqlEngine ksqlEngine;
-  @Mock KsqlConfig ksqlConfig;
-  @Mock StatementValidator statementValidator;
-  @Mock SchemaInjector schemaInjector;
+  @Mock
+  KsqlEngine ksqlEngine;
+  @Mock
+  KsqlConfig ksqlConfig;
+  @Mock
+  StatementValidator<?> statementValidator;
+  @Mock
+  SchemaInjector schemaInjector;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -92,11 +96,11 @@ public class RequestValidatorTest {
         .thenReturn(Integer.MAX_VALUE);
     when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    final KsqlStream source = mock(KsqlStream.class);
+    final KsqlStream<?> source = mock(KsqlStream.class);
     when(source.getName()).thenReturn("SOURCE");
     when(source.getSchema()).thenReturn(SCHEMA);
 
-    final KsqlStream sink = mock(KsqlStream.class);
+    final KsqlStream<?> sink = mock(KsqlStream.class);
     when(sink.getName()).thenReturn("SINK");
     when(sink.getSchema()).thenReturn(SCHEMA);
 
@@ -249,7 +253,7 @@ public class RequestValidatorTest {
   }
 
   private void givenRequestValidator(
-      Map<Class<? extends Statement>, StatementValidator> customValidators
+      Map<Class<? extends Statement>, StatementValidator<?>> customValidators
   ) {
     validator = new RequestValidator(
         customValidators,

@@ -46,7 +46,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.LimitedProxyBuilder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -297,7 +296,7 @@ public class AggregateNodeTest {
   @Test
   public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
     final SchemaKStream stream = build();
-    assertThat(stream.getKeySerde(), is(not(Optional.empty())));
+    assertThat(stream.getKeySerdeFactory(), is(not(Optional.empty())));
   }
 
   private SchemaKStream build() {

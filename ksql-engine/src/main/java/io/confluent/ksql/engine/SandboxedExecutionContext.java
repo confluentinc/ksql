@@ -50,11 +50,6 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public int numberOfPersistentQueries() {
-    return engineContext.numberOfPersistentQueries();
-  }
-
-  @Override
   public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
     return engineContext.getPersistentQuery(queryId);
   }

@@ -47,13 +47,6 @@ public interface KsqlExecutionContext {
   MetaStore getMetaStore();
 
   /**
-   * Get the number of persistent queries.
-   *
-   * @return the number of queries
-   */
-  int numberOfPersistentQueries();
-
-  /**
    * Retrieve the details of a persistent query.
    *
    * @param queryId the id of the query to retrieve.

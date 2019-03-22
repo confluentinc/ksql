@@ -17,9 +17,11 @@ package io.confluent.ksql.util.timestamp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
+@Immutable
 public class StringTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
   private final String timestampField;

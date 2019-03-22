@@ -17,21 +17,14 @@ package io.confluent.ksql.datagen;
 
 import io.confluent.ksql.datagen.DataGen.Arguments.Format;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
+import java.util.Properties;
 
 class ProducerFactory {
   DataGenProducer getProducer(final Format format,
-      final String schemaRegistryUrl) {
+      final Properties props) {
     switch (format) {
       case AVRO:
-        return new AvroProducer(
-            new KsqlConfig(
-                Collections.singletonMap(
-                    KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-                    schemaRegistryUrl
-                )
-            )
-        );
+        return new AvroProducer(new KsqlConfig(props));
 
       case JSON:
         return new JsonProducer();

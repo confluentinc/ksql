@@ -171,4 +171,3 @@ public final class ImmutableTester {
     return field -> !field.getName().equals("$jacocoData");
   }
 }
-

@@ -33,7 +33,7 @@ public final class PropertyValidator {
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
   public static void set(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext context,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
@@ -59,7 +59,7 @@ public final class PropertyValidator {
   }
 
   public static void unset(
-      final PreparedStatement statement,
+      final PreparedStatement<?> statement,
       final KsqlExecutionContext context,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,

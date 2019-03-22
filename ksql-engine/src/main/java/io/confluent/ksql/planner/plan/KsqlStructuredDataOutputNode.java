@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -199,7 +199,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         schemaKStream.getKstream(),
         this.getKeyField(),
         Collections.singletonList(schemaKStream),
-        schemaKStream.getKeySerde(),
+        schemaKStream.getKeySerdeFactory(),
         SchemaKStream.Type.SINK,
         ksqlConfig,
         functionRegistry,

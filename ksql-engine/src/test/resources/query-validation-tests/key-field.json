@@ -1,0 +1,789 @@
+{
+  "comments": [
+    "Tests covering handling of key-fields.",
+    "The 'key-field' is an optional field within the value that matches the key",
+    "",
+    "There are several main dimensions to this test suite:",
+    " - source type:",
+    "   - stream",
+    "   - table",
+    " - source key:",
+    "   - initially null",
+    "   - initially set",
+    " - explicit changing of key:",
+    "   - no key change",
+    "   - partition by (same key)",
+    "   - partition by (different key)",
+    "   - group by (same key)",
+    "   - group by (different key)",
+    " - key present in target value schema:",
+    "   - key in value",
+    "   - key not in value",
+    " - aliasing of the key field in the value schema",
+    "   - no aliasing",
+    "   - aliased key field",
+    "",
+    "Not all combinations are valid, e.g. can not have an alias if there is no key.",
+    "",
+    "issues:",
+    " There is currently an inconsistency between how GROUP BY's and PARTITION BY's handling of aliases:",
+    "  - PARTITION BY requires the target name, (i.e. the alias), failing if the source field name is used.",
+    "  - GROUP BY requires the source field name, failing if the target field name, (i.e. the alias), is used."
+  ],
+  "tests": [
+    {
+      "name": "stream | initially null | no key change | - | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": null}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | partition by (-) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": null},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | partition by (-) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo AS ALIASED, bar FROM INPUT PARTITION BY ALIASED;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": null},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | partition by (-) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT PARTITION BY foo;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Column FOO does not exist in the result schema. Error in Partition By clause."
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'FOO'.",
+          "key field of output has INCORRECT type: should be 'INT"
+        ],
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": null},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS Aliased, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": null},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": null},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'."
+          ],
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"BAR": 2}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output INCORRECT: should be null."
+        ],
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (same) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"FOO":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (same) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo AS aliased, bar FROM INPUT PARTITION BY aliased;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (same) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT PARTITION BY foo;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Column FOO does not exist in the result schema. Error in Partition By clause."
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (different) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"FOO": 1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "BAR", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (different) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo, bar AS aliased FROM INPUT PARTITION BY aliased;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"FOO": 1, "ALIASED": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by (different) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT PARTITION BY bar;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Column BAR does not exist in the result schema. Error in Partition By clause."
+      }
+    },
+    {
+      "name": "stream | initially set | group by (same) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (same) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (same) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": null}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"BAR":2, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'BAR'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key in value | aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"ALIASED":2, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key not in value | -",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "issues": ["key field of output INCORRECT: should be null."],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | no key change | - | -",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT bar FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT * FROM INTERMEDIATE;"
+      ],
+      "inputs": [
+        {"topic": "INTERMEDIATE", "key": "x", "value": {"bar": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "x", "value": {"BAR": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": null}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | group by (-) | key in value | no aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INTERMEDIATE GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "INTERMEDIATE", "key": "x", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'FOO'.",
+          "key field of output has INCORRECT type: should be 'INT'."],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | group by (-) | key in value | aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INTERMEDIATE GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "INTERMEDIATE", "key": "x", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'FOO'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | no key change | key in value | no aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "table", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | no key change | key in value | aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, bar FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "table", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | no key change | key not in value | -",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": null}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key in value | no aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'FOO'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key in value | aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key not in value | -",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":  1}}
+      ],
+      "post": {
+        "issues": ["key field of output INCORRECT: should be null."],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key in value | no aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"BAR": 2, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'BAR'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key in value | aliasing",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"ALIASED": 2, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'ALIASED'.",
+          "key field of output has INCORRECT type: should be 'INT'."
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key not in value | -",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"KSQL_COL_0":  1}}
+      ],
+      "post": {
+        "issues": ["key field of output INCORRECT: should be null."],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | partition by expression | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo + bar FROM INPUT PARTITION BY foo + bar;"
+      ],
+      "comment": [
+        "This test is present so that it fails if/when we support PARTITION BY on multiple fields.",
+        "If/when we do, this test will fail to remind us to add tests to cover keyFields for new functionality"],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "line 2:70: mismatched input '+' expecting ';'"
+      }
+    },
+    {
+      "name": "stream | initially set | partition by multiple | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY foo, bar;"
+      ],
+      "comment": [
+        "This test is present so that it fails if/when we support PARTITION BY on multiple fields.",
+        "If/when we do, this test will fail to remind us to add tests to cover keyFields for new functionality"],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "line 2:61: mismatched input ',' expecting ';'"
+      }
+    },
+    {
+      "name": "stream | initially set | group by multiple | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, bar, COUNT(*) FROM INPUT GROUP BY bar, foo;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"2|+|1", "value": {"FOO": 1, "BAR": 2, "KSQL_COL_2": 1}}
+      ],
+      "post": {
+        "issues": ["key field of output is INCORRECT: should be null."],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1|+|KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by expression | key in value | no aliasing",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo + bar, COUNT(*) FROM INPUT GROUP BY foo + bar;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "1", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key":"3", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'KSQL_COL_0'.",
+          "key field of output has INCORRECT type: should be 'INT"
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "(KSQL_INTERNAL_COL_0 + KSQL_INTERNAL_COL_1)", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key in value | no aliasing | with cast",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT cast(foo as INT), COUNT(*) FROM INPUT GROUP BY cast(foo as INT);"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "issues": [
+          "key field of output has INCORRECT name: should be 'KSQL_COL_0'.",
+          "key field of output has INCORRECT type: should be 'INT"
+        ],
+        "sources": [
+          {"name": "INPUT", "type": "stream", "keyField": null},
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "CAST(KSQL_INTERNAL_COL_0 AS INTEGER)", "schema": {"type": "STRING"}}}
+        ]
+      }
+    }
+  ]
+}

@@ -32,9 +32,9 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.QualifiedName;
@@ -88,7 +88,7 @@ public class SchemaKTableTest {
 
   private SchemaKTable initialSchemaKTable;
   private KTable kTable;
-  private KsqlTable ksqlTable;
+  private KsqlTable<?> ksqlTable;
   private InternalFunctionRegistry functionRegistry;
   private KTable mockKTable;
   private SchemaKTable firstSchemaKTable;
@@ -123,16 +123,16 @@ public class SchemaKTableTest {
   }
 
   private SchemaKTable buildSchemaKTable(
-      final KsqlTable ksqlTable,
+      final KsqlTable<?> ksqlTable,
       final Schema schema,
       final KTable kTable,
       final GroupedFactory groupedFactory) {
     return new SchemaKTable(
         schema,
         kTable,
-        ksqlTable.getKeyField(),
+        ksqlTable.getKeyField().orElse(null),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -178,9 +178,9 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        ksqlTable.getKeyField().orElse(null),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -217,9 +217,9 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        ksqlTable.getKeyField().orElse(null),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -259,9 +259,9 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        ksqlTable.getKeyField().orElse(null),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -302,9 +302,9 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        ksqlTable.getKeyField().orElse(null),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,
@@ -377,9 +377,9 @@ public class SchemaKTableTest {
     initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         mockKTable,
-        ksqlTable.getKeyField(),
+        ksqlTable.getKeyField().orElse(null),
         new ArrayList<>(),
-        Serdes.String(),
+        Serdes::String,
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry,

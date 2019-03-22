@@ -257,7 +257,7 @@ public class AggregateNode extends PlanNode {
         aggregateArgExpanded, initializer, aggValToValColumnMap.size(),
         functionRegistry, internalSchema);
 
-    final SchemaKTable schemaKTable = schemaKGroupedStream.aggregate(
+    final SchemaKTable<?> schemaKTable = schemaKGroupedStream.aggregate(
         initializer,
         aggValToFunctionMap,
         aggValToValColumnMap,
@@ -270,7 +270,7 @@ public class AggregateNode extends PlanNode {
         schemaKTable.getKtable(),
         schemaKTable.getKeyField(),
         schemaKTable.getSourceSchemaKStreams(),
-        schemaKTable.getKeySerde(),
+        schemaKTable.getKeySerdeFactory(),
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
         functionRegistry,

@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.validation;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -27,12 +28,12 @@ import java.util.Map;
  * against a point-in-time execution engine.
  */
 @FunctionalInterface
-public interface StatementValidator {
+public interface StatementValidator<T extends Statement> {
 
   /**
    * A statement validator that does nothing.
    */
-  StatementValidator NO_VALIDATION = (stmt, ectx, sctx, cfg, overrides) -> { };
+  StatementValidator<?> NO_VALIDATION = (stmt, ectx, sctx, cfg, overrides) -> { };
 
   /**
    * Validates the statement against the given parameters, and throws an exception
@@ -42,7 +43,7 @@ public interface StatementValidator {
    *                       given parameters
    */
   void validate(
-      PreparedStatement statement,
+      PreparedStatement<T> statement,
       KsqlExecutionContext executionContext,
       ServiceContext serviceContext,
       KsqlConfig ksqlConfig,

@@ -22,12 +22,12 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTable;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
@@ -43,6 +43,7 @@ import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -83,25 +84,25 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends StructuredDataSource> T givenSource(
+  public <T extends StructuredDataSource<?>> T givenSource(
       final DataSource.DataSourceType type,
       final String name) {
     final KsqlTopic topic = givenKsqlTopic(name);
     givenKafkaTopic(name);
 
-    final StructuredDataSource source;
+    final StructuredDataSource<?> source;
     switch (type) {
       case KSTREAM:
         source =
             new KsqlStream<>(
-                "statement", name, SCHEMA, SCHEMA.field("val"),
-                new MetadataTimestampExtractionPolicy(), topic, Serdes.String());
+                "statement", name, SCHEMA, Optional.of(SCHEMA.field("val")),
+                new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       case KTABLE:
         source =
             new KsqlTable<>(
-                "statement", name, SCHEMA, SCHEMA.field("val"),
-                new MetadataTimestampExtractionPolicy(), topic, Serdes.String());
+                "statement", name, SCHEMA, Optional.of(SCHEMA.field("val")),
+                new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       case KTOPIC:
       default:
@@ -124,7 +125,7 @@ public class TemporaryEngine extends ExternalResource {
         .preconditionTopicExists(name, 1, (short) 1, Collections.emptyMap());
   }
 
-  public PreparedStatement prepare(final String sql) {
+  public PreparedStatement<?> prepare(final String sql) {
     return getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0));
   }
 

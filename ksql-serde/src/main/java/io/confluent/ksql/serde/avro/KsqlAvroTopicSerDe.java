@@ -17,7 +17,7 @@ package io.confluent.ksql.serde.avro;
 
 import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -33,6 +33,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -41,7 +42,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 
-
+@Immutable
 public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
   private final String fullSchemaName;
@@ -57,14 +58,12 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
   private static AvroConverter getAvroConverter(
       final SchemaRegistryClient schemaRegistryClient, final KsqlConfig ksqlConfig) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
-    avroConverter.configure(
-        ImmutableMap.of(
-            AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
-            ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
-            AvroDataConfig.CONNECT_META_DATA_CONFIG,
-            false
-        ),
-        false);
+    final Map<String, Object> avroConfig =
+        ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
+    avroConfig.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
+        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
+    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
+    avroConverter.configure(avroConfig, false);
     return avroConverter;
   }
 
@@ -99,5 +98,25 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
         )
     );
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    final KsqlAvroTopicSerDe that = (KsqlAvroTopicSerDe) o;
+    return Objects.equals(fullSchemaName, that.fullSchemaName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), fullSchemaName);
   }
 }

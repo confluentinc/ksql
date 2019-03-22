@@ -43,7 +43,7 @@ public abstract class BaseSumKudafTest<
     for (final T i : values) {
       currentVal = sumKudaf.aggregate(i, currentVal);
     }
-    assertThat(tGenerator.fromInt(30), equalTo(currentVal));
+    assertThat(currentVal, equalTo(tGenerator.fromInt(30)));
   }
 
   @Test
@@ -56,7 +56,7 @@ public abstract class BaseSumKudafTest<
     for (final T i : values) {
       currentVal = sumKudaf.aggregate(i, currentVal);
     }
-    assertThat(tGenerator.fromInt(25), equalTo(currentVal));
+    assertThat(currentVal, equalTo(tGenerator.fromInt(25)));
   }
 
   @Test
@@ -69,7 +69,20 @@ public abstract class BaseSumKudafTest<
     for (final T i: values) {
       currentVal = sumKudaf.undo(i, currentVal);
     }
-    assertThat(tGenerator.fromInt(0), equalTo(currentVal));
+    assertThat(currentVal, equalTo(tGenerator.fromInt(0)));
+  }
+
+  @Test
+  public void shouldHandleNullsInUndo() {
+    final TGenerator<T> tGenerator = getTGenerator();
+    final AT sumKudaf = getSumKudaf();
+    T currentVal = tGenerator.fromInt(30);
+    final List<T> values = Stream.of(3, null, 8, 2, 3, 4, 5)
+        .map(tGenerator::fromInt).collect(Collectors.toList());
+    for (final T i: values) {
+      currentVal = sumKudaf.undo(i, currentVal);
+    }
+    assertThat(currentVal, equalTo(tGenerator.fromInt(5)));
   }
 
   @Test

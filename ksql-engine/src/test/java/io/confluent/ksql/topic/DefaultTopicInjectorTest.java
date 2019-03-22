@@ -15,11 +15,24 @@
 
 package io.confluent.ksql.topic;
 
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.KSQL_CONFIG;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.KSQL_CONFIG_P;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.KSQL_CONFIG_R;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.NO_CONFIG;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.NO_OVERRIDES;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.NO_WITH;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.OVERRIDES;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.OVERRIDES_P;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.OVERRIDES_R;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.SOURCE;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.WITH;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.WITH_P;
+import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.WITH_R;
 import static io.confluent.ksql.topic.TopicInjectorFixture.hasTopicInfo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -27,14 +40,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.topic.TopicInjectorFixture.Inject;
-import io.confluent.ksql.topic.TopicInjectorFixture.Type;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -134,24 +141,6 @@ public class DefaultTopicInjectorTest {
     }
 
     @Test
-    public void testMalformedReplicaPropertyInOverrides() {
-      // Given:
-      fixture.givenStatement(
-          "CREATE STREAM sink WITH (value_format='JSON') AS SELECT * FROM source;"
-      );
-      fixture.propertyOverrides.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "hi");
-
-      // Expect:
-      expectedException.expect(KsqlException.class);
-      expectedException.expectMessage(
-          "Invalid property override ksql.sink.replicas: hi "
-              + "(all overrides: {ksql.sink.replicas=hi})");
-
-      // When:
-      fixture.inject();
-    }
-
-    @Test
     public void testMalformedPartitionsProperty() {
       // Given:
       fixture.givenStatement(
@@ -176,24 +165,6 @@ public class DefaultTopicInjectorTest {
       // Expect:
       expectedException.expect(KsqlException.class);
       expectedException.expectMessage("Invalid number of partitions in WITH clause: 0.5");
-
-      // When:
-      fixture.inject();
-    }
-
-    @Test
-    public void testMalformedPartitionsPropertyInOverrides() {
-      // Given:
-      fixture.givenStatement(
-          "CREATE STREAM sink WITH (value_format='JSON') AS SELECT * FROM source;"
-      );
-      fixture.propertyOverrides.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, "hi");
-
-      // Expect:
-      expectedException.expect(KsqlException.class);
-      expectedException.expectMessage(
-          "Invalid property override ksql.sink.partitions: hi "
-              + "(all overrides: {ksql.sink.partitions=hi})");
 
       // When:
       fixture.inject();
@@ -229,32 +200,76 @@ public class DefaultTopicInjectorTest {
 
     @Parameters(name="given {0} -> expect({1},{2})")
     public static Iterable<Object[]> data() {
-      final List<Inject> withs = EnumSet.allOf(Inject.class)
-          .stream().filter(i -> i.type == Type.WITH).collect(Collectors.toList());
-      final List<Inject> overrides = EnumSet.allOf(Inject.class)
-          .stream().filter(i -> i.type == Type.OVERRIDES).collect(Collectors.toList());
-      final List<Inject> ksqlConfigs = EnumSet.allOf(Inject.class)
-          .stream().filter(i -> i.type == Type.KSQL_CONFIG).collect(Collectors.toList());
-
-      final List<Object[]> parameters = new ArrayList<>();
-      for (List<Inject> injects : Lists.cartesianProduct(withs, overrides, ksqlConfigs)) {
-        // sort by precedence order
-        injects = new ArrayList<>(injects);
-        injects.sort(Comparator.comparing(i -> i.type));
-
-        final Inject expectedPartitions =
-            injects.stream().filter(i -> i.partitions != null).findFirst().orElse(Inject.SOURCE);
-        final Inject expectedReplicas =
-            injects.stream().filter(i -> i.replicas != null).findFirst().orElse(Inject.SOURCE);
-
-        parameters.add(new Object[]{
-            injects.toString(),
-            expectedPartitions,
-            expectedReplicas,
-            injects.toArray(new Inject[]{})});
-      }
-
-      return parameters;
+      final Object[][] data = new Object[][]{
+          // THIS LIST WAS GENERATED BY RUNNING TopicInjectorFixture#main
+          //
+          // DESCRIPTION                             EXPECTED:  [PARTITIONS       REPLICAS]        GIVEN: OVERRIDES
+          new Object[]{"WITH, OVERRIDES, KSQL_CONFIG"          , WITH           , WITH           , new Inject[]{WITH,OVERRIDES,KSQL_CONFIG}},
+          new Object[]{"WITH, OVERRIDES, KSQL_CONFIG_P"        , WITH           , WITH           , new Inject[]{WITH,OVERRIDES,KSQL_CONFIG_P}},
+          new Object[]{"WITH, OVERRIDES, KSQL_CONFIG_R"        , WITH           , WITH           , new Inject[]{WITH,OVERRIDES,KSQL_CONFIG_R}},
+          new Object[]{"WITH, OVERRIDES, NO_CONFIG"            , WITH           , WITH           , new Inject[]{WITH,OVERRIDES,NO_CONFIG}},
+          new Object[]{"WITH, OVERRIDES_P, KSQL_CONFIG"        , WITH           , WITH           , new Inject[]{WITH,OVERRIDES_P,KSQL_CONFIG}},
+          new Object[]{"WITH, OVERRIDES_P, KSQL_CONFIG_P"      , WITH           , WITH           , new Inject[]{WITH,OVERRIDES_P,KSQL_CONFIG_P}},
+          new Object[]{"WITH, OVERRIDES_P, KSQL_CONFIG_R"      , WITH           , WITH           , new Inject[]{WITH,OVERRIDES_P,KSQL_CONFIG_R}},
+          new Object[]{"WITH, OVERRIDES_P, NO_CONFIG"          , WITH           , WITH           , new Inject[]{WITH,OVERRIDES_P,NO_CONFIG}},
+          new Object[]{"WITH, OVERRIDES_R, KSQL_CONFIG"        , WITH           , WITH           , new Inject[]{WITH,OVERRIDES_R,KSQL_CONFIG}},
+          new Object[]{"WITH, OVERRIDES_R, KSQL_CONFIG_P"      , WITH           , WITH           , new Inject[]{WITH,OVERRIDES_R,KSQL_CONFIG_P}},
+          new Object[]{"WITH, OVERRIDES_R, KSQL_CONFIG_R"      , WITH           , WITH           , new Inject[]{WITH,OVERRIDES_R,KSQL_CONFIG_R}},
+          new Object[]{"WITH, OVERRIDES_R, NO_CONFIG"          , WITH           , WITH           , new Inject[]{WITH,OVERRIDES_R,NO_CONFIG}},
+          new Object[]{"WITH, NO_OVERRIDES, KSQL_CONFIG"       , WITH           , WITH           , new Inject[]{WITH,NO_OVERRIDES,KSQL_CONFIG}},
+          new Object[]{"WITH, NO_OVERRIDES, KSQL_CONFIG_P"     , WITH           , WITH           , new Inject[]{WITH,NO_OVERRIDES,KSQL_CONFIG_P}},
+          new Object[]{"WITH, NO_OVERRIDES, KSQL_CONFIG_R"     , WITH           , WITH           , new Inject[]{WITH,NO_OVERRIDES,KSQL_CONFIG_R}},
+          new Object[]{"WITH, NO_OVERRIDES, NO_CONFIG"         , WITH           , WITH           , new Inject[]{WITH,NO_OVERRIDES,NO_CONFIG}},
+          new Object[]{"WITH_P, OVERRIDES, KSQL_CONFIG"        , WITH_P         , OVERRIDES      , new Inject[]{WITH_P,OVERRIDES,KSQL_CONFIG}},
+          new Object[]{"WITH_P, OVERRIDES, KSQL_CONFIG_P"      , WITH_P         , OVERRIDES      , new Inject[]{WITH_P,OVERRIDES,KSQL_CONFIG_P}},
+          new Object[]{"WITH_P, OVERRIDES, KSQL_CONFIG_R"      , WITH_P         , OVERRIDES      , new Inject[]{WITH_P,OVERRIDES,KSQL_CONFIG_R}},
+          new Object[]{"WITH_P, OVERRIDES, NO_CONFIG"          , WITH_P         , OVERRIDES      , new Inject[]{WITH_P,OVERRIDES,NO_CONFIG}},
+          new Object[]{"WITH_P, OVERRIDES_P, KSQL_CONFIG"      , WITH_P         , KSQL_CONFIG    , new Inject[]{WITH_P,OVERRIDES_P,KSQL_CONFIG}},
+          new Object[]{"WITH_P, OVERRIDES_P, KSQL_CONFIG_P"    , WITH_P         , SOURCE         , new Inject[]{WITH_P,OVERRIDES_P,KSQL_CONFIG_P}},
+          new Object[]{"WITH_P, OVERRIDES_P, KSQL_CONFIG_R"    , WITH_P         , KSQL_CONFIG_R  , new Inject[]{WITH_P,OVERRIDES_P,KSQL_CONFIG_R}},
+          new Object[]{"WITH_P, OVERRIDES_P, NO_CONFIG"        , WITH_P         , SOURCE         , new Inject[]{WITH_P,OVERRIDES_P,NO_CONFIG}},
+          new Object[]{"WITH_P, OVERRIDES_R, KSQL_CONFIG"      , WITH_P         , OVERRIDES_R    , new Inject[]{WITH_P,OVERRIDES_R,KSQL_CONFIG}},
+          new Object[]{"WITH_P, OVERRIDES_R, KSQL_CONFIG_P"    , WITH_P         , OVERRIDES_R    , new Inject[]{WITH_P,OVERRIDES_R,KSQL_CONFIG_P}},
+          new Object[]{"WITH_P, OVERRIDES_R, KSQL_CONFIG_R"    , WITH_P         , OVERRIDES_R    , new Inject[]{WITH_P,OVERRIDES_R,KSQL_CONFIG_R}},
+          new Object[]{"WITH_P, OVERRIDES_R, NO_CONFIG"        , WITH_P         , OVERRIDES_R    , new Inject[]{WITH_P,OVERRIDES_R,NO_CONFIG}},
+          new Object[]{"WITH_P, NO_OVERRIDES, KSQL_CONFIG"     , WITH_P         , KSQL_CONFIG    , new Inject[]{WITH_P,NO_OVERRIDES,KSQL_CONFIG}},
+          new Object[]{"WITH_P, NO_OVERRIDES, KSQL_CONFIG_P"   , WITH_P         , SOURCE         , new Inject[]{WITH_P,NO_OVERRIDES,KSQL_CONFIG_P}},
+          new Object[]{"WITH_P, NO_OVERRIDES, KSQL_CONFIG_R"   , WITH_P         , KSQL_CONFIG_R  , new Inject[]{WITH_P,NO_OVERRIDES,KSQL_CONFIG_R}},
+          new Object[]{"WITH_P, NO_OVERRIDES, NO_CONFIG"       , WITH_P         , SOURCE         , new Inject[]{WITH_P,NO_OVERRIDES,NO_CONFIG}},
+          new Object[]{"WITH_R, OVERRIDES, KSQL_CONFIG"        , OVERRIDES      , WITH_R         , new Inject[]{WITH_R,OVERRIDES,KSQL_CONFIG}},
+          new Object[]{"WITH_R, OVERRIDES, KSQL_CONFIG_P"      , OVERRIDES      , WITH_R         , new Inject[]{WITH_R,OVERRIDES,KSQL_CONFIG_P}},
+          new Object[]{"WITH_R, OVERRIDES, KSQL_CONFIG_R"      , OVERRIDES      , WITH_R         , new Inject[]{WITH_R,OVERRIDES,KSQL_CONFIG_R}},
+          new Object[]{"WITH_R, OVERRIDES, NO_CONFIG"          , OVERRIDES      , WITH_R         , new Inject[]{WITH_R,OVERRIDES,NO_CONFIG}},
+          new Object[]{"WITH_R, OVERRIDES_P, KSQL_CONFIG"      , OVERRIDES_P    , WITH_R         , new Inject[]{WITH_R,OVERRIDES_P,KSQL_CONFIG}},
+          new Object[]{"WITH_R, OVERRIDES_P, KSQL_CONFIG_P"    , OVERRIDES_P    , WITH_R         , new Inject[]{WITH_R,OVERRIDES_P,KSQL_CONFIG_P}},
+          new Object[]{"WITH_R, OVERRIDES_P, KSQL_CONFIG_R"    , OVERRIDES_P    , WITH_R         , new Inject[]{WITH_R,OVERRIDES_P,KSQL_CONFIG_R}},
+          new Object[]{"WITH_R, OVERRIDES_P, NO_CONFIG"        , OVERRIDES_P    , WITH_R         , new Inject[]{WITH_R,OVERRIDES_P,NO_CONFIG}},
+          new Object[]{"WITH_R, OVERRIDES_R, KSQL_CONFIG"      , KSQL_CONFIG    , WITH_R         , new Inject[]{WITH_R,OVERRIDES_R,KSQL_CONFIG}},
+          new Object[]{"WITH_R, OVERRIDES_R, KSQL_CONFIG_P"    , KSQL_CONFIG_P  , WITH_R         , new Inject[]{WITH_R,OVERRIDES_R,KSQL_CONFIG_P}},
+          new Object[]{"WITH_R, OVERRIDES_R, KSQL_CONFIG_R"    , SOURCE         , WITH_R         , new Inject[]{WITH_R,OVERRIDES_R,KSQL_CONFIG_R}},
+          new Object[]{"WITH_R, OVERRIDES_R, NO_CONFIG"        , SOURCE         , WITH_R         , new Inject[]{WITH_R,OVERRIDES_R,NO_CONFIG}},
+          new Object[]{"WITH_R, NO_OVERRIDES, KSQL_CONFIG"     , KSQL_CONFIG    , WITH_R         , new Inject[]{WITH_R,NO_OVERRIDES,KSQL_CONFIG}},
+          new Object[]{"WITH_R, NO_OVERRIDES, KSQL_CONFIG_P"   , KSQL_CONFIG_P  , WITH_R         , new Inject[]{WITH_R,NO_OVERRIDES,KSQL_CONFIG_P}},
+          new Object[]{"WITH_R, NO_OVERRIDES, KSQL_CONFIG_R"   , SOURCE         , WITH_R         , new Inject[]{WITH_R,NO_OVERRIDES,KSQL_CONFIG_R}},
+          new Object[]{"WITH_R, NO_OVERRIDES, NO_CONFIG"       , SOURCE         , WITH_R         , new Inject[]{WITH_R,NO_OVERRIDES,NO_CONFIG}},
+          new Object[]{"NO_WITH, OVERRIDES, KSQL_CONFIG"       , OVERRIDES      , OVERRIDES      , new Inject[]{NO_WITH,OVERRIDES,KSQL_CONFIG}},
+          new Object[]{"NO_WITH, OVERRIDES, KSQL_CONFIG_P"     , OVERRIDES      , OVERRIDES      , new Inject[]{NO_WITH,OVERRIDES,KSQL_CONFIG_P}},
+          new Object[]{"NO_WITH, OVERRIDES, KSQL_CONFIG_R"     , OVERRIDES      , OVERRIDES      , new Inject[]{NO_WITH,OVERRIDES,KSQL_CONFIG_R}},
+          new Object[]{"NO_WITH, OVERRIDES, NO_CONFIG"         , OVERRIDES      , OVERRIDES      , new Inject[]{NO_WITH,OVERRIDES,NO_CONFIG}},
+          new Object[]{"NO_WITH, OVERRIDES_P, KSQL_CONFIG"     , OVERRIDES_P    , KSQL_CONFIG    , new Inject[]{NO_WITH,OVERRIDES_P,KSQL_CONFIG}},
+          new Object[]{"NO_WITH, OVERRIDES_P, KSQL_CONFIG_P"   , OVERRIDES_P    , SOURCE         , new Inject[]{NO_WITH,OVERRIDES_P,KSQL_CONFIG_P}},
+          new Object[]{"NO_WITH, OVERRIDES_P, KSQL_CONFIG_R"   , OVERRIDES_P    , KSQL_CONFIG_R  , new Inject[]{NO_WITH,OVERRIDES_P,KSQL_CONFIG_R}},
+          new Object[]{"NO_WITH, OVERRIDES_P, NO_CONFIG"       , OVERRIDES_P    , SOURCE         , new Inject[]{NO_WITH,OVERRIDES_P,NO_CONFIG}},
+          new Object[]{"NO_WITH, OVERRIDES_R, KSQL_CONFIG"     , KSQL_CONFIG    , OVERRIDES_R    , new Inject[]{NO_WITH,OVERRIDES_R,KSQL_CONFIG}},
+          new Object[]{"NO_WITH, OVERRIDES_R, KSQL_CONFIG_P"   , KSQL_CONFIG_P  , OVERRIDES_R    , new Inject[]{NO_WITH,OVERRIDES_R,KSQL_CONFIG_P}},
+          new Object[]{"NO_WITH, OVERRIDES_R, KSQL_CONFIG_R"   , SOURCE         , OVERRIDES_R    , new Inject[]{NO_WITH,OVERRIDES_R,KSQL_CONFIG_R}},
+          new Object[]{"NO_WITH, OVERRIDES_R, NO_CONFIG"       , SOURCE         , OVERRIDES_R    , new Inject[]{NO_WITH,OVERRIDES_R,NO_CONFIG}},
+          new Object[]{"NO_WITH, NO_OVERRIDES, KSQL_CONFIG"    , KSQL_CONFIG    , KSQL_CONFIG    , new Inject[]{NO_WITH,NO_OVERRIDES,KSQL_CONFIG}},
+          new Object[]{"NO_WITH, NO_OVERRIDES, KSQL_CONFIG_P"  , KSQL_CONFIG_P  , SOURCE         , new Inject[]{NO_WITH,NO_OVERRIDES,KSQL_CONFIG_P}},
+          new Object[]{"NO_WITH, NO_OVERRIDES, KSQL_CONFIG_R"  , SOURCE         , KSQL_CONFIG_R  , new Inject[]{NO_WITH,NO_OVERRIDES,KSQL_CONFIG_R}},
+          new Object[]{"NO_WITH, NO_OVERRIDES, NO_CONFIG"      , SOURCE         , SOURCE         , new Inject[]{NO_WITH,NO_OVERRIDES,NO_CONFIG}}
+      };
+      return Lists.newArrayList(data);
     }
 
     @Parameter
@@ -284,5 +299,6 @@ public class DefaultTopicInjectorTest {
           hasTopicInfo("SINK", expectedPartitions.partitions, expectedReplicas.replicas));
     }
   }
+
 
 }

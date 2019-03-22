@@ -16,6 +16,7 @@
 package io.confluent.ksql.topic;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.KsqlStream;
@@ -35,8 +36,14 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -183,6 +190,35 @@ public class TopicInjectorFixture extends ExternalResource  {
         default:
           throw new IllegalArgumentException(inject.toString());
       }
+    }
+  }
+
+  /**
+   * Generates code for DefaultTopicInjectorTest$PrecedenceTest
+   */
+  public static void main(String[] args) {
+    final List<Inject> withs = EnumSet.allOf(Inject.class)
+        .stream().filter(i -> i.type == Type.WITH).collect(Collectors.toList());
+    final List<Inject> overrides = EnumSet.allOf(Inject.class)
+        .stream().filter(i -> i.type == Type.OVERRIDES).collect(Collectors.toList());
+    final List<Inject> ksqlConfigs = EnumSet.allOf(Inject.class)
+        .stream().filter(i -> i.type == Type.KSQL_CONFIG).collect(Collectors.toList());
+
+    for (List<Inject> injects : Lists.cartesianProduct(withs, overrides, ksqlConfigs)) {
+      // sort by precedence order
+      injects = new ArrayList<>(injects);
+      injects.sort(Comparator.comparing(i -> i.type));
+
+      final Inject expectedPartitions =
+          injects.stream().filter(i -> i.partitions != null).findFirst().orElse(Inject.SOURCE);
+      final Inject expectedReplicas =
+          injects.stream().filter(i -> i.replicas != null).findFirst().orElse(Inject.SOURCE);
+
+      System.out.println(String.format("new Object[]{%-40s, %-15s, %-15s, new Inject[]{%s}},",
+          "\"" + injects.toString().substring(1, injects.toString().length() - 1) + "\"",
+          expectedPartitions,
+          expectedReplicas,
+          injects.stream().map(Objects::toString).collect(Collectors.joining(","))));
     }
   }
 

@@ -28,25 +28,11 @@ public interface TopicInjector {
   /**
    * Attempt to inject topic name, number of partitions and number of replicas into the topic
    * properties of the supplied {@code statement}.
-   *
-   * The following precedence order is maintained for deriving properties:
-   *
-   * <ul>
-   *   <li>The statement itself, if it has a WITH clause</li>
-   *   <li>The property overrides, if present (note that this is a legacy approach)</li>
-   *   <li>The KsqlConfig property, if present (note that this is a legacy approach)</li>
-   *   <li>The topic properties from the source that it is reading from. If the source is a join,
-   *   then the left value is used as the source.</li>
-   *   <li>Generated based on some recipe - this is the case for topic name, which will never
-   *   use the source topic (obviously!)</li>
-   * </ul>
-   *
-   * <p>It is possible that only partial information exists at higher levels of precedence. If
-   * this is the case, the values will be inferred in cascading fashion (e.g. topic name from
-   * WITH clause, replicas from property overrides and partitions source topic).</p>
-   *
+
    * <p>If a statement that is not {@code CreateAsSelect} is passed in, this results in a
    * no-op tha returns the incoming statement.</p>
+   *
+   * @see TopicProperties.Builder
    *
    * @param statement           the statement to inject the topic properties into
    * @param ksqlConfig          the default configurations for the service

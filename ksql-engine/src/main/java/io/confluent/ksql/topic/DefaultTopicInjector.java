@@ -30,15 +30,10 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 public class DefaultTopicInjector implements TopicInjector {
@@ -72,15 +67,20 @@ public class DefaultTopicInjector implements TopicInjector {
     final PreparedStatement<? extends CreateAsSelect> cas =
         (PreparedStatement<? extends CreateAsSelect>) statement;
 
-    final String topic = topicName(cas.getStatement(), ksqlConfig);
-    final TopicDescription description = describeSource(topicClient, ksqlConfig, cas);
-    final int partitions = numPartitions(cas, ksqlConfig, propertyOverrides, description);
-    final short replicas = numReplicas(cas, ksqlConfig, propertyOverrides, description);
+    final TopicDescription source = describeSource(topicClient, ksqlConfig, cas);
+    final TopicProperties info = new TopicProperties.Builder()
+        .withName(ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG)
+            + cas.getStatement().getName().getSuffix())
+        .withWithClause(cas.getStatement().getProperties())
+        .withOverrides(propertyOverrides)
+        .withLegacyKsqlConfig(ksqlConfig)
+        .withSource(source)
+        .build();
 
     final Map<String, Expression> properties = new HashMap<>(cas.getStatement().getProperties());
-    properties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(topic));
-    properties.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
-    properties.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
+    properties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(info.topicName));
+    properties.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(info.replicas));
+    properties.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(info.partitions));
 
     final CreateAsSelect withTopic = cas.getStatement().copyWith(properties);
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
@@ -104,99 +104,5 @@ public class DefaultTopicInjector implements TopicInjector {
     final StructuredDataSource theSource = analysis.getTheSource();
     final String kafkaTopicName = theSource.getKsqlTopic().getKafkaTopicName();
     return topicClient.describeTopic(kafkaTopicName);
-  }
-
-  private static String topicName(
-      final CreateAsSelect cas,
-      final KsqlConfig cfg
-  ) {
-    final Expression topicProperty = cas.getProperties().get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
-    return (topicProperty == null)
-        ? cfg.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG) + cas.getName().getSuffix()
-        : StringUtils.strip(topicProperty.toString(), "'");
-  }
-
-  private static int numPartitions(
-      final PreparedStatement<? extends CreateAsSelect> cas,
-      final KsqlConfig cfg,
-      final Map<String, Object> propertyOverrides,
-      final TopicDescription description
-  ) {
-    final Optional<Integer> inProperties = checkedParse(
-        Integer::parseInt, cas, KsqlConstants.SINK_NUMBER_OF_PARTITIONS);
-    if (inProperties.isPresent()) {
-      return inProperties.get();
-    }
-
-    final Integer legacyNumPartitions = cfg.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
-    return checkedParse(
-          Integer::parseInt,
-          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-          propertyOverrides)
-        .orElseGet(() -> ObjectUtils.defaultIfNull(
-            legacyNumPartitions,
-            description.partitions().size()));
-  }
-
-  private static short numReplicas(
-      final PreparedStatement<? extends CreateAsSelect> cas,
-      final KsqlConfig cfg,
-      final Map<String, Object> propertyOverrides,
-      final TopicDescription description
-  ) {
-    final Optional<Short> inProperties = checkedParse(
-        Short::parseShort, cas, KsqlConstants.SINK_NUMBER_OF_REPLICAS);
-    if (inProperties.isPresent()) {
-      return inProperties.get();
-    }
-
-    final Short legacyNumReplicas = cfg.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-    return checkedParse(
-          Short::parseShort,
-          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
-          propertyOverrides)
-        .orElseGet(() -> ObjectUtils.defaultIfNull(
-            legacyNumReplicas,
-            (short) description.partitions().get(0).replicas().size()));
-  }
-
-  private static <T extends Number> Optional<T> checkedParse(
-      final Function<String, T> parse,
-      final PreparedStatement<? extends CreateAsSelect> cas,
-      final String property
-  ) {
-    final Object exp = cas.getStatement().getProperties().get(property);
-    if (exp == null) {
-      return Optional.empty();
-    }
-
-    final String val = exp.toString();
-    try {
-      return Optional.ofNullable(parse.apply(val));
-    } catch (NumberFormatException e) {
-      throw new KsqlStatementException(
-          String.format("Invalid value for property %s: %s",
-              property, val),
-          cas.getStatementText());
-    }
-  }
-
-  private static <T extends Number> Optional<T> checkedParse(
-      final Function<String, T> parse,
-      final String property,
-      final Map<String, ?> propertyOverrides) {
-    final Object override = propertyOverrides.get(property);
-    if (override == null) {
-      return Optional.empty();
-    }
-
-    final String val = override.toString();
-    try {
-      return Optional.ofNullable(parse.apply(val));
-    } catch (NumberFormatException e) {
-      throw new KsqlException(
-          String.format("Invalid property override %s: %s (all overrides: %s)",
-              property, val, propertyOverrides));
-    }
   }
 }

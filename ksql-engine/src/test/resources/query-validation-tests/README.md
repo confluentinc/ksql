@@ -8,15 +8,15 @@ topology, executed, and verified.
 The test cases are run by the `QueryTranslationTest` test class.
 
 ## Topology comparision
-These test also validate the generated topology matches the expected topology,
+These tests also validate the generated topology matches the expected topology,
 i.e. a test will fail if the topology has changed from previous runs.
 This is needed to detect potentially non-backwards compatible changes to the generated topology.
 
 The expected topology files, and the configuration used to generated them are found in
 `src/test/resources/expected_topology/<Version Number>`
 
-By default test will compare the current generated topology against the previously released versions
-of KSQL, as identified by the `QueryTranslationTest.CURRENT_TOPOLOGY_VERSIONS` variable.
+By default, the test will check topology compatibility against all previously released versions
+of KSQL (for which expected topology files exist).
 
 ### Running a subset of tests:
 
@@ -35,12 +35,11 @@ The above commands can execute only a single test (sum.json) or multiple tests (
 
 ### Running against different previous versions:
 
-To run this test against specific previously released versions there are three options
+To run this test against specific previously released versions, set the system property
+"topology.versions" to the desired version(s). The property value should be a comma-delimited list of
+version number(s) found under the `src/test/resources/expected_topology` directory, for example, `"5.0,5.1"`.
 
-1. Manually change `QueryTranslationTest.CURRENT_TOPOLOGY_VERSIONS` to a valid comma-delimited list of
-version numbers found under the `src/test/resources/expected_topology` directory.
-
-1. Set the system property "topology.versions" to the version(s) required.
+The are two places system properties may be set:
   * Within Intellij
     1. Click Run/Edit configurations
     1. Select the QueryTranslationTest
@@ -51,7 +50,7 @@ version numbers found under the `src/test/resources/expected_topology` directory
     1. Then run `mvn test -Dtopology.versions=X -Dtest=QueryTranslationTest -pl ksql-engine`.
        Again X is a list of the versions you want to run the tests against.
 
-  Note that for both options above the version must exist
+  Note that for both options above the version(s) must exist
   under the `src/test/resources/expected_topology` directory.
 
 ### Generating new topology files

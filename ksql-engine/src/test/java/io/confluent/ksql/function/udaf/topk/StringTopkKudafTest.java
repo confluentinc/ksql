@@ -31,7 +31,7 @@ import org.junit.Test;
 public class StringTopkKudafTest {
   private final List<String> valueArray = ImmutableList.of("10", "ab", "cde", "efg", "aa", "32", "why", "How are you",
       "Test", "123", "432");
-    private TopKAggregateFunctionFactory topKFactory;
+  private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 
   @Before

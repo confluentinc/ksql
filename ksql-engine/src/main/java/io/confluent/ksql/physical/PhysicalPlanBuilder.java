@@ -103,17 +103,13 @@ public class PhysicalPlanBuilder {
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
   }
 
-  private QueryId computeQueryId(final PlanNode planNode) {
-    if (planNode instanceof OutputNode) {
-      return ((OutputNode) planNode).getQueryId(queryIdGenerator);
-    }
-    throw new RuntimeException("Unexpected output node for query");
-  }
-
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
-    final QueryId queryId = computeQueryId(logicalPlanNode.getNode());
-    final SchemaKStream<?> resultStream = logicalPlanNode
-        .getNode()
+    final OutputNode logicalNode = logicalPlanNode.getNode()
+        .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
+
+    final QueryId queryId = logicalNode.getQueryId(queryIdGenerator);
+
+    final SchemaKStream<?> resultStream = logicalNode
         .buildStream(
             builder,
             ksqlConfig,

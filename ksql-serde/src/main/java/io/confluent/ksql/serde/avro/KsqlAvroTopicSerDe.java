@@ -17,7 +17,6 @@ package io.confluent.ksql.serde.avro;
 
 import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
@@ -34,6 +33,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -58,14 +58,12 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
   private static AvroConverter getAvroConverter(
       final SchemaRegistryClient schemaRegistryClient, final KsqlConfig ksqlConfig) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
-    avroConverter.configure(
-        ImmutableMap.of(
-            AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
-            ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY),
-            AvroDataConfig.CONNECT_META_DATA_CONFIG,
-            false
-        ),
-        false);
+    final Map<String, Object> avroConfig =
+        ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
+    avroConfig.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
+        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
+    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
+    avroConverter.configure(avroConfig, false);
     return avroConverter;
   }
 

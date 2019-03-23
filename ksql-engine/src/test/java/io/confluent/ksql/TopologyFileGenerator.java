@@ -16,21 +16,19 @@
 package io.confluent.ksql;
 
 import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * This class is used to generate the topology files to ensure safe
@@ -48,14 +46,13 @@ import javax.xml.parsers.ParserConfigurationException;
  * ksql-engine/src/test/resources/expected_topology/VERSION_NUM directory.  Where
  * VERSION_NUM is the version defined in ksql-engine/pom.xml &lt;parent&gt;&lt;version&gt; element.
  *
- * 3. Update the CURRENT_TOPOLOGY_VERSION variable in the {@link QueryTranslationTest}
- * class with the version number for the
- * newly generated directory name so all tests run against the newly written topology files by default.
- *
  */
-public class TopologyFileGenerator {
+public final class TopologyFileGenerator {
 
     private static final String BASE_DIRECTORY = "ksql-engine/src/test/resources/expected_topology/";
+
+    private TopologyFileGenerator() {
+    }
 
     public static void main(final String[] args) throws IOException, ParserConfigurationException, SAXException {
 
@@ -82,7 +79,6 @@ public class TopologyFileGenerator {
             .collect(Collectors.toList());
     }
 
-
     private static String getFormattedVersionFromPomFile() throws IOException, ParserConfigurationException, SAXException {
         final File pomFile = new File("pom.xml");
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -93,7 +89,5 @@ public class TopologyFileGenerator {
         final String versionName = versionNodeList.item(0).getTextContent();
 
         return versionName.replaceAll("-SNAPSHOT?", "").replaceAll("\\.", "_");
-
     }
-
 }

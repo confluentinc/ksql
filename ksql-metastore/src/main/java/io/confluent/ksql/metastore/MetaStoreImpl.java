@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -83,22 +82,11 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   @SuppressWarnings("unchecked")
   @Override
-  public Optional<StructuredDataSource<?>> getSourceForTopic(final String ksqlTopicName) {
-    return (Optional)dataSources.values()
-        .stream()
-        .filter(p -> p.source.getKsqlTopicName() != null
-            && p.source.getKsqlTopicName().equals(ksqlTopicName))
-        .map(sourceInfo -> sourceInfo.source)
-        .findFirst();
-  }
-
-  @Override
   public List<StructuredDataSource<?>> getSourcesForKafkaTopic(final String kafkaTopicName) {
     return dataSources.values()
         .stream()
-        .filter(p -> p.source.getKafkaTopicName() != null
-            && p.source.getKafkaTopicName().equals(kafkaTopicName))
         .map(sourceInfo -> sourceInfo.source)
+        .filter(source -> source.getKafkaTopicName().equals(kafkaTopicName))
         .collect(Collectors.toList());
   }
 

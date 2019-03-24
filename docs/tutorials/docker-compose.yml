@@ -40,9 +40,9 @@ services:
 
   ksql-server:
 <<<<<<< HEAD
-    image: confluentinc/cp-ksql-server:5.0.3-SNAPSHOT
+    image: confluentinc/cp-ksql-server:5.0.3
 =======
-    image: confluentinc/cp-ksql-server:5.0.3-SNAPSHOT
+    image: confluentinc/cp-ksql-server:5.0.3
 >>>>>>> 5.0.1-post
     depends_on:
       - kafka

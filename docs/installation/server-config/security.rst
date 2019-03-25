@@ -46,7 +46,7 @@ settings:
 
 ::
 
-    ssl.client.auth=required
+    ssl.client.auth=true
     ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
     ssl.truststore.password=zzzz
 

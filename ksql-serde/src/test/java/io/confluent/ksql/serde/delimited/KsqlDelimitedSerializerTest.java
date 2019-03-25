@@ -21,20 +21,10 @@ import static org.junit.Assert.assertThat;
 import io.confluent.ksql.GenericRow;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
 public class KsqlDelimitedSerializerTest {
-
-  private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
-      .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
-      .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
-      .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
-      .field("orderunits".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .build();
 
   private KsqlDelimitedSerializer serializer;
 
@@ -67,23 +57,5 @@ public class KsqlDelimitedSerializerTest {
     // Then:
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
     assertThat(delimitedString, equalTo("1511897796092,1,item_1,"));
-  }
-
-  @Test(expected = SerializationException.class)
-  public void shouldThrowIfRowHasTooFewColumns() {
-    // Given:
-    final GenericRow genericRow = new GenericRow(Arrays.asList(0L, 1L, "item_1"));
-
-    // When:
-    serializer.serialize("t1", genericRow);
-  }
-
-  @Test(expected = SerializationException.class)
-  public void shouldThrowIfRowHasTooMayColumns() {
-    // Given:
-    final GenericRow genericRow = new GenericRow(Arrays.asList(0L, 1L, "item_1", 10.0, true));
-
-    // When:
-    serializer.serialize("t1", genericRow);
   }
 }

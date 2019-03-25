@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSourceMatchers.FieldMatchers.hasName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSourceMatchers.OptionalMatchers;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -103,7 +105,7 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    assertThat(projectNode.getKeyField().name(), equalTo("t1.col1".toUpperCase()));
+    assertThat(projectNode.getKeyField(), OptionalMatchers.of(hasName("T1.COL1")));
     assertThat(projectNode.getSchema().fields().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));

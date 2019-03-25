@@ -22,6 +22,7 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -167,7 +168,7 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        schema.field("key"),
+        Optional.of(schema.field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
         SINK_KAFKA_TOPIC_NAME,
         props,
@@ -245,8 +246,7 @@ public class KsqlStructuredDataOutputNodeTest {
     stream = buildStream();
 
     // Then:
-    final Field keyField = stream.getKeyField();
-    assertThat(keyField, equalTo(new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA)));
+    assertThat(stream.getKeyField(), is(Optional.of(new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA))));
     assertThat(stream.getSchema().fields(), equalTo(schema.fields()));
   }
 
@@ -458,7 +458,7 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        schema.field("key"),
+        Optional.ofNullable(schema.field("key")),
         mockTopic(topicSerde),
         "output",
         Collections.emptyMap(),
@@ -507,7 +507,7 @@ public class KsqlStructuredDataOutputNodeTest {
         tableSourceNode,
         schema,
         new MetadataTimestampExtractionPolicy(),
-        schema.field("key"),
+        Optional.ofNullable(schema.field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
         SINK_KAFKA_TOPIC_NAME,
         props,

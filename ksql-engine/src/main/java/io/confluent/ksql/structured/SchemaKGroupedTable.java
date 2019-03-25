@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -45,7 +46,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   SchemaKGroupedTable(
       final Schema schema,
       final KGroupedTable kgroupedTable,
-      final Field keyField,
+      final Optional<Field> keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
@@ -63,7 +64,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   SchemaKGroupedTable(
       final Schema schema,
       final KGroupedTable kgroupedTable,
-      final Field keyField,
+      final Optional<Field> keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,

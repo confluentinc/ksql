@@ -38,6 +38,7 @@ import io.confluent.ksql.util.SelectExpression;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -143,7 +144,7 @@ public class ProjectNodeTest {
   @SuppressWarnings("unchecked")
   private void mockSourceNode() {
     when(source.getKeyField())
-        .thenReturn(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA));
+        .thenReturn(Optional.of(new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA)));
     when(source.buildStream(
         any(StreamsBuilder.class),
         any(KsqlConfig.class),

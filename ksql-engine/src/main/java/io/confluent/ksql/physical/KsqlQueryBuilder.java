@@ -17,14 +17,17 @@ package io.confluent.ksql.physical;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public final class KsqlQueryBuilder {
@@ -95,14 +98,25 @@ public final class KsqlQueryBuilder {
     return streamsBuilder;
   }
 
-  public KsqlQueryBuilder withPropertyOverwrite(final Map<String, Object> propOverwrites) {
+  public KsqlQueryBuilder withKsqlConfig(final KsqlConfig newConfig) {
     return of(
         streamsBuilder,
-        ksqlConfig.cloneWithPropertyOverwrite(propOverwrites),
+        newConfig,
         serviceContext,
         processingLogContext,
         functionRegistry,
         queryId
     );
   }
+
+  // Todo(ac): Can we move `getGenericRowSerde` calls into `KsqlQueryBuilder` so that it can track?
+  public Serde<GenericRow> getGenericRowSerde(
+      final KsqlTopicSerDe topicSerDe,
+      final Schema schemaMaybeWithSource,
+      final boolean isInternal,
+      final String loggerNamePrefix
+  ) {
+
+  }
+
 }

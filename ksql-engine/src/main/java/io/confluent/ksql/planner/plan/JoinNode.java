@@ -277,11 +277,13 @@ public class JoinNode extends PlanNode {
 
     protected SchemaKTable buildTable(final PlanNode node,
                                       final String keyFieldName,
-                                      final String tableName) {
+                                      final String tableName
+    ) {
       final SchemaKStream schemaKStream = node.buildStream(
-          builder.withPropertyOverwrite(
-              Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"))
-          );
+          builder.withKsqlConfig(builder.getKsqlConfig()
+                  .cloneWithPropertyOverwrite(Collections.singletonMap(
+                      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
+      );
 
       if (!(schemaKStream instanceof SchemaKTable)) {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");

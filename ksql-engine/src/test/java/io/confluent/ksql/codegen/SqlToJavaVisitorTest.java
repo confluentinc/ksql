@@ -21,8 +21,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -39,15 +38,11 @@ public class SqlToJavaVisitorTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   private MetaStore metaStore;
-  private Schema schema;
-  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private SqlToJavaVisitor sqlToJavaVisitor;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
-    // load udfs that are not hardcoded
-    UdfLoaderUtil.load(functionRegistry);
+    metaStore = MetaStoreFixture.getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
 
     final Schema addressSchema = SchemaBuilder.struct()
         .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)
@@ -57,7 +52,7 @@ public class SqlToJavaVisitorTest {
         .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
         .optional().build();
 
-    schema = SchemaBuilder.struct()
+    final Schema schema = SchemaBuilder.struct()
         .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -68,7 +63,7 @@ public class SqlToJavaVisitorTest {
         .field("TEST1.COL7", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
         .build();
 
-    sqlToJavaVisitor = new SqlToJavaVisitor(schema, functionRegistry);
+    sqlToJavaVisitor = new SqlToJavaVisitor(schema, TestFunctionRegistry.INSTANCE.get());
   }
 
   @Test

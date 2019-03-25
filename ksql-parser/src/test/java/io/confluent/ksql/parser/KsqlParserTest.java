@@ -27,9 +27,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -99,7 +100,7 @@ public class KsqlParserTest {
   @Before
   public void init() {
 
-    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
+    metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
     final Schema addressSchema = SchemaBuilder.struct()
         .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)

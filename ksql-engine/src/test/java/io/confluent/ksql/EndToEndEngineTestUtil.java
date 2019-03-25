@@ -162,6 +162,11 @@ final class EndToEndEngineTestUtil {
     public int hashCode() {
       return Objects.hash(spec);
     }
+
+    @Override
+    public String toString() {
+      return Objects.toString(spec);
+    }
   }
 
   protected interface SerdeSupplier<T> {
@@ -611,11 +616,12 @@ final class EndToEndEngineTestUtil {
         }
       } catch (final AssertionError assertionError) {
         final String rowMsg = idx == -1 ? "" : " while processing output row " + idx;
+        final String topicMsg = idx == -1 ? "" : " topic: " + outputRecords.get(idx).topic.name;
         throw new AssertionError("TestCase name: "
             + name
             + " in file: " + testPath
-            + " failed" + rowMsg + " due to: "
-            + assertionError.getMessage());
+            + " failed" + rowMsg + topicMsg + " due to: "
+            + assertionError.getMessage(), assertionError);
       }
     }
 

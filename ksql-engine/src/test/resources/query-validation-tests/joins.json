@@ -25,9 +25,16 @@
         {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
         {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
         {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
-
       ],
       "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001", "value": {"ROWTIME": 0, "ROWKEY": "0", "ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000'\u0010\u0000\u0000\u0000\u0001", "value": {"ROWTIME": 10000, "ROWKEY": "0", "ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "10\u0000\u0000\u0000\u0000\u0000\u0000*�\u0000\u0000\u0000\u0002", "value": {"ROWTIME": 11000, "ROWKEY": "10", "ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u00002�\u0000\u0000\u0000\u0003", "value": {"ROWTIME": 13000, "ROWKEY": "0", "ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000:�\u0000\u0000\u0000\u0002", "value": {"ROWTIME": 15000, "ROWKEY": "0", "ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog", "key": "100\u0000\u0000\u0000\u0000\u0000\u0000>�\u0000\u0000\u0000\u0003", "value": {"ROWTIME": 16000, "ROWKEY": "100", "ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "90\u0000\u0000\u0000\u0000\u0000\u0000Bh\u0000\u0000\u0000\u0004", "value": {"ROWTIME": 17000, "ROWKEY": "90", "ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CSAS_LEFT_OUTER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog", "key": "0\u0000\u0000\u0000\u0000\u0000\u0000u0\u0000\u0000\u0000\u0005", "value": {"ROWTIME": 30000, "ROWKEY": "0", "ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
         {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},

@@ -125,12 +125,10 @@ final class EndToEndEngineTestUtil {
       this.spec = spec;
     }
 
+    @SuppressWarnings("ConstantConditions")
     private static void compare(final Object o1, final Object o2, final String path) {
       if (o1 == null && o2 == null) {
         return;
-      }
-      if (o1 == null || o2 == null) {
-        throw new AssertionError("Unexpected null at path " + path);
       }
       if (o1 instanceof Map) {
         assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
@@ -145,8 +143,8 @@ final class EndToEndEngineTestUtil {
           compare(((List) o1).get(i), ((List) o2).get(i), path + "." + i);
         }
       } else {
+        assertThat("mismatch at path " + path, o1, equalTo(o2));
         assertThat("type mismatch at " + path, o1.getClass(), equalTo(o2.getClass()));
-        assertThat("mismatch at path" + path, o1, equalTo(o2));
       }
     }
 

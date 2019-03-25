@@ -51,7 +51,7 @@ these are outlined below:
 
 ## Public APIS
 
-Some public APIs will be changed, though all will be changed in a backwards compatible fashion:
+Some public APIs will be changed, though all will be changed in a data backwards compatible fashion:
 
 |      Improvement      |                               API change                               |
 |:---------------------:|------------------------------------------------------------------------|
@@ -68,39 +68,27 @@ parallel. Below are detailed designs for each:
 ### Structured UDFs
 
 After refactoring done in [#2411](https://github.com/confluentinc/ksql/pull/2411), the type coercion 
-is already in place to support `Struct` types as input parameters. Minor changes need to be made to 
-ensure that the validation does not unnecessarily prevent usage of `Struct`.
-
-A noteworthy extension that may be worth supporting is dedicated AVRO types in the signatures for 
-UDFs, but this is not covered in this KLIP.
-
-```java
-@Udf("Checks if the employee has a valid record (i.e. contains a valid name and email)")
-public boolean isValid(
-    @UdfParameter final Struct employee) {
-  return employee.get("firstname").matches("[A-Z][a-z]*")
-    && employee.get("email").endsWith("@company.io");
-}
-```
-
-There is more work to be done in order to support `Struct` as the return value of UDFs, namely we
-must have some mechanism to create the output schema. To address this, we can resolve the schema as 
-part of the UDF specification. This adds more structure and predictability, but may become tricky to
-evolve and we need a good API to do this, especially if it is necessary to specify complicated 
-nested structs. Below are three candidate ways to specify the schema:
+ensures that the validation does not unnecessarily prevent usage of `Struct`. To complete support
+for sturcutred UDFS, we also need to have some mechanism to create the output schema. To address 
+this, we can resolve the schema as part of the UDF specification, requiring users to specify the 
+struct schema inline.
 
 ```java
 @UdfSchema
 public static final Schema SCHEMA = SchemaBuilder.struct()...build();
 
-@Udf("Checks if the employee has a valid record (i.e. contains a valid name and email)")
-@UdfReturn(value  = "STRUCT<'A' INT, 'B' VARCHAR>") // sample specification annotation
-@UdfReturn(file   = 'schema_def.kschema')           // another way pointing to a file
-@UdfReturn(schema = "name.space.MyClass.SCHEMA")    // another way that would resolve a java object
-public Struct generate() {
+@Udf(schema="STRUCT<'VAL' VARCHAR, 'LENGTH' INT>")
+public Struct generate(
+    @UdfParam(schema="STRUCT<'VAL' VARCHAR>") final Struct from
+  ) {
   return new Struct(...);
 }
 ```
+
+`UdfFactory` could then load the correct UDF given the schema by matching the schema of the type 
+against various different methods. It will be possible to support multiple methods with different
+struct schemas if the name of the udf method is changed (not that the java method name is ignored
+from actual evaluation).
 
 ### Generics
 
@@ -125,6 +113,9 @@ signature is something like `<T> List<T> convert(List<String> list)`. This can b
 compilation by following a simple rule: any generic type used in the output must be present in at
 least one of the parameters. We can access this information via reflection.
 
+The `DESCRIBE FUNCTION` call to describe such generic values will display a SQL type that is not
+supported in DDL statements (e.g. `ARRAY<ANY<T>>`) (See documentation section).
+
 **NOTE:** Supporting a wildcard output type is not covered by this design since we would not be able 
 to generate the output schema for select statements, however supporting wildcards in the input types 
 (e.g. `Long length(List<?> list)`) should be possible.
@@ -133,28 +124,14 @@ to generate the output schema for select statements, however supporting wildcard
 
 Varargs boils down to supporting native Java arrays as parameters and ensuring that component types 
 are resolved properly. Anytime a method is registered with variable args (e.g. `String... args`) we 
-will register a corresponding function with the wrapping array type (e.g. `String[]`). At runtime, 
-we resolve methods using the following fallback logic:
-```
-Type[] desired
-if signature_exists(desired): 
-  return method
-else:
-  vararg = desired[-1]
-  while desired[-1] == vararg:
-    if signature_exists(desired, arrayOf(vararg)) return method 
-    desired = desired[:-1]
-  fail
-```
-This will allows us to resolve methods such as `foo(Int, String...)` and `foo(String, String...)`,
-as well as accept empty arguments to `foo(String...)`. If any parameter is `null`, it will be 
-considered valid for any vararg declaration.
+will register a corresponding function with the wrapping array type (e.g. `String[]`). 
 
-This proposal does not cover supporting `Object` as a parameter to a method in order to allow for 
-"generic variable argument" UDFs, but supporting it can be an extension.
+We will need to resolve methods such as `foo(Int, String...)` and `foo(String, String...)` as well 
+as accept empty arguments to `foo(String...)`. If any parameter is `null`, it will be considered 
+valid for any vararg declaration.
 
 ```java
-@Udf("returns a sublist of 'list' t")
+@Udf("sums all arguments in 'args'")
 public int sum(@UdfParameter final int... args) {
   return Arrays.stream(args).sum();
 }
@@ -162,75 +139,34 @@ public int sum(@UdfParameter final int... args) {
 
 ### Complex Aggregation
 
-We will allow users to supply an additional method `VR export(A agg)`. This method will be taken
-as the behavioral parameter to a `mapValues` task that will be applied after the `aggregate` task 
-in the generated KStreams topology. To support this in a backwards compatible fashion, we will 
-introduce a new interface `Exportable`, that UDFs may implement. Only UDAFs that implement this 
-interface will have the `mapValues` stage applied to them.
-
+Complex aggregation for UDAFs requires the ability to aggregate on a value that is later reduced to
+a value of a different type. To support this, we will change the `Udaf` interface in a backwards
+incompatible way (code built using the old `Udaf` interface will not compile, but migration is
+straightforward):
 ```java
-// This UDAF accepts `Long` values, aggregates on a `Struct` and exports a `Double`
-class AverageUdaf implements Udaf<Long, Struct>, Exportable<Struct, Double> {
+/**
+* ...
+* @param <V> value type (the value that is accepted)
+* @param <A> aggregate type
+* @param <VR> reduce type (the value to return)
+*/
+public interface Udaf<V, A, VR> {
   
-  private static final Schema SUM_SCHEMA = 
-      SchemaBuilder.struct()
-                  .field("sum", Schema.INT64_SCHEMA)
-                  .field("count", Schema.INT64_SCHEMA).build();
-  
-  @Override
-  public Struct initialize() {
-    return new Struct(SCHEMA);
-  }
-  
-  @Override
-  public Struct aggregate(final Long val, final Struct agg) {
-    agg.put("sum", agg.get("sum") + val);
-    agg.put("count", agg.get("count") + 1);
-    return agg;
-  }
-  
-  @Override
-  public Struct merge(final Struct agg1, final Struct agg2) {
-    agg1.put("sum", agg1.get("sum") + agg2.get("sum"));
-    agg1.put("count", agg1.get("count") + agg2.get("count"));
-    return agg1;
-  }
+  ...
  
   /**
-  * This is the new method that overrides {@code Exportable#export(A agg)} (note that
-  * {@code Exportable<A,VR>} is defined with type parameters for the input and output
-  * of this method.
-  */
-  @Override
-  public Double export(final Struct agg) {
-    return ((Double) agg.getInt64("sum")) / agg.getInt64("count");
-  }
+   * Redcues an aggregate into the return type.
+   * 
+   * @param aggregate the running aggregate
+   * @return the final return value
+   */ 
+  VR reduce(A aggregate);
   
 }
 ```
 
-**NOTE:** It should be possible to support arbitrary Java objects for aggregation without much
-extra work. For the scope of this KLIP, however, supporting just KSQL types (including `Struct`) 
-should suffice.
-
-#### Alternative 1
-
-Instead of introducing a new `Exportable<A, VR>` interface, we can introduce an interface that
-inherits from `Udaf` instead:
-
-```java
-interface ExportableUdaf<V, VR, A> extends Udaf<V, A> {
-  VR export(A agg);
-}
-```
-
-The behavior will be the same, but it allows us to specify the type parameter for `A` only once.
-
-#### Alternative 2
-
-If we expect UDAFs to commonly require exportable functionality, then we can make this change in a
-backwards incompatible change and introduce the `export` (or `terminate`) method into the UDAF
-interface directly.
+`reduce` will be taken as the behavioral parameter to a `mapValues` task that will be applied after
+the aggregate task in the generated KStreams topology.
 
 ## Test plan
 
@@ -242,6 +178,8 @@ include any unexpected steps such as a repartition.
 
 ## Documentation Updates
 
+### Varargs
+
 * The `Example UDF Class` in `udf.rst` will be extended to showcase the new features. Namely, we
 will replace the multiply double method to include varargs:
 
@@ -252,6 +190,20 @@ will replace the multiply double method to include varargs:
 >      }
 >```
 
+* The `DESCRIBE FUNCTION` for vararg functions will need to be updated to use the `...` syntax:
+> ```
+> Name        : ARRAYCONTAINS
+> Author      : Confluent
+> Type        : scalar
+> Jar         : internal
+> Variations  :
+> 
+> 	Variation   : ARRAYCONTAINS(VARCHAR... )
+> 	Returns     : BOOLEAN
+> ```
+
+### Struct Support for UDF
+
 * The `Supported Types` section in `udf.rst` will include `Struct` and have an updated note at the 
 bottom which reads:
 
@@ -260,32 +212,95 @@ bottom which reads:
 > the types are generic, the output type must be able to be inferred from one or more of the input
 > parameters.
 
-* The `UDAF` section in `udf.rst` will have an additional section to describe usage of the 
-`Exportable` interface:
+* Function descriptions as part of `DESCRIBE FUNCTION` should also show the schema for any `Struct`
+that is used:
 
-> A UDAF can support complex aggregation types if it implements `io.confluent.common.Exportable`.
-> This will allow your custom UDAF to convert some intermediate type used for aggregation to a 
-> KSQL output value. For example:
+> ```
+> Name        : FOO
+> Author      : Confluent
+> Type        : scalar
+> Jar         : internal
+> Variations  :
 >
+>       Variation   : FOO(STRUCT<'VAL' BIGINT, 'OTHER' VARCHAR>)
+>       Returns     : STRUCT<'VAL' BIGINT, 'ANOTHER' LIST<VARCHAR>)
+> ```
+
+### Generics
+
+* The `DESCRIBE FUNCTION` should indicate when a function accepts generics using `ANY<?>` where `?`
+is a letter that begins with `T` and is incremented for each inferred type.
+
+> ```
+> Name        : FOO
+> Author      : Confluent
+> Type        : scalar
+> Jar         : internal
+> Variations  :
+>
+>       Variation   : FOO(ARRAY<ANY<T>>, ANY<U>)
+>       Returns     : ANY<T>
+> ```
+
+### Complex Aggregation
+
+* The `UDAF` section in `udf.rst` will update the example from `Sum` to `Average` and include
+non-trivial usage of the `reduce` API:
+
+> The class below creates a UDAF named ``my_average``...
+>
+> .. code:: java
+> 
 >```java
->@UdfFactory(description = "Computes a running average")
->class AverageUdaf implements Udaf<Long, Struct>, Exportable<Struct, Long> {
->   
->  @Override
->  public Long export(Struct runningSum) {
->    return runningSum.getInt64("sum") / runningSum.getInt64("count");
->  }
+>@UdafDescription(name="my_average", description="averages")
+>public class AverageUdaf {
 >  
->   // ...
-> }
->```
+>  private static final Schema SCHEMA = SchemaBuilder.struct()
+>                                         .field("sum", Schema.INT64_SCHEMA)
+>                                         .field("count", Schema.INT32_SCHEMA)
+>                                         .build();
 >
-> You can then use this UDAF like any other: `SELECT AVERAGE(val) as avg FROM ...` and the output
-> value will adhere to the export specification in place of the Udaf specification.
+>  @UdafFactory(description = "averages longs")
+>  public static TableUdaf<Long, Struct, Double> createAverageLong() {
+>    return new TableUdaf<Long, Struct, Double>() {
+>      @Override
+>      public Struct initialize() { 
+>        return new Struct(SCHEMA).put("sum", 0L).put("count", 0); 
+>      }
+>      
+>      @Override
+>      public Struct aggregate(final Long value, final Struct aggregate) {
+>        return new Struct(SCHEMA)
+>                  .put("sum", aggregate.get("sum") + value)
+>                  .put("count", aggregate.get("count") + 1);
+>      }
+>      
+>      @Override
+>      public Struct undo(final Long valueToUndo, final Struct aggregate) {
+>        return new Struct(SCHEMA)
+>                  .put("sum", aggregate.get("sum") - valueToUndo)
+>                  .put("count", aggregate.get("count") - 1);
+>      }
+>      
+>      @Override
+>      public Struct merge(final Struct aggOne, final Struct aggTwo) {
+>        return new Struct(SCHEMA)
+>                  .put("sum", aggOne.get("sum") + aggTwo.get("sum"))
+>                  .put("count", aggOne.get("count") + aggTwo.get("count"));
+>      }
+>      
+>      @Override
+>      public Double reduce(final Struct aggregate) {
+>        return ((Double) aggregate.getInt64("sum")) / aggregate.getInt32("count");
+>      }
+>    };
+>  }
+>}
+>```
 
 * For exportable UDAFs, we will also need to generate updated documentation for `DESCRIBE FUNCTION`
 calls to make sure that the output value is not the intermediate value, but rather the final 
-exported value. This is a straightforward change in compiling the generated code. For example:
+exported value. For example:
 
 > ```
 > ksql> DESCRIBE FUNCTION AVERAGE;
@@ -298,8 +313,8 @@ exported value. This is a straightforward change in compiling the generated code
 > Variations  :
 > 
 >	Variation   : AVERAGE(BIGINT)
->	Returns     : BIGINT
-> // Note that the signature for this is actually Udaf<Long, Struct> as seen above
+>	Returns     : DOUBLE
+> // Note that the signature for this is actually Udaf<Long, Struct, DOUBLE> as seen above
 >```
 
 * Syntax reference needs to be updated to reflect any new UDF/UDAFs that are implemented as part of

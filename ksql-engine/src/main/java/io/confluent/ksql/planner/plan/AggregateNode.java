@@ -214,7 +214,6 @@ public class AggregateNode extends PlanNode {
     final Serde<GenericRow> genericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
         aggregateArgExpanded.getSchema(),
         ksqlConfig,
-        true,
         serviceContext.getSchemaRegistryClientFactory(),
         QueryLoggerUtil.queryLoggerName(groupByContext.getQueryContext()),
         processingLogContext
@@ -245,7 +244,6 @@ public class AggregateNode extends PlanNode {
     final Serde<GenericRow> aggValueGenericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
         aggStageSchema,
         ksqlConfig,
-        true,
         serviceContext.getSchemaRegistryClientFactory(),
         QueryLoggerUtil.queryLoggerName(aggregationContext.getQueryContext()),
         processingLogContext

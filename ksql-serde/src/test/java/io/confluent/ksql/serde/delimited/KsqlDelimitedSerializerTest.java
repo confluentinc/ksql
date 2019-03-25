@@ -21,47 +21,69 @@ import static org.junit.Assert.assertThat;
 import io.confluent.ksql.GenericRow;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.List;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-@SuppressWarnings("unchecked")
 public class KsqlDelimitedSerializerTest {
 
-  private Schema orderSchema;
+  private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
+      .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+      .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+      .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+      .field("orderunits".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .build();
+
+  private KsqlDelimitedSerializer serializer;
 
   @Before
-  public void before() {
-
-    orderSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
-        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
-        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build();
+  public void setUp() {
+    serializer = new KsqlDelimitedSerializer();
   }
 
   @Test
   public void shouldSerializeRowCorrectly() {
-    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
-    final GenericRow genericRow = new GenericRow(columns);
-    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
-    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
+    // Given:
+    final GenericRow genericRow = new GenericRow(Arrays.asList(1511897796092L, 1L, "item_1", 10.0));
 
+    // When:
+    final byte[] bytes = serializer.serialize("t1", genericRow);
+
+    // Then:
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,10.0"));
+    assertThat(delimitedString, equalTo("1511897796092,1,item_1,10.0"));
   }
 
   @Test
   public void shouldSerializeRowWithNull() {
-    final List<Object> columns = Arrays.asList(1511897796092L, 1L, "item_1", null);
-    final GenericRow genericRow = new GenericRow(columns);
-    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(orderSchema);
-    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
+    // Given:
+    final GenericRow genericRow = new GenericRow(Arrays.asList(1511897796092L, 1L, "item_1", null));
 
+    // When:
+    final byte[] bytes = serializer.serialize("t1", genericRow);
+
+    // Then:
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092,1,item_1,"));
+    assertThat(delimitedString, equalTo("1511897796092,1,item_1,"));
+  }
+
+  @Test(expected = SerializationException.class)
+  public void shouldThrowIfRowHasTooFewColumns() {
+    // Given:
+    final GenericRow genericRow = new GenericRow(Arrays.asList(0L, 1L, "item_1"));
+
+    // When:
+    serializer.serialize("t1", genericRow);
+  }
+
+  @Test(expected = SerializationException.class)
+  public void shouldThrowIfRowHasTooMayColumns() {
+    // Given:
+    final GenericRow genericRow = new GenericRow(Arrays.asList(0L, 1L, "item_1", 10.0, true));
+
+    // When:
+    serializer.serialize("t1", genericRow);
   }
 }

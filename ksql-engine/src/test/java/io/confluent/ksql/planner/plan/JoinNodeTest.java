@@ -1156,7 +1156,6 @@ public class JoinNodeTest {
     expect(ksqlTopicSerde.getGenericRowSerde(
         schema,
         ksqlConfig,
-        false,
         mockSchemaRegistryClientFactory,
         loggerNamePrefix,
         processingLogContext))

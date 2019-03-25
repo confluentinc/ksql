@@ -31,7 +31,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
@@ -719,7 +718,7 @@ public class KsqlEngineTest {
 
     // Then:
     verify(jsonKsqlSerde, atLeastOnce()).getGenericRowSerde(
-        any(), any(), anyBoolean(), eq(schemaRegistryClientFactory), any(), any()
+        any(), any(), eq(schemaRegistryClientFactory), any(), any()
     );
   }
 

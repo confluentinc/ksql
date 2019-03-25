@@ -49,6 +49,7 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaTestUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -97,7 +98,6 @@ public class SchemaKGroupedTableTest {
             , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
                 ksqlTable.getSchema(),
                 new KsqlConfig(Collections.emptyMap()),
-                false,
                 MockSchemaRegistryClient::new,
                 "test",
                 processingLogContext)));
@@ -125,9 +125,8 @@ public class SchemaKGroupedTableTest {
             .collect(Collectors.toList());
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(),
+        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema()),
         null,
-        false,
         () -> null,
         "test",
         processingLogContext);
@@ -155,7 +154,6 @@ public class SchemaKGroupedTableTest {
           new KsqlJsonTopicSerDe().getGenericRowSerde(
               ksqlTable.getSchema(),
               ksqlConfig,
-              false,
               () -> null,
               "test",
               processingLogContext),
@@ -186,7 +184,6 @@ public class SchemaKGroupedTableTest {
           new KsqlJsonTopicSerDe().getGenericRowSerde(
               ksqlTable.getSchema(),
               ksqlConfig,
-              false,
               () -> null,
               "test",
               processingLogContext),

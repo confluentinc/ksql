@@ -34,6 +34,19 @@
       ]
     },
     {
+      "name": "max integer group by with nulls",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, VALUE integer) WITH (kafka_topic='test_topic',value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, max(value) as MAX FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}}
+      ]
+    },
+    {
       "name": "max long group by",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
@@ -56,6 +69,19 @@
         {"topic": "S2", "key": 100, "value": "100,300"},
         {"topic": "S2", "key": 0, "value": "0,9223372036854775807"},
         {"topic": "S2", "key": 0, "value": "0,9223372036854775807"}
+      ]
+    },
+    {
+      "name": "max long by with nulls",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic',value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, max(value) as MAX FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}}
       ]
     },
     {
@@ -84,6 +110,19 @@
         {"topic": "S2", "key": 100, "value": "100,300.8"},
         {"topic": "S2", "key": 0, "value": "0,2000.99"},
         {"topic": "S2", "key": 0, "value": "0,2000.99"}
+      ]
+    },
+    {
+      "name": "max double by with nulls",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, VALUE double) WITH (kafka_topic='test_topic',value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT id, max(value) as MAX FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}}
       ]
     }
   ]

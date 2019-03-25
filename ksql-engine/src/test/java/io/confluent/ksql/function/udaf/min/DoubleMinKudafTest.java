@@ -42,11 +42,11 @@ public class DoubleMinKudafTest {
   public void shouldHandleNull() {
     final DoubleMinKudaf doubleMinKudaf = getDoubleMinKudaf();
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
-    double currentMin = Double.MAX_VALUE;
+    Double currentMin = null;
 
     // null before any aggregation
     currentMin = doubleMinKudaf.aggregate(null, currentMin);
-    assertThat(Double.MAX_VALUE, equalTo(currentMin));
+    assertThat(null, equalTo(currentMin));
 
     // now send each value to aggregation and verify
     for (final double i: values) {

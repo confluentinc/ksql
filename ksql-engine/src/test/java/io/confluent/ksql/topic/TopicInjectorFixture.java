@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.topic;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.ddl.DdlConfig;
@@ -37,6 +38,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -44,6 +46,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -62,7 +67,7 @@ public class TopicInjectorFixture extends ExternalResource  {
   private DefaultTopicInjector injector;
   private PreparedStatement<CreateStreamAsSelect> statement;
   private KsqlConfig ksqlConfig;
-  Map<String, Object> propertyOverrides;
+  private Map<String, Object> propertyOverrides;
 
   @Override
   protected void before() {
@@ -193,33 +198,30 @@ public class TopicInjectorFixture extends ExternalResource  {
     }
   }
 
-  /**
-   * Generates code for DefaultTopicInjectorTest$PrecedenceTest
-   */
-  public static void main(String[] args) {
-    final List<Inject> withs = EnumSet.allOf(Inject.class)
-        .stream().filter(i -> i.type == Type.WITH).collect(Collectors.toList());
-    final List<Inject> overrides = EnumSet.allOf(Inject.class)
-        .stream().filter(i -> i.type == Type.OVERRIDES).collect(Collectors.toList());
-    final List<Inject> ksqlConfigs = EnumSet.allOf(Inject.class)
-        .stream().filter(i -> i.type == Type.KSQL_CONFIG).collect(Collectors.toList());
+  public TopicDescription getSource(final Inject source) {
+      return new TopicDescription(
+          "source",
+          false,
+          Collections.nCopies(source.partitions,
+              new TopicPartitionInfo(
+                  0,
+                  null,
+                  Collections.nCopies(source.replicas, new Node(0, "", 0)),
+                  ImmutableList.of())
+          )
+      );
+  }
 
-    for (List<Inject> injects : Lists.cartesianProduct(withs, overrides, ksqlConfigs)) {
-      // sort by precedence order
-      injects = new ArrayList<>(injects);
-      injects.sort(Comparator.comparing(i -> i.type));
+  public KsqlConfig getKsqlConfig() {
+    return ksqlConfig;
+  }
 
-      final Inject expectedPartitions =
-          injects.stream().filter(i -> i.partitions != null).findFirst().orElse(Inject.SOURCE);
-      final Inject expectedReplicas =
-          injects.stream().filter(i -> i.replicas != null).findFirst().orElse(Inject.SOURCE);
+  public Map<String, Expression> getWithClause() {
+    return statement.getStatement().getProperties();
+  }
 
-      System.out.println(String.format("new Object[]{%-40s, %-15s, %-15s, new Inject[]{%s}},",
-          "\"" + injects.toString().substring(1, injects.toString().length() - 1) + "\"",
-          expectedPartitions,
-          expectedReplicas,
-          injects.stream().map(Objects::toString).collect(Collectors.joining(","))));
-    }
+  public Map<String, Object> getPropertyOverrides() {
+    return propertyOverrides;
   }
 
   enum Type {
@@ -258,6 +260,35 @@ public class TopicInjectorFixture extends ExternalResource  {
       this.type = type;
       this.partitions = partitions;
       this.replicas = replicas;
+    }
+  }
+
+  /**
+   * Generates code for DefaultTopicInjectorTest$PrecedenceTest
+   */
+  public static void main(String[] args) {
+    final List<Inject> withs = EnumSet.allOf(Inject.class)
+        .stream().filter(i -> i.type == Type.WITH).collect(Collectors.toList());
+    final List<Inject> overrides = EnumSet.allOf(Inject.class)
+        .stream().filter(i -> i.type == Type.OVERRIDES).collect(Collectors.toList());
+    final List<Inject> ksqlConfigs = EnumSet.allOf(Inject.class)
+        .stream().filter(i -> i.type == Type.KSQL_CONFIG).collect(Collectors.toList());
+
+    for (List<Inject> injects : Lists.cartesianProduct(withs, overrides, ksqlConfigs)) {
+      // sort by precedence order
+      injects = new ArrayList<>(injects);
+      injects.sort(Comparator.comparing(i -> i.type));
+
+      final Inject expectedPartitions =
+          injects.stream().filter(i -> i.partitions != null).findFirst().orElse(Inject.SOURCE);
+      final Inject expectedReplicas =
+          injects.stream().filter(i -> i.replicas != null).findFirst().orElse(Inject.SOURCE);
+
+      System.out.println(String.format("new Object[]{%-40s, %-15s, %-15s, new Inject[]{%s}},",
+          "\"" + injects.toString().substring(1, injects.toString().length() - 1) + "\"",
+          expectedPartitions,
+          expectedReplicas,
+          injects.stream().map(Objects::toString).collect(Collectors.joining(","))));
     }
   }
 }

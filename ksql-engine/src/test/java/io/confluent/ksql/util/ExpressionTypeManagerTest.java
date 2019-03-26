@@ -20,8 +20,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -33,26 +33,29 @@ import org.junit.rules.ExpectedException;
 
 public class ExpressionTypeManagerTest {
 
+  private static final FunctionRegistry FUNCTION_REGISTRY = TestFunctionRegistry.INSTANCE.get();
+
   private MetaStore metaStore;
   private ExpressionTypeManager expressionTypeManager;
   private ExpressionTypeManager ordersExpressionTypeManager;
-  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
-    // load udfs that are not hardcoded
-    UdfLoaderUtil.load(functionRegistry);
+    metaStore = MetaStoreFixture.getNewMetaStore(FUNCTION_REGISTRY);
+
     final Schema schema = SchemaBuilder.struct()
         .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
         .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
         .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA);
-    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
-    ordersExpressionTypeManager = new ExpressionTypeManager(metaStore.getSource("ORDERS").getSchema(), functionRegistry);
+    expressionTypeManager = new ExpressionTypeManager(schema, FUNCTION_REGISTRY);
+    ordersExpressionTypeManager = new ExpressionTypeManager(
+        metaStore.getSource("ORDERS").getSchema(),
+        FUNCTION_REGISTRY
+    );
   }
 
   @Test
@@ -111,8 +114,10 @@ public class ExpressionTypeManagerTest {
   public void shouldFailForComplexTypeComparison() {
     // Given:
     final Analysis analysis = analyzeQuery("SELECT MAPCOL > NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
-        functionRegistry);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        metaStore.getSource("NESTED_STREAM").getSchema(),
+        FUNCTION_REGISTRY
+    );
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare MAP and STRUCT");
 
@@ -125,8 +130,10 @@ public class ExpressionTypeManagerTest {
   public void shouldFailForComparingComplexTypes() {
     // Given:
     final Analysis analysis = analyzeQuery("SELECT NESTED_ORDER_COL = NESTED_ORDER_COL from NESTED_STREAM;", metaStore);
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
-        functionRegistry);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        metaStore.getSource("NESTED_STREAM").getSchema(),
+        FUNCTION_REGISTRY
+    );
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Operator EQUAL cannot be used to compare STRUCT and STRUCT");
 
@@ -224,15 +231,18 @@ public class ExpressionTypeManagerTest {
         "SELECT itemid, address->zip, address->state from orders;", metaStore);
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("ORDERS").getSchema(),
-        functionRegistry);
+        FUNCTION_REGISTRY
+    );
     expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
   }
 
   @Test
   public void shouldFindTheNestedArrayTypeCorrectly() {
     final Analysis analysis = analyzeQuery("SELECT ARRAYCOL[0]->CATEGORY->NAME, NESTED_ORDER_COL->arraycol[0] from NESTED_STREAM;", metaStore);
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(metaStore.getSource("NESTED_STREAM").getSchema(),
-        functionRegistry);
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        metaStore.getSource("NESTED_STREAM").getSchema(),
+        FUNCTION_REGISTRY
+    );
     assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),
         equalTo(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1)),

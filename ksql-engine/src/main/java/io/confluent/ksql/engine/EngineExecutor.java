@@ -74,7 +74,7 @@ final class EngineExecutor {
           ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
       );
 
-      if (logicalPlan.getNode() == null) {
+      if (!logicalPlan.getNode().isPresent()) {
         final String msg = engineContext.executeDdlStatement(
             statement.getStatementText(),
             (ExecutableDdlStatement) statement.getStatement(),

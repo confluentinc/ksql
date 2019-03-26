@@ -47,7 +47,6 @@ import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanTestUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
@@ -69,6 +68,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -197,8 +197,8 @@ public class PhysicalPlanBuilderTest {
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {
-    final PlanNode logical = AnalysisTestUtil.buildLogicalPlan(query, metaStore);;
-    return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, logical));
+    final OutputNode logical = AnalysisTestUtil.buildLogicalPlan(query, metaStore);;
+    return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, Optional.of(logical)));
   }
 
   @Test
@@ -648,7 +648,7 @@ public class PhysicalPlanBuilderTest {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
     final OutputNode spyNode = spy(
-        (OutputNode) AnalysisTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
+        AnalysisTestUtil.buildLogicalPlan(simpleSelectFilter, metaStore));
     doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
     when(loggerFactory.getLogger("foo")).thenReturn(logger);
     when(loggerFactory.getLogger(ArgumentMatchers.startsWith("foo.")))
@@ -657,7 +657,7 @@ public class PhysicalPlanBuilderTest {
 
     // When:
     physicalPlanBuilder.buildPhysicalPlan(
-        new LogicalPlanNode(simpleSelectFilter, spyNode));
+        new LogicalPlanNode(simpleSelectFilter, Optional.of(spyNode)));
 
     // Then:
     final TestKafkaStreamsBuilder.Call call = testKafkaStreamsBuilder.calls.get(0);

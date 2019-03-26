@@ -67,6 +67,7 @@ statement
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
+    | DROP FUNCTION (IF EXISTS)? qualifiedName                              #dropFunction
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable

@@ -23,10 +23,12 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
+import io.confluent.ksql.parser.tree.CreateFunction;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DropFunction;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -256,6 +258,14 @@ public class StandaloneExecutor implements Executable {
                 StatementExecutor::handlePersistentQuery,
                 CreateTableAsSelect.class,
                 "CREATE TABLE AS SELECT"))
+            .put(CreateFunction.class, createHandler(
+                StatementExecutor::handleExecutableDdl,
+                CreateFunction.class,
+                "CREATE FUNCTION"))
+            .put(DropFunction.class, createHandler(
+                StatementExecutor::handleExecutableDdl,
+                DropFunction.class,
+                "DROP FUNCTION"))
             .put(InsertInto.class, createHandler(
                 StatementExecutor::handlePersistentQuery,
                 InsertInto.class,

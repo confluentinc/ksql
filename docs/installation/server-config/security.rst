@@ -375,8 +375,8 @@ KSQL always requires the following ACLs for its internal operations and data man
 
 Where ``ksql.service.id`` can be configured in the KSQL configuration and defaults to ``default_``.
 
-If KSQL is configured to create a topic for the :ref:`record processing log<ksql_processing_log>`
-(the default configuration since KSQL version 5.2), the following ACLs are also needed:
+If KSQL is configured to create a topic for the :ref:`record processing log <ksql_processing_log>`
+which is the default configuration since KSQL version 5.2, the following ACLs are also needed:
 
 - The ``ALL`` operation on the ``TOPIC`` with ``LITERAL`` name ``<ksql.service.id>ksql_processing_log``.
 

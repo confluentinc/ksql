@@ -16,24 +16,15 @@
 
 package io.confluent.ksql.testutils;
 
+import static org.apache.kafka.common.security.auth.SecurityProtocol.SASL_SSL;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.Resource;
-import org.apache.kafka.common.security.JaasUtils;
-import org.apache.kafka.common.security.auth.KafkaPrincipal;
-import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.apache.kafka.common.security.plain.PlainLoginModule;
-import org.apache.kafka.test.TestUtils;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.confluent.ksql.testutils.secure.ClientTrustStore;
+import io.confluent.ksql.testutils.secure.Credentials;
+import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
+import io.confluent.ksql.testutils.secure.ServerKeyStore;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -47,11 +38,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import io.confluent.ksql.testutils.secure.ClientTrustStore;
-import io.confluent.ksql.testutils.secure.Credentials;
-import io.confluent.ksql.testutils.secure.SecureKafkaHelper;
-import io.confluent.ksql.testutils.secure.ServerKeyStore;
 import kafka.security.auth.Acl;
 import kafka.security.auth.Operation$;
 import kafka.security.auth.PermissionType;
@@ -60,9 +46,21 @@ import kafka.security.auth.ResourceType$;
 import kafka.security.auth.SimpleAclAuthorizer;
 import kafka.server.KafkaConfig;
 import kafka.utils.ZKConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.resource.Resource;
+import org.apache.kafka.common.security.JaasUtils;
+import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.common.security.plain.PlainLoginModule;
+import org.apache.kafka.test.TestUtils;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
-
-import static org.apache.kafka.common.security.auth.SecurityProtocol.SASL_SSL;
 
 /**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
@@ -71,9 +69,12 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
 
-  public static Credentials VALID_USER1 = new Credentials("valid_user_1", "some-password");
-  public static Credentials VALID_USER2 = new Credentials("valid_user_2", "some-password");
-  private static List<Credentials> ALL_VALID_USERS = ImmutableList.of(VALID_USER1, VALID_USER2);
+  public static final Credentials VALID_USER1 =
+      new Credentials("valid_user_1", "some-password");
+  public static final Credentials VALID_USER2 =
+      new Credentials("valid_user_2", "some-password");
+  private static final List<Credentials> ALL_VALID_USERS =
+      ImmutableList.of(VALID_USER1, VALID_USER2);
 
   private ZooKeeperEmbedded zookeeper;
   private KafkaEmbedded broker;
@@ -114,7 +115,9 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-
+    // Streams runs multiple consumers, so let's give them all a chance to join.
+    // (Tests run quicker and with a more stable consumer group):
+    brokerConfig.put("group.initial.rebalance.delay.ms", 100);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
@@ -154,7 +157,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * This cluster's `bootstrap.servers` value.  Example: `127.0.0.1:9092`.
    *
-   * You can use this to tell Kafka producers how to connect to this cluster.
+   * <p>You can use this to tell Kafka producers how to connect to this cluster.
    */
   public String bootstrapServers() {
     return broker.brokerList();
@@ -163,7 +166,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * This cluster's `bootstrap.servers` value.  Example: `127.0.0.1:9092`.
    *
-   * You can use this to tell Kafka producers how to connect to this cluster.
+   * <p>You can use this to tell Kafka producers how to connect to this cluster.
    * @param securityProtocol the security protocol to select.
    */
   public String bootstrapServers(final SecurityProtocol securityProtocol) {
@@ -173,7 +176,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Common properties that clients will need to connect to the cluster.
    *
-   * This includes any SASL / SSL related settings.
+   * <p>This includes any SASL / SSL related settings.
    *
    * @return the properties that should be added to client props.
    */
@@ -185,8 +188,9 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * This cluster's ZK connection string aka `zookeeper.connect` in `hostnameOrIp:port` format.
    * Example: `127.0.0.1:2181`.
    *
-   * You can use this to e.g. tell Kafka consumers how to connect to this cluster.
+   * <p>You can use this to e.g. tell Kafka consumers how to connect to this cluster.
    */
+  @SuppressWarnings("WeakerAccess") // Part of public API
   public String zookeeperConnect() {
     return zookeeper.connectString();
   }
@@ -196,8 +200,8 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    *
    * @param topic The name of the topic.
    */
-  public void createTopic(String topic) {
-    createTopic(topic, 1, 1, new Properties());
+  public void createTopic(final String topic) {
+    broker.createTopic(topic, 1, 1);
   }
 
   /**
@@ -207,8 +211,8 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param partitions  The number of partitions for this topic.
    * @param replication The replication factor for (the partitions of) this topic.
    */
-  public void createTopic(String topic, int partitions, int replication) {
-    createTopic(topic, partitions, replication, new Properties());
+  public void createTopic(final String topic, final int partitions, final int replication) {
+    broker.createTopic(topic, partitions, replication);
   }
 
   /**
@@ -219,10 +223,11 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
-  public void createTopic(String topic,
-                          int partitions,
-                          int replication,
-                          Properties topicConfig) {
+  public void createTopic(
+      final String topic,
+      final int partitions,
+      final int replication,
+      final Properties topicConfig) {
     broker.createTopic(topic, partitions, replication, topicConfig);
   }
 
@@ -234,10 +239,11 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param resource    the thing
    * @param ops         the what.
    */
-  public void addUserAcl(final String username,
-                         final AclPermissionType permission,
-                         final Resource resource,
-                         final Set<AclOperation> ops) {
+  public void addUserAcl(
+      final String username,
+      final AclPermissionType permission,
+      final Resource resource,
+      final Set<AclOperation> ops) {
 
     final KafkaPrincipal principal = new KafkaPrincipal("User", username);
     final PermissionType scalaPermission = PermissionType$.MODULE$.fromJava(permission);
@@ -250,7 +256,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     final scala.collection.immutable.Set<Acl> scalaAcls =
         JavaConversions.asScalaSet(javaAcls).toSet();
 
-    kafka.security.auth.ResourceType scalaResType =
+    final kafka.security.auth.ResourceType scalaResType =
         ResourceType$.MODULE$.fromJava(resource.resourceType());
 
     final kafka.security.auth.Resource scalaResource =
@@ -272,13 +278,26 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     return new Builder();
   }
 
+  public static EmbeddedSingleNodeKafkaCluster build() {
+    return newBuilder().build();
+  }
+
   private Properties effectiveBrokerConfigFrom() {
-    Properties effectiveConfig = new Properties();
+    final Properties effectiveConfig = new Properties();
     effectiveConfig.putAll(brokerConfig);
     effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
+    // Allow tests to delete topics:
     effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
-    effectiveConfig.put(KafkaConfig.LogCleanerDedupeBufferSizeProp(), 2 * 1024 * 1024L);
+    // Do not clean logs from under the tests or waste resources doing so:
+    effectiveConfig.put(KafkaConfig.LogCleanerEnableProp(), false);
+    // Only single node, so only single RF on offset topic partitions:
     effectiveConfig.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
+    // Tests do not need large numbers of offset topic partitions:
+    effectiveConfig.put(KafkaConfig.OffsetsTopicPartitionsProp(), "2");
+    // Shutdown quick:
+    effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
+    effectiveConfig.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
     return effectiveConfig;
   }
 
@@ -328,9 +347,11 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(), SASL_SSL.name());
       brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
       brokerConfig.putAll(ServerKeyStore.keyStoreProps());
+      brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
 
       clientConfig.putAll(SecureKafkaHelper.getSecureCredentialsConfig(VALID_USER1));
       clientConfig.putAll(ClientTrustStore.trustStoreProps());
+      clientConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
       return this;
     }
 
@@ -342,9 +363,9 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     public Builder withAcls(final String... superUsers) {
       brokerConfig.remove(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
       brokerConfig.put(SimpleAclAuthorizer.SuperUsersProp(),
-                       Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
-                           .map(s -> "User:" + s)
-                           .collect(Collectors.joining(";")));
+          Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
+              .map(s -> "User:" + s)
+              .collect(Collectors.joining(";")));
       return this;
     }
 
@@ -352,12 +373,12 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       return new EmbeddedSingleNodeKafkaCluster(brokerConfig, clientConfig);
     }
 
-    private void addListenersProp(String listenerType) {
+    private void addListenersProp(final String listenerType) {
       final Object current = brokerConfig.get(KafkaConfig.ListenersProp());
       brokerConfig.put(KafkaConfig.ListenersProp(), current + "," + listenerType + "://:0");
     }
 
-    private void removeListenersProp(String listenerType) {
+    private void removeListenersProp(final String listenerType) {
       final String current = (String)brokerConfig.get(KafkaConfig.ListenersProp());
       final String replacement = Arrays.stream(current.split(","))
           .filter(part -> !part.startsWith(listenerType + "://"))

@@ -27,10 +27,10 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.metastore.KsqlStream;
-import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -45,14 +45,13 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -65,7 +64,6 @@ public class DefaultTopicInjectorTest {
       .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
-  @Rule public ExpectedException expectedException = ExpectedException.none();
   @Mock public TopicProperties.Builder builder;
 
   private KsqlParser parser;
@@ -97,10 +95,10 @@ public class DefaultTopicInjectorTest {
         "",
         "SOURCE",
         SCHEMA,
-        SCHEMA.fields().get(0),
+        Optional.empty(),
         new MetadataTimestampExtractionPolicy(),
         sourceTopic,
-        Serdes.String());
+        Serdes::String);
     metaStore.putSource(source);
 
     final KsqlTopic joinTopic =
@@ -109,10 +107,10 @@ public class DefaultTopicInjectorTest {
         "",
         "J_SOURCE",
         SCHEMA,
-        SCHEMA.fields().get(0),
+        Optional.empty(),
         new MetadataTimestampExtractionPolicy(),
         joinTopic,
-        Serdes.String());
+        Serdes::String);
     metaStore.putSource(joinSource);
 
     when(builder.withName(any())).thenReturn(builder);
@@ -136,7 +134,7 @@ public class DefaultTopicInjectorTest {
   }
 
   @Test
-  public void shouldGenerateNameIfNotPresentInWith() {
+  public void shouldGenerateName() {
     // Given:
     givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
 
@@ -145,18 +143,6 @@ public class DefaultTopicInjectorTest {
 
     // Then:
     verify(builder).withName("X");
-  }
-
-  @Test
-  public void shouldUseNameInWithClause() {
-    // Given:
-    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
-
-    // When:
-    injector.forStatement(statement, config, overrides, builder);
-
-    // Then:
-    verify(builder).withName("topic");
   }
 
   @Test

@@ -18,7 +18,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -124,7 +124,7 @@ public class DefaultTopicInjector implements TopicInjector {
     @Override
     protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
       final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
-      final StructuredDataSource source = metaStore.getSource(structuredDataSourceName);
+      final StructuredDataSource<?> source = metaStore.getSource(structuredDataSourceName);
       if (source == null) {
         throw new KsqlException(structuredDataSourceName + " does not exist.");
       }

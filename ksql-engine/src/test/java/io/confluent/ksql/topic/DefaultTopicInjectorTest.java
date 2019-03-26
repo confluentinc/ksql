@@ -15,172 +15,254 @@
 
 package io.confluent.ksql.topic;
 
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.KSQL_CONFIG;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.KSQL_CONFIG_P;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.KSQL_CONFIG_R;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.NO_CONFIG;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.NO_OVERRIDES;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.NO_WITH;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.OVERRIDES;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.OVERRIDES_P;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.OVERRIDES_R;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.SOURCE;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.WITH;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.WITH_P;
-import static io.confluent.ksql.topic.TopicInjectorFixture.Inject.WITH_R;
-import static io.confluent.ksql.topic.TopicInjectorFixture.hasTopicInfo;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.Lists;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.metastore.KsqlStream;
+import io.confluent.ksql.metastore.KsqlTopic;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.topic.TopicInjectorFixture.Inject;
+import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
+import io.confluent.ksql.services.FakeKafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(Enclosed.class)
+@RunWith(MockitoJUnitRunner.class)
 public class DefaultTopicInjectorTest {
 
-  @Rule
-  public final TopicInjectorFixture fixture = new TopicInjectorFixture();
+  private static final Schema SCHEMA = SchemaBuilder
+      .struct()
+      .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
+      .build();
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+  @Rule public ExpectedException expectedException = ExpectedException.none();
+  @Mock public TopicProperties.Builder builder;
 
-  @Test
-  public void shouldInferTopicName() {
-    // Given:
-    fixture.givenStatement(
-        "CREATE STREAM sink WITH (value_format='JSON') AS SELECT * FROM source;"
-    );
+  private KsqlParser parser;
+  private MutableMetaStore metaStore;
+  private DefaultTopicInjector injector;
+  private Map<String, Object> overrides;
+  private PreparedStatement<CreateStreamAsSelect> statement;
+  private KsqlConfig config;
+  private TopicDescription sourceDesciprtion;
 
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> csas = fixture.inject();
+  @Before
+  public void setUp() {
+    parser = new DefaultKsqlParser();
+    metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    overrides = new HashMap<>();
+    config = new KsqlConfig(new HashMap<>());
 
-    // Then:
-    assertThat(
-        csas.getStatement().getProperties(),
-        hasEntry(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("SINK")));
-  }
+    final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
+    injector = new DefaultTopicInjector(topicClient, metaStore);
 
-  @Test
-  public void shouldUseTopicNameInWith() {
-    // Given:
-    fixture.givenStatement(
-        "CREATE STREAM sink WITH (kafka_topic='topic', value_format='JSON') "
-            + "AS SELECT * FROM source;"
-    );
+    topicClient.createTopic("source", 1, (short) 1);
+    sourceDesciprtion = topicClient.describeTopic("source");
 
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> csas = fixture.inject();
+    topicClient.createTopic("jSource", 2, (short) 2);
 
-    // Then:
-    assertThat(
-        csas.getStatement().getProperties(),
-        hasEntry(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic")));
-  }
+    final KsqlTopic sourceTopic =
+        new KsqlTopic("SOURCE", "source", new KsqlJsonTopicSerDe(), false);
+    final KsqlStream source = new KsqlStream<>(
+        "",
+        "SOURCE",
+        SCHEMA,
+        SCHEMA.fields().get(0),
+        new MetadataTimestampExtractionPolicy(),
+        sourceTopic,
+        Serdes.String());
+    metaStore.putSource(source);
 
-  @Test
-  public void shouldInferFromLeftJoin() {
-    // Given:
-    fixture.givenStatement(
-        "CREATE STREAM sink WITH (value_format='JSON') "
-            + "AS SELECT * FROM source "
-            + "JOIN source2 ON source.f1 = source2.f1;"
-    );
+    final KsqlTopic joinTopic =
+        new KsqlTopic("J_SOURCE", "jSource", new KsqlJsonTopicSerDe(), false);
+    final KsqlStream joinSource = new KsqlStream<>(
+        "",
+        "J_SOURCE",
+        SCHEMA,
+        SCHEMA.fields().get(0),
+        new MetadataTimestampExtractionPolicy(),
+        joinTopic,
+        Serdes.String());
+    metaStore.putSource(joinSource);
 
-    // When:
-    final PreparedStatement<CreateStreamAsSelect> csas = fixture.inject();
-
-    // Then:
-    assertThat(csas, hasTopicInfo("SINK", Inject.SOURCE.partitions, Inject.SOURCE.replicas));
-  }
-
-  @Test
-  public void testMalformedReplicaProperty() {
-    // Given:
-    fixture.givenStatement(
-        "CREATE STREAM sink WITH (replicas='hi', value_format='JSON') AS SELECT * FROM source;"
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid number of replications in WITH clause: 'hi'");
-
-    // When:
-    fixture.inject();
-  }
-
-  @Test
-  public void testMalformedReplicaPropertyNumber() {
-    // Given:
-    fixture.givenStatement(
-        "CREATE STREAM sink WITH (replicas=.5, value_format='JSON') AS SELECT * FROM source;"
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid number of replications in WITH clause: 0.5");
-
-    // When:
-    fixture.inject();
-  }
-
-  @Test
-  public void testMalformedPartitionsProperty() {
-    // Given:
-    fixture.givenStatement(
-        "CREATE STREAM sink WITH (partitions='hi', value_format='JSON') AS SELECT * FROM source;"
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid number of partitions in WITH clause: 'hi'");
-
-    // When:
-    fixture.inject();
-  }
-
-  @Test
-  public void testMalformedPartitionsPropertyNumber() {
-    // Given:
-    fixture.givenStatement(
-        "CREATE STREAM sink WITH (partitions=.5, value_format='JSON') AS SELECT * FROM source;"
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid number of partitions in WITH clause: 0.5");
-
-    // When:
-    fixture.inject();
+    when(builder.withName(any())).thenReturn(builder);
+    when(builder.withWithClause(any())).thenReturn(builder);
+    when(builder.withOverrides(any())).thenReturn(builder);
+    when(builder.withLegacyKsqlConfig(any())).thenReturn(builder);
+    when(builder.withSource(any())).thenReturn(builder);
+    when(builder.build()).thenReturn(new TopicProperties("name", 1, (short) 1));
   }
 
   @Test
   public void shouldDoNothingForNonCAS() {
     // Given:
-    final PreparedStatement<?> statement = fixture.givenStatement(
-        "SHOW TOPICS;"
-    );
+    final PreparedStatement<?> statement = givenStatement("LIST PROPERTIES;");
 
     // When:
-    final PreparedStatement<?> injected = fixture.inject(statement);
+    final PreparedStatement<?> result = injector.forStatement(statement, config, overrides);
 
     // Then:
-    assertThat(injected, is(sameInstance(statement)));
+    assertThat(result, is(sameInstance(statement)));
+  }
+
+  @Test
+  public void shouldGenerateNameIfNotPresentInWith() {
+    // Given:
+    givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withName("X");
+  }
+
+  @Test
+  public void shouldUseNameInWithClause() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withName("topic");
+  }
+
+  @Test
+  public void shouldPassThroughWithClauseToBuilder() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withWithClause(statement.getStatement().getProperties());
+  }
+
+  @Test
+  public void shouldPassThroughOverridesToBuilder() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withOverrides(overrides);
+  }
+
+  @Test
+  public void shouldPassThroughConfigToBuilder() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withLegacyKsqlConfig(config);
+  }
+
+  @Test
+  public void shouldIdentifyAndUseCorrectSource() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withSource(eq(sourceDesciprtion));
+  }
+
+  @Test
+  public void shouldIdentifyAndUseCorrectSourceInJoin() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE "
+        + "JOIN J_SOURCE ON SOURCE.X = J_SOURCE.X;");
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withSource(eq(sourceDesciprtion));
+  }
+
+  @Test
+  public void shouldBuildWithClauseWithTopicProperties() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    final PreparedStatement<CreateStreamAsSelect> result =
+        injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    assertThat(result.getStatement().getProperties(),
+        hasEntry(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("expectedName")));
+    assertThat(result.getStatement().getProperties(),
+        hasEntry(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(10)));
+    assertThat(result.getStatement().getProperties(),
+        hasEntry(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(10)));
+  }
+
+  @Test
+  public void shouldUpdateStatementText() {
+    // Given:
+    givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
+
+    // When:
+    final PreparedStatement<?> result =
+        injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    assertThat(result.getStatementText(),
+        equalTo(
+            "CREATE STREAM X WITH (REPLICAS = 1, PARTITIONS = 1, KAFKA_TOPIC = 'name') AS SELECT *"
+                + "\nFROM SOURCE SOURCE;"));
+  }
+
+  @SuppressWarnings("unchecked")
+  private PreparedStatement<?> givenStatement(final String sql) {
+    final PreparedStatement<?> preparedStatement =
+        parser.prepare(parser.parse(sql).get(0), metaStore);
+    if (preparedStatement.getStatement() instanceof CreateStreamAsSelect) {
+      statement = (PreparedStatement<CreateStreamAsSelect>) preparedStatement;
+    }
+    return preparedStatement;
   }
 
 }

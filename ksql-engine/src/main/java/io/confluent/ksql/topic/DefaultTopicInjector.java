@@ -14,26 +14,30 @@
 
 package io.confluent.ksql.topic;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.StructuredDataSource;
+import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
+import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 public class DefaultTopicInjector implements TopicInjector {
@@ -54,12 +58,21 @@ public class DefaultTopicInjector implements TopicInjector {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public <T extends Statement> PreparedStatement<T> forStatement(
       final PreparedStatement<T> statement,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides) {
+    return forStatement(statement, ksqlConfig, propertyOverrides, new TopicProperties.Builder());
+  }
+
+  @SuppressWarnings("unchecked")
+  @VisibleForTesting
+  <T extends Statement> PreparedStatement<T> forStatement(
+      final PreparedStatement<T> statement,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> propertyOverrides,
+      final TopicProperties.Builder topicPropertiesBuilder) {
     if (!(statement.getStatement() instanceof CreateAsSelect)) {
       return statement;
     }
@@ -67,8 +80,8 @@ public class DefaultTopicInjector implements TopicInjector {
     final PreparedStatement<? extends CreateAsSelect> cas =
         (PreparedStatement<? extends CreateAsSelect>) statement;
 
-    final TopicDescription source = describeSource(topicClient, ksqlConfig, cas);
-    final TopicProperties info = new TopicProperties.Builder()
+    final TopicDescription source = describeSource(topicClient, cas);
+    final TopicProperties info = topicPropertiesBuilder
         .withName(ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG)
             + cas.getStatement().getName().getSuffix())
         .withWithClause(cas.getStatement().getProperties())
@@ -90,19 +103,34 @@ public class DefaultTopicInjector implements TopicInjector {
 
   private TopicDescription describeSource(
       final KafkaTopicClient topicClient,
-      final KsqlConfig ksqlConfig,
       final PreparedStatement<? extends CreateAsSelect> cas
   ) {
-    final Analysis analysis = new QueryAnalyzer(
-        metaStore,
-        ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
-        .analyze(
-            cas.getStatementText(),
-            cas.getStatement().getQuery(),
-            Optional.of(cas.getStatement().getSink()));
-
-    final StructuredDataSource theSource = analysis.getTheSource();
-    final String kafkaTopicName = theSource.getKsqlTopic().getKafkaTopicName();
+    final SourceTopicExtractor extractor = new SourceTopicExtractor();
+    extractor.process(cas.getStatement().getQuery(), null);
+    final String kafkaTopicName = extractor.primaryKafkaTopicName;
     return topicClient.describeTopic(kafkaTopicName);
+  }
+
+  private final class SourceTopicExtractor extends DefaultTraversalVisitor<Node, Void> {
+
+    private String primaryKafkaTopicName = null;
+
+    @Override
+    protected Node visitJoin(final Join node, final Void context) {
+      process(node.getLeft(), context);
+      return null;
+    }
+
+    @Override
+    protected Node visitAliasedRelation(final AliasedRelation node, final Void context) {
+      final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
+      final StructuredDataSource source = metaStore.getSource(structuredDataSourceName);
+      if (source == null) {
+        throw new KsqlException(structuredDataSourceName + " does not exist.");
+      }
+
+      primaryKafkaTopicName = source.getKsqlTopic().getKafkaTopicName();
+      return node;
+    }
   }
 }

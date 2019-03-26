@@ -17,13 +17,10 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.SqlBaseLexer;
-
-import io.confluent.ksql.parser.tree.Expression;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import javax.annotation.Nullable;
 
 public final class ParserUtil {
   private ParserUtil() {
@@ -41,31 +38,5 @@ public final class ParserUtil {
 
   public static String escapeIfLiteral(final String name) {
     return LITERALS_SET.contains(name.toUpperCase()) ? "`" + name + "`" : name;
-  }
-
-  public static Integer parseInt(@Nullable final Expression expression) {
-    if (expression == null) {
-      return null;
-    }
-
-    final String expAsString = expression.toString();
-    try {
-      return Integer.parseInt(expAsString);
-    } catch (NumberFormatException e) {
-      throw new KsqlException("Expected integer expression but got: " + expression, e);
-    }
-  }
-
-  public static Short parseShort(@Nullable final Expression expression) {
-    if (expression == null) {
-      return null;
-    }
-
-    final String expAsString = expression.toString();
-    try {
-      return Short.parseShort(expAsString);
-    } catch (NumberFormatException e) {
-      throw new KsqlException("Expected short expression but got: " + expression, e);
-    }
   }
 }

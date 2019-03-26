@@ -15,11 +15,12 @@
 
 package io.confluent.ksql.topic;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.ParserUtil;
+import io.confluent.ksql.util.WithClauseUtil;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.lang3.ObjectUtils;
@@ -36,7 +37,8 @@ public class TopicProperties {
   public final Integer partitions;
   public final Short replicas;
 
-  private TopicProperties(
+  @VisibleForTesting
+  TopicProperties(
       final String topicName,
       final Integer partitions,
       final Short replicas
@@ -91,9 +93,9 @@ public class TopicProperties {
           : StringUtils.strip(nameExpression.toString(), "'");
 
       final Integer partitions =
-          ParserUtil.parseInt(withClause.get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS));
+          WithClauseUtil.parsePartitions(withClause.get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS));
       final Short replicas =
-          ParserUtil.parseShort(withClause.get(KsqlConstants.SINK_NUMBER_OF_REPLICAS));
+          WithClauseUtil.parseReplicas(withClause.get(KsqlConstants.SINK_NUMBER_OF_REPLICAS));
 
       fromWithClause = new TopicProperties(name, partitions, replicas);
       return this;

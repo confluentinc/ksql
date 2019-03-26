@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -126,6 +127,19 @@ public class TopicPropertiesTest {
 
       // When:
       new TopicProperties.Builder()
+          .withLegacyKsqlConfig(config)
+          .build();
+    }
+
+    @Test
+    public void shouldFailIfEmptyNameSupplied() {
+      // Expect:
+      expectedException.expect(KsqlException.class);
+      expectedException.expectMessage("Must have non-empty topic name.");
+
+      // When:
+      new TopicProperties.Builder()
+          .withName("")
           .withLegacyKsqlConfig(config)
           .build();
     }

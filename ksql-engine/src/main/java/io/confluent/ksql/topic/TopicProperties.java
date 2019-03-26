@@ -20,6 +20,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.WithClauseUtil;
 import java.util.Map;
 import java.util.Objects;
@@ -139,6 +140,9 @@ public class TopicProperties {
     public TopicProperties build() {
       final String name = ObjectUtils.firstNonNull(fromWithClause.topicName, this.name);
       Objects.requireNonNull(name, "Was not supplied with any valid source for topic name!");
+      if (StringUtils.strip(name).isEmpty()) {
+        throw new KsqlException("Must have non-empty topic name.");
+      }
 
       final Integer partitions = ObjectUtils.firstNonNull(
           fromWithClause.partitions,

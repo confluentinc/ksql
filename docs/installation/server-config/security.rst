@@ -375,6 +375,11 @@ KSQL always requires the following ACLs for its internal operations and data man
 
 Where ``ksql.service.id`` can be configured in the KSQL configuration and defaults to ``default_``.
 
+If KSQL is configured to create a topic for the :ref:`record processing log<ksql_processing_log>`
+(the default configuration since KSQL version 5.2), the following ACLs are also needed:
+
+- The ``ALL`` operation on the ``TOPIC`` with ``LITERAL`` name ``<ksql.service.id>ksql_processing_log``.
+
 In addition to the general permissions above, KSQL also needs permissions to perform the actual processing of your data.
 Here, KSQL needs permissions to read data from your desired input topics and/or permissions to write data to your desired output topics:
 
@@ -422,6 +427,9 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
     # Allow KSQL to manage its own internal topics and consumer groups:
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
 
+    # Allow KSQL to manage its record processing log topic, if configured:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic production_ksql_processing_log
+
 .. _config-security-ksql-acl-interactive_post_ak_2_0:
 
 Interactive KSQL clusters
@@ -462,6 +470,9 @@ Then the following commands would create the necessary ACLs in the Kafka cluster
 
     # Allow KSQL to manage its own internal topics and consumer groups:
     bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-fraud_ --group _confluent-ksql-fraud_
+
+    # Allow KSQL to manage its record processing log topic, if configured:
+    bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 |cp| versions below v5.0 (Apache Kafka < v2.0)

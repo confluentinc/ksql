@@ -18,7 +18,6 @@ package io.confluent.ksql.planner.plan;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -32,9 +31,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.logging.processing.ProcessingLogConstants;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -43,8 +39,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -60,7 +54,6 @@ import java.util.ListIterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -80,10 +73,11 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.TimestampExtractor;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -145,21 +139,16 @@ public class StructuredDataSourceNodeTest {
   private Materialized materialized;
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
-
-  private ServiceContext serviceContext;
-  private ProcessingLogContext processingLogContext;
+  @Captor
+  private ArgumentCaptor<QueryContext> queryContextCaptor;
 
   @Before
   @SuppressWarnings("unchecked")
   public void before() {
-    serviceContext = TestServiceContext.create();
-    processingLogContext = ProcessingLogContext.create();
     realBuilder = new StreamsBuilder();
 
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
-    when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
-    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
@@ -173,12 +162,7 @@ public class StructuredDataSourceNodeTest {
     when(tableSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
     when(ksqlTopic.getKafkaTopicName()).thenReturn("topic");
     when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(topicSerDe);
-    when(topicSerDe.getGenericRowSerde(
-        any(Schema.class),
-        any(KsqlConfig.class),
-        any(Supplier.class),
-        anyString(),
-        any(ProcessingLogContext.class))).thenReturn(rowSerde);
+    when(ksqlStreamBuilder.buildGenericRowSerde(any(), any(), any())).thenReturn(rowSerde);
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(kStream.transformValues(any(ValueTransformerSupplier.class))).thenReturn(kStream);
@@ -193,11 +177,6 @@ public class StructuredDataSourceNodeTest {
         .thenReturn(materializedFactory);
     when(materializedFactory.create(any(Serde.class), any(Serde.class), anyString()))
         .thenReturn(materialized);
-  }
-
-  @After
-  public void tearDown() {
-    serviceContext.close();
   }
 
   @Test
@@ -217,21 +196,14 @@ public class StructuredDataSourceNodeTest {
 
   @Test
   public void shouldCreateLoggerForSourceSerde() {
-    assertThat(
-        processingLogContext.getLoggerFactory().getLoggers(),
-        hasItem(
-            startsWith(
-                ProcessingLoggerUtil.join(
-                    ProcessingLogConstants.PREFIX,
-                    QueryLoggerUtil.queryLoggerName(
-                        new QueryContext.Stacker(queryId)
-                            .push(node.getId().toString(), "source")
-                            .getQueryContext()
-                    )
-                )
-            )
-        )
+    verify(ksqlStreamBuilder).buildGenericRowSerde(
+        any(),
+        any(),
+        queryContextCaptor.capture()
     );
+
+    assertThat(QueryLoggerUtil.queryLoggerName(queryContextCaptor.getValue()),
+        is("source-test.0.source"));
   }
 
   @Test

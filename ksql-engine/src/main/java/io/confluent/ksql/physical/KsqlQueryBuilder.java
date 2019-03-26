@@ -26,6 +26,8 @@ import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryLoggerUtil;
+import java.util.LinkedHashMap;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -38,6 +40,7 @@ public final class KsqlQueryBuilder {
   private final ProcessingLogContext processingLogContext;
   private final FunctionRegistry functionRegistry;
   private final QueryId queryId;
+  private final LinkedHashMap<String, Schema> schemas = new LinkedHashMap<>();
 
   public static KsqlQueryBuilder of(
       final StreamsBuilder streamsBuilder,
@@ -73,11 +76,6 @@ public final class KsqlQueryBuilder {
     this.queryId = requireNonNull(queryId, "queryId");
   }
 
-  public QueryContext.Stacker buildNodeContext(final PlanNodeId id) {
-    return new QueryContext.Stacker(queryId)
-        .push(id.toString());
-  }
-
   public ProcessingLogContext getProcessingLogContext() {
     return processingLogContext;
   }
@@ -98,6 +96,10 @@ public final class KsqlQueryBuilder {
     return streamsBuilder;
   }
 
+  public QuerySchemas getSchemas() {
+    return QuerySchemas.of(schemas);
+  }
+
   public KsqlQueryBuilder withKsqlConfig(final KsqlConfig newConfig) {
     return of(
         streamsBuilder,
@@ -109,13 +111,33 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  // Todo(ac): Can we move `getGenericRowSerde` calls into `KsqlQueryBuilder` so that it can track?
-  public Serde<GenericRow> getGenericRowSerde(
-      final KsqlTopicSerDe topicSerDe,
-      final Schema schema,
-      final String loggerNamePrefix
-  ) {
-    return null;
+  public QueryContext.Stacker buildNodeContext(final PlanNodeId id) {
+    return new QueryContext.Stacker(queryId)
+        .push(id.toString());
   }
 
+  public Serde<GenericRow> buildGenericRowSerde(
+      final KsqlTopicSerDe topicSerDe,
+      final Schema schema,
+      final QueryContext queryContext
+  ) {
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryContext);
+
+    track(loggerNamePrefix, schema);
+
+    return topicSerDe.getGenericRowSerde(
+        schema,
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        loggerNamePrefix,
+        processingLogContext
+    );
+  }
+
+  private void track(final String loggerNamePrefix, final Schema schema) {
+    if (schemas.containsKey(loggerNamePrefix)) {
+      throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
+    }
+    schemas.put(loggerNamePrefix, schema);
+  }
 }

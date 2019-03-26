@@ -109,17 +109,16 @@ public class PhysicalPlanBuilder {
 
     final QueryId queryId = logicalNode.getQueryId(queryIdGenerator);
 
-    final SchemaKStream<?> resultStream = logicalNode
-        .buildStream(
-            KsqlQueryBuilder.of(
-                builder,
-                ksqlConfig,
-                serviceContext,
-                processingLogContext,
-                functionRegistry,
-                queryId
-            )
-        );
+    final KsqlQueryBuilder ksqlQueryBuilder = KsqlQueryBuilder.of(
+        builder,
+        ksqlConfig,
+        serviceContext,
+        processingLogContext,
+        functionRegistry,
+        queryId
+    );
+
+    final SchemaKStream<?> resultStream = logicalNode.buildStream(ksqlQueryBuilder);
 
     final OutputNode outputNode = resultStream.outputNode();
 
@@ -169,7 +168,8 @@ public class PhysicalPlanBuilder {
           getServiceId(),
           persistanceQueryPrefix,
           queryId,
-          logicalPlanNode.getStatementText());
+          ksqlQueryBuilder.getSchemas()
+      );
     }
 
     throw new KsqlException("Sink data source type unsupported: " + outputNode.getClass());
@@ -222,14 +222,14 @@ public class PhysicalPlanBuilder {
   }
 
   private QueryMetadata buildPlanForStructuredOutputNode(
-      final String sqlExpression, final SchemaKStream<?> schemaKStream,
+      final String sqlExpression,
+      final SchemaKStream<?> schemaKStream,
       final KsqlStructuredDataOutputNode outputNode,
       final String serviceId,
       final String persistanceQueryPrefix,
       final QueryId queryId,
-      final String statement
+      final QuerySchemas schemas
   ) {
-
     if (metaStore.getTopic(outputNode.getKsqlTopic().getName()) == null) {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
@@ -279,7 +279,7 @@ public class PhysicalPlanBuilder {
     final Topology topology = builder.build();
 
     return new PersistentQueryMetadata(
-        statement,
+        sqlExpression,
         streams,
         outputNode.getSchema(),
         getSourceNames(outputNode),
@@ -291,6 +291,7 @@ public class PhysicalPlanBuilder {
         applicationId,
         sinkDataSource.getKsqlTopic(),
         topology,
+        schemas,
         streamsProperties,
         overriddenProperties,
         queryCloseCallback

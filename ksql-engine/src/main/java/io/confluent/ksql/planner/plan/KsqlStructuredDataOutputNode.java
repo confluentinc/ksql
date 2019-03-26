@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -33,7 +34,6 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -139,15 +140,19 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           sourceTopicProperties.partitions,
           sourceTopicProperties.replicas);
     }
+
+    final KsqlTopicSerDe ksqlTopicSerDe = noRowKey
+        .getKsqlTopic()
+        .getKsqlTopicSerDe();
+
+    final Serde<GenericRow> outputRowSerde = builder.buildGenericRowSerde(
+        ksqlTopicSerDe,
+        noRowKey.getSchema(),
+        contextStacker.getQueryContext());
+
     result.into(
         noRowKey.getKafkaTopicName(),
-        noRowKey.getKsqlTopic().getKsqlTopicSerDe()
-            .getGenericRowSerde(
-                noRowKey.getSchema(),
-                builder.getKsqlConfig(),
-                builder.getServiceContext().getSchemaRegistryClientFactory(),
-                QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
-                builder.getProcessingLogContext()),
+        outputRowSerde,
         rowkeyIndexes
     );
 

@@ -32,7 +32,6 @@ import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
@@ -162,30 +161,30 @@ public class StructuredDataSourceNode
         .create(timeStampColumnIndex);
 
     final KsqlTopicSerDe ksqlTopicSerDe = getStructuredDataSource()
-        .getKsqlTopic().getKsqlTopicSerDe();
-    final Serde<GenericRow> genericRowSerde =
-        ksqlTopicSerDe.getGenericRowSerde(
-            SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
-            builder.getKsqlConfig(),
-            builder.getServiceContext().getSchemaRegistryClientFactory(),
-            QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext()),
-            builder.getProcessingLogContext()
-        );
+        .getKsqlTopic()
+        .getKsqlTopicSerDe();
+
+    final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
+        ksqlTopicSerDe,
+        SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
+        contextStacker.push(SOURCE_OP_NAME).getQueryContext()
+    );
 
     if (getDataSourceType() == StructuredDataSource.DataSourceType.KTABLE) {
       final KsqlTable table = (KsqlTable) getStructuredDataSource();
       final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
+
+      final Serde<GenericRow> aggregateSerde = builder.buildGenericRowSerde(
+          ksqlTopicSerDe,
+          getSchema(),
+          reduceContextStacker.getQueryContext()
+      );
+
       final KTable<?, GenericRow> kTable = createKTable(
           builder.getStreamsBuilder(),
           getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
-          genericRowSerde,
-          table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
-              getSchema(),
-              builder.getKsqlConfig(),
-              builder.getServiceContext().getSchemaRegistryClientFactory(),
-              QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext()),
-              builder.getProcessingLogContext()
-          ),
+          streamSerde,
+          aggregateSerde,
           timestampExtractor,
           builder.getKsqlConfig(),
           reduceContextStacker.getQueryContext()
@@ -207,7 +206,7 @@ public class StructuredDataSourceNode
     final KStream kstream = createKStream(
         builder.getStreamsBuilder(),
         timestampExtractor,
-        genericRowSerde
+        streamSerde
     );
 
     return new SchemaKStream<>(
@@ -284,15 +283,15 @@ public class StructuredDataSourceNode
   private KStream<?, GenericRow> createKStream(
       final StreamsBuilder builder,
       final TimestampExtractor timestampExtractor,
-      final Serde<GenericRow> genericRowSerde) {
+      final Serde<GenericRow> streamSerde) {
     final KsqlStream ksqlStream = (KsqlStream) getStructuredDataSource();
 
     if (ksqlStream.hasWindowedKey()) {
-      return stream(builder, timestampExtractor, genericRowSerde,
+      return stream(builder, timestampExtractor, streamSerde,
           (Serde<Windowed<String>>)ksqlStream.getKeySerdeFactory().create(), windowedMapper);
     }
 
-    return stream(builder, timestampExtractor, genericRowSerde,
+    return stream(builder, timestampExtractor, streamSerde,
         (Serde<String>)ksqlStream.getKeySerdeFactory().create(), nonWindowedValueMapper);
   }
 
@@ -317,8 +316,8 @@ public class StructuredDataSourceNode
   private KTable<?, GenericRow> createKTable(
       final StreamsBuilder builder, 
       final Topology.AutoOffsetReset autoOffsetReset,
-      final Serde<GenericRow> genericRowSerde,
-      final Serde<GenericRow> genericRowSerdeAfterRead,
+      final Serde<GenericRow> streamSerde,
+      final Serde<GenericRow> aggregateSerde,
       final TimestampExtractor timestampExtractor,
       final KsqlConfig ksqlConfig,
       final QueryContext reduceContextBuilder) {
@@ -341,13 +340,13 @@ public class StructuredDataSourceNode
       return table(
           builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(), windowedMapper,
           (Serde<Windowed<String>>)ksqlTable.getKeySerdeFactory().create(),
-          genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, reduceContextBuilder);
+          streamSerde, aggregateSerde, ksqlConfig, reduceContextBuilder);
     }
 
     return table(
         builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(),
         nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerdeFactory().create(),
-        genericRowSerde, genericRowSerdeAfterRead, ksqlConfig, reduceContextBuilder);
+        streamSerde, aggregateSerde, ksqlConfig, reduceContextBuilder);
   }
 
   private <K> KTable<?, GenericRow> table(
@@ -357,20 +356,20 @@ public class StructuredDataSourceNode
       final KsqlTopic ksqlTopic,
       final ValueMapperWithKey<K, GenericRow, GenericRow> valueMapper,
       final Serde<K> keySerde,
-      final Serde<GenericRow> genericRowSerde,
-      final Serde<GenericRow> genericRowSerdeAfterRead,
+      final Serde<GenericRow> streamSerde,
+      final Serde<GenericRow> aggregateSerde,
       final KsqlConfig ksqlConfig,
       final QueryContext reduceContextBuilder
   ) {
     final Consumed<K, GenericRow> consumed = Consumed
-        .with(keySerde, genericRowSerde)
+        .with(keySerde, streamSerde)
         .withOffsetResetPolicy(autoOffsetReset)
         .withTimestampExtractor(timestampExtractor);
 
     final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         materializedFactorySupplier.apply(ksqlConfig).create(
             keySerde,
-            genericRowSerdeAfterRead,
+            aggregateSerde,
             StreamsUtil.buildOpName(reduceContextBuilder));
     return builder
         .stream(ksqlTopic.getKafkaTopicName(), consumed)
@@ -388,7 +387,7 @@ public class StructuredDataSourceNode
     return structuredDataSource.getDataSourceType();
   }
 
-  TimestampExtractionPolicy getTimestampExtractionPolicy() {
+  private TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return structuredDataSource.getTimestampExtractionPolicy();
   }
 }

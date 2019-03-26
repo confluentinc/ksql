@@ -173,8 +173,7 @@ public class QueryTranslationTest {
       if (topologyAndConfigs != null) {
         final TestCase versionedTestCase = testCase.copyWithName(
             testCase.getName() + "-" + topologies.getVersion());
-        versionedTestCase.setExpectedTopology(topologyAndConfigs.topology);
-        versionedTestCase.setPersistedProperties(topologyAndConfigs.configs);
+        versionedTestCase.setExpectedTopology(topologyAndConfigs);
         builder = builder.add(versionedTestCase);
       }
     }

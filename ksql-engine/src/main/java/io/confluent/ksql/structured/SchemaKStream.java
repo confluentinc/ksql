@@ -47,6 +47,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
@@ -548,15 +549,18 @@ public class SchemaKStream<K> {
   public SchemaKGroupedStream groupBy(
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker
+  ) {
     final boolean rekey = rekeyRequired(groupByExpressions);
     if (!rekey) {
-      final KGroupedStream kgroupedStream = kstream.groupByKey(
-          streamsFactories.getGroupedFactory().create(
+      final Grouped<K, GenericRow> grouped = streamsFactories.getGroupedFactory()
+          .create(
               StreamsUtil.buildOpName(contextStacker.getQueryContext()),
               keySerdeFactory.create(),
-              valSerde)
-      );
+              valSerde
+          );
+
+      final KGroupedStream kgroupedStream = kstream.groupByKey(grouped);
       return new SchemaKGroupedStream(
           schema,
           kgroupedStream,
@@ -569,15 +573,16 @@ public class SchemaKStream<K> {
 
     final GroupBy groupBy = new GroupBy(groupByExpressions);
 
+    final Grouped<String, GenericRow> grouped = streamsFactories.getGroupedFactory()
+        .create(
+            StreamsUtil.buildOpName(contextStacker.getQueryContext()),
+            Serdes.String(),
+            valSerde
+        );
+
     final KGroupedStream kgroupedStream = kstream
         .filter((key, value) -> value != null)
-        .groupBy(
-            groupBy.mapper,
-            streamsFactories.getGroupedFactory().create(
-                StreamsUtil.buildOpName(contextStacker.getQueryContext()),
-                Serdes.String(),
-                valSerde)
-        );
+        .groupBy(groupBy.mapper, grouped);
 
     // TODO: if the key is a prefix of the grouping columns then we can
     //       use the repartition reflection hack to tell streams not to

@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
+import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final QueryId id;
   private final KsqlTopic resultTopic;
   private final Set<String> sinkNames;
+  private final QuerySchemas schemas;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
@@ -50,6 +52,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final String queryApplicationId,
       final KsqlTopic resultTopic,
       final Topology topology,
+      final QuerySchemas schemas,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
       final Consumer<QueryMetadata> closeCallback
@@ -70,6 +73,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.id = Objects.requireNonNull(id, "id");
     this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = ImmutableSet.of(sinkDataSource.getName());
+    this.schemas = Objects.requireNonNull(schemas, "schemas");
 
     if (resultTopic.getKsqlTopicSerDe() == null) {
       throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
@@ -85,6 +89,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.id = other.id;
     this.resultTopic = other.resultTopic;
     this.sinkNames = other.sinkNames;
+    this.schemas = other.schemas;
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
@@ -105,5 +110,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public DataSource.DataSourceSerDe getResultTopicSerde() {
     return resultTopic.getKsqlTopicSerDe().getSerDe();
+  }
+
+  public String getSchemasDescription() {
+    return schemas.toString();
   }
 }

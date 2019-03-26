@@ -30,8 +30,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -48,7 +46,6 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,7 +65,6 @@ public class KsqlBareOutputNodeTest {
   private SchemaKStream stream;
   private StreamsBuilder builder;
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private ServiceContext serviceContext;
   private final QueryId queryId = new QueryId("output-test");
 
   @Mock
@@ -77,11 +73,9 @@ public class KsqlBareOutputNodeTest {
   @Before
   public void before() {
     builder = new StreamsBuilder();
-    serviceContext = TestServiceContext.create();
 
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
-    when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(ProcessingLogContext.create());
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
@@ -91,11 +85,6 @@ public class KsqlBareOutputNodeTest {
         .buildLogicalPlan(SIMPLE_SELECT_WITH_FILTER, metaStore);
 
     stream = planNode.buildStream(ksqlStreamBuilder);
-  }
-
-  @After
-  public void tearDown() {
-    serviceContext.close();
   }
 
   @Test

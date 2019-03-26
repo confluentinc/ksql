@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -39,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -72,7 +70,6 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -86,6 +83,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -140,6 +139,8 @@ public class KsqlStructuredDataOutputNodeTest {
   private TopicDescription topicDescription;
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
+  @Captor
+  private ArgumentCaptor<QueryContext> queryContextCaptor;
 
   @Before
   public void before() {
@@ -160,7 +161,6 @@ public class KsqlStructuredDataOutputNodeTest {
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
     when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
-    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(ProcessingLogContext.create());
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(QUERY_ID)
             .push(inv.getArgument(0).toString()));
@@ -461,13 +461,9 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldUseCorrectLoggerNameForSerializer() {
     // Given:
     final KsqlTopicSerDe topicSerde = mock(KsqlTopicSerDe.class);
-    final Serde serde = mock(Serde.class);
-    when(topicSerde.getGenericRowSerde(any(), any(), any(), any(), any()))
-        .thenReturn(serde);
     outputNode = new KsqlStructuredDataOutputNode(
         new PlanNodeId("0"),
         sourceNode,
@@ -484,18 +480,13 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(topicSerde)
-        .getGenericRowSerde(
-            any(),
-            any(),
-            any(),
-            startsWith(
-                QueryLoggerUtil.queryLoggerName(
-                    new QueryContext.Stacker(QUERY_ID)
-                        .push(outputNode.getId().toString())
-                        .getQueryContext())),
-            any()
-        );
+    verify(ksqlStreamBuilder).buildGenericRowSerde(
+        eq(topicSerde),
+        eq(schema),
+        queryContextCaptor.capture()
+    );
+
+    assertThat(QueryLoggerUtil.queryLoggerName(queryContextCaptor.getValue()), is("output-test.0"));
   }
 
   private <K> KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNodeForTable(

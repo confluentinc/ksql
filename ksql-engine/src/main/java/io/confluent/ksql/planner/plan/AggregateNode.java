@@ -43,7 +43,6 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
@@ -194,12 +193,11 @@ public class AggregateNode extends PlanNode {
 
     final KsqlTopicSerDe ksqlTopicSerDe = streamSourceNode.getStructuredDataSource()
         .getKsqlTopicSerde();
-    final Serde<GenericRow> genericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
+
+    final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
+        ksqlTopicSerDe,
         aggregateArgExpanded.getSchema(),
-        builder.getKsqlConfig(),
-        builder.getServiceContext().getSchemaRegistryClientFactory(),
-        QueryLoggerUtil.queryLoggerName(groupByContext.getQueryContext()),
-        builder.getProcessingLogContext()
+        groupByContext.getQueryContext()
     );
 
     final List<Expression> internalGroupByColumns = internalSchema.getInternalExpressionList(
@@ -224,12 +222,10 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
-    final Serde<GenericRow> aggValueGenericRowSerde = ksqlTopicSerDe.getGenericRowSerde(
+    final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
+        ksqlTopicSerDe,
         aggStageSchema,
-        builder.getKsqlConfig(),
-        builder.getServiceContext().getSchemaRegistryClientFactory(),
-        QueryLoggerUtil.queryLoggerName(aggregationContext.getQueryContext()),
-        builder.getProcessingLogContext()
+        aggregationContext.getQueryContext()
     );
 
     final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());

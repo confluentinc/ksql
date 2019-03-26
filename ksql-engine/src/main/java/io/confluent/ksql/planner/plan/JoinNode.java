@@ -22,13 +22,13 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Collections;
@@ -333,16 +333,16 @@ public class JoinNode extends PlanNode {
                                 + "Table).");
       }
       final StructuredDataSourceNode dataSourceNode = (StructuredDataSourceNode) node;
-      return dataSourceNode
+      final KsqlTopicSerDe ksqlTopicSerDe = dataSourceNode
           .getStructuredDataSource()
           .getKsqlTopic()
-          .getKsqlTopicSerDe()
-          .getGenericRowSerde(
-              dataSourceNode.getSchema(),
-              builder.getKsqlConfig(),
-              builder.getServiceContext().getSchemaRegistryClientFactory(),
-              QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
-              builder.getProcessingLogContext());
+          .getKsqlTopicSerDe();
+
+      return builder.buildGenericRowSerde(
+          ksqlTopicSerDe,
+          dataSourceNode.getSchema(),
+          contextStacker.getQueryContext()
+      );
     }
 
     Field getJoinKey(final String alias, final String keyFieldName) {

@@ -571,6 +571,80 @@ The WITH clause supports the following properties:
     :start-after: Avro_note_start
     :end-before: Avro_note_end
 
+.. create-function:
+
+CREATE FUNCTION
+---------------
+
+**Synopsis**
+
+.. code:: sql
+
+    CREATE (OR REPLACE?) FUNCTION function_name ( { field_name data_type } [, ...] )
+    RETURNS data_type
+    LANGUAGE language_name
+    WITH ( property_name = expression [, ...] );
+    AS BEGIN
+        inline_script
+    END;
+
+**Description**
+
+Create a new inline UDF with the specified arguments and properties. Note: currently, the only supported language is **JAVA**.
+
+The supported column data types are:
+
+-  ``BOOLEAN``
+-  ``INTEGER``
+-  ``BIGINT``
+-  ``DOUBLE``
+-  ``VARCHAR`` (or ``STRING``)
+-  ``ARRAY<ArrayType>`` (JSON and AVRO only. Index starts from 0)
+-  ``MAP<VARCHAR, ValueType>`` (JSON and AVRO only)
+-  ``STRUCT<FieldName FieldType, ...>`` (JSON and AVRO only)
+
+The WITH clause supports the following properties:
+
++-------------------------+--------------------------------------------------------------------------------------------+
+| Property                | Description                                                                                |
++=========================+============================================================================================+
+| AUTHOR                  | The author of the function                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| DESCRIPTION             | A description of the function                                                              |
++-------------------------+--------------------------------------------------------------------------------------------+
+| VERSION                 | The version (e.g. 0.1.0) of the function                                                   |
++-------------------------+--------------------------------------------------------------------------------------------+
+
+
+Example of createing a simple function. **Note:** the arguments are passed as an array named **args**
+to the inline script.
+
+.. code:: sql
+
+    CREATE OR REPLACE FUNCTION GREET(name STRING)
+    RETURNS STRING
+    LANGUAGE JAVA
+    AS BEGIN
+        return "Hello " + args[0]; \
+    END;
+
+
+Here is a slightly more complicated inline UDF that imports some classes from the standard library and
+returns a Map object.
+
+.. code:: sql
+
+    CREATE OR REPLACE FUNCTION zip(a VARCHAR, b VARCHAR)
+    RETURNS MAP<VARCHAR, VARCHAR>
+    LANGUAGE JAVA
+    AS BEGIN
+        import java.util.HashMap; \
+        import java.util.Map; \
+        Map<String,String> m =  new HashMap<String,String>();\
+        m.put(args[0], args[1]);\
+        return m;\
+    END ;
+
 .. _insert-into:
 
 INSERT INTO

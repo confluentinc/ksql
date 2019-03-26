@@ -108,7 +108,7 @@ public class UdfLoader {
         }
         Files.find(pluginDir.toPath(), 1, (path, attributes) -> path.toString().endsWith(".jar"))
             .map(path -> UdfClassLoader.newClassLoader(path, parentClassLoader, blacklist))
-            .forEach(classLoader -> loadUdfs(classLoader, Optional.of(classLoader.getJarPath())));
+            .forEach(classLoader -> loadUdfs(classLoader, classLoader.getJarPath()));
       } catch (final IOException e) {
         LOGGER.error("Failed to load UDFs from location {}", pluginDir, e);
       }
@@ -234,13 +234,12 @@ public class UdfLoader {
     instantiateUdfClass(method, classLevelAnnotation);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
     final String functionName = classLevelAnnotation.name();
-    final String sensorName = "ksql-udf-" + functionName;
 
     @SuppressWarnings("unchecked")
     final Class<? extends Kudf> udfClass = metrics
         .map(m -> (Class)UdfMetricProducer.class)
         .orElse(PluggableUdf.class);
-    addSensor(sensorName, functionName);
+    final String sensorName = addSensor(metrics, functionName);
 
     LOGGER.info("Adding function " + functionName + " for method " + method);
     functionRegistry.ensureFunctionFactory(new UdfFactory(udfClass,
@@ -298,25 +297,27 @@ public class UdfLoader {
     }
   }
 
-  private void addSensor(final String sensorName, final String udfName) {
-    metrics.ifPresent(metrics -> {
-      if (metrics.getSensor(sensorName) == null) {
-        final Sensor sensor = metrics.sensor(sensorName);
-        sensor.add(metrics.metricName(sensorName + "-avg", UDF_METRIC_GROUP,
+  public static String addSensor(final Optional<Metrics> metrics, final String udfName) {
+    final String sensorName = "ksql-udf-" + udfName;
+    metrics.ifPresent(m -> {
+      if (m.getSensor(sensorName) == null) {
+        final Sensor sensor = m.sensor(sensorName);
+        sensor.add(m.metricName(sensorName + "-avg", UDF_METRIC_GROUP,
             "Average time for an invocation of " + udfName + " udf"),
             new Avg());
-        sensor.add(metrics.metricName(sensorName + "-max", UDF_METRIC_GROUP,
+        sensor.add(m.metricName(sensorName + "-max", UDF_METRIC_GROUP,
             "Max time for an invocation of " + udfName + " udf"),
             new Max());
-        sensor.add(metrics.metricName(sensorName + "-count", UDF_METRIC_GROUP,
+        sensor.add(m.metricName(sensorName + "-count", UDF_METRIC_GROUP,
             "Total number of invocations of " + udfName + " udf"),
             new Count());
-        sensor.add(metrics.metricName(sensorName + "-rate", UDF_METRIC_GROUP,
+        sensor.add(m.metricName(sensorName + "-rate", UDF_METRIC_GROUP,
             "The average number of occurrence of " + udfName + " operation per second "
                 + udfName + " udf"),
             new Rate(TimeUnit.SECONDS, new Count()));
       }
     });
+    return sensorName;
   }
 
   public static UdfLoader newInstance(final KsqlConfig config,
@@ -324,15 +325,12 @@ public class UdfLoader {
                                       final String ksqlInstallDir
   ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
-    final Boolean collectMetrics = config.getBoolean(KsqlConfig.KSQL_COLLECT_UDF_METRICS);
     final String extDirName = config.getString(KsqlConfig.KSQL_EXT_DIR);
     final File pluginDir = KsqlConfig.DEFAULT_EXT_DIR.equals(extDirName)
         ? new File(ksqlInstallDir, extDirName)
         : new File(extDirName);
 
-    final Optional<Metrics> metrics = collectMetrics
-        ? Optional.of(MetricCollectors.getMetrics())
-        : Optional.empty();
+    final Optional<Metrics> metrics = getMetrics(config);
 
     if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
       System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
@@ -345,5 +343,12 @@ public class UdfLoader {
         metrics,
         loadCustomerUdfs
     );
+  }
+
+  public static Optional<Metrics> getMetrics(final KsqlConfig config) {
+    final Boolean collectMetrics = config.getBoolean(KsqlConfig.KSQL_COLLECT_UDF_METRICS);
+    return collectMetrics
+        ? Optional.of(MetricCollectors.getMetrics())
+        : Optional.empty();
   }
 }

@@ -50,7 +50,7 @@ public class Blacklist implements Predicate<String> {
 
   private String blackList = BLACKLIST_NONE;
 
-  Blacklist(final File inputFile) {
+  public Blacklist(final File inputFile) {
     if (!inputFile.exists()) {
       logger.info("Blacklist file: {} not found. No classes will be blacklisted", inputFile);
       return;

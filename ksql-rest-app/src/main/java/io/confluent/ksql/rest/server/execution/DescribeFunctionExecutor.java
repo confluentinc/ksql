@@ -49,7 +49,7 @@ public final class DescribeFunctionExecutor {
     final DescribeFunction describeFunction = statement.getStatement();
     final String functionName = describeFunction.getFunctionName();
 
-    if (executionContext.getMetaStore().isAggregate(functionName)) {
+    if (executionContext.getFunctionRegistry().isAggregate(functionName)) {
       return Optional.of(
           describeAggregateFunction(executionContext, functionName, statement.getStatementText()));
     }
@@ -64,7 +64,7 @@ public final class DescribeFunctionExecutor {
       final String statementText
   ) {
     final AggregateFunctionFactory aggregateFactory
-        = ksqlEngine.getMetaStore().getAggregateFactory(functionName);
+        = ksqlEngine.getFunctionRegistry().getAggregateFactory(functionName);
 
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
@@ -88,7 +88,9 @@ public final class DescribeFunctionExecutor {
       final String functionName,
       final String statementText
   ) {
-    final UdfFactory udfFactory = executionContext.getMetaStore().getUdfFactory(functionName);
+    final UdfFactory udfFactory = executionContext
+        .getFunctionRegistry()
+        .getUdfFactory(functionName);
 
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 

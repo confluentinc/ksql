@@ -16,10 +16,13 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.ImmutableMap;
+
+import io.confluent.ksql.parser.tree.CreateFunction;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DropFunction;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.DropTopic;
@@ -42,6 +45,8 @@ public class CommandIdAssigner {
       ImmutableMap.<Class<? extends Statement>, CommandIdSupplier>builder()
           .put(RegisterTopic.class,
             command -> getTopicCommandId((RegisterTopic) command))
+          .put(CreateFunction.class,
+            command -> getCreateFunctionCommandId((CreateFunction) command))
           .put(CreateStream.class,
             command -> getTopicStreamCommandId((CreateStream) command))
           .put(CreateTable.class,
@@ -54,6 +59,8 @@ public class CommandIdAssigner {
             command -> getInsertIntoCommandId((InsertInto) command))
           .put(TerminateQuery.class,
             command -> getTerminateCommandId((TerminateQuery) command))
+          .put(DropFunction.class,
+            command -> getDropFunctionCommandId((DropFunction) command))
           .put(DropTopic.class,
             command -> getDropTopicCommandId((DropTopic) command))
           .put(DropStream.class,
@@ -83,6 +90,14 @@ public class CommandIdAssigner {
     return new CommandId(CommandId.Type.TOPIC, topicName, CommandId.Action.CREATE);
   }
 
+  private static CommandId getCreateFunctionCommandId(final CreateFunction createFunction) {
+    return new CommandId(
+        CommandId.Type.FUNCTION,
+        createFunction.getName(),
+        CommandId.Action.CREATE
+    );
+  }
+
   private static CommandId getTopicStreamCommandId(final CreateStream createStream) {
     return getStreamCommandId(createStream.getName().toString());
   }
@@ -110,6 +125,14 @@ public class CommandIdAssigner {
         CommandId.Type.TERMINATE,
         terminateQuery.getQueryId().toString(),
         CommandId.Action.EXECUTE
+    );
+  }
+
+  private static CommandId getDropFunctionCommandId(final DropFunction dropFunctionQuery) {
+    return new CommandId(
+        CommandId.Type.FUNCTION,
+        dropFunctionQuery.getName(),
+        CommandId.Action.DROP
     );
   }
 

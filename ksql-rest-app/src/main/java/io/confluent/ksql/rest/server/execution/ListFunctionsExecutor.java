@@ -41,7 +41,7 @@ public final class ListFunctionsExecutor {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides
   ) {
-    final FunctionRegistry functionRegistry = executionContext.getMetaStore();
+    final FunctionRegistry functionRegistry = executionContext.getFunctionRegistry();
 
     final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
         .filter(factory -> !factory.isInternal())

@@ -19,6 +19,8 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +36,7 @@ public class UdfFactory {
   private final Map<List<FunctionParameter>, KsqlFunction> functions = new LinkedHashMap<>();
 
 
-  UdfFactory(final Class<? extends Kudf> udfClass,
+  public UdfFactory(final Class<? extends Kudf> udfClass,
              final UdfMetadata metadata) {
     this.udfClass = Objects.requireNonNull(udfClass, "udfClass can't be null");
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
@@ -52,6 +54,24 @@ public class UdfFactory {
 
     checkCompatible(ksqlFunction, paramTypes);
     functions.put(paramTypes, ksqlFunction);
+  }
+
+  void addOrReplaceFunction(final KsqlFunction ksqlFunction) {
+    final List<FunctionParameter> paramTypes
+        = mapToFunctionParameter(ksqlFunction.getArguments());
+    functions.put(paramTypes, ksqlFunction);
+  }
+
+  void dropFunction(final String ksqlFunctionName) {
+    final Iterator<Map.Entry<List<FunctionParameter>, KsqlFunction>> it
+        = functions.entrySet().iterator();
+    while (it.hasNext()) {
+      final KsqlFunction ksqlFunction = it.next().getValue();
+      if (ksqlFunction.getFunctionName().equals(ksqlFunctionName)) {
+        it.remove();
+      }
+    }
+    return;
   }
 
   private void checkCompatible(final KsqlFunction ksqlFunction,
@@ -96,13 +116,20 @@ public class UdfFactory {
     return metadata.isInternal();
   }
 
+  public boolean isInline() {
+    return metadata.isInline();
+  }
+
   public String getPath() {
     return metadata.getPath();
   }
 
   public boolean matches(final UdfFactory that) {
-    return this == that
-        || (this.udfClass.equals(that.udfClass) && this.metadata.equals(that.metadata));
+    return this == that || this.udfClass.equals(that.udfClass);
+  }
+
+  public boolean metadataMatches(final UdfFactory that) {
+    return this.metadata.equals(that.metadata);
   }
 
   @Override

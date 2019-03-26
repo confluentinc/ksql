@@ -268,7 +268,15 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
+  protected R visitCreateFunction(final CreateFunction node, final C context) {
+    return visitStatement(node, context);
+  }
+
   protected R visitInsertInto(final InsertInto node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitDropFunction(final DropFunction node, final C context) {
     return visitStatement(node, context);
   }
 

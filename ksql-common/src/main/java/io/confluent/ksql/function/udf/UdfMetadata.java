@@ -24,6 +24,7 @@ public class UdfMetadata {
   private final String version;
   private final String path;
   private final boolean internal;
+  private final boolean inline;
 
   /**
    * @param internal indicates the Udf is an impl detail, e.g. the UDF for handling structs.
@@ -34,12 +35,34 @@ public class UdfMetadata {
                      final String version,
                      final String path,
                      final boolean internal) {
+    this(
+      name,
+      description,
+      author,
+      version,
+      path,
+      internal,
+      false
+    );
+  }
+
+  /**
+   * @param internal indicates the Udf is an impl detail, e.g. the UDF for handling structs.
+   */
+  public UdfMetadata(final String name,
+                     final String description,
+                     final String author,
+                     final String version,
+                     final String path,
+                     final boolean internal,
+                     final boolean inline) {
     this.name = Objects.requireNonNull(name, "name cant be null");
     this.description = Objects.requireNonNull(description, "description can't be null");
     this.author = Objects.requireNonNull(author, "author can't be null");
     this.version = Objects.requireNonNull(version, "version can't be null");
     this.path = Objects.requireNonNull(path, "path can't be null");
     this.internal = internal;
+    this.inline = inline;
   }
 
   public String getName() {
@@ -66,6 +89,10 @@ public class UdfMetadata {
     return internal;
   }
 
+  public boolean isInline() {
+    return inline;
+  }
+
   @Override
   public String toString() {
     return "UdfMetadata{"
@@ -75,6 +102,7 @@ public class UdfMetadata {
         + ", version='" + version + '\''
         + ", path='" + path + "'"
         + ", internal=" + internal
+        + ", inline=" + inline
         + '}';
   }
 

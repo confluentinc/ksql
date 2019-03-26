@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public interface MetaStore extends FunctionRegistry {
+public interface MetaStore {
+
+  FunctionRegistry getFunctionRegistry();
 
   KsqlTopic getTopic(String topicName);
 

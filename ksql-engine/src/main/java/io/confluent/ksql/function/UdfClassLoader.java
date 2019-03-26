@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,9 +31,9 @@ import org.slf4j.LoggerFactory;
 public final class UdfClassLoader extends URLClassLoader {
   private static final Logger logger = LoggerFactory.getLogger(URLClassLoader.class);
   private final Predicate<String> blacklist;
-  private final Path path;
+  private final Optional<Path> path;
 
-  private UdfClassLoader(final Path path,
+  private UdfClassLoader(final Optional<Path> path,
                          final URL[] urls,
                          final ClassLoader parent,
                          final Predicate<String> blacklist) {
@@ -74,25 +75,33 @@ public final class UdfClassLoader extends URLClassLoader {
         && !name.startsWith("org.apache.kafka");
   }
 
-  static UdfClassLoader newClassLoader(final Path path,
+  public static UdfClassLoader newClassLoader(final Path path,
+                                       final ClassLoader parentClassLoader,
+                                       final Predicate<String> blacklist) {
+    return newClassLoader(Optional.of(path), parentClassLoader, blacklist);
+  }
+
+  public static UdfClassLoader newClassLoader(final Optional<Path> path,
                                        final ClassLoader parentClassLoader,
                                        final Predicate<String> blacklist) {
     logger.debug("creating UdfClassLoader for {}", path);
     return AccessController.doPrivileged(
         (PrivilegedAction<UdfClassLoader>) () ->
             new UdfClassLoader(path, toUrl(path), parentClassLoader, blacklist));
-
   }
 
-  private static URL[] toUrl(final Path path) {
+  private static URL[] toUrl(final Optional<Path> path) {
+    if (!path.isPresent()) {
+      return new URL[]{};
+    }
     try {
-      return new URL[]{path.toUri().toURL()};
+      return new URL[]{path.get().toUri().toURL()};
     } catch (final MalformedURLException e) {
       throw new KsqlException("Unable to create classloader for path:" + path, e);
     }
   }
 
-  Path getJarPath() {
+  Optional<Path> getJarPath() {
     return path;
   }
 }

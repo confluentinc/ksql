@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -35,11 +35,11 @@ public final class MetaStoreFixture {
   private MetaStoreFixture() {
   }
 
-  public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry) {
+  public static MutableMetaStore getNewMetaStore(final MutableFunctionRegistry functionRegistry) {
     return getNewMetaStore(functionRegistry, KsqlJsonTopicSerDe::new);
   }
 
-  public static MutableMetaStore getNewMetaStore(final FunctionRegistry functionRegistry,
+  public static MutableMetaStore getNewMetaStore(final MutableFunctionRegistry functionRegistry,
                                           final Supplier<KsqlTopicSerDe> serde) {
 
     final MetadataTimestampExtractionPolicy timestampExtractionPolicy

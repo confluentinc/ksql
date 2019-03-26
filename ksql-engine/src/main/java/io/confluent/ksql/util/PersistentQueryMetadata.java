@@ -71,7 +71,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
     this.sinkNames = ImmutableSet.of(sinkDataSource.getName());
 
-    System.out.println("\n\n" + statementString + "\n\n");
     if (resultTopic.getKsqlTopicSerDe() == null) {
       throw new KsqlException(String.format("Invalid result topic: %s. Serde cannot be null.",
           resultTopic.getName()));

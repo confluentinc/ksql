@@ -40,10 +40,14 @@
         "CREATE TABLE S2 as SELECT id, max(value) as MAX FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}}
+        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  1}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}}
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  1}}
       ]
     },
     {
@@ -78,10 +82,14 @@
         "CREATE TABLE S2 as SELECT id, max(value) as MAX FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}}
+        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  1}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}}
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  1}}
       ]
     },
     {
@@ -119,10 +127,14 @@
         "CREATE TABLE S2 as SELECT id, max(value) as MAX FROM test group by id;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}}
+        {"topic": "test_topic", "key": 1, "value": {"id":  1, "value":  null}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  null}},
+        {"topic": "test_topic", "key": 0, "value": {"id":  0, "value":  1.0}}
       ],
       "outputs": [
-        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}}
+        {"topic": "S2", "key": 1, "value": {"ID":  1, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  null}},
+        {"topic": "S2", "key": 0, "value": {"ID":  0, "MAX":  1.0}}
       ]
     }
   ]

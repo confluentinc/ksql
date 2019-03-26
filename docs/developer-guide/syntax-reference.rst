@@ -629,7 +629,7 @@ to the inline script.
     END;
 
 
-Here is a slightly more complicated inline UDF that imports some classes from the standard library and
+Here's a more complex inline UDF that imports some classes from the standard library and
 returns a Map object.
 
 .. code:: sql

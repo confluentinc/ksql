@@ -630,7 +630,7 @@ to the inline script.
 
 
 Here's a more complex inline UDF that imports some classes from the standard library and
-returns a Map object.
+returns a ``Map`` object.
 
 .. code:: sql
 

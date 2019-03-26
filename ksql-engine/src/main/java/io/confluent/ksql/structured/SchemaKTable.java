@@ -29,6 +29,7 @@ import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -48,7 +49,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable(
       final Schema schema,
       final KTable<K, GenericRow> ktable,
-      final Field keyField,
+      final Optional<Field> keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final SerdeFactory<K> keySerdeFactory,
       final Type type,
@@ -73,7 +74,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   SchemaKTable(
       final Schema schema,
       final KTable<K, GenericRow> ktable,
-      final Field keyField,
+      final Optional<Field> keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final SerdeFactory<K> keySerdeFactory,
       final Type type,
@@ -209,7 +210,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKGroupedTable(
         schema,
         kgroupedTable,
-        newKeyField,
+        Optional.of(newKeyField),
         Collections.singletonList(this),
         ksqlConfig,
         functionRegistry);
@@ -230,7 +231,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        joinKey,
+        Optional.of(joinKey),
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -256,7 +257,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        joinKey,
+        Optional.of(joinKey),
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -282,7 +283,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        joinKey,
+        Optional.of(joinKey),
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,

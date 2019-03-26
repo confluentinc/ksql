@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.metastore.model.StructuredDataSourceMatchers.FieldMatchers.hasName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -43,6 +44,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConstants;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLoggerUtil;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.StructuredDataSourceMatchers.OptionalMatchers;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
@@ -351,21 +353,21 @@ public class AggregateNodeTest {
   @Test
   public void shouldGroupByFunction() {
     // Given:
-    final SchemaKStream stream = buildQuery("SELECT UCASE(col1), sum(col3), count(col3) FROM test1 "
+    final SchemaKStream<?> stream = buildQuery("SELECT UCASE(col1), sum(col3), count(col3) FROM test1 "
         + "GROUP BY UCASE(col1);");
 
     // Then:
-    assertThat(stream.getKeyField().name(), is("UCASE(KSQL_INTERNAL_COL_0)"));
+    assertThat(stream.getKeyField(), OptionalMatchers.of(hasName("UCASE(KSQL_INTERNAL_COL_0)")));
   }
 
   @Test
   public void shouldGroupByArithmetic() {
     // Given:
-    final SchemaKStream stream = buildQuery("SELECT col0 + 10, sum(col3), count(col3) FROM test1 "
+    final SchemaKStream<?> stream = buildQuery("SELECT col0 + 10, sum(col3), count(col3) FROM test1 "
         + "GROUP BY col0 + 10;");
 
     // Then:
-    assertThat(stream.getKeyField().name(), is("(KSQL_INTERNAL_COL_0 + 10)"));
+    assertThat(stream.getKeyField(), OptionalMatchers.of(hasName("(KSQL_INTERNAL_COL_0 + 10)")));
   }
 
   private SchemaKStream buildQuery(final String queryString) {

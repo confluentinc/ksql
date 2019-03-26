@@ -239,7 +239,7 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               outputNode.getSchema(),
-              Optional.ofNullable(schemaKTable.getKeyField()),
+              schemaKTable.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               schemaKTable.getKeySerdeFactory()
@@ -250,7 +250,7 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               outputNode.getSchema(),
-              Optional.ofNullable(schemaKStream.getKeyField()),
+              schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               schemaKStream.getKeySerdeFactory()

@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -62,7 +63,7 @@ public class SchemaKStream<K> {
 
   final Schema schema;
   final KStream<K, GenericRow> kstream;
-  final Field keyField;
+  final Optional<Field> keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final Type type;
   final KsqlConfig ksqlConfig;
@@ -75,7 +76,7 @@ public class SchemaKStream<K> {
   public SchemaKStream(
       final Schema schema,
       final KStream<K, GenericRow> kstream,
-      final Field keyField,
+      final Optional<Field> keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final SerdeFactory<K> keySerdeFactory,
       final Type type,
@@ -99,7 +100,7 @@ public class SchemaKStream<K> {
   SchemaKStream(
       final Schema schema,
       final KStream<K, GenericRow> kstream,
-      final Field keyField,
+      final Optional<Field> keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final SerdeFactory<K> keySerdeFactory,
       final Type type,
@@ -110,7 +111,7 @@ public class SchemaKStream<K> {
   ) {
     this.schema = schema;
     this.kstream = kstream;
-    this.keyField = keyField;
+    this.keyField = Objects.requireNonNull(keyField, "keyField");
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.type = type;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -207,7 +208,7 @@ public class SchemaKStream<K> {
 
   class Selection {
     private final Schema schema;
-    private final Field key;
+    private final Optional<Field> key;
     private final SelectValueMapper selectValueMapper;
 
     Selection(
@@ -225,13 +226,15 @@ public class SchemaKStream<K> {
           processingLogger);
     }
 
-    private Field findKeyField(final List<SelectExpression> selectExpressions) {
-      if (getKeyField() == null) {
-        return null;
+    private Optional<Field> findKeyField(final List<SelectExpression> selectExpressions) {
+      if (!getKeyField().isPresent()) {
+        return Optional.empty();
       }
-      if (getKeyField().index() == -1) {
+
+      final Field keyField = getKeyField().get();
+      if (keyField.index() == -1) {
         // The key "field" isn't an actual field in the schema
-        return getKeyField();
+        return Optional.of(keyField);
       }
       for (int i = 0; i < selectExpressions.size(); i++) {
         final String toName = selectExpressions.get(i).getName();
@@ -247,20 +250,20 @@ public class SchemaKStream<K> {
         if (toExpression instanceof DereferenceExpression) {
           final DereferenceExpression dereferenceExpression
               = (DereferenceExpression) toExpression;
-          if (SchemaUtil.matchFieldName(getKeyField(), dereferenceExpression.toString())) {
-            return new Field(toName, i, getKeyField().schema());
+          if (SchemaUtil.matchFieldName(keyField, dereferenceExpression.toString())) {
+            return Optional.of(new Field(toName, i, keyField.schema()));
           }
         } else if (toExpression instanceof QualifiedNameReference) {
           final QualifiedNameReference qualifiedNameReference
               = (QualifiedNameReference) toExpression;
           if (SchemaUtil.matchFieldName(
-              getKeyField(),
+              keyField,
               qualifiedNameReference.getName().getSuffix())) {
-            return new Field(toName, i, getKeyField().schema());
+            return Optional.of(new Field(toName, i, keyField.schema()));
           }
         }
       }
-      return null;
+      return Optional.empty();
     }
 
     private Schema buildSchema(
@@ -287,7 +290,7 @@ public class SchemaKStream<K> {
       return schema;
     }
 
-    public Field getKey() {
+    public Optional<Field> getKey() {
       return key;
     }
 
@@ -319,7 +322,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream(
         joinSchema,
         joinedKStream,
-        joinKey,
+        Optional.of(joinKey),
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -355,7 +358,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        joinKey,
+        Optional.of(joinKey),
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -387,7 +390,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
-        joinKey,
+        Optional.of(joinKey),
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -422,7 +425,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        joinKey,
+        Optional.of(joinKey),
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -455,7 +458,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
-        joinKey,
+        Optional.of(joinKey),
         ImmutableList.of(this, otherSchemaKStream),
         keySerdeFactory,
         Type.JOIN,
@@ -470,8 +473,14 @@ public class SchemaKStream<K> {
   public SchemaKStream<?> selectKey(
       final Field newKeyField,
       final boolean updateRowKey,
-      final QueryContext.Stacker contextStacker) {
-    if (keyField != null && keyField.name().equals(newKeyField.name())) {
+      final QueryContext.Stacker contextStacker
+  ) {
+    final boolean namesMatch = keyField
+        .map(Field::name)
+        .map(name -> name.equals(newKeyField.name()))
+        .orElse(false);
+
+    if (namesMatch) {
       return this;
     }
 
@@ -489,7 +498,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         schema,
         keyedKStream,
-        newKeyField,
+        Optional.of(newKeyField),
         Collections.singletonList(this),
         Serdes::String,
         Type.REKEY,
@@ -522,8 +531,8 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final Field keyField = getKeyField();
-    if (keyField == null) {
+    final Optional<Field> keyField = getKeyField();
+    if (!keyField.isPresent()) {
       return true;
     }
 
@@ -532,7 +541,7 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final String keyFieldName = SchemaUtil.getFieldNameWithNoAlias(keyField);
+    final String keyFieldName = SchemaUtil.getFieldNameWithNoAlias(keyField.get());
     return !groupByField.equals(keyFieldName);
   }
 
@@ -578,14 +587,14 @@ public class SchemaKStream<K> {
     return new SchemaKGroupedStream(
         schema,
         kgroupedStream,
-        newKeyField,
+        Optional.of(newKeyField),
         Collections.singletonList(this),
         ksqlConfig,
         functionRegistry
     );
   }
 
-  public Field getKeyField() {
+  public Optional<Field> getKeyField() {
     return keyField;
   }
 

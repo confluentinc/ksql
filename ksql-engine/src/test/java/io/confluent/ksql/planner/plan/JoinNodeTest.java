@@ -161,7 +161,7 @@ public class JoinNodeTest {
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
     when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(ksqlStreamBuilder.withPropertyOverwrite(any())).thenReturn(ksqlStreamBuilder);
+    when(ksqlStreamBuilder.withKsqlConfig(any())).thenReturn(ksqlStreamBuilder);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));

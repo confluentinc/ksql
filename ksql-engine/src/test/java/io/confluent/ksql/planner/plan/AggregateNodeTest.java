@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogConstants;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -89,11 +90,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
+  private static final FunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
+  private static final KsqlConfig KSQL_CONFIG =  new KsqlConfig(new HashMap<>());
+
   @Mock
   private ServiceContext serviceContext;
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
-  private final KsqlConfig ksqlConfig =  new KsqlConfig(new HashMap<>());
+
   private StreamsBuilder builder = new StreamsBuilder();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
@@ -179,7 +183,7 @@ public class AggregateNodeTest {
   public void shouldHaveSourceNodeForSecondSubtopolgyWithLegacyNameForRepartition() {
     // When:
     buildRequireRekey(
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(
+        KSQL_CONFIG.overrideBreakingConfigsWithOriginalValues(
             ImmutableMap.of(
                 KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
                 String.valueOf(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF))));
@@ -297,7 +301,7 @@ public class AggregateNodeTest {
   }
 
   private SchemaKStream build() {
-    return build(ksqlConfig);
+    return build(KSQL_CONFIG);
   }
 
   private SchemaKStream build(final KsqlConfig ksqlConfig) {
@@ -309,7 +313,7 @@ public class AggregateNodeTest {
 
   @SuppressWarnings("UnusedReturnValue")
   private SchemaKStream buildRequireRekey() {
-    return buildRequireRekey(ksqlConfig);
+    return buildRequireRekey(KSQL_CONFIG);
   }
 
   @SuppressWarnings("UnusedReturnValue")
@@ -324,7 +328,7 @@ public class AggregateNodeTest {
     // When:
     final AggregateNode node = buildAggregateNode(
         "SELECT col0, sum(col3), count(col3) FROM test1 GROUP BY col0;");
-    buildQuery(node, ksqlConfig);
+    buildQuery(node, KSQL_CONFIG);
 
     // Then:
     assertThat(
@@ -374,7 +378,7 @@ public class AggregateNodeTest {
   }
 
   private SchemaKStream buildQuery(final String queryString) {
-    return buildQuery(queryString, ksqlConfig);
+    return buildQuery(queryString, KSQL_CONFIG);
   }
 
   private SchemaKStream buildQuery(final String queryString, final KsqlConfig ksqlConfig) {
@@ -386,7 +390,7 @@ public class AggregateNodeTest {
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
     when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));

@@ -112,11 +112,10 @@ public final class KsqlQueryBuilder {
   // Todo(ac): Can we move `getGenericRowSerde` calls into `KsqlQueryBuilder` so that it can track?
   public Serde<GenericRow> getGenericRowSerde(
       final KsqlTopicSerDe topicSerDe,
-      final Schema schemaMaybeWithSource,
-      final boolean isInternal,
+      final Schema schema,
       final String loggerNamePrefix
   ) {
-
+    return null;
   }
 
 }

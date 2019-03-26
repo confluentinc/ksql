@@ -270,7 +270,8 @@ public class StructuredDataSourceNodeTest {
 
   @Test
   public void shouldExtracKeyField() {
-    assertThat(realStream.getKeyField(), equalTo(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA)));
+    assertThat(realStream.getKeyField(),
+        equalTo(Optional.of(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA))));
   }
 
   @Test

@@ -103,18 +103,13 @@ public class PhysicalPlanBuilder {
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
   }
 
-  private QueryId computeQueryId(final PlanNode planNode) {
-    if (planNode instanceof OutputNode) {
-      return ((OutputNode) planNode).getQueryId(queryIdGenerator);
-    }
-    throw new RuntimeException("Unexpected output node for query");
-  }
-
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
-    final QueryId queryId = computeQueryId(logicalPlanNode.getNode());
+    final OutputNode logicalNode = logicalPlanNode.getNode()
+        .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
-    final SchemaKStream<?> resultStream = logicalPlanNode
-        .getNode()
+    final QueryId queryId = logicalNode.getQueryId(queryIdGenerator);
+
+    final SchemaKStream<?> resultStream = logicalNode
         .buildStream(
             KsqlQueryBuilder.of(
                 builder,
@@ -246,7 +241,7 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               outputNode.getSchema(),
-              Optional.ofNullable(schemaKTable.getKeyField()),
+              schemaKTable.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               schemaKTable.getKeySerdeFactory()
@@ -257,7 +252,7 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               outputNode.getSchema(),
-              Optional.ofNullable(schemaKStream.getKeyField()),
+              schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               schemaKStream.getKeySerdeFactory()

@@ -27,6 +27,7 @@ import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -77,7 +78,7 @@ public class ProjectNode
   }
 
   @Override
-  public Field getKeyField() {
+  public Optional<Field> getKeyField() {
     return source.getKeyField();
   }
 

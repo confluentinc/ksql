@@ -23,6 +23,7 @@ import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
@@ -50,7 +51,7 @@ public abstract class PlanNode {
 
   public abstract Schema getSchema();
 
-  public abstract Field getKeyField();
+  public abstract Optional<Field> getKeyField();
 
   public abstract List<PlanNode> getSources();
 

@@ -47,8 +47,8 @@ public class KsqlBareOutputNode extends OutputNode {
   }
 
   @Override
-  public Field getKeyField() {
-    return null;
+  public Optional<Field> getKeyField() {
+    return Optional.empty();
   }
 
   @Override

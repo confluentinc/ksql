@@ -55,6 +55,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
@@ -112,7 +113,7 @@ public class SchemaKGroupedTableTest {
     final SchemaKTable<?> initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField().get(),
+        ksqlTable.getKeyField(),
         new ArrayList<>(),
         Serdes::String,
         SchemaKStream.Type.SOURCE,
@@ -207,7 +208,7 @@ public class SchemaKGroupedTableTest {
     return new SchemaKGroupedTable(
         schema,
         kGroupedTable,
-        schema.fields().get(0),
+        Optional.of(schema.fields().get(0)),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry,

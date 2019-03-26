@@ -39,6 +39,7 @@ import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -49,7 +50,7 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlStructuredDataOutputNode extends OutputNode {
   private final String kafkaTopicName;
   private final KsqlTopic ksqlTopic;
-  private final Field keyField;
+  private final Optional<Field> keyField;
   private final boolean doCreateInto;
   private final Map<String, Object> outputProperties;
 
@@ -59,7 +60,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("source") final PlanNode source,
       @JsonProperty("schema") final Schema schema,
       @JsonProperty("timestamp") final TimestampExtractionPolicy timestampExtractionPolicy,
-      @JsonProperty("key") final Field keyField,
+      @JsonProperty("key") final Optional<Field> keyField,
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
       @JsonProperty("topicName") final String kafkaTopicName,
       @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
@@ -67,7 +68,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("doCreateInto") final boolean doCreateInto) {
     super(id, source, schema, limit, timestampExtractionPolicy);
     this.kafkaTopicName = kafkaTopicName;
-    this.keyField = keyField;
+    this.keyField = Objects.requireNonNull(keyField, "keyField");
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;
     this.doCreateInto = doCreateInto;
@@ -94,7 +95,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
-  public Field getKeyField() {
+  public Optional<Field> getKeyField() {
     return keyField;
   }
 
@@ -200,7 +201,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
               keyFieldName
           )));
 
-      outputNodeBuilder.withKeyField(keyField);
+      outputNodeBuilder.withKeyField(Optional.of(keyField));
       return result.selectKey(keyField, false, contextStacker);
     }
     return result;
@@ -319,7 +320,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     private PlanNode source;
     private Schema schema;
     private TimestampExtractionPolicy timestampExtractionPolicy;
-    private Field keyField;
+    private Optional<Field> keyField;
     private KsqlTopic ksqlTopic;
     private String kafkaTopicName;
     private Map<String, Object> outputProperties;
@@ -374,7 +375,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return this;
     }
 
-    Builder withKeyField(final Field keyField) {
+    Builder withKeyField(final Optional<Field> keyField) {
       this.keyField = keyField;
       return this;
     }

@@ -23,17 +23,17 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
+import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
-public class FilterNode
-    extends PlanNode {
+public class FilterNode extends PlanNode {
+
   private final PlanNode source;
   private final Expression predicate;
   private final Schema schema;
-  private final Field keyField;
 
   @JsonCreator
   public FilterNode(@JsonProperty("id") final PlanNodeId id,
@@ -44,7 +44,6 @@ public class FilterNode
     this.source = source;
     this.schema = source.getSchema();
     this.predicate = predicate;
-    this.keyField = source.getKeyField();
   }
 
   @JsonProperty("predicate")
@@ -58,8 +57,8 @@ public class FilterNode
   }
 
   @Override
-  public Field getKeyField() {
-    return keyField;
+  public Optional<Field> getKeyField() {
+    return source.getKeyField();
   }
 
   @Override

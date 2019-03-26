@@ -24,7 +24,6 @@ import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.KStream;
 
 public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
@@ -95,25 +94,5 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       final List<Expression> groupByExpressions,
       final QueryContext.Stacker contextStacker) {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Field getKeyField() {
-    return super.getKeyField();
-  }
-
-  @Override
-  public Schema getSchema() {
-    return super.getSchema();
-  }
-
-  @Override
-  public KStream<K, GenericRow> getKstream() {
-    return super.getKstream();
-  }
-
-  @Override
-  public List<SchemaKStream> getSourceSchemaKStreams() {
-    return super.getSourceSchemaKStreams();
   }
 }

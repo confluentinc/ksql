@@ -126,8 +126,8 @@ public class StructuredDataSourceNode
   }
 
   @Override
-  public Field getKeyField() {
-    return structuredDataSource.getKeyField().orElse(null);
+  public Optional<Field> getKeyField() {
+    return structuredDataSource.getKeyField();
   }
 
   public StructuredDataSource getStructuredDataSource() {

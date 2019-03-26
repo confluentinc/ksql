@@ -151,6 +151,7 @@ public class JoinNodeTest {
     EasyMock.expect(mockKsqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
         .andStubReturn(mockKsqlConfigClonedWithOffsetReset);
+    EasyMock.expect(rightSchemaKTable.getKeyField()).andReturn(Optional.empty()).anyTimes();
 
     EasyMock.replay(serviceContext, mockKsqlConfig);
 
@@ -521,10 +522,10 @@ public class JoinNodeTest {
     );
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldFailJoinIfTableCriteriaColumnIsNotKey() {
     setupStream(left, CONTEXT_STACKER, leftSchemaKStream, leftSchema, 2);
+    EasyMock.reset(rightSchemaKTable);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     expectKeyField(rightSchemaKTable, rightKeyFieldName);
     replay(left, right, leftSchemaKStream, rightSchemaKTable);
@@ -765,6 +766,7 @@ public class JoinNodeTest {
   public void shouldFailTableTableJoinIfRightCriteriaColumnIsNotKey() {
     setupTable(left, leftSchemaKTable, leftSchema, 2);
     expectKeyField(leftSchemaKTable, leftKeyFieldName);
+    EasyMock.reset(rightSchemaKTable);
     setupTable(right, rightSchemaKTable, rightSchema, 2);
     expectKeyField(rightSchemaKTable, rightKeyFieldName);
     replay(left, right, leftSchemaKTable, rightSchemaKTable);
@@ -1009,10 +1011,9 @@ public class JoinNodeTest {
     expectBuildStream(node, contextStacker, stream, schema);
   }
 
-
   private static void expectKeyField(final SchemaKStream stream, final String keyFieldName) {
     final Field field = niceMock(Field.class);
-    expect(stream.getKeyField()).andStubReturn(field);
+    expect(stream.getKeyField()).andStubReturn(Optional.of(field));
     expect(field.name()).andStubReturn(keyFieldName);
     replay(field);
   }

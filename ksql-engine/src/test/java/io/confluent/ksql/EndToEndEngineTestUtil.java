@@ -44,8 +44,7 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoaderUtil;
+import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -103,7 +102,6 @@ import org.junit.internal.matchers.ThrowableMessageMatcher;
 
 final class EndToEndEngineTestUtil {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private static final String CONFIG_END_MARKER = "CONFIGS_END";
 
   // Pass a single test or multiple tests separated by commas to the test framework.
@@ -111,10 +109,6 @@ final class EndToEndEngineTestUtil {
   //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json
   //     mvn test -pl ksql-engine -Dtest=QueryTranslationTest -Dksql.test.files=test1.json,test2,json
   private static final String KSQL_TEST_FILES = "ksql.test.files";
-
-  static {
-    UdfLoaderUtil.load(functionRegistry);
-  }
 
   private EndToEndEngineTestUtil(){}
 
@@ -125,12 +119,10 @@ final class EndToEndEngineTestUtil {
       this.spec = spec;
     }
 
+    @SuppressWarnings("ConstantConditions")
     private static void compare(final Object o1, final Object o2, final String path) {
       if (o1 == null && o2 == null) {
         return;
-      }
-      if (o1 == null || o2 == null) {
-        throw new AssertionError("Unexpected null at path " + path);
       }
       if (o1 instanceof Map) {
         assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
@@ -145,8 +137,8 @@ final class EndToEndEngineTestUtil {
           compare(((List) o1).get(i), ((List) o2).get(i), path + "." + i);
         }
       } else {
+        assertThat("mismatch at path " + path, o1, equalTo(o2));
         assertThat("type mismatch at " + path, o1.getClass(), equalTo(o2.getClass()));
-        assertThat("mismatch at path" + path, o1, equalTo(o2));
       }
     }
 
@@ -161,6 +153,11 @@ final class EndToEndEngineTestUtil {
     @Override
     public int hashCode() {
       return Objects.hash(spec);
+    }
+
+    @Override
+    public String toString() {
+      return Objects.toString(spec);
     }
   }
 
@@ -611,11 +608,12 @@ final class EndToEndEngineTestUtil {
         }
       } catch (final AssertionError assertionError) {
         final String rowMsg = idx == -1 ? "" : " while processing output row " + idx;
+        final String topicMsg = idx == -1 ? "" : " topic: " + outputRecords.get(idx).topic.name;
         throw new AssertionError("TestCase name: "
             + name
             + " in file: " + testPath
-            + " failed" + rowMsg + " due to: "
-            + assertionError.getMessage());
+            + " failed" + rowMsg + topicMsg + " due to: "
+            + assertionError.getMessage(), assertionError);
       }
     }
 
@@ -942,7 +940,7 @@ final class EndToEndEngineTestUtil {
   }
 
   private static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
-    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    final MutableMetaStore metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
     return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
   }
 

@@ -71,6 +71,16 @@ public final class StructuredDataSourceMatchers {
       };
     }
 
+    public static Matcher<Field> hasIndex(final int index) {
+      return new FeatureMatcher<Field, Integer>
+          (is(index), "field with index", "index") {
+        @Override
+        protected Integer featureValueOf(final Field actual) {
+          return actual.index();
+        }
+      };
+    }
+
     public static Matcher<Field> hasSchema(final Schema schema) {
       return new FeatureMatcher<Field, Schema>
           (is(schema), "field with schema", "schema") {

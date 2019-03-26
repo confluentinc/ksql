@@ -35,6 +35,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -93,7 +94,7 @@ public class CodeGenRunnerTest {
 
     private MutableMetaStore metaStore;
     private CodeGenRunner codeGenRunner;
-    private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    private final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
     @Before

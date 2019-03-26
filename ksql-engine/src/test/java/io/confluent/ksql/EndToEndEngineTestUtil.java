@@ -119,12 +119,10 @@ final class EndToEndEngineTestUtil {
       this.spec = spec;
     }
 
+    @SuppressWarnings("ConstantConditions")
     private static void compare(final Object o1, final Object o2, final String path) {
       if (o1 == null && o2 == null) {
         return;
-      }
-      if (o1 == null || o2 == null) {
-        throw new AssertionError("Unexpected null at path " + path);
       }
       if (o1 instanceof Map) {
         assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
@@ -139,8 +137,8 @@ final class EndToEndEngineTestUtil {
           compare(((List) o1).get(i), ((List) o2).get(i), path + "." + i);
         }
       } else {
+        assertThat("mismatch at path " + path, o1, equalTo(o2));
         assertThat("type mismatch at " + path, o1.getClass(), equalTo(o2.getClass()));
-        assertThat("mismatch at path" + path, o1, equalTo(o2));
       }
     }
 
@@ -155,6 +153,11 @@ final class EndToEndEngineTestUtil {
     @Override
     public int hashCode() {
       return Objects.hash(spec);
+    }
+
+    @Override
+    public String toString() {
+      return Objects.toString(spec);
     }
   }
 
@@ -605,11 +608,12 @@ final class EndToEndEngineTestUtil {
         }
       } catch (final AssertionError assertionError) {
         final String rowMsg = idx == -1 ? "" : " while processing output row " + idx;
+        final String topicMsg = idx == -1 ? "" : " topic: " + outputRecords.get(idx).topic.name;
         throw new AssertionError("TestCase name: "
             + name
             + " in file: " + testPath
-            + " failed" + rowMsg + " due to: "
-            + assertionError.getMessage());
+            + " failed" + rowMsg + topicMsg + " due to: "
+            + assertionError.getMessage(), assertionError);
       }
     }
 

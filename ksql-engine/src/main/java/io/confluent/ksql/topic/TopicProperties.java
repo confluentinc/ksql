@@ -89,7 +89,7 @@ public class TopicProperties {
 
     public Builder withWithClause(final Map<String, Expression> withClause) {
       final Expression nameExpression = withClause.get(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY);
-      final String name = (nameExpression == null)
+      final String name = nameExpression == null
           ? null
           : StringUtils.strip(nameExpression.toString(), "'");
 

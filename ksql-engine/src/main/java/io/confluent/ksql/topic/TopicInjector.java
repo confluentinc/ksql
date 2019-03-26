@@ -20,8 +20,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 
 /**
- * Type for injecting the topic into the WITH clause for statements that have
- * none or incomplete topic property information.
+ * Injects the topic into the WITH clause for statements that have
+ * incomplete topic property information.
  */
 public interface TopicInjector {
 
@@ -30,7 +30,7 @@ public interface TopicInjector {
    * properties of the supplied {@code statement}.
 
    * <p>If a statement that is not {@code CreateAsSelect} is passed in, this results in a
-   * no-op tha returns the incoming statement.</p>
+   * no-op that returns the incoming statement.</p>
    *
    * @see TopicProperties.Builder
    *

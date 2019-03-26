@@ -70,14 +70,9 @@ public class Analysis {
     this.into = Optional.of(into);
   }
 
+
   public List<Pair<StructuredDataSource, String>> getFromDataSources() {
     return fromDataSources;
-  }
-
-  public StructuredDataSource getTheSource() {
-    return join == null
-        ? getFromDataSource(0).left
-        : join.getTheSourceNode().getStructuredDataSource();
   }
 
   public Expression getWhereExpression() {

@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -30,83 +31,103 @@ import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlDelimitedDeserializerTest {
-  private Schema orderSchema;
-  private final ProcessingLogConfig processingLogConfig
-      = new ProcessingLogConfig(Collections.emptyMap());
-  private KsqlDelimitedDeserializer delimitedDeserializer;
+
+  private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
+      .field("ordertime".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+      .field("orderid".toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+      .field("itemid".toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+      .field("orderunits".toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .build();
+
+  private final ProcessingLogConfig processingLogConfig =
+      new ProcessingLogConfig(Collections.emptyMap());
+
+  private KsqlDelimitedDeserializer deserializer;
 
   @Mock
   private ProcessingLogger recordLogger;
 
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
   @Before
   public void before() {
-    orderSchema = SchemaBuilder.struct()
-        .field("ordertime".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
-        .field("orderid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA)
-        .field("itemid".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
-        .field("orderunits".toUpperCase(), org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build();
-    delimitedDeserializer = new KsqlDelimitedDeserializer(
-        orderSchema,
-        recordLogger);
+    deserializer = new KsqlDelimitedDeserializer(ORDER_SCHEMA, recordLogger);
   }
 
   @Test
   public void shouldDeserializeDelimitedCorrectly() {
-    final String rowString = "1511897796092,1,item_1,10.0\r\n";
+    // Given:
+    final byte[] bytes = "1511897796092,1,item_1,10.0\r\n".getBytes(StandardCharsets.UTF_8);
 
-    final GenericRow genericRow = delimitedDeserializer.deserialize(
-        "",
-        rowString.getBytes(StandardCharsets.UTF_8));
-    assertThat(genericRow.getColumns().size(), equalTo(4));
-    assertThat(genericRow.getColumns().get(0), equalTo(1511897796092L));
-    assertThat(genericRow.getColumns().get(1), equalTo(1L));
-    assertThat(genericRow.getColumns().get(2), equalTo("item_1"));
-    assertThat(genericRow.getColumns().get(3), equalTo(10.0));
+    // When:
+    final GenericRow genericRow = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(genericRow.getColumns().size(), is(4));
+    assertThat(genericRow.getColumns().get(0), is(1511897796092L));
+    assertThat(genericRow.getColumns().get(1), is(1L));
+    assertThat(genericRow.getColumns().get(2), is("item_1"));
+    assertThat(genericRow.getColumns().get(3), is(10.0));
   }
 
   @Test
   public void shouldLogErrors() {
-    Throwable cause = null;
+    // Given:
     final byte[] record = "badnumfields".getBytes(StandardCharsets.UTF_8);
+
     try {
-      delimitedDeserializer.deserialize("topic", record);
+      // When:
+      deserializer.deserialize("topic", record);
       fail("deserialize should have thrown");
     } catch (final SerializationException e) {
-      cause = e.getCause();
+
+      // Then:
+      SerdeTestUtils.shouldLogError(
+          recordLogger,
+          SerdeProcessingLogMessageFactory.deserializationErrorMsg(
+              e.getCause(),
+              Optional.ofNullable(record)).apply(processingLogConfig),
+          processingLogConfig);
     }
-    SerdeTestUtils.shouldLogError(
-        recordLogger,
-        SerdeProcessingLogMessageFactory.deserializationErrorMsg(
-            cause,
-            Optional.ofNullable(record)).apply(processingLogConfig),
-        processingLogConfig);
   }
 
   @Test
-  public void shouldDeserializeJsonCorrectlyWithRedundantFields() {
-    final String rowString = "1511897796092,1,item_1,\r\n";
+  public void shouldDeserializeJsonCorrectlyWithEmptyFields() {
+    // Given:
+    final byte[] bytes = "1511897796092,1,item_1,\r\n".getBytes(StandardCharsets.UTF_8);
 
-    final GenericRow genericRow = delimitedDeserializer.deserialize(
-        "",
-        rowString.getBytes(StandardCharsets.UTF_8));
-    assertThat(genericRow.getColumns().size(), equalTo(4));
-    assertThat(genericRow.getColumns().get(0), equalTo(1511897796092L));
-    assertThat(genericRow.getColumns().get(1), equalTo(1L));
-    assertThat(genericRow.getColumns().get(2), equalTo("item_1"));
-    Assert.assertNull(genericRow.getColumns().get(3));
+    // When:
+    final GenericRow genericRow = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(genericRow.getColumns().size(), is(4));
+    assertThat(genericRow.getColumns().get(0), is(1511897796092L));
+    assertThat(genericRow.getColumns().get(1), is(1L));
+    assertThat(genericRow.getColumns().get(2), is("item_1"));
+    assertThat(genericRow.getColumns().get(3), is(nullValue()));
   }
 
+  @Test(expected = SerializationException.class)
+  public void shouldThrowIfRowHasTooFewColumns() {
+    // Given:
+    final byte[] bytes = "1511897796092,1,item_1\r\n".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    deserializer.deserialize("", bytes);
+  }
+
+  @Test(expected = SerializationException.class)
+  public void shouldThrowIfRowHasTooMayColumns() {
+    // Given:
+    final byte[] bytes = "1511897796092,1,item_1,10.0,extra\r\n".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    deserializer.deserialize("", bytes);
+  }
 }

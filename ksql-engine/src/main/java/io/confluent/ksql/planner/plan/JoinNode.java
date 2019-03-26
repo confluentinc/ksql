@@ -340,7 +340,6 @@ public class JoinNode extends PlanNode {
           .getGenericRowSerde(
               dataSourceNode.getSchema(),
               builder.getKsqlConfig(),
-              false,
               builder.getServiceContext().getSchemaRegistryClientFactory(),
               QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
               builder.getProcessingLogContext());

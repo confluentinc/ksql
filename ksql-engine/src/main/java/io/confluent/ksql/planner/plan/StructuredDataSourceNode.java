@@ -167,7 +167,6 @@ public class StructuredDataSourceNode
         ksqlTopicSerDe.getGenericRowSerde(
             SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema()),
             builder.getKsqlConfig(),
-            false,
             builder.getServiceContext().getSchemaRegistryClientFactory(),
             QueryLoggerUtil.queryLoggerName(contextStacker.push(SOURCE_OP_NAME).getQueryContext()),
             builder.getProcessingLogContext()
@@ -183,7 +182,6 @@ public class StructuredDataSourceNode
           table.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
               getSchema(),
               builder.getKsqlConfig(),
-              true,
               builder.getServiceContext().getSchemaRegistryClientFactory(),
               QueryLoggerUtil.queryLoggerName(reduceContextStacker.getQueryContext()),
               builder.getProcessingLogContext()

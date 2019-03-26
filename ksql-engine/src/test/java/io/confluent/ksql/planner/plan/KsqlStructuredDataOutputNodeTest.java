@@ -25,7 +25,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doThrow;
@@ -467,7 +466,7 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     final KsqlTopicSerDe topicSerde = mock(KsqlTopicSerDe.class);
     final Serde serde = mock(Serde.class);
-    when(topicSerde.getGenericRowSerde(any(), any(), anyBoolean(), any(), any(), any()))
+    when(topicSerde.getGenericRowSerde(any(), any(), any(), any(), any()))
         .thenReturn(serde);
     outputNode = new KsqlStructuredDataOutputNode(
         new PlanNodeId("0"),
@@ -489,7 +488,6 @@ public class KsqlStructuredDataOutputNodeTest {
         .getGenericRowSerde(
             any(),
             any(),
-            anyBoolean(),
             any(),
             startsWith(
                 QueryLoggerUtil.queryLoggerName(

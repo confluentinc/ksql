@@ -21,7 +21,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.serde.util.SerdeProcessingLogMessageFactory;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,28 +39,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
+
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
 
+  private final Gson gson;
   private final Schema schema;
   private final JsonConverter jsonConverter;
   private final ProcessingLogger recordLogger;
 
-  private final Gson gson;
-
   public KsqlJsonDeserializer(
       final Schema schema,
-      final boolean isInternal,
-      final ProcessingLogger recordLogger) {
-    gson = new Gson();
-    // If this is a Deserializer for an internal topic in the streams app
-    if (isInternal) {
-      this.schema = schema;
-    } else {
-      this.schema = SchemaUtil.getSchemaWithNoAlias(schema);
-    }
-    jsonConverter = new JsonConverter();
-    jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
-    this.recordLogger = Objects.requireNonNull(recordLogger);
+      final ProcessingLogger recordLogger
+  ) {
+    this.gson = new Gson();
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.jsonConverter = new JsonConverter();
+    this.jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
+    this.recordLogger = Objects.requireNonNull(recordLogger, "recordLogger");
   }
 
   @Override

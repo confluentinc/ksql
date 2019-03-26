@@ -372,18 +372,6 @@ public final class SchemaUtil {
     }
   }
 
-  /**
-   * Remove the alias when reading/writing from outside
-   */
-  public static Schema getSchemaWithNoAlias(final Schema schema) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (final Field field : schema.fields()) {
-      final String name = getFieldNameWithNoAlias(field);
-      schemaBuilder.field(name, field.schema());
-    }
-    return schemaBuilder.build();
-  }
-
   public static boolean areEqualSchemas(final Schema schema1, final Schema schema2) {
     if (schema1.fields().size() != schema2.fields().size()) {
       return false;

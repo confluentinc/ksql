@@ -54,7 +54,6 @@ public class AvroProducer extends DataGenProducer {
         .getGenericRowSerde(
             kafkaSchema,
             ksqlConfig,
-            false,
             () -> schemaRegistryClient,
             "producer",
             ProcessingLogContext.create()

@@ -24,6 +24,10 @@ public class UdfIndexTest {
   private static final Schema STRING_VARARGS = SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA);
   private static final Schema STRING = Schema.OPTIONAL_STRING_SCHEMA;
   private static final Schema INT = Schema.OPTIONAL_INT32_SCHEMA;
+  private static final Schema STRUCT1 = SchemaBuilder.struct().field("a", STRING).build();
+  private static final Schema STRUCT2 = SchemaBuilder.struct().field("b", INT).build();
+  private static final Schema MAP1 = SchemaBuilder.map(STRING, STRING).build();
+  private static final Schema MAP2 = SchemaBuilder.map(STRING, INT).build();
 
   private static final String EXPECTED = "expected";
 
@@ -95,6 +99,24 @@ public class UdfIndexTest {
             new Schema[]{STRING, STRING},
             true
         },
+        new Object[]{
+            "shouldChooseCorrectStruct",
+            new KsqlFunction[]{
+                function("other", false, STRUCT2),
+                function(EXPECTED, false, STRUCT1),
+            },
+            new Schema[]{STRUCT1},
+            true
+        },
+        new Object[]{
+            "shouldChooseCorrectMap",
+            new KsqlFunction[]{
+                function("other", false, MAP2),
+                function(EXPECTED, false, MAP1),
+            },
+            new Schema[]{MAP1},
+            true
+        },
 
         // vararg tests
         new Object[]{
@@ -119,6 +141,14 @@ public class UdfIndexTest {
                 function(EXPECTED, true, STRING_VARARGS)
             },
             new Schema[]{STRING, STRING},
+            true
+        },
+        new Object[]{
+            "shouldFindVarargWithStruct",
+            new KsqlFunction[]{
+                function(EXPECTED, true, SchemaBuilder.array(STRUCT1).build()),
+            },
+            new Schema[]{STRUCT1, STRUCT1},
             true
         },
         new Object[]{
@@ -308,6 +338,14 @@ public class UdfIndexTest {
                 function("one", false, STRING)
             },
             new Schema[]{STRING, null},
+            false
+        },
+        new Object[]{
+            "shouldNotMatchVarargDifferentStructs",
+            new KsqlFunction[]{
+                function("one", true, SchemaBuilder.array(STRUCT1).build()),
+            },
+            new Schema[]{STRUCT1, STRUCT2},
             false
         }
     );

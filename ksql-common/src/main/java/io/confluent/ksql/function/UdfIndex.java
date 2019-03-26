@@ -16,6 +16,7 @@
 package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.KsqlException;
@@ -28,10 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Schema.Type;
 
 /**
  * An index of all method signatures associated with a UDF. This index
@@ -92,13 +94,13 @@ public class UdfIndex {
   }
 
   void addFunction(final KsqlFunction function) {
-    final List<Schema> arguments = function.getArguments();
+    final List<Schema> parameters = function.getArguments();
     if (allFunctions.put(function.getArguments(), function) != null) {
       throw new KsqlException(
           "Can't add function "
               + function
               + " as a function with the same name and argument type already exists "
-              + allFunctions.get(arguments)
+              + allFunctions.get(parameters)
       );
     }
 
@@ -106,8 +108,8 @@ public class UdfIndex {
 
     Node curr = root;
     Node parent = curr;
-    for (final Schema arg : arguments) {
-      final FunctionParameter param = new FunctionParameter(arg, false);
+    for (final Schema parameter : parameters) {
+      final Parameter param = new Parameter(parameter, false);
       parent = curr;
       curr = curr.children.computeIfAbsent(param, ignored -> new Node());
     }
@@ -120,7 +122,7 @@ public class UdfIndex {
       // then add a new child node with the parameter value type
       // and add this function to that node
       final Schema varargSchema = Iterables.getLast(function.getArguments());
-      final FunctionParameter vararg = new FunctionParameter(varargSchema, true);
+      final Parameter vararg = new Parameter(varargSchema, true);
       final Node leaf = parent.children.computeIfAbsent(vararg, ignored -> new Node());
       leaf.update(function, order);
 
@@ -133,36 +135,37 @@ public class UdfIndex {
     curr.update(function, order);
   }
 
-  KsqlFunction getFunction(final List<Schema> parameters) {
+  KsqlFunction getFunction(final List<Schema> arguments) {
     final List<Node> candidates = new ArrayList<>();
-    getCandidates(parameters, 0, root, candidates);
+    getCandidates(arguments, 0, root, candidates);
 
     return candidates
         .stream()
         .max(Node::compare)
         .map(node -> node.value)
-        .orElseThrow(() -> createNoMatchingFunctionException(parameters));
+        .orElseThrow(() -> createNoMatchingFunctionException(arguments));
   }
 
-  private void getCandidates(
-      final List<Schema> parameters,
-      final int paramIndex,
+  private static void getCandidates(
+      final List<Schema> arguments,
+      final int argIndex,
       final Node current,
       final List<Node> candidates
   ) {
-    if (paramIndex == parameters.size()) {
+    if (argIndex == arguments.size()) {
       if (current.value != null) {
         candidates.add(current);
       }
       return;
     }
 
+    final Schema arg = arguments.get(argIndex);
     current.children
         .entrySet()
         .stream()
-        .filter(entry -> entry.getKey().matches(parameters.get(paramIndex)))
+        .filter(entry -> entry.getKey().accepts(arg))
         .map(Entry::getValue)
-        .forEach(node -> getCandidates(parameters, paramIndex + 1, node, candidates));
+        .forEach(node -> getCandidates(arguments, argIndex + 1, node, candidates));
   }
 
   private KsqlException createNoMatchingFunctionException(final List<Schema> paramTypes) {
@@ -198,7 +201,7 @@ public class UdfIndex {
                 .thenComparing(fun -> fun.getArguments().size())
         );
 
-    private final Map<FunctionParameter, Node> children;
+    private final Map<Parameter, Node> children;
     private KsqlFunction value;
     private int order = 0;
 
@@ -215,7 +218,7 @@ public class UdfIndex {
     }
 
     private void describe(final StringBuilder builder, final int indent) {
-      for (final Entry<FunctionParameter, Node> child : children.entrySet()) {
+      for (final Entry<Parameter, Node> child : children.entrySet()) {
         if (child.getValue() != this) {
           builder.append(StringUtils.repeat(' ', indent * 2))
               .append('-')
@@ -239,15 +242,27 @@ public class UdfIndex {
     }
   }
 
-  private static final class FunctionParameter  {
+  /**
+   * A class that represents a parameter, with a schema and whether
+   * or not it is part of a variable argument declaration.
+   */
+  private static final class Parameter {
+
+    private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
+        ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
+            .put(Type.MAP, (a, b) ->
+                Objects.equals(a.keySchema(), b.keySchema())
+                    && Objects.equals(a.valueSchema(), b.valueSchema()))
+            .put(Type.ARRAY, (a, b) -> Objects.equals(a.valueSchema(), b.valueSchema()))
+            .put(Type.STRUCT, (a, b) -> Objects.equals(a.fields(), b.fields()))
+            .build();
+
     private final Schema schema;
-    private final boolean isOptional;
     private final boolean isVararg;
 
-    private FunctionParameter(final Schema schema, final boolean isVararg) {
-      this.schema = (schema instanceof SchemaBuilder) ? ((SchemaBuilder) schema).build() : schema;
-      this.isOptional = schema.isOptional();
+    private Parameter(final Schema schema, final boolean isVararg) {
       this.isVararg = isVararg;
+      this.schema = isVararg ? schema.valueSchema() : schema;
     }
 
     @Override
@@ -258,35 +273,44 @@ public class UdfIndex {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      final FunctionParameter that = (FunctionParameter) o;
-      // isOptional is excluded from equals and hashCode so that
-      // primitive types will match their boxed counterparts. i.e,
-      // primitive types are not optional, i.e., they don't accept null.
-      return schema == that.schema && isVararg == that.isVararg;
+      final Parameter parameter = (Parameter) o;
+      return isVararg == parameter.isVararg
+          && Objects.equals(schema, parameter.schema);
     }
 
     @Override
     public int hashCode() {
-      // isOptional is excluded from equals and hashCode so that
-      // primitive types will match their boxed counterparts. i.e,
-      // primitive types are not optional, i.e., they don't accept null.
       return Objects.hash(schema, isVararg);
     }
 
-    public boolean matches(final Schema schema) {
-      if (schema == null) {
-        return isOptional || (isVararg && this.schema.valueSchema().isOptional());
-      } else if (isVararg) {
-        return this.schema.valueSchema().type().equals(schema.type());
-      } else {
-        return this.schema.type().equals(schema.type());
+    /**
+     * @param argument the argument to test against
+     * @return whether or not this argument can be used as a value for
+     *         this parameter
+     */
+    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+    boolean accepts(final Schema argument) {
+      if (argument == null) {
+        return schema.isOptional();
       }
+
+      final Schema.Type type = schema.type();
+      if (!Objects.equals(type, argument.type())) {
+        return false;
+      }
+
+      // we require a custom equals method that ignores certain values (e.g.
+      // whether or not the schema is optional, and the documentation)
+      return CUSTOM_SCHEMA_EQ.getOrDefault(type, (a, b) -> true).test(schema, argument)
+          && Objects.equals(schema.version(), argument.version())
+          && Objects.equals(schema.parameters(), argument.parameters())
+          && Objects.deepEquals(schema.defaultValue(), argument.defaultValue());
     }
+    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 
     @Override
     public String toString() {
-      return SchemaUtil.getSqlTypeName(isVararg ? schema.valueSchema() : schema)
-          + (isVararg ? "(VARARG)" : "");
+      return SchemaUtil.getSqlTypeName(schema) + (isVararg ? "(VARARG)" : "");
     }
   }
 

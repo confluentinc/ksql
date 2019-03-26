@@ -15,20 +15,12 @@
 
 package io.confluent.ksql.function;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
 import java.util.Collections;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

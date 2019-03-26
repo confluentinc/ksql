@@ -616,7 +616,7 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
-Example of createing a simple function. **Note:** the arguments are passed as an array named **args**
+The following example creates a simple function. The arguments are passed as an array named *args*
 to the inline script.
 
 .. code:: sql

@@ -378,7 +378,9 @@ Where ``ksql.service.id`` can be configured in the KSQL configuration and defaul
 If KSQL is configured to create a topic for the :ref:`record processing log <ksql_processing_log>`
 which is the default configuration since KSQL version 5.2, the following ACLs are also needed:
 
-- The ``ALL`` operation on the ``TOPIC`` with ``LITERAL`` name ``<ksql.service.id>ksql_processing_log``.
+- The ``ALL`` operation on the ``TOPIC`` with ``LITERAL`` name ``<ksql.logging.processing.topic.name>``.
+
+Where ``ksql.logging.processing.topic.name`` can be configured in the KSQL configuration and defaults to ``<ksql.service.id>ksql_processing_log``.
 
 In addition to the general permissions above, KSQL also needs permissions to perform the actual processing of your data.
 Here, KSQL needs permissions to read data from your desired input topics and/or permissions to write data to your desired output topics:

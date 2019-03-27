@@ -533,9 +533,7 @@ public class IntegrationTestHarness extends ExternalResource {
   }
 
   private Map<String, Object> clientConfig() {
-    final Map<String, Object> config = new HashMap<>();
-    config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaCluster.bootstrapServers());
-    return config;
+    return new HashMap<>(kafkaCluster.getClientProperties());
   }
 
   private Map<String, Object> producerConfig() {
@@ -610,8 +608,13 @@ public class IntegrationTestHarness extends ExternalResource {
   public static final class Builder {
 
     private final SchemaRegistryClient schemaRegistry = new MockSchemaRegistryClient();
-    private final EmbeddedSingleNodeKafkaCluster.Builder kafkaCluster
+    private EmbeddedSingleNodeKafkaCluster.Builder kafkaCluster
         = EmbeddedSingleNodeKafkaCluster.newBuilder();
+
+    public Builder withKafkaCluster(final EmbeddedSingleNodeKafkaCluster.Builder kafkaCluster) {
+      this.kafkaCluster = Objects.requireNonNull(kafkaCluster, "kafkaCluster");
+      return this;
+    }
 
     public IntegrationTestHarness build() {
       return new IntegrationTestHarness(kafkaCluster.build(), schemaRegistry);

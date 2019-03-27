@@ -15,6 +15,7 @@
 
 package io.confluent.ksql;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -82,7 +83,11 @@ public final class KsqlContextTestUtil {
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final Map<String, Object> additionalConfig
   ) {
-    return createKsqlConfig(kafkaCluster.bootstrapServers(), additionalConfig);
+    final ImmutableMap<String, Object> config = ImmutableMap.<String, Object>builder()
+        .putAll(kafkaCluster.getClientProperties())
+        .putAll(additionalConfig)
+        .build();
+    return createKsqlConfig(kafkaCluster.bootstrapServers(), config);
   }
 
   public static KsqlConfig createKsqlConfig(

@@ -29,6 +29,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <ksql.version>@{project.version}</ksql.version>
+        <junit.jupiter.version>5.4.1</junit.jupiter.version>
     </properties>
 
     <repositories>
@@ -44,9 +45,9 @@
     </repositories>
 
     <!--
-		Execute "mvn clean package"
-		to build a jar file out of this project!
-	-->
+        Execute "mvn clean package"
+        to build a jar file out of this project!
+    -->
 
     <build>
         <plugins>
@@ -72,6 +73,11 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- JUnit 5 requires Surefire version 2.22.1 or higher -->
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.1</version>
+            </plugin>
         </plugins>
     </build>
 
@@ -81,6 +87,13 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-udf</artifactId>
             <version>${ksql.version}</version>
+        </dependency>
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

@@ -40,6 +40,7 @@
 
     <modules>
         <module>ksql-udf</module>
+        <module>ksql-udf-quickstart</module>
         <module>ksql-common</module>
         <module>ksql-serde</module>
         <module>ksql-metastore</module>
@@ -118,6 +119,12 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksql-udf</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksql-udf-quickstart</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

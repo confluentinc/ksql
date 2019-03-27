@@ -42,11 +42,11 @@ public class IntegerMaxKudafTest {
   public void shouldHandleNull() {
     final IntegerMaxKudaf integerMaxKudaf = getIntegerMaxKudaf();
     final int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
-    int currentMax = Integer.MIN_VALUE;
+    Integer currentMax = null;
 
     // null before any aggregation
     currentMax = integerMaxKudaf.aggregate(null, currentMax);
-    assertThat(Integer.MIN_VALUE, equalTo(currentMax));
+    assertThat(null, equalTo(currentMax));
 
     // now send each value to aggregation and verify
     for (final int i: values) {

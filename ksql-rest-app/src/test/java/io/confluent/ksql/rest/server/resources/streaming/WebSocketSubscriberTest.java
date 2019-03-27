@@ -154,7 +154,7 @@ public class WebSocketSubscriberTest {
     subscriber.onError(new RuntimeException("streams died"));
     subscriber.close();
 
-    assertEquals("streams exception", reason.getValue().getReasonPhrase());
+    assertEquals("streams exception: streams died", reason.getValue().getReasonPhrase());
     assertEquals(CloseCodes.UNEXPECTED_CONDITION, reason.getValue().getCloseCode());
 
     EasyMock.verify(subscription, session);

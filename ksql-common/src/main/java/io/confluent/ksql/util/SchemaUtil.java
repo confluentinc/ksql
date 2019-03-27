@@ -96,16 +96,16 @@ public final class SchemaUtil {
           .put("STRUCT", "STRUCT")
           .build();
 
-  private static final Map<Schema.Type, Function<Schema, Type>> SCHEMA_TYPE_TO_JAVA_TYPE =
-      ImmutableMap.<Schema.Type, Function<Schema, Type>>builder()
-          .put(Schema.Type.STRING, s -> String.class)
-          .put(Schema.Type.BOOLEAN, s -> Boolean.class)
-          .put(Schema.Type.INT32, s -> Integer.class)
-          .put(Schema.Type.INT64, s -> Long.class)
-          .put(Schema.Type.FLOAT64, s -> Double.class)
-          .put(Schema.Type.ARRAY, s -> List.class)
-          .put(Schema.Type.MAP, s -> Map.class)
-          .put(Schema.Type.STRUCT, s -> Struct.class)
+  private static final Map<Schema.Type, Class> SCHEMA_TYPE_TO_JAVA_TYPE =
+      ImmutableMap.<Schema.Type, Class>builder()
+          .put(Schema.Type.STRING, String.class)
+          .put(Schema.Type.BOOLEAN, Boolean.class)
+          .put(Schema.Type.INT32, Integer.class)
+          .put(Schema.Type.INT64, Long.class)
+          .put(Schema.Type.FLOAT64, Double.class)
+          .put(Schema.Type.ARRAY, List.class)
+          .put(Schema.Type.MAP, Map.class)
+          .put(Schema.Type.STRUCT, Struct.class)
           .build();
 
   private static Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
@@ -137,12 +137,12 @@ public final class SchemaUtil {
   }
 
   public static Class<?> getJavaType(final Schema schema) {
-    final Function<Schema, Type> handler = SCHEMA_TYPE_TO_JAVA_TYPE.get(schema.type());
-    if (handler == null) {
+    final Class typeClazz = SCHEMA_TYPE_TO_JAVA_TYPE.get(schema.type());
+    if (typeClazz == null) {
       throw new KsqlException("Type is not supported: " + schema.type());
     }
 
-    return (Class) handler.apply(schema);
+    return typeClazz;
   }
 
   public static Schema getSchemaFromType(final Type type) {

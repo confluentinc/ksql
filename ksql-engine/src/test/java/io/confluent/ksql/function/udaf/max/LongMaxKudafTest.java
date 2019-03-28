@@ -42,11 +42,11 @@ public class LongMaxKudafTest {
   public void shouldHandleNull() {
     final LongMaxKudaf longMaxKudaf = getLongMaxKudaf();
     final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
-    long currentMax = Long.MIN_VALUE;
+    Long currentMax = null;
 
     // null before any aggregation
     currentMax = longMaxKudaf.aggregate(null, currentMax);
-    assertThat(Long.MIN_VALUE, equalTo(currentMax));
+    assertThat(null, equalTo(currentMax));
 
     // now send each value to aggregation and verify
     for (final long i: values) {

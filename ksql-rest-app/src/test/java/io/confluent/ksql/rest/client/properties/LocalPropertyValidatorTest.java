@@ -35,7 +35,7 @@ public class LocalPropertyValidatorTest {
 
   @Before
   public void setUp() {
-    validator = new LocalPropertyValidator(IMMUTABLE_PROPS);
+    validator = new LocalPropertyValidator();
   }
 
   @Test

@@ -67,10 +67,6 @@ Install |cp| Locally
 
 .. _ksql-write-queries-in-ccloud:
 
-
-.. as with the other "basics" topics
-
-
 Inspect Topics By Using |ccloud|
 ********************************
 
@@ -80,22 +76,48 @@ Inspect Topics By Using |ccloud|
 #. In the navigation menu, click **Topics** to view the ``pageviews`` and ``users``
    topics that you created previously.
 
-.. TODO: new screenshot
-
-   .. image:: ../img/c3-topics-pageviews-users.png
-      :alt: Screenshot of Confluent Control Center showing the Topics page
+   .. image:: ../img/ccloud-topics-pageviews-users.png
+      :alt: Screenshot of Confluent Cloud showing the Topics page
       :align: center
 
 Create a KSQL Application
 *************************
 
+ksql-app1
+
+   .. image:: ../img/ccloud-ksql-add-application-1.png
+      :alt: Screenshot of Confluent Cloud showing the KSQL Add Application page
+      :align: center
+
+
+
+   .. image:: ../img/ccloud-ksql-add-application-2.png
+      :alt: Screenshot of Confluent Cloud showing the KSQL Add Application wizard
+      :align: center
+
+
+   .. image:: ../img/ccloud-ksql-add-application-3.png
+      :alt: Screenshot of Confluent Cloud showing the KSQL Add Application wizard
+      :align: center
+
+
+   .. image:: ../img/ccloud-ksql-application-list.png
+      :alt: Screenshot of Confluent Cloud showing the KSQL Applcations page
+      :align: center
+      
 
 Inspect Topics By Using KSQL in |ccloud| UI
 *******************************************
 
 #. In the navigation menu, click **KSQL** to open the KSQL Applications page.
 
-#. On **ksql-test16**, click *...* and select **KSQL Editor**. 
+#. On **ksql-app1**, click *...* and select **KSQL Editor**.
+
+
+   .. image:: ../img/ccloud-ksql-context-menu.png
+      :alt: Screenshot of Confluent Cloud showing the KSQL Applcation context menu
+      :align: center
+
 
 #. In the editing window, use the SHOW TOPICS statement to see the available
    topics on the Kafka cluster. Click **Run** to start the query.
@@ -104,39 +126,41 @@ Inspect Topics By Using KSQL in |ccloud| UI
 
        SHOW TOPICS;
 
-.. TODO: new screenshot
+   Your output should resemble:
 
    .. image:: ../img/ccloud-ksql-editor-show-topics.png
-      :alt: Screenshot of Confluent Control Center showing the KSQL Editor
+      :alt: Screenshot of Confluent Cloud showing the KSQL Editor
       :align: center
 
-#. In the **Query Results** window, scroll to the bottom to view the ``pageviews``
-   and ``users`` topics that you created previously. Your output should resemble:
+#. In the **Query Results** window, scroll down to view the ``pageviews`` topic
+   that you created previously. Your output should resemble:
 
    .. code:: json
 
-       {
+      {
          "name": "pageviews",
          "registered": false,
          "replicaInfo": [
-           1
+           3,
+           3,
+           3,
+           3,
+           3,
+           3,
+           3,
+           3,
+           3,
+           3,
+           3,
+           3
          ],
-         "consumerCount": 0,
-         "consumerGroupCount": 0
+         "consumerCount": 12,
+         "consumerGroupCount": 1
        },
-       {
-         "name": "users",
-         "registered": false,
-         "replicaInfo": [
-           1
-         ],
-         "consumerCount": 0,
-         "consumerGroupCount": 0
-       }
 
    The ``"registered": false`` indicator means that you haven't created a stream
-   or table on top of these topics, so you can't write streaming queries against
-   them yet.
+   or table on top of this topic, so you can't write streaming queries against
+   it yet.
 
 #. In the editing window, use the PRINT TOPIC statement to inspect the records in
    the ``users`` topic. Click **Run** to start the query.
@@ -147,10 +171,10 @@ Inspect Topics By Using KSQL in |ccloud| UI
 
    Your output should resemble:
 
-.. TODO: new screenshot
+.. TODO: new screenshot -- currently, PRINT doesn't work in CCloud
 
-   .. image:: ../img/ccloud-ksql-print-topic-users.png
-      :alt: Screenshot of the KSQL SHOW TOPIC statement in Confluent Control Center
+   .. image:: ../img/c3-ksql-print-topic-users.png
+      :alt: Screenshot of the KSQL SHOW TOPIC statement in Confluent Cloud
       :align: center
 
 #. The query continues until you end it explicitly. Click **Stop** to end the query.
@@ -166,8 +190,6 @@ and CREATE TABLE statements in the KSQL Editor.
 These examples query records from the ``pageviews`` and ``users`` topics using
 the following schema.
 
-.. TODO: new screenshot
-
 .. image:: ../img/ksql-quickstart-schemas.jpg
    :alt: ER diagram showing a pageviews stream and a users table with a common userid column
    :align: center
@@ -176,7 +198,7 @@ Create a Stream in the KSQL Editor
 ==================================
 
 You can create a stream or table by using the CREATE STREAM and CREATE TABLE
-statements in the KSQL Editor, just like you use them in the KSQL CLI.
+statements in the KSQL Editor, just like how you use them in the KSQL CLI.
 
 #. Copy the following code into the editing window and click **Run**.
 
@@ -187,10 +209,8 @@ statements in the KSQL Editor, just like you use them in the KSQL CLI.
 
    Your output should resemble:
 
-.. TODO: new screenshot
-
    .. image:: ../img/ccloud-ksql-create-stream-statement.png
-      :alt: Screenshot of the KSQL CREATE STREAM statement in Confluent Control Center
+      :alt: Screenshot of the KSQL CREATE STREAM statement in Confluent Cloud
       :align: center
 
 #. In the editing window, use the SHOW TOPICS statement to inspect the status of
@@ -205,25 +225,36 @@ statements in the KSQL Editor, just like you use them in the KSQL CLI.
 
    .. code:: json
 
-       {
-         "name": "pageviews",
-         "registered": true,
-         "replicaInfo": [
-           1
-         ],
-         "consumerCount": 0,
-         "consumerGroupCount": 0
-       },
+    {
+      "name": "pageviews",
+      "registered": true,
+      "replicaInfo": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "consumerCount": 12,
+      "consumerGroupCount": 1
+    },
 
    The ``"registered": true`` indicator means that you have registered the topic
    and you can write streaming queries against it.
 
 
-Create a Table in the |c3-short| UI
-===================================
+Create a Table in the |ccloud| UI
+=================================
 
-|ccloud| guides you through the process of registering a topic as a stream or
-a table. 
+KSQL on |ccloud| guides you through the process of registering a topic as a
+stream or a table. 
 
 #. In the KSQL Editor, navigate to **Tables** and click **Add a table**. The
    **Create a KSQL Table** dialog opens.
@@ -231,7 +262,7 @@ a table.
 .. TODO: new screenshot
 
    .. image:: ../img/ccloud-ksql-create-table-wizard-1.png
-      :alt: Screenshot of the Create a KSQL Table wizard in Confluent Control Center
+      :alt: Screenshot of the Create a KSQL Table wizard in Confluent Cloud
       :align: center
 
 #. Click **users** to fill in the details for the table. KSQL infers the table
@@ -246,7 +277,7 @@ a table.
 .. TODO: new screenshot
 
    .. image:: ../img/ccloud-ksql-create-table-wizard-2.png
-      :alt: Screenshot of the Create a KSQL Table wizard in Confluent Control Center
+      :alt: Screenshot of the Create a KSQL Table wizard in Confluent Cloud
       :align: center
 
 #. The KSQL Editor opens with a suggested query. Click **Run** to display the
@@ -255,7 +286,7 @@ a table.
 .. TODO: new screenshot
 
    .. image:: ../img/ccloud-ksql-select-from-users-query.png
-      :alt: Screenshot of a KSQL SELECT query in Confluent Control Center
+      :alt: Screenshot of a KSQL SELECT query in Confluent Cloud
       :align: center
 
    The **Query Results** pane displays query status information, like
@@ -286,7 +317,7 @@ end them with the TERMINATE statement.
 .. TODO: new screenshot
 
    .. image:: ../img/ccloud-ksql-csas.png
-      :alt: Screenshot of the KSQL CREATE STREAM AS SELECT statement in Confluent Control Center
+      :alt: Screenshot of the KSQL CREATE STREAM AS SELECT statement in Confluent Cloud
       :align: center
 
 #. To inspect your persistent queries, navigate to the **Running Queries** page,
@@ -296,7 +327,7 @@ end them with the TERMINATE statement.
 .. TODO: new screenshot
 
    .. image:: ../img/ccloud-ksql-running-queries.png
-      :alt: Screenshot of the KSQL Running Queries page in Confluent Control Center
+      :alt: Screenshot of the KSQL Running Queries page in Confluent Cloud
       :align: center
 
 #. Click **Explain** to see the schema and query properties for the persistent
@@ -315,7 +346,7 @@ You can monitor your persistent queries visually by using |ccloud|.
 .. TODO: new screenshot
 
    .. image:: ../img/ccloud-ksql-consumer-lag.png
-      :alt: Screenshot of the Consumer Lag page in Confluent Control Center
+      :alt: Screenshot of the Consumer Lag page in Confluent Cloud
       :align: center
 
 Query Properties

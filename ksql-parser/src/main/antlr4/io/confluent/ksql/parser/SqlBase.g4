@@ -306,7 +306,12 @@ languageName
     ;
 
 udfScript
-    : UDF_SCRIPT
+    : BEGIN*
+    | END*
+    | UDF_SCRIPT
+    ;
+UDF_SCRIPT
+    : BEGIN .* END
     ;
 
 identifier
@@ -502,10 +507,6 @@ TIME_WITH_TIME_ZONE
 
 TIMESTAMP_WITH_TIME_ZONE
     : 'TIMESTAMP' WS 'WITH' WS 'TIME' WS 'ZONE'
-    ;
-
-UDF_SCRIPT
-    : BEGIN .* END
     ;
 
 fragment EXPONENT

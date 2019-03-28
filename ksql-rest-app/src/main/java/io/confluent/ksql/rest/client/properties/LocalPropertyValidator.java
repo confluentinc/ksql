@@ -18,11 +18,8 @@ package io.confluent.ksql.rest.client.properties;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.PropertyValidator;
-import io.confluent.ksql.engine.KsqlEngineProps;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -35,7 +32,8 @@ import org.apache.kafka.streams.StreamsConfig;
 class LocalPropertyValidator implements PropertyValidator {
 
   // Only these config properties can be configured using SET/UNSET commands.
-  private static final Set<String> CONFIG_PROPERTY_WHITELIST = ImmutableSet.<String>builder()
+  // Package private for testing.
+  static final Set<String> CONFIG_PROPERTY_WHITELIST = ImmutableSet.<String>builder()
       .add(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY)
       .add(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)
       .add(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)

@@ -39,16 +39,19 @@ public class LocalPropertyValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnImmutableProp() {
+  public void shouldThrowOnNonConfigurableProp() {
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Cannot override property 'immutable-2'");
+    expectedException.expectMessage("Cannot override property 'foo'");
 
-    validator.validate("immutable-2", "anything");
+    validator.validate("foo", "anything");
   }
 
   @Test
-  public void shouldNotThrowOnMutableProp() {
-    validator.validate("mutable-1", "anything");
+  public void shouldNotThrowOnConfigurableProp() {
+    LocalPropertyValidator
+        .CONFIG_PROPERTY_WHITELIST
+        .stream()
+        .forEach(s -> validator.validate(s, "anything"));
   }
 
   @Test

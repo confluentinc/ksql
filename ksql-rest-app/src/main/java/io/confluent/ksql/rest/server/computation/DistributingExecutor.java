@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutor;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
@@ -42,14 +43,18 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
+  private final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory) {
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
+      final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.schemaInjectorFactory =
         Objects.requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
+    this.topicInjectorFactory = Objects
+        .requireNonNull(topicInjectorFactory, "topicInjectorFactory");
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
   }
@@ -61,18 +66,20 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> propertyOverrides) {
-    final PreparedStatement<?> withSchema =
-        schemaInjectorFactory.apply(serviceContext).forStatement(statement);
+    final PreparedStatement<?> withSchema = schemaInjectorFactory
+        .apply(serviceContext).forStatement(statement);
+    final PreparedStatement<?> withTopic = topicInjectorFactory
+        .apply(executionContext).forStatement(withSchema, ksqlConfig, propertyOverrides);
 
     try {
       final QueuedCommandStatus queuedCommandStatus = commandQueue
-          .enqueueCommand(withSchema, ksqlConfig, propertyOverrides);
+          .enqueueCommand(withTopic, ksqlConfig, propertyOverrides);
 
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return Optional.of(new CommandStatusEntity(
-          withSchema.getStatementText(),
+          withTopic.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()

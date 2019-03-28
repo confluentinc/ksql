@@ -131,6 +131,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return primaryContext.getMetaStore();
   }
 
+  @Override
+  public ServiceContext getServiceContext() {
+    return serviceContext;
+  }
+
   public DdlCommandExec getDdlCommandExec() {
     return primaryContext.getDdlCommandExec();
   }

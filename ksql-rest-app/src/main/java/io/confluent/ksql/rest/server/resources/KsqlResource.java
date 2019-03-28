@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources;
 import static java.util.regex.Pattern.compile;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -44,6 +45,7 @@ import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -96,7 +98,8 @@ public class KsqlResource {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory
+      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
+      final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -108,6 +111,7 @@ public class KsqlResource {
     this.validator = new RequestValidator(
         CustomValidators.VALIDATOR_MAP,
         schemaInjectorFactory,
+        topicInjectorFactory,
         ksqlEngine::createSandbox,
         SandboxedServiceContext.create(serviceContext),
         ksqlConfig);
@@ -116,7 +120,8 @@ public class KsqlResource {
         new DistributingExecutor(
             commandQueue,
             distributedCmdResponseTimeout,
-            schemaInjectorFactory),
+            schemaInjectorFactory,
+            topicInjectorFactory),
         ksqlEngine,
         ksqlConfig,
         serviceContext,

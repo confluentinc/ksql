@@ -275,6 +275,8 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldCreateSinkWithCorrectCleanupPolicyWindowedTable() {
     // Given:
     reset(mockTopicClient);
+    when(mockTopicClient.describeTopic(any())).thenReturn(topicDescription);
+
     outputNode = getKsqlStructuredDataOutputNodeForTable(
         () -> WindowedSerdes.timeWindowedSerdeFrom(String.class));
 

@@ -78,14 +78,14 @@ public class StandaloneExecutorFactoryTest {
     when(topicClient.isTopicExists(configTopicName)).thenReturn(false);
     when(configStore.getKsqlConfig()).thenReturn(mergedConfig);
     when(constructor
-        .create(any(), any(), any(), any(), anyString(), any(), anyBoolean(), any(), any()))
+        .create(any(), any(), any(), any(), anyString(), any(), anyBoolean(), any(), any(), any()))
         .thenReturn(standaloneExecutor);
   }
 
   @After
   public void tearDown() throws Exception {
     verify(constructor)
-        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any());
+        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any(), any());
 
     engineCaptor.getAllValues().forEach(KsqlEngine::close);
   }
@@ -135,6 +135,6 @@ public class StandaloneExecutorFactoryTest {
     inOrder.verify(topicClient).createTopic(eq(configTopicName), anyInt(), anyShort(), anyMap());
     inOrder.verify(configStoreFactory).apply(eq(configTopicName), argThat(sameConfig(baseConfig)));
     inOrder.verify(constructor).create(
-        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any(), any());
+        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any(), any(), any());
   }
 }

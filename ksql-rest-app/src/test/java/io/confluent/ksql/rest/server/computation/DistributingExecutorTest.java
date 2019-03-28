@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -62,6 +63,7 @@ public class DistributingExecutorTest {
   @Mock QueuedCommandStatus status;
   @Mock ServiceContext serviceContext;
   @Mock SchemaInjector schemaInjector;
+  @Mock TopicInjector topicInjector;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -70,12 +72,17 @@ public class DistributingExecutorTest {
   public void setUp() throws InterruptedException {
     scnCounter = new AtomicLong();
     when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.forStatement(any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
     when(queue.enqueueCommand(any(), any(), any())).thenReturn(status);
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
 
-    distributor = new DistributingExecutor(queue, DURATION_10_MS, sc -> schemaInjector);
+    distributor = new DistributingExecutor(
+        queue,
+        DURATION_10_MS,
+        sc -> schemaInjector,
+        ec -> topicInjector);
   }
 
   @Test

@@ -60,6 +60,7 @@ import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -410,8 +411,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        schemaInjectorFactory
-    );
+        schemaInjectorFactory,
+        DefaultTopicInjector::new);
 
     final Optional<String> processingLogTopic =
         ProcessingLogServerUtils.maybeCreateProcessingLogTopic(

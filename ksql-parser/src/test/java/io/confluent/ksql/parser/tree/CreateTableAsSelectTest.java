@@ -56,6 +56,9 @@ public class CreateTableAsSelectTest {
         .addEqualityGroup(
             new CreateTableAsSelect(SOME_NAME, SOME_QUERY, true, Collections.emptyMap())
         )
+        .addEqualityGroup(
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, Collections.emptyMap(), Optional.empty())
+        )
         .testEquals();
   }
 }

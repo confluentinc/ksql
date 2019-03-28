@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
+import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -181,8 +182,8 @@ public class RecoveryTest {
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
-          schemaInjectorFactory
-      );
+          schemaInjectorFactory,
+          DefaultTopicInjector::new);
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
           ksqlEngine,

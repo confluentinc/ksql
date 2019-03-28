@@ -43,7 +43,7 @@ The ``authentication.roles`` config defines a comma separated list of user roles
 to use the KSQL server an authenticated user must belong to at least one of these roles.
 
 The ``authentication.realm`` config must match a section within ``jaas_config.file``, which
-defines how the server authenticates users, and should be passed as a JVM option during server start:
+defines how the server authenticates users and should be passed as a JVM option during server start:
 
 .. code:: bash
 

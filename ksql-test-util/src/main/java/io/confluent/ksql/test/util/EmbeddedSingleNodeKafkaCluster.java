@@ -17,12 +17,14 @@ package io.confluent.ksql.test.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Closer;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
@@ -123,8 +125,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   @Override
   protected void before() throws Exception {
-    tmpFolder.create();
-    start();
+    try {
+      tmpFolder.create();
+      start();
+    } catch (Exception e) {
+      // if an exception is thrown, after() is never called
+      after();
+      throw e;
+    }
   }
 
   @Override
@@ -137,16 +145,16 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * Stop the Kafka cluster.
    */
   public void stop() {
-    if (broker != null) {
-      broker.stop();
-    }
-    authorizer.close();
+    final Closer closer = Closer.create();
+
+    closer.register(broker);
+    closer.register(authorizer::close);
+    closer.register(zookeeper);
+
     try {
-      if (zookeeper != null) {
-        zookeeper.stop();
-      }
-    } catch (final IOException e) {
-      throw new RuntimeException(e);
+      closer.close();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
 
     resetJaasConfig();

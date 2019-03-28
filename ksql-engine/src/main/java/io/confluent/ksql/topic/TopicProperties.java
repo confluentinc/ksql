@@ -16,6 +16,7 @@
 package io.confluent.ksql.topic;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.util.KsqlConfig;
@@ -24,6 +25,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.WithClauseUtil;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -32,11 +35,15 @@ import org.apache.kafka.clients.admin.TopicDescription;
  * A container for all properties required for creating/validating
  * a kafka topic.
  */
-public class TopicProperties {
+public final class TopicProperties {
 
-  public final String topicName;
-  public final Integer partitions;
-  public final Short replicas;
+  private static final String INVALID_TOPIC_NAME = ":INVALID:";
+  private static final int INVALID_PARTITIONS = -1;
+  private static final short INVALID_REPLICAS = -1;
+
+  private final String topicName;
+  private final Integer partitions;
+  private final Short replicas;
 
   @VisibleForTesting
   TopicProperties(
@@ -51,10 +58,22 @@ public class TopicProperties {
 
   @Override
   public String toString() {
-    return "TopicProperties{" + "topicName='" + topicName + '\''
-        + ", partitions=" + partitions
-        + ", replicas=" + replicas
+    return "TopicProperties{" + "topicName='" + getTopicName() + '\''
+        + ", partitions=" + getPartitions()
+        + ", replicas=" + getReplicas()
         + '}';
+  }
+
+  public String getTopicName() {
+    return topicName == null ? INVALID_TOPIC_NAME : topicName;
+  }
+
+  public int getPartitions() {
+    return partitions == null ? INVALID_PARTITIONS : partitions;
+  }
+
+  public short getReplicas() {
+    return replicas == null ? INVALID_REPLICAS : replicas;
   }
 
   /**
@@ -80,7 +99,7 @@ public class TopicProperties {
     private TopicProperties fromWithClause = new TopicProperties(null, null, null);
     private TopicProperties fromOverrides = new TopicProperties(null, null, null);
     private TopicProperties fromKsqlConfig = new TopicProperties(null, null, null);
-    private TopicProperties fromSource = new TopicProperties(null, null, null);
+    private Supplier<TopicProperties> fromSource = () -> new TopicProperties(null, null, null);
 
     public Builder withName(final String name) {
       this.name = name;
@@ -112,7 +131,7 @@ public class TopicProperties {
       return this;
     }
 
-    public Builder withLegacyKsqlConfig(final KsqlConfig config) {
+    public Builder withKsqlConfig(final KsqlConfig config) {
       // requires check for containsKey because `getInt` will return 0 otherwise
       Integer partitions = null;
       if (config.values().containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
@@ -129,35 +148,42 @@ public class TopicProperties {
       return this;
     }
 
-    public Builder withSource(final TopicDescription description) {
-      final Integer partitions = description.partitions().size();
-      final Short replicas = (short) description.partitions().get(0).replicas().size();
+    public Builder withSource(final Supplier<TopicDescription> descriptionSupplier) {
+      fromSource = Suppliers.memoize(() -> {
+        final TopicDescription description = descriptionSupplier.get();
+        final Integer partitions = description.partitions().size();
+        final Short replicas = (short) description.partitions().get(0).replicas().size();
 
-      fromSource = new TopicProperties(null, partitions, replicas);
+        return new TopicProperties(null, partitions, replicas);
+      });
       return this;
     }
 
     public TopicProperties build() {
+      // this method should use the field directly instead of accessors to force null checks
+
       final String name = ObjectUtils.firstNonNull(fromWithClause.topicName, this.name);
       Objects.requireNonNull(name, "Was not supplied with any valid source for topic name!");
       if (StringUtils.strip(name).isEmpty()) {
         throw new KsqlException("Must have non-empty topic name.");
       }
 
-      final Integer partitions = ObjectUtils.firstNonNull(
+      final Integer partitions = Stream.of(
           fromWithClause.partitions,
           fromOverrides.partitions,
-          fromKsqlConfig.partitions,
-          fromSource.partitions
-      );
+          fromKsqlConfig.partitions)
+          .filter(Objects::nonNull)
+          .findFirst()
+          .orElseGet(() -> fromSource.get().partitions);
       Objects.requireNonNull(partitions, "Was not supplied with any valid source for partitions!");
 
-      final Short replicas = ObjectUtils.firstNonNull(
+      final Short replicas = Stream.of(
           fromWithClause.replicas,
           fromOverrides.replicas,
-          fromKsqlConfig.replicas,
-          fromSource.replicas
-      );
+          fromKsqlConfig.replicas)
+          .filter(Objects::nonNull)
+          .findFirst()
+          .orElseGet(() -> fromSource.get().replicas);
       Objects.requireNonNull(replicas, "Was not supplied with any valid source for replicas!");
 
       return new TopicProperties(name, partitions, replicas);

@@ -15,21 +15,11 @@
 
 package io.confluent.ksql.topic;
 
-import static io.confluent.ksql.topic.Inject.KSQL_CONFIG;
-import static io.confluent.ksql.topic.Inject.KSQL_CONFIG_P;
-import static io.confluent.ksql.topic.Inject.KSQL_CONFIG_R;
-import static io.confluent.ksql.topic.Inject.NO_CONFIG;
-import static io.confluent.ksql.topic.Inject.NO_OVERRIDES;
-import static io.confluent.ksql.topic.Inject.NO_WITH;
-import static io.confluent.ksql.topic.Inject.OVERRIDES;
-import static io.confluent.ksql.topic.Inject.OVERRIDES_P;
-import static io.confluent.ksql.topic.Inject.OVERRIDES_R;
-import static io.confluent.ksql.topic.Inject.SOURCE;
-import static io.confluent.ksql.topic.Inject.WITH;
-import static io.confluent.ksql.topic.Inject.WITH_P;
-import static io.confluent.ksql.topic.Inject.WITH_R;
+import static io.confluent.ksql.topic.TopicPropertiesTest.Inject.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -41,12 +31,16 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
@@ -82,11 +76,11 @@ public class TopicPropertiesTest {
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
           .withWithClause(withClause)
-          .withLegacyKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
 
       // Then:
-      assertThat(properties.topicName, equalTo("name"));
+      assertThat(properties.getTopicName(), equalTo("name"));
     }
 
     @Test
@@ -100,11 +94,11 @@ public class TopicPropertiesTest {
       final TopicProperties properties = new TopicProperties.Builder()
           .withName("oh no!")
           .withWithClause(withClause)
-          .withLegacyKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
 
       // Then:
-      assertThat(properties.topicName, equalTo("name"));
+      assertThat(properties.getTopicName(), equalTo("name"));
     }
 
     @Test
@@ -112,11 +106,11 @@ public class TopicPropertiesTest {
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
           .withName("name")
-          .withLegacyKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
 
       // Then:
-      assertThat(properties.topicName, equalTo("name"));
+      assertThat(properties.getTopicName(), equalTo("name"));
     }
 
     @Test
@@ -127,7 +121,7 @@ public class TopicPropertiesTest {
 
       // When:
       new TopicProperties.Builder()
-          .withLegacyKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
     }
 
@@ -140,7 +134,7 @@ public class TopicPropertiesTest {
       // When:
       new TopicProperties.Builder()
           .withName("")
-          .withLegacyKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
     }
 
@@ -158,7 +152,7 @@ public class TopicPropertiesTest {
       // When:
       new TopicProperties.Builder()
           .withName("name")
-          .withLegacyKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
     }
 
@@ -176,8 +170,60 @@ public class TopicPropertiesTest {
       // When:
       new TopicProperties.Builder()
           .withName("name")
-          .withLegacyKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
+    }
+
+    @Test
+    public void shouldNotMakeRemoteCallIfUnnecessary() {
+      // Given:
+      final Map<String, Expression> withClause = ImmutableMap.of(
+          DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("name"),
+          KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(1),
+          KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(1)
+      );
+
+      // When:
+      final TopicProperties properties = new TopicProperties.Builder()
+          .withWithClause(withClause)
+          .withKsqlConfig(config)
+          .withSource(() -> {
+            throw new RuntimeException();
+          })
+          .build();
+
+      // Then:
+      assertThat(properties.getPartitions(), equalTo(1));
+      assertThat(properties.getReplicas(), equalTo((short) 1));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldNotMakeMultipleRemoteCalls() {
+      // Given:
+      final Supplier<TopicDescription> source = mock(Supplier.class);
+      when(source.get())
+          .thenReturn(
+              new TopicDescription(
+                  "",
+                  false,
+                  ImmutableList.of(
+                      new TopicPartitionInfo(
+                          0,
+                          null,
+                          ImmutableList.of(new Node(1, "", 1)),
+                          ImmutableList.of()))))
+          .thenThrow();
+
+      // When:
+      final TopicProperties properties = new TopicProperties.Builder()
+          .withName("name")
+          .withSource(source)
+          .build();
+
+      // Then:
+      assertThat(properties.getPartitions(), equalTo(1));
+      assertThat(properties.getReplicas(), equalTo((short) 1));
     }
 
   }
@@ -295,13 +341,13 @@ public class TopicPropertiesTest {
           .withName("name")
           .withWithClause(withClause)
           .withOverrides(propertyOverrides)
-          .withLegacyKsqlConfig(ksqlConfig)
-          .withSource(source(SOURCE))
+          .withKsqlConfig(ksqlConfig)
+          .withSource(() -> source(SOURCE))
           .build();
 
       // Then:
-      assertThat(properties.partitions, equalTo(expectedPartitions.partitions));
-      assertThat(properties.replicas, equalTo(expectedReplicas.replicas));
+      assertThat(properties.getPartitions(), equalTo(expectedPartitions.partitions));
+      assertThat(properties.getReplicas(), equalTo(expectedReplicas.replicas));
     }
 
     private void givenInject(final Inject inject) {
@@ -357,4 +403,71 @@ public class TopicPropertiesTest {
     }
   }
 
+  enum Inject {
+    SOURCE(Type.SOURCE, 1, (short) 1),
+    SOURCE2(Type.SOURCE, 12, (short) 12),
+
+    WITH(Type.WITH, 2, (short) 2),
+    OVERRIDES(Type.OVERRIDES, 3, (short) 3),
+    KSQL_CONFIG(Type.KSQL_CONFIG, 4, (short) 4),
+
+    WITH_P(Type.WITH, 5, null),
+    OVERRIDES_P(Type.OVERRIDES, 6, null),
+    KSQL_CONFIG_P(Type.KSQL_CONFIG, 7, null),
+
+    WITH_R(Type.WITH, null, (short) 8),
+    OVERRIDES_R(Type.OVERRIDES, null, (short) 9),
+    KSQL_CONFIG_R(Type.KSQL_CONFIG, null, (short) 10),
+
+    NO_WITH(Type.WITH, null, null),
+    NO_OVERRIDES(Type.OVERRIDES, null, null),
+    NO_CONFIG(Type.KSQL_CONFIG, null, null)
+    ;
+
+    final Type type;
+    final Integer partitions;
+    final Short replicas;
+
+    Inject(final Type type, final Integer partitions, final Short replicas) {
+      this.type = type;
+      this.partitions = partitions;
+      this.replicas = replicas;
+    }
+
+    enum Type {
+      WITH,
+      OVERRIDES,
+      KSQL_CONFIG,
+      SOURCE
+    }
+
+    /**
+     * Generates code for all combinations of Injects
+     */
+    public static void main(String[] args) {
+      final List<Inject> withs = EnumSet.allOf(Inject.class)
+          .stream().filter(i -> i.type == Type.WITH).collect(Collectors.toList());
+      final List<Inject> overrides = EnumSet.allOf(Inject.class)
+          .stream().filter(i -> i.type == Type.OVERRIDES).collect(Collectors.toList());
+      final List<Inject> ksqlConfigs = EnumSet.allOf(Inject.class)
+          .stream().filter(i -> i.type == Type.KSQL_CONFIG).collect(Collectors.toList());
+
+      for (List<Inject> injects : Lists.cartesianProduct(withs, overrides, ksqlConfigs)) {
+        // sort by precedence order
+        injects = new ArrayList<>(injects);
+        injects.sort(Comparator.comparing(i -> i.type));
+
+        final Inject expectedPartitions =
+            injects.stream().filter(i -> i.partitions != null).findFirst().orElse(Inject.SOURCE);
+        final Inject expectedReplicas =
+            injects.stream().filter(i -> i.replicas != null).findFirst().orElse(Inject.SOURCE);
+
+        System.out.println(String.format("{new Inject[]{%-38s}, %-15s, %-15s},",
+            injects.stream().map(Objects::toString).collect(Collectors.joining(", ")),
+            expectedPartitions,
+            expectedReplicas)
+        );
+      }
+    }
+  }
 }

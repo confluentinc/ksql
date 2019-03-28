@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
@@ -142,9 +143,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
     if (doCreateInto) {
-      final TopicDescription sourceTopicDescription = getSourceTopicPropertiesFromKafka(
-          getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
-          serviceContext.getTopicClient());
+      final Supplier<TopicDescription> sourceTopicDescription = () ->
+          getSourceTopicPropertiesFromKafka(
+              getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
+              serviceContext.getTopicClient());
 
       createSinkTopic(
           serviceContext.getTopicClient(),
@@ -152,7 +154,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           new TopicProperties.Builder()
               .withName(noRowKey.getKafkaTopicName())
               .withOverrides(outputProperties)
-              .withLegacyKsqlConfig(ksqlConfig)
+              .withKsqlConfig(ksqlConfig)
               .withSource(sourceTopicDescription)
               .build());
     }
@@ -248,9 +250,9 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         : Collections.emptyMap();
 
     kafkaTopicClient.createTopic(
-        topicProperties.topicName,
-        topicProperties.partitions,
-        topicProperties.replicas,
+        topicProperties.getTopicName(),
+        topicProperties.getPartitions(),
+        topicProperties.getReplicas(),
         config
     );
   }

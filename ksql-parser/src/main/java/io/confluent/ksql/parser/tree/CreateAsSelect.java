@@ -83,7 +83,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, query, properties, notExists);
+    return Objects.hash(name, query, properties, notExists, getClass());
   }
 
   @Override

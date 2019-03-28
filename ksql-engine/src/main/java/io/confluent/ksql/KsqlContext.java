@@ -55,9 +55,7 @@ public class KsqlContext {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
-  private final SchemaInjector schemaInjector;
   private final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
-  private final TopicInjector topicInjector;
 
   /**
    * Create a KSQL context object with the given properties. A KSQL context has it's own metastore
@@ -102,8 +100,6 @@ public class KsqlContext {
         .requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
     this.topicInjectorFactory = Objects
         .requireNonNull(topicInjectorFactory, "topicInjectorFactory");
-    this.topicInjector = Objects.requireNonNull(topicInjectorFactory.apply(ksqlEngine));
-    this.schemaInjector = schemaInjectorFactory.apply(serviceContext);
   }
 
   public ServiceContext getServiceContext() {
@@ -139,6 +135,8 @@ public class KsqlContext {
           sandboxTopicInjector);
     }
 
+    final SchemaInjector schemaInjector = schemaInjectorFactory.apply(serviceContext);
+    final TopicInjector topicInjector = topicInjectorFactory.apply(ksqlEngine);
     final List<QueryMetadata> queries = new ArrayList<>();
     for (final ParsedStatement parsed : statements) {
       execute(ksqlEngine, parsed, ksqlConfig, overriddenProperties, schemaInjector, topicInjector)

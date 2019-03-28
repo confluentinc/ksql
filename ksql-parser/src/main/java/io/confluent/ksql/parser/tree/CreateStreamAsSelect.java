@@ -73,4 +73,9 @@ public class CreateStreamAsSelect extends CreateAsSelect {
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitCreateStreamAsSelect(this, context);
   }
+
+  @Override
+  public String toString() {
+    return "CreateStreamAsSelect{" + super.toString() + '}';
+  }
 }

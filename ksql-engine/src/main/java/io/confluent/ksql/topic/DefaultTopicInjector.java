@@ -80,22 +80,21 @@ public class DefaultTopicInjector implements TopicInjector {
     final PreparedStatement<? extends CreateAsSelect> cas =
         (PreparedStatement<? extends CreateAsSelect>) statement;
 
-    final TopicDescription source = describeSource(topicClient, cas);
     final TopicProperties info = topicPropertiesBuilder
         .withName(ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG)
             + cas.getStatement().getName().getSuffix())
         .withWithClause(cas.getStatement().getProperties())
         .withOverrides(propertyOverrides)
-        .withLegacyKsqlConfig(ksqlConfig)
-        .withSource(source)
+        .withKsqlConfig(ksqlConfig)
+        .withSource(() -> describeSource(topicClient, cas))
         .build();
 
-    final Map<String, Expression> properties = new HashMap<>(cas.getStatement().getProperties());
-    properties.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(info.topicName));
-    properties.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(info.replicas));
-    properties.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(info.partitions));
+    final Map<String, Expression> props = new HashMap<>(cas.getStatement().getProperties());
+    props.put(DdlConfig.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(info.getTopicName()));
+    props.put(KsqlConstants.SINK_NUMBER_OF_REPLICAS, new IntegerLiteral(info.getReplicas()));
+    props.put(KsqlConstants.SINK_NUMBER_OF_PARTITIONS, new IntegerLiteral(info.getPartitions()));
 
-    final CreateAsSelect withTopic = cas.getStatement().copyWith(properties);
+    final CreateAsSelect withTopic = cas.getStatement().copyWith(props);
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
 
     return (PreparedStatement<T>) PreparedStatement.of(withTopicText, withTopic);

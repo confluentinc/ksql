@@ -69,11 +69,16 @@ public class RequestValidatorTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
-  @Mock KsqlEngine ksqlEngine;
-  @Mock KsqlConfig ksqlConfig;
-  @Mock StatementValidator<?> statementValidator;
-  @Mock SchemaInjector schemaInjector;
-  @Mock TopicInjector topicInjector;
+  @Mock
+  KsqlEngine ksqlEngine;
+  @Mock
+  KsqlConfig ksqlConfig;
+  @Mock
+  StatementValidator<?> statementValidator;
+  @Mock
+  SchemaInjector schemaInjector;
+  @Mock
+  TopicInjector topicInjector;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;

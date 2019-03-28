@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -46,10 +47,13 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +76,7 @@ public class DefaultTopicInjectorTest {
   private Map<String, Object> overrides;
   private PreparedStatement<CreateStreamAsSelect> statement;
   private KsqlConfig config;
-  private TopicDescription sourceDesciprtion;
+  private TopicDescription sourceDescription;
 
   @Before
   public void setUp() {
@@ -85,7 +89,7 @@ public class DefaultTopicInjectorTest {
     injector = new DefaultTopicInjector(topicClient, metaStore);
 
     topicClient.createTopic("source", 1, (short) 1);
-    sourceDesciprtion = topicClient.describeTopic("source");
+    sourceDescription = topicClient.describeTopic("source");
 
     topicClient.createTopic("jSource", 2, (short) 2);
 
@@ -116,7 +120,7 @@ public class DefaultTopicInjectorTest {
     when(builder.withName(any())).thenReturn(builder);
     when(builder.withWithClause(any())).thenReturn(builder);
     when(builder.withOverrides(any())).thenReturn(builder);
-    when(builder.withLegacyKsqlConfig(any())).thenReturn(builder);
+    when(builder.withKsqlConfig(any())).thenReturn(builder);
     when(builder.withSource(any())).thenReturn(builder);
     when(builder.build()).thenReturn(new TopicProperties("name", 1, (short) 1));
   }
@@ -178,7 +182,7 @@ public class DefaultTopicInjectorTest {
     injector.forStatement(statement, config, overrides, builder);
 
     // Then:
-    verify(builder).withLegacyKsqlConfig(config);
+    verify(builder).withKsqlConfig(config);
   }
 
   @Test
@@ -190,7 +194,7 @@ public class DefaultTopicInjectorTest {
     injector.forStatement(statement, config, overrides, builder);
 
     // Then:
-    verify(builder).withSource(eq(sourceDesciprtion));
+    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
   }
 
   @Test
@@ -203,7 +207,7 @@ public class DefaultTopicInjectorTest {
     injector.forStatement(statement, config, overrides, builder);
 
     // Then:
-    verify(builder).withSource(eq(sourceDesciprtion));
+    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
   }
 
   @Test
@@ -249,6 +253,21 @@ public class DefaultTopicInjectorTest {
       statement = (PreparedStatement<CreateStreamAsSelect>) preparedStatement;
     }
     return preparedStatement;
+  }
+
+  private static TypeSafeMatcher<Supplier<TopicDescription>> supplierThatGets(
+      final TopicDescription topicDescription) {
+    return new TypeSafeMatcher<Supplier<TopicDescription>>() {
+      @Override
+      protected boolean matchesSafely(final Supplier<TopicDescription> item) {
+        return item.get().equals(topicDescription);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(topicDescription.toString());
+      }
+    };
   }
 
 }

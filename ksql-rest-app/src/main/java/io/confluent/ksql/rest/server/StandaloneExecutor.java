@@ -310,8 +310,9 @@ public class StandaloneExecutor implements Executable {
         final ParsedStatement statement
     ) {
       final PreparedStatement<?> prepared = executionContext.prepare(statement);
+      final PreparedStatement<?> withSchema = schemaInjector.forStatement(prepared);
       return topicInjector.forStatement(
-          schemaInjector.forStatement(prepared),
+          withSchema,
           ksqlConfig,
           configProperties);
     }

@@ -102,13 +102,19 @@ Use the following settings to configure the KSQL server to require authenticatio
     authentication.method=BASIC
     authentication.roles=some-ksql-cluster-id
     authentication.realm=KsqlServer-Props
-    java.security.auth.login.config=/path/to/the/jaas_config.file
 
 The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized
 to use the KSQL server an authenticated user must belong to at least one of these roles.
 
 The ``authentication.realm`` config must match a section within ``jaas_config.file``, which
-defines how the server authenticates users, for example:
+defines how the server authenticates users and should be passed as a JVM option during server start:
+
+.. code:: bash
+
+    $ export KSQL_OPTS=-Djava.security.auth.login.config=/path/to/the/jaas_config.file
+    $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+
+An example ``jaas_config.file`` is:
 
 ::
 

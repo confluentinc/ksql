@@ -169,7 +169,7 @@ public class KsqlResourceTest {
   private static final Duration DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = Duration.ofMillis(1000);
   private static final KsqlRequest VALID_EXECUTABLE_REQUEST = new KsqlRequest(
       "CREATE STREAM S AS SELECT * FROM test_stream;",
-      ImmutableMap.of(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG, true),
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       0L);
   private static final Schema SINGLE_FIELD_SCHEMA = SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA);
@@ -1089,12 +1089,12 @@ public class KsqlResourceTest {
     // Given:
     final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
     final Map<String, Object> localOverrides = ImmutableMap.of(
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2"
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
     );
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
-        new KsqlRequest("UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';\n"
+        new KsqlRequest("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';\n"
             + csas, localOverrides, null),
         CommandStatusEntity.class);
 

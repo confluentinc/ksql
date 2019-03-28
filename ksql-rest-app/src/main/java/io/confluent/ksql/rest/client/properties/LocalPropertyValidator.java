@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -37,6 +38,7 @@ class LocalPropertyValidator implements PropertyValidator {
       .add(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY)
       .add(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)
       .add(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)
+      .add(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT)
       .build();
 
   private static final Map<String, Consumer<Object>> HANDLERS =

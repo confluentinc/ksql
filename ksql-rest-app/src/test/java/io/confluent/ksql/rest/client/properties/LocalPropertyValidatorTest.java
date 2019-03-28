@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.client.properties;
 
-import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Before;
 import org.junit.Rule;
@@ -24,9 +22,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class LocalPropertyValidatorTest {
-
-  private static final Collection<String> IMMUTABLE_PROPS =
-      ImmutableList.of("immutable-1", "immutable-2");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -50,7 +45,6 @@ public class LocalPropertyValidatorTest {
   public void shouldNotThrowOnConfigurableProp() {
     LocalPropertyValidator
         .CONFIG_PROPERTY_WHITELIST
-        .stream()
         .forEach(s -> validator.validate(s, "anything"));
   }
 

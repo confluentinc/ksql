@@ -69,9 +69,12 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
 
-  public static Credentials VALID_USER1 = new Credentials("valid_user_1", "some-password");
-  public static Credentials VALID_USER2 = new Credentials("valid_user_2", "some-password");
-  private static List<Credentials> ALL_VALID_USERS = ImmutableList.of(VALID_USER1, VALID_USER2);
+  public static final Credentials VALID_USER1 =
+      new Credentials("valid_user_1", "some-password");
+  public static final Credentials VALID_USER2 =
+      new Credentials("valid_user_2", "some-password");
+  private static final List<Credentials> ALL_VALID_USERS =
+      ImmutableList.of(VALID_USER1, VALID_USER2);
 
   private ZooKeeperEmbedded zookeeper;
   private KafkaEmbedded broker;
@@ -112,7 +115,9 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-
+    // Streams runs multiple consumers, so let's give them all a chance to join.
+    // (Tests run quicker and with a more stable consumer group):
+    brokerConfig.put("group.initial.rebalance.delay.ms", 100);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
@@ -150,7 +155,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * This cluster's `bootstrap.servers` value.  Example: `127.0.0.1:9092`.
    *
-   * You can use this to tell Kafka producers how to connect to this cluster.
+   * <p>You can use this to tell Kafka producers how to connect to this cluster.
    */
   public String bootstrapServers() {
     return broker.brokerList();
@@ -159,7 +164,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * This cluster's `bootstrap.servers` value.  Example: `127.0.0.1:9092`.
    *
-   * You can use this to tell Kafka producers how to connect to this cluster.
+   * <p>You can use this to tell Kafka producers how to connect to this cluster.
    * @param securityProtocol the security protocol to select.
    */
   public String bootstrapServers(final SecurityProtocol securityProtocol) {
@@ -169,7 +174,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Common properties that clients will need to connect to the cluster.
    *
-   * This includes any SASL / SSL related settings.
+   * <p>This includes any SASL / SSL related settings.
    *
    * @return the properties that should be added to client props.
    */
@@ -181,8 +186,9 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * This cluster's ZK connection string aka `zookeeper.connect` in `hostnameOrIp:port` format.
    * Example: `127.0.0.1:2181`.
    *
-   * You can use this to e.g. tell Kafka consumers how to connect to this cluster.
+   * <p>You can use this to e.g. tell Kafka consumers how to connect to this cluster.
    */
+  @SuppressWarnings("WeakerAccess") // Part of public API
   public String zookeeperConnect() {
     return zookeeper.connectString();
   }
@@ -193,7 +199,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param topic The name of the topic.
    */
   public void createTopic(final String topic) {
-    createTopic(topic, 1, 1, new Properties());
+    broker.createTopic(topic, 1, 1);
   }
 
   /**
@@ -204,7 +210,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (the partitions of) this topic.
    */
   public void createTopic(final String topic, final int partitions, final int replication) {
-    createTopic(topic, partitions, replication, new Properties());
+    broker.createTopic(topic, partitions, replication);
   }
 
   /**
@@ -215,7 +221,8 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
-  public void createTopic(final String topic,
+  public void createTopic(
+      final String topic,
                           final int partitions,
                           final int replication,
                           final Properties topicConfig) {
@@ -230,10 +237,11 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param resource    the thing
    * @param ops         the what.
    */
-  public void addUserAcl(final String username,
-                         final AclPermissionType permission,
-                         final ResourcePattern resource,
-                         final Set<AclOperation> ops) {
+  public void addUserAcl(
+      final String username,
+      final AclPermissionType permission,
+      final ResourcePattern resource,
+      final Set<AclOperation> ops) {
 
     final KafkaPrincipal principal = new KafkaPrincipal("User", username);
     final PermissionType scalaPermission = PermissionType$.MODULE$.fromJava(permission);
@@ -268,13 +276,26 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     return new Builder();
   }
 
+  public static EmbeddedSingleNodeKafkaCluster build() {
+    return newBuilder().build();
+  }
+
   private Properties effectiveBrokerConfigFrom() {
     final Properties effectiveConfig = new Properties();
     effectiveConfig.putAll(brokerConfig);
     effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
+    // Allow tests to delete topics:
     effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
-    effectiveConfig.put(KafkaConfig.LogCleanerDedupeBufferSizeProp(), 2 * 1024 * 1024L);
+    // Do not clean logs from under the tests or waste resources doing so:
+    effectiveConfig.put(KafkaConfig.LogCleanerEnableProp(), false);
+    // Only single node, so only single RF on offset topic partitions:
     effectiveConfig.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
+    // Tests do not need large numbers of offset topic partitions:
+    effectiveConfig.put(KafkaConfig.OffsetsTopicPartitionsProp(), "2");
+    // Shutdown quick:
+    effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
+    effectiveConfig.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
     return effectiveConfig;
   }
 
@@ -282,7 +303,7 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     try {
       final String jaasConfigContent = createJaasConfigContent();
       final File jaasConfig = TestUtils.tempFile();
-      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes((StandardCharsets.UTF_8)));
+      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes(StandardCharsets.UTF_8));
 
       System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jaasConfig.getAbsolutePath());
       System.setProperty(JaasUtils.ZK_SASL_CLIENT, "false");
@@ -340,9 +361,9 @@ public class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     public Builder withAcls(final String... superUsers) {
       brokerConfig.remove(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
       brokerConfig.put(SimpleAclAuthorizer.SuperUsersProp(),
-                       Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
-                           .map(s -> "User:" + s)
-                           .collect(Collectors.joining(";")));
+          Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
+              .map(s -> "User:" + s)
+              .collect(Collectors.joining(";")));
       return this;
     }
 

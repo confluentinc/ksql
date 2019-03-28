@@ -221,7 +221,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
-  public void createTopic(final String topic,
+  public void createTopic(
+      final String topic,
                           final int partitions,
                           final int replication,
                           final Map<String, String> topicConfig) {
@@ -236,10 +237,11 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param resource    the thing
    * @param ops         the what.
    */
-  public void addUserAcl(final String username,
-                         final AclPermissionType permission,
-                         final ResourcePattern resource,
-                         final Set<AclOperation> ops) {
+  public void addUserAcl(
+      final String username,
+      final AclPermissionType permission,
+      final ResourcePattern resource,
+      final Set<AclOperation> ops) {
 
     final KafkaPrincipal principal = new KafkaPrincipal("User", username);
     final PermissionType scalaPermission = PermissionType$.MODULE$.fromJava(permission);
@@ -306,7 +308,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     try {
       final String jaasConfigContent = createJaasConfigContent() + additionalJaasConfig;
       final File jaasConfig = TestUtils.tempFile();
-      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes((StandardCharsets.UTF_8)));
+      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes(StandardCharsets.UTF_8));
       return jaasConfig.getAbsolutePath();
     } catch (final Exception e) {
       throw new RuntimeException(e);
@@ -379,9 +381,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     public Builder withAcls(final String... superUsers) {
       brokerConfig.remove(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
       brokerConfig.put(SimpleAclAuthorizer.SuperUsersProp(),
-                       Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
-                           .map(s -> "User:" + s)
-                           .collect(Collectors.joining(";")));
+          Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
+              .map(s -> "User:" + s)
+              .collect(Collectors.joining(";")));
       return this;
     }
 

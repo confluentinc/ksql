@@ -113,7 +113,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
     brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-    brokerConfig.put("group.initial.rebalance.delay.ms", 0);
+    // Streams runs multiple consumers, so let's give them all a chance to join.
+    // (Tests run quicker and with a more stable consumer group):
+    brokerConfig.put("group.initial.rebalance.delay.ms", 100);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
@@ -219,7 +221,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
-  public void createTopic(final String topic,
+  public void createTopic(
+      final String topic,
                           final int partitions,
                           final int replication,
                           final Map<String, String> topicConfig) {
@@ -234,10 +237,11 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param resource    the thing
    * @param ops         the what.
    */
-  public void addUserAcl(final String username,
-                         final AclPermissionType permission,
-                         final ResourcePattern resource,
-                         final Set<AclOperation> ops) {
+  public void addUserAcl(
+      final String username,
+      final AclPermissionType permission,
+      final ResourcePattern resource,
+      final Set<AclOperation> ops) {
 
     final KafkaPrincipal principal = new KafkaPrincipal("User", username);
     final PermissionType scalaPermission = PermissionType$.MODULE$.fromJava(permission);
@@ -280,10 +284,18 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     final Properties effectiveConfig = new Properties();
     effectiveConfig.putAll(brokerConfig);
     effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
+    // Allow tests to delete topics:
     effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
+    // Do not clean logs from under the tests or waste resources doing so:
     effectiveConfig.put(KafkaConfig.LogCleanerEnableProp(), false);
+    // Only single node, so only single RF on offset topic partitions:
     effectiveConfig.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
+    // Tests do not need large numbers of offset topic partitions:
+    effectiveConfig.put(KafkaConfig.OffsetsTopicPartitionsProp(), "2");
+    // Shutdown quick:
     effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
+    effectiveConfig.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
     return effectiveConfig;
   }
 
@@ -296,7 +308,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     try {
       final String jaasConfigContent = createJaasConfigContent() + additionalJaasConfig;
       final File jaasConfig = TestUtils.tempFile();
-      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes((StandardCharsets.UTF_8)));
+      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes(StandardCharsets.UTF_8));
       return jaasConfig.getAbsolutePath();
     } catch (final Exception e) {
       throw new RuntimeException(e);
@@ -369,9 +381,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     public Builder withAcls(final String... superUsers) {
       brokerConfig.remove(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
       brokerConfig.put(SimpleAclAuthorizer.SuperUsersProp(),
-                       Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
-                           .map(s -> "User:" + s)
-                           .collect(Collectors.joining(";")));
+          Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
+              .map(s -> "User:" + s)
+              .collect(Collectors.joining(";")));
       return this;
     }
 

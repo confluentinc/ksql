@@ -161,7 +161,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
             .getGenericRowSerde(
                 noRowKey.getSchema(),
                 ksqlConfig,
-                false,
                 serviceContext.getSchemaRegistryClientFactory(),
                 QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
                 processingLogContext),

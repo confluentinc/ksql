@@ -93,7 +93,6 @@ public class TopicConsumer {
         greaterThanOrEqualTo(expectedNumMessages),
         new KsqlJsonDeserializer(
             schema,
-            false,
             processingLogContext.getLoggerFactory().getLogger("consumer")),
         keyDeserializer
     );

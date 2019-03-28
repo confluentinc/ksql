@@ -575,7 +575,6 @@ public class IntegrationTestHarness extends ExternalResource {
     return getSerde(dataSourceSerDe).getGenericRowSerde(
         schema,
         new KsqlConfig(Collections.emptyMap()),
-        false,
         serviceContext.get().getSchemaRegistryClientFactory(),
         "producer",
         ProcessingLogContext.create()
@@ -588,7 +587,6 @@ public class IntegrationTestHarness extends ExternalResource {
     return getSerde(dataSourceSerDe).getGenericRowSerde(
         schema,
         new KsqlConfig(Collections.emptyMap()),
-        false,
         serviceContext.get().getSchemaRegistryClientFactory(),
         "consumer",
         ProcessingLogContext.create()

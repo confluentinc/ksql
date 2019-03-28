@@ -59,6 +59,7 @@ import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaTestUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.time.Duration;
@@ -189,7 +190,6 @@ public class SchemaKStreamTest {
     return topic.getKsqlTopicSerDe().getGenericRowSerde(
         schema,
         new KsqlConfig(Collections.emptyMap()),
-        false,
         MockSchemaRegistryClient::new,
         "test",
         ProcessingLogContext.create());
@@ -845,9 +845,8 @@ public class SchemaKStreamTest {
         queryContext.push("source").getQueryContext());
 
     rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
-        initialSchemaKStream.getSchema(),
+        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKStream.getSchema()),
         null,
-        false,
         () -> null,
         "test",
         processingLogContext);

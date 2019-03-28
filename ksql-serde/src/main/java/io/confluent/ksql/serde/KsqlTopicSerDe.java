@@ -41,7 +41,6 @@ public abstract class KsqlTopicSerDe {
   public abstract Serde<GenericRow> getGenericRowSerde(
       Schema schemaMaybeWithSource,
       KsqlConfig ksqlConfig,
-      boolean isInternal,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       String loggerNamePrefix,
       ProcessingLogContext processingLogContext);

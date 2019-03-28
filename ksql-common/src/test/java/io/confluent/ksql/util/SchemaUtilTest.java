@@ -421,23 +421,14 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldBuildTheCorrectSchemaWithAndWithoutAlias() {
+  public void shouldBuildTheCorrectSchemaWithAlias() {
     final String alias = "Hello";
     final Schema schemaWithAlias = SchemaUtil.buildSchemaWithAlias(schema, alias);
-    assertThat("Incorrect schema field count.", schemaWithAlias.fields().size() == schema.fields()
-        .size());
+    assertThat(schemaWithAlias.fields(), hasSize(schema.fields().size()));
     for (int i = 0; i < schemaWithAlias.fields().size(); i++) {
       final Field fieldWithAlias = schemaWithAlias.fields().get(i);
       final Field field = schema.fields().get(i);
       assertThat(fieldWithAlias.name(), equalTo(alias + "." + field.name()));
-    }
-    final Schema schemaWithoutAlias = SchemaUtil.getSchemaWithNoAlias(schemaWithAlias);
-    assertThat("Incorrect schema field count.",
-        schemaWithAlias.fields().size() == schema.fields().size());
-    for (int i = 0; i < schemaWithoutAlias.fields().size(); i++) {
-      final Field fieldWithAlias = schemaWithoutAlias.fields().get(i);
-      final Field field = schema.fields().get(i);
-      assertThat("Incorrect field name.", fieldWithAlias.name().equals(field.name()));
     }
   }
 

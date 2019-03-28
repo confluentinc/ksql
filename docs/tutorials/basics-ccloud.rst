@@ -86,10 +86,16 @@ Inspect Topics By Using |ccloud|
       :alt: Screenshot of Confluent Control Center showing the Topics page
       :align: center
 
+Create a KSQL Application
+*************************
+
+
 Inspect Topics By Using KSQL in |ccloud| UI
 *******************************************
 
-#. In the navigation menu, click **KSQL** to open the **KSQL Editor**.
+#. In the navigation menu, click **KSQL** to open the KSQL Applications page.
+
+#. On **ksql-test16**, click *...* and select **KSQL Editor**. 
 
 #. In the editing window, use the SHOW TOPICS statement to see the available
    topics on the Kafka cluster. Click **Run** to start the query.
@@ -100,7 +106,7 @@ Inspect Topics By Using KSQL in |ccloud| UI
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-editor-show-topics.png
+   .. image:: ../img/ccloud-ksql-editor-show-topics.png
       :alt: Screenshot of Confluent Control Center showing the KSQL Editor
       :align: center
 
@@ -143,7 +149,7 @@ Inspect Topics By Using KSQL in |ccloud| UI
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-print-topic-users.png
+   .. image:: ../img/ccloud-ksql-print-topic-users.png
       :alt: Screenshot of the KSQL SHOW TOPIC statement in Confluent Control Center
       :align: center
 
@@ -183,7 +189,7 @@ statements in the KSQL Editor, just like you use them in the KSQL CLI.
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-create-stream-statement.png
+   .. image:: ../img/ccloud-ksql-create-stream-statement.png
       :alt: Screenshot of the KSQL CREATE STREAM statement in Confluent Control Center
       :align: center
 
@@ -224,7 +230,7 @@ a table.
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-create-table-wizard-1.png
+   .. image:: ../img/ccloud-ksql-create-table-wizard-1.png
       :alt: Screenshot of the Create a KSQL Table wizard in Confluent Control Center
       :align: center
 
@@ -239,7 +245,7 @@ a table.
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-create-table-wizard-2.png
+   .. image:: ../img/ccloud-ksql-create-table-wizard-2.png
       :alt: Screenshot of the Create a KSQL Table wizard in Confluent Control Center
       :align: center
 
@@ -248,7 +254,7 @@ a table.
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-select-from-users-query.png
+   .. image:: ../img/ccloud-ksql-select-from-users-query.png
       :alt: Screenshot of a KSQL SELECT query in Confluent Control Center
       :align: center
 
@@ -279,7 +285,7 @@ end them with the TERMINATE statement.
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-csas.png
+   .. image:: ../img/ccloud-ksql-csas.png
       :alt: Screenshot of the KSQL CREATE STREAM AS SELECT statement in Confluent Control Center
       :align: center
 
@@ -289,7 +295,7 @@ end them with the TERMINATE statement.
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-running-queries.png
+   .. image:: ../img/ccloud-ksql-running-queries.png
       :alt: Screenshot of the KSQL Running Queries page in Confluent Control Center
       :align: center
 
@@ -308,7 +314,7 @@ You can monitor your persistent queries visually by using |ccloud|.
 
 .. TODO: new screenshot
 
-   .. image:: ../img/c3-ksql-consumer-lag.png
+   .. image:: ../img/ccloud-ksql-consumer-lag.png
       :alt: Screenshot of the Consumer Lag page in Confluent Control Center
       :align: center
 

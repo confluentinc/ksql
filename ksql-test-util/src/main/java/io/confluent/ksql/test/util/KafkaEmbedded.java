@@ -17,7 +17,6 @@ package io.confluent.ksql.test.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -45,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * the `zookeeper.connect` parameter in the broker's configuration.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-class KafkaEmbedded implements Closeable {
+class KafkaEmbedded {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KafkaEmbedded.class);
@@ -101,11 +100,6 @@ class KafkaEmbedded implements Closeable {
   String brokerList(final SecurityProtocol securityProtocol) {
     return kafka.config().hostName() + ":"
            + kafka.boundPort(new ListenerName(securityProtocol.toString()));
-  }
-
-  @Override
-  public void close() {
-    stop();
   }
 
   /**

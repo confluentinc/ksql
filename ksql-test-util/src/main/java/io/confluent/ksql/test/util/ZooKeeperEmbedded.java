@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.test.util;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.BindException;
 import org.apache.curator.test.TestingServer;
@@ -28,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * <p>The ZooKeeper server instance is automatically started when you create a new instance of this
  * class.
  */
-class ZooKeeperEmbedded implements Closeable  {
+class ZooKeeperEmbedded {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperEmbedded.class);
 
@@ -42,11 +41,6 @@ class ZooKeeperEmbedded implements Closeable  {
     this.server = createTestingServer();
     log.debug("Embedded ZooKeeper server at {} uses the temp directory at {}",
         server.getConnectString(), server.getTempDirectory());
-  }
-
-  @Override
-  public void close() throws IOException {
-    stop();
   }
 
   void stop() throws IOException {

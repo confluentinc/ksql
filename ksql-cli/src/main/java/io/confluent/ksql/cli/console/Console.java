@@ -388,8 +388,24 @@ public class Console implements Closeable {
       case STRING:
         return "VARCHAR(STRING)";
       default:
-        return schema.getType().name();
+        return formatPrimitiveType(schema);
     }
+  }
+
+  private static String formatPrimitiveType(final SchemaInfo schema) {
+    final StringBuilder sb = new StringBuilder();
+
+    // Build the schema type with parameters in parenthesis if present
+    sb.append(schema.getType().name());
+    schema.getTypeParameters().ifPresent(
+        params -> {
+          sb.append("(");
+          sb.append(String.join(",", params));
+          sb.append(")");
+        }
+    );
+
+    return sb.toString();
   }
 
   private static String formatFieldType(final FieldInfo field, final String keyField) {

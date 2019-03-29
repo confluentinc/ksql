@@ -20,7 +20,11 @@ import io.confluent.ksql.parser.tree.Array;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Struct;
 import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
@@ -99,6 +103,7 @@ public final class LogicalSchemas {
         .put(Schema.Type.FLOAT64, s -> PrimitiveType.of(Type.SqlType.DOUBLE))
         .put(Schema.Type.BOOLEAN, s -> PrimitiveType.of(Type.SqlType.BOOLEAN))
         .put(Schema.Type.STRING, s -> PrimitiveType.of(Type.SqlType.STRING))
+        .put(Schema.Type.BYTES, ToSqlTypeConverter::toLogicalType)
         .put(Schema.Type.ARRAY, ToSqlTypeConverter::toSqlArray)
         .put(Schema.Type.MAP, ToSqlTypeConverter::toSqlMap)
         .put(Schema.Type.STRUCT, ToSqlTypeConverter::toSqlStruct)
@@ -116,6 +121,25 @@ public final class LogicalSchemas {
       }
 
       return handler.apply(schema);
+    }
+
+    private static PrimitiveType toLogicalType(final Schema schema) {
+      if (DecimalUtil.isDecimalSchema(schema)) {
+        return toDecimaltype(schema);
+      }
+
+      throw new KsqlException("Unexpected logical type: " + schema);
+    }
+
+    private static PrimitiveType toDecimaltype(final Schema schema) {
+      try {
+        final int precision = DecimalUtil.getPrecision(schema);
+        final int scale = DecimalUtil.getScale(schema);
+
+        return PrimitiveType.of(Type.SqlType.DECIMAL, Arrays.asList(precision, scale));
+      } catch (NumberFormatException e) {
+        throw new KsqlException("Unexpected decimal type parameters: " + schema);
+      }
     }
 
     private static Array toSqlArray(final Schema schema) {
@@ -148,6 +172,7 @@ public final class LogicalSchemas {
         .put(Type.SqlType.INTEGER, t -> INTEGER)
         .put(Type.SqlType.BIGINT, t -> BIGINT)
         .put(Type.SqlType.DOUBLE, t -> DOUBLE)
+        .put(Type.SqlType.DECIMAL, t -> FromSqlTypeConverter.fromSqlDecimal((PrimitiveType) t))
         .put(Type.SqlType.ARRAY, t -> FromSqlTypeConverter.fromSqlArray((Array) t))
         .put(Type.SqlType.MAP, t -> FromSqlTypeConverter
             .fromSqlMap((io.confluent.ksql.parser.tree.Map) t))
@@ -166,6 +191,15 @@ public final class LogicalSchemas {
       }
 
       return handler.apply(sqlType);
+    }
+
+    private static Schema fromSqlDecimal(final PrimitiveType sqlType) {
+      final List<Integer> parameters = sqlType.getSqlTypeParameters().orElse(null);
+      if (parameters == null || parameters.size() != 2) {
+        throw new KsqlException("Unexpected decimal type parameters: " + sqlType);
+      }
+
+      return DecimalUtil.schema(parameters.get(0), parameters.get(1));
     }
 
     private static Schema fromSqlArray(final Array sqlType) {

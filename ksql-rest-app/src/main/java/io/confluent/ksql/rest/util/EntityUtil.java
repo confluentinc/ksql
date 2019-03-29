@@ -18,24 +18,27 @@ package io.confluent.ksql.rest.util;
 import avro.shaded.com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
+import io.confluent.ksql.util.DecimalUtil;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 public final class EntityUtil {
-  private static final Map<Schema.Type, SchemaInfo.Type>
+  private static final Map<Schema.Type, Function<Schema, SchemaInfo.Type>>
       SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE =
-      ImmutableMap.<Schema.Type, SchemaInfo.Type>builder()
-          .put(Schema.Type.INT32, SchemaInfo.Type.INTEGER)
-          .put(Schema.Type.INT64, SchemaInfo.Type.BIGINT)
-          .put(Schema.Type.FLOAT32, SchemaInfo.Type.DOUBLE)
-          .put(Schema.Type.FLOAT64, SchemaInfo.Type.DOUBLE)
-          .put(Schema.Type.BOOLEAN, SchemaInfo.Type.BOOLEAN)
-          .put(Schema.Type.STRING, SchemaInfo.Type.STRING)
-          .put(Schema.Type.ARRAY, SchemaInfo.Type.ARRAY)
-          .put(Schema.Type.MAP, SchemaInfo.Type.MAP)
-          .put(Schema.Type.STRUCT, SchemaInfo.Type.STRUCT)
+      ImmutableMap.<Schema.Type, Function<Schema, SchemaInfo.Type>>builder()
+          .put(Schema.Type.INT32, s -> SchemaInfo.Type.INTEGER)
+          .put(Schema.Type.INT64, s -> SchemaInfo.Type.BIGINT)
+          .put(Schema.Type.FLOAT32, s -> SchemaInfo.Type.DOUBLE)
+          .put(Schema.Type.FLOAT64, s -> SchemaInfo.Type.DOUBLE)
+          .put(Schema.Type.BOOLEAN, s -> SchemaInfo.Type.BOOLEAN)
+          .put(Schema.Type.STRING, s -> SchemaInfo.Type.STRING)
+          .put(Schema.Type.BYTES, EntityUtil::getLogicalType)
+          .put(Schema.Type.ARRAY, s -> SchemaInfo.Type.ARRAY)
+          .put(Schema.Type.MAP, s -> SchemaInfo.Type.MAP)
+          .put(Schema.Type.STRUCT, s -> SchemaInfo.Type.STRUCT)
           .build();
 
   private EntityUtil() {
@@ -53,7 +56,8 @@ public final class EntityUtil {
         return new SchemaInfo(
             getSchemaTypeString(schema),
             null,
-            buildSchemaEntity(schema.valueSchema())
+            buildSchemaEntity(schema.valueSchema()),
+            null
         );
       case STRUCT:
         return new SchemaInfo(
@@ -63,20 +67,40 @@ public final class EntityUtil {
                 .map(
                     f -> new FieldInfo(f.name(), buildSchemaEntity(f.schema())))
                 .collect(Collectors.toList()),
+            null,
             null
         );
       default:
-        return new SchemaInfo(getSchemaTypeString(schema), null, null);
+        // The list of parameters in the schema must be set in the order they will be displayed.
+        // i.e DECIMAL(precision, value)
+        final List<String> parameters = (schema.parameters() == null) ? null :
+            schema.parameters().values().stream().collect(Collectors.toList());
+
+        return new SchemaInfo(
+            getSchemaTypeString(schema),
+            null,
+            null,
+            parameters);
     }
   }
 
   private static SchemaInfo.Type getSchemaTypeString(final Schema schema) {
-    final SchemaInfo.Type type = SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE.get(schema.type());
-    if (type == null) {
+    final Function<Schema, SchemaInfo.Type> handler =
+        SCHEMA_TYPE_TO_SCHEMA_INFO_TYPE.get(schema.type());
+    if (handler == null) {
       throw new RuntimeException(String.format("Invalid type in schema: %s.",
           schema.type().getName()));
     }
 
-    return type;
+    return handler.apply(schema);
+  }
+
+  private static SchemaInfo.Type getLogicalType(final Schema schema) {
+    if (DecimalUtil.isDecimalSchema(schema)) {
+      return SchemaInfo.Type.DECIMAL;
+    }
+
+    throw new RuntimeException(String.format("Invalid type in schema: %s.",
+        schema.type().getName()));
   }
 }

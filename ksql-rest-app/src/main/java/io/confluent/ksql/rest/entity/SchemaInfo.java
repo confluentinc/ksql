@@ -30,6 +30,7 @@ public class SchemaInfo {
     DOUBLE,
     BOOLEAN,
     STRING,
+    DECIMAL,
     MAP,
     ARRAY,
     STRUCT
@@ -38,16 +39,19 @@ public class SchemaInfo {
   private final Type type;
   private final List<FieldInfo> fields;
   private final SchemaInfo memberSchema;
+  private final List<String> typeParameters;
 
   @JsonCreator
   public SchemaInfo(
       @JsonProperty("type") final Type type,
       @JsonProperty("fields") final List<FieldInfo> fields,
-      @JsonProperty("memberSchema") final SchemaInfo memberSchema) {
+      @JsonProperty("memberSchema") final SchemaInfo memberSchema,
+      @JsonProperty("typeParameters") final List<String> typeParameters) {
     Objects.requireNonNull(type);
     this.type = type;
     this.fields = fields;
     this.memberSchema = memberSchema;
+    this.typeParameters = typeParameters;
   }
 
   public Type getType() {
@@ -67,16 +71,21 @@ public class SchemaInfo {
     return Optional.ofNullable(memberSchema);
   }
 
+  public Optional<List<String>> getTypeParameters() {
+    return Optional.ofNullable(typeParameters);
+  }
+
   @Override
   public boolean equals(final Object other) {
     return other instanceof SchemaInfo
         && Objects.equals(type, ((SchemaInfo)other).type)
         && Objects.equals(fields, ((SchemaInfo)other).fields)
-        && Objects.equals(memberSchema, ((SchemaInfo)other).memberSchema);
+        && Objects.equals(memberSchema, ((SchemaInfo)other).memberSchema)
+        && Objects.equals(typeParameters, ((SchemaInfo)other).typeParameters);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, fields, memberSchema);
+    return Objects.hash(type, fields, memberSchema, typeParameters);
   }
 }

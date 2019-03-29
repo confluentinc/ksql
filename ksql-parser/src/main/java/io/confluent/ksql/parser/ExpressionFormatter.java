@@ -87,7 +87,18 @@ public final class ExpressionFormatter {
 
     @Override
     protected String visitPrimitiveType(final PrimitiveType node, final Boolean unmangleNames) {
-      return node.getSqlType().toString();
+      final StringBuilder sb = new StringBuilder();
+
+      sb.append(node.getSqlType().toString());
+      node.getSqlTypeParameters().ifPresent(p -> {
+        if (p.size() > 0) {
+          sb.append("(");
+          sb.append(Joiner.on(',').join(p));
+          sb.append(")");
+        }
+      });
+
+      return sb.toString();
     }
 
     @Override

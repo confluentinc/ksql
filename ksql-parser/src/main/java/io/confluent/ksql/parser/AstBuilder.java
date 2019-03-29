@@ -120,6 +120,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
@@ -1276,7 +1277,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
   private static Type getType(final SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
-      return PrimitiveType.of(baseTypeToString(type.baseType()));
+      final String baseType = baseTypeToString(type.baseType());
+      final List<Integer> typeParameters = typeParametersToList(type.typeParameter());
+
+      return PrimitiveType.of(baseType, typeParameters);
     }
 
     if (type.ARRAY() != null) {
@@ -1309,6 +1313,26 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
           "Base type must contain either identifier, "
           + "time with time zone, or timestamp with time zone"
       );
+    }
+  }
+
+  private static List<Integer> typeParametersToList(
+      final List<SqlBaseParser.TypeParameterContext> typeParameters
+  ) {
+    if (typeParameters == null) {
+      return null;
+    }
+
+    return typeParameters.stream().map(e -> typeParameterToInteger(e)).collect(Collectors.toList());
+  }
+
+  private static Integer typeParameterToInteger(
+      final SqlBaseParser.TypeParameterContext typeParameter
+  ) {
+    try {
+      return Integer.parseInt(typeParameter.INTEGER_VALUE().getSymbol().getText());
+    } catch (NumberFormatException e) {
+      throw new KsqlException("Type parameter must be numeric", e);
     }
   }
 

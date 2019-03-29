@@ -52,6 +52,7 @@ import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.WhenClause;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.Test;
@@ -306,5 +307,11 @@ public class ExpressionFormatterTest {
   public void shouldFormatArray() {
     final Array array = Array.of(PrimitiveType.of(SqlType.BOOLEAN));
     assertThat(ExpressionFormatter.formatExpression(array), equalTo("ARRAY<BOOLEAN>"));
+  }
+
+  @Test
+  public void shouldFormatDecimal() {
+    final PrimitiveType decimal = PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(6, 2));
+    assertThat(ExpressionFormatter.formatExpression(decimal), equalTo("DECIMAL(6,2)"));
   }
 }

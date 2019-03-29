@@ -19,15 +19,20 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
+import io.confluent.ksql.util.DecimalUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 public class EntityUtilTest {
   private void shouldBuildCorrectPrimitiveField(final Schema primitiveSchema,
-                                                final String schemaName) {
+                                                final String schemaName,
+                                                final List<String> schemaParameters) {
     final Schema schema = SchemaBuilder
         .struct()
         .field("field", primitiveSchema)
@@ -40,31 +45,41 @@ public class EntityUtilTest {
     assertThat(entity.get(0).getSchema().getTypeName(), equalTo(schemaName));
     assertThat(entity.get(0).getSchema().getFields(), equalTo(Optional.empty()));
     assertThat(entity.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
+    assertThat(entity.get(0).getSchema().getTypeParameters(),
+        equalTo(Optional.ofNullable(schemaParameters)));
   }
 
   @Test
   public void shouldBuildCorrectIntegerField() {
-    shouldBuildCorrectPrimitiveField(Schema.INT32_SCHEMA, "INTEGER");
+    shouldBuildCorrectPrimitiveField(Schema.INT32_SCHEMA, "INTEGER", null);
   }
 
   @Test
   public void shouldBuildCorrectBigintField() {
-    shouldBuildCorrectPrimitiveField(Schema.INT64_SCHEMA, "BIGINT");
+    shouldBuildCorrectPrimitiveField(Schema.INT64_SCHEMA, "BIGINT", null);
   }
 
   @Test
   public void shouldBuildCorrectDoubleField() {
-    shouldBuildCorrectPrimitiveField(Schema.FLOAT64_SCHEMA, "DOUBLE");
+    shouldBuildCorrectPrimitiveField(Schema.FLOAT64_SCHEMA, "DOUBLE", null);
   }
 
   @Test
   public void shouldBuildCorrectStringField() {
-    shouldBuildCorrectPrimitiveField(Schema.STRING_SCHEMA, "STRING");
+    shouldBuildCorrectPrimitiveField(Schema.STRING_SCHEMA, "STRING", null);
   }
 
   @Test
   public void shouldBuildCorrectBooleanField() {
-    shouldBuildCorrectPrimitiveField(Schema.BOOLEAN_SCHEMA, "BOOLEAN");
+    shouldBuildCorrectPrimitiveField(Schema.BOOLEAN_SCHEMA, "BOOLEAN", null);
+  }
+
+  @Test
+  public void shouldBuildCorrectDecimalField() {
+    final int precision = 6;
+    final int scale = 2;
+    shouldBuildCorrectPrimitiveField(DecimalUtil.schema(precision, scale), "DECIMAL",
+        Arrays.asList(Integer.toString(precision), Integer.toString(scale)));
   }
 
   @Test

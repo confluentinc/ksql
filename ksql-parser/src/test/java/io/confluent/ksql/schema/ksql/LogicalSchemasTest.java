@@ -24,7 +24,10 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Type.SqlType;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+
+import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -35,11 +38,16 @@ import org.junit.rules.ExpectedException;
 
 public class LogicalSchemasTest {
 
+  private static final int DECIMAL_PRECISION = 6;
+  private static final int DECIMAL_SCALE = 2;
+
   private static final Schema LOGICAL_BOOLEAN_SCHEMA = SchemaBuilder.bool().optional().build();
   private static final Schema LOGICAL_INT_SCHEMA = SchemaBuilder.int32().optional().build();
   private static final Schema LOGICAL_BIGINT_SCHEMA = SchemaBuilder.int64().optional().build();
   private static final Schema LOGICAL_DOUBLE_SCHEMA = SchemaBuilder.float64().optional().build();
   private static final Schema LOGICAL_STRING_SCHEMA = SchemaBuilder.string().optional().build();
+  private static final Schema LOGICAL_DECIMAL_SCHEMA = DecimalUtil.schema(DECIMAL_PRECISION,
+                                                                          DECIMAL_SCALE);
 
   private static final BiMap<Type, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<Type, Schema>builder()
       .put(PrimitiveType.of(SqlType.BOOLEAN), LOGICAL_BOOLEAN_SCHEMA)
@@ -47,6 +55,8 @@ public class LogicalSchemasTest {
       .put(PrimitiveType.of(SqlType.BIGINT), LOGICAL_BIGINT_SCHEMA)
       .put(PrimitiveType.of(SqlType.DOUBLE), LOGICAL_DOUBLE_SCHEMA)
       .put(PrimitiveType.of(SqlType.STRING), LOGICAL_STRING_SCHEMA)
+      .put(PrimitiveType.of(SqlType.DECIMAL,
+          Arrays.asList(DECIMAL_PRECISION, DECIMAL_SCALE)), LOGICAL_DECIMAL_SCHEMA)
       .put(io.confluent.ksql.parser.tree.Array.of(PrimitiveType.of(SqlType.INTEGER)),
           SchemaBuilder.array(LogicalSchemas.INTEGER).optional().build())
       .put(io.confluent.ksql.parser.tree.Map.of(PrimitiveType.of(SqlType.INTEGER)),

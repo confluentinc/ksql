@@ -61,8 +61,8 @@ public class QueryDescriptionTest {
           .build();
 
   private static final List<FieldInfo> EXPECTED_FIELDS = Arrays.asList(
-      new FieldInfo("field1", new SchemaInfo(Type.INTEGER, null, null)),
-      new FieldInfo("field2", new SchemaInfo(Type.STRING, null, null)));
+      new FieldInfo("field1", new SchemaInfo(Type.INTEGER, null, null, null)),
+      new FieldInfo("field2", new SchemaInfo(Type.STRING, null, null, null)));
 
   private static final String STATEMENT = "statement";
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");

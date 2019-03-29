@@ -584,9 +584,9 @@ CREATE FUNCTION
     RETURNS data_type
     LANGUAGE language_name
     WITH ( property_name = expression [, ...] );
-    AS BEGIN
+    AS $$
         inline_script
-    END;
+    $$;
 
 **Description**
 

@@ -306,12 +306,7 @@ languageName
     ;
 
 udfScript
-    : BEGIN*
-    | END*
-    | UDF_SCRIPT
-    ;
-UDF_SCRIPT
-    : BEGIN .* END
+    : UDF_SCRIPT
     ;
 
 identifier
@@ -389,7 +384,6 @@ CASE: 'CASE';
 WHEN: 'WHEN';
 THEN: 'THEN';
 ELSE: 'ELSE';
-BEGIN: 'BEGIN';
 END: 'END';
 JOIN: 'JOIN';
 FULL: 'FULL';
@@ -451,6 +445,7 @@ SCRIPT: 'SCRIPT';
 RETURNS: 'RETURNS';
 LANGUAGE: 'LANGUAGE';
 REPLACE: 'REPLACE';
+HEREDOC: '$$';
 
 IF: 'IF';
 
@@ -507,6 +502,10 @@ TIME_WITH_TIME_ZONE
 
 TIMESTAMP_WITH_TIME_ZONE
     : 'TIMESTAMP' WS 'WITH' WS 'TIME' WS 'ZONE'
+    ;
+
+UDF_SCRIPT
+    : HEREDOC ~'$'~'$'* HEREDOC
     ;
 
 fragment EXPONENT

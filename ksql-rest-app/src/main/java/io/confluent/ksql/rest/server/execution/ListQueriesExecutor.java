@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -24,8 +23,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -34,11 +32,9 @@ public final class ListQueriesExecutor {
   private ListQueriesExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement<ListQueries> statement,
+      final ConfiguredStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final ListQueries listQueries = statement.getStatement();
     if (listQueries.getShowExtended()) {

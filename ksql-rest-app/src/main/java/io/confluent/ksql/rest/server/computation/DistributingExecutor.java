@@ -15,19 +15,16 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutor;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.topic.TopicInjector;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -42,14 +39,14 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
 
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
-  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
-  private final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
+  private final Function<ServiceContext, Injector> schemaInjectorFactory;
+  private final Function<KsqlExecutionContext, Injector> topicInjectorFactory;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
-      final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory) {
+      final Function<ServiceContext, Injector> schemaInjectorFactory,
+      final Function<KsqlExecutionContext, Injector> topicInjectorFactory) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.schemaInjectorFactory =
         Objects.requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
@@ -61,20 +58,19 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
 
   @Override
   public Optional<KsqlEntity> execute(
-      final PreparedStatement<Statement> statement,
+      final ConfiguredStatement<Statement> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides) {
-    final PreparedStatement<?> withSchema = schemaInjectorFactory
-        .apply(serviceContext).forStatement(statement);
-    final PreparedStatement<?> withTopic = topicInjectorFactory
-        .apply(executionContext).forStatement(withSchema, ksqlConfig, propertyOverrides);
+      final ServiceContext serviceContext
+  ) {
+    final ConfiguredStatement<?> withSchema = schemaInjectorFactory
+        .apply(serviceContext)
+        .inject(statement);
+    final ConfiguredStatement<?> withTopic = topicInjectorFactory
+        .apply(executionContext)
+        .inject(withSchema);
 
     try {
-      final QueuedCommandStatus queuedCommandStatus = commandQueue
-          .enqueueCommand(withTopic, ksqlConfig, propertyOverrides);
-
+      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(withTopic);
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 

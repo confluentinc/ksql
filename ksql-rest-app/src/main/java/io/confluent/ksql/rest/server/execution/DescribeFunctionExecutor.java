@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -27,10 +26,9 @@ import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -40,11 +38,9 @@ public final class DescribeFunctionExecutor {
   private DescribeFunctionExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement<DescribeFunction> statement,
+      final ConfiguredStatement<DescribeFunction> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final DescribeFunction describeFunction = statement.getStatement();
     final String functionName = describeFunction.getFunctionName();

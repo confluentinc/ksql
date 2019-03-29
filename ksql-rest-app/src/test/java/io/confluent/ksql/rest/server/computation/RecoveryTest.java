@@ -31,7 +31,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -40,13 +39,15 @@ import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -110,11 +111,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public QueuedCommandStatus enqueueCommand(
-        final PreparedStatement<?> statement,
-        final KsqlConfig ksqlConfig,
-        final Map<String, Object> overwriteProperties
-    ) {
+    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement) {
       final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
@@ -123,7 +120,7 @@ public class RecoveryTest {
               new Command(
                   statement.getStatementText(),
                   Collections.emptyMap(),
-                  ksqlConfig.getAllConfigPropsWithSecretsObfuscated()),
+                  statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
@@ -171,7 +168,7 @@ public class RecoveryTest {
       this.ksqlEngine = createKsqlEngine();
       this.fakeCommandQueue = new FakeCommandQueue(commandLog);
 
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
+      final Function<ServiceContext, Injector> schemaInjectorFactory = sc ->
           new DefaultSchemaInjector(
               new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
 

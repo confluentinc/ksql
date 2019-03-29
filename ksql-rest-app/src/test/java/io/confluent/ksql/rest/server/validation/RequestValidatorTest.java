@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -97,8 +98,8 @@ public class RequestValidatorTest {
     serviceContext = TestServiceContext.create();
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
         .thenReturn(Integer.MAX_VALUE);
-    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(topicInjector.forStatement(any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
+    when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     final KsqlStream<?> source = mock(KsqlStream.class);
     when(source.getName()).thenReturn("SOURCE");
@@ -129,10 +130,8 @@ public class RequestValidatorTest {
 
     // Then:
     verify(statementValidator, times(1)).validate(
-        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
         eq(executionContext),
-        any(),
-        eq(ksqlConfig),
         any()
     );
   }
@@ -147,9 +146,8 @@ public class RequestValidatorTest {
 
     // Then:
     verify(ksqlEngine, times(1)).execute(
-        argThat(is(preparedStatement(instanceOf(SetProperty.class)))),
-        eq(ksqlConfig),
-        any());
+        argThat(configured(preparedStatement(instanceOf(SetProperty.class))))
+    );
   }
 
   @Test
@@ -159,7 +157,7 @@ public class RequestValidatorTest {
         ImmutableMap.of(CreateStream.class, statementValidator)
     );
     doThrow(new KsqlException("Fail"))
-        .when(statementValidator).validate(any(), any(), any(), any(), any());
+        .when(statementValidator).validate(any(), any(), any());
 
     final List<ParsedStatement> statements =
         givenParsed("CREATE STREAM x WITH (kafka_topic='x');");
@@ -244,10 +242,8 @@ public class RequestValidatorTest {
 
     // Then:
     verify(statementValidator, times(1)).validate(
-        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
         eq(executionContext),
-        any(),
-        eq(ksqlConfig),
         any()
     );
   }

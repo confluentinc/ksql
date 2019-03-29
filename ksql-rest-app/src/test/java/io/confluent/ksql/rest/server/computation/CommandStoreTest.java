@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -90,7 +91,7 @@ public class CommandStoreTest {
   private Statement statement;
   @Mock
   private CommandIdAssigner commandIdAssigner;
-  private PreparedStatement<?> preparedStatement;
+  private ConfiguredStatement<?> configured;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -113,7 +114,8 @@ public class CommandStoreTest {
 
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
-    preparedStatement = PreparedStatement.of(statementText, statement);
+    configured = ConfiguredStatement.of(
+        PreparedStatement.of(statementText, statement), OVERRIDE_PROPERTIES, KSQL_CONFIG);
 
     commandStore = new CommandStore(
         commandTopic,
@@ -126,12 +128,12 @@ public class CommandStoreTest {
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(configured);
 
     expectedException.expect(IllegalStateException.class);
 
     // When:
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(configured);
   }
 
   @Test
@@ -142,21 +144,21 @@ public class CommandStoreTest {
         .thenReturn(recordMetadata);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(configured);
 
     // When:
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(configured);
   }
 
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(configured);
     commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
     // Should:
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(configured);
   }
 
   @Test
@@ -176,7 +178,7 @@ public class CommandStoreTest {
     );
 
     // When:
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(configured);
 
     // Then:
     verify(commandTopic).send(any(), any());
@@ -206,7 +208,7 @@ public class CommandStoreTest {
     when(commandTopic.send(any(), any())).thenReturn(recordMetadata);
 
     // When:
-    commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+    commandStore.enqueueCommand(configured);
 
     // Then:
     verify(commandTopic).send(same(commandId), any());
@@ -216,7 +218,7 @@ public class CommandStoreTest {
   public void shouldIncludeCommandSequenceNumberInSuccessfulQueuedCommandStatus() {
     // When:
     final QueuedCommandStatus commandStatus =
-        commandStore.enqueueCommand(preparedStatement, KSQL_CONFIG, OVERRIDE_PROPERTIES);
+        commandStore.enqueueCommand(configured);
 
     // Then:
     assertThat(commandStatus.getCommandSequenceNumber(), equalTo(recordMetadata.offset()));

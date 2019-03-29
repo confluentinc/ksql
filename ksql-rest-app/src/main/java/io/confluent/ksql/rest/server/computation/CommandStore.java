@@ -17,9 +17,8 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.server.CommandTopic;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
@@ -87,15 +86,12 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   @Override
-  public QueuedCommandStatus enqueueCommand(
-      final PreparedStatement<?> statement,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overwriteProperties) {
+  public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement) {
     final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
     final Command command = new Command(
         statement.getStatementText(),
-        overwriteProperties,
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+        statement.getOverrides(),
+        statement.getConfig().getAllConfigPropsWithSecretsObfuscated());
     final CommandStatusFuture statusFuture = commandStatusMap.compute(
         commandId,
         (k, v) -> {

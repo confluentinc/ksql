@@ -20,7 +20,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
@@ -36,12 +35,11 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -53,11 +51,9 @@ public final class ListSourceExecutor {
   private ListSourceExecutor() { }
 
   public static Optional<KsqlEntity> streams(
-      final PreparedStatement<ListStreams> statement,
+      final ConfiguredStatement<ListStreams> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
 
@@ -79,11 +75,9 @@ public final class ListSourceExecutor {
   }
 
   public static Optional<KsqlEntity> tables(
-      final PreparedStatement<ListTables> statement,
+      final ConfiguredStatement<ListTables> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
 
@@ -104,11 +98,9 @@ public final class ListSourceExecutor {
   }
 
   public static Optional<KsqlEntity> columns(
-      final PreparedStatement<ShowColumns> statement,
+      final ConfiguredStatement<ShowColumns> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final ShowColumns showColumns = statement.getStatement();
     if (showColumns.isTopic()) {

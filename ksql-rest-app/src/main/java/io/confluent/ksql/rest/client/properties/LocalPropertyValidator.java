@@ -30,11 +30,10 @@ import org.apache.kafka.streams.StreamsConfig;
  * This class adds additional validation of properties on top of that provided by the
  * {@code ConfigDef} instances.
  */
-class LocalPropertyValidator implements PropertyValidator {
+public class LocalPropertyValidator implements PropertyValidator {
 
   // Only these config properties can be configured using SET/UNSET commands.
-  // Package private for testing.
-  static final Set<String> CONFIG_PROPERTY_WHITELIST = ImmutableSet.<String>builder()
+  public static final Set<String> CONFIG_PROPERTY_WHITELIST = ImmutableSet.<String>builder()
       .add(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY)
       .add(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)
       .add(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)

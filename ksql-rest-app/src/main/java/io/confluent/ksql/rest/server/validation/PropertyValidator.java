@@ -22,6 +22,7 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.client.properties.LocalPropertyValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -40,7 +41,7 @@ public final class PropertyValidator {
       final Map<String, Object> propertyOverrides
   ) {
     final SetProperty setProperty = (SetProperty) statement.getStatement();
-    throwIfUnknownProperty(
+    throwIfInvalidProperty(
         setProperty.getPropertyName(),
         statement.getStatementText()
     );
@@ -66,17 +67,17 @@ public final class PropertyValidator {
       final Map<String, Object> propertyOverrides
   ) {
     final UnsetProperty unsetProperty = (UnsetProperty) statement.getStatement();
-    throwIfUnknownProperty(
+    throwIfInvalidProperty(
         unsetProperty.getPropertyName(),
         statement.getStatementText()
     );
     context.execute(statement, ksqlConfig, propertyOverrides);
   }
 
-  private static void throwIfUnknownProperty(final String propertyName, final String text) {
-    new KsqlConfigResolver().resolve(propertyName, false).orElseThrow(
-        () -> new KsqlStatementException("Unknown property: " + propertyName, text)
-    );
+  private static void throwIfInvalidProperty(final String propertyName, final String text) {
+    if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
+      throw new KsqlStatementException("Unknown property: " + propertyName, text);
+    }
   }
 
 }

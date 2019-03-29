@@ -1130,7 +1130,9 @@ SET/UNSET property
 
 .. code:: sql
 
-    SET 'auto.offset.reset' = 'earliest';
+    [SET/UNSET] 'property_name' = 'property_value';
+
+**Description**
 
 Set or unset the session properties in the CLI. The session properties that have been set will be sent to the server along with the subsequent KSQL statements.
 The properties that are set using these commands are session properties, meaning they will be only available in the current CLI session.
@@ -1147,9 +1149,11 @@ The following are the properties that can be configured with SET/UNSET commands 
 |                                                   | The default is 30000 milliseconds (at-least-once) / 100 milliseconds (exactly-once).       |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 | auto.offset.reset                                 | Configure the KSQL queries to read the source topics from earliest or latest offset.       |
-|                                                   | The default in KSQL is 'latest'.                                                           |
+|                                                   | The default in KSQL is ``latest``.                                                         |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
-
+| group.id                                          | A unique string that identifies the consumer group this consumer belongs to.               |
+|                                                   | The default in KSQL is ````.                                                               |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
 
 
 .. _ksql-terminate:

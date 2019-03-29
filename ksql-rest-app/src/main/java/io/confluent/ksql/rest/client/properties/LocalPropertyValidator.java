@@ -39,6 +39,7 @@ class LocalPropertyValidator implements PropertyValidator {
       .add(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG)
       .add(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)
       .add(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT)
+      .add(ConsumerConfig.GROUP_ID_CONFIG)
       .build();
 
   private static final Map<String, Consumer<Object>> HANDLERS =

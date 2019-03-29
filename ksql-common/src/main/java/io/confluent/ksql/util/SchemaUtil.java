@@ -84,7 +84,7 @@ public final class SchemaUtil {
           .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .build();
 
-  private static final ImmutableMap<String, String> TYPE_MAP =
+  private static final ImmutableMap<String, String> SCHEMA_TYPE_NAME_TO_SQL_TYPE =
       new ImmutableMap.Builder<String, String>()
           .put("STRING", "VARCHAR(STRING)")
           .put("INT64", "BIGINT")
@@ -205,7 +205,7 @@ public final class SchemaUtil {
   }
 
   public static String getSchemaTypeAsSqlType(final Schema.Type type) {
-    final String sqlType = TYPE_MAP.get(type.name());
+    final String sqlType = SCHEMA_TYPE_NAME_TO_SQL_TYPE.get(type.name());
     if (sqlType == null) {
       throw new IllegalArgumentException("Unknown schema type: " + type);
     }

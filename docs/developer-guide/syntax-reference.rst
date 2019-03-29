@@ -624,9 +624,9 @@ to the inline script.
     CREATE OR REPLACE FUNCTION GREET(name STRING)
     RETURNS STRING
     LANGUAGE JAVA
-    AS BEGIN
+    AS $$
         return "Hello " + args[0]; \
-    END;
+    $$;
 
 
 Here's a more complex inline UDF that imports some classes from the standard library and
@@ -637,13 +637,13 @@ returns a ``Map`` object.
     CREATE OR REPLACE FUNCTION zip(a VARCHAR, b VARCHAR)
     RETURNS MAP<VARCHAR, VARCHAR>
     LANGUAGE JAVA
-    AS BEGIN
+    AS $$
         import java.util.HashMap; \
         import java.util.Map; \
         Map<String,String> m =  new HashMap<String,String>();\
         m.put(args[0], args[1]);\
         return m;\
-    END ;
+    $$ ;
 
 .. _insert-into:
 

@@ -71,15 +71,15 @@ After refactoring done in [#2411](https://github.com/confluentinc/ksql/pull/2411
 ensures that the validation does not unnecessarily prevent usage of `Struct`. To complete support
 for sturcutred UDFS, we also need to have some mechanism to create the output schema. To address 
 this, we can resolve the schema as part of the UDF specification, requiring users to specify the 
-struct schema inline.
+struct schema inline (which will be parsed using the same ANTLR grammar).
 
 ```java
 @UdfSchema
 public static final Schema SCHEMA = SchemaBuilder.struct()...build();
 
-@Udf(schema="STRUCT<'VAL' VARCHAR, 'LENGTH' INT>")
+@Udf(schema="STRUCT<val VARCHAR, length INT>")
 public Struct generate(
-    @UdfParam(schema="STRUCT<'VAL' VARCHAR>") final Struct from
+    @UdfParam(schema="STRUCT<val VARCHAR>") final Struct from
   ) {
   return new Struct(...);
 }
@@ -87,7 +87,7 @@ public Struct generate(
 
 `UdfFactory` could then load the correct UDF given the schema by matching the schema of the type 
 against various different methods. It will be possible to support multiple methods with different
-struct schemas if the name of the udf method is changed (not that the java method name is ignored
+struct schemas if the name of the udf method is changed (note that the java method name is ignored
 from actual evaluation).
 
 ### Generics
@@ -229,7 +229,7 @@ that is used:
 ### Generics
 
 * The `DESCRIBE FUNCTION` should indicate when a function accepts generics using `ANY<?>` where `?`
-is a letter that begins with `T` and is incremented for each inferred type.
+is a letter that begins with `T1` and is incremented for each inferred type.
 
 > ```
 > Name        : FOO
@@ -238,8 +238,8 @@ is a letter that begins with `T` and is incremented for each inferred type.
 > Jar         : internal
 > Variations  :
 >
->       Variation   : FOO(ARRAY<ANY<T>>, ANY<U>)
->       Returns     : ANY<T>
+>       Variation   : FOO(ARRAY<ANY<T1>>, ANY<T2>)
+>       Returns     : ANY<T1>
 > ```
 
 ### Complex Aggregation
@@ -322,7 +322,18 @@ this KLIP.
 
 # Compatibility implications
 
-N/A
+* Custom UDAF implementations will fail to compile. Upgrade notes will include a section detailing
+the following upgrade semantics:
+
+> To update to 5.3, any custom UDAF implementations must make the following changes in order to
+> compile:
+>
+> 1. Add a third type parameter to your class signature that is equivalent to the second
+> (e.g. `MyUdaf<String, Long>` -> `MyUdaf<String, Long, Long>`)
+> 2. Implement the `VR reduce(A aggregate)` method. Since old implementations of UDAf always had
+> `VR == A`, this can simply be `return aggregate;`.
+>
+> There will be no changes to the functionality of your custom UDAF.
 
 ## Performance implications
 

@@ -1152,6 +1152,7 @@ The following are the properties that can be configured with SET/UNSET commands 
 |                                                   | The default in KSQL is ``latest``.                                                         |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 | group.id                                          | A unique string that identifies the consumer group this consumer belongs to.               |
+|                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                                                               |
 |                                                   | The default in KSQL is ````.                                                               |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 

@@ -24,7 +24,7 @@ import java.util.Optional;
 public abstract class Type extends Expression {
 
   public enum SqlType {
-    BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, ARRAY, MAP, STRUCT
+    BOOLEAN, INTEGER, BIGINT, DOUBLE, STRING, DECIMAL, ARRAY, MAP, STRUCT
   }
 
   private final SqlType sqlType;

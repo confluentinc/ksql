@@ -26,6 +26,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Arrays;
+
 public class PrimitiveTypeTest {
 
   @Rule
@@ -39,6 +41,9 @@ public class PrimitiveTypeTest {
         .addEqualityGroup(PrimitiveType.of(SqlType.BIGINT), PrimitiveType.of(SqlType.BIGINT))
         .addEqualityGroup(PrimitiveType.of(SqlType.DOUBLE), PrimitiveType.of(SqlType.DOUBLE))
         .addEqualityGroup(PrimitiveType.of(SqlType.STRING), PrimitiveType.of(SqlType.STRING))
+        .addEqualityGroup(
+            PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(6 ,2)),
+            PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(6 ,2)))
         .addEqualityGroup(Array.of(PrimitiveType.of(SqlType.STRING)))
         .testEquals();
   }
@@ -46,6 +51,8 @@ public class PrimitiveTypeTest {
   @Test
   public void shouldReturnSqlType() {
     assertThat(PrimitiveType.of(SqlType.INTEGER).getSqlType(), is(SqlType.INTEGER));
+    assertThat(PrimitiveType.of(
+        SqlType.DECIMAL, Arrays.asList(6 ,2)).getSqlType(), is(SqlType.DECIMAL));
   }
 
   @Test
@@ -117,5 +124,15 @@ public class PrimitiveTypeTest {
         // Then:
         assertThat(PrimitiveType.of(string).getSqlType(), is(expected))
     );
+  }
+
+  @Test
+  public void shouldThrowOnIllegalDecimalParameters() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Primitive type requires 2 parameters: DECIMAL");
+
+    // When:
+    PrimitiveType.of(SqlType.DECIMAL);
   }
 }

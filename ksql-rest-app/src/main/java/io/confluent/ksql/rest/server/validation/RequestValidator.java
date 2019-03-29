@@ -172,15 +172,16 @@ public class RequestValidator {
     return validate(executionContext.parse(sql), propertyOverrides, sql);
   }
 
-  private static void validateOverriddenConfigProperties(final Map<String, Object> propertyOverrides) {
-    propertyOverrides.keySet().forEach(propertyName ->
-        {
-          if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
-            throw new KsqlException("Invalid config property: " + propertyName);
-          }
-        }
-    );
-
+  private static void validateOverriddenConfigProperties(
+      final Map<String, Object> propertyOverrides
+  ) {
+    propertyOverrides.keySet()
+        .forEach(
+            propertyName -> {
+              if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
+                throw new KsqlException("Invalid config property: " + propertyName);
+              }
+            });
   }
 
 }

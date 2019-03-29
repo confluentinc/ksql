@@ -20,7 +20,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import org.apache.kafka.connect.data.Schema;
@@ -33,7 +33,7 @@ import org.junit.rules.ExpectedException;
 
 public class ExpressionTypeManagerTest {
 
-  private static final FunctionRegistry FUNCTION_REGISTRY = TestFunctionRegistry.INSTANCE.get();
+  private static final MutableFunctionRegistry FUNCTION_REGISTRY = TestFunctionRegistry.INSTANCE.get();
 
   private MetaStore metaStore;
   private ExpressionTypeManager expressionTypeManager;

@@ -128,9 +128,9 @@ public class WebSocketSubscriberTest {
     assertEquals(
         "[" +
             "{\"name\":\"currency\"," +
-            "\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}," +
+            "\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null,\"typeParameters\":null}}," +
             "{\"name\":\"amount\"," +
-            "\"schema\":{\"type\":\"DOUBLE\",\"fields\":null,\"memberSchema\":null}}]"
+            "\"schema\":{\"type\":\"DOUBLE\",\"fields\":null,\"memberSchema\":null,\"typeParameters\":null}}]"
         , schema.getValue());
     assertEquals("Unable to send schema", reason.getValue().getReasonPhrase());
     assertEquals(CloseCodes.PROTOCOL_ERROR, reason.getValue().getCloseCode());

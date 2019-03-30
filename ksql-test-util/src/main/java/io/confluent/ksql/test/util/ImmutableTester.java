@@ -36,6 +36,7 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public final class ImmutableTester {
@@ -45,10 +46,12 @@ public final class ImmutableTester {
       .add(Class::isPrimitive)
       .add(Class::isEnum)
       .add(String.class::isAssignableFrom)
+      .add(Number.class::isAssignableFrom)
       .add(Optional.class::isAssignableFrom)
       .add(OptionalInt.class::isAssignableFrom)
       .add(OptionalLong.class::isAssignableFrom)
       .add(OptionalDouble.class::isAssignableFrom)
+      .add(Function.class::isAssignableFrom)
       .build();
 
   private final List<Predicate<Class<?>>> knownImmutables = new ArrayList<>(STD_IMMUTABLE_TYPES);

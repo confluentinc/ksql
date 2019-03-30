@@ -90,13 +90,11 @@ public final class ExpressionFormatter {
       final StringBuilder sb = new StringBuilder();
 
       sb.append(node.getSqlType().toString());
-      node.getSqlTypeParameters().ifPresent(p -> {
-        if (p.size() > 0) {
-          sb.append("(");
-          sb.append(Joiner.on(',').join(p));
-          sb.append(")");
-        }
-      });
+      if (node.getSqlTypeParameters().size() > 0) {
+        sb.append("(");
+        sb.append(Joiner.on(',').join(node.getSqlTypeParameters()));
+        sb.append(")");
+      }
 
       return sb.toString();
     }

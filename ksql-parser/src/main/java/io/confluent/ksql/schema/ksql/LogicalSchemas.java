@@ -194,7 +194,7 @@ public final class LogicalSchemas {
     }
 
     private static Schema fromSqlDecimal(final PrimitiveType sqlType) {
-      final List<Integer> parameters = sqlType.getSqlTypeParameters().orElse(null);
+      final List<Integer> parameters = sqlType.getSqlTypeParameters();
       if (parameters == null || parameters.size() != 2) {
         throw new KsqlException("Unexpected decimal type parameters: " + sqlType);
       }

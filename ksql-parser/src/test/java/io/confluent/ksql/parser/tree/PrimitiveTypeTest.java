@@ -130,9 +130,39 @@ public class PrimitiveTypeTest {
   public void shouldThrowOnIllegalDecimalParameters() {
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Primitive type requires 2 parameters: DECIMAL");
+    expectedException.expectMessage("DECIMAL type requires 2 parameters: DECIMAL");
 
     // When:
     PrimitiveType.of(SqlType.DECIMAL);
+  }
+
+  @Test
+  public void shouldThrowOnDecimalPrecisionLessThanOne() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("DECIMAL precision must be >= 1: DECIMAL(0,0)");
+
+    // When:
+    PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(0, 0));
+  }
+
+  @Test
+  public void shouldThrowOnDecimalScaleLessThanZero() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("DECIMAL scale must be >= 0: DECIMAL(1,-1)");
+
+    // When:
+    PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(1, -1));
+  }
+
+  @Test
+  public void shouldThrowOnDecimalPrecisionLessThanScale() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("DECIMAL precision must be >= scale: DECIMAL(1,2)");
+
+    // When:
+    PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(1, 2));
   }
 }

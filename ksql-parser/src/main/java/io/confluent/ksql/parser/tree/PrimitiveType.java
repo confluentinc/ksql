@@ -68,7 +68,7 @@ public final class PrimitiveType extends Type {
   }
 
   public static PrimitiveType of(final SqlType sqlType) {
-    return function(sqlType).apply(null);
+    return function(sqlType).apply(ImmutableList.of());
   }
 
   public static PrimitiveType of(
@@ -100,7 +100,7 @@ public final class PrimitiveType extends Type {
     super(Optional.empty(), sqlType);
     this.typeParameters = typeParameters;
 
-    // Verify this type accepts enough parameters, otherwise throw an exception
+    // Verify the passed parameters are correct for the specified schema
     checkTypeParameters();
   }
 
@@ -111,17 +111,45 @@ public final class PrimitiveType extends Type {
   private void checkTypeParameters() {
     switch (getSqlType()) {
       case DECIMAL:
-        if (typeParameters.size() != 2) {
-          throw new KsqlException(
-              "Primitive type requires 2 parameters: " + getSqlType());
-        }
-
+        checkDecimalTypeParameters();
         break;
       default:
         if (typeParameters.size() > 0) {
           throw new KsqlException(
               "Primitive type does not support parameters: " + getSqlType());
         }
+    }
+  }
+
+  private void checkDecimalTypeParameters() {
+    /*
+     * A DECIMAL type is defined by two parameters: precision and scale.
+     *
+     * RULES
+     * - The precision value must be higher than 1 and defines the number of digits a decimal value
+     *   can hold.
+     * - The scale value must be higher than 0 and defines the number of digits at the right of
+     *   the decimal point.
+     * - The precision value must be higher or equals to the scale.
+     */
+    if (typeParameters.size() != 2) {
+      throw new KsqlException(
+          "DECIMAL type requires 2 parameters: " + this);
+    }
+
+    final int precision = typeParameters.get(0);
+    final int scale = typeParameters.get(1);
+
+    if (precision < 1) {
+      throw new KsqlException("DECIMAL precision must be >= 1: " + this);
+    }
+
+    if (scale < 0) {
+      throw new KsqlException("DECIMAL scale must be >= 0: " + this);
+    }
+
+    if (precision < scale) {
+      throw new KsqlException("DECIMAL precision must be >= scale: " + this);
     }
   }
 

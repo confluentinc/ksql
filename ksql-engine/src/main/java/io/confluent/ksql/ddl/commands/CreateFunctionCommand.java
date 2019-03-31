@@ -20,12 +20,11 @@ import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfClassLoader;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.function.UdfInvoker;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateFunction;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -36,6 +35,7 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IScriptEvaluator;
 import org.slf4j.Logger;
@@ -70,23 +70,36 @@ public class CreateFunctionCommand implements DdlCommand {
   static Class<? extends Kudf> getKudfClass(final String language) {
 
     class InlineJavaUdf implements Kudf {
-      private final String[] argumentNames;
-      private final Class[] argumentTypes;
-      private final String language;
-      private final String name;
-      private final Class returnType;
-      private final String script;
-      private final UdfInvoker udfInvoker;
+      private final IScriptEvaluator se;
 
       @SuppressWarnings("checkstyle:redundantmodifier")
-      public InlineJavaUdf(final CreateFunction cf, final UdfInvoker udfInvoker) throws Exception {
-        this.argumentNames = cf.getArgumentNames();
-        this.argumentTypes = cf.getArgumentTypes();
-        this.language = cf.getLanguage();
-        this.name = cf.getName();
-        this.returnType = SchemaUtil.getJavaType(cf.getReturnType());
-        this.script = cf.getScript();
-        this.udfInvoker = udfInvoker;
+      public InlineJavaUdf(
+          final CreateFunction createFunction,
+          final KsqlConfig ksqlConfig
+      ) throws Exception {
+        try {
+          // create a blacklist
+          final File pluginDir = new File(ksqlConfig.getString(KsqlConfig.KSQL_EXT_DIR));
+          final Blacklist blacklist = new Blacklist(new File(pluginDir, "resource-blacklist.txt"));
+
+          // create a class loader
+          final UdfClassLoader classLoader = UdfClassLoader.newClassLoader(
+              Optional.empty(),
+              Thread.currentThread().getContextClassLoader(),
+              blacklist);
+
+          // create a script executor
+          se = CompilerFactoryFactory.getDefaultCompilerFactory().newScriptEvaluator();
+          se.setParentClassLoader(classLoader);
+          se.setReturnType(SchemaUtil.getJavaType(createFunction.getReturnType()));
+          se.setParameters(createFunction.getArgumentNames(), createFunction.getArgumentTypes());
+          se.cook(createFunction.getScript());
+
+        } catch (CompileException ce) {
+          final String errorMessage = String.format("Failed to compile UDF");
+          ce.printStackTrace();
+          throw new KsqlException(errorMessage);
+        }
       }
 
       @SuppressWarnings("unchecked")
@@ -94,10 +107,14 @@ public class CreateFunctionCommand implements DdlCommand {
       public Object evaluate(final Object... args) {
         Object value;
         try {
-          value = udfInvoker.eval(this, args);
+          ExtensionSecurityManager.INSTANCE.pushInUdf();
+          value = se.evaluate(args);
         } catch (Exception e) {
           LOG.warn("Exception encountered while executing function. Setting value to null", e);
+          e.printStackTrace();
           value = null;
+        } finally {
+          ExtensionSecurityManager.INSTANCE.popOutUdf();
         }
         return value;
       }
@@ -113,39 +130,13 @@ public class CreateFunctionCommand implements DdlCommand {
   Function<KsqlConfig, Kudf> getUdfFactory(final Class<? extends Kudf> kudfClass) {
     return ksqlConfig -> {
       try {
-        // create a blacklist
-        final File pluginDir = new File(ksqlConfig.getString(KsqlConfig.KSQL_EXT_DIR));
-        final Blacklist blacklist = new Blacklist(new File(pluginDir, "resource-blacklist.txt"));
-
-        // create a class loader
-        final UdfClassLoader classLoader = UdfClassLoader.newClassLoader(
-            Optional.empty(),
-            Thread.currentThread().getContextClassLoader(),
-            blacklist);
-
-        final IScriptEvaluator scriptEvaluator
-            = CompilerFactoryFactory.getDefaultCompilerFactory().newScriptEvaluator();
-
-        scriptEvaluator.setParentClassLoader(classLoader);
-
-        // create the UdfInvoker
-        final UdfInvoker udfInvoker = (UdfInvoker) scriptEvaluator
-              .createFastEvaluator(
-                  createFunction.getScript(),
-                  UdfInvoker.class,
-                  new String[]{"thiz", "args"});
-
         // instantiate the UDF
         final Constructor<? extends Kudf> constructor =
-            kudfClass.getConstructor(CreateFunction.class, UdfInvoker.class);
-        final Kudf kudf = constructor.newInstance(createFunction, udfInvoker);
-
-        // create a pluggable UDF, which uses a security manager to block System.exit calls
-        return new PluggableUdf(udfInvoker, kudf);
-
+            kudfClass.getConstructor(CreateFunction.class, KsqlConfig.class);
+        return constructor.newInstance(createFunction, ksqlConfig);
       } catch (Exception e) {
-        final String errorMessage = String.format("Failed to instantiate UDF. %s", e.getClass());
-        throw new KsqlException(errorMessage, e);
+        e.printStackTrace();
+        throw new KsqlException("Failed to instantiate UDF", e);
       }
     };
   }
@@ -164,7 +155,7 @@ public class CreateFunctionCommand implements DdlCommand {
               createFunction.getReturnType(),
               createFunction.getArguments(),
               createFunction.getName(),
-              PluggableUdf.class,
+              kudfClass,
               udfFactory,
               createFunction.getDescription(),
               KsqlFunction.INTERNAL_PATH);
@@ -176,7 +167,7 @@ public class CreateFunctionCommand implements DdlCommand {
               createFunction.getVersion(),
               KsqlFunction.INTERNAL_PATH,
               false,
-              false);
+              true);
 
       functionRegistry.ensureFunctionFactory(new UdfFactory(ksqlFunction.getKudfClass(), metadata));
 

@@ -46,10 +46,6 @@ import org.xml.sax.SAXException;
  * ksql-engine/src/test/resources/expected_topology/VERSION_NUM directory.  Where
  * VERSION_NUM is the version defined in ksql-engine/pom.xml &lt;parent&gt;&lt;version&gt; element.
  *
- * 3. Update the CURRENT_TOPOLOGY_VERSION variable in the {@link QueryTranslationTest}
- * class with the version number for the
- * newly generated directory name so all tests run against the newly written topology files by default.
- *
  */
 public final class TopologyFileGenerator {
 

@@ -1130,7 +1130,8 @@ SET/UNSET property
 
 .. code:: sql
 
-    [SET/UNSET] 'property_name' = 'property_value';
+    [SET] 'property_name' = 'property_value';
+    [UNSET] 'property_name';
 
 **Description**
 

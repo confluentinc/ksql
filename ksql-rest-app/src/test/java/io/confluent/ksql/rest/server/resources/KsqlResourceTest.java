@@ -675,12 +675,11 @@ public class KsqlResourceTest {
     final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
     final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
 
-    final PreparedStatement statementWithTopic =
+    final PreparedStatement<?> statementWithTopic =
         ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
 
     when(sandboxTopicInjector.forStatement(argThat(is(preparedStatementText(sql))), any(), any()))
-        .thenReturn(statementWithTopic);
-
+        .thenReturn((PreparedStatement)statementWithTopic);
 
     // When:
     makeRequest(sql);
@@ -700,12 +699,11 @@ public class KsqlResourceTest {
     final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
     final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
 
-    final PreparedStatement statementWithTopic =
+    final PreparedStatement<?> statementWithTopic =
         ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
 
     when(topicInjector.forStatement(argThat(is(preparedStatementText(sql))), any(), any()))
-        .thenReturn(statementWithTopic);
-
+        .thenReturn((PreparedStatement)statementWithTopic);
 
     // When:
     makeRequest(sql);

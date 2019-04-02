@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.SchemaInfo.Type;
 import io.confluent.ksql.serde.DataSource;
@@ -34,6 +35,7 @@ import io.confluent.ksql.util.QueuedQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -135,6 +137,7 @@ public class QueryDescriptionTest {
         "app id",
         sinkTopic,
         topology,
+        QuerySchemas.of(new LinkedHashMap<>()),
         STREAMS_PROPS,
         PROP_OVERRIDES,
         queryCloseCallback);

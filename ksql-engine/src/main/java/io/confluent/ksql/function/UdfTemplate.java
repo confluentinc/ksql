@@ -81,7 +81,13 @@ public final class UdfTemplate {
     }
 
     if (clazz.isArray()) {
-      return fromArray(arg, clazz, index);
+      try {
+        return fromArray(arg, clazz);
+      } catch (Exception e) {
+        throw new KsqlFunctionException(
+            String.format("Couldn't coerce array argument \"args[%d]\" to type %s", index, clazz)
+        );
+      }
     }
 
     // using boxed type is safe: long.class and Long.class are both of type Class<Long>
@@ -114,8 +120,8 @@ public final class UdfTemplate {
   @SuppressWarnings("unchecked")
   private static <T> T fromArray(
       final Object args,
-      final Class<? extends T> arrayType,
-      final int index) {
+      final Class<? extends T> arrayType
+  ) {
     if (!args.getClass().isArray()) {
       throw new KsqlFunctionException(
           String.format("Cannot coerce non-array object %s to %s", args, arrayType));
@@ -125,7 +131,7 @@ public final class UdfTemplate {
     final Class<?> componentType = arrayType.getComponentType();
     final Object val = Array.newInstance(componentType, length);
     for (int i = 0; i < length; i++) {
-      Array.set(val, i, coerce(Array.get(args, i), componentType, index));
+      Array.set(val, i, coerce(Array.get(args, i), componentType, i));
     }
     return (T) val;
   }

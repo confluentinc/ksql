@@ -197,7 +197,7 @@ public class UdfTemplateTest {
 
     // Expect:
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Cannot coerce non-array");
+    expectedException.expectMessage("Couldn't coerce array");
 
     // When:
     UdfTemplate.coerce(args, Object[].class, 0);

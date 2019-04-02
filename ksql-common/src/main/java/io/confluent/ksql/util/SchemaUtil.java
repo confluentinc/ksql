@@ -443,9 +443,9 @@ public final class SchemaUtil {
         return SchemaBuilder.array(getSchemaFromType(
             parameterizedType.getActualTypeArguments()[0]));
       }
-    } else if (type instanceof Class && ((Class) type).isArray()) {
+    } else if (type instanceof Class && ((Class<?>) type).isArray()) {
       // handle var args
-      return SchemaBuilder.array(getSchemaFromType(((Class) type).getComponentType()));
+      return SchemaBuilder.array(getSchemaFromType(((Class<?>) type).getComponentType()));
     }
     throw new KsqlException("Type is not supported: " + type);
   }

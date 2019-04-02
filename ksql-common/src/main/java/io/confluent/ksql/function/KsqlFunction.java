@@ -51,18 +51,7 @@ public final class KsqlFunction {
       final Schema returnType,
       final List<Schema> arguments,
       final String functionName,
-      final Class<? extends Kudf> kudfClass) {
-    return createBuiltInVarargs(
-        returnType, arguments, functionName, kudfClass, false);
-  }
-
-  @VisibleForTesting
-  static KsqlFunction createBuiltInVarargs(
-      final Schema returnType,
-      final List<Schema> arguments,
-      final String functionName,
-      final Class<? extends Kudf> kudfClass,
-      final boolean isVarArgs
+      final Class<? extends Kudf> kudfClass
   ) {
     final Function<KsqlConfig, Kudf> udfFactory = ksqlConfig -> {
       try {
@@ -74,7 +63,7 @@ public final class KsqlFunction {
     };
 
     return create(
-        returnType, arguments, functionName, kudfClass, udfFactory, "", INTERNAL_PATH, isVarArgs);
+        returnType, arguments, functionName, kudfClass, udfFactory, "", INTERNAL_PATH, false);
   }
 
   /**
@@ -179,7 +168,7 @@ public final class KsqlFunction {
         && Objects.equals(functionName, that.functionName)
         && Objects.equals(kudfClass, that.kudfClass)
         && Objects.equals(pathLoadedFrom, that.pathLoadedFrom)
-        && (isVarArgs == ((KsqlFunction) o).isVarArgs);
+        && (isVarArgs == that.isVarArgs);
   }
 
   @Override

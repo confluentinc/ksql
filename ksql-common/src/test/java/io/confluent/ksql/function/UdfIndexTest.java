@@ -1,12 +1,16 @@
 package io.confluent.ksql.function;
 
+import static io.confluent.ksql.function.KsqlFunction.INTERNAL_PATH;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -18,7 +22,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
 public class UdfIndexTest {
 
   private static final Schema STRING_VARARGS = SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA);
@@ -30,362 +33,528 @@ public class UdfIndexTest {
   private static final Schema MAP2 = SchemaBuilder.map(STRING, INT).build();
 
   private static final String EXPECTED = "expected";
+  private static final String OTHER = "other";
 
   private UdfIndex udfIndex;
 
   @Before
   public void setUp() {
-    udfIndex = new UdfIndex(new UdfMetadata("name", "description", "confluent", "1", "", false));
+    udfIndex = new UdfIndex("name");
   }
 
-  @Rule public ExpectedException expectedException = ExpectedException.none();
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
-  @Parameter(0) public String name;
-  @Parameter(1) public KsqlFunction[] functions;
-  @Parameter(2) public Schema[] parameter;
-  @Parameter(3) public boolean shouldFind;
+  @Test
+  public void shouldFindNoArgs() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
 
-  @Parameters(name="{0}")
-  public static Iterable<Object[]> data() {
-    return Arrays.asList(
-        // non-vararg tests
-        new Object[]{
-            "shouldFindNoArgs",
-            new KsqlFunction[]{
-                function(EXPECTED, false)
-            },
-            new Schema[]{},
-            true
-        },
-        new Object[]{
-            "shouldFindOneArg",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING)
-            },
-            new Schema[]{STRING},
-            true
-        },
-        new Object[]{
-            "shouldFindTwoDifferentArgs",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING, INT)
-            },
-            new Schema[]{STRING, INT},
-            true
-        },
-        new Object[]{
-            "shouldFindTwoSameArgs",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING, STRING)
-            },
-            new Schema[]{STRING, STRING},
-            true
-        },
-        new Object[]{
-            "shouldFindOneArgConflict",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING),
-                function("other", false, INT)
-            },
-            new Schema[]{STRING},
-            true
-        },
-        new Object[]{
-            "shouldFindTwoArgSameFirstConflict",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING, STRING),
-                function("other", false, STRING, INT)
-            },
-            new Schema[]{STRING, STRING},
-            true
-        },
-        new Object[]{
-            "shouldChooseCorrectStruct",
-            new KsqlFunction[]{
-                function("other", false, STRUCT2),
-                function(EXPECTED, false, STRUCT1),
-            },
-            new Schema[]{STRUCT1},
-            true
-        },
-        new Object[]{
-            "shouldChooseCorrectMap",
-            new KsqlFunction[]{
-                function("other", false, MAP2),
-                function(EXPECTED, false, MAP1),
-            },
-            new Schema[]{MAP1},
-            true
-        },
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{}));
 
-        // vararg tests
-        new Object[]{
-            "shouldFindVarargsEmpty",
-            new KsqlFunction[]{
-                function(EXPECTED, true, STRING_VARARGS)
-            },
-            new Schema[]{},
-            true
-        },
-        new Object[]{
-            "shouldFindVarargsOne",
-            new KsqlFunction[]{
-                function(EXPECTED, true, STRING_VARARGS)
-            },
-            new Schema[]{STRING},
-            true
-        },
-        new Object[]{
-            "shouldFindVarargsTwo",
-            new KsqlFunction[]{
-                function(EXPECTED, true, STRING_VARARGS)
-            },
-            new Schema[]{STRING, STRING},
-            true
-        },
-        new Object[]{
-            "shouldFindVarargWithStruct",
-            new KsqlFunction[]{
-                function(EXPECTED, true, SchemaBuilder.array(STRUCT1).build()),
-            },
-            new Schema[]{STRUCT1, STRUCT1},
-            true
-        },
-        new Object[]{
-            "shouldFindVarargWithList",
-            new KsqlFunction[]{
-                function(EXPECTED, true, STRING_VARARGS),
-            },
-            new Schema[]{STRING_VARARGS},
-            true
-        },
-
-        // precedence tests
-        new Object[]{
-            "shouldChooseSpecificOverVarArgs",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING),
-                function("other", true, STRING_VARARGS)
-            },
-            new Schema[]{STRING},
-            true
-        },
-        new Object[]{
-            "shouldChooseSpecificOverMultipleVarArgs",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING),
-                function("other", true, STRING_VARARGS),
-                function("other1", true, STRING, STRING_VARARGS)
-            },
-            new Schema[]{STRING},
-            true
-        },
-        new Object[]{
-            "shouldChooseVarArgsIfSpecificDoesntMatch",
-            new KsqlFunction[]{
-                function("other", false, STRING),
-                function(EXPECTED, true, STRING_VARARGS)
-            },
-            new Schema[]{STRING, STRING},
-            true
-        },
-
-        // null value tests
-        new Object[]{
-            "shouldFindNonVarargWithNullValues",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING),
-            },
-            new Schema[]{null},
-            true
-        },
-        new Object[]{
-            "shouldFindNonVarargWithPartialNullValues",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING, STRING),
-            },
-            new Schema[]{null, STRING},
-            true
-        },
-        new Object[]{
-            "shouldChooseFirstAddedWithNullValues",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING),
-                function("other", false, INT),
-            },
-            new Schema[]{null},
-            true
-        },
-        new Object[]{
-            "shouldFindVarargWithNullValues",
-            new KsqlFunction[]{
-                function(EXPECTED, true, STRING_VARARGS),
-            },
-            new Schema[]{null},
-            true
-        },
-        new Object[]{
-            "shouldFindVarargWithSomeNullValues",
-            new KsqlFunction[]{
-                function(EXPECTED, true, STRING_VARARGS),
-            },
-            new Schema[]{null, STRING, null},
-            true
-        },
-        new Object[]{
-            "shouldChooseNonVarargWithNullValues",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING),
-                function("other", true, STRING_VARARGS)
-            },
-            new Schema[]{null},
-            true
-        },
-        new Object[]{
-            "shouldChooseNonVarargWithNullValuesOfDifferingSchemas",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING, INT),
-                function("other", true, STRING_VARARGS),
-            },
-            new Schema[]{null, null},
-            true
-        },
-        new Object[]{
-            "shouldChooseNonVarargWithNullValuesOfSameSchemas",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING, STRING),
-                function("other", true, STRING_VARARGS),
-            },
-            new Schema[]{null, null},
-            true
-        },
-        new Object[]{
-            "shouldChooseNonVarargWithNullValuesOfPartialNulls",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING, INT),
-                function("other", true, STRING_VARARGS),
-            },
-            new Schema[]{STRING, null},
-            true
-        },
-        new Object[]{
-            "shouldChooseCorrectlyInComplicatedTopology",
-            new KsqlFunction[]{
-                function(EXPECTED, false, STRING, INT, STRING, INT),
-                function("one", true, STRING_VARARGS),
-                function("two", true, STRING, STRING_VARARGS),
-                function("three", true, STRING, INT, STRING_VARARGS),
-                function("four", true, STRING, INT, STRING, INT, STRING_VARARGS),
-                function("five", true, INT , INT, STRING, INT, STRING_VARARGS)
-            },
-            new Schema[]{STRING, INT, null, INT},
-            true
-        },
-
-        // failure tests
-        new Object[]{
-            "shouldNotMatchIfParamLengthDiffers",
-            new KsqlFunction[]{
-                function("one", false, STRING)
-            },
-            new Schema[]{STRING, STRING},
-            false
-        },
-        new Object[]{
-            "shouldNotMatchIfNoneFound",
-            new KsqlFunction[]{
-                function("one", false, STRING)
-            },
-            new Schema[]{INT},
-            false
-        },
-        new Object[]{
-            "shouldNotMatchIfNullAndPrimitive",
-            new KsqlFunction[]{
-                function("one", false, Schema.INT32_SCHEMA)
-            },
-            new Schema[]{null},
-            false
-        },
-        new Object[]{
-            "shouldNotMatchIfNullAndPrimitiveVararg",
-            new KsqlFunction[]{
-                function("one", true, SchemaBuilder.array(Schema.INT32_SCHEMA))
-            },
-            new Schema[]{null},
-            false
-        },
-        new Object[]{
-            "shouldNotMatchIfNoneFoundWithNull",
-            new KsqlFunction[]{
-                function("one", false, STRING, INT)
-            },
-            new Schema[]{INT, null},
-            false
-        },
-        new Object[]{
-            "shouldNotChooseSpecificWhenTrickyVarArgLoop",
-            new KsqlFunction[]{
-                function("one", false, STRING, INT),
-                function("two", true, STRING_VARARGS)
-            },
-            new Schema[]{STRING, INT, STRING},
-            false
-        },
-        new Object[]{
-            "shouldNotMatchWhenNullTypeInArgsIfParamLengthDiffers",
-            new KsqlFunction[]{
-                function("one", false, STRING)
-            },
-            new Schema[]{STRING, null},
-            false
-        },
-        new Object[]{
-            "shouldNotMatchVarargDifferentStructs",
-            new KsqlFunction[]{
-                function("one", true, SchemaBuilder.array(STRUCT1).build()),
-            },
-            new Schema[]{STRUCT1, STRUCT2},
-            false
-        }
-    );
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
   }
 
   @Test
-  public void test() {
+  public void shouldFindOneArg() {
     // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindTwoDifferentArgs() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, INT)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, INT));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindTwoSameArgs() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, STRING)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindOneArgConflict() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING),
+        function(OTHER, false, INT)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindTwoArgSameFirstConflict() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, STRING),
+        function(OTHER, false, STRING, INT)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseCorrectStruct() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRUCT2),
+        function(EXPECTED, false, STRUCT1)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRUCT1));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseCorrectMap() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, MAP2),
+        function(EXPECTED, false, MAP1)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(MAP1));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindVarargsEmpty() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList());
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindVarargsOne() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindVarargsTwo() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindVarargWithStruct() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, true, SchemaBuilder.array(STRUCT1).build())};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRUCT1, STRUCT1));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindVarargWithList() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING_VARARGS));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseSpecificOverVarArgs() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, STRING),
+        function(OTHER, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseSpecificOverMultipleVarArgs() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, STRING),
+        function(OTHER, true, STRING_VARARGS),
+        function("two", true, STRING, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseVarArgsIfSpecificDoesntMatch() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING),
+        function(EXPECTED, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindNonVarargWithNullValues() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindNonVarargWithPartialNullValues() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, STRING)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(null, STRING));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseFirstAddedWithNullValues() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING),
+        function(OTHER, false, INT)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindVarargWithNullValues() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldFindVarargWithSomeNullValues() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(null, STRING, null));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseNonVarargWithNullValues() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING),
+        function(OTHER, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseNonVarargWithNullValuesOfDifferingSchemas() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, INT),
+        function(OTHER, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null, null}));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseNonVarargWithNullValuesOfSameSchemas() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, STRING),
+        function(OTHER, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null, null}));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseNonVarargWithNullValuesOfPartialNulls() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, INT),
+        function(OTHER, true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, null));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseCorrectlyInComplicatedTopology() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(EXPECTED, false, STRING, INT, STRING, INT), function(OTHER, true, STRING_VARARGS),
+        function("two", true, STRING, STRING_VARARGS),
+        function("three", true, STRING, INT, STRING_VARARGS),
+        function("four", true, STRING, INT, STRING, INT, STRING_VARARGS),
+        function("five", true, INT, INT, STRING, INT, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // When:
+    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, INT, null, INT));
+
+    // Then:
+    assertThat(fun.getFunctionName(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldNotMatchIfParamLengthDiffers() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // Expect:
-    if (!shouldFind) {
-      expectedException.expect(KsqlException.class);
-      expectedException.expectMessage("Function 'name' does not accept parameters");
-    }
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(parameter));
-
-    // Then:
-    if (shouldFind) {
-      assertThat(fun.getFunctionName(), equalTo(EXPECTED));
-    }
+    udfIndex.getFunction(Arrays.asList(STRING, STRING));
   }
+
+  @Test
+  public void shouldNotMatchIfNoneFound() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
+
+    // When:
+    udfIndex.getFunction(Arrays.asList(INT));
+
+  }
+
+  @Test
+  public void shouldNotMatchIfNullAndPrimitive() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(OTHER, false, Schema.INT32_SCHEMA)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
+
+    // When:
+    udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+
+  }
+
+  @Test
+  public void shouldNotMatchIfNullAndPrimitiveVararg() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(OTHER, true, SchemaBuilder.array(Schema.INT32_SCHEMA))};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
+
+    // When:
+    udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+
+  }
+
+  @Test
+  public void shouldNotMatchIfNoneFoundWithNull() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING, INT)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
+
+    // When:
+    udfIndex.getFunction(Arrays.asList(INT, null));
+
+  }
+
+  @Test
+  public void shouldNotChooseSpecificWhenTrickyVarArgLoop() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING, INT),
+        function("two", true, STRING_VARARGS)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
+
+    // When:
+    udfIndex.getFunction(Arrays.asList(STRING, INT, STRING));
+
+  }
+
+  @Test
+  public void shouldNotMatchWhenNullTypeInArgsIfParamLengthDiffers() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
+
+    // When:
+    udfIndex.getFunction(Arrays.asList(STRING, null));
+
+  }
+
+  @Test
+  public void shouldNotMatchVarargDifferentStructs() {
+    // Given:
+    final KsqlFunction[] functions = new KsqlFunction[]{
+        function(OTHER, true, SchemaBuilder.array(STRUCT1).build())};
+    Arrays.stream(functions).forEach(udfIndex::addFunction);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Function 'name' does not accept parameters");
+
+    // When:
+    udfIndex.getFunction(Arrays.asList(STRUCT1, STRUCT2));
+
+  }
+
 
   private static KsqlFunction function(
       final String name,
       final boolean isVarArgs,
       final Schema... args
   ) {
-    return KsqlFunction.createBuiltInVarargs(
+    final Function<KsqlConfig, Kudf> udfFactory = ksqlConfig -> {
+      try {
+        return new MyUdf();
+      } catch (final Exception e) {
+        throw new KsqlException("Failed to create instance of kudfClass "
+            + MyUdf.class + " for function " + name, e);
+      }
+    };
+
+    return KsqlFunction.create(
         Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(args),
         name,
         MyUdf.class,
-        isVarArgs
-    );
+        udfFactory,
+        "",
+        INTERNAL_PATH,
+        isVarArgs);
   }
 
   private static final class MyUdf implements Kudf {
+
     @Override
     public Object evaluate(final Object... args) {
       return null;

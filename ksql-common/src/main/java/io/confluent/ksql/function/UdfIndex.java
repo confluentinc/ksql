@@ -15,10 +15,8 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -34,6 +32,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An index of all method signatures associated with a UDF. This index
@@ -82,14 +82,16 @@ public class UdfIndex {
   // matching path of the trie until it exhausts the input List<Schema>. The
   // final node that it reaches will contain the method that is returned. If
   // multiple methods are returned, the rules described above are used to select
-  // the best candidate (e.g. foo(null, int) matches both B and E).
+  // the best candidate (e.g. foo(null, int) matches B, C and E).
 
-  private final UdfMetadata metadata;
+  private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
+
+  private final String udfName;
   private final Node root = new Node();
   private final Map<List<Schema>, KsqlFunction> allFunctions;
 
-  UdfIndex(final UdfMetadata metadata) {
-    this.metadata = metadata;
+  UdfIndex(final String udfName) {
+    this.udfName = Objects.requireNonNull(udfName, "udfName");
     allFunctions = new HashMap<>();
   }
 
@@ -169,13 +171,15 @@ public class UdfIndex {
   }
 
   private KsqlException createNoMatchingFunctionException(final List<Schema> paramTypes) {
+    LOG.debug("Current UdfIndex:\n{}", describe());
+
     final String sqlParamTypes = paramTypes.stream()
         .map(schema -> schema == null
             ? null
             : SchemaUtil.getSchemaTypeAsSqlType(schema.type()))
         .collect(Collectors.joining(", ", "[", "]"));
 
-    return new KsqlException("Function '" + metadata.getName()
+    return new KsqlException("Function '" + udfName
         + "' does not accept parameters of types:" + sqlParamTypes);
   }
 
@@ -183,9 +187,7 @@ public class UdfIndex {
     return allFunctions.values();
   }
 
-  @SuppressWarnings("unused")
-  @VisibleForTesting
-  String describe() {
+  private String describe() {
     final StringBuilder sb = new StringBuilder();
     sb.append("-ROOT\n");
     root.describe(sb, 1);
@@ -246,7 +248,7 @@ public class UdfIndex {
    * A class that represents a parameter, with a schema and whether
    * or not it is part of a variable argument declaration.
    */
-  private static final class Parameter {
+  static final class Parameter {
 
     private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
         ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
@@ -262,7 +264,7 @@ public class UdfIndex {
 
     private Parameter(final Schema schema, final boolean isVararg) {
       this.isVararg = isVararg;
-      this.schema = isVararg ? schema.valueSchema() : schema;
+      this.schema = Objects.requireNonNull(isVararg ? schema.valueSchema() : schema, "schema");
     }
 
     @Override

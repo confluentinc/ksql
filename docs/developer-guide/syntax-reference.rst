@@ -573,8 +573,8 @@ The WITH clause supports the following properties:
 
 .. create-function:
 
-CREATE FUNCTION
----------------
+CREATE [OR REPLACE] FUNCTION
+----------------------------
 
 **Synopsis**
 
@@ -616,8 +616,11 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
-The following example creates a simple function. The arguments are passed as an array named *args*
-to the inline script.
+The following example creates a simple function. Note: the arguments are converted to uppercase when passed to the inline
+script.
+
+Also, when defining an inline UDF in the KSQL CLI, you will need to escape any ``;`` within the inline script with ``\;``.
+However, this is not necessary when defining an inline UDF inside of a queries file (e.g. in headless mode).
 
 .. code:: sql
 
@@ -625,7 +628,7 @@ to the inline script.
     RETURNS STRING
     LANGUAGE JAVA
     AS $$
-        return "Hello " + args[0]; \
+        return "Hello " + NAME;
     $$;
 
 
@@ -638,11 +641,11 @@ returns a ``Map`` object.
     RETURNS MAP<VARCHAR, VARCHAR>
     LANGUAGE JAVA
     AS $$
-        import java.util.HashMap; \
-        import java.util.Map; \
-        Map<String,String> m =  new HashMap<String,String>();\
-        m.put(args[0], args[1]);\
-        return m;\
+        import java.util.HashMap;
+        import java.util.Map;
+        Map<String,String> m =  new HashMap<String,String>();
+        m.put(A, B);
+        return m;
     $$ ;
 
 .. _insert-into:
@@ -870,6 +873,25 @@ deleted, too. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the table
+doesn't exist.
+
+DROP FUNCTION [IF EXISTS];
+--------------------------
+
+**Synopsis**
+
+.. code:: sql
+
+    DROP FUNCTION [IF EXISTS] function_name;
+
+**Description**
+
+Drop an inline UDF from the function registry. Note: you cannot drop UDFs that were not
+created via the CREATE [OR REPLACE] FUNCTION query. Furthermore, if an active query
+is using a UDF that was dropped, it will continue to use it's underlying UDF instance
+until the query itself is terminated.
+
+If the IF EXISTS clause is present, the statement doesn't fail if the function
 doesn't exist.
 
 PRINT

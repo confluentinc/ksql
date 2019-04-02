@@ -23,6 +23,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -58,8 +59,8 @@ public class PropertyValidatorTest {
     // No exception when:
     CustomValidators.SET_PROPERTY.validate(
         PreparedStatement.of(
-            "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '1';",
-            new SetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "1")),
+            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
+            new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
         engine.getEngine(),
         engine.getServiceContext(),
         engine.getKsqlConfig(),
@@ -77,8 +78,8 @@ public class PropertyValidatorTest {
     // When:
     CustomValidators.SET_PROPERTY.validate(
         PreparedStatement.of(
-            "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = 'invalid';",
-            new SetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "invalid")),
+            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
+            new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid")),
         engine.getEngine(),
         engine.getServiceContext(),
         engine.getKsqlConfig(),
@@ -109,8 +110,8 @@ public class PropertyValidatorTest {
     // No exception when:
     CustomValidators.UNSET_PROPERTY.validate(
         PreparedStatement.of(
-            "UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';",
-            new UnsetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)),
+            "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
+            new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
         engine.getEngine(),
         engine.getServiceContext(),
         engine.getKsqlConfig(),

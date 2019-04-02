@@ -82,18 +82,21 @@ interfaces:
 |c3-short| Configuration
 ========================
 
-In the |c3-short| configuration file, set ``confluent.controlcenter.<name>.ksql.url``
+In the |c3-short| configuration file, set ``confluent.controlcenter.ksql.<ksql-cluster-name>.url``
 to a list of URLs for the KSQL Server hosts, which must be reachable from the host
-that |c3-short| is installed on. Replace ``<name>`` with the name |c3-short| uses
-to identify the KSQL cluster.
-
-Also, set ``confluent.controlcenter.ksql.<name>.advertised.url`` to the public
-IP addresses published by the KSQL Server hosts, which must be a list of URLs
-that the browser can resolve through externally available DNS.
+that |c3-short| is installed on. Replace ``<ksql-cluster-name>`` with the name
+that |c3-short| uses to identify the KSQL cluster.
 
 ::
 
     confluent.controlcenter.ksql.<ksql-cluster-name>.url=<internally-resolvable-hostname1>, <internally-resolvable-hostname2>, ...
+
+Also, set ``confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url``
+to the public IP addresses published by the KSQL Server hosts, which must be a
+list of URLs that the browser can resolve through externally available DNS.
+
+::
+
     confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url=<externally-resolvable-hostname1>, <externally-resolvable-hostname2>, ...
 
 The |c3-short| configuration must match the KSQL Server ``listeners`` values.

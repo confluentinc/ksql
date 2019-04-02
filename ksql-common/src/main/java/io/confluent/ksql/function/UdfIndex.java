@@ -256,7 +256,10 @@ public class UdfIndex {
                 Objects.equals(a.keySchema(), b.keySchema())
                     && Objects.equals(a.valueSchema(), b.valueSchema()))
             .put(Type.ARRAY, (a, b) -> Objects.equals(a.valueSchema(), b.valueSchema()))
-            .put(Type.STRUCT, (a, b) -> Objects.equals(a.fields(), b.fields()))
+            .put(Type.STRUCT, (a, b) ->
+                a.fields().isEmpty()
+                || b.fields().isEmpty()
+                || Objects.equals(a.fields(), b.fields()))
             .build();
 
     private final Schema schema;

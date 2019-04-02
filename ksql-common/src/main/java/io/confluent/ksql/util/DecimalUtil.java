@@ -40,12 +40,10 @@ public final class DecimalUtil {
    * @return True if the schema is a valid Decimal type; False otherwise
    */
   public static boolean isDecimalSchema(final Schema schema) {
-    if (schema == null) {
-      return false;
-    }
-
     // Use the Connect Decimal name because Schema does not have a type for decimals
-    return (schema.name() != null) ? schema.name().equalsIgnoreCase(Decimal.LOGICAL_NAME) : false;
+    return (schema != null)
+        && (schema.name() != null)
+        && schema.name().equalsIgnoreCase(Decimal.LOGICAL_NAME);
   }
 
   /**
@@ -54,10 +52,10 @@ public final class DecimalUtil {
    * The precision is obtained from the 'precision' key found on the {@link Schema}
    * parameters list.
    *
-   * @param schema The schema to get the precision from
-   * @return A numeric precision value
+   * @param schema decimal schema with {@value #PRECISION_FIELD} set as a {@link Schema} parameter
+   * @return the {@code int} value of the {@value #PRECISION_FIELD} field
    */
-  public static Integer getPrecision(final Schema schema) {
+  public static int getPrecision(final Schema schema) {
     Preconditions.checkArgument(isDecimalSchema(schema),
         "Schema is not a valid Decimal schema: " + schema);
 
@@ -70,10 +68,10 @@ public final class DecimalUtil {
    * The scale is obtained from the 'scale' key found on the {@link Schema}
    * parameters list.
    *
-   * @param schema The schema to get the scale from
-   * @return A numeric scale value
+   * @param schema decimal schema with {@value #SCALE_FIELD} set as a {@link Schema} parameter
+   * @return the {@code int} value of the {@value #SCALE_FIELD} field
    */
-  public static Integer getScale(final Schema schema) {
+  public static int getScale(final Schema schema) {
     Preconditions.checkArgument(isDecimalSchema(schema),
         "Schema is not a valid Decimal schema: " + schema);
 

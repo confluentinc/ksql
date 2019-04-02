@@ -26,6 +26,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -136,8 +137,8 @@ public final class LogicalSchemas {
         final int precision = DecimalUtil.getPrecision(schema);
         final int scale = DecimalUtil.getScale(schema);
 
-        return PrimitiveType.of(Type.SqlType.DECIMAL, Arrays.asList(precision, scale));
-      } catch (NumberFormatException e) {
+        return PrimitiveType.of(Type.SqlType.DECIMAL, Optional.of(Arrays.asList(precision, scale)));
+      } catch (final Exception e) {
         throw new KsqlException("Unexpected decimal type parameters: " + schema);
       }
     }

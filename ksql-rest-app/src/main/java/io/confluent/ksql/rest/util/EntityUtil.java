@@ -19,6 +19,8 @@ import avro.shaded.com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.util.DecimalUtil;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -70,17 +72,24 @@ public final class EntityUtil {
             null,
             null
         );
-      default:
-        // The list of parameters in the schema must be set in the order they will be displayed.
-        // i.e DECIMAL(precision, value)
-        final List<String> parameters = (schema.parameters() == null) ? null :
-            schema.parameters().values().stream().collect(Collectors.toList());
+      case BYTES:
+        if (DecimalUtil.isDecimalSchema(schema)) {
+          final String precision = Integer.toString(DecimalUtil.getPrecision(schema));
+          final String scale = Integer.toString(DecimalUtil.getScale(schema));
 
-        return new SchemaInfo(
-            getSchemaTypeString(schema),
-            null,
-            null,
-            parameters);
+          return new SchemaInfo(
+              getSchemaTypeString(schema),
+              null,
+              null,
+              Arrays.asList(precision, scale)
+          );
+        }
+
+        // A BYTES type with a logical type other than Decimal is not expected, so let's
+        // return a SchemaInfo like the below default case
+        return new SchemaInfo(getSchemaTypeString(schema), null, null, null);
+      default:
+        return new SchemaInfo(getSchemaTypeString(schema), null, null, null);
     }
   }
 

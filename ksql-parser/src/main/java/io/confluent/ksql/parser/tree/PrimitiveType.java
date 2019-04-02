@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 public final class PrimitiveType extends Type {
 
   /* List of parameters for the type (i.e. DECIMAL(6,2)). */
-  final ImmutableList<Integer> typeParameters;
+  private final ImmutableList<Integer> typeParameters;
 
   private static final ImmutableMap<SqlType, Function<ImmutableList<Integer>, PrimitiveType>>
       TYPES = ImmutableMap.<SqlType, Function<ImmutableList<Integer>, PrimitiveType>>builder()
@@ -43,12 +43,12 @@ public final class PrimitiveType extends Type {
       .build();
 
   public static PrimitiveType of(final String typeName) {
-    return of(typeName, ImmutableList.of());
+    return of(typeName, Optional.empty());
   }
 
   public static PrimitiveType of(
       final String typeName,
-      @Nullable final List<Integer> typeParameters
+      @Nullable final Optional<List<Integer>> typeParameters
   ) {
     switch (typeName.toUpperCase()) {
       case "INT":
@@ -72,14 +72,11 @@ public final class PrimitiveType extends Type {
   }
 
   public static PrimitiveType of(
-      final SqlType sqlType,
-      @Nullable final List<Integer> sqlTypeParameters
+      final SqlType sqlType, final Optional<List<Integer>> sqlTypeParameters
   ) {
-    if (sqlTypeParameters == null) {
-      return function(sqlType).apply(ImmutableList.of());
-    } else {
-      return function(sqlType).apply(ImmutableList.copyOf(sqlTypeParameters));
-    }
+    return function(sqlType).apply(ImmutableList.copyOf(
+        sqlTypeParameters.orElse(ImmutableList.of())
+    ));
   }
 
   private static Function<ImmutableList<Integer>, PrimitiveType> function(final SqlType sqlType) {
@@ -116,7 +113,7 @@ public final class PrimitiveType extends Type {
       default:
         if (typeParameters.size() > 0) {
           throw new KsqlException(
-              "Primitive type does not support parameters: " + getSqlType());
+              "Type with parameters is not supported: " + getSqlType());
         }
     }
   }

@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 public class PrimitiveTypeTest {
 
@@ -42,8 +43,8 @@ public class PrimitiveTypeTest {
         .addEqualityGroup(PrimitiveType.of(SqlType.DOUBLE), PrimitiveType.of(SqlType.DOUBLE))
         .addEqualityGroup(PrimitiveType.of(SqlType.STRING), PrimitiveType.of(SqlType.STRING))
         .addEqualityGroup(
-            PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(6 ,2)),
-            PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(6 ,2)))
+            PrimitiveType.of(SqlType.DECIMAL, Optional.of(Arrays.asList(6 ,2))),
+            PrimitiveType.of(SqlType.DECIMAL, Optional.of(Arrays.asList(6 ,2))))
         .addEqualityGroup(Array.of(PrimitiveType.of(SqlType.STRING)))
         .testEquals();
   }
@@ -52,7 +53,7 @@ public class PrimitiveTypeTest {
   public void shouldReturnSqlType() {
     assertThat(PrimitiveType.of(SqlType.INTEGER).getSqlType(), is(SqlType.INTEGER));
     assertThat(PrimitiveType.of(
-        SqlType.DECIMAL, Arrays.asList(6 ,2)).getSqlType(), is(SqlType.DECIMAL));
+        SqlType.DECIMAL, Optional.of(Arrays.asList(6 ,2))).getSqlType(), is(SqlType.DECIMAL));
   }
 
   @Test
@@ -143,7 +144,7 @@ public class PrimitiveTypeTest {
     expectedException.expectMessage("DECIMAL precision must be >= 1: DECIMAL(0,0)");
 
     // When:
-    PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(0, 0));
+    PrimitiveType.of(SqlType.DECIMAL, Optional.of(Arrays.asList(0, 0)));
   }
 
   @Test
@@ -153,7 +154,7 @@ public class PrimitiveTypeTest {
     expectedException.expectMessage("DECIMAL scale must be >= 0: DECIMAL(1,-1)");
 
     // When:
-    PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(1, -1));
+    PrimitiveType.of(SqlType.DECIMAL, Optional.of(Arrays.asList(1, -1)));
   }
 
   @Test
@@ -163,6 +164,6 @@ public class PrimitiveTypeTest {
     expectedException.expectMessage("DECIMAL precision must be >= scale: DECIMAL(1,2)");
 
     // When:
-    PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(1, 2));
+    PrimitiveType.of(SqlType.DECIMAL, Optional.of(Arrays.asList(1, 2)));
   }
 }

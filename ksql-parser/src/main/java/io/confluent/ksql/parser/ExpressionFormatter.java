@@ -90,7 +90,7 @@ public final class ExpressionFormatter {
       final StringBuilder sb = new StringBuilder();
 
       sb.append(node.getSqlType().toString());
-      if (node.getSqlTypeParameters().size() > 0) {
+      if (node.getSqlTypeParameters() != null && node.getSqlTypeParameters().size() > 0) {
         sb.append("(");
         sb.append(Joiner.on(',').join(node.getSqlTypeParameters()));
         sb.append(")");

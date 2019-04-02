@@ -1280,7 +1280,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       final String baseType = baseTypeToString(type.baseType());
       final List<Integer> typeParameters = typeParametersToList(type.typeParameter());
 
-      return PrimitiveType.of(baseType, typeParameters);
+      return PrimitiveType.of(baseType, Optional.ofNullable(typeParameters));
     }
 
     if (type.ARRAY() != null) {
@@ -1323,7 +1323,10 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
       return null;
     }
 
-    return typeParameters.stream().map(e -> typeParameterToInteger(e)).collect(Collectors.toList());
+    return typeParameters
+        .stream()
+        .map(AstBuilder::typeParameterToInteger)
+        .collect(Collectors.toList());
   }
 
   private static Integer typeParameterToInteger(
@@ -1331,8 +1334,8 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
   ) {
     try {
       return Integer.parseInt(typeParameter.INTEGER_VALUE().getSymbol().getText());
-    } catch (NumberFormatException e) {
-      throw new KsqlException("Type parameter must be numeric", e);
+    } catch (final NumberFormatException e) {
+      throw new KsqlException("Type parameter must be numeric (integer)", e);
     }
   }
 

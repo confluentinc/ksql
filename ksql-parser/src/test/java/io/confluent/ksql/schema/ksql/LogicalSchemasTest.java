@@ -28,6 +28,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -56,7 +57,7 @@ public class LogicalSchemasTest {
       .put(PrimitiveType.of(SqlType.DOUBLE), LOGICAL_DOUBLE_SCHEMA)
       .put(PrimitiveType.of(SqlType.STRING), LOGICAL_STRING_SCHEMA)
       .put(PrimitiveType.of(SqlType.DECIMAL,
-          Arrays.asList(DECIMAL_PRECISION, DECIMAL_SCALE)), LOGICAL_DECIMAL_SCHEMA)
+          Optional.of(Arrays.asList(DECIMAL_PRECISION, DECIMAL_SCALE))), LOGICAL_DECIMAL_SCHEMA)
       .put(io.confluent.ksql.parser.tree.Array.of(PrimitiveType.of(SqlType.INTEGER)),
           SchemaBuilder.array(LogicalSchemas.INTEGER).optional().build())
       .put(io.confluent.ksql.parser.tree.Map.of(PrimitiveType.of(SqlType.INTEGER)),

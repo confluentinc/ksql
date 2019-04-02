@@ -311,7 +311,10 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatDecimal() {
-    final PrimitiveType decimal = PrimitiveType.of(SqlType.DECIMAL, Arrays.asList(6, 2));
+    final PrimitiveType decimal = PrimitiveType.of(
+        SqlType.DECIMAL,
+        Optional.of(Arrays.asList(6, 2)));
+
     assertThat(ExpressionFormatter.formatExpression(decimal), equalTo("DECIMAL(6,2)"));
   }
 }

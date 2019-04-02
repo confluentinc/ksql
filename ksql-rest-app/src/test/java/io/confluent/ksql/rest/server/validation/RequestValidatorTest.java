@@ -50,6 +50,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -251,6 +252,56 @@ public class RequestValidatorTest {
         any()
     );
   }
+
+
+  @Test
+  public void shouldThrowIfInvalidOverriddenProperty() {
+    // Given:
+    final Map<String, Object> props = ImmutableMap.of(
+        "invalid.property", "foo");
+    givenRequestValidator(
+        ImmutableMap.of(CreateStream.class, statementValidator)
+    );
+    final List<ParsedStatement> statements =
+        givenParsed(
+            "CREATE STREAM a WITH (kafka_topic='a', value_format='json');"
+        );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Invalid config property: invalid.property");
+
+    // When:
+    validator.validate(statements, props, "sql");
+  }
+
+  @Test
+  public void shouldValidateForValidOverriddenProperty() {
+    // Given:
+    final Map<String, Object> props = ImmutableMap.of(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    givenRequestValidator(
+        ImmutableMap.of(CreateStream.class, statementValidator)
+    );
+    final List<ParsedStatement> statements =
+        givenParsed(
+            "CREATE STREAM a WITH (kafka_topic='a', value_format='json');"
+        );
+
+    // When:
+    validator.validate(statements, props, "sql");
+
+    // Then:
+    verify(statementValidator, times(1)).validate(
+        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        eq(executionContext),
+        any(),
+        eq(ksqlConfig),
+        any()
+    );
+
+  }
+
 
   private List<ParsedStatement> givenParsed(final String sql) {
     return new DefaultKsqlParser().parse(sql);

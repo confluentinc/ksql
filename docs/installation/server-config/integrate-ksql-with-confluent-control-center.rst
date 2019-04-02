@@ -96,21 +96,25 @@ that the browser can resolve through externally available DNS.
     confluent.controlcenter.ksql.<ksql-cluster-name>.url=<internally-resolvable-hostname1>, <internally-resolvable-hostname2>, ...
     confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url=<externally-resolvable-hostname1>, <externally-resolvable-hostname2>, ...
 
+The |c3-short| configuration must match the KSQL Server ``listeners`` values.
+
 Use the ``curl`` command to check whether these URLs are reachable. Depending
 on your deployment, you may need to check from two different hosts: 
 
-* Check from the host where the browser is running, which is relevant for the
-  ``confluent.controlcenter.ksql.<name>.advertised.url`` setting.
 * Check from the host where |c3-short| is running, which is relevant 
   for the ``confluent.controlcenter.ksql.<name>.url`` setting.
+* Check from the host where the browser is running, which is relevant for the
+  ``confluent.controlcenter.ksql.<name>.advertised.url`` setting.
 
 On both hosts, run the following command to confirm that the KSQL Server
-cluster is reachable.
+cluster is reachable. The ``hostname`` value is one of the hosts in the
+listed in the ``confluent.controlcenter.ksql.<name>.url`` and 
+``confluent.controlcenter.ksql.<name>.advertised.url`` configuration settings.
 
 .. codewithvars:: bash
 
-   curl http://<ksql-hostname>:8088/info \
-   {"KsqlServerInfo":{"version":"|release|","kafkaClusterId":"<ksql-cluster-name>","ksqlServiceId":"default_"}}%   
+   curl http://<hostname>:8088/info \
+   {"KsqlServerInfo":{"version":"|release|","kafkaClusterId":"<ksql-cluster-name>","ksqlServiceId":"default_"}}%
 
 .. note::
 

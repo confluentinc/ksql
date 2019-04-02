@@ -894,8 +894,8 @@ public class KsqlResourceTest {
         "LIST FUNCTIONS;",
         "DESCRIBE FUNCTION LCASE;",
         "LIST PROPERTIES;",
-        "SET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "'='FOO';",
-        "UNSET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "';"
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "'='earliest';",
+        "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';"
     );
 
     for (final String statement : blackListed) {
@@ -1146,7 +1146,7 @@ public class KsqlResourceTest {
 
     // When:
     final List<CommandStatusEntity> results = makeMultipleRequest(
-        "SET '" + KsqlConfig.KSQL_ENABLE_UDFS + "' = 'false';\n"
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';\n"
             + csas,
         CommandStatusEntity.class);
 
@@ -1154,7 +1154,7 @@ public class KsqlResourceTest {
     verify(commandStore).enqueueCommand(
         argThat(is(preparedStatementText(csas))),
         any(),
-        eq(ImmutableMap.of(KsqlConfig.KSQL_ENABLE_UDFS, "false")));
+        eq(ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")));
 
     assertThat(results, hasSize(1));
     assertThat(results.get(0).getStatementText(), is(csas));
@@ -1177,15 +1177,15 @@ public class KsqlResourceTest {
   public void shouldFailSetPropertyOnInvalidPropertyValue() {
     // When:
     final KsqlErrorMessage response = makeFailingRequest(
-        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = 'invalid value';",
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid value';",
         Code.BAD_REQUEST);
 
     // Then:
     assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
     assertThat(response.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(response.getMessage(),
-        containsString("Invalid value invalid value for configuration ksql.sink.replicas: "
-            + "Not a number of type SHORT"));
+        containsString("Invalid value invalid value for configuration auto.offset.reset: "
+            + "String must be one of: latest, earliest, none"));
   }
 
   @Test
@@ -1230,7 +1230,7 @@ public class KsqlResourceTest {
     final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
 
     makeMultipleRequest(
-        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '2';", KsqlEntity.class);
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';", KsqlEntity.class);
 
     // When:
     makeSingleRequest(csas, KsqlEntity.class);

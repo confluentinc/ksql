@@ -505,7 +505,7 @@ TIMESTAMP_WITH_TIME_ZONE
     ;
 
 UDF_SCRIPT
-    : HEREDOC ~'$'~'$'* HEREDOC
+    : HEREDOC ( ~'$'~'$' | ';' | WS)* HEREDOC
     ;
 
 fragment EXPONENT

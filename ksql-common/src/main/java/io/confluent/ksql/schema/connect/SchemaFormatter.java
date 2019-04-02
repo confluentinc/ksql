@@ -20,6 +20,8 @@ import org.apache.kafka.connect.data.Schema;
 
 /**
  * Formatter for Connect schema type.
+ *
+ * <p>Converts a Connect schema to human readable text.
  */
 @Immutable
 public interface SchemaFormatter {

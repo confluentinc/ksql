@@ -69,6 +69,7 @@ public class MetaStoreImplTest {
   public void setUp() {
     metaStore = new MetaStoreImpl(functionRegistry);
 
+    when(functionRegistry.copy()).thenReturn(functionRegistry);
     when(topic.getName()).thenReturn("some registered topic");
     when(dataSource.getName()).thenReturn("some source");
     when(dataSource1.getName()).thenReturn("some other source");

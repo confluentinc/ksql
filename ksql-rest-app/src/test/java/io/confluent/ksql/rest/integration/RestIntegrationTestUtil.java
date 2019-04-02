@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.integration;
 
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -26,13 +27,20 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.test.util.secure.Credentials;
+import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
+import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.glassfish.jersey.internal.util.Base64;
 
 final class RestIntegrationTestUtil {
 
@@ -111,5 +119,43 @@ final class RestIntegrationTestUtil {
       throw new AssertionError("Failed to await result."
           + "msg: " + res.getErrorMessage());
     }
+  }
+
+  public static WebSocketClient makeWsRequest(
+      final URI baseUri,
+      final String sql,
+      final Object listener,
+      final Optional<MediaType> mediaType,
+      final Optional<MediaType> contentType,
+      final Optional<Credentials> credentials
+  ) throws Exception {
+
+    final WebSocketClient wsClient = new WebSocketClient();
+    wsClient.start();
+
+    final ClientUpgradeRequest request = new ClientUpgradeRequest();
+
+    credentials.ifPresent(creds -> request
+        .setHeader(HttpHeaders.AUTHORIZATION, "Basic " + buildBasicAuthHeader(creds)));
+
+    mediaType.ifPresent(mt -> request.setHeader(HttpHeaders.ACCEPT, mt.toString()));
+    contentType.ifPresent(ct -> request.setHeader(HttpHeaders.CONTENT_TYPE, ct.toString()));
+
+    final URI wsUri = baseUri.resolve("/ws/query?request=" + buildStreamingRequest(sql));
+
+    wsClient.connect(listener, wsUri, request);
+
+    return wsClient;
+  }
+
+  private static String buildBasicAuthHeader(final Credentials credentials) {
+    return Base64.encodeAsString(credentials.username + ":" + credentials.password);
+  }
+
+  private static String buildStreamingRequest(final String sql) {
+    return UrlEscapers.urlFormParameterEscaper()
+        .escape("{"
+            + " \"ksql\": \"" + sql + "\""
+            + "}");
   }
 }

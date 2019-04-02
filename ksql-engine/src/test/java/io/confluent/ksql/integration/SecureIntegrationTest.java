@@ -18,6 +18,9 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
@@ -52,13 +55,11 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import kafka.security.auth.Acl;
@@ -66,9 +67,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
-import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
@@ -96,7 +95,7 @@ public class SecureIntegrationTest {
           .withoutPlainListeners()
           .withSaslSslListeners()
           .withSslListeners()
-          .withAcls(SUPER_USER.username)
+          .withAclsEnabled(SUPER_USER.username)
           .build();
 
   private QueryId queryId;
@@ -253,20 +252,6 @@ public class SecureIntegrationTest {
                                     final ResourcePattern resource,
                                     final Set<AclOperation> ops) {
     SECURE_CLUSTER.addUserAcl(credentials.username, AclPermissionType.ALLOW, resource, ops);
-  }
-
-  private static Set<AclOperation> ops(final AclOperation... ops) {
-    return Arrays.stream(ops).collect(Collectors.toSet());
-  }
-
-  private static ResourcePattern resource(final ResourceType resourceType,
-                                          final String resourceName) {
-    return new ResourcePattern(resourceType, resourceName, PatternType.LITERAL);
-  }
-
-  private static ResourcePattern prefixedResource(final ResourceType resourceType,
-                                                  final String resourceName) {
-    return new ResourcePattern(resourceType, resourceName, PatternType.PREFIXED);
   }
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {

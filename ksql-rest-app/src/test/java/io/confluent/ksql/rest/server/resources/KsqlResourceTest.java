@@ -111,6 +111,7 @@ import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -221,6 +222,13 @@ public class KsqlResourceTest {
   private SchemaInjector schemaInjector;
   @Mock
   private SchemaInjector sandboxSchemaInjector;
+  @Mock
+  private Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
+  @Mock
+  private TopicInjector topicInjector;
+  @Mock
+  private TopicInjector sandboxTopicInjector;
+
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
   private QueuedCommandStatus commandStatus;
@@ -269,8 +277,16 @@ public class KsqlResourceTest {
     when(schemaInjectorFactory.apply(any())).thenReturn(sandboxSchemaInjector);
     when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
 
+    when(topicInjectorFactory.apply(any())).thenReturn(sandboxTopicInjector);
+    when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
+
     when(sandboxSchemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
     when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    when(sandboxTopicInjector.forStatement(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.forStatement(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(0));
 
     setUpKsqlResource();
   }
@@ -647,6 +663,94 @@ public class KsqlResourceTest {
             "CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='AVRO', KAFKA_TOPIC='orders-topic');",
             CreateStream.class)
         )), any(), any());
+  }
+
+  @Test
+  public void shouldSupportTopicInferenceInVerification() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    givenMockEngine();
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+
+    final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
+    final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
+
+    final PreparedStatement statementWithTopic =
+        ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
+
+    when(sandboxTopicInjector.forStatement(argThat(is(preparedStatementText(sql))), any(), any()))
+        .thenReturn(statementWithTopic);
+
+
+    // When:
+    makeRequest(sql);
+
+    // Then:
+    verify(sandbox).execute(eq(statementWithTopic), any(), any());
+    verify(commandStore).enqueueCommand(argThat(preparedStatementText(sql)), any(), any());
+  }
+
+  @Test
+  public void shouldSupportTopicInferenceInExecution() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    givenMockEngine();
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+
+    final String sql = "CREATE STREAM orders2 AS SELECT * FROM orders1;";
+    final String sqlWithTopic = "CREATE STREAM orders2 WITH(kafka_topic='orders2') AS SELECT * FROM orders1;";
+
+    final PreparedStatement statementWithTopic =
+        ksqlEngine.prepare(ksqlEngine.parse(sqlWithTopic).get(0));
+
+    when(topicInjector.forStatement(argThat(is(preparedStatementText(sql))), any(), any()))
+        .thenReturn(statementWithTopic);
+
+
+    // When:
+    makeRequest(sql);
+
+    // Then:
+    verify(commandStore).enqueueCommand(eq(statementWithTopic), any(), any());
+  }
+
+  @Test
+  public void shouldFailWhenTopicInferenceFailsDuringValidate() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+    when(sandboxTopicInjector.forStatement(any(), any(), any()))
+        .thenThrow(new KsqlStatementException("boom", "sql"));
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "CREATE STREAM orders2 AS SELECT * FROM orders1;",
+        Code.BAD_REQUEST);
+
+    // Then:
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(result.getMessage(), is("boom"));
+  }
+
+  @Test
+  public void shouldFailWhenTopicInferenceFailsDuringExecute() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct().field("f1", Schema.OPTIONAL_STRING_SCHEMA).build();
+    givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", "ORDERS1", schema);
+
+    when(topicInjector.forStatement(any(), any(), any()))
+        .thenThrow(new KsqlStatementException("boom", "some-sql"));
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException
+        .expect(exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
+    expectedException
+        .expect(exceptionStatementErrorMessage(errorMessage(is("boom"))));
+
+    // When:
+    makeRequest("CREATE STREAM orders2 AS SELECT * FROM orders1;");
   }
 
   @Test
@@ -1623,6 +1727,7 @@ public class KsqlResourceTest {
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox().prepare(invocation.getArgument(0)));
     when(ksqlEngine.createSandbox()).thenReturn(sandbox);
+    when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
     setUpKsqlResource();
   }
 
@@ -1769,7 +1874,7 @@ public class KsqlResourceTest {
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
         ksqlConfig, ksqlEngine, serviceContext, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
-        activenessRegistrar, schemaInjectorFactory);
+        activenessRegistrar, schemaInjectorFactory, topicInjectorFactory);
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

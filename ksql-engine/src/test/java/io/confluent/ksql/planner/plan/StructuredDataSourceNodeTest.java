@@ -170,7 +170,6 @@ public class StructuredDataSourceNodeTest {
     when(topicSerDe.getGenericRowSerde(
         any(Schema.class),
         any(KsqlConfig.class),
-        any(Boolean.class),
         any(Supplier.class),
         anyString(),
         any(ProcessingLogContext.class))).thenReturn(rowSerde);

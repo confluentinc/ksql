@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -77,6 +78,8 @@ public class RequestValidatorTest {
   StatementValidator<?> statementValidator;
   @Mock
   SchemaInjector schemaInjector;
+  @Mock
+  TopicInjector topicInjector;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -96,6 +99,7 @@ public class RequestValidatorTest {
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
         .thenReturn(Integer.MAX_VALUE);
     when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.forStatement(any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
 
     final KsqlStream<?> source = mock(KsqlStream.class);
     when(source.getName()).thenReturn("SOURCE");
@@ -309,6 +313,7 @@ public class RequestValidatorTest {
     validator = new RequestValidator(
         customValidators,
         sc -> schemaInjector,
+        ec -> topicInjector,
         () -> executionContext,
         serviceContext,
         ksqlConfig

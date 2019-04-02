@@ -31,6 +31,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.connect.data.Field;
@@ -142,26 +144,28 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
     if (doCreateInto) {
-      final SourceTopicProperties sourceTopicProperties = getSourceTopicProperties(
-          getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
-          outputProperties,
-          serviceContext.getTopicClient(),
-          ksqlConfig
-      );
+      final Supplier<TopicDescription> sourceTopicDescription = () ->
+          getSourceTopicPropertiesFromKafka(
+              getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
+              serviceContext.getTopicClient());
+
       createSinkTopic(
-          noRowKey.getKafkaTopicName(),
           serviceContext.getTopicClient(),
           shouldBeCompacted(result),
-          sourceTopicProperties.partitions,
-          sourceTopicProperties.replicas);
+          new TopicProperties.Builder()
+              .withName(noRowKey.getKafkaTopicName())
+              .withOverrides(outputProperties)
+              .withKsqlConfig(ksqlConfig)
+              .withSource(sourceTopicDescription)
+              .build());
     }
+
     result.into(
         noRowKey.getKafkaTopicName(),
         noRowKey.getKsqlTopic().getKsqlTopicSerDe()
             .getGenericRowSerde(
                 noRowKey.getSchema(),
                 ksqlConfig,
-                false,
                 serviceContext.getSchemaRegistryClientFactory(),
                 QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
                 processingLogContext),
@@ -237,67 +241,20 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   private static void createSinkTopic(
-      final String kafkaTopicName,
       final KafkaTopicClient kafkaTopicClient,
       final boolean isCompacted,
-      final int numberOfPartitions,
-      final short numberOfReplications
+      final TopicProperties topicProperties
   ) {
     final Map<String, ?> config = isCompacted
         ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
         : Collections.emptyMap();
 
-    kafkaTopicClient.createTopic(kafkaTopicName,
-        numberOfPartitions,
-        numberOfReplications,
+    kafkaTopicClient.createTopic(
+        topicProperties.getTopicName(),
+        topicProperties.getPartitions(),
+        topicProperties.getReplicas(),
         config
     );
-  }
-
-  private static SourceTopicProperties getSourceTopicProperties(
-      final String kafkaTopicName,
-      final Map<String, Object> sinkProperties,
-      final KafkaTopicClient kafkaTopicClient,
-      final KsqlConfig ksqlConfig
-  ) {
-    final Map ksqlProperties = ksqlConfig.values();
-    if (ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY) != null
-        || ksqlProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) != null) {
-      return getSinkTopicPropertiesLegacyWay(sinkProperties, ksqlConfig);
-    }
-    // Don't request topic properties from Kafka if both are set in WITH clause.
-    if (sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY) != null
-        && sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY) != null) {
-      return new SourceTopicProperties(
-          (Integer) sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY),
-          (Short) sinkProperties.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)
-      );
-    }
-    final TopicDescription topicDescription = getSourceTopicPropertiesFromKafka(
-        kafkaTopicName,
-        kafkaTopicClient);
-
-    final int partitions = (Integer) sinkProperties.getOrDefault(
-        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-        topicDescription.partitions().size());
-    final short replicas = (Short) sinkProperties.getOrDefault(
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
-        (short) topicDescription.partitions().get(0).replicas().size());
-
-    return new SourceTopicProperties(partitions, replicas);
-  }
-
-  private static SourceTopicProperties getSinkTopicPropertiesLegacyWay(
-      final Map<String, Object> sinkProperties,
-      final KsqlConfig ksqlConfig
-  ) {
-    final int partitions = (Integer) sinkProperties.getOrDefault(
-        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-        ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
-    final short replicas = (Short) sinkProperties.getOrDefault(
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
-        ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
-    return new SourceTopicProperties(partitions, replicas);
   }
 
   private static TopicDescription getSourceTopicPropertiesFromKafka(
@@ -317,17 +274,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private KsqlTopicSerDe getTopicSerde() {
     return ksqlTopic.getKsqlTopicSerDe();
-  }
-
-  private static class SourceTopicProperties {
-
-    private final int partitions;
-    private final short replicas;
-
-    SourceTopicProperties(final int partitions, final short replicas) {
-      this.partitions = partitions;
-      this.replicas = replicas;
-    }
   }
 
   public static class Builder {

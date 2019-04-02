@@ -20,6 +20,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -45,6 +46,11 @@ public interface KsqlExecutionContext {
    * @return read-only access to the context's {@link MetaStore}.
    */
   MetaStore getMetaStore();
+
+  /**
+   * @return the service context used for this execution context
+   */
+  ServiceContext getServiceContext();
 
   /**
    * Retrieve the details of a persistent query.

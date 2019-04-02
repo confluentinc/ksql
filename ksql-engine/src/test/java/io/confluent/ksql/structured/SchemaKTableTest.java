@@ -54,6 +54,7 @@ import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaTestUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -164,7 +165,6 @@ public class SchemaKTableTest {
     return topic.getKsqlTopicSerDe().getGenericRowSerde(
         schema,
         new KsqlConfig(Collections.emptyMap()),
-        false,
         MockSchemaRegistryClient::new,
         "test",
         processingLogContext);
@@ -317,9 +317,8 @@ public class SchemaKTableTest {
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(),
+        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema()),
         null,
-        false,
         () -> null,
         "test",
         processingLogContext);
@@ -393,9 +392,8 @@ public class SchemaKTableTest {
         new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
     final List<Expression> groupByExpressions = Arrays.asList(col2Expression, col1Expression);
     final Serde<GenericRow> rowSerde = new KsqlJsonTopicSerDe().getGenericRowSerde(
-        initialSchemaKTable.getSchema(),
+        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema()),
         null,
-        false,
         () -> null,
         "test",
         processingLogContext);

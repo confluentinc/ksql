@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -30,6 +31,8 @@ import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -72,7 +75,8 @@ public final class StandaloneExecutorFactory {
         UdfLoader udfLoader,
         boolean failOnNoQueries,
         VersionCheckerAgent versionChecker,
-        Function<ServiceContext, SchemaInjector> schemaInjectorFactory
+        Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
+        Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory
     );
   }
 
@@ -132,7 +136,8 @@ public final class StandaloneExecutorFactory {
         udfLoader,
         true,
         versionChecker,
-        schemaInjectorFactory
+        schemaInjectorFactory,
+        DefaultTopicInjector::new
     );
   }
 }

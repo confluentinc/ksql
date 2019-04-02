@@ -17,9 +17,11 @@ package io.confluent.ksql;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,12 +34,14 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
+import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,6 +50,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.verification.VerificationMode;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlContextTest {
@@ -72,6 +77,12 @@ public class KsqlContextTest {
   private final static PreparedStatement<?> STMT_1_WITH_SCHEMA = PreparedStatement
       .of("sql 1", mock(Statement.class));
 
+  private final static PreparedStatement<?> STMT_0_WITH_TOPIC = PreparedStatement
+      .of("sql 0", mock(Statement.class));
+
+  private final static PreparedStatement<?> STMT_1_WITH_TOPIC = PreparedStatement
+      .of("sql 1", mock(Statement.class));
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -87,14 +98,16 @@ public class KsqlContextTest {
   private QueuedQueryMetadata transientQuery;
   @Mock
   private SchemaInjector schemaInjector;
+  @Mock
+  private Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
+  @Mock
+  private TopicInjector topicInjector;
 
   private KsqlContext ksqlContext;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    ksqlContext = new KsqlContext(serviceContext, SOME_CONFIG, ksqlEngine, schemaInjector);
-
     when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0));
 
     when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
@@ -111,6 +124,14 @@ public class KsqlContextTest {
         .thenReturn((PreparedStatement) STMT_0_WITH_SCHEMA);
     when(schemaInjector.forStatement(PREPARED_STMT_1))
         .thenReturn((PreparedStatement) STMT_1_WITH_SCHEMA);
+
+    when(topicInjectorFactory.apply(any())).thenReturn(topicInjector);
+    when(topicInjector.forStatement(any(), any(), any()))
+        .thenAnswer(inv -> inv.getArgument(0));
+
+    ksqlContext = new KsqlContext(
+        serviceContext, SOME_CONFIG, ksqlEngine, sc -> schemaInjector, topicInjectorFactory);
+
   }
 
   @Test
@@ -277,5 +298,61 @@ public class KsqlContextTest {
 
     // When:
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldInferTopic() {
+    // Given:
+    when(topicInjector.forStatement(any(), any(), any()))
+        .thenReturn((PreparedStatement) STMT_0_WITH_TOPIC);
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    verify(ksqlEngine).execute(eq(STMT_0_WITH_TOPIC), any(), any());
+  }
+
+  @Test
+  public void shouldInferTopicWithValidArgs() {
+    // Given:
+    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    verify(topicInjector, times(2) /* once to validate, once to execute */)
+        .forStatement(PREPARED_STMT_0, SOME_CONFIG, SOME_PROPERTIES);
+  }
+
+  @Test
+  public void shouldThrowIfFailedToInferTopic() {
+    // Given:
+    when(topicInjector.forStatement(any(), any(), any()))
+        .thenThrow(new RuntimeException("Boom"));
+
+    // Then:
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("Boom");
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldInferTopicAfterInferringSchema() {
+    // Given:
+    when(schemaInjector.forStatement(any())).thenReturn((PreparedStatement) STMT_1_WITH_SCHEMA);
+    when(topicInjector.forStatement(eq(STMT_1_WITH_SCHEMA), any(), any()))
+        .thenReturn((PreparedStatement) STMT_1_WITH_TOPIC);
+
+    // When:
+    ksqlContext.sql("Some SQL", SOME_PROPERTIES);
+
+    // Then:
+    verify(ksqlEngine).execute(eq(STMT_1_WITH_TOPIC), any(), any());
   }
 }

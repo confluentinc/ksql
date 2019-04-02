@@ -401,8 +401,7 @@ public class JoinNode extends PlanNode {
           .getGenericRowSerde(
               dataSourceNode.getSchema(),
               ksqlConfig,
-              false,
-              serviceContext.getSchemaRegistryClientFactory(), 
+              serviceContext.getSchemaRegistryClientFactory(),
               QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
               processingLogContext);
     }

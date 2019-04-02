@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.junit.Rule;
@@ -86,6 +87,12 @@ public class UdfCompilerTest {
   }
 
   @Test
+  public void shouldCompileFunctionWithIntVarArgs() throws NoSuchMethodException {
+    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", int[].class), classLoader);
+    assertThat(udf.eval(this, (Object) new int[]{1, 1}), equalTo(2));
+  }
+
+  @Test
   public void shouldCompileFunctionWithPrimitiveLongArgument() throws NoSuchMethodException {
     final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", long.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1L));
@@ -107,6 +114,12 @@ public class UdfCompilerTest {
   public void shouldCompileFunctionWithStringArgument() throws NoSuchMethodException {
     final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", String.class), classLoader);
     assertThat(udf.eval(this, "foo"), equalTo("foo"));
+  }
+
+  @Test
+  public void shouldCompileFunctionWithStringVarArgs() throws NoSuchMethodException {
+    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", String[].class), classLoader);
+    assertThat(udf.eval(this, (Object) new String[]{"foo", "bar"}), equalTo("foobar"));
   }
 
   @Test
@@ -189,6 +202,24 @@ public class UdfCompilerTest {
   }
 
   @Test
+  public void shouldThrowIfArrayWithoutVarArgs() throws NoSuchMethodException {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array)");
+    udfCompiler.compile(
+        getClass().getMethod("invalidUdf", int[].class),
+        classLoader);
+  }
+
+  @Test
+  public void shouldThrowIfArrayAndVarArgs() throws NoSuchMethodException {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array):");
+    udfCompiler.compile(
+        getClass().getMethod("invalidUdf", int[].class, int[].class),
+        classLoader);
+  }
+
+  @Test
   public void shouldThrowKsqlFunctionExceptionIfNullPassedWhenExpectingPrimitiveType()
       throws NoSuchMethodException {
     expectedException.expect(KsqlFunctionException.class);
@@ -197,7 +228,6 @@ public class UdfCompilerTest {
         udfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
     udf.eval(this, new Object[]{null});
   }
-
 
   @Test
   public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws NoSuchMethodException {
@@ -342,6 +372,10 @@ public class UdfCompilerTest {
     return val;
   }
 
+  public int udfPrimitive(final int... val) {
+    return Arrays.stream(val).sum();
+  }
+
   public long udfPrimitive(final long val) {
     return val;
   }
@@ -356,6 +390,10 @@ public class UdfCompilerTest {
 
   public String udf(final String val) {
     return val;
+  }
+
+  public String udf(final String... val) {
+    return String.join("", val);
   }
 
   public double multi(final int i, final long l, final double d) {
@@ -403,6 +441,14 @@ public class UdfCompilerTest {
   }
 
   public Udaf<String, String> createNonStatic() {
+    return null;
+  }
+
+  public static String invalidUdf(final int[] ints) {
+    return null;
+  }
+
+  public static String invalidUdf(final int[] ints, final int... moreInts) {
     return null;
   }
 }

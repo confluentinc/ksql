@@ -17,6 +17,8 @@ package io.confluent.ksql.function.udf;
 
 import io.confluent.ksql.function.UdfInvoker;
 import io.confluent.ksql.security.ExtensionSecurityManager;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -29,20 +31,40 @@ public class PluggableUdf implements Kudf {
 
   private final UdfInvoker udf;
   private final Object actualUdf;
+  private final Method method;
 
-  public PluggableUdf(final UdfInvoker udfInvoker,
-                      final Object actualUdf) {
-    this.udf = Objects.requireNonNull(udfInvoker, "udfInvoker can't be null");
-    this.actualUdf = Objects.requireNonNull(actualUdf, "actualUdf can't be null");
+  public PluggableUdf(
+      final UdfInvoker udfInvoker,
+      final Object actualUdf,
+      final Method method
+  ) {
+    this.udf = Objects.requireNonNull(udfInvoker, "udfInvoker");
+    this.actualUdf = Objects.requireNonNull(actualUdf, "actualUdf");
+    this.method = Objects.requireNonNull(method, "method");
   }
 
   @Override
   public Object evaluate(final Object... args) {
     try {
       ExtensionSecurityManager.INSTANCE.pushInUdf();
-      return udf.eval(actualUdf, args);
+      return udf.eval(actualUdf, extractArgs(args));
     } finally {
       ExtensionSecurityManager.INSTANCE.popOutUdf();
     }
+  }
+
+  private Object[] extractArgs(final Object... source) {
+    if (!method.isVarArgs()) {
+      return source;
+    }
+
+    final Object[] args = new Object[method.getParameterCount()];
+    System.arraycopy(source, 0, args, 0, method.getParameterCount() - 1);
+
+    final int start = method.getParameterCount() - 1;
+    final Object[] varargs = Arrays.copyOfRange(source, start, source.length);
+    args[start] = varargs;
+
+    return args;
   }
 }

@@ -41,6 +41,7 @@
     <modules>
         <module>ksql-udf</module>
         <module>ksql-common</module>
+        <module>ksql-udf-quickstart</module>
         <module>ksql-serde</module>
         <module>ksql-metastore</module>
         <module>ksql-parser</module>

@@ -16,7 +16,12 @@
 package io.confluent.ksql.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.TimeUnit;
@@ -27,21 +32,38 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class RetryTest {
 
-  // this resource should not cause the test to fail because we have
-  // a chained Retry outer rule
+  // This resource is an ExternalResource rule, which will be run as part
+  // of RESOURCE_RETRY_CHAIN. The first time that it is run, it throws
+  // a RetryException and increments some global state. The second time it
+  // is run, it succeeds. (see code at the bottom of the file)
   private static final RetryResource RESOURCE = new RetryResource(1);
 
-  @ClassRule public static final RuleChain RESOURCE_RETRY_CHAIN = RuleChain
+  // Since we are retrying RESOURCE once, this should not cause the test to
+  // fail if the Retry rule does its job correctly. This is, in essence, a
+  // test in and of itself and is not related to any of the unit tests (it
+  // is run once as the class is setup, unlike @Before which is run before
+  // every unit test)
+  @ClassRule
+  public static final RuleChain RESOURCE_RETRY_CHAIN = RuleChain
       .outerRule(Retry.of(1, RetryException.class, 0, TimeUnit.SECONDS))
       .around(RESOURCE);
 
-  @Rule public Retry retry = Retry.none();
-  @Rule public ExpectedException expectedException = ExpectedException.none();
+  @Rule
+  public Retry retry = Retry.none();
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
-  // initialize before @Before in case @Before is run multiple times
+  @Mock
+  public TimeUnit timeUnit;
+
+  // initialize outside of @Before in case @Before is run multiple times
   private int test = 0;
 
   @Before
@@ -59,6 +81,21 @@ public class RetryTest {
     if (test == 1) throw new RetryException(test);
 
     // Then:
+    assertThat(test, equalTo(2));
+  }
+
+  @Test
+  public void shouldSucceedOnFirstRetryWithWait() throws InterruptedException {
+    // Given:
+    doNothing().when(timeUnit).sleep(anyLong());
+    retry.withDelay(10, timeUnit);
+    test++;
+
+    // When:
+    if (test == 1) throw new RetryException(test);
+
+    // Then:
+    verify(timeUnit).sleep(10);
     assertThat(test, equalTo(2));
   }
 

@@ -1916,13 +1916,13 @@ public class KsqlResourceTest {
     if (type == DataSource.DataSourceType.KSTREAM) {
       metaStore.putSource(
           new KsqlStream<>(
-              "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
+              "statementText", sourceName, schema, Optional.of(schema.fields().get(0).name()),
               new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
     if (type == DataSource.DataSourceType.KTABLE) {
       metaStore.putSource(
           new KsqlTable<>(
-              "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
+              "statementText", sourceName, schema, Optional.of(schema.fields().get(0).name()),
               new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
   }

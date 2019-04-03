@@ -122,7 +122,7 @@ public class QueryDescriptionTest {
     // Given:
     final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
     final KsqlStream<?> fakeSink = new KsqlStream<>(
-        STATEMENT, "fake_sink", SCHEMA, Optional.of(SCHEMA.fields().get(0)),
+        STATEMENT, "fake_sink", SCHEMA, Optional.of(SCHEMA.fields().get(0).name()),
         new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes::String);
 
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(

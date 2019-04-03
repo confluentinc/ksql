@@ -22,6 +22,7 @@ import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
@@ -43,7 +44,7 @@ public abstract class StructuredDataSource<K> implements DataSource {
       final String sqlExpression,
       final String dataSourceName,
       final Schema schema,
-      final Optional<Field> keyField,
+      final Optional<String> keyFieldName,
       final TimestampExtractionPolicy tsExtractionPolicy,
       final DataSourceType dataSourceType,
       final KsqlTopic ksqlTopic,
@@ -52,7 +53,9 @@ public abstract class StructuredDataSource<K> implements DataSource {
     this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
     this.dataSourceName = requireNonNull(dataSourceName, "dataSourceName");
     this.schema = KsqlSchema.of(schema);
-    this.keyField = requireNonNull(keyField, "keyField");
+    this.keyField = requireNonNull(keyFieldName, "keyFieldName")
+        .map(fieldName -> SchemaUtil.getFieldByName(schema, fieldName)
+        .orElseThrow(IllegalArgumentException::new));
     this.timestampExtractionPolicy = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");

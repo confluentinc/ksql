@@ -168,7 +168,7 @@ public class CodeGenRunnerTest {
             "sqlexpression",
             "CODEGEN_TEST",
             metaStoreSchema,
-            Optional.of(metaStoreSchema.field("COL0")),
+            Optional.of("COL0"),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic,Serdes::String);
         metaStore.putTopic(ksqlTopic);

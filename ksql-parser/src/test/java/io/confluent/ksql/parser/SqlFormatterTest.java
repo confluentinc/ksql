@@ -120,7 +120,7 @@ public class SqlFormatterTest {
         "sqlexpression",
         "ADDRESS",
         schemaBuilderOrders,
-        Optional.of(schemaBuilderOrders.field("ORDERTIME")),
+        Optional.of("ORDERTIME"),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
         Serdes::String);
@@ -135,7 +135,7 @@ public class SqlFormatterTest {
         "sqlexpression",
         "ITEMID",
         itemInfoSchema,
-        Optional.ofNullable(itemInfoSchema.field("ITEMID")),
+        Optional.of("ITEMID"),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         Serdes::String);

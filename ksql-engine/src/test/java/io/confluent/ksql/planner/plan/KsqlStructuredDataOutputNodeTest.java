@@ -115,7 +115,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private final KsqlStream dataSource = new KsqlStream<>("sqlExpression", "datasource",
       schema,
-      Optional.of(schema.field("key")),
+      Optional.of("key"),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME,
           new KsqlJsonTopicSerDe(), false), Serdes::String);
@@ -290,7 +290,6 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldCreateSinkWithCorrectCleanupPolicyWindowedTable() {
     // Given:
     reset(mockTopicClient);
-    when(mockTopicClient.describeTopic(any())).thenReturn(topicDescription);
 
     outputNode = getKsqlStructuredDataOutputNodeForTable(
         () -> WindowedSerdes.timeWindowedSerdeFrom(String.class));
@@ -503,7 +502,7 @@ public class KsqlStructuredDataOutputNodeTest {
         new KsqlTable<>(
             "sqlExpression", "datasource",
             schema,
-            Optional.ofNullable(schema.field("key")),
+            Optional.of("key"),
             new MetadataTimestampExtractionPolicy(),
             new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), false),
             keySerdeFatory),

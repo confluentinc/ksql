@@ -76,7 +76,7 @@ public class MetaStoreTest {
     final StructuredDataSource<?> structuredDataSource2 = new KsqlStream<>(
         "sqlexpression", "testStream",
         structuredDataSource1.getSchema(),
-        structuredDataSource1.getKeyField(),
+        structuredDataSource1.getKeyField().map(org.apache.kafka.connect.data.Field::name),
         structuredDataSource1.getTimestampExtractionPolicy(),
         structuredDataSource1.getKsqlTopic(),
         Serdes::String);

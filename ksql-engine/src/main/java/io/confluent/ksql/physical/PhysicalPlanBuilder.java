@@ -244,7 +244,7 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               sinkSchema,
-              schemaKTable.getKeyField(),
+              schemaKTable.getKeyField().map(Field::name),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               schemaKTable.getKeySerdeFactory()
@@ -255,7 +255,7 @@ public class PhysicalPlanBuilder {
               sqlExpression,
               outputNode.getId().toString(),
               sinkSchema,
-              schemaKStream.getKeyField(),
+              schemaKStream.getKeyField().map(Field::name),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               schemaKStream.getKeySerdeFactory()

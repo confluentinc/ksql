@@ -141,7 +141,7 @@ public class KsqlParserTest {
         "sqlexpression",
         "ADDRESS",
         schemaBuilderOrders,
-        Optional.of("ORDERTIME"),
+        Optional.of(schemaBuilderOrders.field("ORDERTIME")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
         Serdes::String);
@@ -156,7 +156,7 @@ public class KsqlParserTest {
         "sqlexpression",
         "ITEMID",
         itemInfoSchema,
-        Optional.of("ITEMID"),
+        Optional.ofNullable(itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         Serdes::String);

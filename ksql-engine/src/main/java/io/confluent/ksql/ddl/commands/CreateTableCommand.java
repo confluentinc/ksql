@@ -24,6 +24,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
+import java.util.Optional;
 
 public class CreateTableCommand extends AbstractCreateStreamCommand {
 
@@ -59,7 +60,8 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         sqlExpression,
         sourceName,
         SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema),
-        keyColumnName,
+        (keyColumnName.isEmpty())
+          ? Optional.empty() : SchemaUtil.getFieldByName(schema, keyColumnName),
         timestampExtractionPolicy,
         metaStore.getTopic(topicName),
         keySerdeFactory

@@ -312,7 +312,7 @@ public class AnalyzerTest {
             "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
             "S0",
             schema,
-            Optional.of("FIELD1"),
+            Optional.of(schema.field("FIELD1")),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic,
             Serdes::String);

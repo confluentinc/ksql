@@ -65,7 +65,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "TEST0",
         test1Schema,
-        Optional.of("COL0"),
+        Optional.of(test1Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic0,
         Serdes::String);
@@ -80,7 +80,7 @@ public final class MetaStoreFixture {
     final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
         "TEST1",
         test1Schema,
-        Optional.of("COL0"),
+        Optional.of(test1Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic1,
         Serdes::String);
@@ -105,7 +105,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "TEST2",
         test2Schema,
-        Optional.of("COL0"),
+        Optional.ofNullable(test2Schema.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic2,
         Serdes::String);
@@ -151,7 +151,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "ORDERS",
         ordersSchema,
-        Optional.of("ORDERTIME"),
+        Optional.of(ordersSchema.field("ORDERTIME")),
         timestampExtractionPolicy,
         ksqlTopicOrders,
         Serdes::String);
@@ -176,7 +176,7 @@ public final class MetaStoreFixture {
         "sqlexpression",
         "TEST3",
         schemaBuilderTestTable3,
-        Optional.of("COL0"),
+        Optional.ofNullable(schemaBuilderTestTable3.field("COL0")),
         timestampExtractionPolicy,
         ksqlTopic3,
         Serdes::String);

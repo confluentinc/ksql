@@ -34,7 +34,6 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
@@ -58,7 +57,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   final String sourceName;
   final String topicName;
   final Schema schema;
-  final Optional<String> keyColumnName;
+  final String keyColumnName;
   final RegisterTopicCommand registerTopicCommand;
   private final KafkaTopicClient kafkaTopicClient;
   final SerdeFactory<?> keySerdeFactory;
@@ -94,18 +93,16 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     if (properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
       final String name = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
 
-      final String keyFieldName = StringUtil.cleanQuotes(name);
-      if (!SchemaUtil.getFieldByName(this.schema, keyFieldName).isPresent()) {
+      this.keyColumnName = StringUtil.cleanQuotes(name);
+      if (!SchemaUtil.getFieldByName(this.schema, keyColumnName).isPresent()) {
         throw new KsqlException(String.format(
             "No column with the provided key column name in the WITH "
             + "clause, %s, exists in the defined schema.",
-            keyFieldName
+            keyColumnName
         ));
       }
-
-      this.keyColumnName = Optional.of(keyFieldName);
     } else {
-      this.keyColumnName = Optional.empty();
+      this.keyColumnName = "";
     }
 
     final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)

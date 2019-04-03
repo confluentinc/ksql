@@ -66,7 +66,7 @@ public class SourceDescriptionTest {
         .build();
     final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonTopicSerDe(), true);
     return new KsqlStream<>(
-        "query", "stream", schema, Optional.of(schema.fields().get(0).name()),
+        "query", "stream", schema, Optional.of(schema.fields().get(0)),
         new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
   }
 

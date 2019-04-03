@@ -95,13 +95,13 @@ public class TemporaryEngine extends ExternalResource {
       case KSTREAM:
         source =
             new KsqlStream<>(
-                "statement", name, SCHEMA, Optional.of("val"),
+                "statement", name, SCHEMA, Optional.of(SCHEMA.field("val")),
                 new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       case KTABLE:
         source =
             new KsqlTable<>(
-                "statement", name, SCHEMA, Optional.of("val"),
+                "statement", name, SCHEMA, Optional.of(SCHEMA.field("val")),
                 new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
         break;
       case KTOPIC:

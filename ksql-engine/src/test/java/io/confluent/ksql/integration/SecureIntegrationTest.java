@@ -59,10 +59,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import kafka.security.auth.Acl;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
@@ -75,6 +77,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -89,14 +92,18 @@ public class SecureIntegrationTest {
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final AtomicInteger COUNTER = new AtomicInteger(0);
 
-  @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
+  private static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
       EmbeddedSingleNodeKafkaCluster.newBuilder()
           .withoutPlainListeners()
           .withSaslSslListeners()
           .withSslListeners()
           .withAclsEnabled(SUPER_USER.username)
           .build();
+
+  @ClassRule
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(SECURE_CLUSTER);
 
   private QueryId queryId;
   private KsqlConfig ksqlConfig;

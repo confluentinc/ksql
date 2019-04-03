@@ -27,6 +27,7 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 import com.google.common.net.UrlEscapers;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -46,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLHandshakeException;
 import javax.ws.rs.ProcessingException;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
@@ -87,7 +89,10 @@ public class SslFunctionalTest {
       .build();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
+  public static final RuleChain CHAIN = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(CLUSTER)
+      .around(REST_APP);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

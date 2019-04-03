@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -32,7 +33,9 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -56,7 +59,10 @@ public class KsqlResourceFunctionalTest {
       .build();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
+  public static final RuleChain CHAIN = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(TEST_HARNESS)
+      .around(REST_APP);
 
   private KsqlRestClient restClient;
   private String source;

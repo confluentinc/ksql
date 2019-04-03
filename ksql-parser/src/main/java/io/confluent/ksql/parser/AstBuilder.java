@@ -113,7 +113,6 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
@@ -266,7 +265,7 @@ public class AstBuilder extends SqlBaseBaseVisitor<Node> {
         visit(context.tableElement(), TableElement.class),
         language,
         script,
-        LogicalSchemas.fromSqlTypeConverter().fromSqlType(getType(context.type())),
+        getType(context.type()),
         processFunctionProperties(context.functionProperties()),
         context.REPLACE() != null
         );

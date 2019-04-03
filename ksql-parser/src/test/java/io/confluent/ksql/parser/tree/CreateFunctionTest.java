@@ -19,13 +19,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.parser.tree.Type.SqlType;
-import io.confluent.ksql.schema.ksql.LogicalSchemas;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
 public class CreateFunctionTest {
@@ -33,11 +31,16 @@ public class CreateFunctionTest {
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final QualifiedName SOME_NAME = QualifiedName.of("multiply");
+  private static final QualifiedName SOME_OTHER_NAME = QualifiedName.of("divide");
   private static final String SOME_LANGUAGE = "JAVA";
-  private static final String SOME_SCRIPT = "return args[0] * args[1];";
+  private static final String SOME_SCRIPT = "return X * Y;";
+  private static final String SOME_OTHER_SCRIPT = "return X / 10;";
   private static final List<TableElement> SOME_ELEMENTS = ImmutableList.of(
     new TableElement("num1", PrimitiveType.of(SqlType.INTEGER)),
     new TableElement("num2", PrimitiveType.of(SqlType.INTEGER))
+  );
+  private static final List<TableElement> SOME_OTHER_ELEMENTS = ImmutableList.of(
+    new TableElement("num1", PrimitiveType.of(SqlType.INTEGER))
   );
   private static final Map<String, Expression> SOME_PROPS = ImmutableMap.of(
       "author", new StringLiteral("mitch"),
@@ -49,8 +52,7 @@ public class CreateFunctionTest {
       "description", new StringLiteral("multiply 2 numbers!"),
       "version", new StringLiteral("0.2.0")
   );
-  private static final Schema SOME_RETURN_TYPE
-    = LogicalSchemas.fromSqlTypeConverter().fromSqlType(PrimitiveType.of(SqlType.INTEGER));
+  private static final Type SOME_RETURN_TYPE = PrimitiveType.of(SqlType.INTEGER);
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
@@ -79,7 +81,7 @@ public class CreateFunctionTest {
         .addEqualityGroup(
             new CreateFunction(
                 Optional.of(OTHER_LOCATION),
-                QualifiedName.of("divide"),
+                SOME_OTHER_NAME,
                 SOME_ELEMENTS,
                 SOME_LANGUAGE,
                 SOME_SCRIPT,
@@ -90,10 +92,10 @@ public class CreateFunctionTest {
         .addEqualityGroup(
             new CreateFunction(
                 Optional.of(OTHER_LOCATION),
-                QualifiedName.of("divide"),
-                ImmutableList.of(),
+                SOME_OTHER_NAME,
+                SOME_OTHER_ELEMENTS,
                 SOME_LANGUAGE,
-                SOME_SCRIPT,
+                SOME_OTHER_SCRIPT,
                 SOME_RETURN_TYPE,
                 SOME_PROPS,
                 false)

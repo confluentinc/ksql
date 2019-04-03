@@ -18,13 +18,13 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,18 +32,17 @@ import java.util.Optional;
 
 import org.apache.kafka.connect.data.Schema;
 
+@Immutable
 public class CreateFunction
     extends Statement implements ExecutableDdlStatement {
   private final QualifiedName name;
-  private final List<TableElement> elements;
+  private final ImmutableList<TableElement> elements;
   private final String language;
   private final String script;
-  private final Schema returnType;
-  private final Map<String, Expression> properties;
-  private final Boolean replace;
-  private static final String[] SUPPORTED_LANGUAGES = {
-    "java"
-  };
+  private final Type returnType;
+  private final ImmutableMap<String, Expression> properties;
+  private final boolean replace;
+  private static final ImmutableList<String> SUPPORTED_LANGUAGES = ImmutableList.of("java");
 
   private static final class Config {
     public static final String AUTHOR_PROPERTY = "AUTHOR";
@@ -61,9 +60,9 @@ public class CreateFunction
       final List<TableElement> elements,
       final String language,
       final String script,
-      final Schema returnType,
+      final Type returnType,
       final Map<String, Expression> properties,
-      final Boolean replace) {
+      final boolean replace) {
     this(Optional.empty(), name, elements, language, script, returnType, properties, replace);
   }
 
@@ -73,25 +72,27 @@ public class CreateFunction
       final List<TableElement> elements,
       final String language,
       final String script,
-      final Schema returnType,
+      final Type returnType,
       final Map<String, Expression> properties,
-      final Boolean replace) {
+      final boolean replace) {
     super(location);
     this.name = requireNonNull(name, "function name is null");
     this.elements = ImmutableList.copyOf(requireNonNull(elements, "elements is null"));
-    this.language = formatLanguage(requireNonNull(language, "language name is null"));
     this.script = requireNonNull(script, "udf script is null");
     this.returnType = requireNonNull(returnType, "return type is null");
     this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
     this.replace = requireNonNull(replace, "replace is null");
+    // make sure the language isn't null. then perform some additional checks + formatting
+    requireNonNull(language, "language name is null");
+    this.language = checkAndFormatLanguage(language);
   }
 
-  public String formatLanguage(final String lang) {
+  private String checkAndFormatLanguage(final String lang) {
     final String language = lang.toLowerCase().trim();
-    if (!Arrays.stream(SUPPORTED_LANGUAGES).anyMatch(language::equals)) {
+    if (!SUPPORTED_LANGUAGES.stream().anyMatch(language::equals)) {
       final String errorMessage =
             String.format("Unsupported language '%s'. Please choose from the following: %s",
-                language, Arrays.toString(SUPPORTED_LANGUAGES));
+                language, SUPPORTED_LANGUAGES.toString());
       throw new KsqlException(errorMessage);
     }
     return language;
@@ -169,7 +170,7 @@ public class CreateFunction
   }
 
   public Schema getReturnType() {
-    return returnType;
+    return LogicalSchemas.fromSqlTypeConverter().fromSqlType(returnType);
   }
 
   public String getScript() {

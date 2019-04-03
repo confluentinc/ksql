@@ -8,6 +8,7 @@ import io.confluent.ksql.util.KafkaTopicClientImpl;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.QueryMetadata;
 
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -21,6 +22,7 @@ import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -47,6 +49,9 @@ public class WindowingIntTest {
   private OrderDataProvider dataProvider;
   private long now;
 
+  @Rule
+  public Retry retry = Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS);
+
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
@@ -69,7 +74,9 @@ public class WindowingIntTest {
 
   @After
   public void after() throws Exception {
-    ksqlContext.close();
+    if (ksqlContext != null) {
+      ksqlContext.close();
+    }
     testHarness.stop();
   }
 

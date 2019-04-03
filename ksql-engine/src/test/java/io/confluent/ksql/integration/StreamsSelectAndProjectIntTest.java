@@ -4,6 +4,9 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.OrderDataProvider;
+import java.util.concurrent.TimeUnit;
+import kafka.zookeeper.ZooKeeperClientException;
+import kafka.zookeeper.ZooKeeperClientTimeoutException;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -12,6 +15,7 @@ import org.hamcrest.core.IsCollectionContaining;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -38,6 +42,9 @@ public class StreamsSelectAndProjectIntTest {
   private final String avroStreamName = "orders_avro";
   private OrderDataProvider dataProvider;
 
+  @Rule
+  public Retry retry = Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS);
+
   @Before
   public void before() throws Exception {
     testHarness = new IntegrationTestHarness();
@@ -63,7 +70,9 @@ public class StreamsSelectAndProjectIntTest {
 
   @After
   public void after() throws Exception {
-    ksqlContext.close();
+    if (ksqlContext != null) {
+      ksqlContext.close();
+    }
     testHarness.stop();
   }
 

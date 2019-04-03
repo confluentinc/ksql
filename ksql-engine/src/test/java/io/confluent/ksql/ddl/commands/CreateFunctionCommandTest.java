@@ -16,7 +16,6 @@
 package io.confluent.ksql.ddl.commands;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -25,6 +24,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateFunction;
 import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -54,24 +54,18 @@ public class CreateFunctionCommandTest {
 
   @Before
   public void setUp() {
-    when(createFunctionStatement.getAuthor()).thenReturn("mitch");
-    when(createFunctionStatement.getDescription()).thenReturn("multiply 2 numbers");
-    when(createFunctionStatement.getOverview()).thenReturn("multiply 2 numbers");
-    when(createFunctionStatement.getVersion()).thenReturn("0.1.0");
-    when(createFunctionStatement.getAuthor()).thenReturn("mitch");
-    when(createFunctionStatement.shouldReplace()).thenReturn(true);
-    when(createFunctionStatement.shouldReplace()).thenReturn(true);
-    when(createFunctionStatement.getName()).thenReturn("multiply");
-    when(createFunctionStatement.getLanguage()).thenReturn("JAVA");
-    when(createFunctionStatement.getReturnType()).thenReturn(
-      LogicalSchemas.fromSqlTypeConverter().fromSqlType(PrimitiveType.of(SqlType.INTEGER)));
-    when(createFunctionStatement.getScript()).thenReturn("return args[0] * args[1];");
-    when(createFunctionStatement.shouldReplace()).thenReturn(true);
-    when(createFunctionStatement.getElements()).thenReturn(ImmutableList.of(
-        new TableElement("num1", PrimitiveType.of(SqlType.INTEGER)),
-        new TableElement("num2", PrimitiveType.of(SqlType.INTEGER))
+    givenAuthor("bob");
+    givenDescription("multiply 2 numbers");
+    givenFunctionName("multiply");
+    givenLanguage("java");
+    givenReturnType(PrimitiveType.of(SqlType.INTEGER));
+    givenScript("return X * Y;");
+    givenShouldReplace(false);
+    givenVersion("0.1.0");
+    givenFunctionParamaters(ImmutableList.of(
+        new TableElement("X", PrimitiveType.of(SqlType.INTEGER)),
+        new TableElement("Y", PrimitiveType.of(SqlType.INTEGER))
     ));
-    when(topicClient.isTopicExists(any())).thenReturn(false);
   }
 
   @Test
@@ -82,12 +76,42 @@ public class CreateFunctionCommandTest {
     cmd.run(metaStore);
 
     // Then:
-    assertNotNull(metaStore.getFunctionRegistry().getUdfFactory("multiple"));
+    assertNotNull(metaStore.getFunctionRegistry().getUdfFactory("multiply"));
   }
 
   @Test
   public void shouldThrowExceptionIfFunctionExists() {
     // Given:
+    final CreateFunctionCommand cmd = createCmd();
+
+    cmd.run(metaStore);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+
+    // When:
+    cmd.run(metaStore);
+  }
+
+  @Test
+  public void shouldNotThrowExceptionIfReplacing() {
+    // Given:
+    givenShouldReplace(true);
+    final CreateFunctionCommand cmd = createCmd();
+
+    cmd.run(metaStore);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+
+    // When:
+    cmd.run(metaStore);
+  }
+
+  @Test
+  public void shouldThrowExceptionIfInvalidLanguage() {
+    // Given:
+    givenLanguage("python");
     final CreateFunctionCommand cmd = createCmd();
 
     cmd.run(metaStore);
@@ -101,5 +125,43 @@ public class CreateFunctionCommandTest {
 
   private CreateFunctionCommand createCmd() {
     return new CreateFunctionCommand(createFunctionStatement);
+  }
+
+  private void givenAuthor(String author) {
+    when(createFunctionStatement.getAuthor()).thenReturn(author);
+  }
+
+  private void givenFunctionParamaters(final ImmutableList<TableElement> elements) {
+    when(createFunctionStatement.getElements()).thenReturn(elements);
+  }
+
+  private void givenDescription(final String description) {
+    when(createFunctionStatement.getDescription()).thenReturn(description);
+    when(createFunctionStatement.getOverview()).thenReturn(description);
+  }
+
+  private void givenFunctionName(final String functionName) {
+    when(createFunctionStatement.getName()).thenReturn(functionName);
+  }
+
+  private void givenLanguage(final String language) {
+    when(createFunctionStatement.getLanguage()).thenReturn(language);
+  }
+
+  private void givenReturnType(final Type returnType) {
+    when(createFunctionStatement.getReturnType()).thenReturn(
+      LogicalSchemas.fromSqlTypeConverter().fromSqlType(returnType));
+  }
+
+  private void givenScript(final String script) {
+    when(createFunctionStatement.getScript()).thenReturn(script);
+  }
+
+  private void givenShouldReplace(final boolean shouldReplace) {
+    when(createFunctionStatement.shouldReplace()).thenReturn(shouldReplace);
+  }
+
+  private void givenVersion(final String version) {
+    when(createFunctionStatement.getVersion()).thenReturn(version);
   }
 }

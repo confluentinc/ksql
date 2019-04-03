@@ -130,7 +130,7 @@ public class QueryDescriptionTest {
         queryStreams,
         SCHEMA,
         Collections.emptySet(),
-        fakeSink,
+        fakeSink.getName(),
         "execution plan",
         new QueryId("query_id"),
         DataSource.DataSourceType.KSTREAM,

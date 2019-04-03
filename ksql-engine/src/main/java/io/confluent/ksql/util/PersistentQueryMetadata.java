@@ -17,7 +17,6 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.physical.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
@@ -45,7 +44,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final KafkaStreams kafkaStreams,
       final Schema resultSchema,
       final Set<String> sourceNames,
-      final StructuredDataSource sinkDataSource,
+      final String sinkName,
       final String executionPlan,
       final QueryId id,
       final DataSource.DataSourceType dataSourceType,
@@ -72,7 +71,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
         closeCallback);
     this.id = Objects.requireNonNull(id, "id");
     this.resultTopic = Objects.requireNonNull(resultTopic, "resultTopic");
-    this.sinkNames = ImmutableSet.of(sinkDataSource.getName());
+    this.sinkNames = ImmutableSet.of(sinkName);
     this.schemas = Objects.requireNonNull(schemas, "schemas");
 
     if (resultTopic.getKsqlTopicSerDe() == null) {

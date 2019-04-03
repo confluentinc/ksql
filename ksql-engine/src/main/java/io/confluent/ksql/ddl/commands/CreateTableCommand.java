@@ -59,7 +59,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
     final KsqlTable ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
-        schema,
+        SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema),
         (keyColumnName.isEmpty())
           ? Optional.empty() : SchemaUtil.getFieldByName(schema, keyColumnName),
         timestampExtractionPolicy,
@@ -67,7 +67,7 @@ public class CreateTableCommand extends AbstractCreateStreamCommand {
         keySerdeFactory
     );
 
-    metaStore.putSource(ksqlTable.cloneWithTimeKeyColumns());
+    metaStore.putSource(ksqlTable);
     return new DdlCommandResult(true, "Table created");
   }
 }

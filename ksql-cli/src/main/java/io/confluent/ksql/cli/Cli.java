@@ -23,7 +23,6 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.CliCommandRegisterUtil;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
-import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -39,6 +38,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import java.io.Closeable;
@@ -428,8 +428,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private void setProperty(final SqlBaseParser.SingleStatementContext statementContext) {
     final SqlBaseParser.SetPropertyContext setPropertyContext =
         (SqlBaseParser.SetPropertyContext) statementContext.statement();
-    final String property = AstBuilder.unquote(setPropertyContext.STRING(0).getText(), "'");
-    final String value = AstBuilder.unquote(setPropertyContext.STRING(1).getText(), "'");
+    final String property = ParserUtil.unquote(setPropertyContext.STRING(0).getText(), "'");
+    final String value = ParserUtil.unquote(setPropertyContext.STRING(1).getText(), "'");
     setProperty(property, value);
   }
 
@@ -456,7 +456,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
     final SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
         (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
-    final String property = AstBuilder.unquote(unsetPropertyContext.STRING().getText(), "'");
+    final String property = ParserUtil.unquote(unsetPropertyContext.STRING().getText(), "'");
     unsetProperty(property);
     return consecutiveStatements;
   }

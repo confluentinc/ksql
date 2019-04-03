@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
@@ -36,6 +37,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
 public class JoinIntTest {
@@ -48,8 +50,12 @@ public class JoinIntTest {
   private static final OrderDataProvider ORDER_DATA_PROVIDER = new OrderDataProvider();
   private static final long MAX_WAIT_MS = TimeUnit.SECONDS.toMillis(150);
 
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+
   @ClassRule
-  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(TEST_HARNESS);
 
   @Rule
   public final TestKsqlContext ksqlContext = TEST_HARNESS.buildKsqlContext();

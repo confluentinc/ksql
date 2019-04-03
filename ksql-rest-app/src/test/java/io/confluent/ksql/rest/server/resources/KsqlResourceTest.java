@@ -172,7 +172,7 @@ public class KsqlResourceTest {
   private static final Duration DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT = Duration.ofMillis(1000);
   private static final KsqlRequest VALID_EXECUTABLE_REQUEST = new KsqlRequest(
       "CREATE STREAM S AS SELECT * FROM test_stream;",
-      ImmutableMap.of(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG, true),
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       0L);
   private static final Schema SINGLE_FIELD_SCHEMA = SchemaBuilder.struct()
       .field("val", Schema.OPTIONAL_STRING_SCHEMA);
@@ -696,7 +696,6 @@ public class KsqlResourceTest {
     when(sandboxTopicInjector.inject(argThat(is(configured(preparedStatementText(sql))))))
         .thenReturn((ConfiguredStatement<Statement>) configuredStatement);
 
-
     // When:
     makeRequest(sql);
 
@@ -722,7 +721,6 @@ public class KsqlResourceTest {
 
     when(topicInjector.inject(argThat(is(configured(preparedStatementText(sql))))))
         .thenReturn((ConfiguredStatement<Statement>) configured);
-
 
     // When:
     makeRequest(sql);
@@ -911,8 +909,8 @@ public class KsqlResourceTest {
         "LIST FUNCTIONS;",
         "DESCRIBE FUNCTION LCASE;",
         "LIST PROPERTIES;",
-        "SET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "'='FOO';",
-        "UNSET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "';"
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "'='earliest';",
+        "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';"
     );
 
     for (final String statement : blackListed) {
@@ -1161,7 +1159,7 @@ public class KsqlResourceTest {
 
     // When:
     final List<CommandStatusEntity> results = makeMultipleRequest(
-        "SET '" + KsqlConfig.KSQL_ENABLE_UDFS + "' = 'false';\n"
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';\n"
             + csas,
         CommandStatusEntity.class);
 
@@ -1169,7 +1167,7 @@ public class KsqlResourceTest {
     verify(commandStore).enqueueCommand(
         argThat(is(configured(
             preparedStatementText(csas),
-            ImmutableMap.of(KsqlConfig.KSQL_ENABLE_UDFS, "false"),
+            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
             ksqlConfig))));
 
     assertThat(results, hasSize(1));
@@ -1193,15 +1191,15 @@ public class KsqlResourceTest {
   public void shouldFailSetPropertyOnInvalidPropertyValue() {
     // When:
     final KsqlErrorMessage response = makeFailingRequest(
-        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = 'invalid value';",
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid value';",
         Code.BAD_REQUEST);
 
     // Then:
     assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
     assertThat(response.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(response.getMessage(),
-        containsString("Invalid value invalid value for configuration ksql.sink.replicas: "
-            + "Not a number of type SHORT"));
+        containsString("Invalid value invalid value for configuration auto.offset.reset: "
+            + "String must be one of: latest, earliest, none"));
   }
 
   @Test
@@ -1209,12 +1207,12 @@ public class KsqlResourceTest {
     // Given:
     final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
     final Map<String, Object> localOverrides = ImmutableMap.of(
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "2"
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
     );
 
     // When:
     final CommandStatusEntity result = makeSingleRequest(
-        new KsqlRequest("UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';\n"
+        new KsqlRequest("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';\n"
             + csas, localOverrides, null),
         CommandStatusEntity.class);
 
@@ -1244,7 +1242,7 @@ public class KsqlResourceTest {
     final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
 
     makeMultipleRequest(
-        "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '2';", KsqlEntity.class);
+        "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';", KsqlEntity.class);
 
     // When:
     makeSingleRequest(csas, KsqlEntity.class);

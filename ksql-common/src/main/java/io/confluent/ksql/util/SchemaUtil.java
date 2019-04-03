@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
@@ -83,30 +84,65 @@ public final class SchemaUtil {
           .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .build();
 
+  private static final ImmutableMap<String, String> SCHEMA_TYPE_NAME_TO_SQL_TYPE =
+      new ImmutableMap.Builder<String, String>()
+          .put("STRING", "VARCHAR(STRING)")
+          .put("INT64", "BIGINT")
+          .put("INT32", "INTEGER")
+          .put("FLOAT64", "DOUBLE")
+          .put("BOOLEAN", "BOOLEAN")
+          .put("ARRAY", "ARRAY")
+          .put("MAP", "MAP")
+          .put("STRUCT", "STRUCT")
+          .build();
+
+  private static final Map<Schema.Type, Class<?>> SCHEMA_TYPE_TO_JAVA_TYPE =
+      ImmutableMap.<Schema.Type, Class<?>>builder()
+          .put(Schema.Type.STRING, String.class)
+          .put(Schema.Type.BOOLEAN, Boolean.class)
+          .put(Schema.Type.INT32, Integer.class)
+          .put(Schema.Type.INT64, Long.class)
+          .put(Schema.Type.FLOAT64, Double.class)
+          .put(Schema.Type.ARRAY, List.class)
+          .put(Schema.Type.MAP, Map.class)
+          .put(Schema.Type.STRUCT, Struct.class)
+          .build();
+
+  private static Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
+      ImmutableMap.<Schema.Type, Function<Schema, String>>builder()
+          .put(Schema.Type.INT32, s -> "INT")
+          .put(Schema.Type.INT64, s -> "BIGINT")
+          .put(Schema.Type.FLOAT32, s -> "DOUBLE")
+          .put(Schema.Type.FLOAT64, s -> "DOUBLE")
+          .put(Schema.Type.BOOLEAN, s -> "BOOLEAN")
+          .put(Schema.Type.STRING, s -> "VARCHAR")
+          .put(Schema.Type.ARRAY, s ->
+              "ARRAY<" + getSqlTypeName(s.valueSchema()) + ">")
+          .put(Schema.Type.MAP, s ->
+              "MAP<" + getSqlTypeName(s.keySchema()) + "," + getSqlTypeName(s.valueSchema()) + ">")
+          .put(Schema.Type.STRUCT, s -> getStructString(s))
+          .build();
+
+  private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_TO_CAST_STRING =
+      new ImmutableMap.Builder<Schema.Type, String>()
+          .put(Schema.Type.INT32, "(Integer)")
+          .put(Schema.Type.INT64, "(Long)")
+          .put(Schema.Type.FLOAT64, "(Double)")
+          .put(Schema.Type.STRING, "(String)")
+          .put(Schema.Type.BOOLEAN, "(Boolean)")
+          .build();
+
+
   private SchemaUtil() {
   }
 
   public static Class<?> getJavaType(final Schema schema) {
-    switch (schema.type()) {
-      case STRING:
-        return String.class;
-      case BOOLEAN:
-        return Boolean.class;
-      case INT32:
-        return Integer.class;
-      case INT64:
-        return Long.class;
-      case FLOAT64:
-        return Double.class;
-      case ARRAY:
-        return List.class;
-      case MAP:
-        return Map.class;
-      case STRUCT:
-        return Struct.class;
-      default:
-        throw new KsqlException("Type is not supported: " + schema.type());
+    final Class<?> typeClazz = SCHEMA_TYPE_TO_JAVA_TYPE.get(schema.type());
+    if (typeClazz == null) {
+      throw new KsqlException("Type is not supported: " + schema.type());
     }
+
+    return typeClazz;
   }
 
   public static Schema getSchemaFromType(final Type type) {
@@ -168,20 +204,8 @@ public final class SchemaUtil {
     return newSchema.build();
   }
 
-  private static final ImmutableMap<String, String> TYPE_MAP =
-      new ImmutableMap.Builder<String, String>()
-          .put("STRING", "VARCHAR(STRING)")
-          .put("INT64", "BIGINT")
-          .put("INT32", "INTEGER")
-          .put("FLOAT64", "DOUBLE")
-          .put("BOOLEAN", "BOOLEAN")
-          .put("ARRAY", "ARRAY")
-          .put("MAP", "MAP")
-          .put("STRUCT", "STRUCT")
-          .build();
-
   public static String getSchemaTypeAsSqlType(final Schema.Type type) {
-    final String sqlType = TYPE_MAP.get(type.name());
+    final String sqlType = SCHEMA_TYPE_NAME_TO_SQL_TYPE.get(type.name());
     if (sqlType == null) {
       throw new IllegalArgumentException("Unknown schema type: " + type);
     }
@@ -190,21 +214,13 @@ public final class SchemaUtil {
   }
 
   public static String getJavaCastString(final Schema schema) {
-    switch (schema.type()) {
-      case INT32:
-        return "(Integer)";
-      case INT64:
-        return "(Long)";
-      case FLOAT64:
-        return "(Double)";
-      case STRING:
-        return "(String)";
-      case BOOLEAN:
-        return "(Boolean)";
-      default:
-        //TODO: Add complex types later!
-        return "";
+    final String castString = SCHEMA_TYPE_TO_CAST_STRING.get(schema.type());
+    if (castString == null) {
+      //TODO: Add complex or other types later!
+      return "";
     }
+
+    return castString;
   }
 
   public static Schema addImplicitRowTimeRowKeyToSchema(final Schema schema) {
@@ -252,31 +268,12 @@ public final class SchemaUtil {
   }
 
   public static String getSqlTypeName(final Schema schema) {
-    switch (schema.type()) {
-      case INT32:
-        return "INT";
-      case INT64:
-        return "BIGINT";
-      case FLOAT32:
-      case FLOAT64:
-        return "DOUBLE";
-      case BOOLEAN:
-        return "BOOLEAN";
-      case STRING:
-        return "VARCHAR";
-      case ARRAY:
-        return "ARRAY<" + getSqlTypeName(schema.valueSchema()) + ">";
-      case MAP:
-        return "MAP<"
-            + getSqlTypeName(schema.keySchema())
-            + ","
-            + getSqlTypeName(schema.valueSchema())
-            + ">";
-      case STRUCT:
-        return getStructString(schema);
-      default:
-        throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
+    final Function<Schema, String> handler = SCHEMA_TYPE_TO_SQL_TYPE.get(schema.type());
+    if (handler == null) {
+      throw new KsqlException(String.format("Invalid type in schema: %s.", schema.toString()));
     }
+
+    return handler.apply(schema);
   }
 
   private static String getStructString(final Schema schema) {
@@ -431,6 +428,9 @@ public final class SchemaUtil {
         return SchemaBuilder.array(getSchemaFromType(
             parameterizedType.getActualTypeArguments()[0]));
       }
+    } else if (type instanceof Class && ((Class<?>) type).isArray()) {
+      // handle var args
+      return SchemaBuilder.array(getSchemaFromType(((Class<?>) type).getComponentType()));
     }
     throw new KsqlException("Type is not supported: " + type);
   }

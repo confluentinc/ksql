@@ -43,6 +43,7 @@ import io.confluent.ksql.cli.console.Console.RowCaptor;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
@@ -78,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.ws.rs.ProcessingException;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -128,7 +130,10 @@ public class CliTest {
   public static final TemporaryFolder TMP = new TemporaryFolder();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(CLUSTER).around(REST_APP);
+  public static final RuleChain CHAIN = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(CLUSTER)
+      .around(REST_APP);
 
   @Rule
   public final Timeout timeout = Timeout.builder()
@@ -454,29 +459,7 @@ public class CliTest {
   @Test
   public void testPropertySetUnset() {
     assertRunCommand("set 'auto.offset.reset' = 'latest'", is(EMPTY_RESULT));
-    assertRunCommand("set 'application.id' = 'Test_App'", is(EMPTY_RESULT));
-    assertRunCommand("set 'producer.batch.size' = '16384'", is(EMPTY_RESULT));
-    assertRunCommand("set 'max.request.size' = '1048576'", is(EMPTY_RESULT));
-    assertRunCommand("set 'consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
-    assertRunCommand("set 'enable.auto.commit' = 'true'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.application.id' = 'Test_App'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.producer.batch.size' = '16384'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.max.request.size' = '1048576'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.service.id' = 'assertPrint'", is(EMPTY_RESULT));
-
-    assertRunCommand("unset 'application.id'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'producer.batch.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'max.request.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'consumer.max.poll.records'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'enable.auto.commit'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.application.id'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.producer.batch.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.max.request.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.consumer.max.poll.records'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.enable.auto.commit'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.service.id'", is(EMPTY_RESULT));
+    
 
     final TestResult.Builder builder = new TestResult.Builder();
     builder.addRows(startUpConfigs());

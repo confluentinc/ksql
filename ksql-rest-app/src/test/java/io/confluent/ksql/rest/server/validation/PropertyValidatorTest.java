@@ -24,6 +24,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
 import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -61,7 +62,7 @@ public class PropertyValidatorTest {
     CustomValidators.SET_PROPERTY.validate(
         ConfiguredStatement.of(
         PreparedStatement.of(
-            "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = '1';",
+            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
             new SetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "1")),
             new HashMap<>(),
             engine.getKsqlConfig()),
@@ -81,7 +82,7 @@ public class PropertyValidatorTest {
     CustomValidators.SET_PROPERTY.validate(
         ConfiguredStatement.of(
         PreparedStatement.of(
-            "SET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "' = 'invalid';",
+             "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
             new SetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "invalid")),
             new HashMap<>(),
             engine.getKsqlConfig()),
@@ -115,7 +116,7 @@ public class PropertyValidatorTest {
     CustomValidators.UNSET_PROPERTY.validate(
         ConfiguredStatement.of(
         PreparedStatement.of(
-            "UNSET '" + KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY + "';",
+            "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
             new UnsetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)),
             new HashMap<>(),
             engine.getKsqlConfig()),

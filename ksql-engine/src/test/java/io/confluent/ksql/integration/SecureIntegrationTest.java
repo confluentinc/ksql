@@ -18,6 +18,9 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
@@ -52,23 +55,21 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import kafka.security.auth.Acl;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
-import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
@@ -76,6 +77,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 /**
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
@@ -90,14 +92,18 @@ public class SecureIntegrationTest {
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final AtomicInteger COUNTER = new AtomicInteger(0);
 
-  @ClassRule
-  public static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
+  private static final EmbeddedSingleNodeKafkaCluster SECURE_CLUSTER =
       EmbeddedSingleNodeKafkaCluster.newBuilder()
           .withoutPlainListeners()
           .withSaslSslListeners()
           .withSslListeners()
-          .withAcls(SUPER_USER.username)
+          .withAclsEnabled(SUPER_USER.username)
           .build();
+
+  @ClassRule
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(SECURE_CLUSTER);
 
   private QueryId queryId;
   private KsqlConfig ksqlConfig;
@@ -253,20 +259,6 @@ public class SecureIntegrationTest {
                                     final ResourcePattern resource,
                                     final Set<AclOperation> ops) {
     SECURE_CLUSTER.addUserAcl(credentials.username, AclPermissionType.ALLOW, resource, ops);
-  }
-
-  private static Set<AclOperation> ops(final AclOperation... ops) {
-    return Arrays.stream(ops).collect(Collectors.toSet());
-  }
-
-  private static ResourcePattern resource(final ResourceType resourceType,
-                                          final String resourceName) {
-    return new ResourcePattern(resourceType, resourceName, PatternType.LITERAL);
-  }
-
-  private static ResourcePattern prefixedResource(final ResourceType resourceType,
-                                                  final String resourceName) {
-    return new ResourcePattern(resourceType, resourceName, PatternType.PREFIXED);
   }
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {

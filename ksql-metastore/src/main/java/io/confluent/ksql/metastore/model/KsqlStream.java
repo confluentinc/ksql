@@ -17,7 +17,6 @@ package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
@@ -53,20 +52,6 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
     final Serde<K> keySerde = getKeySerdeFactory().create();
     return keySerde instanceof WindowedSerdes.SessionWindowedSerde
         || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
-  }
-
-  @Override
-  public KsqlStream<K> cloneWithTimeKeyColumns() {
-    final Schema newSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(getSchema());
-    return new KsqlStream<>(
-        getSqlExpression(),
-        getName(),
-        newSchema,
-        getKeyField(),
-        getTimestampExtractionPolicy(),
-        getKsqlTopic(),
-        getKeySerdeFactory()
-    );
   }
 
   @Override

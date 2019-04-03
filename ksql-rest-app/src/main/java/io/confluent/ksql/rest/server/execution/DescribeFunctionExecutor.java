@@ -117,9 +117,7 @@ public final class DescribeFunctionExecutor {
     for (int i = 0; i < argTypes.size(); i++) {
       final Schema s = argTypes.get(i);
       final boolean isVariadic = variadic && i == (argTypes.size() - 1);
-      final String sqlType = SchemaUtil.getSchemaTypeAsSqlType(
-          isVariadic ? s.valueSchema().type() : s.type()
-      );
+      final String sqlType = SchemaUtil.getSqlTypeName(isVariadic ? s.valueSchema() : s);
       args.add(new ArgumentInfo(s.name(), sqlType, s.doc(), isVariadic));
     }
 

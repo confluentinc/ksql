@@ -158,7 +158,7 @@ setting:
 
 .. code:: bash
 
-    listeners=http://localhost:8088
+    listeners=http://0.0.0.0:8088
 
 For more info, see :ref:`Starting KSQL Server <start_ksql-server>`.
 

@@ -51,11 +51,7 @@
     "      Downstream queries that PARTITION BY or GROUP BY the new alias would stop introducing unnecessary repartition step",
     "      (fix is NOT backwards compatible by default)",
     "",
-    "key field of output has INCORRECT type: should be 'INT'.",
-    " - fix implications: ",
-    "    OUTPUT stream can be joined to others streams that have STRING keys, which should not be possible. (fix is NOT backwards compatible by default, though could argue maintaining backwards compatibility here is wrong)",
-    "    OUTPUT stream would fail to join to anything with INT key, which should be possible. (fix IS backwards compatible)",
-    " There is currently an inconsistency between how GROUP BY's and PARTITION BY's handling of aliases:",
+    " Additionally, there is currently an inconsistency between how GROUP BY's and PARTITION BY's handling of aliases:",
     "  - PARTITION BY requires the target name, (i.e. the alias), failing if the source field name is used.",
     "  - GROUP BY requires the source field name, failing if the target field name, (i.e. the alias), is used."
   ],

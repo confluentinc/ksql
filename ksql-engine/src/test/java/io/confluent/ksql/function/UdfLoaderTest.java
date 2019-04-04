@@ -34,6 +34,7 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.schema.ksql.DefaultSchemaParser;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
@@ -138,6 +139,24 @@ public class UdfLoaderTest {
             SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
                 .build()
         )
+    );
+  }
+
+  @Test
+  public void shouldLoadFunctionWithStructReturnType() {
+    // When:
+    final UdfFactory toStruct = functionRegistry.getUdfFactory("tostruct");
+
+    // Then:
+    assertThat(toStruct, not(nullValue()));
+    final KsqlFunction function
+        = toStruct.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+
+    final Schema expected = SchemaBuilder.struct()
+        .optional()
+        .field("A", Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+    assertThat(function.getReturnType(), equalTo(expected)
     );
   }
 
@@ -311,7 +330,8 @@ public class UdfLoaderTest {
         value -> false,
         compiler,
         optionalMetrics,
-        loadCustomerUdfs);
+        loadCustomerUdfs,
+        new DefaultSchemaParser());
   }
 
   private static ClassLoader getActualUdfClassLoader(final Kudf udf)

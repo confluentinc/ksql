@@ -25,6 +25,8 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.schema.ksql.DefaultSchemaParser;
+import io.confluent.ksql.schema.ksql.SchemaParser;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -76,16 +78,20 @@ public class UdfLoader {
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private final Optional<Metrics> metrics;
   private final boolean loadCustomerUdfs;
+  private final SchemaParser schemaParser;
 
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public UdfLoader(final MutableFunctionRegistry functionRegistry,
-                   final File pluginDir,
-                   final ClassLoader parentClassLoader,
-                   final Predicate<String> blacklist,
-                   final UdfCompiler compiler,
-                   final Optional<Metrics> metrics,
-                   final boolean loadCustomerUdfs) {
+  UdfLoader(
+      final MutableFunctionRegistry functionRegistry,
+      final File pluginDir,
+      final ClassLoader parentClassLoader,
+      final Predicate<String> blacklist,
+      final UdfCompiler compiler,
+      final Optional<Metrics> metrics,
+      final boolean loadCustomerUdfs,
+      final SchemaParser schemaParser
+  ) {
     this.functionRegistry = Objects
         .requireNonNull(functionRegistry, "functionRegistry can't be null");
     this.pluginDir = Objects.requireNonNull(pluginDir, "pluginDir can't be null");
@@ -95,6 +101,7 @@ public class UdfLoader {
     this.compiler = Objects.requireNonNull(compiler, "compiler can't be null");
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     this.loadCustomerUdfs = loadCustomerUdfs;
+    this.schemaParser = schemaParser;
   }
 
   public void load() {
@@ -266,8 +273,12 @@ public class UdfLoader {
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
+    final Schema returnType = udfAnnotation.schema().isEmpty()
+        ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
+        : schemaParser.parse(udfAnnotation.schema());
+
     functionRegistry.addFunction(KsqlFunction.create(
-        SchemaUtil.getSchemaFromType(method.getGenericReturnType()),
+        returnType,
         parameters,
         functionName,
         udfClass,
@@ -343,7 +354,7 @@ public class UdfLoader {
         new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
         new UdfCompiler(metrics),
         metrics,
-        loadCustomerUdfs
-    );
+        loadCustomerUdfs,
+        new DefaultSchemaParser());
   }
 }

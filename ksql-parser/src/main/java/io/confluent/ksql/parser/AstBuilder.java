@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
@@ -77,7 +78,6 @@ import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.NodeLocation;
 import io.confluent.ksql.parser.tree.NotExpression;
 import io.confluent.ksql.parser.tree.NullLiteral;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.QualifiedNameReference;
@@ -97,8 +97,6 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Struct.Builder;
 import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -106,7 +104,6 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.TimeLiteral;
 import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
-import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -1285,44 +1282,6 @@ public class AstBuilder {
           return LogicalBinaryExpression.Type.OR;
         default:
           throw new IllegalArgumentException("Unsupported operator: " + token.getText());
-      }
-    }
-
-    private static Type getType(final SqlBaseParser.TypeContext type) {
-      if (type.baseType() != null) {
-        return PrimitiveType.of(baseTypeToString(type.baseType()));
-      }
-
-      if (type.ARRAY() != null) {
-        return io.confluent.ksql.parser.tree.Array.of(getType(type.type(0)));
-      }
-
-      if (type.MAP() != null) {
-        return io.confluent.ksql.parser.tree.Map.of(getType(type.type(1)));
-      }
-
-      if (type.STRUCT() != null) {
-        final Builder builder = Struct.builder();
-
-        for (int i = 0; i < type.identifier().size(); i++) {
-          final String fieldName = ParserUtil.getIdentifierText(type.identifier(i));
-          final Type fieldType = getType(type.type(i));
-          builder.addField(fieldName, fieldType);
-        }
-        return builder.build();
-      }
-
-      throw new IllegalArgumentException("Unsupported type specification: " + type.getText());
-    }
-
-    private static String baseTypeToString(final SqlBaseParser.BaseTypeContext baseType) {
-      if (baseType.identifier() != null) {
-        return ParserUtil.getIdentifierText(baseType.identifier());
-      } else {
-        throw new KsqlException(
-            "Base type must contain either identifier, "
-                + "time with time zone, or timestamp with time zone"
-        );
       }
     }
 

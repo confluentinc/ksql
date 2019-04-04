@@ -63,7 +63,7 @@ public class PropertyValidatorTest {
         ConfiguredStatement.of(
         PreparedStatement.of(
             "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
-            new SetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "1")),
+            new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
             new HashMap<>(),
             engine.getKsqlConfig()),
         engine.getEngine(),
@@ -83,7 +83,7 @@ public class PropertyValidatorTest {
         ConfiguredStatement.of(
         PreparedStatement.of(
              "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
-            new SetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, "invalid")),
+            new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid")),
             new HashMap<>(),
             engine.getKsqlConfig()),
         engine.getEngine(),
@@ -117,7 +117,7 @@ public class PropertyValidatorTest {
         ConfiguredStatement.of(
         PreparedStatement.of(
             "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
-            new UnsetProperty(Optional.empty(), KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)),
+            new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
             new HashMap<>(),
             engine.getKsqlConfig()),
         engine.getEngine(),

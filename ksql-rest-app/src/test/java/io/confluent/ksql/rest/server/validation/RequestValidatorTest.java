@@ -289,10 +289,8 @@ public class RequestValidatorTest {
 
     // Then:
     verify(statementValidator, times(1)).validate(
-        argThat(is(preparedStatement(instanceOf(CreateStream.class)))),
+        argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
         eq(executionContext),
-        any(),
-        eq(ksqlConfig),
         any()
     );
 

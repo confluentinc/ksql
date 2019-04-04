@@ -17,12 +17,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -44,6 +47,9 @@ public class UdfIntTest {
 
   private OrderDataProvider orderDataProvider;
   private ItemDataProvider itemDataProvider;
+
+  @Rule
+  public Retry retry = Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS);
 
   @Before
   public void before() throws Exception {
@@ -86,7 +92,9 @@ public class UdfIntTest {
 
   @After
   public void after() throws Exception {
-    ksqlContext.close();
+    if (ksqlContext != null) {
+      ksqlContext.close();
+    }
     testHarness.stop();
   }
 

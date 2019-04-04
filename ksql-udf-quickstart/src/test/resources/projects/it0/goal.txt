@@ -1,1 +1,1 @@
-compile
+integration-test clean

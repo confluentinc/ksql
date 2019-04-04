@@ -33,8 +33,8 @@ public class FunctionInfoTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final FunctionInfo FUNC_INFO = new FunctionInfo(
       ImmutableList.of(
-          new ArgumentInfo("arg0", "VARCHAR", "first arg"),
-          new ArgumentInfo("arg1", "INT", "last arg")
+          new ArgumentInfo("arg0", "VARCHAR", "first arg", false),
+          new ArgumentInfo("arg1", "INT", "last arg", false)
       ),
       "DOUBLE",
       "Test Func"

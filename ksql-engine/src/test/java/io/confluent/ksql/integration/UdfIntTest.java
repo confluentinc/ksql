@@ -64,7 +64,7 @@ public class UdfIntTest {
   }
 
   @ClassRule
-  public Retry retry = Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS);
+  public static final Retry RETRY = Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS);
 
   @BeforeClass
   public static void classSetUp() throws Exception {

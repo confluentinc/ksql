@@ -181,8 +181,10 @@ public class QueryTranslationTest {
   }
 
   private static Stream<TestCase> buildTestCases() {
+    final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions();
+
     return findTestCases()
-        .flatMap(q -> buildVersionedTestCases(q, loadTopologiesAndVersions()));
+        .flatMap(q -> buildVersionedTestCases(q, expectedTopologies));
   }
 
   static Stream<TestCase> findTestCases() {

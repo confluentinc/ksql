@@ -53,7 +53,18 @@
     "",
     " Additionally, there is currently an inconsistency between how GROUP BY's and PARTITION BY's handling of aliases:",
     "  - PARTITION BY requires the target name, (i.e. the alias), failing if the source field name is used.",
-    "  - GROUP BY requires the source field name, failing if the target field name, (i.e. the alias), is used."
+    "  - GROUP BY requires the source field name, failing if the target field name, (i.e. the alias), is used.",
+    "",
+    "Each test case follows the pattern of defining:",
+    " INPUT - the initial source",
+    " OUTPUT - a source built from INPUT using the dimensions in the title of the test",
+    " DOWNSTREAM - an optional source built from OUTPUT. This is necessary as the key fields this test file covers affect downstream queries too.",
+    "",
+    "Some tests may need intermediate sources to get to the required state.",
+    "",
+    "The main point of the tests to to:",
+    "  a: test the post conditions in the metastore, i.e. that sources of the correct type and params are registered",
+    "  b: test the topology of the output or downstream queries"
   ],
   "tests": [
     {
@@ -147,6 +158,25 @@
       }
     },
     {
+      "name": "stream | initially null | group by (-) | key in value | no aliasing | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT foo, COUNT(*) FROM OUTPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"FOO":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "stream | initially null | group by (-) | key in value | aliasing",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
@@ -170,6 +200,25 @@
       }
     },
     {
+      "name": "stream | initially null | group by (-) | key in value | aliasing | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS Aliased, COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT Aliased, COUNT(*) FROM OUTPUT GROUP BY Aliased;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED":1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+           {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "stream | initially null | group by (-) | key not in value | -",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
@@ -189,6 +238,25 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key not in value | - | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
         ]
       }
     },
@@ -234,6 +302,25 @@
       }
     },
     {
+      "name": "stream | initially set | no key change | key in value | aliasing | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT Aliased, bar FROM OUTPUT PARTITION BY Aliased;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED":1, "BAR": 2}}
+      ],
+      "post": {
+        "sources": [
+         {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
       "name": "stream | initially set | no key change | key in value | aliasing + duplicate",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -256,6 +343,44 @@
       }
     },
     {
+      "name": "stream | initially set | no key change | key in value | aliasing + duplicate | legacy downstream query | no key change",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar as foo FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT aliased, foo FROM OUTPUT PARTITION BY aliased;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1" ,"value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "post": {
+        "sources": [
+           {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ALIASED", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key in value | aliasing + duplicate | legacy downstream query | key change",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as aliased, bar as foo FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT aliased, foo FROM OUTPUT PARTITION BY foo;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1" ,"value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED":1, "FOO": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
       "name": "stream | initially set | no key change | key not in value | -",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -274,6 +399,25 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | no key change | key not in value | - | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT bar FROM INPUT;",
+        "CREATE STREAM DOWNSTREAM AS SELECT bar as FOO FROM OUTPUT PARTITION BY foo;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "-", "value": {"BAR": 2}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "-", "value": {"FOO": 2}}
+      ],
+      "post": {
+       "sources": [
+           {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
         ]
       }
     },
@@ -454,6 +598,25 @@
       }
     },
     {
+      "name": "stream | initially set | group by (different) | key in value | no aliasing | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT bar, COUNT(*) FROM OUTPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"BAR":2, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"2", "value": {"BAR":2, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "stream | initially set | group by (different) | key in value | aliasing",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -476,6 +639,25 @@
       }
     },
     {
+      "name": "stream | initially set | group by (different) | key in value | aliasing | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY aliased;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"ALIASED":2, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"2", "value": {"ALIASED":2, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "stream | initially set | group by (different) | key not in value | -",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -491,6 +673,25 @@
         "issues": ["key field of output INCORRECT: should be null - (see Issue #2 above)"],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by (different) | key not in value | - | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key":"2", "value": {"KSQL_COL_0": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"2", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
         ]
       }
     },
@@ -537,6 +738,26 @@
       }
     },
     {
+      "name": "table | initially null | group by (-) | key in value | no aliasing | legacy downstream query",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INTERMEDIATE GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT foo, COUNT(*) FROM OUTPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"FOO": 1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+           {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "table | initially null | group by (-) | key in value | aliasing",
       "statements": [
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -556,6 +777,26 @@
         ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially null | group by (-) | key in value | aliasing | legacy downstream query",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INTERMEDIATE GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY aliased;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
       }
     },
@@ -638,6 +879,25 @@
       }
     },
     {
+      "name": "table | initially set | group by (same) | key in value | no aliasing | legacy downstream query",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT foo, COUNT(*) FROM OUTPUT GROUP BY foo;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"FOO": 1, "KSQL_COL_1":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"FOO": 1, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "table | initially set | group by (same) | key in value | aliasing",
       "statements": [
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -660,6 +920,25 @@
       }
     },
     {
+      "name": "table | initially set | group by (same) | key in value | aliasing | legacy downstream query",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY aliased;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"ALIASED": 1, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "table | initially set | group by (same) | key not in value | -",
       "statements": [
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -675,6 +954,25 @@
         "issues": ["key field of output INCORRECT: should be null - (see Issue #2 above)"],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (same) | key not in value | - | legacy downstream query",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"KSQL_COL_0":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
         ]
       }
     },
@@ -701,6 +999,25 @@
       }
     },
     {
+      "name": "table | initially set | group by (different) | key in value | no aliasing | legacy downstream query",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar, COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT bar, COUNT(*) FROM OUTPUT GROUP BY bar;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"BAR": 2, "KSQL_COL_1":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "2", "value": {"BAR": 2, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "table | initially set | group by (different) | key in value | aliasing",
       "statements": [
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -723,6 +1040,25 @@
       }
     },
     {
+      "name": "table | initially set | group by (different) | key in value | aliasing | legacy downstream query",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT bar AS aliased, COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY Aliased;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"ALIASED": 2, "KSQL_COL_1":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "2", "value": {"ALIASED": 2, "KSQL_COL_1":  1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "table | initially set | group by (different) | key not in value | -",
       "statements": [
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -736,6 +1072,25 @@
       ],
       "post": {
         "issues": ["key field of output INCORRECT: should be null - (see Issue #2 above)"],
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "table | initially set | group by (different) | key not in value | - | legacy downstream query",
+      "statements": [
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM INPUT GROUP BY bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "2", "value": {"KSQL_COL_0":  1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "2", "value": {"KSQL_COL_0":  1}}
+      ],
+      "post": {
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
         ]
@@ -789,6 +1144,25 @@
       }
     },
     {
+      "name": "stream | initially set | group by multiple | key in value | no aliasing | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo, bar, COUNT(*) FROM INPUT GROUP BY bar, foo;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key":"2|+|1", "value": {"FOO": 1, "BAR": 2, "KSQL_COL_2": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"2|+|1", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1|+|KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
       "name": "stream | initially set | group by expression | key in value | no aliasing",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
@@ -807,6 +1181,25 @@
         ],
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "(KSQL_INTERNAL_COL_0 + KSQL_INTERNAL_COL_1)", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially set | group by expression | key in value | no aliasing | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT foo + bar, COUNT(*) FROM INPUT GROUP BY foo + bar;",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key":"3", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key":"3", "value": {"KSQL_COL_0": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
         ]
       }
     },
@@ -830,6 +1223,25 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "CAST(KSQL_INTERNAL_COL_0 AS INTEGER)", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream | initially null | group by (-) | key in value | no aliasing | with cast | legacy downstream query",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT cast(foo as INT), COUNT(*) FROM INPUT GROUP BY cast(foo as INT);",
+        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":1, "KSQL_COL_1": 1}}
+      ],
+      "outputs": [
+        {"topic": "DOWNSTREAM", "key": "1", "value": {"KSQL_COL_0":1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
         ]
       }
     }

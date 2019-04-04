@@ -74,7 +74,7 @@ public final class TopologyFileGenerator {
     }
 
     private static List<TestCase> getTestCases() {
-        return QueryTranslationTest.buildTestCases()
+        return QueryTranslationTest.findTestCases()
             .filter(q -> !q.isAnyExceptionExpected())
             .collect(Collectors.toList());
     }

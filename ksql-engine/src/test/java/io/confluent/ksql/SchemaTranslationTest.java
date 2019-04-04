@@ -184,6 +184,7 @@ public class SchemaTranslationTest {
             testPath,
             name,
             Collections.emptyMap(),
+            Collections.emptyMap(),
             ImmutableList.of(srcTopic, OUTPUT_TOPIC),
             inputRecords,
             outputRecords,

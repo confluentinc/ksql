@@ -341,6 +341,7 @@ public class QueryTranslationTest {
     private final List<TopicNode> topics;
     private final List<String> statements;
     private final Map<String, Object> properties;
+    private final Map<String, String> originalConfig;
     private final Optional<ExpectedExceptionNode> expectedException;
     private final Optional<PostConditionsNode> postConditions;
 
@@ -352,6 +353,7 @@ public class QueryTranslationTest {
         @JsonProperty("topics") final List<TopicNode> topics,
         @JsonProperty("statements") final List<String> statements,
         @JsonProperty("properties") final Map<String, Object> properties,
+        @JsonProperty("originalConfig") final Map<String, String> originalConfig,
         @JsonProperty("expectedException") final ExpectedExceptionNode expectedException,
         @JsonProperty("post") final PostConditionsNode postConditions
     ) {
@@ -361,7 +363,12 @@ public class QueryTranslationTest {
       this.inputs = inputs == null ? ImmutableList.of() : ImmutableList.copyOf(inputs);
       this.outputs = outputs == null ? ImmutableList.of() : ImmutableList.copyOf(outputs);
       this.topics = topics == null ? ImmutableList.of() : ImmutableList.copyOf(topics);
-      this.properties = properties == null ? ImmutableMap.of() : ImmutableMap.copyOf(properties);
+      this.originalConfig = originalConfig == null
+          ? ImmutableMap.of()
+          : ImmutableMap.copyOf(originalConfig);
+      this.properties = properties == null
+          ? ImmutableMap.of()
+          : ImmutableMap.copyOf(properties);
       this.expectedException = Optional.ofNullable(expectedException);
       this.postConditions = Optional.ofNullable(postConditions);
 
@@ -420,6 +427,7 @@ public class QueryTranslationTest {
             testPath,
             testName,
             properties,
+            originalConfig,
             topics.values(),
             inputRecords,
             outputRecords,

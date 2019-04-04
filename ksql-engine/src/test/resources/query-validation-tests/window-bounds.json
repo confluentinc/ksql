@@ -23,7 +23,7 @@
         {"topic": "S2", "key": 1, "value": null, "timestamp": 40000, "window": {"start": 10000, "end": 10000, "type": "session"}},
         {"topic": "S2", "key": 1, "value": "1,10000,40000", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
       ],
-      "properties": {
+      "originalConfig": {
         "ksql.windowed.session.key.legacy": "false"
       }
     },

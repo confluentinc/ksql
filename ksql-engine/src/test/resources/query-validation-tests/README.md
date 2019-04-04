@@ -115,7 +115,8 @@ Each test case can have the following attributes:
 | description      | (Optional) A description of what the test case is testing. Not used or displayed anywhere |
 | format           | (Optional) An array of multiple different formats to run the test case as, e.g. AVRO, JSON, DELIMITED. (See below for more info) |
 | statements       | (Required) The list of statements to execute as this test case |
-| properties       | (Optional) A map of property name to value. Can contain any valid Ksql config. The config is passed to the engine when executing the statements in the test case |
+| properties       | (Optional) A map of property name to value. Setting a property here is the same as a user having used the `SET` command to set it. Can contain any valid Ksql config. The properties are passed to the engine when executing the statements in the test case |
+| originalConfig   | (Optional) A map of property name to value. Setting a property here is the same as it being set in the server config file when the original command was run, or stored in the command topic when restoring the command. Can contain any valid Ksql config. The config is passed to the engine when executing the statements in the test case |
 | topics           | (Optional) An array of the topics this test case needs. Allows more information about the topic to be supplied, e.g. an existing Avro schema (See below for more info) |
 | inputs           | (Required if `expectedException` not supplied) The set of input messages to be produced to Kafka topic(s), (See below for more info) |
 | outputs          | (Required if `expectedException` not supplied) The set of output messages expected in the output topic(s), (See below for more info) |

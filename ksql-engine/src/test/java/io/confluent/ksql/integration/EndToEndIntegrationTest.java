@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.streams.KeyValue;
@@ -77,6 +78,8 @@ public class EndToEndIntegrationTest {
 
   @Rule
   public final Timeout timeout = Timeout.seconds(120);
+  @Rule
+  public Retry retry = Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS);
 
   @Before
   public void before() throws Exception {

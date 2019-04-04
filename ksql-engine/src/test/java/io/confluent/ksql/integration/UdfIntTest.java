@@ -37,6 +37,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Assume;
@@ -46,6 +48,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -63,8 +66,12 @@ public class UdfIntTest {
   private static Map<String, RecordMetadata> jsonRecordMetadataMap;
   private static Map<String, RecordMetadata> avroRecordMetadataMap;
 
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+
   @ClassRule
-  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(TEST_HARNESS);
 
   @Rule
   public final TestKsqlContext ksqlContext = TEST_HARNESS.buildKsqlContext();

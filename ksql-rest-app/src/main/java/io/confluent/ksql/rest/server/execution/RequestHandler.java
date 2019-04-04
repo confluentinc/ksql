@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -90,7 +91,9 @@ public class RequestHandler {
           entities.add(Iterables.getLast(result));
         }
       } else {
-        executeStatement(prepared, scopedPropertyOverrides, entities).ifPresent(entities::add);
+        final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+            prepared, scopedPropertyOverrides, ksqlConfig);
+        executeStatement(configured, entities).ifPresent(entities::add);
       }
     }
     return entities;
@@ -98,21 +101,19 @@ public class RequestHandler {
 
   @SuppressWarnings("unchecked")
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
-      final PreparedStatement<T> prepared,
-      final Map<String, Object> propertyOverrides,
+      final ConfiguredStatement<T> configured,
       final KsqlEntityList entities
   ) {
-    final Class<? extends Statement> statementClass = prepared.getStatement().getClass();
+    final Class<? extends Statement> statementClass = configured.getStatement().getClass();
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, distributor);
     return executor.execute(
-        prepared,
+        configured,
         ksqlEngine,
-        serviceContext,
-        ksqlConfig,
-        propertyOverrides);
+        serviceContext
+    );
   }
 
   private KsqlEntityList executeRunScript(

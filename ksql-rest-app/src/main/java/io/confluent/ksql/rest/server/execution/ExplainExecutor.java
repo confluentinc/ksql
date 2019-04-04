@@ -26,12 +26,11 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -42,19 +41,14 @@ public final class ExplainExecutor {
 
   private ExplainExecutor() { }
 
-  @SuppressWarnings("unchecked")
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement<Explain> statement,
+      final ConfiguredStatement<Explain> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     return Optional
         .of(ExplainExecutor.explain(
             statement,
-            propertyOverrides,
-            ksqlConfig,
             executionContext));
   }
 
@@ -65,9 +59,7 @@ public final class ExplainExecutor {
    * @return explains the given statement contextualized by the parameters
    */
   private static QueryDescriptionEntity explain(
-      final PreparedStatement<Explain> statement,
-      final Map<String, Object> propertyOverrides,
-      final KsqlConfig ksqlConfig,
+      final ConfiguredStatement<Explain> statement,
       final KsqlExecutionContext executionContext
   ) {
     final Optional<String> queryId = statement.getStatement().getQueryId();
@@ -75,15 +67,7 @@ public final class ExplainExecutor {
     try {
       final QueryDescription queryDescription = queryId
           .map(s -> explainQuery(s, executionContext))
-          .orElseGet(() -> explainStatement(
-              statement.getStatement().getStatement().orElseThrow(
-                  () -> new KsqlStatementException(
-                      "must have either queryID or statement",
-                      statement.getStatementText())),
-              statement.getStatementText().substring("EXPLAIN ".length()),
-              executionContext,
-              ksqlConfig,
-              propertyOverrides));
+          .orElseGet(() -> explainStatement(statement, executionContext));
 
       return new QueryDescriptionEntity(statement.getStatementText(), queryDescription);
     } catch (final KsqlException e) {
@@ -92,19 +76,26 @@ public final class ExplainExecutor {
   }
 
   private static QueryDescription explainStatement(
-      final Statement statement,
-      final String statementText,
-      final KsqlExecutionContext executionContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ConfiguredStatement<Explain> explain,
+      final KsqlExecutionContext executionContext
   ) {
+    final Statement statement = explain.getStatement()
+        .getStatement()
+        .orElseThrow(() -> new KsqlStatementException(
+            "must have either queryID or statement",
+            explain.getStatementText()));
+
     if (!(statement instanceof Query || statement instanceof QueryContainer)) {
       throw new KsqlException("The provided statement does not run a ksql query");
     }
 
-    final QueryMetadata metadata = executionContext.createSandbox().execute(
-        PreparedStatement.of(statementText, statement),
-        ksqlConfig, propertyOverrides)
+    final PreparedStatement<?> preparedStatement = PreparedStatement.of(
+        explain.getStatementText().substring("EXPLAIN ".length()),
+        statement);
+
+    final QueryMetadata metadata = executionContext.createSandbox()
+        .execute(
+            ConfiguredStatement.of(preparedStatement, explain.getOverrides(), explain.getConfig()))
         .getQuery()
         .orElseThrow(() ->
             new IllegalStateException("The provided statement did not run a ksql query"));

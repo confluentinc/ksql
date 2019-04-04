@@ -17,11 +17,22 @@ package io.confluent.ksql.schema.inference;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 
 /**
  * Type for injecting schemas into statements that have none.
  */
-public interface SchemaInjector {
+public interface SchemaInjector extends Injector {
+
+  @Override
+  default <T extends Statement> ConfiguredStatement<T> inject(
+      final ConfiguredStatement<T> statement
+  ) {
+    final PreparedStatement<T> withSchema = forStatement(
+        PreparedStatement.of(statement.getStatementText(), statement.getStatement()));
+    return ConfiguredStatement.of(withSchema, statement.getOverrides(), statement.getConfig());
+  }
 
   /**
    * Attempt to inject the schema into the supplied {@code statement}.

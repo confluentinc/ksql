@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,11 +54,12 @@ public class PrintTopicValidatorTest {
 
     // When:
     CustomValidators.PRINT_TOPIC.validate(
-        PreparedStatement.of("PRINT 'topic';", mock(PrintTopic.class)),
+        ConfiguredStatement.of(
+            PreparedStatement.of("PRINT 'topic';", mock(PrintTopic.class)),
+            ImmutableMap.of(),
+            engine.getKsqlConfig()),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     );
   }
 

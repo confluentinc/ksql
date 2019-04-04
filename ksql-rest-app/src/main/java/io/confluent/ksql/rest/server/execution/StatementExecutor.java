@@ -16,12 +16,10 @@
 package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Optional;
 
 /**
@@ -36,10 +34,8 @@ public interface StatementExecutor<T extends Statement> {
    * @return the execution result, if present, else {@link Optional#empty()}
    */
   Optional<KsqlEntity> execute(
-      PreparedStatement<T> statement,
+      ConfiguredStatement<T> statement,
       KsqlExecutionContext executionContext,
-      ServiceContext serviceContext,
-      KsqlConfig ksqlConfig,
-      Map<String, Object> propertyOverrides);
+      ServiceContext serviceContext);
 
 }

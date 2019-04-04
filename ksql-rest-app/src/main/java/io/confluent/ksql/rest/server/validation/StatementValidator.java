@@ -16,12 +16,10 @@
 package io.confluent.ksql.rest.server.validation;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Map;
 
 /**
  * An interface that allows for arbitrary validation code of a prepared statement
@@ -33,7 +31,7 @@ public interface StatementValidator<T extends Statement> {
   /**
    * A statement validator that does nothing.
    */
-  StatementValidator<?> NO_VALIDATION = (stmt, ectx, sctx, cfg, overrides) -> { };
+  StatementValidator<?> NO_VALIDATION = (stmt, ectx, sctx) -> { };
 
   /**
    * Validates the statement against the given parameters, and throws an exception
@@ -43,9 +41,7 @@ public interface StatementValidator<T extends Statement> {
    *                       given parameters
    */
   void validate(
-      PreparedStatement<T> statement,
+      ConfiguredStatement<T> statement,
       KsqlExecutionContext executionContext,
-      ServiceContext serviceContext,
-      KsqlConfig ksqlConfig,
-      Map<String, Object> propertyOverrides) throws KsqlException;
+      ServiceContext serviceContext) throws KsqlException;
 }

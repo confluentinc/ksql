@@ -17,12 +17,11 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.KsqlConfigResolver;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,19 +34,17 @@ public final class ListPropertiesExecutor {
   private ListPropertiesExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement<ListProperties> statement,
+      final ConfiguredStatement<ListProperties> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final KsqlConfigResolver resolver = new KsqlConfigResolver();
 
     final Map<String, String> engineProperties
-        = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
+        = statement.getConfig().getAllConfigPropsWithSecretsObfuscated();
 
-    final Map<String, String> mergedProperties = ksqlConfig
-        .cloneWithPropertyOverwrite(propertyOverrides)
+    final Map<String, String> mergedProperties = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides())
         .getAllConfigPropsWithSecretsObfuscated();
 
     final List<String> overwritten = mergedProperties.entrySet()

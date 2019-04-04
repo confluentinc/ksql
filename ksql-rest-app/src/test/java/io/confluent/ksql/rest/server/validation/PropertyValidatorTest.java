@@ -19,6 +19,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.HashMap;
@@ -44,13 +45,14 @@ public class PropertyValidatorTest {
 
     // When:
     CustomValidators.SET_PROPERTY.validate(
+        ConfiguredStatement.of(
         PreparedStatement.of(
             "SET 'consumer.invalid'='value';",
             new SetProperty(Optional.empty(), "consumer.invalid", "value")),
+            new HashMap<>(),
+            engine.getKsqlConfig()),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        new HashMap<>()
+        engine.getServiceContext()
     );
   }
 
@@ -58,13 +60,14 @@ public class PropertyValidatorTest {
   public void shouldAllowSetKnownProperty() {
     // No exception when:
     CustomValidators.SET_PROPERTY.validate(
+        ConfiguredStatement.of(
         PreparedStatement.of(
             "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
             new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
+            new HashMap<>(),
+            engine.getKsqlConfig()),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        new HashMap<>()
+        engine.getServiceContext()
     );
   }
 
@@ -77,13 +80,14 @@ public class PropertyValidatorTest {
 
     // When:
     CustomValidators.SET_PROPERTY.validate(
+        ConfiguredStatement.of(
         PreparedStatement.of(
-            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
+             "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
             new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid")),
+            new HashMap<>(),
+            engine.getKsqlConfig()),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        new HashMap<>()
+        engine.getServiceContext()
     );
   }
 
@@ -95,13 +99,14 @@ public class PropertyValidatorTest {
 
     // When:
     CustomValidators.UNSET_PROPERTY.validate(
+        ConfiguredStatement.of(
         PreparedStatement.of(
             "UNSET 'consumer.invalid';",
             new UnsetProperty(Optional.empty(), "consumer.invalid")),
+            new HashMap<>(),
+            engine.getKsqlConfig()),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        new HashMap<>()
+        engine.getServiceContext()
     );
   }
 
@@ -109,13 +114,14 @@ public class PropertyValidatorTest {
   public void shouldAllowUnsetKnownProperty() {
     // No exception when:
     CustomValidators.UNSET_PROPERTY.validate(
+        ConfiguredStatement.of(
         PreparedStatement.of(
             "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
             new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
+            new HashMap<>(),
+            engine.getKsqlConfig()),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        new HashMap<>()
+        engine.getServiceContext()
     );
   }
 }

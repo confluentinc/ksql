@@ -39,11 +39,9 @@ public class ListFunctionsExecutorTest {
   public void shouldListFunctions() {
     // When:
     final FunctionNameList functionList = (FunctionNameList) CustomExecutors.LIST_FUNCTIONS.execute(
-        engine.prepare("LIST FUNCTIONS;"),
+        engine.configure("LIST FUNCTIONS;"),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:

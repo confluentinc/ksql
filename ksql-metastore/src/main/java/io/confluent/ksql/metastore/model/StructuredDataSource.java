@@ -108,6 +108,4 @@ public abstract class StructuredDataSource<K> implements DataSource {
   public String getSqlExpression() {
     return sqlExpression;
   }
-
-  public abstract StructuredDataSource<?> cloneWithTimeKeyColumns();
 }

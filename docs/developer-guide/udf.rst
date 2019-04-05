@@ -115,6 +115,7 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
 - with two long (BIGINT) parameters returning a long (BIGINT) result.
 - with two nullable Long (BIGINT) parameters returning a nullable Long (BIGINT) result.
 - with two double parameters returning a double result.
+- with variadic double parameters returning a double result.
 
 .. code:: java
 
@@ -144,8 +145,13 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
       }
 
       @Udf(description = "multiply two non-nullable DOUBLEs.")
-      public double multiply(final double v1, double v2) {
+      public double multiply(final double v1, final double v2) {
         return v1 * v2;
+      }
+
+      @Udf(description = "multiply N non-nullable DOUBLEs.")
+      public double multiply(final double... values) {
+        return Arrays.stream(values).reduce((a, b) -> a * b);
       }
     }
 

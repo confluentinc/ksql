@@ -21,7 +21,6 @@ import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
@@ -31,6 +30,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
@@ -71,8 +71,7 @@ class QueryEngine {
   @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.
   LogicalPlanNode buildLogicalPlan(
       final MetaStore metaStore,
-      final PreparedStatement<?> statement,
-      final KsqlConfig config
+      final ConfiguredStatement<?> statement
   ) {
     LOG.info("Build logical plan for {}.", statement.getStatementText());
 
@@ -82,7 +81,7 @@ class QueryEngine {
           (Query)statement.getStatement(),
           Optional.empty(),
           metaStore,
-          config
+          statement.getConfig()
       );
 
       return new LogicalPlanNode(statement.getStatementText(), Optional.of(outputNode));
@@ -93,7 +92,7 @@ class QueryEngine {
           statement.getStatementText(),
           (QueryContainer) statement.getStatement(),
           metaStore,
-          config
+          statement.getConfig()
       );
 
       return new LogicalPlanNode(statement.getStatementText(), Optional.of(outputNode));

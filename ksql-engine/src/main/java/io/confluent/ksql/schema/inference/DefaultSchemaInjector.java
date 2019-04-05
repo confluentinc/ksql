@@ -44,6 +44,7 @@ public class DefaultSchemaInjector implements SchemaInjector {
     this.schemaSupplier = Objects.requireNonNull(schemaSupplier, "schemaSupplier");
   }
 
+
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Statement> PreparedStatement<T> forStatement(
@@ -70,7 +71,6 @@ public class DefaultSchemaInjector implements SchemaInjector {
     return Optional.of(addSchemaFields(statement, valueSchema));
   }
 
-  @SuppressWarnings("ConstantConditions") // result is union.
   private SchemaAndId getValueSchema(
       final PreparedStatement<AbstractStreamCreateStatement> statement
   ) {

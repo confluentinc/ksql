@@ -22,11 +22,10 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -103,14 +102,9 @@ public interface KsqlExecutionContext {
    * <p>If the statement contains a query, then it will be tracked, but not started.
    *
    * @param statement The SQL to execute.
-   * @param ksqlConfig the config.
-   * @param overriddenProperties The user-requested property overrides.
    * @return The execution result.
    */
-  ExecuteResult execute(
-      PreparedStatement<?> statement,
-      KsqlConfig ksqlConfig,
-      Map<String, Object> overriddenProperties);
+  ExecuteResult execute(ConfiguredStatement<?> statement);
 
   /**
    * Holds the union of possible results from an {@link #execute} call.

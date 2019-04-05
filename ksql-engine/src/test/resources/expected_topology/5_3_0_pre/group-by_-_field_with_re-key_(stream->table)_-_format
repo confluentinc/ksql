@@ -1,0 +1,80 @@
+{
+  "ksql.extension.dir" : "ext",
+  "ksql.streams.cache.max.bytes.buffering" : "0",
+  "ksql.transient.prefix" : "transient_",
+  "ksql.named.internal.topics" : "on",
+  "ksql.windowed.session.key.legacy" : "false",
+  "ksql.schema.registry.url" : "http://localhost:8081",
+  "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+  "ksql.output.topic.name.prefix" : "",
+  "ksql.streams.auto.offset.reset" : "earliest",
+  "ksql.sink.partitions" : null,
+  "ksql.avro.maps.named" : "true",
+  "ksql.service.id" : "some.ksql.service.id",
+  "ksql.streams.state.dir" : "/var/folders/2d/3pt97ylj3zngd51bwl91bl3r0000gp/T/kafka-7883600454583787474",
+  "ksql.internal.topic.replicas" : "1",
+  "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+  "ksql.streams.bootstrap.servers" : "localhost:0",
+  "ksql.streams.commit.interval.ms" : "2000",
+  "ksql.streams.auto.commit.interval.ms" : "0",
+  "ksql.sink.replicas" : null,
+  "ksql.streams.topology.optimization" : "all",
+  "ksql.streams.num.stream.threads" : "4",
+  "ksql.udfs.enabled" : "true",
+  "ksql.udf.enable.security.manager" : "true",
+  "ksql.functions.substring.legacy.args" : "false",
+  "ksql.streams.application.id" : "some.ksql.service.id",
+  "ksql.sink.window.change.log.additional.retention" : "1000000",
+  "ksql.udf.collect.metrics" : "false",
+  "ksql.persistent.prefix" : "query_",
+  "ksql.query.persistent.active.limit" : "2147483647"
+}
+CONFIGS_END
+CTAS_OUTPUT_0.KsqlTopic.source = struct<DATA optional<string>>
+CTAS_OUTPUT_0.Aggregate.groupby = struct<KSQL_INTERNAL_COL_0 optional<string>,KSQL_INTERNAL_COL_1 optional<int64>>
+CTAS_OUTPUT_0.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<string>,KSQL_INTERNAL_COL_1 optional<int64>,KSQL_AGG_VARIABLE_0 optional<int64>>
+CTAS_OUTPUT_0.OUTPUT = struct<DATA optional<string>,KSQL_COL_1 optional<int64>>
+SCHEMAS_END
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [test_topic])
+      --> KSTREAM-MAPVALUES-0000000001
+    Processor: KSTREAM-MAPVALUES-0000000001 (stores: [])
+      --> KSTREAM-TRANSFORMVALUES-0000000002
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: KSTREAM-TRANSFORMVALUES-0000000002 (stores: [])
+      --> KSTREAM-MAPVALUES-0000000003
+      <-- KSTREAM-MAPVALUES-0000000001
+    Processor: KSTREAM-MAPVALUES-0000000003 (stores: [])
+      --> KSTREAM-FILTER-0000000004
+      <-- KSTREAM-TRANSFORMVALUES-0000000002
+    Processor: KSTREAM-FILTER-0000000004 (stores: [])
+      --> KSTREAM-KEY-SELECT-0000000005
+      <-- KSTREAM-MAPVALUES-0000000003
+    Processor: KSTREAM-KEY-SELECT-0000000005 (stores: [])
+      --> KSTREAM-FILTER-0000000008
+      <-- KSTREAM-FILTER-0000000004
+    Processor: KSTREAM-FILTER-0000000008 (stores: [])
+      --> KSTREAM-SINK-0000000007
+      <-- KSTREAM-KEY-SELECT-0000000005
+    Sink: KSTREAM-SINK-0000000007 (topic: Aggregate-groupby-repartition)
+      <-- KSTREAM-FILTER-0000000008
+
+  Sub-topology: 1
+    Source: KSTREAM-SOURCE-0000000009 (topics: [Aggregate-groupby-repartition])
+      --> KSTREAM-AGGREGATE-0000000006
+    Processor: KSTREAM-AGGREGATE-0000000006 (stores: [Aggregate-aggregate])
+      --> KTABLE-MAPVALUES-0000000010
+      <-- KSTREAM-SOURCE-0000000009
+    Processor: KTABLE-MAPVALUES-0000000010 (stores: [])
+      --> KTABLE-TOSTREAM-0000000011
+      <-- KSTREAM-AGGREGATE-0000000006
+    Processor: KTABLE-TOSTREAM-0000000011 (stores: [])
+      --> KSTREAM-MAPVALUES-0000000012
+      <-- KTABLE-MAPVALUES-0000000010
+    Processor: KSTREAM-MAPVALUES-0000000012 (stores: [])
+      --> KSTREAM-SINK-0000000013
+      <-- KTABLE-TOSTREAM-0000000011
+    Sink: KSTREAM-SINK-0000000013 (topic: OUTPUT)
+      <-- KSTREAM-MAPVALUES-0000000012
+

@@ -15,8 +15,13 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.stream.Collectors.toList;
+
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.SqlBaseLexer;
+import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.tree.QualifiedName;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,5 +43,29 @@ public final class ParserUtil {
 
   public static String escapeIfLiteral(final String name) {
     return LITERALS_SET.contains(name.toUpperCase()) ? "`" + name + "`" : name;
+  }
+
+  public static String getIdentifierText(final SqlBaseParser.IdentifierContext context) {
+    if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
+      return unquote(context.getText(), "\"");
+    } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
+      return unquote(context.getText(), "`");
+    } else {
+      return context.getText().toUpperCase();
+    }
+  }
+
+  public static String unquote(final String value, final String quote) {
+    return value.substring(1, value.length() - 1)
+        .replace(quote + quote, quote);
+  }
+
+  public static QualifiedName getQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
+    final List<String> parts = context
+        .identifier().stream()
+        .map(ParserUtil::getIdentifierText)
+        .collect(toList());
+
+    return QualifiedName.of(parts);
   }
 }

@@ -61,22 +61,29 @@ public class ExtensionSecurityManagerTest {
   }
 
   @Test(expected = SecurityException.class)
-  public void shouldNotAllowExecWhenPluggableUDF() {
-    new PluggableUdf((thiz,args) -> {
-      try {
-        return Runtime.getRuntime().exec("cmd");
-      } catch (IOException e) {
-        return null;
-      }
-    }, new Object()).evaluate();
+  public void shouldNotAllowExecWhenPluggableUDF() throws NoSuchMethodException {
+    new PluggableUdf(
+        (thiz,args) -> exec(),
+        new Object(),
+        ExtensionSecurityManagerTest.class.getMethod("exec"))
+        .evaluate();
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  public static Process exec() {
+    try {
+      return Runtime.getRuntime().exec("cmd");
+    } catch (IOException e) {
+      return null;
+    }
   }
 
   @Test(expected = SecurityException.class)
-  public void shouldNotAllowExitWhenPluggableUDF() {
+  public void shouldNotAllowExitWhenPluggableUDF() throws NoSuchMethodException {
     new PluggableUdf((thiz,args) -> {
       System.exit(1);
       return null;
-    }, new Object()).evaluate();
+    }, new Object(), System.class.getMethod("exit", int.class)).evaluate();
   }
   
 }

@@ -23,10 +23,9 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -83,12 +82,10 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   @Override
   public ExecuteResult execute(
-      final PreparedStatement<?> statement,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties
+      final ConfiguredStatement<?> statement
   ) {
     final EngineExecutor executor = EngineExecutor
-        .create(engineContext, ksqlConfig, overriddenProperties);
+        .create(engineContext, statement.getConfig(), statement.getOverrides());
 
     return executor.execute(statement);
   }

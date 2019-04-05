@@ -1220,6 +1220,40 @@ SHOW PROPERTIES
 List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
+SET/UNSET property
+------------------
+**Synopsis**
+
+.. code:: sql
+
+    [SET] 'property_name' = 'property_value';
+    [UNSET] 'property_name';
+
+**Description**
+
+Set or unset the session properties in the CLI. The session properties that have been set will be sent to the server along with the subsequent KSQL statements.
+The properties that are set using these commands are session properties, meaning they will be only available in the current CLI session.
+The following are the properties that can be configured with SET/UNSET commands from release 5.2 and above:
+
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+| Property                                          | Description                                                                                |
++===================================================+============================================================================================+
+| ksql.sink.window.change.log.additional.retention  | The default window change log additional retention time. This is a streams config value    |
+|                                                   | which will be added to a windows maintainMs to ensure data is not deleted from the log     |
+|                                                   | prematurely. Allows for clock drift. The default is 1 day.                                 |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+| ksql.streams.commit.interval.ms                   | The frequency with which to save the position (offsets in source topics) of tasks.         |
+|                                                   | The default is 30000 milliseconds (at-least-once) / 100 milliseconds (exactly-once).       |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+| auto.offset.reset                                 | Configure the KSQL queries to read the source topics from earliest or latest offset.       |
+|                                                   | The default in KSQL is ``latest``.                                                         |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+| group.id                                          | A unique string that identifies the consumer group this consumer belongs to.               |
+|                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                                                               |
+|                                                   | The default in KSQL is ````.                                                               |
++---------------------------------------------------+--------------------------------------------------------------------------------------------+
+
+
 .. _ksql-terminate:
 
 TERMINATE

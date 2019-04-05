@@ -33,4 +33,9 @@ public class TestUdf {
   public String doStuffLongLongString(final long arg1, final long arg2, final String arg3) {
     return "doStuffLongLongString";
   }
+
+  @Udf(description = "returns method name")
+  public String doStuffLongVarargs(final long... longs) {
+    return "doStuffLongVarargs";
+  }
 }

@@ -18,21 +18,17 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,7 +42,6 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.streams.StreamsBuilder;
 
 
 public class JoinNode extends PlanNode {
@@ -176,25 +171,14 @@ public class JoinNode extends PlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final FunctionRegistry functionRegistry,
-      final QueryId queryId) {
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
 
-    ensureMatchingPartitionCounts(serviceContext.getTopicClient());
+    ensureMatchingPartitionCounts(builder.getServiceContext().getTopicClient());
 
     final JoinerFactory joinerFactory = new JoinerFactory(
         builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
         this,
-        queryId,
-        buildNodeContext(queryId));
+        builder.buildNodeContext(getId()));
 
     return joinerFactory.getJoiner(leftType, rightType).join();
   }
@@ -232,45 +216,25 @@ public class JoinNode extends PlanNode {
         Supplier<Joiner>> joinerMap;
 
     JoinerFactory(
-        final StreamsBuilder builder,
-        final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
-        final ProcessingLogContext processingLogContext,
-        final FunctionRegistry functionRegistry,
+        final KsqlQueryBuilder builder,
         final JoinNode joinNode,
-        final QueryId queryId,
         final QueryContext.Stacker contextStacker
     ) {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KSTREAM),
           () -> new StreamToStreamJoiner(
               builder,
-              ksqlConfig,
-              serviceContext,
-              processingLogContext,
-              functionRegistry,
               joinNode,
-              queryId,
               contextStacker),
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KTABLE),
           () -> new StreamToTableJoiner(
               builder,
-              ksqlConfig,
-              serviceContext,
-              processingLogContext,
-              functionRegistry,
               joinNode,
-              queryId,
               contextStacker),
           new Pair<>(DataSource.DataSourceType.KTABLE, DataSource.DataSourceType.KTABLE),
           () -> new TableToTableJoiner(
               builder,
-              ksqlConfig,
-              serviceContext,
-              processingLogContext,
-              functionRegistry,
               joinNode,
-              queryId,
               contextStacker)
       );
     }
@@ -286,34 +250,18 @@ public class JoinNode extends PlanNode {
   }
 
   private abstract static class Joiner<K> {
-    protected final StreamsBuilder builder;
-    protected final KsqlConfig ksqlConfig;
-    private final ServiceContext serviceContext;
-    private final ProcessingLogContext processingLogContext;
-    protected final FunctionRegistry functionRegistry;
+
+    final KsqlQueryBuilder builder;
     final JoinNode joinNode;
     final QueryContext.Stacker contextStacker;
-    final QueryId queryId;
 
     Joiner(
-        final StreamsBuilder builder,
-        final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
-        final ProcessingLogContext processingLogContext,
-        final FunctionRegistry functionRegistry,
+        final KsqlQueryBuilder builder,
         final JoinNode joinNode,
-        final QueryId queryId,
         final QueryContext.Stacker contextStacker
     ) {
       this.builder = Objects.requireNonNull(builder, "builder");
-      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-      this.processingLogContext = Objects.requireNonNull(
-          processingLogContext,
-          "processingLogContext");
-      this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
       this.joinNode = Objects.requireNonNull(joinNode, "joinNode");
-      this.queryId = Objects.requireNonNull(queryId, "queryId");
       this.contextStacker = Objects.requireNonNull(contextStacker, "contextStacker");
     }
 
@@ -322,13 +270,7 @@ public class JoinNode extends PlanNode {
     protected SchemaKStream<K> buildStream(final PlanNode node, final String keyFieldName) {
 
       return maybeRePartitionByKey(
-          node.buildStream(
-              builder,
-              ksqlConfig,
-              serviceContext,
-              processingLogContext,
-              functionRegistry,
-              queryId),
+          node.buildStream(builder),
           keyFieldName,
           contextStacker);
     }
@@ -340,13 +282,10 @@ public class JoinNode extends PlanNode {
         final String tableName
     ) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
-          builder,
-          ksqlConfig.cloneWithPropertyOverwrite(
-              Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
-          serviceContext,
-          processingLogContext,
-          functionRegistry,
-          queryId);
+          builder.withKsqlConfig(builder.getKsqlConfig()
+                  .cloneWithPropertyOverwrite(Collections.singletonMap(
+                      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
+      );
 
       if (!(schemaKStream instanceof SchemaKTable)) {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
@@ -394,16 +333,16 @@ public class JoinNode extends PlanNode {
                                 + "Table).");
       }
       final StructuredDataSourceNode dataSourceNode = (StructuredDataSourceNode) node;
-      return dataSourceNode
+      final KsqlTopicSerDe ksqlTopicSerDe = dataSourceNode
           .getStructuredDataSource()
           .getKsqlTopic()
-          .getKsqlTopicSerDe()
-          .getGenericRowSerde(
-              dataSourceNode.getSchema(),
-              ksqlConfig,
-              serviceContext.getSchemaRegistryClientFactory(),
-              QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext()),
-              processingLogContext);
+          .getKsqlTopicSerDe();
+
+      return builder.buildGenericRowSerde(
+          ksqlTopicSerDe,
+          dataSourceNode.getSchema(),
+          contextStacker.getQueryContext()
+      );
     }
 
     Field getJoinKey(final String alias, final String keyFieldName) {
@@ -414,24 +353,11 @@ public class JoinNode extends PlanNode {
   private static final class StreamToStreamJoiner<K> extends Joiner<K> {
 
     private StreamToStreamJoiner(
-        final StreamsBuilder builder,
-        final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
-        final ProcessingLogContext processingLogContext,
-        final FunctionRegistry functionRegistry,
+        final KsqlQueryBuilder builder,
         final JoinNode joinNode,
-        final QueryId queryId,
         final QueryContext.Stacker contextStacker
     ) {
-      super(
-          builder,
-          ksqlConfig,
-          serviceContext,
-          processingLogContext,
-          functionRegistry,
-          joinNode,
-          queryId,
-          contextStacker);
+      super(builder, joinNode, contextStacker);
     }
 
     @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
@@ -500,24 +426,11 @@ public class JoinNode extends PlanNode {
   private static final class StreamToTableJoiner<K> extends Joiner<K> {
 
     private StreamToTableJoiner(
-        final StreamsBuilder builder,
-        final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
-        final ProcessingLogContext processingLogContext,
-        final FunctionRegistry functionRegistry,
+        final KsqlQueryBuilder builder,
         final JoinNode joinNode,
-        final QueryId queryId,
         final QueryContext.Stacker contextStacker
     ) {
-      super(
-          builder,
-          ksqlConfig,
-          serviceContext,
-          processingLogContext,
-          functionRegistry,
-          joinNode,
-          queryId,
-          contextStacker);
+      super(builder, joinNode, contextStacker);
     }
 
     @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
@@ -568,24 +481,11 @@ public class JoinNode extends PlanNode {
   private static final class TableToTableJoiner<K> extends Joiner<K> {
 
     TableToTableJoiner(
-        final StreamsBuilder builder,
-        final KsqlConfig ksqlConfig,
-        final ServiceContext serviceContext,
-        final ProcessingLogContext processingLogContext,
-        final FunctionRegistry functionRegistry,
+        final KsqlQueryBuilder builder,
         final JoinNode joinNode,
-        final QueryId queryId,
         final QueryContext.Stacker contextStacker
     ) {
-      super(
-          builder,
-          ksqlConfig,
-          serviceContext,
-          processingLogContext,
-          functionRegistry,
-          joinNode,
-          queryId,
-          contextStacker);
+      super(builder, joinNode, contextStacker);
     }
 
     @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})

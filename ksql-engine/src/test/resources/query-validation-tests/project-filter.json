@@ -82,7 +82,7 @@
       ]
     },
     {
-      "name": "Json Multi Dimensional Array",
+      "name": "Json Multi Dimensional Array 2",
       "statements": [
         "CREATE STREAM array_array (ID BIGINT, ARRAY_COL ARRAY<ARRAY<VARCHAR>>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM S3 as SELECT ID, ARRAY_COL[0][1] AS array_item FROM array_array;"

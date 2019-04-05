@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTo
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.IOException;
@@ -62,6 +63,7 @@ import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -78,7 +80,7 @@ public class WSQueryEndpointTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private static final KsqlRequest VALID_REQUEST = new KsqlRequest("test-sql",
-      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), null);
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"), null);
 
   private static final KsqlRequest ANOTHER_REQUEST = new KsqlRequest("other-sql",
       ImmutableMap.of(), null);
@@ -86,7 +88,7 @@ public class WSQueryEndpointTest {
   private static final long SEQUENCE_NUMBER = 2L;
   private static final KsqlRequest REQUEST_WITHOUT_SEQUENCE_NUMBER = VALID_REQUEST;
   private static final KsqlRequest REQUEST_WITH_SEQUENCE_NUMBER = new KsqlRequest("test-sql",
-      ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test-id"), SEQUENCE_NUMBER);
+      ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"), SEQUENCE_NUMBER);
 
   private static final String VALID_VERSION = Versions.KSQL_V1_WS;
   private static final String[] NO_VERSION_PROPERTY = null;
@@ -310,12 +312,15 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
+    final ConfiguredStatement<Query> configuredStatement = ConfiguredStatement.of(
+        PreparedStatement.of(VALID_REQUEST.getKsql(), query),
+        VALID_REQUEST.getStreamsProperties(),
+        ksqlConfig);
+
     verify(queryPublisher).start(
-        eq(ksqlConfig),
         eq(ksqlEngine),
         eq(exec),
-        eq(PreparedStatement.of(VALID_REQUEST.getKsql(), query)),
-        eq(VALID_REQUEST.getStreamsProperties()),
+        eq(configuredStatement),
         any());
   }
 

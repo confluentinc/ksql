@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
@@ -102,7 +103,7 @@ public final class KsqlEngineTestUtil {
         .collect(Collectors.toList());
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"rawtypes","unchecked"})
   private static ExecuteResult execute(
       final KsqlExecutionContext executionContext,
       final ParsedStatement stmt,
@@ -111,9 +112,12 @@ public final class KsqlEngineTestUtil {
       final Optional<DefaultSchemaInjector> schemaInjector
   ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
-    final PreparedStatement<?> withSchema = schemaInjector.
-        map(injector -> injector.forStatement(prepared))
-        .orElse((PreparedStatement) prepared);
-    return executionContext.execute(withSchema, ksqlConfig, overriddenProperties);
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+        prepared, overriddenProperties, ksqlConfig);
+    final ConfiguredStatement<?> withSchema =
+        schemaInjector
+            .map(injector -> injector.inject(configured))
+            .orElse((ConfiguredStatement) configured);
+    return executionContext.execute(withSchema);
   }
 }

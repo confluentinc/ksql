@@ -37,6 +37,7 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -299,11 +300,11 @@ public class StandaloneExecutor implements Executable {
      */
     @SuppressWarnings("unchecked")
     boolean execute(final ParsedStatement statement) {
-      final PreparedStatement<?> prepared = prepare(statement);
+      final ConfiguredStatement<?> configured = prepare(statement);
 
-      throwOnMissingSchema(prepared);
+      throwOnMissingSchema(configured);
 
-      final Handler<Statement> handler = HANDLERS.get(prepared.getStatement().getClass());
+      final Handler<Statement> handler = HANDLERS.get(configured.getStatement().getClass());
       if (handler == null) {
         throw new KsqlStatementException("Unsupported statement. "
             + "Only the following statements are supporting in standalone mode:"
@@ -312,22 +313,22 @@ public class StandaloneExecutor implements Executable {
             statement.getStatementText());
       }
 
-      handler.handle(this, (PreparedStatement) prepared);
-      return prepared.getStatement() instanceof QueryContainer;
+      handler.handle(this, (ConfiguredStatement<Statement>) configured);
+      return configured.getStatement() instanceof QueryContainer;
     }
 
-    private PreparedStatement<?> prepare(
+    private ConfiguredStatement<?> prepare(
         final ParsedStatement statement
     ) {
       final PreparedStatement<?> prepared = executionContext.prepare(statement);
-      final PreparedStatement<?> withSchema = schemaInjector.forStatement(prepared);
-      return topicInjector.forStatement(
-          withSchema,
-          ksqlConfig,
-          configProperties);
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+          prepared, configProperties, ksqlConfig);
+
+      final ConfiguredStatement<?> withSchema = schemaInjector.inject(configured);
+      return topicInjector.inject(withSchema);
     }
 
-    private static void throwOnMissingSchema(final PreparedStatement<?> statement) {
+    private static void throwOnMissingSchema(final ConfiguredStatement<?> statement) {
       if (!(statement.getStatement() instanceof AbstractStreamCreateStatement)) {
         return;
       }
@@ -341,21 +342,21 @@ public class StandaloneExecutor implements Executable {
           statement.getStatementText());
     }
 
-    private void handleSetProperty(final PreparedStatement<SetProperty> statement) {
+    private void handleSetProperty(final ConfiguredStatement<SetProperty> statement) {
       final SetProperty setProperty = statement.getStatement();
       configProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
     }
 
-    private void handleUnsetProperty(final PreparedStatement<UnsetProperty> statement) {
+    private void handleUnsetProperty(final ConfiguredStatement<UnsetProperty> statement) {
       configProperties.remove(statement.getStatement().getPropertyName());
     }
 
-    private void handleExecutableDdl(final PreparedStatement<?> statement) {
-      executionContext.execute(statement, ksqlConfig, configProperties);
+    private void handleExecutableDdl(final ConfiguredStatement<?> statement) {
+      executionContext.execute(statement);
     }
 
-    private void handlePersistentQuery(final PreparedStatement<?> statement) {
-      executionContext.execute(statement, ksqlConfig, configProperties)
+    private void handlePersistentQuery(final ConfiguredStatement<?> statement) {
+      executionContext.execute(statement)
           .getQuery()
           .filter(q -> q instanceof PersistentQueryMetadata)
           .orElseThrow((() -> new KsqlStatementException(
@@ -372,7 +373,7 @@ public class StandaloneExecutor implements Executable {
 
     @SuppressWarnings({"unchecked", "unused"})
     private static <T extends Statement> Handler<Statement> createHandler(
-        final BiConsumer<StatementExecutor, PreparedStatement<T>> handler,
+        final BiConsumer<StatementExecutor, ConfiguredStatement<T>> handler,
         final Class<T> type,
         final String name
     ) {
@@ -381,9 +382,9 @@ public class StandaloneExecutor implements Executable {
         @Override
         public void handle(
             final StatementExecutor executor,
-            final PreparedStatement<Statement> statement
+            final ConfiguredStatement<Statement> statement
         ) {
-          handler.accept(executor, (PreparedStatement) statement);
+          handler.accept(executor, (ConfiguredStatement) statement);
         }
 
         @Override
@@ -395,7 +396,7 @@ public class StandaloneExecutor implements Executable {
 
     private interface Handler<T extends Statement> {
 
-      void handle(StatementExecutor executor, PreparedStatement<T> statement);
+      void handle(StatementExecutor executor, ConfiguredStatement<T> statement);
 
       String getName();
     }

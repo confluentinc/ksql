@@ -109,15 +109,16 @@ public class PhysicalPlanBuilder {
 
     final QueryId queryId = logicalNode.getQueryId(queryIdGenerator);
 
-    final SchemaKStream<?> resultStream = logicalNode
-        .buildStream(
-            builder,
-            ksqlConfig,
-            serviceContext,
-            processingLogContext,
-            functionRegistry,
-            queryId
-        );
+    final KsqlQueryBuilder ksqlQueryBuilder = KsqlQueryBuilder.of(
+        builder,
+        ksqlConfig,
+        serviceContext,
+        processingLogContext,
+        functionRegistry,
+        queryId
+    );
+
+    final SchemaKStream<?> resultStream = logicalNode.buildStream(ksqlQueryBuilder);
 
     final OutputNode outputNode = resultStream.outputNode();
 
@@ -167,7 +168,8 @@ public class PhysicalPlanBuilder {
           getServiceId(),
           persistanceQueryPrefix,
           queryId,
-          logicalPlanNode.getStatementText());
+          ksqlQueryBuilder.getSchemas()
+      );
     }
 
     throw new KsqlException("Sink data source type unsupported: " + outputNode.getClass());
@@ -220,17 +222,20 @@ public class PhysicalPlanBuilder {
   }
 
   private QueryMetadata buildPlanForStructuredOutputNode(
-      final String sqlExpression, final SchemaKStream<?> schemaKStream,
+      final String sqlExpression,
+      final SchemaKStream<?> schemaKStream,
       final KsqlStructuredDataOutputNode outputNode,
       final String serviceId,
       final String persistanceQueryPrefix,
       final QueryId queryId,
-      final String statement
+      final QuerySchemas schemas
   ) {
-
     if (metaStore.getTopic(outputNode.getKsqlTopic().getName()) == null) {
       metaStore.putTopic(outputNode.getKsqlTopic());
     }
+
+    final Schema sinkSchema = SchemaUtil.addImplicitRowTimeRowKeyToSchema(outputNode.getSchema());
+
     final StructuredDataSource sinkDataSource;
     if (schemaKStream instanceof SchemaKTable) {
       final SchemaKTable<?> schemaKTable = (SchemaKTable) schemaKStream;
@@ -238,7 +243,7 @@ public class PhysicalPlanBuilder {
           new KsqlTable<>(
               sqlExpression,
               outputNode.getId().toString(),
-              outputNode.getSchema(),
+              sinkSchema,
               schemaKTable.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
@@ -249,13 +254,12 @@ public class PhysicalPlanBuilder {
           new KsqlStream<>(
               sqlExpression,
               outputNode.getId().toString(),
-              outputNode.getSchema(),
+              sinkSchema,
               schemaKStream.getKeyField(),
               outputNode.getTimestampExtractionPolicy(),
               outputNode.getKsqlTopic(),
               schemaKStream.getKeySerdeFactory()
           );
-
     }
 
     sinkSetUp(outputNode, sinkDataSource);
@@ -277,11 +281,11 @@ public class PhysicalPlanBuilder {
     final Topology topology = builder.build();
 
     return new PersistentQueryMetadata(
-        statement,
+        sqlExpression,
         streams,
         outputNode.getSchema(),
         getSourceNames(outputNode),
-        sinkDataSource,
+        sinkDataSource.getName(),
         schemaKStream.getExecutionPlan(""),
         queryId,
         (schemaKStream instanceof SchemaKTable) ? DataSource.DataSourceType.KTABLE
@@ -289,6 +293,7 @@ public class PhysicalPlanBuilder {
         applicationId,
         sinkDataSource.getKsqlTopic(),
         topology,
+        schemas,
         streamsProperties,
         overriddenProperties,
         queryCloseCallback
@@ -298,34 +303,36 @@ public class PhysicalPlanBuilder {
   private void sinkSetUp(final KsqlStructuredDataOutputNode outputNode,
                          final StructuredDataSource<?> sinkDataSource) {
     if (outputNode.isDoCreateInto()) {
-      metaStore.putSource(sinkDataSource.cloneWithTimeKeyColumns());
+      metaStore.putSource(sinkDataSource);
       return;
     }
 
-    final StructuredDataSource<?> structuredDataSource =
+    final StructuredDataSource<?> existing =
         metaStore.getSource(sinkDataSource.getName());
-    if (structuredDataSource.getDataSourceType() != sinkDataSource.getDataSourceType()) {
+
+    if (existing.getDataSourceType() != sinkDataSource.getDataSourceType()) {
       throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
               + " (%s) type is %s but select query result is %s.",
           sinkDataSource.getName(),
           sinkDataSource.getDataSourceType(),
-          structuredDataSource.getDataSourceType()));
+          existing.getDataSourceType()));
     }
-    final Schema resultSchema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-        sinkDataSource.cloneWithTimeKeyColumns().getSchema());
-    if (!SchemaUtil.areEqualSchemas(
-        resultSchema,
-        SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(structuredDataSource.getSchema()))) {
+
+    final Schema resultSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(sinkDataSource.getSchema());
+
+    final Schema existingSchema = SchemaUtil
+        .removeImplicitRowTimeRowKeyFromSchema(existing.getSchema());
+
+    if (!SchemaUtil.areEqualSchemas(resultSchema, existingSchema)) {
       throw new KsqlException(String.format("Incompatible schema between results and sink. "
               + "Result schema is %s, but the sink schema is %s"
               + ".",
           SchemaUtil.getSchemaDefinitionString(resultSchema),
-          SchemaUtil.getSchemaDefinitionString(
-              SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(
-                  structuredDataSource.getSchema()))));
+          SchemaUtil.getSchemaDefinitionString(existingSchema)));
     }
 
-    enforceKeyEquivalence(structuredDataSource.getKeyField(), sinkDataSource.getKeyField());
+    enforceKeyEquivalence(existing.getKeyField(), sinkDataSource.getKeyField());
   }
 
   private static String getQueryApplicationId(

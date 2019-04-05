@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.KsqlConfig;
@@ -254,7 +255,7 @@ public class WSQueryEndpoint {
     }
   }
 
-  @SuppressWarnings({"unused", "unchecked"})
+  @SuppressWarnings({"unused"})
   private void handleQuery(final SessionAndRequest info, final Query query) {
     final Map<String, Object> clientLocalProperties = info.request.getStreamsProperties();
 
@@ -264,9 +265,10 @@ public class WSQueryEndpoint {
 
     final PreparedStatement<Query> statement =
         PreparedStatement.of(info.request.getKsql(), query);
+    final ConfiguredStatement<Query> configured =
+        ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
 
-    queryPublisher.start(ksqlConfig, ksqlEngine, exec, statement,
-        clientLocalProperties, streamSubscriber);
+    queryPublisher.start(ksqlEngine, exec, configured, streamSubscriber);
   }
 
   private void handlePrintTopic(final SessionAndRequest info, final PrintTopic printTopic) {
@@ -299,14 +301,12 @@ public class WSQueryEndpoint {
   }
 
   private static void startQueryPublisher(
-      final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final ListeningScheduledExecutorService exec,
-      final PreparedStatement<Query> query,
-      final Map<String, Object> clientLocalProperties,
+      final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber
   ) {
-    new StreamPublisher(ksqlConfig, ksqlEngine, exec, query, clientLocalProperties)
+    new StreamPublisher(ksqlEngine, exec, query)
         .subscribe(streamSubscriber);
   }
 
@@ -323,11 +323,9 @@ public class WSQueryEndpoint {
 
   interface QueryPublisher {
     void start(
-        KsqlConfig ksqlConfig,
         KsqlEngine ksqlEngine,
         ListeningScheduledExecutorService exec,
-        PreparedStatement<Query> query,
-        Map<String, Object> clientLocalProperties,
+        ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber);
 
   }

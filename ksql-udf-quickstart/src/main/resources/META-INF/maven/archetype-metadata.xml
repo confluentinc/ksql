@@ -31,4 +31,8 @@
             <directory>src/main/resources</directory>
         </fileSet>
     </fileSets>
+
+    <requiredProperties>
+        <requiredProperty key="author"/>
+    </requiredProperties>
 </archetype-descriptor>

@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.ListFunctions;
@@ -33,7 +32,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +42,7 @@ import java.util.stream.Collectors;
 /**
  * A suite of {@code StatementExecutor}s that do not need to be distributed.
  * Each handles a corresponding {@code Class<? extends Statement>} and is
- * assumed that the {@code PreparedStatement} that is passed in matches the
+ * assumed that the {@code ConfiguredStatement} that is passed in matches the
  * expected class.
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
@@ -91,11 +90,9 @@ public enum CustomExecutors {
   }
 
   public Optional<KsqlEntity> execute(
-      final PreparedStatement<?> statement,
+      final ConfiguredStatement<?> statement,
       final KsqlExecutionContext executionCtx,
-      final ServiceContext serviceCtx,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides) {
-    return executor.execute(statement, executionCtx, serviceCtx, ksqlConfig, propertyOverrides);
+      final ServiceContext serviceCtx) {
+    return executor.execute(statement, executionCtx, serviceCtx);
   }
 }

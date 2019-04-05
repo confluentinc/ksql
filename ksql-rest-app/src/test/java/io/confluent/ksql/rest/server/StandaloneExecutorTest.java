@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -59,6 +62,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -156,6 +160,12 @@ public class StandaloneExecutorTest {
   private final static PreparedStatement<?> PREPARED_CSAS = PreparedStatement.
       of("CSAS", CREATE_STREAM_AS_SELECT);
 
+  private final static ConfiguredStatement<?> CFG_STMT_0 = ConfiguredStatement.of(
+      PREPARED_STMT_0, emptyMap(), ksqlConfig);
+
+  private final static ConfiguredStatement<?> CFG_STMT_1 = ConfiguredStatement.of(
+      PREPARED_STMT_1, emptyMap(), ksqlConfig);
+
   private final static PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement
       .of("sql 0", new CreateStream(
           QualifiedName.of("CS 0"),
@@ -163,6 +173,9 @@ public class StandaloneExecutorTest {
           true,
           Collections.emptyMap()
       ));
+
+  private final static ConfiguredStatement<?> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
+      STMT_0_WITH_SCHEMA, emptyMap(), ksqlConfig);
 
   private final static PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement
       .of("sql 1", new CreateStream(
@@ -172,9 +185,15 @@ public class StandaloneExecutorTest {
           Collections.emptyMap()
       ));
 
+  private final static ConfiguredStatement<?> CFG_1_WITH_SCHEMA = ConfiguredStatement.of(
+      STMT_1_WITH_SCHEMA, emptyMap(), ksqlConfig);
+
 
   private final static PreparedStatement<CreateStreamAsSelect> CSAS_WITH_TOPIC = PreparedStatement
       .of("CSAS_TOPIC", CREATE_STREAM_AS_SELECT);
+
+  private final static ConfiguredStatement<CreateStreamAsSelect> CSAS_CFG_WITH_TOPIC =
+      ConfiguredStatement.of(CSAS_WITH_TOPIC, emptyMap(), ksqlConfig);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -229,27 +248,27 @@ public class StandaloneExecutorTest {
     when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(ksqlEngine.execute(any(), any(), any())).thenReturn(ExecuteResult.of(persistentQuery));
+    when(ksqlEngine.execute(any())).thenReturn(ExecuteResult.of(persistentQuery));
 
     when(ksqlEngine.createSandbox()).thenReturn(sandBox);
 
     when(sandBox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(sandBox.execute(any(), any(), any())).thenReturn(ExecuteResult.of("success"));
-    when(sandBox.execute(eq(CSAS_WITH_TOPIC), any(), any()))
+    when(sandBox.execute(any())).thenReturn(ExecuteResult.of("success"));
+    when(sandBox.execute(eq(CSAS_CFG_WITH_TOPIC)))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     when(schemaInjectorFactory.apply(any())).thenReturn(sandBoxSchemaInjector);
     when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
-    when(sandBoxSchemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(sandBoxSchemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     when(topicInjectorFactory.apply(any())).thenReturn(sandBoxTopicInjector);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
-    when(sandBoxTopicInjector.forStatement(any(), any(), any()))
+    when(sandBoxTopicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
-    when(topicInjector.forStatement(any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
@@ -392,7 +411,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(cs, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(ConfiguredStatement.of(cs, emptyMap(), ksqlConfig));
   }
 
   @Test
@@ -407,7 +426,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(ct, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(ConfiguredStatement.of(ct, emptyMap(), ksqlConfig));
   }
 
   @Test
@@ -425,7 +444,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(eq(cs), any(), eq(ImmutableMap.of("name", "value")));
+    verify(ksqlEngine).execute(eq(ConfiguredStatement.of(cs, ImmutableMap.of("name", "value"), ksqlConfig)));
   }
 
   @Test
@@ -440,13 +459,15 @@ public class StandaloneExecutorTest {
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
         new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
 
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(cs, emptyMap(), ksqlConfig);
+
     givenQueryFileParsesTo(setProp, unsetProp, cs);
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(eq(cs), any(), eq(emptyMap()));
+    verify(ksqlEngine).execute(eq(configured));
   }
 
   @Test
@@ -454,17 +475,17 @@ public class StandaloneExecutorTest {
     // Given:
     final PreparedStatement<?> csas = PreparedStatement.of("CSAS1",
         new CreateStreamAsSelect(SOME_NAME, query, false, emptyMap(), Optional.empty()));
-
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
-    when(sandBox.execute(eq(csas), any(), any()))
+    when(sandBox.execute(eq(configured)))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(csas, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(configured);
   }
 
   @Test
@@ -472,17 +493,18 @@ public class StandaloneExecutorTest {
     // Given:
     final PreparedStatement<?> ctas = PreparedStatement.of("CTAS",
         new CreateTableAsSelect(SOME_NAME, query, false, emptyMap()));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(ctas, emptyMap(), ksqlConfig);
 
     givenQueryFileParsesTo(ctas);
 
-    when(sandBox.execute(eq(ctas), any(), any()))
+    when(sandBox.execute(eq(configured)))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(ctas, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(configured);
   }
 
   @Test
@@ -490,17 +512,18 @@ public class StandaloneExecutorTest {
     // Given:
     final PreparedStatement<?> insertInto = PreparedStatement.of("InsertInto",
         new InsertInto(SOME_NAME, query, Optional.empty()));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(insertInto, emptyMap(), ksqlConfig);
 
     givenQueryFileParsesTo(insertInto);
 
-    when(sandBox.execute(eq(insertInto), any(), any()))
+    when(sandBox.execute(eq(configured)))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(insertInto, ksqlConfig, emptyMap());
+    verify(ksqlEngine).execute(configured);
   }
 
   @Test
@@ -508,7 +531,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(sandBox.execute(any(), any(), any()))
+    when(sandBox.execute(any()))
         .thenReturn(ExecuteResult.of("well, this is unexpected."));
 
     expectedException.expect(KsqlException.class);
@@ -523,7 +546,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(sandBox.execute(any(), any(), any()))
+    when(sandBox.execute(any()))
         .thenReturn(ExecuteResult.of(nonPersistentQueryMd));
 
     expectedException.expect(KsqlException.class);
@@ -545,7 +568,7 @@ public class StandaloneExecutorTest {
   @Test(expected = RuntimeException.class)
   public void shouldThrowIfExecuteThrows() {
     // Given:
-    when(ksqlEngine.execute(any(), any(), any())).thenThrow(new RuntimeException("Boom!"));
+    when(ksqlEngine.execute(any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
     standaloneExecutor.start();
@@ -585,7 +608,7 @@ public class StandaloneExecutorTest {
   public void shouldNotStartValidationPhaseQueries() {
     // Given:
     givenFileContainsAPersistentQuery();
-    when(sandBox.execute(any(), any(), any())).thenReturn(ExecuteResult.of(sandBoxQuery));
+    when(sandBox.execute(any())).thenReturn(ExecuteResult.of(sandBoxQuery));
 
     // When:
     standaloneExecutor.start();
@@ -606,9 +629,9 @@ public class StandaloneExecutorTest {
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
-    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_0), any(), any());
+    inOrder.verify(ksqlEngine).execute(eq(CFG_STMT_0));
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
-    inOrder.verify(ksqlEngine).execute(eq(PREPARED_STMT_1), any(), any());
+    inOrder.verify(ksqlEngine).execute(eq(CFG_STMT_1));
   }
 
   @Test
@@ -636,18 +659,18 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(cs);
 
-    when(sandBoxSchemaInjector.forStatement(cs))
-        .thenReturn(STMT_0_WITH_SCHEMA);
+    when(sandBoxSchemaInjector.inject(argThat(configured(equalTo(cs)))))
+        .thenReturn((ConfiguredStatement) CFG_0_WITH_SCHEMA);
 
-    when(schemaInjector.forStatement(cs))
-        .thenReturn(STMT_1_WITH_SCHEMA);
+    when(schemaInjector.inject(argThat(configured(equalTo(cs)))))
+        .thenReturn((ConfiguredStatement) CFG_1_WITH_SCHEMA);
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(eq(STMT_0_WITH_SCHEMA), any(), any());
-    verify(ksqlEngine).execute(eq(STMT_1_WITH_SCHEMA), any(), any());
+    verify(sandBox).execute(eq(CFG_0_WITH_SCHEMA));
+    verify(ksqlEngine).execute(eq(CFG_1_WITH_SCHEMA));
   }
 
   @Test
@@ -655,14 +678,14 @@ public class StandaloneExecutorTest {
     // Given:
     givenQueryFileParsesTo(PREPARED_CSAS);
 
-    when(sandBoxTopicInjector.forStatement(eq(PREPARED_CSAS), any(), any()))
-        .thenReturn((PreparedStatement) CSAS_WITH_TOPIC);
+    when(sandBoxTopicInjector.inject(argThat(configured(equalTo(PREPARED_CSAS)))))
+        .thenReturn((ConfiguredStatement) CSAS_CFG_WITH_TOPIC);
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(eq(CSAS_WITH_TOPIC), any(), any());
+    verify(sandBox).execute(eq(CSAS_CFG_WITH_TOPIC));
   }
 
   private void givenExecutorWillFailOnNoQueries() {

@@ -21,9 +21,15 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
+import java.util.Objects;
+import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 
 public final class ParserMatchers {
 
@@ -73,6 +79,61 @@ public final class ParserMatchers {
   ) {
     return (Matcher) both(StatementTextMatcher.statementWithText(statementTextMatcher))
         .and(StatementMatcher.statement(statementMatcher));
+  }
+
+  public static <T extends Statement> Matcher<ConfiguredStatement<T>> configured(
+      final Matcher<PreparedStatement<T>> statement
+  ) {
+    return new TypeSafeMatcher<ConfiguredStatement<T>>() {
+      @Override
+      protected boolean matchesSafely(final ConfiguredStatement<T> item) {
+        return statement.matches(PreparedStatement.of(item.getStatementText(), item.getStatement()));
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        statement.describeTo(description);
+      }
+    };
+  }
+
+  public static <T extends Statement> Matcher<ConfiguredStatement<T>> configured(
+      final Map<String, Object> properties,
+      final KsqlConfig config
+  ) {
+    return new TypeSafeMatcher<ConfiguredStatement<T>>() {
+      @Override
+      protected boolean matchesSafely(final ConfiguredStatement<T> item) {
+        return Objects.equals(properties, item.getOverrides())
+            && Objects.equals(config, item.getConfig());
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(properties.toString() + ", " + config);
+      }
+    };
+  }
+
+  public static <T extends Statement> Matcher<ConfiguredStatement<T>> configured(
+      final Matcher<PreparedStatement<T>> statement,
+      final Map<String, Object> properties,
+      final KsqlConfig config
+  ) {
+    return new TypeSafeMatcher<ConfiguredStatement<T>>() {
+      @Override
+      protected boolean matchesSafely(final ConfiguredStatement<T> item) {
+        return statement.matches(PreparedStatement.of(item.getStatementText(), item.getStatement()))
+            && Objects.equals(properties, item.getOverrides())
+            && Objects.equals(config, item.getConfig());
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        statement.describeTo(description);
+        description.appendText(properties.toString() + ", " + config);
+      }
+    };
   }
 
   @SuppressWarnings("WeakerAccess")

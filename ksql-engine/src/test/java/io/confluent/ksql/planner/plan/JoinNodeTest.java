@@ -29,19 +29,21 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
@@ -82,21 +84,21 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 
 @SuppressWarnings("SameParameterValue")
+@RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
-  private StreamsBuilder builder = new StreamsBuilder();
+  private StreamsBuilder builder;
   private SchemaKStream stream;
   private JoinNode joinNode;
 
-  private StreamsBuilder mockStreamsBuilder;
-  private KsqlConfig mockKsqlConfig;
-  private KsqlConfig mockKsqlConfigClonedWithOffsetReset;
   private KafkaTopicClient mockKafkaTopicClient;
-  private FunctionRegistry mockFunctionRegistry;
   private Supplier<SchemaRegistryClient> mockSchemaRegistryClientFactory;
   private final Schema leftSchema = createSchema();
   private final Schema rightSchema = createSchema();
@@ -120,17 +122,16 @@ public class JoinNodeTest {
   private SchemaKTable leftSchemaKTable;
   private SchemaKTable rightSchemaKTable;
   private Field joinKey;
-  private ServiceContext serviceContext;
   private ProcessingLogContext processingLogContext = ProcessingLogContext.create();
+  @Mock
+  private KsqlQueryBuilder ksqlStreamBuilder;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setUp() {
-    mockStreamsBuilder = niceMock(StreamsBuilder.class);
-    mockKsqlConfig = niceMock(KsqlConfig.class);
-    mockKsqlConfigClonedWithOffsetReset = niceMock(KsqlConfig.class);
+    builder = new StreamsBuilder();
+    final KsqlConfig mockKsqlConfig = niceMock(KsqlConfig.class);
+    final KsqlConfig mockKsqlConfigClonedWithOffsetReset = niceMock(KsqlConfig.class);
     mockKafkaTopicClient = niceMock(KafkaTopicClient.class);
-    mockFunctionRegistry = niceMock(FunctionRegistry.class);
     mockSchemaRegistryClientFactory = niceMock(Supplier.class);
 
     left = niceMock(StructuredDataSourceNode.class);
@@ -140,7 +141,7 @@ public class JoinNodeTest {
     leftSchemaKTable = niceMock(SchemaKTable.class);
     rightSchemaKTable = niceMock(SchemaKTable.class);
 
-    serviceContext = niceMock(ServiceContext.class);
+    final ServiceContext serviceContext = niceMock(ServiceContext.class);
     EasyMock.expect(serviceContext.getTopicClient())
         .andReturn(mockKafkaTopicClient)
         .anyTimes();
@@ -156,23 +157,26 @@ public class JoinNodeTest {
 
     joinKey = joinSchema.field(leftAlias + "." + leftKeyFieldName);
 
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
+    when(ksqlStreamBuilder.getServiceContext()).thenReturn(serviceContext);
+    when(ksqlStreamBuilder.withKsqlConfig(any())).thenReturn(ksqlStreamBuilder);
+    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+        new QueryContext.Stacker(queryId)
+            .push(inv.getArgument(0).toString()));
   }
 
   private void buildJoin() {
-    buildJoin(ksqlConfig);
-  }
-
-  private void buildJoin(final KsqlConfig ksqlConfig) {
     buildJoin(
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
             + "FROM test1 t1 LEFT JOIN test2 t2 "
-            + "ON t1.col1 = t2.col0;",
-        ksqlConfig);
+            + "ON t1.col1 = t2.col0;"
+    );
   }
 
-  private void buildJoin(final String queryString, final KsqlConfig ksqlConfig) {
+  private void buildJoin(final String queryString) {
     buildJoinNode(queryString);
-    stream = buildStream(ksqlConfig);
+    stream = joinNode.buildStream(ksqlStreamBuilder);
   }
 
   private void buildJoinNode(final String queryString) {
@@ -182,17 +186,6 @@ public class JoinNodeTest {
         (KsqlBareOutputNode) AnalysisTestUtil.buildLogicalPlan(queryString, metaStore);
 
     joinNode = (JoinNode) ((ProjectNode) planNode.getSource()).getSource();
-  }
-
-  private SchemaKStream buildStream(final KsqlConfig ksqlConfig) {
-    builder = new StreamsBuilder();
-    return joinNode.buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        new InternalFunctionRegistry(),
-        queryId);
   }
 
   private void setupTopicClientExpectations(final int streamPartitions, final int tablePartitions) {
@@ -233,13 +226,16 @@ public class JoinNodeTest {
   @Test
   public void shouldUseLegacyNameForReduceTopicIfOptimizationsOff() {
     setupTopicClientExpectations(1, 1);
-    buildJoin(
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(
             ImmutableMap.of(
                 KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-                String.valueOf(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF))
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
         )
     );
+
+    buildJoin();
+
     final Topology topology = builder.build();
     final TopologyDescription.Processor leftJoin
         = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000015");
@@ -267,8 +263,8 @@ public class JoinNodeTest {
     try {
       buildJoin(
           "SELECT t1.col0, t2.col0, t2.col1 "
-              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;",
-          ksqlConfig);
+              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;"
+      );
     } catch (final KsqlException e) {
       Assert.assertThat(e.getMessage(), equalTo(
           "Can't join TEST1 with TEST2 since the number of partitions don't match. TEST1 "
@@ -328,14 +324,7 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KSTREAM);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId
-    );
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(left, right, leftSchemaKStream, rightSchemaKStream);
@@ -377,14 +366,7 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KSTREAM);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId
-    );
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(left, right, leftSchemaKStream, rightSchemaKStream);
@@ -426,14 +408,7 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KSTREAM);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId
-    );
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(left, right, leftSchemaKStream, rightSchemaKStream);
@@ -468,14 +443,8 @@ public class JoinNodeTest {
                                            DataSource.DataSourceType.KSTREAM);
 
     try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId
-      );
+      joinNode.buildStream(ksqlStreamBuilder);
+
       fail("Should have raised an exception since no join window was specified");
     } catch (final KsqlException e) {
       assertTrue(e.getMessage().startsWith("Stream-Stream joins must have a WITHIN clause specified"
@@ -520,14 +489,8 @@ public class JoinNodeTest {
                                            DataSource.DataSourceType.KSTREAM);
 
     try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId
-      );
+      joinNode.buildStream(ksqlStreamBuilder);
+
       fail("should have raised an exception since the number of partitions on the input sources "
            + "don't match");
     } catch (final KsqlException e) {
@@ -580,13 +543,8 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KTABLE);
 
     try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
+      joinNode.buildStream(ksqlStreamBuilder);
+
     } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
@@ -630,14 +588,7 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KTABLE);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId
-    );
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(left, right, leftSchemaKStream, rightSchemaKTable);
@@ -676,13 +627,7 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KTABLE);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId);
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(left, right, leftSchemaKStream, rightSchemaKTable);
@@ -714,13 +659,8 @@ public class JoinNodeTest {
 
     // When:
     try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
+      joinNode.buildStream(ksqlStreamBuilder);
+
       fail("Should have failed to build the stream since stream-table outer joins are not "
            + "supported");
     } catch (final KsqlException e) {
@@ -764,13 +704,7 @@ public class JoinNodeTest {
                                            DataSource.DataSourceType.KTABLE);
 
     try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
+      joinNode.buildStream(ksqlStreamBuilder);
       fail("should have raised an exception since a join window was provided for a stream-table "
            + "join");
     } catch (final KsqlException e) {
@@ -809,13 +743,8 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KTABLE);
 
     try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
+      joinNode.buildStream(ksqlStreamBuilder);
+
     } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
@@ -855,13 +784,7 @@ public class JoinNodeTest {
         DataSource.DataSourceType.KTABLE);
 
     try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
+      joinNode.buildStream(ksqlStreamBuilder);
     } catch (final KsqlException e) {
       assertThat(
           e.getMessage(),
@@ -906,13 +829,7 @@ public class JoinNodeTest {
     replay(leftSchemaKTable, rightSchemaKTable);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId);
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(left, right, leftSchemaKTable, rightSchemaKTable);
@@ -953,13 +870,7 @@ public class JoinNodeTest {
     replay(leftSchemaKTable, rightSchemaKTable);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId);
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(left, right, leftSchemaKTable, rightSchemaKTable);
@@ -1000,13 +911,7 @@ public class JoinNodeTest {
     replay(leftSchemaKTable, rightSchemaKTable);
 
     // When:
-    joinNode.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId);
+    joinNode.buildStream(ksqlStreamBuilder);
 
     // Then:
     verify(left, right, leftSchemaKTable, rightSchemaKTable);
@@ -1043,13 +948,8 @@ public class JoinNodeTest {
                                            DataSource.DataSourceType.KTABLE);
 
     try {
-      joinNode.buildStream(
-          mockStreamsBuilder,
-          mockKsqlConfig,
-          serviceContext,
-          processingLogContext,
-          mockFunctionRegistry,
-          queryId);
+      joinNode.buildStream(ksqlStreamBuilder);
+
       fail("should have raised an exception since a join window was provided for a stream-table "
            + "join");
     } catch (final KsqlException e) {
@@ -1073,14 +973,7 @@ public class JoinNodeTest {
     expect(node.getSchema()).andReturn(schema);
     expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
 
-    expect(node.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfigClonedWithOffsetReset,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId))
-        .andReturn(table);
+    expect(node.buildStream(ksqlStreamBuilder)).andReturn(table);
   }
 
   private static void expectSourceName(final StructuredDataSourceNode node) {
@@ -1170,13 +1063,7 @@ public class JoinNodeTest {
       final QueryContext.Stacker contextStacker,
       final SchemaKStream result,
       final Schema schema) {
-    expect(node.buildStream(
-        mockStreamsBuilder,
-        mockKsqlConfig,
-        serviceContext,
-        processingLogContext,
-        mockFunctionRegistry,
-        queryId))
+    expect(node.buildStream(ksqlStreamBuilder))
         .andReturn(result);
 
     expect(result.getSchema()).andReturn(schema);

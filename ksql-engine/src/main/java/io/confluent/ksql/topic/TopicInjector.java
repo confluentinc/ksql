@@ -16,6 +16,8 @@ package io.confluent.ksql.topic;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 
@@ -23,7 +25,19 @@ import java.util.Map;
  * Injects the topic into the WITH clause for statements that have
  * incomplete topic property information.
  */
-public interface TopicInjector {
+public interface TopicInjector extends Injector {
+
+  @Override
+  default <T extends Statement> ConfiguredStatement<T> inject(
+      final ConfiguredStatement<T> statement) {
+    return ConfiguredStatement.of(
+        forStatement(
+            PreparedStatement.of(statement.getStatementText(), statement.getStatement()),
+            statement.getConfig(),
+            statement.getOverrides()),
+        statement.getOverrides(),
+        statement.getConfig());
+  }
 
   /**
    * Attempt to inject topic name, number of partitions and number of replicas into the topic

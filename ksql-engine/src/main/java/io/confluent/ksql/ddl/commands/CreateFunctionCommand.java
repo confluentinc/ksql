@@ -158,7 +158,8 @@ public class CreateFunctionCommand implements DdlCommand {
               kudfClass,
               udfFactory,
               createFunction.getDescription(),
-              KsqlFunction.INTERNAL_PATH);
+              KsqlFunction.INTERNAL_PATH,
+              false);
 
       final UdfMetadata metadata = new UdfMetadata(
               createFunction.getName(),

@@ -24,6 +24,8 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateFunction;
+import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -31,10 +33,13 @@ import io.confluent.ksql.util.SchemaUtil;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IScriptEvaluator;
@@ -63,6 +68,35 @@ public class CreateFunctionCommand implements DdlCommand {
     return createFunction.getName();
   }
 
+  private static List<Schema> elementsToSchemas(final List<TableElement> elements) {
+    final List<Schema> arguments = new ArrayList<>();
+    for (TableElement element : elements) {
+      arguments.add(LogicalSchemas.fromSqlTypeConverter().fromSqlType(element.getType()));
+    }
+    return arguments;
+  }
+
+  private static String[] elementsToParamNames(final List<TableElement> elements) {
+    final int size = elements.size();
+    final String[] paramNames = new String[size];
+    for (int i = 0; i < size; i++) {
+      paramNames[i] = elements.get(i).getName();
+    }
+    return paramNames;
+  }
+
+  private static Class[] elementsToParamTypes(final List<TableElement> elements) {
+    final int size = elements.size();
+    final Class[] paramTypes = new Class[size];
+    for (int i = 0; i < size; i++) {
+      final Schema schema = LogicalSchemas
+          .fromSqlTypeConverter()
+          .fromSqlType(elements.get(i).getType());
+      paramTypes[i] = SchemaUtil.getJavaType(schema);
+    }
+    return paramTypes;
+  }
+
   /**
    * A method for retrieving a custom Kudf class. This class gets instantiated
    * everytime a query is created with the custom function.
@@ -89,10 +123,14 @@ public class CreateFunctionCommand implements DdlCommand {
               blacklist);
 
           // create a script executor
+          final List<TableElement> elements = createFunction.getElements();
           se = CompilerFactoryFactory.getDefaultCompilerFactory().newScriptEvaluator();
           se.setParentClassLoader(classLoader);
           se.setReturnType(SchemaUtil.getJavaType(createFunction.getReturnType()));
-          se.setParameters(createFunction.getArgumentNames(), createFunction.getArgumentTypes());
+          se.setParameters(
+              elementsToParamNames(elements),
+              elementsToParamTypes(elements)
+          );
           se.cook(createFunction.getScript());
 
         } catch (CompileException ce) {
@@ -136,7 +174,7 @@ public class CreateFunctionCommand implements DdlCommand {
         return constructor.newInstance(createFunction, ksqlConfig);
       } catch (Exception e) {
         e.printStackTrace();
-        throw new KsqlException("Failed to instantiate UDF", e);
+        throw new KsqlException("Failed to instantiate UDF:" + createFunction.getScript(), e);
       }
     };
   }
@@ -153,7 +191,7 @@ public class CreateFunctionCommand implements DdlCommand {
 
       final KsqlFunction ksqlFunction = KsqlFunction.create(
               createFunction.getReturnType(),
-              createFunction.getArguments(),
+              elementsToSchemas(createFunction.getElements()),
               createFunction.getName(),
               kudfClass,
               udfFactory,

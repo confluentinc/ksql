@@ -22,9 +22,7 @@ import com.google.errorprone.annotations.Immutable;
 
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -87,7 +85,7 @@ public class CreateFunction
     this.language = checkAndFormatLanguage(language);
   }
 
-  private String checkAndFormatLanguage(final String lang) {
+  private static String checkAndFormatLanguage(final String lang) {
     final String language = lang.toLowerCase().trim();
     if (!SUPPORTED_LANGUAGES.stream().anyMatch(language::equals)) {
       final String errorMessage =
@@ -100,37 +98,6 @@ public class CreateFunction
 
   public List<TableElement> getElements() {
     return elements;
-  }
-
-  public List<Schema> getArguments() {
-    final List<Schema> arguments = new ArrayList<>();
-    for (TableElement element : getElements()) {
-      arguments.add(LogicalSchemas.fromSqlTypeConverter().fromSqlType(element.getType()));
-    }
-    return arguments;
-  }
-
-  public String[] getArgumentNames() {
-    final List<TableElement> elements = getElements();
-    final int size = elements.size();
-    final String[] argumentNames = new String[size];
-    for (int i = 0; i < size; i++) {
-      argumentNames[i] = elements.get(i).getName();
-    }
-    return argumentNames;
-  }
-
-  public Class[] getArgumentTypes() {
-    final List<TableElement> elements = getElements();
-    final int size = elements.size();
-    final Class[] argumentTypes = new Class[size];
-    for (int i = 0; i < size; i++) {
-      final Schema schema = LogicalSchemas
-          .fromSqlTypeConverter()
-          .fromSqlType(elements.get(i).getType());
-      argumentTypes[i] = SchemaUtil.getJavaType(schema);
-    }
-    return argumentTypes;
   }
 
   public String getAuthor() {

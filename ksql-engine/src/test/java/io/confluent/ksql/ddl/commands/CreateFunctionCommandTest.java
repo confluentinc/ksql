@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,11 +15,22 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.KudfTester;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.CreateFunction;
 import io.confluent.ksql.parser.tree.PrimitiveType;
@@ -28,8 +39,11 @@ import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,6 +54,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CreateFunctionCommandTest {
+  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -62,7 +77,7 @@ public class CreateFunctionCommandTest {
     givenScript("return X * Y;");
     givenShouldReplace(false);
     givenVersion("0.1.0");
-    givenFunctionParamaters(ImmutableList.of(
+    givenFunctionParameters(ImmutableList.of(
         new TableElement("X", PrimitiveType.of(SqlType.INTEGER)),
         new TableElement("Y", PrimitiveType.of(SqlType.INTEGER))
     ));
@@ -76,7 +91,7 @@ public class CreateFunctionCommandTest {
     cmd.run(metaStore);
 
     // Then:
-    assertNotNull(metaStore.getFunctionRegistry().getUdfFactory("multiply"));
+    assertNotNull(getUdfFactory("multiply"));
   }
 
   @Test
@@ -99,13 +114,13 @@ public class CreateFunctionCommandTest {
     givenShouldReplace(true);
     final CreateFunctionCommand cmd = createCmd();
 
+    // When:
+    // (add function twice, but with replace flag)
+    cmd.run(metaStore);
     cmd.run(metaStore);
 
     // Then:
-    expectedException.expect(KsqlException.class);
-
-    // When:
-    cmd.run(metaStore);
+    // No exception
   }
 
   @Test
@@ -123,16 +138,69 @@ public class CreateFunctionCommandTest {
     cmd.run(metaStore);
   }
 
+  @Test
+  public void shouldRecognizeInlineFunction() {
+    // When:
+    final CreateFunctionCommand cmd = createCmd();
+
+    cmd.run(metaStore);
+
+    // Then:
+    assertTrue(getUdfFactory("multiply").isInline());
+  }
+
+  @Test
+  public void shouldDoBasicInlineMath() {
+    // When:
+    final CreateFunctionCommand cmd = createCmd();
+
+    cmd.run(metaStore);
+
+    // Then:
+    List<Schema> paramTypes = new ArrayList<>();
+    paramTypes.add(Schema.OPTIONAL_INT32_SCHEMA);
+    paramTypes.add(Schema.OPTIONAL_INT32_SCHEMA);
+
+    Kudf udf = getUdfFactory("multiply").getFunction(paramTypes).newInstance(ksqlConfig);
+    assertThat(udf.evaluate(3, 11), is(33));
+    assertThat(udf.evaluate(4, 2), is(8));
+  }
+
+  @Test
+  public void shouldDoBasicStringTransformation() {
+    // Given:
+    givenDescription("reverse a string");
+    givenFunctionName("reverse");
+    givenReturnType(PrimitiveType.of(SqlType.STRING));
+    givenFunctionParameters(ImmutableList.of(
+        new TableElement("SOURCE", PrimitiveType.of(SqlType.STRING))
+    ));
+    givenScript("return new StringBuilder(SOURCE).reverse().toString();");
+
+    // When:
+    final CreateFunctionCommand cmd = createCmd();
+
+    cmd.run(metaStore);
+
+    // Then:
+    List<Schema> paramTypes = new ArrayList<>();
+    paramTypes.add(Schema.OPTIONAL_STRING_SCHEMA);
+
+    Kudf udf = getUdfFactory("reverse").getFunction(paramTypes).newInstance(ksqlConfig);
+    assertThat(udf.evaluate("hello"), is("olleh"));
+    assertThat(udf.evaluate("world"), is("dlrow"));
+  }
+
+  private UdfFactory getUdfFactory(final String functionName) {
+    return metaStore.getFunctionRegistry().getUdfFactory(functionName);
+  }
+
   private CreateFunctionCommand createCmd() {
     return new CreateFunctionCommand(createFunctionStatement);
   }
 
   private void givenAuthor(String author) {
     when(createFunctionStatement.getAuthor()).thenReturn(author);
-  }
-
-  private void givenFunctionParamaters(final ImmutableList<TableElement> elements) {
-    when(createFunctionStatement.getElements()).thenReturn(elements);
   }
 
   private void givenDescription(final String description) {
@@ -142,6 +210,10 @@ public class CreateFunctionCommandTest {
 
   private void givenFunctionName(final String functionName) {
     when(createFunctionStatement.getName()).thenReturn(functionName);
+  }
+
+  private void givenFunctionParameters(final ImmutableList<TableElement> elements) {
+    when(createFunctionStatement.getElements()).thenReturn(elements);
   }
 
   private void givenLanguage(final String language) {

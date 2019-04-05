@@ -324,19 +324,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldEnforceTopicExistenceCorrectly() {
-    serviceContext.getTopicClient().createTopic("s1_topic", 1, (short) 1);
-
-    final String runScriptContent =
-        "CREATE STREAM S1 (COL1 BIGINT) WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
-            + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM S1 GROUP BY COL1;\n"
-            + "CREATE STREAM S2 (C1 BIGINT) WITH (KAFKA_TOPIC = 'T1', VALUE_FORMAT = 'JSON');\n";
-
-    KsqlEngineTestUtil.execute(ksqlEngine, runScriptContent, KSQL_CONFIG, Collections.emptyMap());
-    Assert.assertTrue(serviceContext.getTopicClient().isTopicExists("T1"));
-  }
-
-  @Test
   public void shouldNotEnforceTopicExistenceWhileParsing() {
     final String runScriptContent = "CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
         + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON');\n"
@@ -382,103 +369,6 @@ public class KsqlEngineTest {
 
     // When:
     ksqlEngine.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
-  }
-
-  @Test
-  public void shouldThrowFromTryExecuteIfSinkTopicExistsWithWrongPartitionCount() {
-    // Given:
-    serviceContext.getTopicClient().createTopic("source", 1, (short) 1);
-    serviceContext.getTopicClient().createTopic("sink", 2, (short) 1);
-
-    final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
-            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
-
-    givenStatementAlreadyExecuted(statements.get(0));
-
-    final PreparedStatement<?> prepared = prepare(statements.get(1));
-
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "A Kafka topic with the name 'sink' already exists, "
-            + "with different partition/replica configuration than required")));
-
-    // When:
-    sandbox.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
-  }
-
-  @Test
-  public void shouldThrowFromExecuteIfSinkTopicExistsWithWrongPartitionCount() {
-    // Given:
-    final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
-            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
-
-    serviceContext.getTopicClient().createTopic("source", 1, (short) 1);
-    serviceContext.getTopicClient().createTopic("sink", 2, (short) 1);
-
-    ksqlEngine.execute(
-        ConfiguredStatement.of(prepare(statements.get(0)), new HashMap<>(), KSQL_CONFIG));
-
-    final PreparedStatement<?> prepared = prepare(statements.get(1));
-
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "A Kafka topic with the name 'sink' already exists, "
-            + "with different partition/replica configuration than required")));
-
-    // When:
-    ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
-  }
-
-  @Test
-  public void shouldThrowFromTryExecuteIfSinkTopicExistsWithWrongReplicaCount() {
-    // Given:
-    final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
-            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
-
-    serviceContext.getTopicClient().createTopic("sink", 1, (short) 2);
-    serviceContext.getTopicClient().createTopic("source", 1, (short) 3);
-
-    givenStatementAlreadyExecuted(statements.get(0));
-
-    final PreparedStatement<?> prepared = prepare(statements.get(1));
-
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "A Kafka topic with the name 'sink' already exists, "
-            + "with different partition/replica configuration than required")));
-
-    // When:
-    sandbox.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
-  }
-
-  @Test
-  public void shouldThrowFromExecuteIfSinkTopicExistsWithWrongReplicaCount() {
-    // Given:
-    final List<ParsedStatement> statements = parse(
-        "CREATE STREAM S1 (C1 BIGINT) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');\n"
-            + "CREATE STREAM S2 WITH (KAFKA_TOPIC='sink') AS SELECT * FROM S1;\n");
-
-    serviceContext.getTopicClient().createTopic("source", 1, (short) 3);
-    serviceContext.getTopicClient().createTopic("sink", 1, (short) 2);
-
-    givenStatementAlreadyExecuted(statements.get(0));
-
-    final PreparedStatement<?> prepared = prepare(statements.get(1));
-
-    // Expect:
-    expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(containsString(
-        "A Kafka topic with the name 'sink' already exists, "
-            + "with different partition/replica configuration than required")));
-
-    // When:
-    ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
   }
 
   @Test
@@ -546,6 +436,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotDeleteSchemaNorTopicForStream() throws Exception {
     // Given:
+    givenTopicsExist("BAR");
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create stream bar with (value_format = 'avro') as select * from test1;"
             + "create stream foo as select * from test1;",
@@ -629,6 +520,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotDeleteSchemaNorTopicForTable() throws Exception {
     // Given:
+    givenTopicsExist("BAR");
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
         "create table bar with (value_format = 'avro') as select * from test2;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);

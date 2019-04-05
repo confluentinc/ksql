@@ -21,7 +21,6 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -35,12 +34,13 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
-import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.FakeKafkaTopicClient.FakeTopic;
+import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -74,9 +74,10 @@ public class DefaultTopicInjectorTest {
   private MutableMetaStore metaStore;
   private DefaultTopicInjector injector;
   private Map<String, Object> overrides;
-  private PreparedStatement<CreateStreamAsSelect> statement;
+  private PreparedStatement<CreateAsSelect> statement;
   private KsqlConfig config;
   private TopicDescription sourceDescription;
+  private FakeKafkaTopicClient topicClient;
 
   @Before
   public void setUp() {
@@ -85,7 +86,7 @@ public class DefaultTopicInjectorTest {
     overrides = new HashMap<>();
     config = new KsqlConfig(new HashMap<>());
 
-    final KafkaTopicClient topicClient = new FakeKafkaTopicClient();
+    topicClient = new FakeKafkaTopicClient();
     injector = new DefaultTopicInjector(topicClient, metaStore);
 
     topicClient.createTopic("source", 1, (short) 1);
@@ -217,7 +218,7 @@ public class DefaultTopicInjectorTest {
     when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
 
     // When:
-    final PreparedStatement<CreateStreamAsSelect> result =
+    final PreparedStatement<CreateAsSelect> result =
         injector.forStatement(statement, config, overrides, builder);
 
     // Then:
@@ -245,12 +246,73 @@ public class DefaultTopicInjectorTest {
                 + "\nFROM SOURCE SOURCE;"));
   }
 
+  @Test
+  public void shouldCreateMissingTopic() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+    assertThat("topic did not exist", !topicClient.isTopicExists("expectedName"));
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    assertThat(topicClient.createdTopics(),
+        hasEntry(
+            "expectedName",
+            new FakeTopic("expectedName", 10, (short) 10, TopicCleanupPolicy.DELETE)));
+  }
+
+  @Test
+  public void shouldCreateMissingTopicWithDeleteCleanupPolicyForStream() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
+        equalTo(TopicCleanupPolicy.DELETE));
+  }
+
+  @Test
+  public void shouldCreateMissingTopicWithCompactCleanupPolicyForNonWindowedTables() {
+    // Given:
+    givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
+        + "AS SELECT * FROM SOURCE;");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
+        equalTo(TopicCleanupPolicy.COMPACT));
+  }
+
+  @Test
+  public void shouldCreateMissingTopicWithDeleteCleanupPolicyForWindowedTables() {
+    // Given:
+    givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
+        + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS);");
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
+        equalTo(TopicCleanupPolicy.DELETE));
+  }
+
   @SuppressWarnings("unchecked")
   private PreparedStatement<?> givenStatement(final String sql) {
     final PreparedStatement<?> preparedStatement =
         parser.prepare(parser.parse(sql).get(0), metaStore);
-    if (preparedStatement.getStatement() instanceof CreateStreamAsSelect) {
-      statement = (PreparedStatement<CreateStreamAsSelect>) preparedStatement;
+    if (preparedStatement.getStatement() instanceof CreateAsSelect) {
+      statement = (PreparedStatement<CreateAsSelect>) preparedStatement;
     }
     return preparedStatement;
   }

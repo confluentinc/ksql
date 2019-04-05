@@ -194,6 +194,21 @@ public class AstBuilder {
       return visit(context.expression());
     }
 
+    private Map<String, Expression> processFunctionProperties(
+        final FunctionPropertiesContext functionPropertiesContext
+    ) {
+      final ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
+      if (functionPropertiesContext != null) {
+        for (final FunctionPropertyContext prop : functionPropertiesContext.functionProperty()) {
+          properties.put(
+              ParserUtil.getIdentifierText(prop.identifier()),
+              (Expression) visit(prop.expression())
+          );
+        }
+      }
+      return properties.build();
+    }
+
     private Map<String, Expression> processTableProperties(
         final TablePropertiesContext tablePropertiesContext
     ) {
@@ -266,6 +281,22 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitCreateFunction(final SqlBaseParser.CreateFunctionContext context) {
+      final String language = ParserUtil.getIdentifierText(context.languageName().identifier());
+      final String script = context.udfScript().getText().replaceAll("\\$\\$", "").trim();
+      return new CreateFunction(
+          getLocation(context),
+          ParserUtil.getQualifiedName(context.qualifiedName()),
+          visit(context.tableElement(), TableElement.class),
+          language,
+          script,
+          getType(context.type()),
+          processFunctionProperties(context.functionProperties()),
+          context.REPLACE() != null
+          );
+    }
+
+    @Override
     public Node visitInsertInto(final SqlBaseParser.InsertIntoContext context) {
 
       final QualifiedName targetName = ParserUtil.getQualifiedName(context.qualifiedName());
@@ -285,6 +316,15 @@ public class AstBuilder {
           targetName,
           visitQuery(context.query()),
           getPartitionBy(context.identifier()));
+    }
+
+    @Override
+    public Node visitDropFunction(final SqlBaseParser.DropFunctionContext context) {
+      return new DropFunction(
+          getLocation(context),
+          ParserUtil.getQualifiedName(context.qualifiedName()),
+          context.EXISTS() != null
+      );
     }
 
     @Override

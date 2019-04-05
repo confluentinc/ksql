@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -135,6 +136,25 @@ public class UdfIndex {
     }
 
     curr.update(function, order);
+  }
+
+  void addOrReplaceFunction(final KsqlFunction function) {
+    synchronized (this) {
+      if (allFunctions.containsKey(function.getArguments())) {
+        allFunctions.remove(function.getArguments());
+      }
+      addFunction(function);
+    }
+  }
+
+  void dropFunction(final String functionName) {
+    final Iterator<Map.Entry<List<Schema>, KsqlFunction>> it = allFunctions.entrySet().iterator();
+    while (it.hasNext()) {
+      final KsqlFunction ksqlFunction = it.next().getValue();
+      if (ksqlFunction.getFunctionName().equals(functionName)) {
+        it.remove();
+      }
+    }
   }
 
   KsqlFunction getFunction(final List<Schema> arguments) {

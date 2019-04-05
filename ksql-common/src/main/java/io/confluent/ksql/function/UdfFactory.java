@@ -18,7 +18,6 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -39,6 +38,14 @@ public class UdfFactory {
   void addFunction(final KsqlFunction ksqlFunction) {
     checkCompatible(ksqlFunction);
     udfIndex.addFunction(ksqlFunction);
+  }
+
+  void addOrReplaceFunction(final KsqlFunction ksqlFunction) {
+    udfIndex.addOrReplaceFunction(ksqlFunction);
+  }
+
+  void dropFunction(final String functionName) {
+    udfIndex.dropFunction(functionName);
   }
 
   private void checkCompatible(final KsqlFunction ksqlFunction) {

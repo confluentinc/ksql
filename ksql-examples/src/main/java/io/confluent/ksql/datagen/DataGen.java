@@ -17,6 +17,8 @@ package io.confluent.ksql.datagen;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.avro.random.generator.Generator;
+import io.confluent.ksql.util.KsqlConfig;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,10 +72,11 @@ public final class DataGen {
     );
   }
 
-  private static Properties getProperties(final Arguments arguments) throws IOException {
+  static Properties getProperties(final Arguments arguments) throws IOException {
     final Properties props = new Properties();
     props.put("bootstrap.servers", arguments.bootstrapServer);
     props.put("client.id", "KSQLDataGenProducer");
+    props.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, arguments.schemaRegistryUrl);
 
     if (arguments.propertiesFile != null) {
       props.load(arguments.propertiesFile);

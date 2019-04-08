@@ -255,7 +255,7 @@ Configurable UDF
 ~~~~~~~~~~~~~~~~
 
 If the UDF class needs access to the KSQL server configuration it can implement
-``io.confluent.common.Configurable``, e.g.
+``org.apache.kafka.common.Configurable``, e.g.
 
 .. code:: java
 

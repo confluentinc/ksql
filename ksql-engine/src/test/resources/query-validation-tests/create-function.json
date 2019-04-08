@@ -1,0 +1,73 @@
+{
+  "comments": [
+    "Tests covering use of the CREATE FUNCTION query"
+  ],
+  "tests": [
+    {
+      "name": "inline udf that returns a string",
+      "statements": [
+        "CREATE OR REPLACE FUNCTION REVERSE (SOURCE VARCHAR) RETURNS VARCHAR LANGUAGE JAVA AS $$ return new StringBuilder(SOURCE).reverse().toString(); $$ ;",
+        "CREATE STREAM SOURCE1 (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT REVERSE(data) FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "k1", "value": "hello"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "olleh"}
+      ]
+    },
+    {
+      "name": "inline udf that returns a numeric",
+      "statements": [
+        "CREATE OR REPLACE FUNCTION MULTIPLY (A INT, B INT) RETURNS INT LANGUAGE JAVA AS $$ return A * B; $$ ;",
+        "CREATE STREAM SOURCE1 (N1 INT, N2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT MULTIPLY(N1, N2) FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "k1", "value": "2,5"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "10"}
+      ]
+    },
+    {
+      "name": "inline udf that returns an array",
+      "statements": [
+        "CREATE OR REPLACE FUNCTION TOLIST(S1 VARCHAR, S2 VARCHAR) RETURNS ARRAY<VARCHAR> LANGUAGE JAVA AS $$ import java.util.ArrayList; import java.util.List; List<String> l = new ArrayList<String>(); l.add(S1); l.add(S2); return l; $$ ;",
+        "CREATE STREAM SOURCE1 (S1 VARCHAR, S2 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT TOLIST(S1, S2) AS ITEMS FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "k1", "value": {"S1": "hello", "S2": "world"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": {"ITEMS": ["hello", "world"]}}
+      ]
+    },
+    {
+      "name": "inline udf that returns a map",
+      "statements": [
+        "CREATE OR REPLACE FUNCTION ZIP(a VARCHAR, b VARCHAR) RETURNS MAP<VARCHAR, VARCHAR> LANGUAGE JAVA AS $$ import java.util.HashMap; import java.util.Map; Map<String,String> m =  new HashMap<String,String>(); m.put(A, B); return m; $$ ;",
+        "CREATE STREAM SOURCE1 (S1 VARCHAR, S2 VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ZIP(S1, S2) AS ZIPPED FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "k1", "value": {"S1": "hello", "S2": "world"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": {"ZIPPED": {"hello": "world"}}}
+      ]
+    },
+    {
+      "name": "function with invalid language",
+      "statements": [
+        "CREATE OR REPLACE FUNCTION PYLOWER (SOURCE VARCHAR) RETURNS VARCHAR LANGUAGE PYTHON AS $$ return SOURCE.lower(); $$ ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Failed to prepare statement: Unsupported language 'python'. Please choose from the following: [java]"
+      }
+    }
+  ]
+}

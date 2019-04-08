@@ -372,10 +372,12 @@ public class StandaloneExecutorTest {
     expectedException.expect(KsqlStatementException.class);
     expectedException.expectMessage("Unsupported statement. "
         + "Only the following statements are supporting in standalone mode:\n"
-        + "CREAETE STREAM AS SELECT\n"
+        + "CREATE FUNCTION\n"
         + "CREATE STREAM\n"
+        + "CREATE STREAM AS SELECT\n"
         + "CREATE TABLE\n"
         + "CREATE TABLE AS SELECT\n"
+        + "DROP FUNCTION\n"
         + "INSERT INTO\n"
         + "SET\n"
         + "UNSET");

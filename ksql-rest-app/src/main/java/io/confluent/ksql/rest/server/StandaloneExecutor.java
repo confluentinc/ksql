@@ -254,7 +254,7 @@ public class StandaloneExecutor implements Executable {
             .put(CreateStreamAsSelect.class, createHandler(
                 StatementExecutor::handlePersistentQuery,
                 CreateStreamAsSelect.class,
-                "CREAETE STREAM AS SELECT"))
+                "CREATE STREAM AS SELECT"))
             .put(CreateTableAsSelect.class, createHandler(
                 StatementExecutor::handlePersistentQuery,
                 CreateTableAsSelect.class,

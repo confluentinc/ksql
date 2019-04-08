@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -148,6 +149,37 @@ public class DefaultTopicInjectorTest {
 
     // Then:
     verify(builder).withName("X");
+  }
+
+  @Test
+  public void shouldGenerateNameWithCorrectPrefixFromOverrides() {
+    // Given:
+    givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
+    overrides.put(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG, "prefix-");
+    config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG, "nope"
+    ));
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withName("prefix-X");
+  }
+
+  @Test
+  public void shouldGenerateNameWithCorrectPrefixFromConfig() {
+    // Given:
+    givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
+    config = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG, "prefix-"
+    ));
+
+    // When:
+    injector.forStatement(statement, config, overrides, builder);
+
+    // Then:
+    verify(builder).withName("prefix-X");
   }
 
   @Test

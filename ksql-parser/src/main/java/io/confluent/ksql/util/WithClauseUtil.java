@@ -21,7 +21,7 @@ public final class WithClauseUtil {
 
   private WithClauseUtil() { }
 
-  public static Integer parsePartitions(final String expression) {
+  public static int parsePartitions(final String expression) {
     try {
       final int partitions = Integer.parseInt(StringUtils.strip(expression, "'"));
       if (partitions <= 0) {
@@ -34,7 +34,7 @@ public final class WithClauseUtil {
     }
   }
 
-  public static Short parseReplicas(final String expression) {
+  public static short parseReplicas(final String expression) {
     try {
       final short replicas = Short.parseShort(StringUtils.strip(expression, "'"));
       if (replicas <= 0) {

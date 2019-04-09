@@ -85,7 +85,7 @@ public class DefaultTopicInjector implements TopicInjector {
             + cas.getStatement().getName().getSuffix())
         .withWithClause(cas.getStatement().getProperties())
         .withOverrides(propertyOverrides)
-        .withKsqlConfig(ksqlConfig)
+//        .withKsqlConfig(ksqlConfig)
         .withSource(() -> describeSource(topicClient, cas))
         .build();
 

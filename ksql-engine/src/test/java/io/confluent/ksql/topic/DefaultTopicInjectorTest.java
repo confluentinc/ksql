@@ -120,7 +120,7 @@ public class DefaultTopicInjectorTest {
     when(builder.withName(any())).thenReturn(builder);
     when(builder.withWithClause(any())).thenReturn(builder);
     when(builder.withOverrides(any())).thenReturn(builder);
-    when(builder.withKsqlConfig(any())).thenReturn(builder);
+//    when(builder.withKsqlConfig(any())).thenReturn(builder);
     when(builder.withSource(any())).thenReturn(builder);
     when(builder.build()).thenReturn(new TopicProperties("name", 1, (short) 1));
   }
@@ -182,7 +182,7 @@ public class DefaultTopicInjectorTest {
     injector.forStatement(statement, config, overrides, builder);
 
     // Then:
-    verify(builder).withKsqlConfig(config);
+//    verify(builder).withKsqlConfig(config);
   }
 
   @Test

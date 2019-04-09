@@ -9,7 +9,7 @@ import org.apache.kafka.connect.data.Struct;
 /**
  * Class used to test UDFs. This is packaged in udf-example.jar
  */
-@UdfDescription(name = "tostruct", description = "converts things to a struct")
+@UdfDescription(name = "tostruct", description = "wraps a string with a struct")
 public class ToStruct {
   @Udf(schema = "STRUCT<A VARCHAR>")
   public Struct fromString(final String value) {

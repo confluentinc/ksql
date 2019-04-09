@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static io.confluent.ksql.util.SandboxUtil.requireSandbox;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.KsqlExecutionContext;
@@ -79,7 +80,7 @@ public class RequestValidator {
     this.schemaInjectorFactory = requireNonNull(schemaInjectorFactory, "schemaInjector");
     this.topicInjectorFactory = requireNonNull(topicInjectorFactory, "topicInjectorFactory");
     this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
-    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.serviceContext = requireSandbox(requireNonNull(serviceContext, "serviceContext"));
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
@@ -103,7 +104,7 @@ public class RequestValidator {
       final String sql
   ) {
     validateOverriddenConfigProperties(propertyOverrides);
-    final KsqlExecutionContext ctx = snapshotSupplier.get();
+    final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.get());
     final Injector schemaInjector = schemaInjectorFactory.apply(serviceContext);
     final Injector topicInjector = topicInjectorFactory.apply(ctx);
 

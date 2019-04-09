@@ -28,9 +28,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -42,6 +42,7 @@ import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.inference.SchemaInjector;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.topic.TopicInjector;
@@ -49,6 +50,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.Sandbox;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -72,7 +74,7 @@ public class RequestValidatorTest {
   public ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  KsqlEngine ksqlEngine;
+  SandboxEngine ksqlEngine;
   @Mock
   KsqlConfig ksqlConfig;
   @Mock
@@ -96,7 +98,7 @@ public class RequestValidatorTest {
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
     executionContext = ksqlEngine;
-    serviceContext = TestServiceContext.create();
+    serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
         .thenReturn(Integer.MAX_VALUE);
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -296,6 +298,32 @@ public class RequestValidatorTest {
 
   }
 
+  @Test
+  public void shouldThrowIfServiceContextIsNotSandbox() {
+    // Given:
+    serviceContext = mock(ServiceContext.class);
+
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Expected sandbox");
+
+    // When:
+    givenRequestValidator(ImmutableMap.of());
+  }
+
+  @Test
+  public void shouldThrowIfSnapshotSupplierReturnsNonSandbox() {
+    // Given:
+    executionContext = mock(KsqlExecutionContext.class);
+    givenRequestValidator(ImmutableMap.of());
+
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Expected sandbox");
+
+    // When:
+    validator.validate(ImmutableList.of(), ImmutableMap.of(), "sql");
+  }
 
   private List<ParsedStatement> givenParsed(final String sql) {
     return new DefaultKsqlParser().parse(sql);
@@ -313,5 +341,8 @@ public class RequestValidatorTest {
         ksqlConfig
     );
   }
+
+  @Sandbox
+  private interface SandboxEngine extends KsqlExecutionContext { }
 
 }

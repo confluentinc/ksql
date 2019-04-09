@@ -623,7 +623,7 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
-The following example creates a simple function. Note: the arguments are
+The following example creates a simple function. The arguments are
 converted to uppercase when passed to the inline script.
 
 Also, when defining an inline UDF in the KSQL CLI, you will need to escape

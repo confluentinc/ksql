@@ -41,15 +41,15 @@ The following statement generates a new stream, named
 
 .. code:: sql
 
-    CREATE STREAM pageviews_transformed \
-      WITH (TIMESTAMP='viewtime', \
-            PARTITIONS=5, \
-            VALUE_FORMAT='JSON') AS \
-      SELECT viewtime, \
-             userid, \
-             pageid, \
-             TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring \
-      FROM pageviews \
+    CREATE STREAM pageviews_transformed
+      WITH (TIMESTAMP='viewtime',
+            PARTITIONS=5,
+            VALUE_FORMAT='JSON') AS
+      SELECT viewtime,
+             userid,
+             pageid,
+             TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
+      FROM pageviews
       PARTITION BY userid;
 
 Content-based Routing
@@ -68,22 +68,22 @@ different users selected into the output.
 
 .. code:: sql
 
-    CREATE STREAM pageviews_for_first_two_users AS \
-      SELECT viewtime, \
-             userid, \
-             pageid \
-      FROM pageviews \
-      WHERE userid='User_1' OR userid='User_2' \
+    CREATE STREAM pageviews_for_first_two_users AS
+      SELECT viewtime,
+             userid,
+             pageid
+      FROM pageviews
+      WHERE userid='User_1' OR userid='User_2'
       PARTITION BY userid;
 
 .. code:: sql
 
-    CREATE STREAM pageviews_for_other_users AS \
-      SELECT viewtime, \
-             userid, \
-             pageid \
-      FROM pageviews \
-      WHERE userid<>'User_1' AND userid<>'User_2' \
+    CREATE STREAM pageviews_for_other_users AS
+      SELECT viewtime,
+             userid,
+             pageid
+      FROM pageviews
+      WHERE userid<>'User_1' AND userid<>'User_2'
       PARTITION BY userid;
 
 Next Steps

@@ -256,9 +256,9 @@ run a query like this:
 
 .. code:: sql
 
-    SELECT regionid, COUNT(*) FROM pageviews \
-      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
-      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6' \
+    SELECT regionid, COUNT(*) FROM pageviews
+      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)
+      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
       GROUP BY regionid;
 
 The hopping window's start time is inclusive, but the end time is exclusive.
@@ -288,7 +288,7 @@ per zip code per hour in an ``orders`` stream, you might run a query like this:
 
 .. code:: sql
 
-    SELECT orderzip_code, TOPK(order_total, 5) FROM orders \
+    SELECT orderzip_code, TOPK(order_total, 5) FROM orders
       WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY order_zipcode;
 
 Here's another example: to detect potential credit card fraud in an
@@ -298,8 +298,8 @@ a time interval of five seconds.
 
 .. code:: sql
 
-    SELECT card_number, count(*) FROM authorization_attempts \
-      WINDOW TUMBLING (SIZE 5 SECONDS) \
+    SELECT card_number, count(*) FROM authorization_attempts
+      WINDOW TUMBLING (SIZE 5 SECONDS)
       GROUP BY card_number HAVING COUNT(*) > 3;
 
 The tumbling window's start time is inclusive, but the end time is exclusive.
@@ -342,8 +342,8 @@ per region:
 
 .. code:: sql
 
-    SELECT regionid, COUNT(*) FROM pageviews \
-      WINDOW SESSION (60 SECONDS) \
+    SELECT regionid, COUNT(*) FROM pageviews
+      WINDOW SESSION (60 SECONDS)
       GROUP BY regionid;
 
 The start and end times for a session window are both inclusive, in contrast to
@@ -371,10 +371,10 @@ For example, to find orders that have shipped within the last hour from an
 
 .. code:: sql
 
-    SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse \
-      FROM new_orders o \
-      INNER JOIN shipments s \
-        WITHIN 1 HOURS \
+    SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
+      FROM new_orders o
+      INNER JOIN shipments s
+        WITHIN 1 HOURS
         ON o.order_id = s.order_id;
 
 For more information on joins, see :ref:`join-streams-and-tables`.

@@ -204,20 +204,20 @@ You can also create the stream yourself by issuing the following DDL:
 
 ::
 
-    ksql> CREATE STREAM PROCESSING_LOG_STREAM (\
-             LOGGER STRING, \
-             LEVEL STRING, \
-             `TIME` BIGINT, \
-             MESSAGE STRUCT< \
+    ksql> CREATE STREAM PROCESSING_LOG_STREAM (
+             LOGGER STRING,
+             LEVEL STRING,
+             `TIME` BIGINT,
+             MESSAGE STRUCT<
                  `TYPE` INTEGER,
-                 deserializationError STRUCT< \
-                     errorMessage STRING, \
-                     recordB64 STRING>, \
-                 recordProcessingError STRUCT< \
-                     errorMessage STRING, \
-                     record STRING>, \
-                 productionError STRUCT< \
-                     errorMessage STRING>>) \
+                 deserializationError STRUCT<
+                     errorMessage STRING,
+                     recordB64 STRING>,
+                 recordProcessingError STRUCT<
+                     errorMessage STRING,
+                     record STRING>,
+                 productionError STRUCT<
+                     errorMessage STRING>>)
              WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
 
 Note that processing log stream auto-creation is supported for interactive mode only. Enabling

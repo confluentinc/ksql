@@ -30,15 +30,15 @@ array and map fields are defined in the ``interests ARRAY<STRING>`` and
 
 .. code:: sql
 
-    CREATE TABLE users \
-      (registertime BIGINT, \
-       userid VARCHAR, \
-       gender VARCHAR, \
-       regionid VARCHAR, \
-       interests ARRAY<STRING>, \
-       contactinfo MAP<STRING,STRING>) \
-      WITH (KAFKA_TOPIC = 'users', \
-            VALUE_FORMAT='JSON', \
+    CREATE TABLE users
+      (registertime BIGINT,
+       userid VARCHAR,
+       gender VARCHAR,
+       regionid VARCHAR,
+       interests ARRAY<STRING>,
+       contactinfo MAP<STRING,STRING>)
+      WITH (KAFKA_TOPIC = 'users',
+            VALUE_FORMAT='JSON',
             KEY = 'userid');
 
 Your output should resemble:
@@ -62,13 +62,13 @@ and the user's city and zip code from the ``contactinfo`` map.
 
 .. code:: sql
 
-    CREATE TABLE users_interest_and_contactinfo AS \
-      SELECT interests[0] AS first_interest, \
-             contactinfo['zipcode'] AS zipcode, \
-             contactinfo['city'] AS city, \
-             userid, \
-             gender, \
-             regionid \
+    CREATE TABLE users_interest_and_contactinfo AS
+      SELECT interests[0] AS first_interest,
+             contactinfo['zipcode'] AS zipcode,
+             contactinfo['city'] AS city,
+             userid,
+             gender,
+             regionid
       FROM users;
 
 Your output should resemble:
@@ -84,7 +84,7 @@ Run the following SELECT query to view the table:
 
 .. code:: sql
     
-    SELECT userid, first_interest, city, zipcode \
+    SELECT userid, first_interest, city, zipcode
       FROM users_interest_and_contactinfo;
 
 Your output should resemble:

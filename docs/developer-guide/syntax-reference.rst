@@ -590,7 +590,14 @@ CREATE [OR REPLACE] FUNCTION
 
 **Description**
 
-Create a new inline UDF with the specified arguments and properties. Note: currently, the only supported language is **JAVA**.
+Create a new inline UDF with the specified arguments and properties.
+Note: currently, the only supported language is **JAVA**.
+
+If the OR REPLACE clause is present, the statement doesn't fail if the function
+already exists. Instead, the existing function will be replaced. Note: if an
+active query is using a UDF that was replaced, it will continue to use the
+underlying UDF instance it created when the query was first initiated. You must
+restart the query for it to pick up any changes that were made to the inline UDF.
 
 The supported column data types are:
 
@@ -616,17 +623,19 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 
-The following example creates a simple function. Note: the arguments are converted to uppercase when passed to the inline
-script.
+The following example creates a simple function. Note: the arguments are
+converted to uppercase when passed to the inline script.
 
-Also, when defining an inline UDF in the KSQL CLI, you will need to escape any ``;`` within the inline script with ``\;``.
-However, this is not necessary when defining an inline UDF inside of a queries file (e.g. in headless mode).
+Also, when defining an inline UDF in the KSQL CLI, you will need to escape
+any ``;`` characters within the inline script with ``\;``. However, this is
+not necessary when defining an inline UDF inside of a queries file (e.g. in headless mode).
 
 .. code:: sql
 
     CREATE OR REPLACE FUNCTION GREET(name STRING)
     RETURNS STRING
     LANGUAGE JAVA
+    WITH(author='Jane', description='Create a greeting', version='0.1.0')
     AS $$
         return "Hello " + NAME;
     $$;
@@ -637,9 +646,10 @@ returns a ``Map`` object.
 
 .. code:: sql
 
-    CREATE OR REPLACE FUNCTION zip(a VARCHAR, b VARCHAR)
+    CREATE OR REPLACE FUNCTION ZIP(a VARCHAR, b VARCHAR)
     RETURNS MAP<VARCHAR, VARCHAR>
     LANGUAGE JAVA
+    WITH(author='Bob', description='Create a map from two objects', version='0.1.0')
     AS $$
         import java.util.HashMap;
         import java.util.Map;
@@ -888,8 +898,9 @@ DROP FUNCTION [IF EXISTS];
 
 Drop an inline UDF from the function registry. Note: you cannot drop UDFs that were not
 created via the CREATE [OR REPLACE] FUNCTION query. Furthermore, if an active query
-is using a UDF that was dropped, it will continue to use it's underlying UDF instance
-until the query itself is terminated.
+is using a UDF that was dropped, it will continue to use the underlying UDF instance
+it created when the query was first initiated. You must terminate the query in order
+to destroy existing instances of the UDF.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the function
 doesn't exist.

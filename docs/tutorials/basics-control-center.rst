@@ -230,7 +230,7 @@ Monitor Persistent Queries
 You can monitor your persistent queries visually by using |C3|.
 
 #. In the navigation menu, click **Data streams** and find the ``pageviews_enriched``
-   stream, which is named ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_ENRICHED_0``.
+   query, which is named ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_ENRICHED_0``.
    
 #. Change the time scale from **Last 4 hours** to **Last 30 minutes**.
 
@@ -246,8 +246,9 @@ You can monitor your persistent queries visually by using |C3|.
    ``pageviews_enriched`` query has recently started consuming records.
 
 #. In the navigation menu, click **Consumer lag** and find your ``pageviews_enriched``
-   stream, which is named ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_ENRICHED_0``.
-   This view shows how well your stream is keeping up with the incoming data.
+   query, which is named ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_ENRICHED_0``.
+   This view shows how well your persistent query is keeping up with the incoming
+   data.
 
    .. image:: ../img/c3-ksql-consumer-lag.png
       :alt: Screenshot of the Consumer Lag page in Confluent Control Center

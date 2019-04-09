@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
+@SuppressWarnings("unchecked")
 public class PostConditions {
 
   static final PostConditions NONE = new PostConditions(hasItems(anything()));

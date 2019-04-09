@@ -58,6 +58,7 @@ public class ValueSpecAvroSerializer implements Serializer<Object> {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  @SuppressWarnings("unchecked")
   private static Object valueSpecToAvro(final Object spec, final org.apache.avro.Schema schema) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (spec == null) {

@@ -19,11 +19,13 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.internal.matchers.ThrowableMessageMatcher;
 
+@SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
 public class ExpectedException {
   final List<Matcher<?>> matchers = new ArrayList<>();
 

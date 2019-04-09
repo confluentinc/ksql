@@ -63,7 +63,8 @@ public final class ValueSpecAvroDeserializer implements Deserializer<Object> {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  static Object avroToValueSpec(final Object avro,
+  @SuppressWarnings("unchecked")
+  private static Object avroToValueSpec(final Object avro,
       final org.apache.avro.Schema schema,
       final boolean toUpper) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity

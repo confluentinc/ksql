@@ -591,7 +591,7 @@ CREATE [OR REPLACE] FUNCTION
 **Description**
 
 Create a new inline UDF with the specified arguments and properties.
-Note: currently, the only supported language is **JAVA**.
+Currently, the only supported language is Java.
 
 If the OR REPLACE clause is present, the statement doesn't fail if the function
 already exists. Instead, the existing function will be replaced. Note: if an

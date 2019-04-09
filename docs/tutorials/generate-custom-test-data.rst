@@ -117,16 +117,16 @@ In the KSQL CLI or in |c3-short|, register a stream on ``orders_topic``:
 
 .. code:: sql
 
-   CREATE STREAM orders_raw (      \
-       itemid VARCHAR,             \
-       price DOUBLE,               \
-       location STRUCT<            \
-           city VARCHAR,           \
-           state VARCHAR,          \
-           zipcode INT>,           \
-       timestamp VARCHAR)          \
-    WITH (                         \
-       KAFKA_TOPIC='orders_topic', \
+   CREATE STREAM orders_raw (
+       itemid VARCHAR,
+       price DOUBLE,
+       location STRUCT<
+           city VARCHAR,
+           state VARCHAR,
+           zipcode INT>,
+       timestamp VARCHAR)
+    WITH (
+       KAFKA_TOPIC='orders_topic',
        VALUE_FORMAT='JSON');
 
 Inspect the schema of the ``orders_raw`` stream by using the DESCRIBE statement:
@@ -173,14 +173,14 @@ In the KSQL CLI or in |c3-short|, register a table on ``users_kafka_topic_json``
 
 .. code:: sql
 
-   CREATE TABLE users_original (             \
-       registertime BIGINT,                  \
-       gender VARCHAR,                       \
-       regionid VARCHAR,                     \
-       userid VARCHAR)                       \
-   WITH (                                    \
-       kafka_topic='users_kafka_topic_json', \
-       value_format='JSON',                  \
+   CREATE TABLE users_original (
+       registertime BIGINT,
+       gender VARCHAR,
+       regionid VARCHAR,
+       userid VARCHAR)
+   WITH (
+       kafka_topic='users_kafka_topic_json',
+       value_format='JSON',
        key = 'userid');                   
 
 Inspect the schema of the ``users_original`` table by using the DESCRIBE
@@ -226,16 +226,16 @@ In the KSQL CLI or in |c3-short|, register a table on ``users_extended``:
 
 .. code:: sql
 
-   CREATE TABLE users_extended (        \
-       registertime BIGINT,             \
-       gender VARCHAR,                  \
-       regionid VARCHAR,                \
-       userid VARCHAR,                  \
-       interests ARRAY<STRING>,         \
-       contactInfo MAP<STRING, STRING>) \
-   WITH (                               \
-       kafka_topic='users_extended',    \
-       value_format='JSON',             \
+   CREATE TABLE users_extended (
+       registertime BIGINT,
+       gender VARCHAR,
+       regionid VARCHAR,
+       userid VARCHAR,
+       interests ARRAY<STRING>,
+       contactInfo MAP<STRING, STRING>)
+   WITH (
+       kafka_topic='users_extended',
+       value_format='JSON',
        key = 'userid');
 
 Inspect the schema of the ``users_extended`` table by using the DESCRIBE
@@ -282,12 +282,12 @@ In the KSQL CLI or in |c3-short|, register a stream on ``pageviews``:
 
 .. code:: sql
 
-   CREATE STREAM pageviews_original ( \
-       viewtime bigint,               \
-       userid varchar,                \
-       pageid varchar)                \
-   WITH (                             \
-       kafka_topic='pageviews',       \
+   CREATE STREAM pageviews_original (
+       viewtime bigint,
+       userid varchar,
+       pageid varchar)
+   WITH (
+       kafka_topic='pageviews',
        value_format='DELIMITED');
 
 Inspect the schema of the ``pageviews_original`` stream by using the DESCRIBE

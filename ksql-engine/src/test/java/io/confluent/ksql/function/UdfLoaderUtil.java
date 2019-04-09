@@ -16,10 +16,8 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.schema.ksql.DefaultSchemaParser;
 import java.io.File;
 import java.util.Optional;
-import org.apache.kafka.test.TestUtils;
 
 public final class UdfLoaderUtil {
   private UdfLoaderUtil() {}
@@ -28,8 +26,8 @@ public final class UdfLoaderUtil {
     new UdfLoader(functionRegistry,
         new File("src/test/resources/udf-example.jar"),
         UdfLoaderUtil.class.getClassLoader(),
-        value -> false, new UdfCompiler(Optional.empty()), Optional.empty(), true,
-        new DefaultSchemaParser())
+        value -> false, new UdfCompiler(Optional.empty()), Optional.empty(), true
+    )
         .load();
 
     return functionRegistry;

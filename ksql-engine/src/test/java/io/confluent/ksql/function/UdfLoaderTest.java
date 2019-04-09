@@ -34,7 +34,6 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.schema.ksql.DefaultSchemaParser;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
@@ -330,8 +329,8 @@ public class UdfLoaderTest {
         value -> false,
         compiler,
         optionalMetrics,
-        loadCustomerUdfs,
-        new DefaultSchemaParser());
+        loadCustomerUdfs
+    );
   }
 
   private static ClassLoader getActualUdfClassLoader(final Kudf udf)

@@ -1217,13 +1217,13 @@ The explanation for each operator includes a supporting example based on the fol
 
 .. code:: sql
 
-    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') + \
-            ': :heavy_exclamation_mark: On ' + \
-            HOST + \
-            ' there were ' + \
-            CAST(INVALID_LOGIN_COUNT AS VARCHAR) + \
-            ' attempts in the last minute (threshold is >=4)' \
-    FROM INVALID_USERS_LOGINS_PER_HOST \
+    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') +
+            ': :heavy_exclamation_mark: On ' +
+            HOST +
+            ' there were ' +
+            CAST(INVALID_LOGIN_COUNT AS VARCHAR) +
+            ' attempts in the last minute (threshold is >=4)'
+    FROM INVALID_USERS_LOGINS_PER_HOST
     WHERE INVALID_LOGIN_COUNT>=4;
 
 - Source Dereference (``.``) The source dereference operator can be used to specify columns

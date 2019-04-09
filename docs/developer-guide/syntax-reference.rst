@@ -595,7 +595,7 @@ Currently, the only supported language is Java.
 
 If the OR REPLACE clause is present, the statement doesn't fail if the function
 already exists. Instead, the existing function will be replaced. Note: if an
-active query is using a UDF that was replaced, it will continue to use the
+active query is using a UDF that was replaced, it continues to use the
 underlying UDF instance it created when the query was first initiated. You must
 restart the query for it to pick up any changes that were made to the inline UDF.
 

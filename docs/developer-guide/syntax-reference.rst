@@ -898,7 +898,7 @@ DROP FUNCTION [IF EXISTS];
 
 Drop an inline UDF from the function registry. Note: you cannot drop UDFs that were not
 created via the CREATE [OR REPLACE] FUNCTION query. Furthermore, if an active query
-is using a UDF that was dropped, it will continue to use the underlying UDF instance
+is using a UDF that was dropped, it continues to use the underlying UDF instance
 it created when the query was first initiated. You must terminate the query in order
 to destroy existing instances of the UDF.
 

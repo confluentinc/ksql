@@ -23,6 +23,8 @@ import static org.hamcrest.Matchers.not;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import org.junit.Test;
 
 public class UdfClassLoaderTest {
@@ -33,7 +35,7 @@ public class UdfClassLoaderTest {
 
   // The jar contains the class org.damian.ksql.udf.ToString and org.damian.ksql.udf.ToStruct.
   private final Path udfJar = new File("src/test/resources/udf-example.jar").toPath();
-  private final MyClassLoader parentLoader = new MyClassLoader();
+  private final MyClassLoader parentLoader = AccessController.doPrivileged(MyClassLoader.factory());
   private final UdfClassLoader udfClassLoader =
       UdfClassLoader.newClassLoader(udfJar, parentLoader, resourceName -> false);
 
@@ -63,7 +65,12 @@ public class UdfClassLoaderTest {
     assertThat(udfClassLoader.loadClass(IN_PARENT_AND_JAR, true), not(InParentAndJar.class));
   }
 
-  private class MyClassLoader extends ClassLoader {
+  private static class MyClassLoader extends ClassLoader {
+
+    static PrivilegedAction<MyClassLoader> factory() {
+      return MyClassLoader::new;
+    }
+
     @Override
     public Class<?> findClass(String name) throws ClassNotFoundException {
       switch (name) {
@@ -76,4 +83,5 @@ public class UdfClassLoaderTest {
 
   private static class OnlyInParent {}
   private static class InParentAndJar {}
+
 }

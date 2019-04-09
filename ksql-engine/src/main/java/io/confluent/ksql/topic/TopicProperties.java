@@ -131,22 +131,22 @@ public final class TopicProperties {
       return this;
     }
 
-//    public Builder withKsqlConfig(final KsqlConfig config) {
-//      // requires check for containsKey because `getInt` will return 0 otherwise
-//      Integer partitions = null;
-//      if (config.values().containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
-//        partitions = config.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
-//      }
-//
-//      // requires check for containsKey because `getShort` will return 0 otherwise
-//      Short replicas = null;
-//      if (config.values().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
-//        replicas = config.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
-//      }
-//
-//      fromKsqlConfig = new TopicProperties(null, partitions, replicas);
-//      return this;
-//    }
+    public Builder withKsqlConfig(final KsqlConfig config) {
+      // requires check for containsKey because `getInt` will return 0 otherwise
+      Integer partitions = null;
+      if (config.values().containsKey(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)) {
+        partitions = config.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
+      }
+
+      // requires check for containsKey because `getShort` will return 0 otherwise
+      Short replicas = null;
+      if (config.values().containsKey(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)) {
+        replicas = config.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
+      }
+
+      fromKsqlConfig = new TopicProperties(null, partitions, replicas);
+      return this;
+    }
 
     public Builder withSource(final Supplier<TopicDescription> descriptionSupplier) {
       fromSource = Suppliers.memoize(() -> {

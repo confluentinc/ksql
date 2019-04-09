@@ -140,7 +140,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           new TopicProperties.Builder()
               .withName(noRowKey.getKafkaTopicName())
               .withOverrides(outputProperties)
-//              .withKsqlConfig(builder.getKsqlConfig())
+              .withKsqlConfig(builder.getKsqlConfig())
               .withSource(sourceTopicDescription)
               .build());
     }

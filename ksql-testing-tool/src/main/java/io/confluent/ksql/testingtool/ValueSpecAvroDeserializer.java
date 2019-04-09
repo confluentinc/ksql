@@ -32,7 +32,7 @@ public final class ValueSpecAvroDeserializer implements Deserializer<Object> {
   private final SchemaRegistryClient schemaRegistryClient;
   private final KafkaAvroDeserializer avroDeserializer;
 
-  private ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     this.schemaRegistryClient = schemaRegistryClient;
     this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
   }
@@ -62,10 +62,11 @@ public final class ValueSpecAvroDeserializer implements Deserializer<Object> {
             false));
   }
 
-  @SuppressWarnings("unchecked")
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   static Object avroToValueSpec(final Object avro,
       final org.apache.avro.Schema schema,
       final boolean toUpper) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (avro == null) {
       return null;
     }
@@ -86,7 +87,8 @@ public final class ValueSpecAvroDeserializer implements Deserializer<Object> {
       case STRING:
         return avro.toString();
       case ARRAY:
-        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
+        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)
+            ||
             Objects.equals(
                 schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
                 AvroData.MAP_ENTRY_TYPE_NAME)
@@ -96,7 +98,9 @@ public final class ValueSpecAvroDeserializer implements Deserializer<Object> {
           return ((List) avro).stream().collect(
               Collectors.toMap(
                   m -> ((GenericData.Record) m).get("key").toString(),
-                  m -> (avroToValueSpec(((GenericData.Record) m).get("value"), valueSchema, toUpper))
+                  m -> (avroToValueSpec(((GenericData.Record) m).get("value"),
+                      valueSchema,
+                      toUpper))
               )
           );
         }

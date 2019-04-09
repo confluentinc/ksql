@@ -139,7 +139,7 @@ class Analyzer {
     if (sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS) != null) {
       final int numberOfPartitions =
           WithClauseUtil.parsePartitions(
-              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS));
+              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString());
 
       analysis.getIntoProperties().put(
           KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
@@ -150,7 +150,7 @@ class Analyzer {
     if (sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS) != null) {
       final short numberOfReplications =
           WithClauseUtil.parseReplicas(
-              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS));
+              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
       analysis.getIntoProperties()
           .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
     }

@@ -981,12 +981,14 @@ CASE
         [ ELSE result ]
      END
 
- Currently, KSQL supports a ``searched`` form of CASE expression. In this form, CASE evaluates
-each boolean ``condition`` in WHEN caluses, from left to right. If a condition is true, then it returns the
-corresponding result. If none of the conditions are true, it returns the result from the ELSE clause.
-If none of the conditions are true and there is no ELSE clause, it returns null.
- The schema for all results should be the same, otherwise, KSQL will reject the statement.
- Here is an example of CASE expression:
+Currently, KSQL supports a ``searched`` form of CASE expression. In this form,
+CASE evaluates each boolean ``condition`` in WHEN clauses, from left to right.
+If a condition is true, CASE returns the corresponding result. If none of
+the conditions is true, CASE returns the result from the ELSE clause. If none
+of the conditions is true and there is no ELSE clause, CASE returns null.
+
+The schema for all results must be the same, otherwise, KSQL rejects the
+statement. Here's an example of a CASE expression:
 
  .. code:: sql
 
@@ -1217,13 +1219,13 @@ The explanation for each operator includes a supporting example based on the fol
 
 .. code:: sql
 
-    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') + \
-            ': :heavy_exclamation_mark: On ' + \
-            HOST + \
-            ' there were ' + \
-            CAST(INVALID_LOGIN_COUNT AS VARCHAR) + \
-            ' attempts in the last minute (threshold is >=4)' \
-    FROM INVALID_USERS_LOGINS_PER_HOST \
+    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') +
+            ': :heavy_exclamation_mark: On ' +
+            HOST +
+            ' there were ' +
+            CAST(INVALID_LOGIN_COUNT AS VARCHAR) +
+            ' attempts in the last minute (threshold is >=4)'
+    FROM INVALID_USERS_LOGINS_PER_HOST
     WHERE INVALID_LOGIN_COUNT>=4;
 
 - Source Dereference (``.``) The source dereference operator can be used to specify columns

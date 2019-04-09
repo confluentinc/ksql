@@ -151,14 +151,14 @@ Run the following CREATE STREAM statement to register the topic with KSQL:
 
 .. code:: sql
 
-    CREATE STREAM T (TYPE VARCHAR, \
-                    DATA STRUCT< \
-                          timestamp VARCHAR, \
-                          "field-a" INT, \
-                          "field-b" VARCHAR, \
-                          "field-c" INT, \
-                          "field-d" VARCHAR>) \
-            WITH (KAFKA_TOPIC='raw-topic',\
+    CREATE STREAM T (TYPE VARCHAR,
+                    DATA STRUCT<
+                          timestamp VARCHAR,
+                          "field-a" INT,
+                          "field-b" VARCHAR,
+                          "field-c" INT,
+                          "field-d" VARCHAR>)
+            WITH (KAFKA_TOPIC='raw-topic',
                   VALUE_FORMAT='JSON');
 
 Your output should resemble:

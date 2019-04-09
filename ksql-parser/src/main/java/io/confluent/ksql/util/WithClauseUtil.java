@@ -15,22 +15,15 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.parser.tree.Expression;
-import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 
 public final class WithClauseUtil {
 
   private WithClauseUtil() { }
 
-  public static Integer parsePartitions(@Nullable final Expression expression) {
-    if (expression == null) {
-      return null;
-    }
-
-    final String expAsString = expression.toString();
+  public static int parsePartitions(final String expression) {
     try {
-      final int partitions = Integer.parseInt(StringUtils.strip(expAsString, "'"));
+      final int partitions = Integer.parseInt(StringUtils.strip(expression, "'"));
       if (partitions <= 0) {
         throw new KsqlException("Invalid number of partitions in WITH clause (must be positive): "
             + partitions);
@@ -41,14 +34,9 @@ public final class WithClauseUtil {
     }
   }
 
-  public static Short parseReplicas(@Nullable final Expression expression) {
-    if (expression == null) {
-      return null;
-    }
-
-    final String expAsString = expression.toString();
+  public static short parseReplicas(final String expression) {
     try {
-      final short replicas = Short.parseShort(StringUtils.strip(expAsString, "'"));
+      final short replicas = Short.parseShort(StringUtils.strip(expression, "'"));
       if (replicas <= 0) {
         throw new KsqlException("Invalid number of replicas in WITH clause (must be positive): "
             + replicas);

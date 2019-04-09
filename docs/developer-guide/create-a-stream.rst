@@ -39,11 +39,11 @@ In the KSQL CLI, paste the following CREATE STREAM statement:
 
 .. code:: sql
 
-    CREATE STREAM pageviews \
-      (viewtime BIGINT, \
-       userid VARCHAR, \
-       pageid VARCHAR) \
-      WITH (KAFKA_TOPIC='pageviews', \
+    CREATE STREAM pageviews
+      (viewtime BIGINT,
+       userid VARCHAR,
+       pageid VARCHAR)
+      WITH (KAFKA_TOPIC='pageviews',
             VALUE_FORMAT='DELIMITED');
 
 Your output should resemble:
@@ -104,12 +104,12 @@ column, you can write the CREATE STREAM statement like this:
 
 .. code:: sql
 
-    CREATE STREAM pageviews_withkey \
-      (viewtime BIGINT, \
-       userid VARCHAR, \
-       pageid VARCHAR) \
-     WITH (KAFKA_TOPIC='pageviews', \
-           VALUE_FORMAT='DELIMITED', \
+    CREATE STREAM pageviews_withkey
+      (viewtime BIGINT,
+       userid VARCHAR,
+       pageid VARCHAR)
+     WITH (KAFKA_TOPIC='pageviews',
+           VALUE_FORMAT='DELIMITED',
            KEY='pageid');
 
 Confirm that the KEY field in the new stream is ``pageid`` by using the
@@ -147,13 +147,13 @@ like this:
 
 .. code:: sql
 
-    CREATE STREAM pageviews_timestamped \
-      (viewtime BIGINT, \
-       userid VARCHAR, \
-       pageid VARCHAR) \
-      WITH (KAFKA_TOPIC='pageviews', \
-            VALUE_FORMAT='DELIMITED', \
-            KEY='pageid', \
+    CREATE STREAM pageviews_timestamped
+      (viewtime BIGINT,
+       userid VARCHAR,
+       pageid VARCHAR)
+      WITH (KAFKA_TOPIC='pageviews',
+            VALUE_FORMAT='DELIMITED',
+            KEY='pageid',
             TIMESTAMP='viewtime');
 
 Confirm that the TIMESTAMP field is ``viewtime`` by using the DESCRIBE EXTENDED
@@ -220,8 +220,8 @@ results from a persistent query that matches "introductory" pages that have a
 
 .. code:: sql
 
-    CREATE STREAM pageviews_intro AS \
-          SELECT * FROM pageviews \
+    CREATE STREAM pageviews_intro AS
+          SELECT * FROM pageviews
           WHERE pageid < 'Page_20';
 
 Your output should resemble:

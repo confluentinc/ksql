@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.common.Configurable;
 import io.confluent.ksql.function.udaf.UdafAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
@@ -49,6 +48,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;

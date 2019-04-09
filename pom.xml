@@ -101,6 +101,7 @@
         <jline.version>3.9.0</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
+        <maven.plugins.version>3.0.0-M1</maven.plugins.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>

@@ -18,8 +18,9 @@ package io.confluent.ksql.cli.commands;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import io.confluent.common.config.ConfigException;
 import io.confluent.ksql.cli.Options;
+
+import org.apache.kafka.common.config.ConfigException;
 import org.junit.Test;
 
 public class OptionsTest {

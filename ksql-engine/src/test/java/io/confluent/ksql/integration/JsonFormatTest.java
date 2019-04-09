@@ -195,43 +195,6 @@ public class JsonFormatTest {
   }
 
   @Test
-  public void testSinkProperties() throws Exception {
-    final int resultPartitionCount = 3;
-    final String queryString = String.format("CREATE STREAM %s WITH (PARTITIONS = %d) AS SELECT * "
-            + "FROM %s;",
-        streamName, resultPartitionCount, inputStream);
-
-    executePersistentQuery(queryString);
-
-    TestUtils.waitForCondition(
-        () -> topicClient.isTopicExists(streamName),
-        "Wait for async topic creation"
-    );
-
-    assertThat(
-        topicClient.describeTopic(streamName).partitions(),
-        hasSize(3));
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
-        KafkaTopicClient.TopicCleanupPolicy.DELETE));
-  }
-
-  @Test
-  public void testTableSinkCleanupProperty() throws Exception {
-    final String queryString = String.format("CREATE TABLE %s AS SELECT * "
-                                             + "FROM %s;",
-        streamName, usersTable);
-    executePersistentQuery(queryString);
-
-    TestUtils.waitForCondition(
-        () -> topicClient.isTopicExists(streamName),
-        "Wait for async topic creation"
-    );
-
-    assertThat(topicClient.getTopicCleanupPolicy(streamName), equalTo(
-        KafkaTopicClient.TopicCleanupPolicy.COMPACT));
-  }
-
-  @Test
   public void testJsonStreamExtractor() {
     final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
             + "(message, '$.log.cloud') "

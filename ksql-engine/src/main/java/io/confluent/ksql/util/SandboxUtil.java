@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import javax.annotation.Nonnull;
-
 public final class SandboxUtil {
 
   private SandboxUtil() { }
@@ -28,7 +26,7 @@ public final class SandboxUtil {
    * @throws IllegalArgumentException if {@code object} is not an instance of a class that
    *                                  is annotated with {@link Sandbox}
    */
-  public static <T> T requireSandbox(@Nonnull final T object) {
+  public static <T> T requireSandbox(final T object) {
     if (object.getClass().isAnnotationPresent(Sandbox.class)) {
       return object;
     }

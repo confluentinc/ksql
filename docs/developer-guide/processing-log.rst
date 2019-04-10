@@ -212,9 +212,11 @@ You can also create the stream yourself by issuing the following DDL:
                  `TYPE` INTEGER,
                  deserializationError STRUCT<
                      errorMessage STRING,
+                     cause ARRAY<STRING>,
                      recordB64 STRING>,
                  recordProcessingError STRUCT<
                      errorMessage STRING,
+                     cause ARRAY<STRING>,
                      record STRING>,
                  productionError STRUCT<
                      errorMessage STRING>>)

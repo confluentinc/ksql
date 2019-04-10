@@ -44,6 +44,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -306,8 +307,7 @@ public class RequestValidatorTest {
   ) {
     validator = new RequestValidator(
         customValidators,
-        sc -> schemaInjector,
-        ec -> topicInjector,
+        (ec, sc) -> InjectorChain.of(topicInjector, schemaInjector),
         () -> executionContext,
         serviceContext,
         ksqlConfig

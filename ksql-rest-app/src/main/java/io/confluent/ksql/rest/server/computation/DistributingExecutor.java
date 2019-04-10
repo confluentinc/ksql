@@ -27,7 +27,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * A {@code StatementExecutor} that encapsulates a command queue and will
@@ -39,21 +39,16 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
 
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
-  private final Function<ServiceContext, Injector> schemaInjectorFactory;
-  private final Function<KsqlExecutionContext, Injector> topicInjectorFactory;
+  private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
-      final Function<ServiceContext, Injector> schemaInjectorFactory,
-      final Function<KsqlExecutionContext, Injector> topicInjectorFactory) {
+      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
-    this.schemaInjectorFactory =
-        Objects.requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
-    this.topicInjectorFactory = Objects
-        .requireNonNull(topicInjectorFactory, "topicInjectorFactory");
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
+    this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
   }
 
   @Override
@@ -62,20 +57,17 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final ConfiguredStatement<?> withSchema = schemaInjectorFactory
-        .apply(serviceContext)
+    final ConfiguredStatement<?> injected = injectorFactory
+        .apply(executionContext, serviceContext)
         .inject(statement);
-    final ConfiguredStatement<?> withTopic = topicInjectorFactory
-        .apply(executionContext)
-        .inject(withSchema);
 
     try {
-      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(withTopic);
+      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(injected);
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
       return Optional.of(new CommandStatusEntity(
-          withTopic.getStatementText(),
+          injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()

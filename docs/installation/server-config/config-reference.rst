@@ -237,10 +237,10 @@ listeners
 ---------
 
 The ``listeners`` setting controls the REST API endpoint for the KSQL server.
-For more info, see :ref:`ksql-rest-api`. 
+For more info, see :ref:`ksql-rest-api`.
 
-Specify hostname as ``0.0.0.0`` to bind to all interfaces or leave it empty to
-bind to the default interface. For example:
+The default hostname is ``0.0.0.0`` which binds to all interfaces. Update this
+to a specific interface to bind only to a single interface. For example:
 
 ::
 

@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.util;
 
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR;
+import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64;
 import static io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA;
@@ -31,6 +32,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -39,7 +41,9 @@ import org.junit.Test;
 
 public class SerdeProcessingLogMessageFactoryTest {
   private final byte[] record = new byte[256];
-  private final Exception error = new Exception("error message");
+  private final Exception cause = new Exception("cause1", new Exception("cause2"));
+  private final Exception error = new Exception("error message", cause);
+  private final List<String> causeList = ImmutableList.of("cause1", "cause2");
 
   private final ProcessingLogConfig config = new ProcessingLogConfig(
       Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS,  true)
@@ -78,6 +82,10 @@ public class SerdeProcessingLogMessageFactoryTest {
     assertThat(
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_MESSAGE),
         equalTo(error.getMessage())
+    );
+    assertThat(
+        deserializationError.get(DESERIALIZATION_ERROR_FIELD_CAUSE),
+        equalTo(causeList)
     );
     assertThat(
         deserializationError.get(DESERIALIZATION_ERROR_FIELD_RECORD_B64),

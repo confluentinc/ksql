@@ -18,7 +18,9 @@ package io.confluent.ksql.serde.util;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
+import io.confluent.ksql.util.ErrorMessageUtil;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -40,6 +42,12 @@ public final class SerdeProcessingLogMessageFactory {
       deserializationError.put(
           ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_MESSAGE,
           exception.getMessage());
+      final List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
+      cause.remove(0);
+      deserializationError.put(
+          ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_CAUSE,
+          cause
+      );
       if (config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
         deserializationError.put(
             ProcessingLogMessageSchema.DESERIALIZATION_ERROR_FIELD_RECORD_B64,

@@ -42,6 +42,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient.FakeTopic;
 import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -75,7 +76,7 @@ public class DefaultTopicInjectorTest {
   private MutableMetaStore metaStore;
   private DefaultTopicInjector injector;
   private Map<String, Object> overrides;
-  private PreparedStatement<CreateAsSelect> statement;
+  private ConfiguredStatement<CreateAsSelect> statement;
   private KsqlConfig config;
   private TopicDescription sourceDescription;
   private FakeKafkaTopicClient topicClient;
@@ -130,10 +131,10 @@ public class DefaultTopicInjectorTest {
   @Test
   public void shouldDoNothingForNonCAS() {
     // Given:
-    final PreparedStatement<?> statement = givenStatement("LIST PROPERTIES;");
+    final ConfiguredStatement<?> statement = givenStatement("LIST PROPERTIES;");
 
     // When:
-    final PreparedStatement<?> result = injector.forStatement(statement, config, overrides);
+    final ConfiguredStatement<?> result = injector.inject(statement);
 
     // Then:
     assertThat(result, is(sameInstance(statement)));
@@ -145,7 +146,7 @@ public class DefaultTopicInjectorTest {
     givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     verify(builder).withName("X");
@@ -161,7 +162,7 @@ public class DefaultTopicInjectorTest {
     ));
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     verify(builder).withName("prefix-X");
@@ -176,7 +177,7 @@ public class DefaultTopicInjectorTest {
     ));
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement.withConfig(config), builder);
 
     // Then:
     verify(builder).withName("prefix-X");
@@ -188,7 +189,7 @@ public class DefaultTopicInjectorTest {
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     verify(builder).withWithClause(statement.getStatement().getProperties());
@@ -200,7 +201,7 @@ public class DefaultTopicInjectorTest {
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     verify(builder).withOverrides(overrides);
@@ -212,7 +213,7 @@ public class DefaultTopicInjectorTest {
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     verify(builder).withKsqlConfig(config);
@@ -224,7 +225,7 @@ public class DefaultTopicInjectorTest {
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
@@ -237,7 +238,7 @@ public class DefaultTopicInjectorTest {
         + "JOIN J_SOURCE ON SOURCE.X = J_SOURCE.X;");
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
@@ -250,8 +251,7 @@ public class DefaultTopicInjectorTest {
     when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
 
     // When:
-    final PreparedStatement<CreateAsSelect> result =
-        injector.forStatement(statement, config, overrides, builder);
+    final ConfiguredStatement<CreateAsSelect> result = injector.inject(statement, builder);
 
     // Then:
     assertThat(result.getStatement().getProperties(),
@@ -268,8 +268,7 @@ public class DefaultTopicInjectorTest {
     givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
 
     // When:
-    final PreparedStatement<?> result =
-        injector.forStatement(statement, config, overrides, builder);
+    final ConfiguredStatement<?> result = injector.inject(statement, builder);
 
     // Then:
     assertThat(result.getStatementText(),
@@ -286,7 +285,7 @@ public class DefaultTopicInjectorTest {
     assertThat("topic did not exist", !topicClient.isTopicExists("expectedName"));
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     assertThat(topicClient.createdTopics(),
@@ -302,7 +301,7 @@ public class DefaultTopicInjectorTest {
     when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
@@ -317,7 +316,7 @@ public class DefaultTopicInjectorTest {
     when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
@@ -332,7 +331,7 @@ public class DefaultTopicInjectorTest {
     when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
 
     // When:
-    injector.forStatement(statement, config, overrides, builder);
+    injector.inject(statement, builder);
 
     // Then:
     assertThat(topicClient.getTopicCleanupPolicy("expectedName"),
@@ -340,13 +339,18 @@ public class DefaultTopicInjectorTest {
   }
 
   @SuppressWarnings("unchecked")
-  private PreparedStatement<?> givenStatement(final String sql) {
+  private ConfiguredStatement<?> givenStatement(final String sql) {
     final PreparedStatement<?> preparedStatement =
         parser.prepare(parser.parse(sql).get(0), metaStore);
+    final ConfiguredStatement<?> configuredStatement =
+        ConfiguredStatement.of(
+            preparedStatement,
+            overrides,
+            config);
     if (preparedStatement.getStatement() instanceof CreateAsSelect) {
-      statement = (PreparedStatement<CreateAsSelect>) preparedStatement;
+      statement = (ConfiguredStatement<CreateAsSelect>) configuredStatement;
     }
-    return preparedStatement;
+    return configuredStatement;
   }
 
   private static TypeSafeMatcher<Supplier<TopicDescription>> supplierThatGets(

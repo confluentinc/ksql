@@ -27,7 +27,6 @@ import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -122,10 +121,6 @@ public final class StandaloneExecutorFactory {
 
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);
-
-    final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
-        new DefaultSchemaInjector(
-            new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
 
     return constructor.create(
         serviceContext,

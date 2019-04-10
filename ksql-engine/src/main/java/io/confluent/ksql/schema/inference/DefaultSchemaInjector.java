@@ -68,11 +68,14 @@ public class DefaultSchemaInjector implements Injector {
       return statement;
     }
 
-    return forCreateStatement((ConfiguredStatement<AbstractStreamCreateStatement>) statement)
+    final Optional<ConfiguredStatement<T>> statementOptional =
+        forCreateStatement((ConfiguredStatement<AbstractStreamCreateStatement>) statement)
         .map(DefaultSchemaInjector::buildPreparedStatement)
         .map(preparedStatement -> ConfiguredStatement.of(
-            preparedStatement, statement.getOverrides(), statement.getConfig()))
-        .orElse(statement);
+            preparedStatement, statement.getOverrides(), statement.getConfig()));
+    // for some reason, maven won't compile without the intermediate
+    // Optional variable declaration...
+    return statementOptional.orElse(statement);
   }
 
   private Optional<AbstractStreamCreateStatement> forCreateStatement(

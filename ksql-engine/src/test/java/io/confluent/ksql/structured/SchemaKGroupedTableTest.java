@@ -49,12 +49,14 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import io.confluent.ksql.util.SchemaTestUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
@@ -97,7 +99,6 @@ public class SchemaKGroupedTableTest {
             , ksqlTable.getKsqlTopic().getKsqlTopicSerDe().getGenericRowSerde(
                 ksqlTable.getSchema(),
                 new KsqlConfig(Collections.emptyMap()),
-                false,
                 MockSchemaRegistryClient::new,
                 "test",
                 processingLogContext)));
@@ -112,7 +113,7 @@ public class SchemaKGroupedTableTest {
     final SchemaKTable<?> initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField().get(),
+        ksqlTable.getKeyField(),
         new ArrayList<>(),
         Serdes::String,
         SchemaKStream.Type.SOURCE,
@@ -125,9 +126,8 @@ public class SchemaKGroupedTableTest {
             .collect(Collectors.toList());
     final KsqlTopicSerDe ksqlTopicSerDe = new KsqlJsonTopicSerDe();
     final Serde<GenericRow> rowSerde = ksqlTopicSerDe.getGenericRowSerde(
-        initialSchemaKTable.getSchema(),
+        SchemaTestUtil.getSchemaWithNoAlias(initialSchemaKTable.getSchema()),
         null,
-        false,
         () -> null,
         "test",
         processingLogContext);
@@ -155,7 +155,6 @@ public class SchemaKGroupedTableTest {
           new KsqlJsonTopicSerDe().getGenericRowSerde(
               ksqlTable.getSchema(),
               ksqlConfig,
-              false,
               () -> null,
               "test",
               processingLogContext),
@@ -186,7 +185,6 @@ public class SchemaKGroupedTableTest {
           new KsqlJsonTopicSerDe().getGenericRowSerde(
               ksqlTable.getSchema(),
               ksqlConfig,
-              false,
               () -> null,
               "test",
               processingLogContext),
@@ -207,7 +205,7 @@ public class SchemaKGroupedTableTest {
     return new SchemaKGroupedTable(
         schema,
         kGroupedTable,
-        schema.fields().get(0),
+        Optional.of(schema.fields().get(0)),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry,

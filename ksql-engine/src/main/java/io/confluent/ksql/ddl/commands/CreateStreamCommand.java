@@ -48,7 +48,7 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
     final KsqlStream ksqlStream = new KsqlStream<>(
         sqlExpression,
         sourceName,
-        schema,
+        SchemaUtil.addImplicitRowTimeRowKeyToSchema(schema),
         (keyColumnName.length() == 0)
           ? Optional.empty() : SchemaUtil.getFieldByName(schema, keyColumnName),
         timestampExtractionPolicy,
@@ -56,7 +56,7 @@ public class CreateStreamCommand extends AbstractCreateStreamCommand {
         keySerdeFactory
     );
 
-    metaStore.putSource(ksqlStream.cloneWithTimeKeyColumns());
+    metaStore.putSource(ksqlStream);
     return new DdlCommandResult(true, "Stream created");
   }
 }

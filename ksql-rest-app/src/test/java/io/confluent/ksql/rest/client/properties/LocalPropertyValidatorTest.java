@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.client.properties;
 
-import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Before;
 import org.junit.Rule;
@@ -25,9 +23,6 @@ import org.junit.rules.ExpectedException;
 
 public class LocalPropertyValidatorTest {
 
-  private static final Collection<String> IMMUTABLE_PROPS =
-      ImmutableList.of("immutable-1", "immutable-2");
-
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
@@ -35,20 +30,22 @@ public class LocalPropertyValidatorTest {
 
   @Before
   public void setUp() {
-    validator = new LocalPropertyValidator(IMMUTABLE_PROPS);
+    validator = new LocalPropertyValidator();
   }
 
   @Test
-  public void shouldThrowOnImmutableProp() {
+  public void shouldThrowOnNonConfigurableProp() {
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Cannot override property 'immutable-2'");
+    expectedException.expectMessage("Cannot override property 'foo'");
 
-    validator.validate("immutable-2", "anything");
+    validator.validate("foo", "anything");
   }
 
   @Test
-  public void shouldNotThrowOnMutableProp() {
-    validator.validate("mutable-1", "anything");
+  public void shouldNotThrowOnConfigurableProp() {
+    LocalPropertyValidator
+        .CONFIG_PROPERTY_WHITELIST
+        .forEach(s -> validator.validate(s, "anything"));
   }
 
   @Test

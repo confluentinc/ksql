@@ -22,9 +22,10 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -109,9 +110,7 @@ public class SqlFormatterTest {
                                                    new StringLiteral("left.col0"),
                                                    new StringLiteral("right.col0")));
 
-    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
-
-
+    metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
     final KsqlTopic
         ksqlTopicOrders =
@@ -165,7 +164,7 @@ public class SqlFormatterTest {
     assertThat("not literal escaping failure", sql, containsString("NOLIT STRING"));
     assertThat("lowercase literal escaping failure", sql, containsString("`Having` STRING"));
     final List<PreparedStatement<?>> statements = KsqlParserTestUtil.buildAst(sql,
-        MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry()));
+        MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class)));
     assertFalse("formatted sql parsing error", statements.isEmpty());
   }
 

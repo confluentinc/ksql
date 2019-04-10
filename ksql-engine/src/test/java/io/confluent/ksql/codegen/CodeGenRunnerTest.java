@@ -35,6 +35,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -93,7 +94,7 @@ public class CodeGenRunnerTest {
 
     private MutableMetaStore metaStore;
     private CodeGenRunner codeGenRunner;
-    private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    private final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
     @Before
@@ -784,6 +785,17 @@ public class CodeGenRunnerTest {
         final List<Object> columns = executeExpression(query, inputValues);
         // test
         assertThat(columns, equalTo(Collections.singletonList("doStuffLongString")));
+    }
+
+    @Test
+    public void shouldHandleFunctionWithVarargs() {
+        final String query =
+            "SELECT test_udf(col0, col0, col0, col0, col0) FROM codegen_test;";
+
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final List<Object> columns = executeExpression(query, inputValues);
+        // test
+        assertThat(columns, equalTo(Collections.singletonList("doStuffLongVarargs")));
     }
 
     @Test

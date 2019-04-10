@@ -33,6 +33,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -213,12 +214,13 @@ public class StatementExecutor {
     putFinalStatus(commandId, commandStatusFuture, successStatus);
   }
 
-  @SuppressWarnings("ConstantConditions")
   private String executeDdlStatement(final PreparedStatement<?> statement, final Command command) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
+    final ConfiguredStatement<?> configured =
+        ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
 
     return ksqlEngine
-        .execute(statement, mergedConfig, command.getOverwriteProperties())
+        .execute(configured)
         .getCommandResult()
         .get();
   }
@@ -245,7 +247,9 @@ public class StatementExecutor {
     final List<QueryMetadata> queries = new ArrayList<>();
     for (final ParsedStatement parsed : ksqlEngine.parse(sql)) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-      ksqlEngine.execute(prepared, ksqlConfig, overriddenProperties)
+      final ConfiguredStatement<?> configured =
+          ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig);
+      ksqlEngine.execute(configured)
           .getQuery()
           .ifPresent(queries::add);
     }
@@ -279,11 +283,11 @@ public class StatementExecutor {
           ksqlEngine, mergedConfig, statement.getStatementText());
     }
 
-    final QueryMetadata queryMetadata = ksqlEngine.execute(
-        statement,
-        mergedConfig,
-        command.getOverwriteProperties()
-    ).getQuery().orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+        statement, command.getOverwriteProperties(), mergedConfig);
+    final QueryMetadata queryMetadata = ksqlEngine.execute(configured)
+        .getQuery()
+        .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
 
     if (!(queryMetadata instanceof PersistentQueryMetadata)) {
       throw new KsqlException(String.format(

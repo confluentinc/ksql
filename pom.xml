@@ -41,6 +41,7 @@
     <modules>
         <module>ksql-udf</module>
         <module>ksql-common</module>
+        <module>ksql-udf-quickstart</module>
         <module>ksql-serde</module>
         <module>ksql-metastore</module>
         <module>ksql-parser</module>
@@ -93,12 +94,13 @@
         <antlr.version>4.7</antlr.version>
         <csv.version>1.4</csv.version>
         <lang3.version>3.3.1</lang3.version>
-        <guava.version>24.0-jre</guava.version>
+        <guava.version>24.1.1-jre</guava.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
         <jline.version>3.9.0</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
+        <maven.plugins.version>3.0.0-M1</maven.plugins.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
@@ -266,6 +268,12 @@
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>

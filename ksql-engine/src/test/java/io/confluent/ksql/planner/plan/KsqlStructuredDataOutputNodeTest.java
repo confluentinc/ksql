@@ -22,11 +22,10 @@ import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -39,12 +38,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
@@ -72,7 +70,6 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -85,12 +82,16 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlStructuredDataOutputNodeTest {
+
   private static final String MAPVALUES_OUTPUT_NODE = "KSTREAM-MAPVALUES-0000000003";
   private static final String OUTPUT_NODE = "KSTREAM-SINK-0000000004";
   private static final String QUERY_ID_STRING = "output-test";
@@ -123,43 +124,33 @@ public class KsqlStructuredDataOutputNodeTest {
       dataSource,
       schema);
 
-  private StreamsBuilder builder = new StreamsBuilder();
+  private StreamsBuilder builder;
   private KsqlStructuredDataOutputNode outputNode;
 
   private SchemaKStream stream;
-  private ServiceContext serviceContext;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
-  private KafkaTopicClient mockTopicClient;
-  @Mock
   private QueryIdGenerator queryIdGenerator;
   @Mock
-  private TopicDescription topicDescription;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
+  private KsqlQueryBuilder ksqlStreamBuilder;
+  @Captor
+  private ArgumentCaptor<QueryContext> queryContextCaptor;
 
   @Before
   public void before() {
+    builder = new StreamsBuilder();
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
     createOutputNode(props, true);
     when(queryIdGenerator.getNextId()).thenReturn(QUERY_ID_STRING);
-    final Node node1 = mock(Node.class);
-    final Node node2 = mock(Node.class);
-    final TopicPartitionInfo topicPartitionInfo = mock(TopicPartitionInfo.class);
-    when(topicPartitionInfo.replicas()).thenReturn(ImmutableList.of(node1, node2));
-    when(topicDescription.partitions()).thenReturn(Collections.singletonList(topicPartitionInfo));
-    when(mockTopicClient.describeTopic(any())).thenReturn(topicDescription);
-    serviceContext = TestServiceContext.create(mockTopicClient);
-    stream = buildStream();
-  }
 
-  @After
-  public void tearDown() {
-    serviceContext.close();
+    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
+    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+        new QueryContext.Stacker(QUERY_ID)
+            .push(inv.getArgument(0).toString()));
   }
 
   private void createOutputNode(final Map<String, Object> props, final boolean createInto) {
@@ -167,7 +158,7 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        schema.field("key"),
+        Optional.of(schema.field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
         SINK_KAFKA_TOPIC_NAME,
         props,
@@ -175,19 +166,11 @@ public class KsqlStructuredDataOutputNodeTest {
         createInto);
   }
 
-  private SchemaKStream buildStream() {
-    builder = new StreamsBuilder();
-    return outputNode.buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        ProcessingLogContext.create(),
-        new InternalFunctionRegistry(),
-        QUERY_ID);
-  }
-
   @Test
   public void shouldBuildSourceNode() {
+    // When:
+    stream = outputNode.buildStream(ksqlStreamBuilder);
+
     // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
@@ -196,9 +179,11 @@ public class KsqlStructuredDataOutputNodeTest {
     assertThat(node.topicSet(), equalTo(ImmutableSet.of(SOURCE_KAFKA_TOPIC_NAME)));
   }
 
-
   @Test
   public void shouldBuildMapNodePriorToOutput() {
+    // When:
+    stream = outputNode.buildStream(ksqlStreamBuilder);
+
     // Then:
     verifyProcessorNode((TopologyDescription.Processor) getNodeByName(builder.build(), MAPVALUES_OUTPUT_NODE),
         Collections.singletonList(TRANSFORM_NODE),
@@ -207,6 +192,9 @@ public class KsqlStructuredDataOutputNodeTest {
 
   @Test
   public void shouldBuildOutputNode() {
+    // When:
+    stream = outputNode.buildStream(ksqlStreamBuilder);
+
     // Then:
     final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), OUTPUT_NODE);
     final List<String> predecessors = sink.predecessors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
@@ -217,12 +205,18 @@ public class KsqlStructuredDataOutputNodeTest {
 
   @Test
   public void shouldSetOutputNodeOnStream() {
+    // When:
+    stream = outputNode.buildStream(ksqlStreamBuilder);
+
     // Then:
     assertThat(stream.outputNode(), instanceOf(KsqlStructuredDataOutputNode.class));
   }
 
   @Test
   public void shouldHaveCorrectOutputNodeSchema() {
+    // When:
+    stream = outputNode.buildStream(ksqlStreamBuilder);
+
     // Then:
     final List<Field> expected = Arrays.asList(
         new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
@@ -242,162 +236,11 @@ public class KsqlStructuredDataOutputNodeTest {
     createOutputNode(Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "field2"), true);
 
     // When:
-    stream = buildStream();
+    stream = outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    final Field keyField = stream.getKeyField();
-    assertThat(keyField, equalTo(new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA)));
+    assertThat(stream.getKeyField(), is(Optional.of(new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA))));
     assertThat(stream.getSchema().fields(), equalTo(schema.fields()));
-  }
-
-  @Test
-  public void shouldCreateSinkTopic() {
-    // Then:
-    verify(mockTopicClient, times(1)).createTopic(
-        eq(SINK_KAFKA_TOPIC_NAME), eq(4), eq((short) 3), eq(Collections.emptyMap()));
-  }
-
-  @Test
-  public void shouldCreateSinkWithCorrectCleanupPolicyNonWindowedTable() {
-    // Given:
-    outputNode = getKsqlStructuredDataOutputNodeForTable(Serdes::String);
-
-    // When:
-    stream = buildStream();
-
-    // Then:
-    assertThat(stream, instanceOf(SchemaKTable.class));
-    final Map<String, String> topicConfig = ImmutableMap.of(
-        TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
-    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 4, (short) 3, topicConfig);
-  }
-
-  @Test
-  public void shouldCreateSinkWithCorrectCleanupPolicyWindowedTable() {
-    // Given:
-    reset(mockTopicClient);
-    outputNode = getKsqlStructuredDataOutputNodeForTable(
-        () -> WindowedSerdes.timeWindowedSerdeFrom(String.class));
-
-    // When:
-    stream = buildStream();
-
-    // Then:
-    assertThat(stream, instanceOf(SchemaKTable.class));
-    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 4, (short) 3, Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldCreateSinkWithCorrectCleanupPolicyStream() {
-    // Then:
-    assertThat(stream, instanceOf(SchemaKStream.class));
-    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 4, (short) 3, Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldCreateSinkWithTheSourcePartitionReplication() {
-    // Given:
-    createOutputNode(Collections.emptyMap(), true);
-
-    // When:
-    stream = buildStream();
-
-    // Then:
-    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 1, (short) 2, Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldNotFetchSourceTopicPropsIfProvided() {
-    // Given:
-    createOutputNode(ImmutableMap.of(
-        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 5,
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 3
-    ), true);
-
-    // When:
-    stream = buildStream();
-
-    // Then:
-    verify(mockTopicClient, never()).describeTopics(any());
-    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 5, (short) 3, Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldCreateSinkWithTheSourceReplicationAndProvidedPartition() {
-    // Given:
-    createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 5), true);
-
-    // When:
-    stream = buildStream();
-
-    // Then:
-    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 5, (short) 2, Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldCreateSinkWithTheSourcePartitionAndProvidedReplication() {
-    // Given:
-    createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 2), true);
-
-    // When:
-    stream = buildStream();
-
-    // Then:
-    verify(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 1, (short) 2, Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldThrowIfSinkTopicHasDifferentPropertiesThanRequested() {
-    // Given:
-    doThrow(KsqlException.class).when(mockTopicClient).createTopic(SINK_KAFKA_TOPIC_NAME, 1, (short) 2, Collections.emptyMap());
-    createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 2), true);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-
-    // When:
-    buildStream();
-
-  }
-
-  @Test
-  public void shouldUseLegacySinkPartitionCountIfLegacyIsTrue() {
-    // Given:
-    Mockito.<Object>when(ksqlConfig.values()).thenReturn(ImmutableMap.<String, Object>of(
-        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, KsqlConstants.legacyDefaultSinkPartitionCount
-    ));
-    when(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY)).thenReturn(KsqlConstants.legacyDefaultSinkPartitionCount);
-    createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 2), true);
-
-    // When:
-    stream = buildStream();
-
-    // Then:
-    verify(mockTopicClient).createTopic(
-        SINK_KAFKA_TOPIC_NAME,
-        KsqlConstants.legacyDefaultSinkPartitionCount,
-        (short) 2,
-        Collections.emptyMap());
-  }
-
-  @Test
-  public void shouldUseLegacySinkReplicasCountIfLegacyIsTrue() {
-    // Given:
-    Mockito.<Object>when(ksqlConfig.values()).thenReturn(ImmutableMap.<String, Object>of(
-        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, KsqlConstants.legacyDefaultSinkReplicaCount
-    ));
-    when(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY)).thenReturn(KsqlConstants.legacyDefaultSinkReplicaCount);
-    createOutputNode(Collections.singletonMap(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 5), true);
-
-    // When:
-    stream = buildStream();
-
-    // Then:
-    verify(mockTopicClient).createTopic(
-        SINK_KAFKA_TOPIC_NAME,
-        5,
-        KsqlConstants.legacyDefaultSinkReplicaCount,
-        Collections.emptyMap());
   }
 
   @Test
@@ -439,26 +282,20 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private static KsqlTopic mockTopic(final KsqlTopicSerDe topicSerde) {
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
-    when(ksqlTopic.getKafkaTopicName()).thenReturn("output");
-    when(ksqlTopic.getKsqlTopicName()).thenReturn("output");
     when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(topicSerde);
     return ksqlTopic;
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldUseCorrectLoggerNameForSerializer() {
     // Given:
     final KsqlTopicSerDe topicSerde = mock(KsqlTopicSerDe.class);
-    final Serde serde = mock(Serde.class);
-    when(topicSerde.getGenericRowSerde(any(), any(), anyBoolean(), any(), any(), any()))
-        .thenReturn(serde);
     outputNode = new KsqlStructuredDataOutputNode(
         new PlanNodeId("0"),
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        schema.field("key"),
+        Optional.ofNullable(schema.field("key")),
         mockTopic(topicSerde),
         "output",
         Collections.emptyMap(),
@@ -466,22 +303,16 @@ public class KsqlStructuredDataOutputNodeTest {
         false);
 
     // When:
-    buildStream();
+    outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(topicSerde)
-        .getGenericRowSerde(
-            any(),
-            any(),
-            anyBoolean(),
-            any(),
-            startsWith(
-                QueryLoggerUtil.queryLoggerName(
-                    new QueryContext.Stacker(QUERY_ID)
-                        .push(outputNode.getId().toString())
-                        .getQueryContext())),
-            any()
-        );
+    verify(ksqlStreamBuilder).buildGenericRowSerde(
+        eq(topicSerde),
+        eq(schema),
+        queryContextCaptor.capture()
+    );
+
+    assertThat(QueryLoggerUtil.queryLoggerName(queryContextCaptor.getValue()), is("output-test.0"));
   }
 
   private <K> KsqlStructuredDataOutputNode getKsqlStructuredDataOutputNodeForTable(
@@ -507,7 +338,7 @@ public class KsqlStructuredDataOutputNodeTest {
         tableSourceNode,
         schema,
         new MetadataTimestampExtractionPolicy(),
-        schema.field("key"),
+        Optional.ofNullable(schema.field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
         SINK_KAFKA_TOPIC_NAME,
         props,

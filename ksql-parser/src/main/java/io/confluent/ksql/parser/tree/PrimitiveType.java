@@ -24,13 +24,15 @@ import java.util.Optional;
 @Immutable
 public final class PrimitiveType extends Type {
 
-  private static final ImmutableMap<SqlType, PrimitiveType> TYPES = ImmutableMap.of(
-      SqlType.BOOLEAN, new PrimitiveType(SqlType.BOOLEAN),
-      SqlType.INTEGER, new PrimitiveType(SqlType.INTEGER),
-      SqlType.BIGINT, new PrimitiveType(SqlType.BIGINT),
-      SqlType.DOUBLE, new PrimitiveType(SqlType.DOUBLE),
-      SqlType.STRING, new PrimitiveType(SqlType.STRING)
-  );
+  private static final ImmutableMap<SqlType, PrimitiveType> TYPES =
+      ImmutableMap.<SqlType, PrimitiveType>builder()
+      .put(SqlType.BOOLEAN, new PrimitiveType(SqlType.BOOLEAN))
+      .put(SqlType.INTEGER, new PrimitiveType(SqlType.INTEGER))
+      .put(SqlType.BIGINT,  new PrimitiveType(SqlType.BIGINT))
+      .put(SqlType.DOUBLE,  new PrimitiveType(SqlType.DOUBLE))
+      .put(SqlType.STRING,  new PrimitiveType(SqlType.STRING))
+      .build();
+
 
   public static PrimitiveType of(final String typeName) {
     switch (typeName.toUpperCase()) {

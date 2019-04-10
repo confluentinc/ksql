@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.rest.server.validation;
 
+import static io.confluent.ksql.util.SandboxUtil.requireSandbox;
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -23,16 +26,18 @@ import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.client.properties.LocalPropertyValidator;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -48,7 +53,8 @@ public class RequestValidator {
   private static final Logger LOG = LoggerFactory.getLogger(RequestValidator.class);
 
   private final Map<Class<? extends Statement>, StatementValidator<?>> customValidators;
-  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
+  private final Function<KsqlExecutionContext, Injector> topicInjectorFactory;
+  private final Function<ServiceContext, Injector> schemaInjectorFactory;
   private final Supplier<KsqlExecutionContext> snapshotSupplier;
   private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
@@ -64,16 +70,18 @@ public class RequestValidator {
    */
   public RequestValidator(
       final Map<Class<? extends Statement>, StatementValidator<?>> customValidators,
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
+      final Function<ServiceContext, Injector> schemaInjectorFactory,
+      final Function<KsqlExecutionContext, Injector> topicInjectorFactory,
       final Supplier<KsqlExecutionContext> snapshotSupplier,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig
   ) {
-    this.customValidators = Objects.requireNonNull(customValidators, "customValidators");
-    this.schemaInjectorFactory = Objects.requireNonNull(schemaInjectorFactory, "schemaInjector");
-    this.snapshotSupplier = Objects.requireNonNull(snapshotSupplier, "snapshotSupplier");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.customValidators = requireNonNull(customValidators, "customValidators");
+    this.schemaInjectorFactory = requireNonNull(schemaInjectorFactory, "schemaInjector");
+    this.topicInjectorFactory = requireNonNull(topicInjectorFactory, "topicInjectorFactory");
+    this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
+    this.serviceContext = requireSandbox(requireNonNull(serviceContext, "serviceContext"));
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   /**
@@ -95,16 +103,20 @@ public class RequestValidator {
       final Map<String, Object> propertyOverrides,
       final String sql
   ) {
-    final KsqlExecutionContext ctx = snapshotSupplier.get();
-    final SchemaInjector injector = schemaInjectorFactory.apply(serviceContext);
+    validateOverriddenConfigProperties(propertyOverrides);
+    final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.get());
+    final Injector schemaInjector = schemaInjectorFactory.apply(serviceContext);
+    final Injector topicInjector = topicInjectorFactory.apply(ctx);
 
     int numPersistentQueries = 0;
     for (ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ctx.prepare(parsed);
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+          prepared, propertyOverrides, ksqlConfig);
 
       numPersistentQueries += (prepared.getStatement() instanceof RunScript)
-          ? validateRunScript(prepared, propertyOverrides, ctx)
-          : validate(prepared, ksqlConfig, propertyOverrides, ctx, injector);
+          ? validateRunScript(configured, ctx)
+          : validate(configured, ctx, schemaInjector, topicInjector);
     }
 
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig, numPersistentQueries)) {
@@ -121,41 +133,33 @@ public class RequestValidator {
    */
   @SuppressWarnings("unchecked")
   private <T extends Statement> int validate(
-      final PreparedStatement<T> prepared,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides,
+      final ConfiguredStatement<T> configured,
       final KsqlExecutionContext executionContext,
-      final SchemaInjector schemaInjector
-  ) throws KsqlStatementException  {
-    final Statement statement = prepared.getStatement();
+      final Injector schemaInjector,
+      final Injector topicInjector) throws KsqlStatementException  {
+    final Statement statement = configured.getStatement();
     final Class<? extends Statement> statementClass = statement.getClass();
     final StatementValidator<T> customValidator = (StatementValidator<T>)
         customValidators.get(statementClass);
 
     if (customValidator != null) {
-      customValidator.validate(
-          prepared, executionContext, serviceContext, ksqlConfig, propertyOverrides);
-    } else if (KsqlEngine.isExecutableStatement(prepared)) {
-      executionContext.execute(
-          schemaInjector.forStatement(prepared),
-          ksqlConfig,
-          propertyOverrides
-      );
+      customValidator.validate(configured, executionContext, serviceContext);
+    } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
+      executionContext.execute(topicInjector.inject(schemaInjector.inject(configured)));
     } else {
       throw new KsqlStatementException(
           "Do not know how to validate statement of type: " + statementClass
               + " Known types: " + customValidators.keySet(),
-          prepared.getStatementText());
+          configured.getStatementText());
     }
 
     return (statement instanceof CreateAsSelect || statement instanceof InsertInto) ? 1 : 0;
   }
 
   private int validateRunScript(
-      final PreparedStatement<?> statement,
-      final Map<String, Object> propertyOverrides,
+      final ConfiguredStatement<?> statement,
       final KsqlExecutionContext executionContext) {
-    final String sql = (String) propertyOverrides
+    final String sql = (String) statement.getOverrides()
         .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
 
     if (sql == null) {
@@ -167,7 +171,19 @@ public class RequestValidator {
         + "Note: RUN SCRIPT is deprecated and will be removed in the next major version. "
         + "statement: " + statement.getStatementText());
 
-    return validate(executionContext.parse(sql), propertyOverrides, sql);
+    return validate(executionContext.parse(sql), statement.getOverrides(), sql);
+  }
+
+  private static void validateOverriddenConfigProperties(
+      final Map<String, Object> propertyOverrides
+  ) {
+    propertyOverrides.keySet()
+        .forEach(
+            propertyName -> {
+              if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
+                throw new KsqlException("Invalid config property: " + propertyName);
+              }
+            });
   }
 
 }

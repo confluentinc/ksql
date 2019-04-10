@@ -18,27 +18,22 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
+import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
 
 @Immutable
-public class FilterNode
-    extends PlanNode {
+public class FilterNode extends PlanNode {
+
   private final PlanNode source;
   private final Expression predicate;
   private final Schema schema;
-  private final Field keyField;
 
   @JsonCreator
   public FilterNode(@JsonProperty("id") final PlanNodeId id,
@@ -49,7 +44,6 @@ public class FilterNode
     this.source = source;
     this.schema = source.getSchema();
     this.predicate = predicate;
-    this.keyField = source.getKeyField();
   }
 
   @JsonProperty("predicate")
@@ -63,8 +57,8 @@ public class FilterNode
   }
 
   @Override
-  public Field getKeyField() {
-    return keyField;
+  public Optional<Field> getKeyField() {
+    return source.getKeyField();
   }
 
   @Override
@@ -88,20 +82,12 @@ public class FilterNode
   }
 
   @Override
-  public SchemaKStream<?> buildStream(
-      final StreamsBuilder builder,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final FunctionRegistry functionRegistry,
-      final QueryId queryId) {
-    return getSource().buildStream(
-        builder,
-        ksqlConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId
-    ).filter(getPredicate(), buildNodeContext(queryId), processingLogContext);
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+    return getSource().buildStream(builder)
+        .filter(
+            getPredicate(),
+            builder.buildNodeContext(getId()),
+            builder.getProcessingLogContext()
+        );
   }
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -25,6 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 
 @Immutable
 public final class KsqlFunction {
@@ -38,6 +40,7 @@ public final class KsqlFunction {
   private final Function<KsqlConfig, Kudf> udfFactory;
   private final String description;
   private final String pathLoadedFrom;
+  private final boolean isVariadic;
 
   /**
    * Create built in / legacy function.
@@ -59,7 +62,7 @@ public final class KsqlFunction {
     };
 
     return create(
-        returnType, arguments, functionName, kudfClass, udfFactory, "", INTERNAL_PATH);
+        returnType, arguments, functionName, kudfClass, udfFactory, "", INTERNAL_PATH, false);
   }
 
   /**
@@ -74,10 +77,18 @@ public final class KsqlFunction {
       final Class<? extends Kudf> kudfClass,
       final Function<KsqlConfig, Kudf> udfFactory,
       final String description,
-      final String pathLoadedFrom
+      final String pathLoadedFrom,
+      final boolean isVariadic
   ) {
     return new KsqlFunction(
-        returnType, arguments, functionName, kudfClass, udfFactory, description, pathLoadedFrom);
+        returnType,
+        arguments,
+        functionName,
+        kudfClass,
+        udfFactory,
+        description,
+        pathLoadedFrom,
+        isVariadic);
   }
 
   private KsqlFunction(
@@ -87,8 +98,8 @@ public final class KsqlFunction {
       final Class<? extends Kudf> kudfClass,
       final Function<KsqlConfig, Kudf> udfFactory,
       final String description,
-      final String pathLoadedFrom
-  ) {
+      final String pathLoadedFrom,
+      final boolean isVariadic) {
     this.returnType = Objects.requireNonNull(returnType, "returnType");
     this.arguments = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
     this.functionName = Objects.requireNonNull(functionName, "functionName");
@@ -96,11 +107,23 @@ public final class KsqlFunction {
     this.udfFactory = Objects.requireNonNull(udfFactory, "udfFactory");
     this.description = Objects.requireNonNull(description, "description");
     this.pathLoadedFrom  = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom");
+    this.isVariadic = isVariadic;
 
     if (arguments.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
     }
+    if (isVariadic) {
+      if (arguments.isEmpty()) {
+        throw new IllegalArgumentException(
+            "KSQL variadic functions must have at least one parameter");
+      }
+      if (!Iterables.getLast(arguments).type().equals(Type.ARRAY)) {
+        throw new IllegalArgumentException(
+            "KSQL variadic functions must have ARRAY type as their last parameter");
+      }
+    }
   }
+
 
   public Schema getReturnType() {
     return returnType;
@@ -126,6 +149,10 @@ public final class KsqlFunction {
     return pathLoadedFrom;
   }
 
+  public boolean isVariadic() {
+    return isVariadic;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -139,12 +166,13 @@ public final class KsqlFunction {
         && Objects.equals(arguments, that.arguments)
         && Objects.equals(functionName, that.functionName)
         && Objects.equals(kudfClass, that.kudfClass)
-        && Objects.equals(pathLoadedFrom, that.pathLoadedFrom);
+        && Objects.equals(pathLoadedFrom, that.pathLoadedFrom)
+        && (isVariadic == that.isVariadic);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom);
+    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom, isVariadic);
   }
 
   @Override
@@ -156,6 +184,7 @@ public final class KsqlFunction {
         + ", kudfClass=" + kudfClass
         + ", description='" + description + "'"
         + ", pathLoadedFrom='" + pathLoadedFrom + "'"
+        + ", isVariadic=" + isVariadic
         + '}';
   }
 

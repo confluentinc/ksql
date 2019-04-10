@@ -15,11 +15,15 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.parser.ParserMatchers.configured;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -95,7 +99,7 @@ public class KsqlRestApplicationTest {
         .thenReturn(LOG_TOPIC_NAME);
     when(ksqlEngine.createSandbox()).thenReturn(sandBox);
     when(commandQueue.isEmpty()).thenReturn(true);
-    when(commandQueue.enqueueCommand(any(), any(), any()))
+    when(commandQueue.enqueueCommand(any()))
         .thenReturn(queuedCommandStatus);
     when(serviceContext.getAdminClient())
         .thenReturn(new FakeKafkaClientSupplier().getAdminClient(Collections.emptyMap()));
@@ -141,8 +145,9 @@ public class KsqlRestApplicationTest {
             processingLogConfig,
             ksqlConfig
         );
-    verify(sandBox).execute(statement, ksqlConfig, Collections.emptyMap());
-    verify(commandQueue).enqueueCommand(statement, ksqlConfig, Collections.emptyMap());
+    verify(sandBox).execute(argThat(configured(equalTo(statement))));
+    verify(commandQueue).enqueueCommand(
+        argThat(configured(equalTo(statement), Collections.emptyMap(), ksqlConfig)));
   }
 
   @Test
@@ -177,13 +182,13 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(), any());
+    verify(commandQueue, never()).enqueueCommand(any());
   }
 
   @Test
   public void shouldNotCreateLogStreamIfValidationFails() {
     // Given:
-    when(sandBox.execute(any(), any(), any())).thenThrow(new KsqlException("error"));
+    when(sandBox.execute(any())).thenThrow(new KsqlException("error"));
 
     // When:
     KsqlRestApplication.maybeCreateProcessingLogStream(
@@ -194,6 +199,6 @@ public class KsqlRestApplicationTest {
     );
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(), any());
+    verify(commandQueue, never()).enqueueCommand(any());
   }
 }

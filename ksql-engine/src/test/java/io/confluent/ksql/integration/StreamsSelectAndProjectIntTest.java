@@ -32,6 +32,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.data.Schema;
@@ -41,6 +43,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 
 
 @Category({IntegrationTest.class})
@@ -51,8 +54,12 @@ public class StreamsSelectAndProjectIntTest {
   private static final String AVRO_TIMESTAMP_STREAM_NAME = "orders_timestamp_avro";
   private static final OrderDataProvider DATA_PROVIDER = new OrderDataProvider();
 
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+
   @ClassRule
-  public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(TEST_HARNESS);
 
   @Rule
   public final TestKsqlContext ksqlContext = TEST_HARNESS.buildKsqlContext();

@@ -57,6 +57,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.WithClauseUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -136,34 +137,22 @@ class Analyzer {
     }
 
     if (sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS) != null) {
-      try {
-        final int numberOfPartitions = Integer.parseInt(
-            sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString()
-        );
-        analysis.getIntoProperties().put(
-            KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
-            numberOfPartitions
-        );
+      final int numberOfPartitions =
+          WithClauseUtil.parsePartitions(
+              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString());
 
-      } catch (final NumberFormatException e) {
-        throw new KsqlException(
-            "Invalid number of partitions in WITH clause: "
-                + sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS).toString());
-      }
+      analysis.getIntoProperties().put(
+          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+          numberOfPartitions
+      );
     }
 
     if (sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS) != null) {
-      try {
-        final short numberOfReplications =
-            Short.parseShort(
-                sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString()
-            );
-        analysis.getIntoProperties()
-            .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
-      } catch (final NumberFormatException e) {
-        throw new KsqlException("Invalid number of replications in WITH clause: " + sink
-            .getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
-      }
+      final short numberOfReplications =
+          WithClauseUtil.parseReplicas(
+              sink.getProperties().get(KsqlConstants.SINK_NUMBER_OF_REPLICAS).toString());
+      analysis.getIntoProperties()
+          .put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, numberOfReplications);
     }
   }
 

@@ -56,10 +56,12 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -399,7 +401,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
-    final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
+    final Function<ServiceContext, Injector> schemaInjectorFactory = sc ->
         new DefaultSchemaInjector(
             new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
 
@@ -410,8 +412,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        schemaInjectorFactory
-    );
+        schemaInjectorFactory,
+        DefaultTopicInjector::new);
 
     final Optional<String> processingLogTopic =
         ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
@@ -506,14 +508,16 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final PreparedStatement<?> statement = ProcessingLogServerUtils
         .processingLogStreamCreateStatement(config, ksqlConfig);
+    final Supplier<ConfiguredStatement<?>> configured = () -> ConfiguredStatement.of(
+        statement, Collections.emptyMap(), ksqlConfig);
 
     try {
-      ksqlEngine.createSandbox().execute(statement, ksqlConfig, Collections.emptyMap());
+      ksqlEngine.createSandbox().execute(configured.get());
     } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);
       return;
     }
 
-    commandQueue.enqueueCommand(statement, ksqlConfig, Collections.emptyMap());
+    commandQueue.enqueueCommand(configured.get());
   }
 }

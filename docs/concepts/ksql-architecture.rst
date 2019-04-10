@@ -294,8 +294,8 @@ CREATE TABLE. For example, the following KSQL statement creates a stream named
 
 .. code:: sql
 
-    CREATE STREAM authorization_attempts                        \
-      (card_number VARCHAR, attemptTime BIGINT, ...)            \
+    CREATE STREAM authorization_attempts
+      (card_number VARCHAR, attemptTime BIGINT, ...)
       WITH (kafka_topic='authorizations', value_format=‘JSON’); 
 
 KSQL writes DDL and DML statements to the *command topic*. Each KSQL
@@ -341,12 +341,12 @@ from the ``authorization_attempts`` stream:
 
 .. code:: sql
 
-    CREATE TABLE possible_fraud AS     \
-      SELECT card_number, count(*)     \
-      FROM authorization_attempts      \
-      WINDOW TUMBLING (SIZE 5 SECONDS) \
-      WHERE region = ‘west’            \
-      GROUP BY card_number             \
+    CREATE TABLE possible_fraud AS
+      SELECT card_number, count(*)
+      FROM authorization_attempts
+      WINDOW TUMBLING (SIZE 5 SECONDS)
+      WHERE region = ‘west’
+      GROUP BY card_number
       HAVING count(*) > 3; 
 
 The KSQL engine translates the DML statement into a Kafka Streams application.

@@ -30,6 +30,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -48,7 +49,7 @@ public class SchemaKGroupedStream {
 
   final Schema schema;
   final KGroupedStream kgroupedStream;
-  final Field keyField;
+  final Optional<Field> keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
@@ -57,7 +58,7 @@ public class SchemaKGroupedStream {
   SchemaKGroupedStream(
       final Schema schema,
       final KGroupedStream kgroupedStream,
-      final Field keyField,
+      final Optional<Field> keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
@@ -76,7 +77,7 @@ public class SchemaKGroupedStream {
   SchemaKGroupedStream(
       final Schema schema,
       final KGroupedStream kgroupedStream,
-      final Field keyField,
+      final Optional<Field> keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
@@ -91,7 +92,7 @@ public class SchemaKGroupedStream {
     this.materializedFactory = materializedFactory;
   }
 
-  public Field getKeyField() {
+  public Optional<Field> getKeyField() {
     return keyField;
   }
 

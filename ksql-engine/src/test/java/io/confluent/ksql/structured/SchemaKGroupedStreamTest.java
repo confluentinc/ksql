@@ -41,6 +41,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -67,7 +68,7 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private KGroupedStream groupedStream;
   @Mock
-  private Field keyField;
+  private Optional<Field> keyField;
   @Mock
   private List<SchemaKStream> sourceStreams;
   @Mock

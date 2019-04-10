@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -44,7 +44,7 @@ public class MetaStoreTest {
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(new TestFunctionRegistry());
+    metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
   }
 
   @Test

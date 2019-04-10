@@ -17,6 +17,7 @@ package io.confluent.ksql.function;
 
 import com.google.common.primitives.Primitives;
 import com.squareup.javapoet.CodeBlock;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -62,6 +63,14 @@ public final class UdfTemplate {
       final Class<? extends T> clazz,
       final int index) {
     final Object arg = args[index];
+    return coerce(arg, clazz, index);
+  }
+
+  public static <T> T coerce(
+      final Object arg,
+      final Class<? extends T> clazz,
+      final int index
+  ) {
     if (arg == null) {
       if (clazz.isPrimitive()) {
         throw new KsqlFunctionException(
@@ -71,14 +80,22 @@ public final class UdfTemplate {
       return null;
     }
 
+    if (clazz.isArray()) {
+      try {
+        return fromArray(arg, clazz);
+      } catch (Exception e) {
+        throw new KsqlFunctionException(
+            String.format("Couldn't coerce array argument \"args[%d]\" to type %s", index, clazz)
+        );
+      }
+    }
+
     // using boxed type is safe: long.class and Long.class are both of type Class<Long>
     // and this is a no-op for non-primitives
     final Class<? extends T> boxedType = Primitives.wrap(clazz);
     if (boxedType.isAssignableFrom(arg.getClass())) {
       return boxedType.cast(arg);
-    }
-
-    if (arg instanceof String) {
+    } else if (arg instanceof String) {
       try {
         return fromString((String) arg, clazz);
       } catch (Exception e) {
@@ -86,9 +103,7 @@ public final class UdfTemplate {
             String.format("Couldn't coerce string argument '\"args[%d]\"' to type %s",
                           index, clazz));
       }
-    }
-
-    if (arg instanceof Number) {
+    } else if (arg instanceof Number) {
       try {
         return fromNumber((Number) arg, boxedType);
       } catch (Exception e) {
@@ -96,10 +111,29 @@ public final class UdfTemplate {
             String.format("Couldn't coerce numeric argument '\"args[%d]:(%s) %s\"' to type %s",
                           index, arg.getClass(), arg, clazz));
       }
+    } else {
+      throw new KsqlFunctionException(
+          String.format("Impossible to coerce (%s) %s into %s", arg.getClass(), arg, clazz));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T> T fromArray(
+      final Object args,
+      final Class<? extends T> arrayType
+  ) {
+    if (!args.getClass().isArray()) {
+      throw new KsqlFunctionException(
+          String.format("Cannot coerce non-array object %s to %s", args, arrayType));
     }
 
-    throw new KsqlFunctionException(
-        String.format("Impossible to coerce (%s) %s into %s", arg.getClass(), arg, clazz));
+    final int length = Array.getLength(args);
+    final Class<?> componentType = arrayType.getComponentType();
+    final Object val = Array.newInstance(componentType, length);
+    for (int i = 0; i < length; i++) {
+      Array.set(val, i, coerce(Array.get(args, i), componentType, i));
+    }
+    return (T) val;
   }
 
   private static <T> T fromNumber(final Number arg, final Class<? extends T> boxedType) {

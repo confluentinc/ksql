@@ -16,24 +16,20 @@
 package io.confluent.ksql.rest.server.validation;
 
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
-import java.util.Map;
 
 public final class TerminateQueryValidator {
 
   private TerminateQueryValidator() { }
 
   public static void validate(
-      final PreparedStatement<?> statement,
+      final ConfiguredStatement<?> statement,
       final KsqlExecutionContext context,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final TerminateQuery terminateQuery = (TerminateQuery) statement.getStatement();
     final QueryId queryId = terminateQuery.getQueryId();

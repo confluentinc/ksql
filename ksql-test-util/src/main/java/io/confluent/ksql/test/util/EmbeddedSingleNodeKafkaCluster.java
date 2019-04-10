@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,7 +49,9 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
+import org.apache.kafka.common.resource.ResourceType;
 import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
@@ -83,22 +86,26 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private final TemporaryFolder tmpFolder = new TemporaryFolder();
   private final SimpleAclAuthorizer authorizer = new SimpleAclAuthorizer();
   private final Set<kafka.security.auth.Resource> addedAcls = new HashSet<>();
+  private final Map<AclKey, Set<AclOperation>> initialAcls;
 
   private ZooKeeperEmbedded zookeeper;
   private KafkaEmbedded broker;
 
   /**
    * Creates and starts a Kafka cluster.
-   *
-   * @param brokerConfig Additional broker configuration settings.
+   *  @param brokerConfig Additional broker configuration settings.
    * @param clientConfig Additional client configuration settings.
+   * @param initialAcls a set of ACLs to set when the cluster starts.
    */
   private EmbeddedSingleNodeKafkaCluster(
       final Map<String, Object> brokerConfig,
       final Map<String, Object> clientConfig,
-      final String additionalJaasConfig) {
+      final String additionalJaasConfig,
+      final Map<AclKey, Set<AclOperation>> initialAcls
+  ) {
     this.brokerConfig.putAll(brokerConfig);
     this.clientConfig.putAll(clientConfig);
+    this.initialAcls = ImmutableMap.copyOf(initialAcls);
 
     this.previousJassConfig = System.getProperty("java.security.auth.login.config");
     this.jassConfigFile = createServerJaasConfig(additionalJaasConfig);
@@ -119,6 +126,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
     authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
+
+    initialAcls.forEach((key, ops) ->
+        addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));
   }
 
   @Override
@@ -221,7 +231,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param replication The replication factor for (partitions of) this topic.
    * @param topicConfig Additional topic-level configuration settings.
    */
-  public void createTopic(final String topic,
+  public void createTopic(
+      final String topic,
                           final int partitions,
                           final int replication,
                           final Map<String, String> topicConfig) {
@@ -236,10 +247,11 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param resource    the thing
    * @param ops         the what.
    */
-  public void addUserAcl(final String username,
-                         final AclPermissionType permission,
-                         final ResourcePattern resource,
-                         final Set<AclOperation> ops) {
+  public void addUserAcl(
+      final String username,
+      final AclPermissionType permission,
+      final ResourcePattern resource,
+      final Set<AclOperation> ops) {
 
     final KafkaPrincipal principal = new KafkaPrincipal("User", username);
     final PermissionType scalaPermission = PermissionType$.MODULE$.fromJava(permission);
@@ -306,7 +318,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     try {
       final String jaasConfigContent = createJaasConfigContent() + additionalJaasConfig;
       final File jaasConfig = TestUtils.tempFile();
-      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes((StandardCharsets.UTF_8)));
+      Files.write(jaasConfig.toPath(), jaasConfigContent.getBytes(StandardCharsets.UTF_8));
       return jaasConfig.getAbsolutePath();
     } catch (final Exception e) {
       throw new RuntimeException(e);
@@ -339,11 +351,30 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     Configuration.setConfiguration(null);
   }
 
+  public static Set<AclOperation> ops(final AclOperation... ops) {
+    return Arrays.stream(ops).collect(Collectors.toSet());
+  }
+
+  public static ResourcePattern resource(
+      final ResourceType resourceType,
+      final String resourceName
+  ) {
+    return new ResourcePattern(resourceType, resourceName, PatternType.LITERAL);
+  }
+
+  public static ResourcePattern prefixedResource(
+      final ResourceType resourceType,
+      final String resourceName
+  ) {
+    return new ResourcePattern(resourceType, resourceName, PatternType.PREFIXED);
+  }
+
   public static final class Builder {
 
     private final Map<String, Object> brokerConfig = new HashMap<>();
     private final Map<String, Object> clientConfig = new HashMap<>();
     private final StringBuilder additionalJaasConfig = new StringBuilder();
+    private final Map<AclKey, Set<AclOperation>> acls = new HashMap<>();
 
     Builder() {
       brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), SimpleAclAuthorizer.class.getName());
@@ -376,12 +407,23 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       return this;
     }
 
-    public Builder withAcls(final String... superUsers) {
+    public Builder withAclsEnabled(final String... superUsers) {
       brokerConfig.remove(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
       brokerConfig.put(SimpleAclAuthorizer.SuperUsersProp(),
-                       Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
-                           .map(s -> "User:" + s)
-                           .collect(Collectors.joining(";")));
+          Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
+              .map(s -> "User:" + s)
+              .collect(Collectors.joining(";")));
+      return this;
+    }
+
+    public Builder withAcl(
+        final Credentials credentials,
+        final ResourcePattern resource,
+        final Set<AclOperation> ops
+    ) {
+      acls.computeIfAbsent(AclKey.of(credentials.username, resource), k -> new HashSet<>())
+          .addAll(ops);
+
       return this;
     }
 
@@ -399,7 +441,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     public EmbeddedSingleNodeKafkaCluster build() {
       return new EmbeddedSingleNodeKafkaCluster(
-          brokerConfig, clientConfig, additionalJaasConfig.toString());
+          brokerConfig, clientConfig, additionalJaasConfig.toString(), acls);
     }
 
     private void addListenersProp(final String listenerType) {
@@ -413,6 +455,47 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
           .filter(part -> !part.startsWith(listenerType + "://"))
           .collect(Collectors.joining(","));
       brokerConfig.put(KafkaConfig.ListenersProp(), replacement);
+    }
+  }
+
+  private static final class AclKey {
+
+    private final String userName;
+    private final ResourcePattern resourcePattern;
+
+    AclKey(final String userName, final ResourcePattern resourcePattern) {
+      this.userName = Objects.requireNonNull(userName, "userName");
+      this.resourcePattern = Objects.requireNonNull(resourcePattern, "resourcePattern");
+    }
+
+    static AclKey of(final String userName, final ResourcePattern resourcePattern) {
+      return new AclKey(userName, resourcePattern);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final AclKey aclKey = (AclKey) o;
+      return Objects.equals(userName, aclKey.userName)
+          && Objects.equals(resourcePattern, aclKey.resourcePattern);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(userName, resourcePattern);
+    }
+
+    @Override
+    public String toString() {
+      return "AclKey{"
+          + "userName='" + userName + '\''
+          + ", resourcePattern=" + resourcePattern
+          + '}';
     }
   }
 }

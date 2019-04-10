@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
@@ -36,6 +37,7 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -125,8 +127,11 @@ public class TemporaryEngine extends ExternalResource {
         .preconditionTopicExists(name, 1, (short) 1, Collections.emptyMap());
   }
 
-  public PreparedStatement<?> prepare(final String sql) {
-    return getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0));
+  public ConfiguredStatement<?> configure(final String sql) {
+    return ConfiguredStatement.of(
+        getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0)),
+        new HashMap<>(),
+        ksqlConfig);
   }
 
   @SuppressWarnings("SameParameterValue")

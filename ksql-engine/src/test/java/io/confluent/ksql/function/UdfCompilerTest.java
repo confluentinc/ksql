@@ -30,13 +30,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class UdfCompilerTest {
+
+  private static final Schema STRUCT_SCHEMA =
+      SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).build();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -86,6 +93,12 @@ public class UdfCompilerTest {
   }
 
   @Test
+  public void shouldCompileFunctionWithIntVarArgs() throws NoSuchMethodException {
+    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", int[].class), classLoader);
+    assertThat(udf.eval(this, (Object) new int[]{1, 1}), equalTo(2));
+  }
+
+  @Test
   public void shouldCompileFunctionWithPrimitiveLongArgument() throws NoSuchMethodException {
     final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfPrimitive", long.class), classLoader);
     assertThat(udf.eval(this, 1), equalTo(1L));
@@ -110,6 +123,12 @@ public class UdfCompilerTest {
   }
 
   @Test
+  public void shouldCompileFunctionWithStringVarArgs() throws NoSuchMethodException {
+    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udf", String[].class), classLoader);
+    assertThat(udf.eval(this, (Object) new String[]{"foo", "bar"}), equalTo("foobar"));
+  }
+
+  @Test
   public void shouldHandleMethodsWithMultipleArguments() throws NoSuchMethodException {
     final UdfInvoker udf = udfCompiler.compile(
         getClass().getMethod("multi", int.class, long.class, double.class),
@@ -129,6 +148,12 @@ public class UdfCompilerTest {
     assertThat(function.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex"))),
         not(nullValue()));
+  }
+
+  @Test
+  public void shouldCompileFunctionWithStructReturnValue() throws NoSuchMethodException {
+    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfStruct", String.class), classLoader);
+    assertThat(udf.eval(this, "val"), equalTo(new Struct(STRUCT_SCHEMA).put("a", "val")));
   }
 
   @Test
@@ -189,6 +214,24 @@ public class UdfCompilerTest {
   }
 
   @Test
+  public void shouldThrowIfArrayWithoutVarArgs() throws NoSuchMethodException {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array)");
+    udfCompiler.compile(
+        getClass().getMethod("invalidUdf", int[].class),
+        classLoader);
+  }
+
+  @Test
+  public void shouldThrowIfArrayAndVarArgs() throws NoSuchMethodException {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array):");
+    udfCompiler.compile(
+        getClass().getMethod("invalidUdf", int[].class, int[].class),
+        classLoader);
+  }
+
+  @Test
   public void shouldThrowKsqlFunctionExceptionIfNullPassedWhenExpectingPrimitiveType()
       throws NoSuchMethodException {
     expectedException.expect(KsqlFunctionException.class);
@@ -197,7 +240,6 @@ public class UdfCompilerTest {
         udfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
     udf.eval(this, new Object[]{null});
   }
-
 
   @Test
   public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws NoSuchMethodException {
@@ -330,6 +372,10 @@ public class UdfCompilerTest {
     return val;
   }
 
+  public Struct udfStruct(final String val) {
+    return new Struct(STRUCT_SCHEMA).put("a", val);
+  }
+
   public double udfPrimitive(final double val) {
     return val;
   }
@@ -340,6 +386,10 @@ public class UdfCompilerTest {
 
   public int udfPrimitive(final int val) {
     return val;
+  }
+
+  public int udfPrimitive(final int... val) {
+    return Arrays.stream(val).sum();
   }
 
   public long udfPrimitive(final long val) {
@@ -356,6 +406,10 @@ public class UdfCompilerTest {
 
   public String udf(final String val) {
     return val;
+  }
+
+  public String udf(final String... val) {
+    return String.join("", val);
   }
 
   public double multi(final int i, final long l, final double d) {
@@ -403,6 +457,14 @@ public class UdfCompilerTest {
   }
 
   public Udaf<String, String> createNonStatic() {
+    return null;
+  }
+
+  public static String invalidUdf(final int[] ints) {
+    return null;
+  }
+
+  public static String invalidUdf(final int[] ints, final int... moreInts) {
     return null;
   }
 }

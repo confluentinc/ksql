@@ -18,14 +18,12 @@ package io.confluent.ksql.rest.server.validation;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.config.KsqlConfigResolver;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.client.properties.LocalPropertyValidator;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
-import java.util.Map;
 
 public final class PropertyValidator {
 
@@ -33,20 +31,18 @@ public final class PropertyValidator {
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
   public static void set(
-      final PreparedStatement<?> statement,
+      final ConfiguredStatement<?> statement,
       final KsqlExecutionContext context,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final SetProperty setProperty = (SetProperty) statement.getStatement();
-    throwIfUnknownProperty(
+    throwIfInvalidProperty(
         setProperty.getPropertyName(),
         statement.getStatementText()
     );
 
     try {
-      ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
+      statement.getConfig().cloneWithPropertyOverwrite(ImmutableMap.of(
           setProperty.getPropertyName(),
           setProperty.getPropertyValue()
       ));
@@ -55,28 +51,26 @@ public final class PropertyValidator {
           e.getMessage(), statement.getStatementText(), e.getCause());
     }
 
-    context.execute(statement, ksqlConfig, propertyOverrides);
+    context.execute(statement);
   }
 
   public static void unset(
-      final PreparedStatement<?> statement,
+      final ConfiguredStatement<?> statement,
       final KsqlExecutionContext context,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final UnsetProperty unsetProperty = (UnsetProperty) statement.getStatement();
-    throwIfUnknownProperty(
+    throwIfInvalidProperty(
         unsetProperty.getPropertyName(),
         statement.getStatementText()
     );
-    context.execute(statement, ksqlConfig, propertyOverrides);
+    context.execute(statement);
   }
 
-  private static void throwIfUnknownProperty(final String propertyName, final String text) {
-    new KsqlConfigResolver().resolve(propertyName, false).orElseThrow(
-        () -> new KsqlStatementException("Unknown property: " + propertyName, text)
-    );
+  private static void throwIfInvalidProperty(final String propertyName, final String text) {
+    if (!LocalPropertyValidator.CONFIG_PROPERTY_WHITELIST.contains(propertyName)) {
+      throw new KsqlStatementException("Unknown property: " + propertyName, text);
+    }
   }
 
 }

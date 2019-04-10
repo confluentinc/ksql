@@ -29,7 +29,6 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.common.Configurable;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
@@ -44,6 +43,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
@@ -137,6 +138,24 @@ public class UdfLoaderTest {
             SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
                 .build()
         )
+    );
+  }
+
+  @Test
+  public void shouldLoadFunctionWithStructReturnType() {
+    // When:
+    final UdfFactory toStruct = functionRegistry.getUdfFactory("tostruct");
+
+    // Then:
+    assertThat(toStruct, not(nullValue()));
+    final KsqlFunction function
+        = toStruct.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+
+    final Schema expected = SchemaBuilder.struct()
+        .optional()
+        .field("A", Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+    assertThat(function.getReturnType(), equalTo(expected)
     );
   }
 
@@ -310,7 +329,8 @@ public class UdfLoaderTest {
         value -> false,
         compiler,
         optionalMetrics,
-        loadCustomerUdfs);
+        loadCustomerUdfs
+    );
   }
 
   private static ClassLoader getActualUdfClassLoader(final Kudf udf)

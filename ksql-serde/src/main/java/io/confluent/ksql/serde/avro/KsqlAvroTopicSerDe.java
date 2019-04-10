@@ -32,7 +32,6 @@ import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -69,34 +68,35 @@ public class KsqlAvroTopicSerDe extends KsqlTopicSerDe {
 
   @Override
   public Serde<GenericRow> getGenericRowSerde(
-      final Schema schemaMaybeWithSource,
+      final Schema schema,
       final KsqlConfig ksqlConfig,
-      final boolean isInternal,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext) {
-    final Schema schema = isInternal
-        ? schemaMaybeWithSource : SchemaUtil.getSchemaWithNoAlias(schemaMaybeWithSource);
+      final ProcessingLogContext processingLogContext
+  ) {
     final Serializer<GenericRow> genericRowSerializer = new ThreadLocalSerializer(
         () -> new KsqlConnectSerializer(
             new AvroDataTranslator(
                 schema,
-                this.fullSchemaName,
+                fullSchemaName,
                 ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS)
             ),
-            getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig)));
+            getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig))
+    );
+
     final Deserializer<GenericRow> genericRowDeserializer = new ThreadLocalDeserializer(
         () -> new KsqlConnectDeserializer(
             getAvroConverter(schemaRegistryClientFactory.get(), ksqlConfig),
             new AvroDataTranslator(
                 schema,
-                this.fullSchemaName,
+                fullSchemaName,
                 ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS)
             ),
             processingLogContext.getLoggerFactory().getLogger(
                 join(loggerNamePrefix, SerdeUtils.DESERIALIZER_LOGGER_NAME))
         )
     );
+
     return Serdes.serdeFrom(genericRowSerializer, genericRowDeserializer);
   }
 

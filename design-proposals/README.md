@@ -13,11 +13,12 @@ Here is the process for submitting a KLIP and getting it approved.
 
 # KsqL Improvement Proposals (aka KLIPs)
 
-Next KLIP number: 0.
+Next KLIP number: 2.
 
-| KLIP                                   | Status | Release |
-|----------------------------------------|:------:| ------: |
-| [KLIP-X: Template](klip-template.md)   | Open   | N/A     |
+| KLIP                                                                 | Status | Release |
+|----------------------------------------------------------------------|:------:| ------: |
+| [KLIP-X: Template](klip-template.md)                                 | Open   | N/A     |
+| [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)   | Open   | N/A     |
 
 
 

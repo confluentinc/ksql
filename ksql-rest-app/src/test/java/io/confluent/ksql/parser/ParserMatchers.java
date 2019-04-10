@@ -21,9 +21,15 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
+import java.util.Objects;
+import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 
 public final class ParserMatchers {
 
@@ -59,11 +65,75 @@ public final class ParserMatchers {
 
   @SuppressWarnings("unchecked")
   public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
+      final Matcher<? super String> statementText,
+      final Class<T> statementType
+  ) {
+    return (Matcher) both(StatementTextMatcher.statementWithText(statementText))
+        .and(StatementMatcher.statement(instanceOf(statementType)));
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T extends Statement> Matcher<PreparedStatement<T>> preparedStatement(
       final Matcher<? super String> statementTextMatcher,
       final Matcher<? super Statement> statementMatcher
   ) {
     return (Matcher) both(StatementTextMatcher.statementWithText(statementTextMatcher))
         .and(StatementMatcher.statement(statementMatcher));
+  }
+
+  public static <T extends Statement> Matcher<ConfiguredStatement<T>> configured(
+      final Matcher<PreparedStatement<T>> statement
+  ) {
+    return new TypeSafeMatcher<ConfiguredStatement<T>>() {
+      @Override
+      protected boolean matchesSafely(final ConfiguredStatement<T> item) {
+        return statement.matches(PreparedStatement.of(item.getStatementText(), item.getStatement()));
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        statement.describeTo(description);
+      }
+    };
+  }
+
+  public static <T extends Statement> Matcher<ConfiguredStatement<T>> configured(
+      final Map<String, Object> properties,
+      final KsqlConfig config
+  ) {
+    return new TypeSafeMatcher<ConfiguredStatement<T>>() {
+      @Override
+      protected boolean matchesSafely(final ConfiguredStatement<T> item) {
+        return Objects.equals(properties, item.getOverrides())
+            && Objects.equals(config, item.getConfig());
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(properties.toString() + ", " + config);
+      }
+    };
+  }
+
+  public static <T extends Statement> Matcher<ConfiguredStatement<T>> configured(
+      final Matcher<PreparedStatement<T>> statement,
+      final Map<String, Object> properties,
+      final KsqlConfig config
+  ) {
+    return new TypeSafeMatcher<ConfiguredStatement<T>>() {
+      @Override
+      protected boolean matchesSafely(final ConfiguredStatement<T> item) {
+        return statement.matches(PreparedStatement.of(item.getStatementText(), item.getStatement()))
+            && Objects.equals(properties, item.getOverrides())
+            && Objects.equals(config, item.getConfig());
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        statement.describeTo(description);
+        description.appendText(properties.toString() + ", " + config);
+      }
+    };
   }
 
   @SuppressWarnings("WeakerAccess")
@@ -98,8 +168,8 @@ public final class ParserMatchers {
   public static final class StatementMatcher<T extends Statement>
       extends FeatureMatcher<PreparedStatement<T>, Statement> {
 
-    public StatementMatcher(Matcher<? super Statement> textMatcher) {
-      super(textMatcher, "a prepared statement", "statement");
+    public StatementMatcher(Matcher<? super Statement> statementMatcher) {
+      super(statementMatcher, "a prepared statement", "statement");
     }
 
     @Override
@@ -109,9 +179,9 @@ public final class ParserMatchers {
 
     @Factory
     public static <T extends Statement> Matcher<PreparedStatement<T>> statement(
-        final Matcher<? super Statement> textMatcher
+        final Matcher<? super Statement> statementMatcher
     ) {
-      return new StatementMatcher<>(textMatcher);
+      return new StatementMatcher<>(statementMatcher);
     }
   }
 }

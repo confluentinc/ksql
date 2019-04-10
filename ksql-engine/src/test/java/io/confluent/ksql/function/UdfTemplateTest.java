@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.google.common.primitives.Primitives;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +21,6 @@ public class UdfTemplateTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  @SuppressWarnings("ConstantConditions")
   @Test
   public void testCoerceNumbers() {
     // Given:
@@ -70,6 +71,7 @@ public class UdfTemplateTest {
     assertThat(UdfTemplate.coerce(args, Boolean.class, 0), nullValue());
     assertThat(UdfTemplate.coerce(args, Map.class, 0), nullValue());
     assertThat(UdfTemplate.coerce(args, List.class, 0), nullValue());
+    assertThat(UdfTemplate.coerce(args, Object[].class, 0), nullValue());
   }
 
   @Test
@@ -94,6 +96,111 @@ public class UdfTemplateTest {
     assertThat(UdfTemplate.coerce(args, List.class, 0), equalTo(new ArrayList<>()));
     assertThat(UdfTemplate.coerce(args, Map.class, 1), equalTo(new HashMap<>()));
     assertThat(UdfTemplate.coerce(args, String.class, 2), equalTo(""));
+  }
+
+  @Test
+  public void shouldCoerceNullArray() {
+    // Given:
+    Object[] args = new Object[]{null};
+
+    // Then:
+    assertThat(UdfTemplate.coerce(args, Object[].class, 0), equalTo(null));
+  }
+
+  @Test
+  public void shouldCoercePrimitiveArrays() {
+    // Given:
+    Object[] args = new Object[]{
+        new int[]{1},
+        new byte[]{1},
+        new short[]{1},
+        new float[]{1f},
+        new double[]{1d},
+        new boolean[]{true}
+    };
+
+    // Then:
+    for (int i = 0; i < args.length; i++) {
+      assertThat(UdfTemplate.coerce(args, args[i].getClass(), i), equalTo(args[i]));
+    }
+  }
+
+  @Test
+  public void shouldCoerceBoxedArrays() {
+    // Given:
+    Object[] args = new Object[]{
+        new Integer[]{1},
+        new Byte[]{1},
+        new Short[]{1},
+        new Float[]{1f},
+        new Double[]{1d},
+        new Boolean[]{true}
+    };
+
+    // Then:
+    for (int i = 0; i < args.length; i++) {
+      assertThat(UdfTemplate.coerce(args, args[i].getClass(), i), equalTo(args[i]));
+    }
+  }
+
+  @Test
+  public void shouldCoercePrimitiveArrayToBoxed() {
+    // Given:
+    Object[] args = new Object[]{
+        new int[]{1},
+        new byte[]{1},
+        new short[]{1},
+        new float[]{1f},
+        new double[]{1d},
+        new boolean[]{true}
+    };
+
+    // Then:
+    for (int i = 0; i < args.length; i++) {
+      final Class<?> boxed = Primitives.wrap(args[i].getClass().getComponentType());
+      final Class<?> boxedArray = Array.newInstance(boxed, 0).getClass();
+      assertThat(UdfTemplate.coerce(args, boxedArray, i), equalTo(args[i]));
+    }
+  }
+
+  @Test
+  public void shouldCoerceNumberConversionArray() {
+    // Given:
+    Object[] args = new Object[]{new int[]{1}};
+
+    // Then:
+    assertThat(UdfTemplate.coerce(args, double[].class, 0), equalTo(new double[]{1}));
+  }
+
+  @Test
+  public void shouldCoerceArrayOfLists() {
+    // Given:
+    Object[] args = new Object[]{new List[]{new ArrayList()}};
+
+    // Then:
+    assertThat(UdfTemplate.coerce(args, List[].class, 0), equalTo(new List[]{new ArrayList<>()}));
+  }
+
+  @Test
+  public void shouldCoerceArrayOfMaps() {
+    // Given:
+    Object[] args = new Object[]{new Map[]{new HashMap<>()}};
+
+    // Then:
+    assertThat(UdfTemplate.coerce(args, Map[].class, 0), equalTo(new Map[]{new HashMap<>()}));
+  }
+
+  @Test
+  public void shouldNotCoerceNonArrayToArray() {
+    // Given:
+    Object[] args = new Object[]{"not an array"};
+
+    // Expect:
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException.expectMessage("Couldn't coerce array");
+
+    // When:
+    UdfTemplate.coerce(args, Object[].class, 0);
   }
 
   @Test

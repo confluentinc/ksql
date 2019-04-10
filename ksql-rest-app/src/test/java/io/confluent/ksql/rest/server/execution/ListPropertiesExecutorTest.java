@@ -43,11 +43,9 @@ public class ListPropertiesExecutorTest {
   public void shouldListProperties() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        engine.prepare("LIST PROPERTIES;"),
+        engine.configure("LIST PROPERTIES;"),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -60,11 +58,10 @@ public class ListPropertiesExecutorTest {
   public void shouldListPropertiesWithOverrides() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        engine.prepare("LIST PROPERTIES;"),
+        engine.configure("LIST PROPERTIES;")
+            .withProperties(ImmutableMap.of("ksql.streams.auto.offset.reset", "latest")),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of("auto.offset.reset", "latest")
+        engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -77,11 +74,9 @@ public class ListPropertiesExecutorTest {
   public void shouldNotListSslProperties() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
-        engine.prepare("LIST PROPERTIES;"),
+        engine.configure("LIST PROPERTIES;"),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:

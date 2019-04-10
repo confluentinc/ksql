@@ -55,6 +55,7 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
@@ -302,7 +303,7 @@ public class StreamedQueryResourceTest {
             Collections.emptyMap(),
             queryCloseCallback);
     reset(mockOutputNode);
-    expect(mockKsqlEngine.execute(statement, ksqlConfig, requestStreamsProperties))
+    expect(mockKsqlEngine.execute(ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
         .andReturn(ExecuteResult.of(queuedQueryMetadata));
 
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);

@@ -19,9 +19,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
-import io.confluent.ksql.parser.tree.Node;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.util.DataSourceExtractor;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -74,17 +72,17 @@ public class DefaultKsqlParser implements KsqlParser {
       final MetaStore metaStore
   ) {
     try {
-      final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
-      dataSourceExtractor.extractDataSources(stmt.getStatement());
+      final AstBuilder astBuilder = new AstBuilder(metaStore);
+      final Statement root = astBuilder.build(stmt.getStatement());
 
-      final AstBuilder astBuilder = new AstBuilder(dataSourceExtractor);
-      final Node root = astBuilder.visit(stmt.getStatement());
-      Statement statement = (Statement) root;
-      if (StatementRewriteForStruct.requiresRewrite(statement)) {
-        statement = new StatementRewriteForStruct(statement, dataSourceExtractor)
-            .rewriteForStruct();
+      if (!StatementRewriteForStruct.requiresRewrite(root)) {
+        return PreparedStatement.of(stmt.getStatementText(), root);
       }
-      return PreparedStatement.of(stmt.getStatementText(), statement);
+
+      final Statement rewritten = new StatementRewriteForStruct(root)
+          .rewriteForStruct();
+
+      return PreparedStatement.of(stmt.getStatementText(), rewritten);
     } catch (final ParseFailedException e) {
       if (!e.getSqlStatement().isEmpty()) {
         throw e;

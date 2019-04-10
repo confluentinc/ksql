@@ -17,12 +17,12 @@ package io.confluent.ksql.engine;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -62,7 +62,7 @@ final class EngineExecutor {
     return new EngineExecutor(engineContext, ksqlConfig, overriddenProperties);
   }
 
-  ExecuteResult execute(final PreparedStatement<?> statement) {
+  ExecuteResult execute(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
 
@@ -70,8 +70,7 @@ final class EngineExecutor {
 
       final LogicalPlanNode logicalPlan = queryEngine.buildLogicalPlan(
           engineContext.getMetaStore(),
-          statement,
-          ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
+          statement.withConfig(ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties))
       );
 
       if (!logicalPlan.getNode().isPresent()) {
@@ -104,7 +103,7 @@ final class EngineExecutor {
     }
   }
 
-  private void validateQuery(final QueryMetadata query, final PreparedStatement<?> statement) {
+  private void validateQuery(final QueryMetadata query, final ConfiguredStatement<?> statement) {
     if (statement.getStatement() instanceof CreateStreamAsSelect
         && query.getDataSourceType() == DataSourceType.KTABLE) {
       throw new KsqlStatementException("Invalid result type. "
@@ -136,8 +135,8 @@ final class EngineExecutor {
     }
   }
 
-  private static void throwOnNonExecutableStatement(final PreparedStatement<?> statement) {
-    if (!KsqlEngine.isExecutableStatement(statement)) {
+  private static void throwOnNonExecutableStatement(final ConfiguredStatement<?> statement) {
+    if (!KsqlEngine.isExecutableStatement(statement.getStatement())) {
       throw new KsqlStatementException("Statement not executable", statement.getStatementText());
     }
   }

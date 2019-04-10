@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,11 +55,13 @@ public class QueryValidatorTest {
 
     // When:
     CustomValidators.QUERY_ENDPOINT.validate(
-        PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+        ConfiguredStatement.of(
+            PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+            ImmutableMap.of(),
+            engine.getKsqlConfig()
+        ),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        ImmutableMap.of()
+        engine.getServiceContext()
     );
   }
 

@@ -27,10 +27,10 @@ because the result of the query is a KSQL table.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region AS \
-      SELECT regionid, \
-             COUNT(*) \
-      FROM pageviews \
+    CREATE TABLE pageviews_per_region AS
+      SELECT regionid,
+             COUNT(*)
+      FROM pageviews
       GROUP BY regionid;
 
 Tombstone Records
@@ -58,11 +58,11 @@ This query computes the pageview count per region per minute:
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_minute AS \
-      SELECT regionid, \
-             COUNT(*) \
-      FROM pageviews \
-      WINDOW TUMBLING (SIZE 1 MINUTE) \
+    CREATE TABLE pageviews_per_region_per_minute AS
+      SELECT regionid,
+             COUNT(*)
+      FROM pageviews
+      WINDOW TUMBLING (SIZE 1 MINUTE)
       GROUP BY regionid;
 
 To count the pageviews for “Region_6” by female users every
@@ -70,12 +70,12 @@ To count the pageviews for “Region_6” by female users every
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_30secs AS \
-      SELECT regionid, \
-             COUNT(*) \
-      FROM pageviews \
-      WINDOW TUMBLING (SIZE 30 SECONDS) \
-      WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6' \
+    CREATE TABLE pageviews_per_region_per_30secs AS
+      SELECT regionid,
+             COUNT(*)
+      FROM pageviews
+      WINDOW TUMBLING (SIZE 30 SECONDS)
+      WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6'
       GROUP BY regionid;
 
 Aggregate Records Over a Hopping Window
@@ -91,12 +91,12 @@ and substring matching.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_30secs10secs AS \
-      SELECT regionid, \
-             COUNT(*) \
-      FROM pageviews \
-      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS) \
-      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6' \
+    CREATE TABLE pageviews_per_region_per_30secs10secs AS
+      SELECT regionid,
+             COUNT(*)
+      FROM pageviews
+      WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)
+      WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
       GROUP BY regionid;
 
 Aggregate Records Over a Session Window
@@ -108,11 +108,11 @@ the input data and performs the counting step per region.
 
 .. code:: sql
 
-    CREATE TABLE pageviews_per_region_per_session AS \
-      SELECT regionid, \
-             COUNT(*) \
-      FROM pageviews \
-      WINDOW SESSION (60 SECONDS) \
+    CREATE TABLE pageviews_per_region_per_session AS
+      SELECT regionid,
+             COUNT(*)
+      FROM pageviews
+      WINDOW SESSION (60 SECONDS)
       GROUP BY regionid;
 
 For more information, see :ref:`time-and-windows-in-ksql-queries`.

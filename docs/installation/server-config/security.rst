@@ -100,7 +100,7 @@ Use the following settings to configure the KSQL server to require authenticatio
 ::
 
     authentication.method=BASIC
-    authentication.roles=some-ksql-cluster-id
+    authentication.roles=admin,developer,user,ksq-user
     authentication.realm=KsqlServer-Props
 
 The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized

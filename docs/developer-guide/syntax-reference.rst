@@ -969,17 +969,17 @@ example of converting a BIGINT into a VARCHAR type:
 CASE
 ~~~~
 
- **Synopsis**
+**Synopsis**
 
- .. code:: sql
+.. code:: sql
 
-     CASE
-        WHEN condition THEN result
-        [ WHEN ... THEN ... ]
-        …
-        [ WHEN … THEN … ]
-        [ ELSE result ]
-     END
+    CASE
+       WHEN condition THEN result
+       [ WHEN ... THEN ... ]
+       …
+       [ WHEN … THEN … ]
+       [ ELSE result ]
+    END
 
 Currently, KSQL supports a ``searched`` form of CASE expression. In this form,
 CASE evaluates each boolean ``condition`` in WHEN clauses, from left to right.
@@ -990,15 +990,15 @@ of the conditions is true and there is no ELSE clause, CASE returns null.
 The schema for all results must be the same, otherwise, KSQL rejects the
 statement. Here's an example of a CASE expression:
 
- .. code:: sql
+.. code:: sql
 
-     SELECT
-      CASE
-        WHEN orderunits < 2.0 THEN 'small'
-        WHEN orderunits < 4.0 THEN 'medium'
-        ELSE 'large'
-      END AS case_result
-     FROM orders;
+    SELECT
+     CASE
+       WHEN orderunits < 2.0 THEN 'small'
+       WHEN orderunits < 4.0 THEN 'medium'
+       ELSE 'large'
+     END AS case_result
+    FROM orders;
 
 LIKE
 ~~~~

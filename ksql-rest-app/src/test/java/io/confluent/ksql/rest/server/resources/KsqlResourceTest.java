@@ -128,6 +128,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
@@ -224,7 +225,7 @@ public class KsqlResourceTest {
   private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
   @Mock
-  private KsqlExecutionContext sandbox;
+  private SandboxEngine sandbox;
   @Mock
   private CommandStore commandStore;
   @Mock
@@ -2008,4 +2009,7 @@ public class KsqlResourceTest {
     when(queries.size()).thenReturn(value);
     when(sandbox.getPersistentQueries()).thenReturn(queries);
   }
+
+  @Sandbox
+  private interface SandboxEngine extends KsqlExecutionContext { }
 }

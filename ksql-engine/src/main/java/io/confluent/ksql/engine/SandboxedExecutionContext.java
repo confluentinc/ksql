@@ -24,6 +24,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.Sandbox;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +32,7 @@ import java.util.Optional;
  * An execution context that can execute statements without changing the core engine's state
  * or the state of external services.
  */
+@Sandbox
 final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   private final EngineContext engineContext;

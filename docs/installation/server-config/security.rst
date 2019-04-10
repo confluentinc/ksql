@@ -36,7 +36,7 @@ Use the following settings to configure the KSQL server to require authenticatio
 ::
 
     authentication.method=BASIC
-    authentication.roles=<user-role1>, <user-role2>, ...
+    authentication.roles=<user-role1>,<user-role2>,...
     authentication.realm=<KsqlServer-Props-in-jaas_config.file>
 
 The ``authentication.roles`` config defines a comma-separated list of user roles. To be authorized

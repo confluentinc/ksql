@@ -38,6 +38,18 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 
+/**
+ * An injector which injects the schema into the supplied {@code statement}.
+ *
+ * <p>The schema is only injected if:
+ * <ul>
+ * <li>The statement is a CT/CS.</li>
+ * <li>The statement does not defined a schema.</li>
+ * <li>The format of the statement supports schema inference.</li>
+ * </ul>
+ *
+ * <p>If any of the above are not true then the {@code statement} is returned unchanged.
+ */
 public class DefaultSchemaInjector implements Injector {
 
   private final TopicSchemaSupplier schemaSupplier;
@@ -48,6 +60,7 @@ public class DefaultSchemaInjector implements Injector {
 
 
   @SuppressWarnings("unchecked")
+  @Override
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement
   ) {

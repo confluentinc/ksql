@@ -46,6 +46,15 @@ import java.util.Objects;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
 
+/**
+ * An injector which injects the topic name, number of partitions and number of
+ * replicas into the topic properties of the supplied {@code statement}.
+ *
+ * <p>If a statement that is not {@code CreateAsSelect} is passed in, this results in a
+ * no-op that returns the incoming statement.</p>
+ *
+ * @see TopicProperties.Builder
+ */
 public class DefaultTopicInjector implements Injector {
 
   private final KafkaTopicClient topicClient;

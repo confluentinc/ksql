@@ -1139,7 +1139,7 @@ SET/UNSET property
 
 Set or unset the session properties in the CLI. The session properties that have been set will be sent to the server along with the subsequent KSQL statements.
 The properties that are set using these commands are session properties, meaning they will be only available in the current CLI session.
-The following are the properties that can be configured with SET/UNSET commands from release 5.2 and above:
+The following are the properties that you can configure with SET/UNSET commands, in release 5.2 and above:
 
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 | Property                                          | Description                                                                                |

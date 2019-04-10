@@ -173,7 +173,7 @@ the latest offset.
        Query terminated
 
 #. Create a persistent query by using the ``CREATE STREAM`` keywords to precede the ``SELECT`` statement. The results from this
-   query are written to the ``PAGEVIEWS_ENRICHED`` Kafka topic. The following query enriches the ``pageviews`` STREAM by
+   query are written to the ``PAGEVIEWS_ENRICHED`` Kafka topic. The following query enriches the ``pageviews_original`` STREAM by
    doing a ``LEFT JOIN`` with the ``users_original`` TABLE on the user ID.
 
    .. code:: sql

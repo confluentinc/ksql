@@ -142,6 +142,24 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldLoadFunctionWithStructReturnType() {
+    // When:
+    final UdfFactory toStruct = functionRegistry.getUdfFactory("tostruct");
+
+    // Then:
+    assertThat(toStruct, not(nullValue()));
+    final KsqlFunction function
+        = toStruct.getFunction(Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA));
+
+    final Schema expected = SchemaBuilder.struct()
+        .optional()
+        .field("A", Schema.OPTIONAL_STRING_SCHEMA)
+        .build();
+    assertThat(function.getReturnType(), equalTo(expected)
+    );
+  }
+
+  @Test
   public void shouldPutJarUdfsInClassLoaderForJar()
       throws NoSuchFieldException, IllegalAccessException {
     final UdfFactory toString = functionRegistry.getUdfFactory("tostring");
@@ -311,7 +329,8 @@ public class UdfLoaderTest {
         value -> false,
         compiler,
         optionalMetrics,
-        loadCustomerUdfs);
+        loadCustomerUdfs
+    );
   }
 
   private static ClassLoader getActualUdfClassLoader(final Kudf udf)

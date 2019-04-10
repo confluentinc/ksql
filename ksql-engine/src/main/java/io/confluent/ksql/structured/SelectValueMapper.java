@@ -71,6 +71,7 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
       processingLogger.error(
           EngineProcessingLogMessageFactory.recordProcessingError(
               errorMsg,
+              e,
               row
           )
       );

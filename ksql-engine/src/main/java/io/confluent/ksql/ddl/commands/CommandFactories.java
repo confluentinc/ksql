@@ -107,8 +107,6 @@ public class CommandFactories implements DdlCommandFactory {
     return new DropSourceCommand(
         statement,
         DataSourceType.KSTREAM,
-        serviceContext.getTopicClient(),
-        serviceContext.getSchemaRegistryClient(),
         statement.isDeleteTopic());
   }
 
@@ -116,8 +114,6 @@ public class CommandFactories implements DdlCommandFactory {
     return new DropSourceCommand(
         statement,
         DataSourceType.KTABLE,
-        serviceContext.getTopicClient(),
-        serviceContext.getSchemaRegistryClient(),
         statement.isDeleteTopic());
   }
 

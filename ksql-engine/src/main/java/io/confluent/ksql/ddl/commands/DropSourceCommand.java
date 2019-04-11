@@ -15,43 +15,27 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
-
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.parser.tree.AbstractStreamDropStatement;
-import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.util.ExecutorUtil;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
-import java.util.List;
 
 public class DropSourceCommand implements DdlCommand {
 
   private final String sourceName;
   private final boolean ifExists;
-  private final DataSourceType dataSourceType;
-  private final KafkaTopicClient kafkaTopicClient;
-  private final SchemaRegistryClient schemaRegistryClient;
+  private final DataSource.DataSourceType dataSourceType;
   private final boolean deleteTopic;
 
   public DropSourceCommand(
-      final AbstractStreamDropStatement statement,
+      final DropStatement statement,
       final DataSourceType dataSourceType,
-      final KafkaTopicClient kafkaTopicClient,
-      final SchemaRegistryClient schemaRegistryClient,
       final boolean deleteTopic) {
 
     this.sourceName = statement.getName().getSuffix();
     this.ifExists = statement.getIfExists();
     this.dataSourceType = dataSourceType;
-    this.kafkaTopicClient = kafkaTopicClient;
-    this.schemaRegistryClient = schemaRegistryClient;
     this.deleteTopic = deleteTopic;
   }
 
@@ -64,6 +48,7 @@ public class DropSourceCommand implements DdlCommand {
       }
       throw new KsqlException("Source " + sourceName + " does not exist.");
     }
+
     if (dataSource.getDataSourceType() != dataSourceType) {
       throw new KsqlException(String.format(
           "Incompatible data source type is %s, but statement was DROP %s",
@@ -71,47 +56,16 @@ public class DropSourceCommand implements DdlCommand {
           dataSourceType == DataSourceType.KSTREAM ? "STREAM" : "TABLE"
       ));
     }
-    final DropTopicCommand dropTopicCommand =
-        new DropTopicCommand(dataSource.getKsqlTopicName());
+
+    final DropTopicCommand dropTopicCommand = new DropTopicCommand(dataSource.getKsqlTopicName());
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore);
 
-    deleteTopicIfNeeded(dataSource);
+    if (deleteTopic) {
+      throw new KsqlException("Should not be executing a delete topic in the engine!");
+    }
 
-    return new DdlCommandResult(
-        true,
-        "Source " + sourceName + " was dropped. "
-            + (deleteTopic ? "Topic '"
-            + dataSource.getKafkaTopicName()
-            + "' was marked for deletion. Actual deletion "
-            + "and removal from brokers may take some time "
-            + "to complete." : ""));
+    return new DdlCommandResult(true, "Source " + sourceName + " was dropped.");
   }
 
-  private void deleteTopicIfNeeded(final DataSource<?> dataSource) {
-    if (!deleteTopic) {
-      return;
-    }
-
-    try {
-      final List<String> topic = Collections
-          .singletonList(dataSource.getKafkaTopicName());
-
-      ExecutorUtil.executeWithRetries(() -> kafkaTopicClient.deleteTopics(topic), ALWAYS);
-    } catch (final Exception e) {
-      throw new KsqlException("Could not delete the corresponding kafka topic: "
-          + dataSource.getKafkaTopicName(), e);
-    }
-
-    if (dataSource.getKsqlTopicSerde().getSerDe() == Format.AVRO) {
-      try {
-        SchemaRegistryUtil.deleteSubjectWithRetries(
-            schemaRegistryClient,
-            dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
-      } catch (final Exception e) {
-        throw new KsqlException("Could not clean up the schema registry for topic: "
-            + dataSource.getKafkaTopicName(), e);
-      }
-    }
-  }
 }

@@ -33,7 +33,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.topic.TopicCreateInjector;
+import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -83,7 +84,8 @@ public class KsqlContext {
         (ec, sc) -> InjectorChain.of(
             new DefaultSchemaInjector(
                 new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-            new DefaultTopicInjector(ec))
+            new TopicCreateInjector(ec),
+            new TopicDeleteInjector(ec))
     );
   }
 

@@ -122,6 +122,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -1897,7 +1898,8 @@ public class KsqlResourceTest {
         activenessRegistrar,
         (ec, sc) -> InjectorChain.of(
             schemaInjectorFactory.apply(sc),
-            topicInjectorFactory.apply(ec))
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec))
     );
   }
 

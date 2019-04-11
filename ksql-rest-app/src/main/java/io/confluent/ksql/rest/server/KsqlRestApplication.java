@@ -62,7 +62,8 @@ import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.topic.TopicCreateInjector;
+import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Version;
@@ -411,7 +412,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         (ec, sc) -> InjectorChain.of(
             new DefaultSchemaInjector(
                 new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-            new DefaultTopicInjector(ec)
+            new TopicCreateInjector(ec),
+            new TopicDeleteInjector(ec)
         ));
 
     final Optional<String> processingLogTopic =

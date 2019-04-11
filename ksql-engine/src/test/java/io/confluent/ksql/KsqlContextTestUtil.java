@@ -22,13 +22,14 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.topic.TopicCreateInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,7 +78,11 @@ public final class KsqlContextTestUtil {
         serviceContext,
         ksqlConfig,
         engine,
-        (ec, sc) -> InjectorChain.of(schemaInjector, new DefaultTopicInjector(ec))
+        (ec, sc) -> InjectorChain.of(
+            schemaInjector,
+            new TopicCreateInjector(ec),
+            new TopicDeleteInjector(ec)
+        )
     );
   }
 

@@ -63,6 +63,13 @@ public final class ConfiguredStatement<T extends Statement> {
     this(other.statement, properties, other.config);
   }
 
+  private ConfiguredStatement(
+      final ConfiguredStatement<T> other,
+      final PreparedStatement<T> statement
+  ) {
+    this(statement, other.overrides, other.config);
+  }
+
   public T getStatement() {
     return statement.getStatement();
   }
@@ -85,6 +92,12 @@ public final class ConfiguredStatement<T extends Statement> {
 
   public ConfiguredStatement<T> withProperties(final Map<String, Object> properties) {
     return new ConfiguredStatement<>(this, properties);
+  }
+
+  public ConfiguredStatement<T> withStatement(
+      final String statementText,
+      final T statement) {
+    return new ConfiguredStatement<>(this, PreparedStatement.of(statementText, statement));
   }
 
   @Override

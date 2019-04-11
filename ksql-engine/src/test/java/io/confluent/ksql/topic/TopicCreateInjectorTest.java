@@ -64,7 +64,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultTopicInjectorTest {
+public class TopicCreateInjectorTest {
 
   private static final Schema SCHEMA = SchemaBuilder
       .struct()
@@ -75,7 +75,7 @@ public class DefaultTopicInjectorTest {
 
   private KsqlParser parser;
   private MutableMetaStore metaStore;
-  private DefaultTopicInjector injector;
+  private TopicCreateInjector injector;
   private Map<String, Object> overrides;
   private ConfiguredStatement<CreateAsSelect> statement;
   private KsqlConfig config;
@@ -90,7 +90,7 @@ public class DefaultTopicInjectorTest {
     config = new KsqlConfig(new HashMap<>());
 
     topicClient = new FakeKafkaTopicClient();
-    injector = new DefaultTopicInjector(topicClient, metaStore);
+    injector = new TopicCreateInjector(topicClient, metaStore);
 
     topicClient.createTopic("source", 1, (short) 1);
     sourceDescription = topicClient.describeTopic("source");

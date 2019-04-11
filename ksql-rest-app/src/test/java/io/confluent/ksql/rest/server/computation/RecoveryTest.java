@@ -19,6 +19,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -46,7 +48,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.topic.DefaultTopicInjector;
+import io.confluent.ksql.topic.TopicCreateInjector;
+import io.confluent.ksql.topic.TopicDeleteInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -175,7 +178,8 @@ public class RecoveryTest {
           (ec, sc) -> InjectorChain.of(
               new DefaultSchemaInjector(
                   new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-              new DefaultTopicInjector(ec)
+              new TopicCreateInjector(ec),
+              new TopicDeleteInjector(ec)
           ));
       this.statementExecutor = new StatementExecutor(
           ksqlConfig,
@@ -553,6 +557,24 @@ public class RecoveryTest {
         "DROP STREAM B;"
     );
     shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldNotDeleteTopicsOnRecovery() {
+    topicClient.preconditionTopicExists("B");
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;",
+        "TERMINATE CSAS_B_0;",
+        "DROP STREAM B DELETE TOPIC;"
+    );
+
+    assertThat(topicClient.listTopicNames(), not(hasItem("B")));
+
+    topicClient.preconditionTopicExists("B");
+    shouldRecover(commands);
+
+    assertThat(topicClient.listTopicNames(), hasItem("B"));
   }
 
   @Test

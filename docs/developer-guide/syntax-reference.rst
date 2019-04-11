@@ -819,6 +819,11 @@ for deletion, and if the topic format is AVRO, the corresponding Avro schema is
 deleted, too. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
 
+NOTE: DELETE TOPIC will not necessarily work if your kafka cluster is configured
+to create topics automatically with ``auto.create.topics.enable=true``. It is
+recommended to follow-up a few minutes afterwards to ensure that the topic was
+deleted.
+
 If the IF EXISTS clause is present, the statement doesn't fail if the table
 doesn't exist.
 
@@ -841,6 +846,11 @@ If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
 for deletion and if the topic format is AVRO, delete the corresponding Avro schema is
 deleted, too. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
+
+NOTE: DELETE TOPIC will not necessarily work if your kafka cluster is configured
+to create topics automatically with ``auto.create.topics.enable=true``. It is
+recommended to follow-up a few minutes afterwards to ensure that the topic was
+deleted.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the table
 doesn't exist.

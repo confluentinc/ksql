@@ -35,6 +35,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.DropStream;
+import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
@@ -389,6 +391,54 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     assertThat(result, is("EXPLAIN \nSELECT *\nFROM ADDRESS ADDRESS"));
+  }
+
+  @Test
+  public void shouldFormatDropStreamStatementIfExistsDeleteTopic() {
+    // Given:
+    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), true, true);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(dropStream);
+
+    // Then:
+    assertThat(formatted, is("DROP STREAM IF EXISTS SOMETHING DELETE TOPIC"));
+  }
+
+  @Test
+  public void shouldFormatDropStreamStatementIfExists() {
+    // Given:
+    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), true, false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(dropStream);
+
+    // Then:
+    assertThat(formatted, is("DROP STREAM IF EXISTS SOMETHING"));
+  }
+
+  @Test
+  public void shouldFormatDropStreamStatement() {
+    // Given:
+    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), false, false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(dropStream);
+
+    // Then:
+    assertThat(formatted, is("DROP STREAM SOMETHING"));
+  }
+
+  @Test
+  public void shouldFormatDropTableStatement() {
+    // Given:
+    final DropTable dropStream = new DropTable(QualifiedName.of("SOMETHING"), false, false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(dropStream);
+
+    // Then:
+    assertThat(formatted, is("DROP TABLE SOMETHING"));
   }
 }
 

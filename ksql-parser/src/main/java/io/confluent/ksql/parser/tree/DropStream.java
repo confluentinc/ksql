@@ -21,7 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
 @Immutable
-public class DropStream extends AbstractStreamDropStatement implements ExecutableDdlStatement {
+public class DropStream extends DropStatement implements ExecutableDdlStatement {
 
   public DropStream(
       final QualifiedName streamName,
@@ -38,6 +38,11 @@ public class DropStream extends AbstractStreamDropStatement implements Executabl
       final boolean deleteTopic
   ) {
     super(location, streamName, ifExists, deleteTopic);
+  }
+
+  @Override
+  public DropStatement withoutDeleteClause() {
+    return new DropStream(getLocation(), getName(), getIfExists(), false);
   }
 
   @Override

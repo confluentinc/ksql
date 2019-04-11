@@ -15,21 +15,23 @@
 
 package io.confluent.ksql.statement;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Statement;
+import java.util.List;
 
 /**
  * Encapsulates a chain of injectors, ordered, into a single entity.
  */
 public final class InjectorChain implements Injector {
 
-  private final Injector[] injectors;
+  private final List<Injector> injectors;
 
   public static InjectorChain of(final Injector... injectors) {
     return new InjectorChain(injectors);
   }
 
   private InjectorChain(final Injector... injectors) {
-    this.injectors = injectors;
+    this.injectors = ImmutableList.copyOf(injectors);
   }
 
   @Override

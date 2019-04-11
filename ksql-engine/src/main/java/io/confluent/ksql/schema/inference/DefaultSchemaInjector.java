@@ -68,17 +68,13 @@ public class DefaultSchemaInjector implements Injector {
       return statement;
     }
 
-    final Optional<ConfiguredStatement<T>> statementOptional =
-        forCreateStatement((ConfiguredStatement<AbstractStreamCreateStatement>) statement)
-        .map(DefaultSchemaInjector::buildPreparedStatement)
-        .map(preparedStatement -> ConfiguredStatement.of(
-            preparedStatement, statement.getOverrides(), statement.getConfig()));
-    // for some reason, maven won't compile without the intermediate
-    // Optional variable declaration...
-    return statementOptional.orElse(statement);
+    final ConfiguredStatement<AbstractStreamCreateStatement> createStatement =
+        (ConfiguredStatement<AbstractStreamCreateStatement>) statement;
+
+    return (ConfiguredStatement<T>) forCreateStatement(createStatement).orElse(createStatement);
   }
 
-  private Optional<AbstractStreamCreateStatement> forCreateStatement(
+  private Optional<ConfiguredStatement<AbstractStreamCreateStatement>> forCreateStatement(
       final ConfiguredStatement<AbstractStreamCreateStatement> statement
   ) {
     if (hasElements(statement) || isUnsupportedFormat(statement)) {
@@ -86,8 +82,11 @@ public class DefaultSchemaInjector implements Injector {
     }
 
     final SchemaAndId valueSchema = getValueSchema(statement);
-
-    return Optional.of(addSchemaFields(statement, valueSchema));
+    final AbstractStreamCreateStatement withSchema = addSchemaFields(statement, valueSchema);
+    final PreparedStatement<AbstractStreamCreateStatement> prepared =
+        buildPreparedStatement(withSchema);
+    return Optional.of(ConfiguredStatement.of(
+        prepared, statement.getOverrides(), statement.getConfig()));
   }
 
   private SchemaAndId getValueSchema(
@@ -205,7 +204,7 @@ public class DefaultSchemaInjector implements Injector {
     }
   }
 
-  private static PreparedStatement buildPreparedStatement(
+  private static PreparedStatement<AbstractStreamCreateStatement> buildPreparedStatement(
       final AbstractStreamCreateStatement stmt
   ) {
     return PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);

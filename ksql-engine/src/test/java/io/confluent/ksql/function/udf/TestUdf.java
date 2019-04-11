@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.function.udf;
 
+import org.apache.kafka.connect.data.Struct;
+
 @UdfDescription(name="test_udf", description = "test")
 @SuppressWarnings("unused")
 public class TestUdf {
@@ -37,5 +39,12 @@ public class TestUdf {
   @Udf(description = "returns method name")
   public String doStuffLongVarargs(final long... longs) {
     return "doStuffLongVarargs";
+  }
+
+  @Udf(description = "returns the value of 'A'")
+  public String doStuffStruct(
+      @UdfParameter(schema = "STRUCT<A VARCHAR>") final Struct struct
+  ) {
+    return struct.getString("A");
   }
 }

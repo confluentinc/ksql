@@ -79,8 +79,9 @@ Each method in the class that represents a UDF must be public and annotated with
 you create represents a collection of UDFs all with the same name but may have different
 arguments and return types.
 
-Optional ``@UdfParameter`` annotations can be added to method parameters to provide users with
-richer information.
+``@UdfParameter`` annotations can be added to method parameters to provide users with richer
+information, including the parameter schema. This annotation is required if the KSQL type cannot
+be inferred from the Java type (e.g. ``STRUCT``).
 
 
 Null Handling
@@ -233,20 +234,30 @@ of the UDF does, for example:
 UdfParameter Annotation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``@UdfParameter`` annotation is optional and is applied to the parameters of methods annotated with
-``@Udf``. KSQL will use the additional information in the ``@UdfParameter`` annotation to provide
-users with richer information about the method when, for example, they execute
-``DESCRIBE FUNCTION`` on the method.
+The ``@UdfParameter`` annotation is applied to parameters of methods annotated with ``@Udf``. KSQL
+will use the additional information in the ``@UdfParameter`` annotation to specify the parameter
+schema (if it cannot be inferred from the Java type) or to provide users with richer information
+about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the method.
 
-The annotation has two parameters: ``value`` is the name of the parameter and ``description`` which
-can be used to better describe what the parameter does, for example:
++------------+------------------------------+------------------------+
+| Field      | Description                  | Required               |
++============+==============================+========================+
+| value      | The case-insensitive name of | No                     |
+|            | the parameter                |                        |
++------------+------------------------------+------------------------+
+| description| A string describing generally| No                     |
+|            | what the parameter represents|                        |
++------------+------------------------------+------------------------+
+| schema     | The KSQL schema for the      | For complex types      |
+|            | parameter.                   | such as STRUCT         |
++------------+------------------------------+------------------------+
 
 .. code:: java
 
     @Udf
-    public String substring(
-       @UdfParameter("str") final String str,
-       @UdfParameter(value = "pos", description = "Starting position of the substring") final int pos)
+    public boolean livesInRegion(
+       @UdfParameter(value = "zipcode", description = "a US postal code") final String zipcode,
+       @UdfParameter(schema = "STRUCT<ZIP STRING, NAME STRING>") final Struct employee)
 
 If your Java8 class is compiled with the ``-parameter`` compiler flag, the name of the parameter
 will be inferred from the method declaration.
@@ -472,8 +483,10 @@ The types supported by UDFs are currently limited to:
 +--------------+------------------+
 | Map          | MAP              |
 +--------------+------------------+
+| Struct       | STRUCT           |
++--------------+------------------+
 
-Note: Complex types other than List and Map are not currently supported
+Note: Structs are not supported in UDAFs
 
 .. _deploying-udf:
 

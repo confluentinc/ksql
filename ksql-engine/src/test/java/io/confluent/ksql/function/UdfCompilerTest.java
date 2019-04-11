@@ -157,6 +157,12 @@ public class UdfCompilerTest {
   }
 
   @Test
+  public void shouldCompileFunctionWithStructParameter() throws NoSuchMethodException {
+    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfStruct", Struct.class), classLoader);
+    assertThat(udf.eval(this, new Struct(STRUCT_SCHEMA).put("a", "val")), equalTo("val"));
+  }
+
+  @Test
   public void shouldImplementTableAggregateFunctionWhenTableUdafClass() throws NoSuchMethodException {
     final KsqlAggregateFunction function
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
@@ -374,6 +380,10 @@ public class UdfCompilerTest {
 
   public Struct udfStruct(final String val) {
     return new Struct(STRUCT_SCHEMA).put("a", val);
+  }
+
+  public String udfStruct(final Struct struct) {
+    return struct.getString("a");
   }
 
   public double udfPrimitive(final double val) {

@@ -128,7 +128,9 @@ public class KsqlContextTest {
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     ksqlContext = new KsqlContext(
-        serviceContext, SOME_CONFIG, ksqlEngine,
+        serviceContext,
+        SOME_CONFIG,
+        ksqlEngine,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector));
 
   }

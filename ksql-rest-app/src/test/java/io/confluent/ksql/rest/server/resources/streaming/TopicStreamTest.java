@@ -125,6 +125,20 @@ public class TopicStreamTest {
   }
 
   @Test
+  public void shouldMatchStringFormatWithOneColumnValues() {
+    // Given:
+    replay(schemaRegistryClient);
+
+    final String stringValue = "v1";
+
+    // When:
+    final Result result = getFormatter(stringValue);
+
+    // Then:
+    assertThat(result.format, is(Format.STRING));
+  }
+
+  @Test
   public void shouldFilterNullValues() {
     replay(schemaRegistryClient);
 

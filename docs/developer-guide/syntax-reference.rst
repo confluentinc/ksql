@@ -451,10 +451,13 @@ The WITH clause for the result supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
-|                         | e.g. given the statement                                                                             |
-|                         | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
-|                         | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
+|                         | **Note**: This doesn't affect the processing of the query that populates this stream.                |
+|                         | For example, given the following statement:                                                          |
+|                         |                                                                                                      |
+|                         | .. literalinclude:: includes/csas-snippet.sql                                                        |
+|                         |    :language: sql                                                                                    |
+|                         |                                                                                                      |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
@@ -531,13 +534,13 @@ The WITH clause supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
-|                         | e.g. given the statement                                                                             |
+|                         | **Note**: This doesn't affect the processing of the query that populates this table.                 |
+|                         | For example, given the following statement:                                                          |
 |                         |                                                                                                      |
-|                         | .. literalinclude:: ../includes/ctas-snippet.sql                                                     |
+|                         | .. literalinclude:: includes/ctas-snippet.sql                                                        |
 |                         |    :language: sql                                                                                    |
 |                         |                                                                                                      |
-|                         | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |

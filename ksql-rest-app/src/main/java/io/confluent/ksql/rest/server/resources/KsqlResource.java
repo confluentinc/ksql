@@ -53,7 +53,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.regex.PatternSyntaxException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -97,8 +97,7 @@ public class KsqlResource {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final Function<ServiceContext, Injector> schemaInjectorFactory,
-      final Function<KsqlExecutionContext, Injector> topicInjectorFactory
+      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -109,8 +108,7 @@ public class KsqlResource {
 
     this.validator = new RequestValidator(
         CustomValidators.VALIDATOR_MAP,
-        schemaInjectorFactory,
-        topicInjectorFactory,
+        injectorFactory,
         ksqlEngine::createSandbox,
         SandboxedServiceContext.create(serviceContext),
         ksqlConfig);
@@ -119,8 +117,7 @@ public class KsqlResource {
         new DistributingExecutor(
             commandQueue,
             distributedCmdResponseTimeout,
-            schemaInjectorFactory,
-            topicInjectorFactory),
+            injectorFactory),
         ksqlEngine,
         ksqlConfig,
         serviceContext,

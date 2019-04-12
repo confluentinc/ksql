@@ -41,11 +41,11 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.topic.TopicInjector;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -80,9 +80,9 @@ public class RequestValidatorTest {
   @Mock
   StatementValidator<?> statementValidator;
   @Mock
-  SchemaInjector schemaInjector;
+  Injector schemaInjector;
   @Mock
-  TopicInjector topicInjector;
+  Injector topicInjector;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -334,8 +334,7 @@ public class RequestValidatorTest {
   ) {
     validator = new RequestValidator(
         customValidators,
-        sc -> schemaInjector,
-        ec -> topicInjector,
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         () -> executionContext,
         serviceContext,
         ksqlConfig

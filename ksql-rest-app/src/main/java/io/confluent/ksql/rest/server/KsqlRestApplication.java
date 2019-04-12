@@ -60,7 +60,7 @@ import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -401,10 +401,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         versionChecker::updateLastRequestTime
     );
 
-    final Function<ServiceContext, Injector> schemaInjectorFactory = sc ->
-        new DefaultSchemaInjector(
-            new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
-
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
@@ -412,8 +408,11 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        schemaInjectorFactory,
-        DefaultTopicInjector::new);
+        (ec, sc) -> InjectorChain.of(
+            new DefaultSchemaInjector(
+                new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
+            new DefaultTopicInjector(ec)
+        ));
 
     final Optional<String> processingLogTopic =
         ProcessingLogServerUtils.maybeCreateProcessingLogTopic(

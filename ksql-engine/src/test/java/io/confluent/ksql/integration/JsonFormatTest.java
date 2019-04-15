@@ -240,7 +240,7 @@ public class JsonFormatTest {
   @Test
   public void testJsonStreamExtractorNested() throws Exception {
 
-    final String streamName = "JSONSTREAM";
+    final String streamName = "JSONSTREAM2";
     final String queryString = String.format("CREATE STREAM %s AS SELECT EXTRACTJSONFIELD"
                     + "(message, '$.log.logs[0].entry') "
                     + "FROM %s;",

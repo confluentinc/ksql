@@ -9,7 +9,7 @@
     {
       "name": "do substring with just pos",
       "format": ["JSON"],
-      "originalConfig": {
+      "properties": {
         "ksql.functions.substring.legacy.args": false
       },
       "statements": [
@@ -30,7 +30,7 @@
     {
       "name": "do substring with pos and length",
       "format": ["JSON"],
-      "originalConfig": {
+      "properties": {
         "ksql.functions.substring.legacy.args": false
       },"statements": [
         "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -50,7 +50,7 @@
     {
       "name": "do substring in legacy mode with just start index",
       "format": ["JSON"],
-      "originalConfig": {
+      "properties": {
         "ksql.functions.substring.legacy.args": true
       },
       "statements": [
@@ -71,7 +71,7 @@
     {
       "name": "do substring in legacy mode with start and end indexes",
       "format": ["JSON"],
-      "originalConfig": {
+      "properties": {
         "ksql.functions.substring.legacy.args": true
       },
       "statements": [

@@ -23,7 +23,7 @@
         {"topic": "S2", "key": 1, "value": null, "timestamp": 40000, "window": {"start": 10000, "end": 10000, "type": "session"}},
         {"topic": "S2", "key": 1, "value": "1,200", "timestamp": 40000, "window": {"start": 10000, "end": 40000, "type": "session"}}
       ],
-      "originalConfig": {
+      "properties": {
         "ksql.windowed.session.key.legacy": "false"
       }
     },
@@ -76,7 +76,7 @@
         "i.e. it serialized with no end time. This was fixed in later versions, but this breaks ",
         "compatibility with data running in older queries."
       ],
-      "originalConfig": {
+      "properties": {
         "ksql.windowed.session.key.legacy": "true"
       },
       "statements": [

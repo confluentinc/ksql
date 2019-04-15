@@ -1,7 +1,11 @@
 package io.confluent.ksql.testingtool;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -17,6 +21,8 @@ import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.test.commons.TestCase;
+import io.confluent.ksql.test.commons.TopologyTestDriverContainer;
 import io.confluent.ksql.testingtool.services.KsqlEngineTestUtil;
 import io.confluent.ksql.testingtool.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -34,6 +40,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.TopologyTestDriver;
 
 public final class TestRunner {
 
@@ -95,7 +102,9 @@ public final class TestRunner {
 //    try (final ServiceContext serviceContext = getServiceContext();
 //        final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
     try {
-      testCase.initializeTopics(serviceContext);
+      testCase.initializeTopics(
+          serviceContext.getTopicClient(),
+          serviceContext.getSchemaRegistryClient());
 //      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(
 //          testCase,
 //          serviceContext,
@@ -180,7 +189,7 @@ public final class TestRunner {
           persistentQueryMetadata.getTopology(),
           streamsProperties,
           0);
-      topologyTestDrivers.add(new TopologyTestDriverContainer(
+      topologyTestDrivers.add(TopologyTestDriverContainer.of(
           topologyTestDriver,
           persistentQueryMetadata.getSourceNames().stream().map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName()).collect(
               Collectors.toSet()),
@@ -205,7 +214,9 @@ public final class TestRunner {
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig
   ) {
-    testCase.initializeTopics(serviceContext);
+    testCase.initializeTopics(
+        serviceContext.getTopicClient(),
+        serviceContext.getSchemaRegistryClient());
 
     final String sql = testCase.statements().stream()
         .collect(Collectors.joining(System.lineSeparator()));

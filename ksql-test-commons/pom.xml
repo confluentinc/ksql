@@ -40,6 +40,8 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <version>${kafka.version}</version>
+      <classifier>test</classifier>
+      <scope>compile</scope>
     </dependency>
 
     <dependency>

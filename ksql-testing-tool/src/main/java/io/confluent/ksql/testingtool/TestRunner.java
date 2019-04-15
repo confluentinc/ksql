@@ -21,7 +21,9 @@ import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.test.commons.QttTestFile;
 import io.confluent.ksql.test.commons.TestCase;
+import io.confluent.ksql.test.commons.TestCaseNode;
 import io.confluent.ksql.test.commons.TopologyTestDriverContainer;
 import io.confluent.ksql.testingtool.services.KsqlEngineTestUtil;
 import io.confluent.ksql.testingtool.services.TestServiceContext;
@@ -72,7 +74,9 @@ public final class TestRunner {
       final TestCaseNode testCaseNodeWithStatements = new TestCaseNode(
           testCaseNode,
           statementsList);
-      final List<TestCase> testCases = testCaseNodeWithStatements.buildTests(new File(testOptions.getTestDataFile()).toPath());
+      final List<TestCase> testCases = testCaseNodeWithStatements.buildTests(
+          new File(testOptions.getTestDataFile()).toPath(),
+          TestFunctionRegistry.INSTANCE.get());
 //      final List<TestCase> testCases = qttTestFile.tests.get(0).buildTests(new File(testFilePath).toPath());
       shouldBuildAndExecuteQuery(testCases.get(0));
 //    shouldBuildAndExecuteQuery(qttTestFile.tests.get(0).buildTests(new File(testFilePath).toPath()).get(0));

@@ -68,7 +68,7 @@ public class TestCaseNode {
   private final Optional<ExpectedExceptionNode> expectedException;
   private final Optional<PostConditionsNode> postConditions;
 
-  TestCaseNode(final TestCaseNode testCaseNode, final List<String> statements) {
+  public TestCaseNode(final TestCaseNode testCaseNode, final List<String> statements) {
     this.name = testCaseNode.name;
     this.formats = ImmutableList.copyOf(testCaseNode.formats);
     this.statements = ImmutableList.copyOf(statements);
@@ -122,7 +122,7 @@ public class TestCaseNode {
     }
   }
 
-  List<TestCase> buildTests(final Path testPath, final FunctionRegistry functionRegistry) {
+  public List<TestCase> buildTests(final Path testPath, final FunctionRegistry functionRegistry) {
     try {
       return formats.isEmpty()
           ? Stream.of(createTest(

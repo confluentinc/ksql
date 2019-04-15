@@ -37,6 +37,17 @@
       <version>${kafka.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <classifier>test</classifier>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.rvesse</groupId>
+      <artifactId>airline</artifactId>
+    </dependency>
 
   </dependencies>
 </project>

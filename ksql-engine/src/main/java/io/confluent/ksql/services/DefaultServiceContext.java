@@ -48,7 +48,7 @@ public class DefaultServiceContext implements ServiceContext {
     );
   }
 
-  DefaultServiceContext(
+  public DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final AdminClient adminClient,
       final KafkaTopicClient topicClient,

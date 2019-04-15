@@ -28,8 +28,8 @@ public class UdfFactory {
   private final Class<? extends Kudf> udfClass;
   private final UdfIndex udfIndex;
 
-  UdfFactory(final Class<? extends Kudf> udfClass,
-             final UdfMetadata metadata) {
+  public UdfFactory(final Class<? extends Kudf> udfClass,
+      final UdfMetadata metadata) {
     this.udfClass = Objects.requireNonNull(udfClass, "udfClass can't be null");
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
     this.udfIndex = new UdfIndex(metadata.getName());

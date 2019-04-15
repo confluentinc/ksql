@@ -16,6 +16,7 @@
 
 package io.confluent.ksql.testingtool;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -51,11 +52,13 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
+@SuppressWarnings("UnstableApiUsage")
+@JsonIgnoreProperties(ignoreUnknown = true)
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class TestCaseNode {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private final String name;
+  String name;
   private final List<String> formats;
   private final List<RecordNode> inputs;
   private final List<RecordNode> outputs;
@@ -64,6 +67,18 @@ public class TestCaseNode {
   private final Map<String, Object> properties;
   private final Optional<ExpectedExceptionNode> expectedException;
   private final Optional<PostConditionsNode> postConditions;
+
+  TestCaseNode(final TestCaseNode testCaseNode, final List<String> statements) {
+    this.name = testCaseNode.name;
+    this.formats = ImmutableList.copyOf(testCaseNode.formats);
+    this.statements = ImmutableList.copyOf(statements);
+    this.inputs = ImmutableList.copyOf(testCaseNode.inputs);
+    this.outputs = ImmutableList.copyOf(testCaseNode.outputs);
+    this.topics = ImmutableList.copyOf(testCaseNode.topics);
+    this.properties = ImmutableMap.copyOf(testCaseNode.properties);
+    this.expectedException = testCaseNode.expectedException;
+    this.postConditions = testCaseNode.postConditions;
+  }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|NPathComplexity
   TestCaseNode(
@@ -107,11 +122,12 @@ public class TestCaseNode {
     }
   }
 
-  Stream<TestCase> buildTests(final Path testPath) {
+  List<TestCase> buildTests(final Path testPath) {
     try {
       return formats.isEmpty()
-          ? Stream.of(createTest("", testPath))
-          : formats.stream().map(format -> createTest(format, testPath));
+          ? Stream.of(createTest("", testPath)).collect(Collectors.toList())
+          : formats.stream()
+              .map(format -> createTest(format, testPath)).collect(Collectors.toList());
     } catch (final Exception e) {
       throw new AssertionError("Invalid test '" + name + "': " + e.getMessage(), e);
     }

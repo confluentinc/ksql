@@ -78,7 +78,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         KsqlEngineMetrics::new);
   }
 
-  KsqlEngine(
+  public KsqlEngine(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final String serviceId,

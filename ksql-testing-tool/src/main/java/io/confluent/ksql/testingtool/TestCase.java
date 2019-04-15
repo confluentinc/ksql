@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.apache.kafka.streams.test.OutputVerifier;
 import org.hamcrest.StringDescription;
@@ -48,8 +48,8 @@ public class TestCase implements Test {
   private final List<Record> outputRecords;
   private final List<String> statements;
   private final ExpectedException expectedException;
-  private String generatedTopology;
-  private String generatedSchemas;
+  private List<String> generatedTopology;
+  private List<String> generatedSchemas;
   private Optional<TopologyAndConfigs> expectedTopology = Optional.empty();
   private final PostConditions postConditions;
 
@@ -102,7 +102,7 @@ public class TestCase implements Test {
     return copy;
   }
 
-  void setGeneratedTopology(final String generatedTopology) {
+  void setGeneratedTopology(final List<String> generatedTopology) {
     this.generatedTopology = Objects.requireNonNull(generatedTopology, "generatedTopology");
   }
 
@@ -110,7 +110,7 @@ public class TestCase implements Test {
     this.expectedTopology = Optional.of(expectedTopology);
   }
 
-  void setGeneratedSchemas(final String generatedSchemas) {
+  void setGeneratedSchemas(final List<String> generatedSchemas) {
     this.generatedSchemas = Objects.requireNonNull(generatedSchemas, "generatedSchemas");
   }
 
@@ -129,10 +129,12 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings("unchecked")
-  void processInput(final TopologyTestDriver testDriver,
+  void processInput(final TopologyTestDriverContainer testDriver,
       final SchemaRegistryClient schemaRegistryClient) {
-    inputRecords.forEach(
-        r -> testDriver.pipeInput(
+    inputRecords
+        .stream().filter(record -> testDriver.getSourceTopics().contains(record.topic.getName()))
+        .forEach(
+        r -> testDriver.getTopologyTestDriver().pipeInput(
             new ConsumerRecordFactory<>(
                 r.keySerializer(),
                 r.topic.getSerializer(schemaRegistryClient)
@@ -141,8 +143,19 @@ public class TestCase implements Test {
     );
   }
 
+  public static void printOutput(final TopologyTestDriverContainer topologyTestDriverContainer,
+      final SchemaRegistryClient schemaRegistryClient) {
+    for (int i = 0; i < 1; i++) {
+      final ProducerRecord record = topologyTestDriverContainer.getTopologyTestDriver().readOutput(
+          topologyTestDriverContainer.getSinkTopics().iterator().next(),
+          new StringSerdeSupplier().getDeserializer(schemaRegistryClient),
+          new StringDeserializer());
+      System.out.println(record);
+    }
+  }
+
   @SuppressWarnings("unchecked")
-  void verifyOutput(final TopologyTestDriver testDriver,
+  void verifyOutput(final TopologyTestDriverContainer testDriver,
       final SchemaRegistryClient schemaRegistryClient) {
     if (isAnyExceptionExpected()) {
       failDueToMissingException();
@@ -153,7 +166,7 @@ public class TestCase implements Test {
       for (idx = 0; idx < outputRecords.size(); idx++) {
         final Record expectedOutput = outputRecords.get(idx);
 
-        final ProducerRecord record = testDriver.readOutput(
+        final ProducerRecord record = testDriver.getTopologyTestDriver().readOutput(
             expectedOutput.topic.name,
             expectedOutput.keyDeserializer(),
             expectedOutput.topic.getDeserializer(schemaRegistryClient));
@@ -228,7 +241,7 @@ public class TestCase implements Test {
     fail(message);
   }
 
-  private void handleException(final RuntimeException e) {
+  void handleException(final RuntimeException e) {
     if (isAnyExceptionExpected()) {
       assertThat(e, isThrowable(expectedException.build()));
     } else {

@@ -15,16 +15,18 @@
 
 package io.confluent.ksql.testingtool;
 
+
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Stream;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class QttTestFile {
-  private final List<TestCaseNode> tests;
+
+  final List<TestCaseNode> tests;
 
   QttTestFile(@JsonProperty("tests") final List<TestCaseNode> tests) {
     this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
@@ -33,8 +35,8 @@ public class QttTestFile {
       throw new IllegalArgumentException("test file did not contain any tests");
     }
   }
-
-  public Stream<TestCase> buildTests(final Path testPath) {
-    return tests.stream().flatMap(node -> node.buildTests(testPath));
-  }
+//
+//  public Stream<TestCase> buildTests(final Path testPath) {
+//    return tests.stream().flatMap(node -> node.buildTests(testPath));
+//  }
 }

@@ -133,7 +133,7 @@ public final class KsqlFunction {
     return arguments;
   }
 
-  String getFunctionName() {
+  public String getFunctionName() {
     return functionName;
   }
 

@@ -718,21 +718,25 @@ final class EndToEndEngineTestUtil {
 
     testCases.forEach(testCase -> {
       final Map<String, Object> originalConfigs = getConfigs(null);
-      final Map<String, Object> updatedConfigs = new HashMap<>(originalConfigs);
+      final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(originalConfigs));
 
-      final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
-      try(final ServiceContext serviceContext = getServiceContext();
+      try (final ServiceContext serviceContext = getServiceContext();
           final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
+
         final PersistentQueryMetadata queryMetadata =
             buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
-          final Map<String, String> configsToPersist
-              = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
-          writeExpectedTopologyFile(
-              testCase.name,
-              queryMetadata,
-              configsToPersist,
-              objectWriter,
-              topologyDir);
+        final Map<String, String> configsToPersist
+            = new HashMap<>(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+
+        // Ignore the KStreams state directory as its different every time:
+        configsToPersist.remove("ksql.streams.state.dir");
+
+        writeExpectedTopologyFile(
+            testCase.name,
+            queryMetadata,
+            configsToPersist,
+            objectWriter,
+            topologyDir);
       }
     });
   }

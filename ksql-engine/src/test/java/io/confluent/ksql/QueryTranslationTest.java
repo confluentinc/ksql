@@ -180,15 +180,17 @@ public class QueryTranslationTest {
     return builder.build();
   }
 
-  static Stream<TestCase> buildTestCases() {
-    final List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
+  private static Stream<TestCase> buildTestCases() {
     final List<TopologiesAndVersion> expectedTopologies = loadTopologiesAndVersions();
 
-    return EndToEndEngineTestUtil.findTestCases(
-        QUERY_VALIDATION_TEST_DIR,
-        testFiles,
-        QttTestFile.class)
+    return findTestCases()
         .flatMap(q -> buildVersionedTestCases(q, expectedTopologies));
+  }
+
+  static Stream<TestCase> findTestCases() {
+    final List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
+    return EndToEndEngineTestUtil
+        .findTestCases(QUERY_VALIDATION_TEST_DIR, testFiles, QttTestFile.class);
   }
 
   private static SerdeSupplier getSerdeSupplier(final String format) {

@@ -26,6 +26,9 @@ import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.kafka.test.TestUtils;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -49,15 +52,25 @@ import org.xml.sax.SAXException;
  */
 public final class TopologyFileGenerator {
 
-    private static final String BASE_DIRECTORY = "ksql-engine/src/test/resources/expected_topology/";
+    private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";
 
-    private TopologyFileGenerator() {
+    @Ignore // comment me out to generate the persisted topologies
+    @Test
+    public void doGenerateTopologies() throws Exception {
+        generateTopologies(BASE_DIRECTORY);
     }
 
-    public static void main(final String[] args) throws IOException, ParserConfigurationException, SAXException {
+    @Test
+    public void shouldGenerateTopologies() throws Exception {
+        final File tmp = TestUtils.tempDirectory();
+        tmp.deleteOnExit();
+        generateTopologies(tmp.getAbsolutePath());
+    }
+
+    private void generateTopologies(final String base) throws Exception {
 
         final String formattedVersion = getFormattedVersionFromPomFile();
-        final String generatedTopologyPath = BASE_DIRECTORY + formattedVersion;
+        final String generatedTopologyPath = base + formattedVersion;
 
         System.out.println(String.format("Starting to write topology files to %s", generatedTopologyPath));
         final Path dirPath = Paths.get(generatedTopologyPath);
@@ -70,7 +83,6 @@ public final class TopologyFileGenerator {
 
         EndToEndEngineTestUtil.writeExpectedTopologyFiles(generatedTopologyPath, getTestCases());
         System.out.println(String.format("Done writing topology files to %s", dirPath));
-        System.exit(0);
     }
 
     private static List<TestCase> getTestCases() {

@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -27,12 +26,11 @@ import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 public final class DescribeFunctionExecutor {
@@ -40,11 +38,9 @@ public final class DescribeFunctionExecutor {
   private DescribeFunctionExecutor() { }
 
   public static Optional<KsqlEntity> execute(
-      final PreparedStatement<DescribeFunction> statement,
+      final ConfiguredStatement<DescribeFunction> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> propertyOverrides
+      final ServiceContext serviceContext
   ) {
     final DescribeFunction describeFunction = statement.getStatement();
     final String functionName = describeFunction.getFunctionName();
@@ -69,7 +65,7 @@ public final class DescribeFunctionExecutor {
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
     aggregateFactory.eachFunction(func -> listBuilder.add(
-        getFunctionInfo(func.getArgTypes(), func.getReturnType(), func.getDescription())));
+        getFunctionInfo(func.getArgTypes(), func.getReturnType(), func.getDescription(), false)));
 
     return new FunctionDescriptionList(
         statementText,
@@ -93,7 +89,8 @@ public final class DescribeFunctionExecutor {
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
     udfFactory.eachFunction(func -> listBuilder.add(
-        getFunctionInfo(func.getArguments(), func.getReturnType(), func.getDescription())));
+        getFunctionInfo(
+            func.getArguments(), func.getReturnType(), func.getDescription(), func.isVariadic())));
 
     return new FunctionDescriptionList(
         statementText,
@@ -110,11 +107,15 @@ public final class DescribeFunctionExecutor {
   private static FunctionInfo getFunctionInfo(
       final List<Schema> argTypes,
       final Schema returnTypeSchema,
-      final String description
-  ) {
-    final List<ArgumentInfo> args = argTypes.stream()
-        .map(s -> new ArgumentInfo(s.name(), SchemaUtil.getSqlTypeName(s), s.doc()))
-        .collect(Collectors.toList());
+      final String description,
+      final boolean variadic) {
+    final List<ArgumentInfo> args = new ArrayList<>();
+    for (int i = 0; i < argTypes.size(); i++) {
+      final Schema s = argTypes.get(i);
+      final boolean isVariadic = variadic && i == (argTypes.size() - 1);
+      final String sqlType = SchemaUtil.getSqlTypeName(isVariadic ? s.valueSchema() : s);
+      args.add(new ArgumentInfo(s.name(), sqlType, s.doc(), isVariadic));
+    }
 
     final String returnType = SchemaUtil.getSqlTypeName(returnTypeSchema);
 

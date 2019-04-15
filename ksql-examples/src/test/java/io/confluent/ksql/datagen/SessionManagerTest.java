@@ -37,7 +37,7 @@ public class SessionManagerTest {
         sm.setMaxSessionDurationSeconds(1);
         sm.setMaxSessions(5);
 
-        final Set<String> expectedSet = new HashSet<String>(Arrays.asList( "0", "1", "2", "3", "4"));
+        final Set<String> expectedSet = new HashSet<>(Arrays.asList("0", "1", "2", "3", "4"));
 
         /**
          * FillActiveSessions

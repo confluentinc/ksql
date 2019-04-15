@@ -17,6 +17,8 @@ package io.confluent.ksql.datagen;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.avro.random.generator.Generator;
+import io.confluent.ksql.util.KsqlConfig;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,10 +72,11 @@ public final class DataGen {
     );
   }
 
-  private static Properties getProperties(final Arguments arguments) throws IOException {
+  static Properties getProperties(final Arguments arguments) throws IOException {
     final Properties props = new Properties();
     props.put("bootstrap.servers", arguments.bootstrapServer);
     props.put("client.id", "KSQLDataGenProducer");
+    props.put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, arguments.schemaRegistryUrl);
 
     if (arguments.propertiesFile != null) {
       props.load(arguments.propertiesFile);
@@ -83,20 +86,23 @@ public final class DataGen {
   }
 
   private static void usage() {
+    final String newLine = System.lineSeparator();
     System.err.println(
-        "usage: DataGen "
-        + "[help] "
-        + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] "
+        "usage: DataGen " + newLine
+        + "[help] " + newLine
+        + "[bootstrap-server=<kafka bootstrap server(s)> (defaults to localhost:9092)] " + newLine
         + "[quickstart=<quickstart preset> (case-insensitive; one of 'orders', 'users', or "
-        + "'pageviews')] "
-        + "schema=<avro schema file> "
-        + "[schemaRegistryUrl=<url for Confluent Schema Registry> (defaults to http://localhost:8081)] "
-        + "format=<message format> (case-insensitive; one of 'avro', 'json', or 'delimited') "
-        + "topic=<kafka topic name> "
-        + "key=<name of key column> "
-        + "[iterations=<number of rows> (defaults to 1,000,000)] "
-        + "[maxInterval=<Max time in ms between rows> (defaults to 500)] "
-        + "[propertiesFile=<file specifying Kafka client properties>]"
+        + "'pageviews')] " + newLine
+        + "schema=<avro schema file> " + newLine
+        + "[schemaRegistryUrl=<url for Confluent Schema Registry> "
+        + "(defaults to http://localhost:8081)] " + newLine
+        + "format=<message format> (case-insensitive; one of 'avro', 'json', or "
+        + "'delimited') " + newLine
+        + "topic=<kafka topic name> " + newLine
+        + "key=<name of key column> " + newLine
+        + "[iterations=<number of rows> (defaults to 1,000,000)] " + newLine
+        + "[maxInterval=<Max time in ms between rows> (defaults to 500)] " + newLine
+        + "[propertiesFile=<file specifying Kafka client properties>]" + newLine
     );
   }
 

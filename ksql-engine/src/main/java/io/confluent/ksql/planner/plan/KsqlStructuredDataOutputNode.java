@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -27,11 +26,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
@@ -43,9 +40,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -128,22 +122,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
 
     final KsqlStructuredDataOutputNode noRowKey = outputNodeBuilder.build();
-    if (doCreateInto) {
-      final Supplier<TopicDescription> sourceTopicDescription = () ->
-          getSourceTopicPropertiesFromKafka(
-              getTheSourceNode().getStructuredDataSource().getKsqlTopic().getKafkaTopicName(),
-              builder.getServiceContext().getTopicClient());
-
-      createSinkTopic(
-          builder.getServiceContext().getTopicClient(),
-          shouldBeCompacted(result),
-          new TopicProperties.Builder()
-              .withName(noRowKey.getKafkaTopicName())
-              .withOverrides(outputProperties)
-              .withKsqlConfig(builder.getKsqlConfig())
-              .withSource(sourceTopicDescription)
-              .build());
-    }
     final KsqlTopicSerDe ksqlTopicSerDe = noRowKey
         .getKsqlTopic()
         .getKsqlTopicSerDe();
@@ -165,11 +143,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
                 SchemaUtil.addImplicitRowTimeRowKeyToSchema(noRowKey.getSchema()))
             .build());
     return result;
-  }
-
-  private static boolean shouldBeCompacted(final SchemaKStream result) {
-    return (result instanceof SchemaKTable)
-        && !((SchemaKTable<?>) result).hasWindowedKey();
   }
 
   @SuppressWarnings("unchecked")
@@ -225,34 +198,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         ksqlAvroTopicSerDe,
         true
     ));
-  }
-
-  private static void createSinkTopic(
-      final KafkaTopicClient kafkaTopicClient,
-      final boolean isCompacted,
-      final TopicProperties topicProperties
-  ) {
-    final Map<String, ?> config = isCompacted
-        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
-        : Collections.emptyMap();
-
-    kafkaTopicClient.createTopic(
-        topicProperties.getTopicName(),
-        topicProperties.getPartitions(),
-        topicProperties.getReplicas(),
-        config
-    );
-  }
-
-  private static TopicDescription getSourceTopicPropertiesFromKafka(
-      final String kafkaTopicName,
-      final KafkaTopicClient kafkaTopicClient
-  ) {
-    final TopicDescription topicDescription = kafkaTopicClient.describeTopic(kafkaTopicName);
-    if (topicDescription == null) {
-      throw new KsqlException("Could not fetch source topic description: " + kafkaTopicName);
-    }
-    return topicDescription;
   }
 
   public KsqlTopic getKsqlTopic() {

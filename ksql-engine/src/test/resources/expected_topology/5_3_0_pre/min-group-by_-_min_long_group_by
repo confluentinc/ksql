@@ -11,7 +11,6 @@
   "ksql.sink.partitions" : null,
   "ksql.avro.maps.named" : "true",
   "ksql.service.id" : "some.ksql.service.id",
-  "ksql.streams.state.dir" : "/var/folders/2d/3pt97ylj3zngd51bwl91bl3r0000gp/T/kafka-6327290389141740626",
   "ksql.internal.topic.replicas" : "1",
   "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
   "ksql.streams.bootstrap.servers" : "localhost:0",

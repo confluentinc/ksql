@@ -23,6 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.Statement;
@@ -31,12 +32,15 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
-import io.confluent.ksql.schema.inference.SchemaInjector;
-import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
@@ -53,8 +57,13 @@ public class DistributingExecutorTest {
   private static final Duration DURATION_10_MS = Duration.ofMillis(10);
   private static final CommandId CS_COMMAND = new CommandId(Type.STREAM, "stream", Action.CREATE);
   private static final CommandStatus SUCCESS_STATUS = new CommandStatus(Status.SUCCESS, "");
-  private static final PreparedStatement<Statement> EMPTY_STATEMENT =
-      PreparedStatement.of("", new ListProperties(Optional.empty()));
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(new HashMap<>());
+  private static final ConfiguredStatement<Statement> EMPTY_STATEMENT =
+      ConfiguredStatement.of(
+          PreparedStatement.of("", new ListProperties(Optional.empty())),
+          ImmutableMap.of(),
+          KSQL_CONFIG
+      );
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -62,8 +71,8 @@ public class DistributingExecutorTest {
   @Mock CommandQueue queue;
   @Mock QueuedCommandStatus status;
   @Mock ServiceContext serviceContext;
-  @Mock SchemaInjector schemaInjector;
-  @Mock TopicInjector topicInjector;
+  @Mock Injector schemaInjector;
+  @Mock Injector topicInjector;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -71,9 +80,9 @@ public class DistributingExecutorTest {
   @Before
   public void setUp() throws InterruptedException {
     scnCounter = new AtomicLong();
-    when(schemaInjector.forStatement(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(topicInjector.forStatement(any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
-    when(queue.enqueueCommand(any(), any(), any())).thenReturn(status);
+    when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
+    when(queue.enqueueCommand(any())).thenReturn(status);
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
@@ -81,26 +90,25 @@ public class DistributingExecutorTest {
     distributor = new DistributingExecutor(
         queue,
         DURATION_10_MS,
-        sc -> schemaInjector,
-        ec -> topicInjector);
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector));
   }
 
   @Test
   public void shouldEnqueueSuccessfulCommand() throws InterruptedException {
     // When:
-    distributor.execute(EMPTY_STATEMENT, null, serviceContext, null, null);
+    distributor.execute(EMPTY_STATEMENT, null, serviceContext);
 
     // Then:
-    verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT), any(), any());
+    verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT));
   }
 
   @Test
   public void shouldInferSchemas() {
     // When:
-    distributor.execute(EMPTY_STATEMENT, null, serviceContext, null, null);
+    distributor.execute(EMPTY_STATEMENT, null, serviceContext);
 
     // Then:
-    verify(schemaInjector, times(1)).forStatement(eq(EMPTY_STATEMENT));
+    verify(schemaInjector, times(1)).inject(eq(EMPTY_STATEMENT));
   }
 
   @Test
@@ -110,9 +118,8 @@ public class DistributingExecutorTest {
         (CommandStatusEntity) distributor.execute(
             EMPTY_STATEMENT,
             null,
-            serviceContext,
-            null,
-            null)
+            serviceContext
+        )
             .orElseThrow(null);
 
     // Then:
@@ -125,9 +132,16 @@ public class DistributingExecutorTest {
   public void shouldThrowExceptionOnFailureToEnqueue() {
     // Given:
     final KsqlException cause = new KsqlException("fail");
-    when(queue.enqueueCommand(any(), any(), any())).thenThrow(cause);
+    when(queue.enqueueCommand(any())).thenThrow(cause);
+
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("x", new ListProperties(Optional.empty()));
+
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(
+            preparedStatement,
+            ImmutableMap.of(),
+            KSQL_CONFIG);
 
     // Expect:
     expectedException.expect(KsqlServerException.class);
@@ -136,7 +150,7 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(cause));
 
     // When:
-    distributor.execute(preparedStatement, null, serviceContext, null, null);
+    distributor.execute(configured, null, serviceContext);
   }
 
   @Test
@@ -144,14 +158,16 @@ public class DistributingExecutorTest {
     // Given:
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
-    when(schemaInjector.forStatement(any())).thenThrow(new KsqlException("Could not infer!"));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    when(schemaInjector.inject(any())).thenThrow(new KsqlException("Could not infer!"));
 
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not infer!");
 
     // When:
-    distributor.execute(preparedStatement, null, serviceContext, null, null);
+    distributor.execute(configured, null, serviceContext);
   }
 
 }

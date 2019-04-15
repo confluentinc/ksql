@@ -20,6 +20,7 @@ import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
+import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -35,6 +36,7 @@ public final class EngineProcessingLogMessageFactory {
 
   public static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
       final String errorMsg,
+      final Throwable exception,
       final GenericRow record
   ) {
     return (config) -> {
@@ -46,6 +48,12 @@ public final class EngineProcessingLogMessageFactory {
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,
           errorMsg);
+      final List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
+      cause.remove(0);
+      recordProcessingError.put(
+          ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE,
+          cause
+      );
       if (record == null) {
         return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
       }

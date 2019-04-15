@@ -6,7 +6,7 @@ KSQL REST API Reference
 REST Endpoint
 ---------------------
 
-The default REST API endpoint is ``http://localhost:8088/``. 
+The default REST API endpoint is ``http://0.0.0.0:8088/``.
 
 Change the server configuration that controls the REST API endpoint by setting
 the ``listeners`` parameter in the KSQL server config file. For more info, see

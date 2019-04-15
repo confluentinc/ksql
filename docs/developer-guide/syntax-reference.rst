@@ -466,10 +466,13 @@ The WITH clause for the result supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
-|                         | e.g. given the statement                                                                             |
-|                         | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
-|                         | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
+|                         | **Note**: This doesn't affect the processing of the query that populates this stream.                |
+|                         | For example, given the following statement:                                                          |
+|                         |                                                                                                      |
+|                         | .. literalinclude:: includes/csas-snippet.sql                                                        |
+|                         |    :language: sql                                                                                    |
+|                         |                                                                                                      |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
@@ -552,13 +555,13 @@ The WITH clause supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
-|                         | e.g. given the statement                                                                             |
+|                         | **Note**: This doesn't affect the processing of the query that populates this table.                 |
+|                         | For example, given the following statement:                                                          |
 |                         |                                                                                                      |
-|                         | .. literalinclude:: ../includes/ctas-snippet.sql                                                     |
+|                         | .. literalinclude:: includes/ctas-snippet.sql                                                        |
 |                         |    :language: sql                                                                                    |
 |                         |                                                                                                      |
-|                         | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
@@ -969,34 +972,36 @@ example of converting a BIGINT into a VARCHAR type:
 CASE
 ~~~~
 
- **Synopsis**
+**Synopsis**
 
- .. code:: sql
+.. code:: sql
 
+    CASE
+       WHEN condition THEN result
+       [ WHEN ... THEN ... ]
+       …
+       [ WHEN … THEN … ]
+       [ ELSE result ]
+    END
+
+Currently, KSQL supports a ``searched`` form of CASE expression. In this form,
+CASE evaluates each boolean ``condition`` in WHEN clauses, from left to right.
+If a condition is true, CASE returns the corresponding result. If none of
+the conditions is true, CASE returns the result from the ELSE clause. If none
+of the conditions is true and there is no ELSE clause, CASE returns null.
+
+The schema for all results must be the same, otherwise, KSQL rejects the
+statement. Here's an example of a CASE expression:
+
+.. code:: sql
+
+    SELECT
      CASE
-        WHEN condition THEN result
-        [ WHEN ... THEN ... ]
-        …
-        [ WHEN … THEN … ]
-        [ ELSE result ]
-     END
-
- Currently, KSQL supports a ``searched`` form of CASE expression. In this form, CASE evaluates
-each boolean ``condition`` in WHEN caluses, from left to right. If a condition is true, then it returns the
-corresponding result. If none of the conditions are true, it returns the result from the ELSE clause.
-If none of the conditions are true and there is no ELSE clause, it returns null.
- The schema for all results should be the same, otherwise, KSQL will reject the statement.
- Here is an example of CASE expression:
-
- .. code:: sql
-
-     SELECT
-      CASE
-        WHEN orderunits < 2.0 THEN 'small'
-        WHEN orderunits < 4.0 THEN 'medium'
-        ELSE 'large'
-      END AS case_result
-     FROM orders;
+       WHEN orderunits < 2.0 THEN 'small'
+       WHEN orderunits < 4.0 THEN 'medium'
+       ELSE 'large'
+     END AS case_result
+    FROM orders;
 
 LIKE
 ~~~~
@@ -1137,7 +1142,7 @@ SET/UNSET property
 
 Set or unset the session properties in the CLI. The session properties that have been set will be sent to the server along with the subsequent KSQL statements.
 The properties that are set using these commands are session properties, meaning they will be only available in the current CLI session.
-The following are the properties that can be configured with SET/UNSET commands from release 5.2 and above:
+The following are the properties that you can configure with SET/UNSET commands, in release 5.2 and above:
 
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 | Property                                          | Description                                                                                |
@@ -1153,7 +1158,7 @@ The following are the properties that can be configured with SET/UNSET commands 
 |                                                   | The default in KSQL is ``latest``.                                                         |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 | group.id                                          | A unique string that identifies the consumer group this consumer belongs to.               |
-|                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                                                               |
+|                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                    |
 |                                                   | The default in KSQL is ````.                                                               |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 
@@ -1217,13 +1222,13 @@ The explanation for each operator includes a supporting example based on the fol
 
 .. code:: sql
 
-    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') + \
-            ': :heavy_exclamation_mark: On ' + \
-            HOST + \
-            ' there were ' + \
-            CAST(INVALID_LOGIN_COUNT AS VARCHAR) + \
-            ' attempts in the last minute (threshold is >=4)' \
-    FROM INVALID_USERS_LOGINS_PER_HOST \
+    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') +
+            ': :heavy_exclamation_mark: On ' +
+            HOST +
+            ' there were ' +
+            CAST(INVALID_LOGIN_COUNT AS VARCHAR) +
+            ' attempts in the last minute (threshold is >=4)'
+    FROM INVALID_USERS_LOGINS_PER_HOST
     WHERE INVALID_LOGIN_COUNT>=4;
 
 - Source Dereference (``.``) The source dereference operator can be used to specify columns

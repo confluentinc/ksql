@@ -112,20 +112,30 @@ public final class TopicProperties {
           ? null
           : StringUtils.strip(nameExpression.toString(), "'");
 
-      final Integer partitions =
-          WithClauseUtil.parsePartitions(withClause.get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS));
-      final Short replicas =
-          WithClauseUtil.parseReplicas(withClause.get(KsqlConstants.SINK_NUMBER_OF_REPLICAS));
+      final Expression partitionExp = withClause.get(KsqlConstants.SINK_NUMBER_OF_PARTITIONS);
+      final Integer partitions = partitionExp == null
+          ? null
+          : WithClauseUtil.parsePartitions(partitionExp.toString());
+
+      final Expression replicasExp = withClause.get(KsqlConstants.SINK_NUMBER_OF_REPLICAS);
+      final Short replicas = replicasExp == null
+          ? null
+          : WithClauseUtil.parseReplicas(replicasExp.toString());
 
       fromWithClause = new TopicProperties(name, partitions, replicas);
       return this;
     }
 
     public Builder withOverrides(final Map<String, Object> overrides) {
-      final Integer partitions = (Integer) overrides.get(
-          KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
-      final Short replicas = (Short) overrides.get(
-          KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
+      final Object partitionsObj = overrides.get(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY);
+      final Integer partitions = (partitionsObj instanceof Integer || partitionsObj == null)
+          ? (Integer) partitionsObj
+          : (Integer) WithClauseUtil.parsePartitions(partitionsObj.toString());
+
+      final Object replicasObj = overrides.get(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY);
+      final Short replicas = (replicasObj instanceof Short || replicasObj == null)
+          ? (Short) replicasObj
+          : (Short) WithClauseUtil.parseReplicas(replicasObj.toString());
 
       fromOverrides = new TopicProperties(null, partitions, replicas);
       return this;

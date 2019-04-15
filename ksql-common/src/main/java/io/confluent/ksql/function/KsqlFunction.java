@@ -40,7 +40,7 @@ public final class KsqlFunction {
   private final Function<KsqlConfig, Kudf> udfFactory;
   private final String description;
   private final String pathLoadedFrom;
-  private final boolean isVarArgs;
+  private final boolean isVariadic;
 
   /**
    * Create built in / legacy function.
@@ -78,7 +78,7 @@ public final class KsqlFunction {
       final Function<KsqlConfig, Kudf> udfFactory,
       final String description,
       final String pathLoadedFrom,
-      final boolean isVarArgs
+      final boolean isVariadic
   ) {
     return new KsqlFunction(
         returnType,
@@ -88,7 +88,7 @@ public final class KsqlFunction {
         udfFactory,
         description,
         pathLoadedFrom,
-        isVarArgs);
+        isVariadic);
   }
 
   private KsqlFunction(
@@ -99,7 +99,7 @@ public final class KsqlFunction {
       final Function<KsqlConfig, Kudf> udfFactory,
       final String description,
       final String pathLoadedFrom,
-      final boolean isVarArgs) {
+      final boolean isVariadic) {
     this.returnType = Objects.requireNonNull(returnType, "returnType");
     this.arguments = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
     this.functionName = Objects.requireNonNull(functionName, "functionName");
@@ -107,19 +107,19 @@ public final class KsqlFunction {
     this.udfFactory = Objects.requireNonNull(udfFactory, "udfFactory");
     this.description = Objects.requireNonNull(description, "description");
     this.pathLoadedFrom  = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom");
-    this.isVarArgs = isVarArgs;
+    this.isVariadic = isVariadic;
 
     if (arguments.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
     }
-    if (isVarArgs) {
+    if (isVariadic) {
       if (arguments.isEmpty()) {
         throw new IllegalArgumentException(
-            "KSQL vararg functions must have at least one parameter");
+            "KSQL variadic functions must have at least one parameter");
       }
       if (!Iterables.getLast(arguments).type().equals(Type.ARRAY)) {
         throw new IllegalArgumentException(
-            "KSQL vararg functions must have ARRAY type as their last parameter");
+            "KSQL variadic functions must have ARRAY type as their last parameter");
       }
     }
   }
@@ -149,8 +149,8 @@ public final class KsqlFunction {
     return pathLoadedFrom;
   }
 
-  public boolean isVarArgs() {
-    return isVarArgs;
+  public boolean isVariadic() {
+    return isVariadic;
   }
 
   @Override
@@ -167,12 +167,12 @@ public final class KsqlFunction {
         && Objects.equals(functionName, that.functionName)
         && Objects.equals(kudfClass, that.kudfClass)
         && Objects.equals(pathLoadedFrom, that.pathLoadedFrom)
-        && (isVarArgs == that.isVarArgs);
+        && (isVariadic == that.isVariadic);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom, isVarArgs);
+    return Objects.hash(returnType, arguments, functionName, kudfClass, pathLoadedFrom, isVariadic);
   }
 
   @Override
@@ -184,7 +184,7 @@ public final class KsqlFunction {
         + ", kudfClass=" + kudfClass
         + ", description='" + description + "'"
         + ", pathLoadedFrom='" + pathLoadedFrom + "'"
-        + ", isVarArgs=" + isVarArgs
+        + ", isVariadic=" + isVariadic
         + '}';
   }
 

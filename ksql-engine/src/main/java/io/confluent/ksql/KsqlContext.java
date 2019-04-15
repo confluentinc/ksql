@@ -27,12 +27,13 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.topic.DefaultTopicInjector;
-import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -43,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,8 +55,7 @@ public class KsqlContext {
   private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
-  private final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
+  private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
 
   /**
    * Create a KSQL context object with the given properties. A KSQL context has it's own metastore
@@ -80,9 +80,11 @@ public class KsqlContext {
         serviceContext,
         ksqlConfig,
         engine,
-        sc -> new DefaultSchemaInjector(
-            new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
-        DefaultTopicInjector::new);
+        (ec, sc) -> InjectorChain.of(
+            new DefaultSchemaInjector(
+                new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
+            new DefaultTopicInjector(ec))
+    );
   }
 
   @VisibleForTesting
@@ -90,16 +92,12 @@ public class KsqlContext {
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
-      final Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory
+      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.schemaInjectorFactory = Objects
-        .requireNonNull(schemaInjectorFactory, "schemaInjectorFactory");
-    this.topicInjectorFactory = Objects
-        .requireNonNull(topicInjectorFactory, "topicInjectorFactory");
+    this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
   }
 
   public ServiceContext getServiceContext() {
@@ -121,25 +119,19 @@ public class KsqlContext {
     final List<ParsedStatement> statements = ksqlEngine.parse(sql);
 
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox();
-    final SchemaInjector sandboxSchemaInjector = schemaInjectorFactory
-        .apply(sandbox.getServiceContext());
-    final TopicInjector sandboxTopicInjector = topicInjectorFactory.apply(sandbox);
-
     for (ParsedStatement stmt : statements) {
       execute(
           sandbox,
           stmt,
           ksqlConfig,
           overriddenProperties,
-          sandboxSchemaInjector,
-          sandboxTopicInjector);
+          injectorFactory.apply(sandbox, sandbox.getServiceContext()));
     }
 
-    final SchemaInjector schemaInjector = schemaInjectorFactory.apply(serviceContext);
-    final TopicInjector topicInjector = topicInjectorFactory.apply(ksqlEngine);
     final List<QueryMetadata> queries = new ArrayList<>();
+    final Injector injector = injectorFactory.apply(ksqlEngine, serviceContext);
     for (final ParsedStatement parsed : statements) {
-      execute(ksqlEngine, parsed, ksqlConfig, overriddenProperties, schemaInjector, topicInjector)
+      execute(ksqlEngine, parsed, ksqlConfig, overriddenProperties, injector)
           .getQuery()
           .ifPresent(queries::add);
     }
@@ -182,12 +174,10 @@ public class KsqlContext {
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
-      final SchemaInjector schemaInjector,
-      final TopicInjector topicInjector) {
+      final Injector injector) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
-    final PreparedStatement<?> withSchema = schemaInjector.forStatement(prepared);
-    final PreparedStatement<?> withInferredTopic =
-        topicInjector.forStatement(withSchema, ksqlConfig, overriddenProperties);
-    return executionContext.execute(withInferredTopic, ksqlConfig, overriddenProperties);
+    final ConfiguredStatement<?> configured =
+        ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig);
+    return executionContext.execute(injector.inject(configured));
   }
 }

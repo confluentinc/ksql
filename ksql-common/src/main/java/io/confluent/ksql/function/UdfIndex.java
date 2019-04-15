@@ -116,7 +116,7 @@ public class UdfIndex {
       curr = curr.children.computeIfAbsent(param, ignored -> new Node());
     }
 
-    if (function.isVarArgs()) {
+    if (function.isVariadic()) {
       // first add the function to the parent to address the
       // case of empty varargs
       parent.update(function, order);
@@ -199,7 +199,7 @@ public class UdfIndex {
     private static final Comparator<KsqlFunction> COMPARE_FUNCTIONS =
         Comparator.nullsFirst(
             Comparator
-                .<KsqlFunction, Integer>comparing(fun -> fun.isVarArgs() ? 0 : 1)
+                .<KsqlFunction, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
                 .thenComparing(fun -> fun.getArguments().size())
         );
 

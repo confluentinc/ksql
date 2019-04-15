@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -29,6 +30,8 @@ import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -457,7 +460,8 @@ public class DefaultSchemaInjectorFunctionalTest {
         .buildSingleAst(stmtNoSchema, metaStore);
 
     // When:
-    final PreparedStatement<?> inferred = schemaInjector.forStatement(prepared);
+    final ConfiguredStatement<?> inferred = schemaInjector.inject(
+        ConfiguredStatement.of(prepared, ImmutableMap.of(), new KsqlConfig(ImmutableMap.of())));
 
     // Then:
     final Statement withSchema = KsqlParserTestUtil

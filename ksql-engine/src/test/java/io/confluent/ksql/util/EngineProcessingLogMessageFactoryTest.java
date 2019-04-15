@@ -21,6 +21,8 @@ import org.junit.Test;
 public class EngineProcessingLogMessageFactoryTest {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String errorMsg = "error msg";
+  private static final Throwable cause = new Exception("cause1", new Exception("cause2"));
+  private static final Throwable error = new Exception(errorMsg, cause);
 
   private final ProcessingLogConfig config = new ProcessingLogConfig(
       Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS,  true)
@@ -31,7 +33,7 @@ public class EngineProcessingLogMessageFactoryTest {
   public void shouldBuildRecordProcessingErrorCorrectly() throws IOException {
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, new GenericRow(123, "data")
+        errorMsg, error, new GenericRow(123, "data")
     ).apply(config);
 
     // Then:
@@ -47,6 +49,10 @@ public class EngineProcessingLogMessageFactoryTest {
         recordProcessingError.get(
             ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
         equalTo(errorMsg));
+    assertThat(
+        recordProcessingError.get(
+            ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE),
+        equalTo(ErrorMessageUtil.getErrorMessages(cause)));
     final List<Object> rowAsList =
         OBJECT_MAPPER.readValue(
             recordProcessingError.getString(
@@ -60,7 +66,7 @@ public class EngineProcessingLogMessageFactoryTest {
   public void shouldBuildRecordProcessingErrorCorrectlyIfRowNull() {
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, null
+        errorMsg, error, null
     ).apply(config);
 
     // Then:
@@ -82,7 +88,7 @@ public class EngineProcessingLogMessageFactoryTest {
 
     // When:
     final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
-        errorMsg, new GenericRow(123, "data")
+        errorMsg, error, new GenericRow(123, "data")
     ).apply(config);
 
     // Then:

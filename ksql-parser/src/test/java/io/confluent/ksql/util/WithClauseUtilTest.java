@@ -21,7 +21,7 @@ public class WithClauseUtilTest {
     final Expression expression = new IntegerLiteral(1);
 
     // When:
-    final int partitions = WithClauseUtil.parsePartitions(expression);
+    final int partitions = WithClauseUtil.parsePartitions(expression.toString());
 
     // Then:
     assertThat(partitions, equalTo(1));
@@ -33,7 +33,7 @@ public class WithClauseUtilTest {
     final Expression expression = new LongLiteral(1);
 
     // When:
-    final int partitions = WithClauseUtil.parsePartitions(expression);
+    final int partitions = WithClauseUtil.parsePartitions(expression.toString());
 
     // Then:
     assertThat(partitions, equalTo(1));
@@ -45,7 +45,7 @@ public class WithClauseUtilTest {
     final Expression expression = new StringLiteral("1");
 
     // When:
-    final int partitions = WithClauseUtil.parsePartitions(expression);
+    final int partitions = WithClauseUtil.parsePartitions(expression.toString());
 
     // Then:
     assertThat(partitions, equalTo(1));
@@ -61,7 +61,7 @@ public class WithClauseUtilTest {
     expectedException.expectMessage("Invalid number of partitions in WITH clause");
 
     // When:
-    WithClauseUtil.parsePartitions(expression);
+    WithClauseUtil.parsePartitions(expression.toString());
   }
 
   @Test
@@ -75,7 +75,7 @@ public class WithClauseUtilTest {
         "Invalid number of partitions in WITH clause");
 
     // When:
-    WithClauseUtil.parsePartitions(expression);
+    WithClauseUtil.parsePartitions(expression.toString());
   }
 
   @Test
@@ -89,7 +89,7 @@ public class WithClauseUtilTest {
         "Invalid number of partitions in WITH clause (must be positive)");
 
     // When:
-    WithClauseUtil.parsePartitions(expression);
+    WithClauseUtil.parsePartitions(expression.toString());
   }
 
   @Test
@@ -103,7 +103,7 @@ public class WithClauseUtilTest {
         "Invalid number of partitions in WITH clause (must be positive)");
 
     // When:
-    WithClauseUtil.parsePartitions(expression);
+    WithClauseUtil.parsePartitions(expression.toString());
   }
 
   @Test
@@ -117,7 +117,7 @@ public class WithClauseUtilTest {
         "Invalid number of partitions in WITH clause");
 
     // When:
-    WithClauseUtil.parsePartitions(expression);
+    WithClauseUtil.parsePartitions(expression.toString());
   }
 
   @Test
@@ -126,7 +126,7 @@ public class WithClauseUtilTest {
     final Expression expression = new IntegerLiteral(1);
 
     // When:
-    final short replicas = WithClauseUtil.parseReplicas(expression);
+    final short replicas = WithClauseUtil.parseReplicas(expression.toString());
 
     // Then:
     assertThat(replicas, equalTo((short) 1));
@@ -138,7 +138,7 @@ public class WithClauseUtilTest {
     final Expression expression = new LongLiteral(1);
 
     // When:
-    final short replicas = WithClauseUtil.parseReplicas(expression);
+    final short replicas = WithClauseUtil.parseReplicas(expression.toString());
 
     // Then:
     assertThat(replicas, equalTo((short) 1));
@@ -150,7 +150,7 @@ public class WithClauseUtilTest {
     final Expression expression = new StringLiteral("1");
 
     // When:
-    final short replicas = WithClauseUtil.parseReplicas(expression);
+    final short replicas = WithClauseUtil.parseReplicas(expression.toString());
 
     // Then:
     assertThat(replicas, equalTo((short) 1));
@@ -166,7 +166,7 @@ public class WithClauseUtilTest {
     expectedException.expectMessage("Invalid number of replicas in WITH clause");
 
     // When:
-    WithClauseUtil.parseReplicas(expression);
+    WithClauseUtil.parseReplicas(expression.toString());
   }
 
   @Test
@@ -180,7 +180,7 @@ public class WithClauseUtilTest {
         "Invalid number of replicas in WITH clause");
 
     // When:
-    WithClauseUtil.parseReplicas(expression);
+    WithClauseUtil.parseReplicas(expression.toString());
   }
 
   @Test
@@ -194,7 +194,7 @@ public class WithClauseUtilTest {
         "Invalid number of replicas in WITH clause (must be positive)");
 
     // When:
-    WithClauseUtil.parseReplicas(expression);
+    WithClauseUtil.parseReplicas(expression.toString());
   }
 
   @Test
@@ -208,7 +208,7 @@ public class WithClauseUtilTest {
         "Invalid number of replicas in WITH clause (must be positive)");
 
     // When:
-    WithClauseUtil.parseReplicas(expression);
+    WithClauseUtil.parseReplicas(expression.toString());
   }
 
   @Test
@@ -222,7 +222,7 @@ public class WithClauseUtilTest {
         "Invalid number of replicas in WITH clause");
 
     // When:
-    WithClauseUtil.parseReplicas(expression);
+    WithClauseUtil.parseReplicas(expression.toString());
   }
 
 }

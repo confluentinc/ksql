@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -66,11 +65,10 @@ public class ListTopicsExecutorTest {
     // When:
     final KafkaTopicsList topicsList =
         (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
-            engine.prepare("LIST TOPICS;"),
+            engine.configure("LIST TOPICS;"),
             engine.getEngine(),
-            serviceContext,
-            engine.getKsqlConfig(),
-            ImmutableMap.of()).orElseThrow(IllegalStateException::new);
+            serviceContext
+        ).orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(

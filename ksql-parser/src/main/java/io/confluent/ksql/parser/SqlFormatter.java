@@ -360,10 +360,9 @@ public final class SqlFormatter {
       if (!node.getProperties().isEmpty()) {
         builder.append(" WITH (");
         Joiner.on(", ")
-                .appendTo(builder, transform(
-                        node.getProperties().entrySet(), entry -> entry.getKey() + " = "
-                                + ExpressionFormatter
-                                .formatExpression(entry.getValue())));
+                .appendTo(builder, node.getProperties().entrySet().stream()
+                        .map(entry -> entry.getKey() + " = " + ExpressionFormatter
+                        .formatExpression(entry.getValue())).collect(Collectors.toList()));
         builder.append(")");
       }
 
@@ -416,10 +415,9 @@ public final class SqlFormatter {
         final Optional<Expression> partitionByColumn,
         final Integer indent
     ) {
-      partitionByColumn.ifPresent(partitionBy -> {
-        append(indent, "PARTITION BY " + ExpressionFormatter.formatExpression(partitionBy))
-            .append('\n');
-      });
+      partitionByColumn.ifPresent(partitionBy -> append(indent, "PARTITION BY "
+              + ExpressionFormatter.formatExpression(partitionBy))
+          .append('\n'));
     }
 
     private StringBuilder append(final int indent, final String value) {

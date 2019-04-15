@@ -26,17 +26,13 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.util.DataSourceExtractor;
 import java.util.Objects;
 
 public class StatementRewriteForStruct {
 
   private final Statement statement;
 
-  public StatementRewriteForStruct(
-      final Statement statement,
-      final DataSourceExtractor dataSourceExtractor
-  ) {
+  public StatementRewriteForStruct(final Statement statement) {
     this.statement = Objects.requireNonNull(statement, "statement");
   }
 

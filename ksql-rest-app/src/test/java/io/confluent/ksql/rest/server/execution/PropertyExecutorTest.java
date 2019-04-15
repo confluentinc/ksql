@@ -42,11 +42,9 @@ public class PropertyExecutorTest {
 
     // When:
     CustomExecutors.SET_PROPERTY.execute(
-        engine.prepare("SET 'property' = 'value';"),
+        engine.configure("SET 'property' = 'value';").withProperties(properties),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        properties
+        engine.getServiceContext()
     );
 
     // Then:
@@ -62,11 +60,9 @@ public class PropertyExecutorTest {
 
     // When:
     CustomExecutors.UNSET_PROPERTY.execute(
-        engine.prepare("UNSET 'property';"),
+        engine.configure("UNSET 'property';").withProperties(properties),
         engine.getEngine(),
-        engine.getServiceContext(),
-        engine.getKsqlConfig(),
-        properties
+        engine.getServiceContext()
     );
 
     // Then:

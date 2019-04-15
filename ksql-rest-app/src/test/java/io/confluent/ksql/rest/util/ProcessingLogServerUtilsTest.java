@@ -44,8 +44,8 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
@@ -191,10 +191,7 @@ public class ProcessingLogServerUtilsTest {
     assertThat(
         statement.getStatementText(),
         equalTo(SqlFormatter.formatSql(statement.getStatement())));
-    ksqlEngine.execute(
-        statement,
-        ksqlConfig,
-        Collections.emptyMap());
+    ksqlEngine.execute(ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig));
     assertLogStream(TOPIC);
   }
 
@@ -218,10 +215,7 @@ public class ProcessingLogServerUtilsTest {
     assertThat(
         statement.getStatementText(),
         equalTo(SqlFormatter.formatSql(statement.getStatement())));
-    ksqlEngine.execute(
-        statement,
-        ksqlConfig,
-        Collections.emptyMap());
+    ksqlEngine.execute(ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig));
     assertLogStream(DEFAULT_TOPIC);
   }
 

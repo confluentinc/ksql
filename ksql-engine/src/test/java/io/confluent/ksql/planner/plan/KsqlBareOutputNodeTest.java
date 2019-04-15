@@ -134,7 +134,7 @@ public class KsqlBareOutputNodeTest {
     // When:
     final Set<QueryId> ids = IntStream.range(0, 100)
         .mapToObj(i -> node.getQueryId(queryIdGenerator))
-        .collect(Collectors.toSet());;
+        .collect(Collectors.toSet());
 
     // Then:
     assertThat(ids.size(), equalTo(100));

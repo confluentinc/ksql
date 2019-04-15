@@ -18,7 +18,7 @@ package io.confluent.ksql.testingtool.services;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
-import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collection;
 import java.util.Collections;

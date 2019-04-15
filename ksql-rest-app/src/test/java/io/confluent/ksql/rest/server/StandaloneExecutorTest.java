@@ -64,7 +64,7 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.topic.TopicInjector;
-import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;

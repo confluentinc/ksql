@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.util.ExecutorUtil.RetryBehaviour;
+import io.confluent.ksql.util.exception.KafkaResponseGetFailedException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

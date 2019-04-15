@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.testingtool.services;
 
-import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.util.exception.KafkaTopicExistsException;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 public final class TopicValidationUtil {

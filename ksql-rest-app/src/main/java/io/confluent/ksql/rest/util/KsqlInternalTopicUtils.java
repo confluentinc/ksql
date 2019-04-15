@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.clients.admin.TopicDescription;

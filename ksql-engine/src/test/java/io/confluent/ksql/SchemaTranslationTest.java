@@ -15,11 +15,6 @@
 
 package io.confluent.ksql;
 
-import static io.confluent.ksql.EndToEndEngineTestUtil.AvroSerdeSupplier;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Record;
-import static io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
-import static io.confluent.ksql.EndToEndEngineTestUtil.Topic;
-import static io.confluent.ksql.EndToEndEngineTestUtil.ValueSpecAvroSerdeSupplier;
 import static io.confluent.ksql.EndToEndEngineTestUtil.avroToValueSpec;
 import static io.confluent.ksql.EndToEndEngineTestUtil.buildAvroSchema;
 import static io.confluent.ksql.EndToEndEngineTestUtil.buildTestName;
@@ -32,8 +27,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.EndToEndEngineTestUtil.MissingFieldException;
-import io.confluent.ksql.EndToEndEngineTestUtil.PostConditions;
 import io.confluent.ksql.EndToEndEngineTestUtil.TestFile;
+import io.confluent.ksql.test.commons.AvroSerdeSupplier;
+import io.confluent.ksql.test.commons.ExpectedException;
+import io.confluent.ksql.test.commons.PostConditions;
+import io.confluent.ksql.test.commons.Record;
+import io.confluent.ksql.test.commons.TestCase;
+import io.confluent.ksql.test.commons.Topic;
+import io.confluent.ksql.test.commons.ValueSpecAvroSerdeSupplier;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -188,7 +189,7 @@ public class SchemaTranslationTest {
             inputRecords,
             outputRecords,
             ImmutableList.of(DDL_STATEMENT, csasStatement),
-            EndToEndEngineTestUtil.ExpectedException.none(),
+            ExpectedException.none(),
             PostConditions.NONE
         ));
       } catch (final Exception e) {

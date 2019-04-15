@@ -14,46 +14,33 @@
  */
 package io.confluent.ksql;
 
-import static java.util.Objects.requireNonNull;
-import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.Matchers.anything;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.junit.matchers.JUnitMatchers.isThrowable;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.NullNode;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.ksql.EndToEndEngineTestUtil.WindowData.Type;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.test.commons.Test;
+import io.confluent.ksql.test.commons.TestCase;
+import io.confluent.ksql.test.commons.TopologyAndConfigs;
+import io.confluent.ksql.test.commons.TopologyTestDriverContainer;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,7 +52,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -79,26 +65,9 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
-import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
-import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
-import org.apache.kafka.streams.kstream.Window;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.SessionWindow;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
-import org.apache.kafka.streams.test.ConsumerRecordFactory;
-import org.apache.kafka.streams.test.OutputVerifier;
 import org.apache.kafka.test.TestUtils;
-import org.hamcrest.Matcher;
-import org.hamcrest.StringDescription;
-import org.junit.internal.matchers.ThrowableMessageMatcher;
 
 final class EndToEndEngineTestUtil {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -113,603 +82,6 @@ final class EndToEndEngineTestUtil {
 
   private EndToEndEngineTestUtil(){}
 
-  private static class ValueSpec {
-    private final Object spec;
-
-    ValueSpec(final Object spec) {
-      this.spec = spec;
-    }
-
-    @SuppressWarnings("ConstantConditions")
-    private static void compare(final Object o1, final Object o2, final String path) {
-      if (o1 == null && o2 == null) {
-        return;
-      }
-      if (o1 instanceof Map) {
-        assertThat("type mismatch at " + path, o2, instanceOf(Map.class));
-        assertThat("keyset mismatch at " + path, ((Map) o1).keySet(), equalTo(((Map)o2).keySet()));
-        for (final Object k : ((Map) o1).keySet()) {
-          compare(((Map) o1).get(k), ((Map) o2).get(k), path + "." + k);
-        }
-      } else if (o1 instanceof List) {
-        assertThat("type mismatch at " + path, o2, instanceOf(List.class));
-        assertThat("list size mismatch at " + path, ((List) o1).size(), equalTo(((List)o2).size()));
-        for (int i = 0; i < ((List) o1).size(); i++) {
-          compare(((List) o1).get(i), ((List) o2).get(i), path + "." + i);
-        }
-      } else {
-        assertThat("mismatch at path " + path, o1, equalTo(o2));
-        assertThat("type mismatch at " + path, o1.getClass(), equalTo(o2.getClass()));
-      }
-    }
-
-    @SuppressFBWarnings("HE_EQUALS_USE_HASHCODE")
-    @SuppressWarnings({"EqualsWhichDoesntCheckParameterClass", "Contract"}) // Hack to make work with OutputVerifier.
-    @Override
-    public boolean equals(final Object o) {
-      compare(spec, o, "VALUE-SPEC");
-      return Objects.equals(spec, o);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(spec);
-    }
-
-    @Override
-    public String toString() {
-      return Objects.toString(spec);
-    }
-  }
-
-  protected interface SerdeSupplier<T> {
-    Serializer<T> getSerializer(SchemaRegistryClient schemaRegistryClient);
-    Deserializer<T> getDeserializer(SchemaRegistryClient schemaRegistryClient);
-  }
-
-  static class StringSerdeSupplier implements SerdeSupplier<String> {
-    @Override
-    public Serializer<String> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
-      return Serdes.String().serializer();
-    }
-
-    @Override
-    public Deserializer<String> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-      return Serdes.String().deserializer();
-    }
-  }
-
-  static class AvroSerdeSupplier implements SerdeSupplier {
-    @Override
-    public Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
-      return new KafkaAvroSerializer(schemaRegistryClient);
-    }
-
-    @Override
-    public Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-      return new KafkaAvroDeserializer(schemaRegistryClient);
-    }
-  }
-
-  static class ValueSpecAvroDeserializer implements Deserializer<Object> {
-    private final SchemaRegistryClient schemaRegistryClient;
-    private final KafkaAvroDeserializer avroDeserializer;
-
-    private ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-      this.schemaRegistryClient = schemaRegistryClient;
-      this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
-    }
-
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public void configure(final Map<String, ?> properties, final boolean b) {
-    }
-
-    @Override
-    public Object deserialize(final String topicName, final byte[] data) {
-      final Object avroObject = avroDeserializer.deserialize(topicName, data);
-      final String schemaString;
-      try {
-        schemaString = schemaRegistryClient.getLatestSchemaMetadata(
-            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema();
-      } catch (final Exception e) {
-        throw new RuntimeException(e);
-      }
-      return new ValueSpec(
-          avroToValueSpec(
-              avroObject,
-              new org.apache.avro.Schema.Parser().parse(schemaString),
-              false));
-    }
-  }
-
-  static class ValueSpecAvroSerializer implements Serializer<Object> {
-    private final SchemaRegistryClient schemaRegistryClient;
-    private final KafkaAvroSerializer avroSerializer;
-
-    private ValueSpecAvroSerializer(final SchemaRegistryClient schemaRegistryClient) {
-      this.schemaRegistryClient = schemaRegistryClient;
-      this.avroSerializer = new KafkaAvroSerializer(schemaRegistryClient);
-    }
-
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public void configure(final Map<String, ?> properties, final boolean b) {
-    }
-
-    @Override
-    public byte[] serialize(final String topicName, final Object spec) {
-      final String schemaString;
-      try {
-        schemaString = schemaRegistryClient.getLatestSchemaMetadata(
-            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX).getSchema();
-      } catch (final Exception e) {
-        throw new RuntimeException(e);
-      }
-      final Object avroObject = valueSpecToAvro(
-          spec,
-          new org.apache.avro.Schema.Parser().parse(schemaString));
-      return avroSerializer.serialize(topicName, avroObject);
-    }
-  }
-
-  static class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
-    @Override
-    public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
-      return new ValueSpecAvroSerializer(schemaRegistryClient);
-    }
-
-    @Override
-    public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-      return new ValueSpecAvroDeserializer(schemaRegistryClient);
-    }
-  }
-
-  static class ValueSpecJsonDeserializer implements Deserializer<Object> {
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public void configure(final Map<String, ?> properties, final boolean b) {
-    }
-
-    @Override
-    public Object deserialize(final String topicName, final byte[] data) {
-      if (data == null) {
-        return null;
-      }
-      try {
-        return new ObjectMapper().readValue(data, Map.class);
-      } catch (final Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  static class ValueSpecJsonSerializer implements Serializer<Object> {
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public void configure(final Map<String, ?> properties, final boolean b) {
-    }
-
-    @Override
-    public byte[] serialize(final String topicName, final Object spec) {
-      if (spec == null) {
-        return null;
-      }
-      try {
-        return new ObjectMapper().writeValueAsBytes(spec);
-      } catch (final Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  static class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
-    @Override
-    public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
-      return new ValueSpecJsonSerializer();
-    }
-
-    @Override
-    public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-      return new ValueSpecJsonDeserializer();
-    }
-  }
-
-  static class Topic {
-    private final String name;
-    private final Optional<org.apache.avro.Schema> schema;
-    private final SerdeSupplier serdeSupplier;
-    private final int numPartitions;
-    private final int replicas;
-
-    Topic(
-        final String name,
-        final Optional<org.apache.avro.Schema> schema,
-        final SerdeSupplier serdeSupplier,
-        final int numPartitions,
-        final int replicas
-    ) {
-      this.name = requireNonNull(name, "name");
-      this.schema = requireNonNull(schema, "schema");
-      this.serdeSupplier = requireNonNull(serdeSupplier, "serdeSupplier");
-      this.numPartitions = numPartitions;
-      this.replicas = replicas;
-    }
-
-    String getName() {
-      return name;
-    }
-
-    Optional<org.apache.avro.Schema> getSchema() {
-      return schema;
-    }
-
-    SerdeSupplier getSerdeSupplier() {
-      return serdeSupplier;
-    }
-
-    private Serializer getSerializer(final SchemaRegistryClient schemaRegistryClient) {
-      return serdeSupplier.getSerializer(schemaRegistryClient);
-    }
-
-    private Deserializer getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-      return serdeSupplier.getDeserializer(schemaRegistryClient);
-    }
-  }
-
-  static class WindowData {
-
-    enum Type {SESSION, TIME}
-
-    final long start;
-    final long end;
-    final Type type;
-
-    WindowData(
-        @JsonProperty("start") final long start,
-        @JsonProperty("end") final long end,
-        @JsonProperty("type") final String type
-    ) {
-      this.start = start;
-      this.end = end;
-      this.type = Type.valueOf(requireNonNull(type, "type").toUpperCase());
-    }
-
-    public long size() {
-      return end - start;
-    }
-  }
-
-  static class Record {
-    private final Topic topic;
-    private final String key;
-    private final Object value;
-    private final long timestamp;
-    private final WindowData window;
-
-    Record(final Topic topic,
-           final String key,
-           final Object value,
-           final long timestamp,
-           final WindowData window) {
-      this.topic = topic;
-      this.key = key;
-      this.value = value;
-      this.timestamp = timestamp;
-      this.window = window;
-    }
-
-    private Serializer<?> keySerializer() {
-      final Serializer<String> stringDe = Serdes.String().serializer();
-      if (window == null) {
-        return stringDe;
-      }
-
-      return window.type == Type.SESSION
-          ? new SessionWindowedSerializer<>(stringDe)
-          : new TimeWindowedSerializer<>(stringDe);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Deserializer keyDeserializer() {
-      if (window == null) {
-        return Serdes.String().deserializer();
-      }
-
-      final Deserializer<String> inner = Serdes.String().deserializer();
-      return window.type == Type.SESSION
-          ? new SessionWindowedDeserializer<>(inner)
-          : new TimeWindowedDeserializer<>(inner, window.size());
-    }
-
-    @SuppressWarnings("unchecked")
-    public <W> W key() {
-      if (window == null) {
-        return (W) key;
-      }
-
-      final Window w = window.type == Type.SESSION
-          ? new SessionWindow(this.window.start, this.window.end)
-          : new TimeWindow(this.window.start, this.window.end);
-      return (W) new Windowed<>(key, w);
-    }
-
-    public Object value() {
-      return value;
-    }
-
-    public long timestamp() {
-      return timestamp;
-    }
-  }
-
-  @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
-  static class ExpectedException {
-    private final List<Matcher<?>> matchers = new ArrayList<>();
-
-    public static ExpectedException none() {
-      return new ExpectedException();
-    }
-
-    public void expect(final Class<? extends Throwable> type) {
-      matchers.add(instanceOf(type));
-    }
-
-    public void expect(final Matcher<?> matcher) {
-      matchers.add(matcher);
-    }
-
-    public void expectMessage(final String substring) {
-      expectMessage(containsString(substring));
-    }
-
-    public void expectMessage(final Matcher<String> matcher) {
-      matchers.add(ThrowableMessageMatcher.hasMessage(matcher));
-    }
-
-    @SuppressWarnings("unchecked")
-    private Matcher<Throwable> build() {
-      return allOf(new ArrayList(matchers));
-    }
-  }
-
-  static class TestCase implements Test {
-
-    private final Path testPath;
-    private final String name;
-    private final Map<String, Object> properties;
-    private final Collection<Topic> topics;
-    private final List<Record> inputRecords;
-    private final List<Record> outputRecords;
-    private final List<String> statements;
-    private final ExpectedException expectedException;
-    private String generatedTopology;
-    private String generatedSchemas;
-    private Optional<TopologyAndConfigs> expectedTopology = Optional.empty();
-    private final PostConditions postConditions;
-
-    @Override
-    public String getName() {
-      return name;
-    }
-
-    @Override
-    public String getTestFile() {
-      return testPath.toString();
-    }
-
-    TestCase(
-        final Path testPath,
-        final String name,
-        final Map<String, Object> properties,
-        final Collection<Topic> topics,
-        final List<Record> inputRecords,
-        final List<Record> outputRecords,
-        final List<String> statements,
-        final ExpectedException expectedException,
-        final PostConditions postConditions
-    ) {
-      this.topics = topics;
-      this.inputRecords = inputRecords;
-      this.outputRecords = outputRecords;
-      this.testPath = testPath;
-      this.name = name;
-      this.properties = ImmutableMap.copyOf(properties);
-      this.statements = statements;
-      this.expectedException = expectedException;
-      this.postConditions = Objects.requireNonNull(postConditions, "postConditions");
-    }
-
-    TestCase copyWithName(String newName) {
-      final TestCase copy = new TestCase(
-          testPath,
-          newName,
-          properties,
-          topics,
-          inputRecords,
-          outputRecords,
-          statements,
-          expectedException,
-          postConditions);
-      copy.generatedTopology = generatedTopology;
-      copy.expectedTopology = expectedTopology;
-      copy.generatedSchemas = generatedSchemas;
-      return copy;
-    }
-
-    void setGeneratedTopology(final String generatedTopology) {
-      this.generatedTopology = Objects.requireNonNull(generatedTopology, "generatedTopology");
-    }
-
-    void setExpectedTopology(final TopologyAndConfigs expectedTopology) {
-      this.expectedTopology = Optional.of(expectedTopology);
-    }
-
-    void setGeneratedSchemas(final String generatedSchemas) {
-      this.generatedSchemas = Objects.requireNonNull(generatedSchemas, "generatedSchemas");
-    }
-
-    Map<String, String> persistedProperties() {
-      return expectedTopology
-          .flatMap(t -> t.configs)
-          .orElseGet(HashMap::new);
-    }
-
-    public Map<String, Object> properties() {
-      return properties;
-    }
-
-    public List<String> statements() {
-      return statements;
-    }
-
-    @SuppressWarnings("unchecked")
-    void processInput(final TopologyTestDriver testDriver,
-                      final SchemaRegistryClient schemaRegistryClient) {
-      inputRecords.forEach(
-          r -> testDriver.pipeInput(
-              new ConsumerRecordFactory<>(
-                  r.keySerializer(),
-                  r.topic.getSerializer(schemaRegistryClient)
-              ).create(r.topic.name, r.key(), r.value, r.timestamp)
-          )
-      );
-    }
-
-    @SuppressWarnings("unchecked")
-    void verifyOutput(final TopologyTestDriver testDriver,
-                      final SchemaRegistryClient schemaRegistryClient) {
-      if (isAnyExceptionExpected()) {
-        failDueToMissingException();
-      }
-
-      int idx = -1;
-      try {
-        for (idx = 0; idx < outputRecords.size(); idx++) {
-          final Record expectedOutput = outputRecords.get(idx);
-
-          final ProducerRecord record = testDriver.readOutput(
-              expectedOutput.topic.name,
-              expectedOutput.keyDeserializer(),
-              expectedOutput.topic.getDeserializer(schemaRegistryClient));
-
-          if (record == null) {
-            throw new AssertionError("No record received");
-          }
-
-          OutputVerifier.compareKeyValueTimestamp(
-              record,
-              expectedOutput.key(),
-              expectedOutput.value,
-              expectedOutput.timestamp);
-        }
-      } catch (final AssertionError assertionError) {
-        final String rowMsg = idx == -1 ? "" : " while processing output row " + idx;
-        final String topicMsg = idx == -1 ? "" : " topic: " + outputRecords.get(idx).topic.name;
-        throw new AssertionError("TestCase name: "
-            + name
-            + " in file: " + testPath
-            + " failed" + rowMsg + topicMsg + " due to: "
-            + assertionError.getMessage(), assertionError);
-      }
-    }
-
-    void initializeTopics(final ServiceContext serviceContext) {
-      for (final Topic topic : topics) {
-        serviceContext.getTopicClient().createTopic(topic.getName(), topic.numPartitions, (short) topic.replicas);
-
-        topic.getSchema()
-            .ifPresent(schema -> {
-              try {
-                serviceContext.getSchemaRegistryClient()
-                    .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
-              } catch (final Exception e) {
-                throw new RuntimeException(e);
-              }
-            });
-      }
-    }
-
-    void verifyMetastore(final MetaStore metaStore) {
-      postConditions.verify(metaStore);
-    }
-
-    void verifyTopology() {
-      expectedTopology.ifPresent(expected -> {
-        assertThat("Generated topology differs from that built by previous versions of KSQL"
-                + " - this likely means there is a non-backwards compatible change.\n"
-                + "THIS IS BAD!",
-            generatedTopology, is(expected.topology));
-
-        expected.schemas.ifPresent(schemas -> {
-          assertThat("Schemas used by topology differ from those used by previous versions"
-                  + " of KSQL - this likely means there is a non-backwards compatible change.\n"
-                  + "THIS IS BAD!",
-              generatedSchemas, is(schemas));
-        });
-      });
-    }
-
-    boolean isAnyExceptionExpected() {
-      return !expectedException.matchers.isEmpty();
-    }
-
-    private void failDueToMissingException() {
-      final String expectation = StringDescription.toString(expectedException.build());
-      final String message = "Expected test to throw" + expectation;
-      fail(message);
-    }
-
-    private void handleException(final RuntimeException e) {
-      if (isAnyExceptionExpected()) {
-        assertThat(e, isThrowable(expectedException.build()));
-      } else {
-        throw e;
-      }
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  static class PostConditions {
-
-    static final PostConditions NONE = new PostConditions(hasItems(anything()));
-
-    final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher;
-
-    PostConditions(
-        final Matcher<Iterable<StructuredDataSource<?>>> sourcesMatcher
-    ) {
-      this.sourcesMatcher = Objects.requireNonNull(sourcesMatcher, "sourcesMatcher");
-    }
-
-    public void verify(final MetaStore metaStore) {
-      final Collection<StructuredDataSource<?>> values = metaStore
-          .getAllStructuredDataSources()
-          .values();
-
-      final String text = values.stream()
-          .map(s -> s.getDataSourceType() + ":" + s.getName()
-              + ", key:" + s.getKeyField()
-              + ", value:" + s.getSchema())
-          .collect(Collectors.joining(System.lineSeparator()));
-
-      assertThat("metastore sources after the statements have run:"
-          + System.lineSeparator() + text, values, sourcesMatcher);
-    }
-  }
-
   static void writeExpectedTopologyFiles(
       final String topologyDir,
       final List<TestCase> testCases) {
@@ -723,13 +95,13 @@ final class EndToEndEngineTestUtil {
       final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.copyOf(updatedConfigs));
       try(final ServiceContext serviceContext = getServiceContext();
           final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
-        final PersistentQueryMetadata queryMetadata =
-            buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
+        final List<PersistentQueryMetadata> queries =
+            buildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig);
           final Map<String, String> configsToPersist
               = ksqlConfig.getAllConfigPropsWithSecretsObfuscated();
           writeExpectedTopologyFile(
               testCase.name,
-              queryMetadata,
+              queries.get(queries.size() -1),
               configsToPersist,
               objectWriter,
               topologyDir);
@@ -737,30 +109,34 @@ final class EndToEndEngineTestUtil {
     });
   }
 
-  private static PersistentQueryMetadata buildQuery(
+  private static List<PersistentQueryMetadata> buildQueries(
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig
   ) {
-    testCase.initializeTopics(serviceContext);
+    testCase.initializeTopics(
+        serviceContext.getTopicClient(),
+        serviceContext.getSchemaRegistryClient());
 
     final String sql = testCase.statements().stream()
         .collect(Collectors.joining(System.lineSeparator()));
 
-    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+    final List<PersistentQueryMetadata> queries = KsqlEngineTestUtil.execute(
         ksqlEngine,
         sql,
         ksqlConfig,
         testCase.properties(),
-        Optional.of(serviceContext.getSchemaRegistryClient())
-    );
+        Optional.of(serviceContext.getSchemaRegistryClient()))
+        .stream()
+        .map(queryMetadata -> (PersistentQueryMetadata)queryMetadata)
+        .collect(Collectors.toList());
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
-    return (PersistentQueryMetadata) queries.get(queries.size() - 1);
+    return queries;
   }
 
-  private static TopologyTestDriver buildStreamsTopologyTestDriver(
+  private static TopologyTestDriverContainer buildStreamsTopologyTestDriver(
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
@@ -769,16 +145,29 @@ final class EndToEndEngineTestUtil {
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-    final PersistentQueryMetadata queryMetadata =
-        buildQuery(testCase, serviceContext, ksqlEngine, maybeUpdatedConfigs);
-    testCase.setGeneratedTopology(queryMetadata.getTopologyDescription());
-    testCase.setGeneratedSchemas(queryMetadata.getSchemasDescription());
+    final List<PersistentQueryMetadata> queryMetadata =
+        buildQueries(testCase, serviceContext, ksqlEngine, maybeUpdatedConfigs);
+    final PersistentQueryMetadata persistentQueryMetadata = queryMetadata
+        .get(queryMetadata.size() -1);
+    testCase.setGeneratedTopologies(ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
+    testCase.setGeneratedSchemas(ImmutableList.of(persistentQueryMetadata.getSchemasDescription()));
     final Properties streamsProperties = new Properties();
-    streamsProperties.putAll(queryMetadata.getStreamsProperties());
-    return new TopologyTestDriver(
-        queryMetadata.getTopology(),
+    streamsProperties.putAll(persistentQueryMetadata.getStreamsProperties());
+    final TopologyTestDriver topologyTestDriver = new TopologyTestDriver(
+        persistentQueryMetadata.getTopology(),
         streamsProperties,
         0);
+    return TopologyTestDriverContainer.of(
+        topologyTestDriver,
+        persistentQueryMetadata.getSourceNames()
+            .stream()
+            .map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName())
+            .collect(Collectors.toSet()),
+        persistentQueryMetadata.getSinkNames()
+            .stream()
+            .map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName())
+            .collect(Collectors.toSet())
+    );
   }
 
   private static void writeExpectedTopologyFile(
@@ -932,12 +321,6 @@ final class EndToEndEngineTestUtil {
     return Arrays.asList(ksqlTestFiles.split(","));
   }
 
-  interface Test {
-
-    String getName();
-
-    String getTestFile();
-  }
 
   interface TestFile<TestType extends Test> {
 
@@ -1046,15 +429,22 @@ final class EndToEndEngineTestUtil {
 
     try (final ServiceContext serviceContext = getServiceContext();
         final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
-      testCase.initializeTopics(serviceContext);
-      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(
-          testCase,
-          serviceContext,
-          ksqlEngine,
-          ksqlConfig);
+      testCase.initializeTopics(
+          serviceContext.getTopicClient(),
+          serviceContext.getSchemaRegistryClient());
+      final TopologyTestDriverContainer topologyTestDriverContainer =
+          buildStreamsTopologyTestDriver(
+              testCase,
+              serviceContext,
+              ksqlEngine,
+              ksqlConfig);
       testCase.verifyTopology();
-      testCase.processInput(testDriver, serviceContext.getSchemaRegistryClient());
-      testCase.verifyOutput(testDriver, serviceContext.getSchemaRegistryClient());
+      testCase.processInput(
+          topologyTestDriverContainer,
+          serviceContext.getSchemaRegistryClient());
+      testCase.verifyOutput(
+          topologyTestDriverContainer,
+          serviceContext.getSchemaRegistryClient());
       testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
@@ -1190,23 +580,6 @@ final class EndToEndEngineTestUtil {
         return ret;
       default:
         throw new RuntimeException("Test cannot handle data of type: " + schema.getType());
-    }
-  }
-
-  static class TopologyAndConfigs {
-
-    final String topology;
-    final Optional<String> schemas;
-    final Optional<Map<String, String>> configs;
-
-    TopologyAndConfigs(
-        final String topology,
-        final Optional<String> schemas,
-        final Optional<Map<String, String>> configs
-    ) {
-      this.topology = Objects.requireNonNull(topology, "topology");
-      this.schemas = Objects.requireNonNull(schemas, "schemas");
-      this.configs = Objects.requireNonNull(configs, "configs");
     }
   }
 

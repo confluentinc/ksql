@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -39,6 +38,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.exception.ExceptionUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;

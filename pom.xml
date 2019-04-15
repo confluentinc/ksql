@@ -57,6 +57,7 @@
         <module>ksql-test-util</module>
         <module>ksql-benchmark</module>
         <module>ksql-testing-tool</module>
+      <module>ksql-test-commons</module>
     </modules>
 
     <repositories>

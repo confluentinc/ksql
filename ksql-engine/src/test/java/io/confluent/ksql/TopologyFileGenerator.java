@@ -15,7 +15,7 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
+import io.confluent.ksql.test.commons.TestCase;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

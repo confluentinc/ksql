@@ -68,18 +68,6 @@ public class TestCaseNode {
   private final Optional<ExpectedExceptionNode> expectedException;
   private final Optional<PostConditionsNode> postConditions;
 
-  public TestCaseNode(final TestCaseNode testCaseNode, final List<String> statements) {
-    this.name = testCaseNode.name;
-    this.formats = ImmutableList.copyOf(testCaseNode.formats);
-    this.statements = ImmutableList.copyOf(statements);
-    this.inputs = ImmutableList.copyOf(testCaseNode.inputs);
-    this.outputs = ImmutableList.copyOf(testCaseNode.outputs);
-    this.topics = ImmutableList.copyOf(testCaseNode.topics);
-    this.properties = ImmutableMap.copyOf(testCaseNode.properties);
-    this.expectedException = testCaseNode.expectedException;
-    this.postConditions = testCaseNode.postConditions;
-  }
-
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|NPathComplexity
   TestCaseNode(
       @JsonProperty("name") final String name,

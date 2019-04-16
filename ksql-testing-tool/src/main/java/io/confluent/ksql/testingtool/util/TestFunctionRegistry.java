@@ -13,16 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.testingtool;
+package io.confluent.ksql.testingtool.util;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 
-/**
- * A singleton, initialized, function registry.
- *
- * (Speeds up tests by avoiding loading UDFs in many tests).
- */
 public enum TestFunctionRegistry {
   INSTANCE;
 

@@ -25,7 +25,7 @@ fi
 : "${JAVA_HOME:=""}"
 
 # Development jars. `mvn package` should collect all the required dependency jars here
-for project in ksql-engine ksql-examples ksql-rest-app ksql-cli; do
+for project in ksql-engine ksql-examples ksql-rest-app ksql-cli ksql-testing-tool; do
     for dir in "$base_dir/$project/target/$project"-*-development; do
       KSQL_DIR="$dir/share/java/$project"
       if [ -d "$KSQL_DIR" ]; then

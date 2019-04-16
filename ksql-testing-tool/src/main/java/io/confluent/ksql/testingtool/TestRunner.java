@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+
 package io.confluent.ksql.testingtool;
 
 import static org.hamcrest.Matchers.is;
@@ -27,12 +43,11 @@ import io.confluent.ksql.test.commons.TestCaseNode;
 import io.confluent.ksql.test.commons.TopologyTestDriverContainer;
 import io.confluent.ksql.testingtool.services.KsqlEngineTestUtil;
 import io.confluent.ksql.testingtool.services.TestServiceContext;
+import io.confluent.ksql.testingtool.util.TestFunctionRegistry;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,58 +59,56 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class TestRunner {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private final static KsqlParser KSQL_PARSER = new DefaultKsqlParser();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
   private static final ServiceContext serviceContext = getServiceContext();
   private static final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext);
   private static final Map<String, Object> config = getConfigs(new HashMap<>());
 
+  private TestRunner() {
+
+  }
+
   public static void main(final String[] args) throws IOException {
 
     try {
+
       final TestOptions testOptions = TestOptions.parse(args);
 
-      final QttTestFile qttTestFile = OBJECT_MAPPER.readValue(
-          new File(testOptions.getTestDataFile()), QttTestFile.class);
+      if (testOptions == null) {
+        return;
+      }
 
-      final String statements = new String(java.nio.file.Files.readAllBytes(
-          Paths.get(testOptions.getQueriesFile())), StandardCharsets.UTF_8);
-      final List<ParsedStatement> parsedStatements = KSQL_PARSER.parse(statements);
-      final List<String> statementsList = parsedStatements
-          .stream()
-          .map(ParsedStatement::getStatementText)
-          .collect(Collectors.toList());
+      System.out.println(testOptions.getTestFile());
+      final QttTestFile qttTestFile = OBJECT_MAPPER.readValue(
+          new File(testOptions.getTestFile()), QttTestFile.class);
 
       final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
 
-      final TestCaseNode testCaseNodeWithStatements = new TestCaseNode(
-          testCaseNode,
-          statementsList);
-      final List<TestCase> testCases = testCaseNodeWithStatements.buildTests(
-          new File(testOptions.getTestDataFile()).toPath(),
+      final List<TestCase> testCases = testCaseNode.buildTests(
+          new File(testOptions.getTestFile()).toPath(),
           TestFunctionRegistry.INSTANCE.get());
-//      final List<TestCase> testCases = qttTestFile.tests.get(0).buildTests(new File(testFilePath).toPath());
       shouldBuildAndExecuteQuery(testCases.get(0));
-//    shouldBuildAndExecuteQuery(qttTestFile.tests.get(0).buildTests(new File(testFilePath).toPath()).get(0));
 
-      ksqlEngine.close();
-      serviceContext.close();
-
-      System.out.println();
+      System.out.println("All tests passed!");
 
     } catch (final Exception e) {
       System.err.println("Failed to start KSQL testing tool: " + e.getMessage());
       System.exit(-1);
+    } finally {
+      ksqlEngine.close();
+      serviceContext.close();
     }
 
   }
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
-//    final Map<String, Object> config = getConfigs(new HashMap<>());
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 
     final Map<String, String> persistedConfigs = testCase.persistedProperties();
@@ -103,17 +116,10 @@ public final class TestRunner {
     final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
         currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-//    try (final ServiceContext serviceContext = getServiceContext();
-//        final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
     try {
       testCase.initializeTopics(
           serviceContext.getTopicClient(),
           serviceContext.getSchemaRegistryClient());
-//      final TopologyTestDriver testDriver = buildStreamsTopologyTestDriver(
-//          testCase,
-//          serviceContext,
-//          ksqlEngine,
-//          ksqlConfig);
       final List<TopologyTestDriverContainer> topologyTestDrivers = buildStreamsTopologyTestDriver(
           testCase,
           serviceContext,
@@ -122,15 +128,14 @@ public final class TestRunner {
       );
       for (final TopologyTestDriverContainer topologyTestDriverContainer: topologyTestDrivers) {
         testCase.verifyTopology();
-        testCase.processInput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
-        testCase.printOutput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
-//        testCase.verifyOutput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
+        testCase.processInput(
+            topologyTestDriverContainer,
+            serviceContext.getSchemaRegistryClient());
+        testCase.verifyOutput(
+            topologyTestDriverContainer,
+            serviceContext.getSchemaRegistryClient());
         testCase.verifyMetastore(ksqlEngine.getMetaStore());
       }
-//      testCase.verifyTopology();
-//      testCase.processInput(testDriver, serviceContext.getSchemaRegistryClient());
-//      testCase.verifyOutput(testDriver, serviceContext.getSchemaRegistryClient());
-//      testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
     }
@@ -148,7 +153,7 @@ public final class TestRunner {
 
   private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
 
-    ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.<String, Object>builder()
+    final ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.<String, Object>builder()
         .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
         .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
         .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
@@ -161,7 +166,7 @@ public final class TestRunner {
             KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
         .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
 
-    if(additionalConfigs != null){
+    if (additionalConfigs != null) {
       mapBuilder.putAll(additionalConfigs);
     }
     return mapBuilder.build();
@@ -177,16 +182,10 @@ public final class TestRunner {
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-//    final PersistentQueryMetadata queryMetadata =
-//        buildQuery(testCase, serviceContext, ksqlEngine, maybeUpdatedConfigs);
     final List<PersistentQueryMetadata> queryMetadataList = buildQueries(
         testCase, serviceContext, ksqlEngine, maybeUpdatedConfigs);
-    final List<String> generatedTopologies = new ArrayList<>();
-    final List<String> generatedSchemas = new ArrayList<>();
     final List<TopologyTestDriverContainer> topologyTestDrivers = new ArrayList<>();
     for (final PersistentQueryMetadata persistentQueryMetadata: queryMetadataList) {
-      generatedTopologies.add(persistentQueryMetadata.getTopologyDescription());
-      generatedSchemas.add(persistentQueryMetadata.getSchemasDescription());
       final Properties streamsProperties = new Properties();
       streamsProperties.putAll(persistentQueryMetadata.getStreamsProperties());
       final TopologyTestDriver topologyTestDriver = new TopologyTestDriver(
@@ -195,21 +194,18 @@ public final class TestRunner {
           0);
       topologyTestDrivers.add(TopologyTestDriverContainer.of(
           topologyTestDriver,
-          persistentQueryMetadata.getSourceNames().stream().map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName()).collect(
-              Collectors.toSet()),
-          persistentQueryMetadata.getSinkNames().stream().map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName()).collect(
-              Collectors.toSet())
+          persistentQueryMetadata.getSourceNames()
+              .stream()
+              .map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName())
+              .collect(Collectors.toSet()),
+          persistentQueryMetadata.getSinkNames()
+              .stream()
+              .map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName())
+              .collect(Collectors.toSet())
       ));
+
     }
     return topologyTestDrivers;
-//    testCase.setGeneratedTopology(generatedTopologies);
-//    testCase.setGeneratedSchemas(generatedSchemas);
-//    final Properties streamsProperties = new Properties();
-//    streamsProperties.putAll(queryMetadata.getStreamsProperties());
-//    return new TopologyTestDriver(
-//        queryMetadata.getTopology(),
-//        streamsProperties,
-//        0);
   }
 
   private static List<PersistentQueryMetadata> buildQueries(
@@ -234,7 +230,6 @@ public final class TestRunner {
     );
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
-//    return (PersistentQueryMetadata) queries.get(queries.size() - 1);
     return queries;
   }
 

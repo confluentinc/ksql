@@ -16,6 +16,7 @@
 package io.confluent.ksql.testingtool.util;
 
 import com.github.rvesse.airline.SingleCommand;
+import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
 import java.io.IOException;
 import java.util.Objects;
@@ -31,10 +32,11 @@ public final class TestOptionsParser {
     Objects.requireNonNull(testOptionsClass, "testOptionsClass");
     final SingleCommand<T> testOptionsParser = SingleCommand.singleCommand(testOptionsClass);
 
-    if (args.length == 1
-    && ("--help".equals(args[0]) || "-h".equals(args[0]))) {
-
+    if (args.length == 1 && ("--help".equals(args[0]) || "-h".equals(args[0]))) {
+      Help.help(testOptionsParser.getCommandMetadata());
+      return null;
     }
+
     try {
       return testOptionsParser.parse(args);
     } catch (final ParseException exception) {

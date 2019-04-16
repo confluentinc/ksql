@@ -48,7 +48,7 @@ public class TestCase implements Test {
   private final List<Record> outputRecords;
   private final List<String> statements;
   private final ExpectedException expectedException;
-  private List<String> generatedTopology;
+  private List<String> generatedTopologies;
   private List<String> generatedSchemas;
   private Optional<TopologyAndConfigs> expectedTopology = Optional.empty();
   private final PostConditions postConditions;
@@ -96,14 +96,14 @@ public class TestCase implements Test {
         statements,
         expectedException,
         postConditions);
-    copy.generatedTopology = generatedTopology;
+    copy.generatedTopologies = generatedTopologies;
     copy.expectedTopology = expectedTopology;
     copy.generatedSchemas = generatedSchemas;
     return copy;
   }
 
   public void setGeneratedTopologies(final List<String> generatedTopology) {
-    this.generatedTopology = Objects.requireNonNull(generatedTopology, "generatedTopology");
+    this.generatedTopologies = Objects.requireNonNull(generatedTopology, "generatedTopology");
   }
 
   public void setExpectedTopology(final TopologyAndConfigs expectedTopology) {
@@ -221,13 +221,13 @@ public class TestCase implements Test {
       assertThat("Generated topology differs from that built by previous versions of KSQL"
               + " - this likely means there is a non-backwards compatible change.\n"
               + "THIS IS BAD!",
-          generatedTopology, is(expected.topology));
+          generatedTopologies.get(0), is(expected.topology));
 
       expected.schemas.ifPresent(schemas -> {
         assertThat("Schemas used by topology differ from those used by previous versions"
                 + " of KSQL - this likely means there is a non-backwards compatible change.\n"
                 + "THIS IS BAD!",
-            generatedSchemas, is(schemas));
+            generatedSchemas.get(0), is(schemas));
       });
     });
   }

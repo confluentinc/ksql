@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.testingtool;
 
+import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
-import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import io.confluent.ksql.testingtool.util.TestOptionsParser;
@@ -28,28 +28,18 @@ public class TestOptions {
   @SuppressWarnings("unused") // Accessed via reflection
   @Once
   @Required
-  @Option(
-      name = "--queries-file",
-      description = "Path to the query file on the local machine.")
-  private String queriesFile;
+  @Arguments(
+      title = "test-file",
+      description = "A JSON file containing the test configurations"
+          + " including statements and test data.")
+  private String testFile;
 
-  @SuppressWarnings("unused") // Accessed via reflection
-  @Once
-  @Required
-  @Option(
-      name = "--test-data-file",
-      description = "Path to the test data file on the local machine.")
-  private String testDataFile;
 
   public static TestOptions parse(final String... args) throws IOException {
     return TestOptionsParser.parse(args, TestOptions.class);
   }
 
-  public String getQueriesFile() {
-    return queriesFile;
-  }
-
-  public String getTestDataFile() {
-    return testDataFile;
+  public String getTestFile() {
+    return testFile;
   }
 }

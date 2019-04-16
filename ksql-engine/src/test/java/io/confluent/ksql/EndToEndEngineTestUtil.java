@@ -62,7 +62,6 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
@@ -198,7 +197,7 @@ final class EndToEndEngineTestUtil {
                       StandardOpenOption.CREATE,
                       StandardOpenOption.WRITE,
                       StandardOpenOption.TRUNCATE_EXISTING);
-      } catch (IOException e) {
+      } catch (final IOException e) {
           throw new RuntimeException(e);
       }
   }
@@ -248,7 +247,7 @@ final class EndToEndEngineTestUtil {
           persistedConfigs
       );
 
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new RuntimeException(String.format("Couldn't read topology file %s %s", file, e));
     }
   }
@@ -298,7 +297,7 @@ final class EndToEndEngineTestUtil {
         }
       }
       return tests;
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw new AssertionError("Invalid test - failed to read dir: " + dir);
     }
   }
@@ -380,7 +379,7 @@ final class EndToEndEngineTestUtil {
     ) {
       final TF testFile = OBJECT_MAPPER.readValue(stream, testFileType);
       return testFile.buildTests(testPath);
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new RuntimeException("Unable to load test at path " + testPath, e);
     }
   }
@@ -397,7 +396,7 @@ final class EndToEndEngineTestUtil {
 
   private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
 
-    ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.<String, Object>builder()
+    final ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.<String, Object>builder()
         .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
         .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
         .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
@@ -448,58 +447,6 @@ final class EndToEndEngineTestUtil {
       testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Object valueSpecToAvro(final Object spec, final org.apache.avro.Schema schema) {
-    if (spec == null) {
-      return null;
-    }
-    switch (schema.getType()) {
-      case INT:
-        return Integer.valueOf(spec.toString());
-      case LONG:
-        return Long.valueOf(spec.toString());
-      case STRING:
-        return spec.toString();
-      case DOUBLE:
-        return Double.valueOf(spec.toString());
-      case FLOAT:
-        return Float.valueOf(spec.toString());
-      case BOOLEAN:
-        return spec;
-      case ARRAY:
-        return ((List)spec).stream()
-            .map(o -> valueSpecToAvro(o, schema.getElementType()))
-            .collect(Collectors.toList());
-      case MAP:
-        return ((Map<Object, Object>)spec).entrySet().stream().collect(
-            Collectors.toMap(
-                Map.Entry::getKey,
-                e -> valueSpecToAvro(e.getValue(), schema.getValueType())
-            )
-        );
-      case RECORD:
-        final GenericRecord record = new GenericData.Record(schema);
-        for (final org.apache.avro.Schema.Field field : schema.getFields()) {
-          record.put(
-              field.name(),
-              valueSpecToAvro(((Map<String, ?>)spec).get(field.name()), field.schema())
-          );
-        }
-        return record;
-      case UNION:
-        for (final org.apache.avro.Schema memberSchema : schema.getTypes()) {
-          if (!memberSchema.getType().equals(org.apache.avro.Schema.Type.NULL)) {
-            return valueSpecToAvro(spec, memberSchema);
-          }
-        }
-        throw new RuntimeException("Union must have non-null type: " + schema.getType().getName());
-
-      default:
-        throw new RuntimeException(
-            "This test does not support the data type yet: " + schema.getType().getName());
     }
   }
 
@@ -616,13 +563,6 @@ final class EndToEndEngineTestUtil {
   }
 
   static final class InvalidFieldException extends RuntimeException {
-
-    InvalidFieldException(
-        final String fieldName,
-        final String reason
-    ) {
-      super(fieldName + ": " + reason);
-    }
 
     InvalidFieldException(
         final String fieldName,

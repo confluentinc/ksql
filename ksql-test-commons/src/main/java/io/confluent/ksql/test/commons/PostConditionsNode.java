@@ -17,12 +17,14 @@ package io.confluent.ksql.test.commons;
 
 import static org.hamcrest.Matchers.hasItems;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import java.util.List;
 import org.hamcrest.Matcher;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PostConditionsNode {
 
   private final List<SourceNode> sources;

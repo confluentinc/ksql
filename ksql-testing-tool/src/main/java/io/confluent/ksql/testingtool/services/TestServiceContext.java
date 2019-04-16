@@ -20,6 +20,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.commons.FakeKafkaTopicClient;
 import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -91,6 +92,10 @@ public final class TestServiceContext {
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
-    return new DefaultServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory);
+    return new DefaultServiceContext(
+        kafkaClientSupplier,
+        adminClient,
+        topicClient,
+        srClientFactory);
   }
 }

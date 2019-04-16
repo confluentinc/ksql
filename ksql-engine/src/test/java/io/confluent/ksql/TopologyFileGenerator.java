@@ -26,9 +26,11 @@ import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -50,6 +52,7 @@ import org.xml.sax.SAXException;
  * VERSION_NUM is the version defined in ksql-engine/pom.xml &lt;parent&gt;&lt;version&gt; element.
  *
  */
+@Category(IntegrationTest.class)
 public final class TopologyFileGenerator {
 
     private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";

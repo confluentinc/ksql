@@ -24,8 +24,10 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -46,6 +48,9 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartitionInfo;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,22 +66,27 @@ public class TopicDeleteInjectorTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  MutableMetaStore metaStore;
+  private MutableMetaStore metaStore;
   @Mock
-  StructuredDataSource<?> source;
+  private StructuredDataSource<?> source;
   @Mock
-  SchemaRegistryClient registryClient;
-
+  private SchemaRegistryClient registryClient;
+  @Mock
   private FakeKafkaTopicClient topicClient;
+
   private TopicDeleteInjector deleteInjector;
+  private ConfiguredStatement<DropStream> dropStatement;
 
   @Before
   public void setUp() {
-    topicClient = new FakeKafkaTopicClient();
     deleteInjector = new TopicDeleteInjector(metaStore, topicClient, registryClient);
 
     when(metaStore.getSource("SOMETHING")).thenAnswer(inv -> source);
-    when(source.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(true);
+    when(source.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(false);
+    when(source.getKafkaTopicName()).thenReturn("something");
+
+    dropStatement = givenStatement(
+        "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING"), false, true));
   }
 
   @Test
@@ -94,27 +104,16 @@ public class TopicDeleteInjectorTest {
 
   @Test
   public void shouldDoNothingIfNoDeleteTopic() {
-    // Given:
-    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(QualifiedName.of("something"), false, false));
-    final Set<String> originalTopics = ImmutableSet.copyOf(topicClient.listTopicNames());
-
     // When:
     final ConfiguredStatement<DropStream> injected = deleteInjector.inject(dropStatement);
 
     // Then:
     assertThat(injected, is(sameInstance(dropStatement)));
-    assertThat(topicClient.listTopicNames(), equalTo(originalTopics));
+    verifyNoMoreInteractions(topicClient);
   }
 
   @Test
   public void shouldDropTheDeleteTopicClause() {
-    // Given:
-    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING"), false, true));
-    givenTopic("something");
-    when(source.getKafkaTopicName()).thenReturn("something");
-
     // When:
     final ConfiguredStatement<DropStream> injected = deleteInjector.inject(dropStatement);
 
@@ -125,26 +124,17 @@ public class TopicDeleteInjectorTest {
 
   @Test
   public void shouldDeleteTopic() {
-    // Given:
-    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING"), false, true));
-    givenTopic("something");
-    when(source.getKafkaTopicName()).thenReturn("something");
-
     // When:
     deleteInjector.inject(dropStatement);
 
     // Then:
-    assertThat(topicClient.listTopicNames(), not(contains("something")));
+    verify(topicClient).deleteTopics(ImmutableList.of("something"));
   }
 
   @Test
   public void shouldDeleteSchemaInSR() throws IOException, RestClientException {
     // Given:
-    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING"), false, true));
-    givenTopic("something");
-    when(source.getKafkaTopicName()).thenReturn("something");
+    when(source.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(true);
 
     // When:
     deleteInjector.inject(dropStatement);
@@ -155,13 +145,6 @@ public class TopicDeleteInjectorTest {
 
   @Test
   public void shouldNotDeleteSchemaInSRIfNotAvro() throws IOException, RestClientException {
-    // Given:
-    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING"), false, true));
-    givenTopic("something");
-    when(source.getKafkaTopicName()).thenReturn("something");
-    when(source.isSerdeFormat(DataSourceSerDe.AVRO)).thenReturn(false);
-
     // When:
     deleteInjector.inject(dropStatement);
 
@@ -192,10 +175,6 @@ public class TopicDeleteInjectorTest {
         ImmutableMap.of(),
         new KsqlConfig(ImmutableMap.of())
     );
-  }
-
-  private void givenTopic(final String name) {
-    topicClient.createTopic(name, 1, (short) 1);
   }
 
 }

@@ -843,8 +843,8 @@ DROP TABLE [IF EXISTS] [DELETE TOPIC];
 Drops an existing table.
 
 If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
-for deletion and if the topic format is AVRO, delete the corresponding Avro schema is
-deleted, too. Topic deletion is asynchronous, and actual removal from brokers
+for deletion and if the topic format is AVRO, the corresponding Avro schema is
+deleted in the schema registry. Topic deletion is asynchronous, and actual removal from brokers
 may take some time to complete.
 
 .. note:: DELETE TOPIC will not necessarily work if your kafka cluster is configured

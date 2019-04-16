@@ -37,6 +37,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -1011,6 +1012,22 @@ public class KsqlEngineTest {
     parsed.forEach(ksqlEngine::prepare);
 
     // Then: did not throw.
+  }
+
+  @Test
+  public void shouldIgnoreLegacyDeleteTopicPartOfDropCommand() {
+    // Given:
+    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
+        "CREATE STREAM FOO AS SELECT * FROM TEST1;",
+        KSQL_CONFIG, Collections.emptyMap()).get(0);
+    query.close();
+
+    // When:
+    KsqlEngineTestUtil.execute(ksqlEngine, "DROP STREAM FOO DELETE TOPIC;", KSQL_CONFIG, Collections.emptyMap());
+
+    // Then:
+    verifyNoMoreInteractions(topicClient);
+    verifyNoMoreInteractions(schemaRegistryClient);
   }
 
   private void givenTopicsExist(final String... topics) {

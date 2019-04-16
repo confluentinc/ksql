@@ -37,7 +37,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DropSourceCommandTest {
 
   private static final String STREAM_NAME = "foo";
-  private static final boolean WITH_DELETE_TOPIC = true;
   private static final boolean WITHOUT_DELETE_TOPIC = false;
   private static final boolean IF_EXISTS = true;
   private static final boolean ALWAYS = false;
@@ -62,7 +61,7 @@ public class DropSourceCommandTest {
   @Test
   public void shouldSucceedOnMissingSourceWithIfExists() {
     // Given:
-    givenDropSourceCommand(IF_EXISTS, WITHOUT_DELETE_TOPIC);
+    givenDropSourceCommand(IF_EXISTS);
     givenSourceDoesNotExist();
 
     // When:
@@ -75,24 +74,11 @@ public class DropSourceCommandTest {
   @Test
   public void shouldFailOnMissingSourceWithNoIfExists() {
     // Given:
-    givenDropSourceCommand(ALWAYS, WITHOUT_DELETE_TOPIC);
+    givenDropSourceCommand(ALWAYS);
     givenSourceDoesNotExist();
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Source foo does not exist.");
-
-    // When:
-    dropSourceCommand.run(metaStore);
-  }
-
-  @Test
-  public void shouldFailOnDropWithDelete() {
-    // Given:
-    givenDropSourceCommand(IF_EXISTS, WITH_DELETE_TOPIC);
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Should not be executing a delete topic in the engine!");
 
     // When:
     dropSourceCommand.run(metaStore);
@@ -111,18 +97,18 @@ public class DropSourceCommandTest {
     dropSourceCommand.run(metaStore);
   }
 
-  private void givenDropSourceCommand(final boolean ifExists, final boolean deleteTopic) {
+  private void givenDropSourceCommand(final boolean ifExists) {
     dropSourceCommand = new DropSourceCommand(
-        new DropStream(QualifiedName.of(STREAM_NAME), ifExists, deleteTopic),
-        DataSourceType.KSTREAM,
-        deleteTopic);
+        new DropStream(QualifiedName.of(STREAM_NAME), ifExists, WITHOUT_DELETE_TOPIC),
+        DataSourceType.KSTREAM
+    );
   }
 
   private void givenIncompatibleDropSourceCommand() {
     dropSourceCommand = new DropSourceCommand(
         new DropStream(QualifiedName.of(STREAM_NAME), true, true),
-        DataSourceType.KTABLE,
-        true);
+        DataSourceType.KTABLE
+    );
   }
 
   private void givenSourceDoesNotExist() {

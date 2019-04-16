@@ -20,23 +20,23 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Objects;
 
 public class DropSourceCommand implements DdlCommand {
 
   private final String sourceName;
   private final boolean ifExists;
   private final DataSource.DataSourceType dataSourceType;
-  private final boolean deleteTopic;
 
   public DropSourceCommand(
       final DropStatement statement,
-      final DataSourceType dataSourceType,
-      final boolean deleteTopic) {
+      final DataSourceType dataSourceType
+  ) {
+    Objects.requireNonNull(statement);
 
     this.sourceName = statement.getName().getSuffix();
     this.ifExists = statement.getIfExists();
-    this.dataSourceType = dataSourceType;
-    this.deleteTopic = deleteTopic;
+    this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
   }
 
   @Override
@@ -61,11 +61,6 @@ public class DropSourceCommand implements DdlCommand {
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore);
 
-    if (deleteTopic) {
-      throw new KsqlException("Should not be executing a delete topic in the engine!");
-    }
-
     return new DdlCommandResult(true, "Source " + sourceName + " was dropped.");
   }
-
 }

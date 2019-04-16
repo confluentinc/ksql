@@ -1,18 +1,17 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -25,14 +24,19 @@ import static org.easymock.EasyMock.niceMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -46,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -53,6 +58,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
@@ -78,6 +85,7 @@ public class CommandStoreTest {
   private final Future<RecordMetadata> future = niceMock(Future.class);
   private final Command command =
       new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
+  private final Node node = mock(Node.class);
 
   @Test
   public void shouldHaveAllCreateCommandsInOrder() {
@@ -91,11 +99,11 @@ public class CommandStoreTest {
     final Command latestCommand = new Command(
         "a new statement", Collections.emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
-    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(Collections.singletonMap(new TopicPartition("topic", 0), Arrays.asList(
-        new ConsumerRecord<>("topic", 0, 0, createId, originalCommand),
-        new ConsumerRecord<>("topic", 0, 0, dropId, dropCommand),
-        new ConsumerRecord<>("topic", 0, 0, createId, latestCommand))
-    ));
+    final ConsumerRecords<CommandId, Command> records = buildRecords(
+      createId, originalCommand,
+      dropId, dropCommand,
+      createId, latestCommand
+    );
 
     EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
 
@@ -207,6 +215,54 @@ public class CommandStoreTest {
   }
 
   @Test
+  public void shouldFilterNullCommands() {
+    // Given:
+    final CommandId id = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
+    final Command command = new Command(
+        "some statement", Collections.emptyMap(), Collections.emptyMap());
+    final ConsumerRecords<CommandId, Command> records = buildRecords(
+        id, null,
+        id, command);
+    expect(commandConsumer.poll(anyObject())).andReturn(records);
+    replay(commandConsumer);
+
+    // When:
+    final List<QueuedCommand> commands = createCommandStore().getNewCommands();
+
+    // Then:
+    assertThat(commands, hasSize(1));
+    assertThat(commands.get(0).getCommandId(), equalTo(id));
+    assertThat(commands.get(0).getCommand(), equalTo(command));
+  }
+
+  @Test
+  public void shouldFilterNullPriorCommand() {
+    // Given:
+    final CommandId id = new CommandId(CommandId.Type.TABLE, "one", CommandId.Action.CREATE);
+    final Command command = new Command(
+        "some statement", Collections.emptyMap(), Collections.emptyMap());
+    final ConsumerRecords<CommandId, Command> records = buildRecords(
+        id, null,
+        id, command);
+    expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andStubReturn(
+        ImmutableList.of(
+            new PartitionInfo(COMMAND_TOPIC, 0, node, new Node[]{node}, new Node[]{node})
+        )
+    );
+    expect(commandConsumer.poll(anyObject())).andReturn(records);
+    expect(commandConsumer.poll(anyObject())).andReturn(ConsumerRecords.empty());
+    replay(commandConsumer);
+
+    // When:
+    final List<QueuedCommand> commands = createCommandStore().getRestoreCommands();
+
+    // Then:
+    assertThat(commands, hasSize(1));
+    assertThat(commands.get(0).getCommandId(), equalTo(id));
+    assertThat(commands.get(0).getCommand(), equalTo(command));
+  }
+
+  @Test
   public void shouldDistributeCommand() throws ExecutionException, InterruptedException {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
@@ -235,37 +291,10 @@ public class CommandStoreTest {
     assertThat(record.value().getOriginalProperties(), equalTo(ksqlConfig.getAllConfigPropsWithSecretsObfuscated()));
   }
 
-
-  @Test
-  public void shouldCollectTerminatedQueries() {
-    final CommandId terminated = new CommandId(CommandId.Type.TERMINATE, "queryId", CommandId.Action.EXECUTE);
-    final ConsumerRecords<CommandId, Command> records = new ConsumerRecords<>(
-        Collections.singletonMap(new TopicPartition("topic", 0), Collections.singletonList(
-        new ConsumerRecord<>("topic", 0, 0, terminated, new Command(
-            "terminate query 'queryId'", Collections.emptyMap(), Collections.emptyMap()
-    )))));
-
-    EasyMock.expect(commandConsumer.partitionsFor(COMMAND_TOPIC)).andReturn(Collections.emptyList());
-    EasyMock.expect(commandConsumer.poll(anyObject())).andReturn(records)
-        .andReturn(new ConsumerRecords<>(Collections.emptyMap()));
-    EasyMock.replay(commandConsumer);
-
-    final CommandStore commandStore = createCommandStore();
-    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
-    assertThat(restoreCommands.terminatedQueries(), equalTo(Collections.singletonMap(new QueryId("queryId"), terminated)));
-  }
-
   private void setupConsumerToReturnCommand(final CommandId commandId, final Command command) {
     reset(commandConsumer);
     expect(commandConsumer.poll(anyObject(Duration.class))).andReturn(
-        new ConsumerRecords<>(
-            Collections.singletonMap(
-                new TopicPartition("command-topic", 0),
-                Collections.singletonList(
-                    new ConsumerRecord<>(
-                        "command-topic", 0, 0, commandId, command)
-                ))
-        )
+        buildRecords(commandId, command)
     ).times(1);
     replay(commandConsumer);
   }
@@ -291,10 +320,28 @@ public class CommandStoreTest {
         commandIdAssigner);
   }
 
-  private List<Pair<CommandId, Command>> getPriorCommands(final CommandStore command) {
-    final RestoreCommands priorCommands = command.getRestoreCommands();
-    final List<Pair<CommandId, Command>> commands = new ArrayList<>();
-    priorCommands.forEach(((id, cmd, terminatedQueries, droppedEntities) -> commands.add(new Pair<>(id, cmd))));
-    return commands;
+  private List<Pair<CommandId, Command>> getPriorCommands(final CommandStore commandStore) {
+    return commandStore.getRestoreCommands().stream()
+        .map(
+            queuedCommand -> new Pair<>(
+                queuedCommand.getCommandId(), queuedCommand.getCommand()))
+        .collect(Collectors.toList());
+  }
+
+  private ConsumerRecords<CommandId, Command> buildRecords(final Object ...args) {
+    assertThat(args.length % 2, equalTo(0));
+    final List<ConsumerRecord<CommandId, Command>> records = new ArrayList<>();
+    for (int i = 0; i < args.length; i += 2) {
+      assertThat(args[i], instanceOf(CommandId.class));
+      assertThat(args[i + 1], anyOf(is(nullValue()), instanceOf(Command.class)));
+      records.add(
+          new ConsumerRecord<>("topic", 0, 0, (CommandId) args[i], (Command) args[i + 1]));
+    }
+    return new ConsumerRecords<>(
+        Collections.singletonMap(
+            new TopicPartition("topic", 0),
+            records
+        )
+    );
   }
 }

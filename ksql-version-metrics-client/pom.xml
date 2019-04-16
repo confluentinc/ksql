@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.1.0-SNAPSHOT</version>
+        <version>5.1.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-version-metrics-client</artifactId>
@@ -44,7 +44,12 @@
             <artifactId>easymock</artifactId>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>2.23.0</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-all</artifactId>

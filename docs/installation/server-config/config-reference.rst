@@ -20,13 +20,13 @@ These configurations control how Kafka Streams executes queries. These configura
 ksql.streams.auto.offset.reset
 ------------------------------
 
-Determines what to do when there is no initial offset in Kafka or if the current offset does not exist on the server. The
+Determines what to do when there is no initial offset in |ak-tm| or if the current offset does not exist on the server. The
 default value in KSQL is ``latest``, which means all Kafka topics are read from the latest available offset. For example,
 to change it to earliest by using the KSQL command line:
 
 .. code:: sql
 
-    ksql> SET 'auto.offset.reset'='earliest';
+    SET 'auto.offset.reset'='earliest';
 
 For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
 
@@ -42,7 +42,7 @@ by using the KSQL command line:
 
 .. code:: sql
 
-    ksql> SET 'bootstrap.servers'='localhost:9095';
+    SET 'bootstrap.servers'='localhost:9095';
 
 For more information, see :ref:`Streams parameter reference <streams_developer-guide_required-configs>` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`.
 
@@ -57,7 +57,7 @@ the value to ``5000`` by using the KSQL command line:
 
 .. code:: sql
 
-    ksql> SET 'commit.interval.ms'='5000';
+    SET 'commit.interval.ms'='5000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG`,
 
@@ -72,7 +72,7 @@ Here is an example to change the value to ``20000000`` by using the KSQL command
 
 .. code:: sql
 
-    ksql> SET 'cache.max.bytes.buffering'='20000000';
+    SET 'cache.max.bytes.buffering'='20000000';
 
 For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
 
@@ -85,6 +85,16 @@ ksql.streams.num.stream.threads
 This number of stream threads in an instance of the Kafka Streams application. The stream processing code runs in these
 threads. For more information about Kafka Streams threading model, see :ref:`streams_architecture_threads`.
 
+-----------------------------
+ksql.output.topic.name.prefix
+-----------------------------
+
+The default prefix for automatically created topic names. Unless a user
+defines an explicit topic name in a KSQL statement, KSQL prepends the value of
+``ksql.output.topic.name.prefix`` to the names of automatically created output
+topics. For example, you might use "ksql-interactive-" to name output topics
+in a KSQL Server cluster that's deployed in interactive mode. For more information, see
+:ref:`Configuring Security for KSQL <config-security-ksql-acl-interactive_post_ak_2_0>`.
 
 KSQL Query Settings
 -------------------
@@ -116,7 +126,8 @@ properties file:
 ksql.schema.registry.url
 ------------------------
 
-The |sr| URL path to connect KSQL to.
+The |sr| URL path to connect KSQL to. To communicate with |sr| over a secure
+connection, see :ref:`config-security-ksql-sr`.
 
 .. _ksql-service-id:
 
@@ -146,6 +157,16 @@ ksql.sink.replicas
 ------------------
 
 The default number of replicas for the topics created by KSQL. The default is one.
+
+------------------------------------
+ksql.functions.substring.legacy.args
+------------------------------------
+
+Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING documentation in the :ref:`function <functions>` guide for details.
+
+When upgrading headless mode KSQL applications from versions 5.0.x or earlier without updating your queries that use SUBSTRING to match 
+the new 5.1 behavior, you must set this config to ``true`` to enforce the previous SUBSTRING behavior. If possible, however, we recommend
+that you update your queries accordingly instead of enabling this configuration setting.
 
 KSQL Server Settings
 --------------------
@@ -184,6 +205,22 @@ bind to the default interface. For example:
 
     # Bind only to localhost.
     listeners=http://localhost:8088
+
+.. _ksql-c3-settings:
+
+|c3| Settings
+-------------
+
+You can access KSQL Server by using |c3|. For more information, see
+:ref:`controlcenter_ksql_settings`.
+
+.. _ksql-cloud-settings:
+
+|ccloud| Settings
+-----------------
+
+You can connect KSQL Server to |ccloud|. For more information, see
+:ref:`install_ksql-ccloud`.
 
 .. _ksql-production-settings:
 

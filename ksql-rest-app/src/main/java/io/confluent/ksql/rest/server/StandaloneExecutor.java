@@ -1,18 +1,17 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server;
 
@@ -37,6 +36,9 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.Console;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -65,17 +67,21 @@ public class StandaloneExecutor implements Executable {
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
   private final Map<String, Object> configProperties = new HashMap<>();
   private final boolean failOnNoQueries;
+  private final VersionCheckerAgent versionCheckerAgent;
 
   StandaloneExecutor(final KsqlConfig ksqlConfig,
                      final KsqlEngine ksqlEngine,
                      final String queriesFile,
                      final UdfLoader udfLoader,
-                     final boolean failOnNoQueries) {
+                     final boolean failOnNoQueries,
+                     final VersionCheckerAgent versionCheckerAgent) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig can't be null");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine can't be null");
     this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile can't be null");
     this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader can't be null");
     this.failOnNoQueries = failOnNoQueries;
+    this.versionCheckerAgent =
+        Objects.requireNonNull(versionCheckerAgent, "VersionCheckerAgenr cannot be null.");
   }
 
   private interface Handler<T extends Statement> {
@@ -185,6 +191,9 @@ public class StandaloneExecutor implements Executable {
       udfLoader.load();
       executeStatements(readQueriesFile(queriesFile));
       showWelcomeMessage();
+      final Properties properties = new Properties();
+      properties.putAll(configProperties);
+      versionCheckerAgent.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
       stop();
@@ -206,15 +215,22 @@ public class StandaloneExecutor implements Executable {
     shutdownLatch.await();
   }
 
-  public static StandaloneExecutor create(final Properties properties,
-                                          final String queriesFile,
-                                          final String installDir) {
+  public static StandaloneExecutor create(
+      final Properties properties,
+      final String queriesFile,
+      final String installDir) {
     final KsqlConfig ksqlConfig = new KsqlConfig(properties);
     final KsqlEngine ksqlEngine = KsqlEngine.create(ksqlConfig);
     final UdfLoader udfLoader = UdfLoader.newInstance(ksqlConfig,
         ksqlEngine.getMetaStore(),
         installDir);
-    return new StandaloneExecutor(ksqlConfig, ksqlEngine, queriesFile, udfLoader, true);
+    return new StandaloneExecutor(
+        ksqlConfig,
+        ksqlEngine,
+        queriesFile,
+        udfLoader,
+        true,
+        new KsqlVersionCheckerAgent(() -> !ksqlEngine.getLivePersistentQueries().isEmpty()));
   }
 
   private void showWelcomeMessage() {

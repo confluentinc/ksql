@@ -1,18 +1,17 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.resources;
 
@@ -108,6 +107,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StatementWithSchema;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -140,18 +140,22 @@ public class KsqlResource {
   private final KsqlEngine ksqlEngine;
   private final ReplayableCommandQueue replayableCommandQueue;
   private final long distributedCommandResponseTimeout;
+  private final ActivenessRegistrar activenessRegistrar;
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final ReplayableCommandQueue replayableCommandQueue,
-      final long distributedCommandResponseTimeout
+      final long distributedCommandResponseTimeout,
+      final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.replayableCommandQueue = replayableCommandQueue;
     this.distributedCommandResponseTimeout = distributedCommandResponseTimeout;
     this.registerKsqlStatementTasks();
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar cannot be null.");
   }
 
   @POST
@@ -159,6 +163,7 @@ public class KsqlResource {
     final List<PreparedStatement> parsedStatements;
     final KsqlEntityList result = new KsqlEntityList();
 
+    activenessRegistrar.updateLastRequestTime();
     try {
       parsedStatements = ksqlEngine.parseStatements(request.getKsql());
     } catch (final ParseFailedException e) {

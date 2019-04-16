@@ -6,7 +6,7 @@ KSQL Quick Start
 
 |cp| Quick Start
     The :ref:`quickstart` is the easiest way to get you up and running with |cp| and KSQL. It will demonstrate a simple
-    workflow with topic management, monitoring, and using KSQL to write streaming queries against data in Kafka.
+    workflow with topic management, monitoring, and using KSQL to write streaming queries against data in |ak-tm|.
 
 KSQL Tutorials and Examples
     The :ref:`KSQL tutorials and examples <ksql_tutorials>` page provides introductory and advanced KSQL usage scenarios

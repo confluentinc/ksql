@@ -1,25 +1,25 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.client;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -38,7 +38,9 @@ import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.utils.TestUtils;
+import java.io.Closeable;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -141,6 +143,7 @@ public class KsqlRestClientTest {
     }
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   public void shouldInterruptScannerOnClose() throws InterruptedException {
     final MockStreamedQueryResource sqr = mockApplication.getStreamedQueryResource();
@@ -151,29 +154,19 @@ public class KsqlRestClientTest {
 
     final List<MockStreamedQueryResource.TestStreamWriter> writers = sqr.getWriters();
     Assert.assertEquals(1, writers.size());
-    try {
-      // Try and receive a row. This will block since there is no data to return
-      final KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
-      final CountDownLatch threw = new CountDownLatch(1);
-      final Thread t = new Thread(() -> {
-        try {
-          queryStream.hasNext();
-        } catch (final IllegalStateException e) {
-          threw.countDown();
-        }
-      });
-      t.setDaemon(true);
-      t.start();
 
-      // Let the thread run and then close the stream. Verify that it was interrupted
-      Thread.sleep(100);
-      queryStream.close();
-      Assert.assertTrue(threw.await(10, TimeUnit.SECONDS));
-      t.join(10000);
-      Assert.assertFalse(t.isAlive());
-    } finally {
-      writers.get(0).finished();
+          final KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+
+    final Thread closeThread = givenStreamWillBeClosedIn(Duration.ofMillis(100), queryStream);
+    try {
+      queryStream.hasNext();
+      fail();
+    } catch (final IllegalStateException e) {
+      // expected
     }
+
+    closeThread.join(10_000);
+    assertThat("invalid test", closeThread.isAlive(), is(false));
   }
 
   @Test
@@ -413,5 +406,19 @@ public class KsqlRestClientTest {
     EasyMock.replay(client, target, builder, response);
 
     ksqlRestClient = new KsqlRestClient(client, "http://0.0.0.0", Collections.emptyMap());
+  }
+
+  private static Thread givenStreamWillBeClosedIn(final Duration duration, final Closeable stream) {
+    final Thread thread = new Thread(() -> {
+      try {
+        Thread.sleep(duration.toMillis());
+        stream.close();
+      } catch (final Exception e) {
+        // Meh
+      }
+    });
+    thread.setDaemon(true);
+    thread.start();
+    return thread;
   }
 }

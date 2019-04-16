@@ -1,18 +1,17 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -44,6 +43,7 @@ public class CommandTest {
     final Map<String, Object> expectedOriginalProperties
         = Collections.singletonMap("biz", "baz");
     assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
+    assertThat(command.isPreVersion5(), is(false));
   }
 
   @Test
@@ -58,6 +58,7 @@ public class CommandTest {
     final Map<String, Object> expecteOverwriteProperties = Collections.singletonMap("foo", "bar");
     assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
     assertThat(command.getOriginalProperties(), equalTo(Collections.emptyMap()));
+    assertThat(command.isPreVersion5(), equalTo(true));
   }
 
   void grep(final String string, final String regex) {

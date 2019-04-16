@@ -1,18 +1,16 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2018 Confluent Inc.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.confluent.ksql;
 
@@ -772,12 +770,13 @@ final class EndToEndEngineTestUtil {
     final MetaStore metaStore = new MetaStoreImpl(functionRegistry);
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
-    return new KsqlEngine(
+    return KsqlEngineTestUtil.createKsqlEngine(
         new FakeKafkaTopicClient(),
         () -> schemaRegistryClient,
         new FakeKafkaClientSupplier(),
         metaStore,
-        ksqlConfig);
+        ksqlConfig,
+        new FakeKafkaClientSupplier().getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps()));
   }
 
   private static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
@@ -790,7 +789,8 @@ final class EndToEndEngineTestUtil {
         .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
         .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
         .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
-        .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
+        .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all")
+        .put(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS, true);
 
       if(additionalConfigs != null){
           mapBuilder.putAll(additionalConfigs);
@@ -897,7 +897,11 @@ final class EndToEndEngineTestUtil {
       case STRING:
         return avro.toString();
       case ARRAY:
-        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME)) {
+        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
+            Objects.equals(
+                schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
+                AvroData.MAP_ENTRY_TYPE_NAME)
+            ) {
           final org.apache.avro.Schema valueSchema
               = schema.getElementType().getField("value").schema();
           return ((List) avro).stream().collect(

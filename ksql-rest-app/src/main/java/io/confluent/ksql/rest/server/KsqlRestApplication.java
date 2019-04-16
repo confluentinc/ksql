@@ -1,18 +1,17 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server;
 
@@ -76,6 +75,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerEndpoint;
@@ -262,7 +263,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
-                      exec
+                      exec,
+                      versionCheckerAgent::updateLastRequestTime
                   );
                 }
 
@@ -276,9 +278,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   public static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
-      final VersionCheckerAgent versionCheckerAgent
-  )
-      throws Exception {
+      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
+  ) {
 
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
@@ -361,18 +362,22 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final RootDocument rootDocument = new RootDocument();
 
     final StatusResource statusResource = new StatusResource(statementExecutor);
+    final VersionCheckerAgent versionChecker = versionCheckerFactory
+        .apply(() -> !ksqlEngine.getLivePersistentQueries().isEmpty());
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,
         statementParser,
         Duration.ofMillis(
-            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG))
+            restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
+        versionChecker::updateLastRequestTime
     );
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
         commandStore,
-        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)
+        restConfig.getLong(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG),
+        versionChecker::updateLastRequestTime
     );
 
     commandRunner.processPriorCommands();
@@ -386,7 +391,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statusResource,
         streamedQueryResource,
         ksqlResource,
-        versionCheckerAgent
+        versionChecker
     );
   }
 

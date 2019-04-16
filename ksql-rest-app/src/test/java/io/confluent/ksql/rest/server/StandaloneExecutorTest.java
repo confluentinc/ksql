@@ -1,18 +1,17 @@
-/**
+/*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server;
 
@@ -43,16 +42,15 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.MetricsTestUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
+import java.util.Properties;
 import org.apache.kafka.test.TestUtils;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -60,8 +58,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.mock;
+import static org.easymock.EasyMock.same;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -77,6 +75,7 @@ public class StandaloneExecutorTest {
 
   private Query query;
   private QueryMetadata persistentQueryMetadata;
+  private VersionCheckerAgent versionCheckerAgent;
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -87,10 +86,34 @@ public class StandaloneExecutorTest {
     query = EasyMock.niceMock(Query.class);
     persistentQueryMetadata = EasyMock.niceMock(PersistentQueryMetadata.class);
     queriesFile = TestUtils.tempFile().getPath();
+    versionCheckerAgent = niceMock(VersionCheckerAgent.class);
     standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader, false);
+        new StandaloneExecutor(
+            ksqlConfig,
+            engine,
+            queriesFile,
+            udfLoader,
+            false,
+            versionCheckerAgent);
     final MetaStore metaStore = EasyMock.niceMock(MetaStore.class);
     EasyMock.expect(engine.getMetaStore()).andReturn(metaStore).anyTimes();
+
+  }
+
+  @Test
+  public void shouldStartTheVersionCheckerAgent() {
+
+    EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
+        new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value"))
+    ));
+
+    versionCheckerAgent.start(same(KsqlModuleType.SERVER), anyObject(Properties.class));
+    expectLastCall();
+
+    EasyMock.replay(engine, versionCheckerAgent);
+    standaloneExecutor.start();
+    EasyMock.verify(engine, versionCheckerAgent);
+
   }
 
   @Test
@@ -120,7 +143,13 @@ public class StandaloneExecutorTest {
     expectedException.expectMessage("The SQL file did not contain any queries");
 
     standaloneExecutor =
-        new StandaloneExecutor(ksqlConfig, engine, queriesFile, udfLoader, true);
+        new StandaloneExecutor(
+            ksqlConfig,
+            engine,
+            queriesFile,
+            udfLoader,
+            true,
+            versionCheckerAgent);
 
     EasyMock.expect(engine.parseStatements(anyString()))
         .andReturn(ImmutableList.of(
@@ -146,7 +175,6 @@ public class StandaloneExecutorTest {
     EasyMock.expect(engine.buildMultipleQueries("CS", ksqlConfig, props))
         .andReturn(Collections.emptyList());
 
-
     EasyMock.replay(engine);
     standaloneExecutor.start();
     EasyMock.verify(engine);
@@ -161,7 +189,6 @@ public class StandaloneExecutorTest {
 
     EasyMock.expect(engine.buildMultipleQueries("CT", ksqlConfig, props))
         .andReturn(Collections.emptyList());
-
     EasyMock.replay(engine);
     standaloneExecutor.start();
     EasyMock.verify(engine);
@@ -173,7 +200,6 @@ public class StandaloneExecutorTest {
     EasyMock.expect(engine.parseStatements(anyString())).andReturn(ImmutableList.of(
         new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value"))
     ));
-
     EasyMock.replay(engine);
     standaloneExecutor.start();
     EasyMock.verify(engine);
@@ -189,7 +215,6 @@ public class StandaloneExecutorTest {
         new PreparedStatement("SET", new SetProperty(Optional.empty(), "name", "value")),
         new PreparedStatement("UNSET", new UnsetProperty(Optional.empty(), "name"))
     ));
-
 
     EasyMock.replay(engine);
     standaloneExecutor.start();
@@ -228,7 +253,6 @@ public class StandaloneExecutorTest {
         .andReturn(Collections.singletonList(persistentQueryMetadata)).once();
     EasyMock.expect(engine.getQueryExecutionPlan(query, ksqlConfig))
         .andReturn(persistentQueryMetadata).once();
-
     EasyMock.replay(persistentQueryMetadata, engine);
     standaloneExecutor.start();
     EasyMock.verify(persistentQueryMetadata, engine);

@@ -20,7 +20,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
@@ -29,6 +31,7 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -59,6 +62,9 @@ public class UdfIntTest {
   public static Collection<DataSource.DataSourceSerDe> formats() {
     return ImmutableList.of(DataSourceSerDe.AVRO, DataSourceSerDe.JSON, DataSourceSerDe.DELIMITED);
   }
+
+  @ClassRule
+  public static final Retry RETRY = Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS);
 
   @BeforeClass
   public static void classSetUp() throws Exception {

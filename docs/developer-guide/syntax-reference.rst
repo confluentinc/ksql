@@ -20,7 +20,7 @@ Stream
 
 A stream is an unbounded sequence of structured data (“facts”). For example, we could have a stream of financial transactions
 such as “Alice sent $100 to Bob, then Charlie sent $50 to Bob”. Facts in a stream are immutable, which means new facts can
-be inserted to a stream, but existing facts can never be updated or deleted. Streams can be created from a Kafka topic or
+be inserted to a stream, but existing facts can never be updated or deleted. Streams can be created from an |ak-tm| topic or
 derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a Kafka topic on the Kafka
 brokers.
 
@@ -56,7 +56,13 @@ Use the following syntax to declare nested data:
 The ``STRUCT`` type requires you to specify a list of fields. For each field, you
 specify the field name and field type. The field type can be any of the
 supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and
-``STRUCT``. Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
+``STRUCT``.
+
+.. note::
+    
+    ``Properties`` is not a valid field name.
+
+Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
 encapsulate a street address and a postal code:
 
 .. code:: sql
@@ -75,6 +81,22 @@ For more info, see :ref:`operators`.
 
 .. note:: You can’t create new nested ``STRUCT`` data as the result of a query,
    but you can copy existing ``STRUCT`` fields as-is.
+
+.. _ksql-time-units:
+
+KSQL Time Units
+---------------
+
+The following list shows valid time units for the SIZE, ADVANCE BY, SESSION, and
+WITHIN clauses.
+
+* DAY, DAYS 
+* HOUR, HOURS
+* MINUTE, MINUTES
+* SECOND, SECONDS
+* MILLISECOND, MILLISECONDS
+
+For more information, see :ref:`windows_in_ksql_queries`.
 
 =================
 KSQL CLI Commands
@@ -140,9 +162,9 @@ You can run a list of predefined queries and commands from in a file by using th
 
 Example:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> RUN SCRIPT '/local/path/to/queries.sql';
+    RUN SCRIPT '/local/path/to/queries.sql';
 
 The RUN SCRIPT command supports a subset of KSQL statements:
 
@@ -173,6 +195,9 @@ KSQL statements
        -  In the CLI you must use a backslash (``\``) to indicate
           continuation of a statement on the next line.
        -  Do not use ``\`` for multi-line statements in ``.sql`` files.
+    - The hyphen character, ``-``, isn't supported in names for streams, tables,
+      topics, and columns.
+    - Don't use quotes around stream names or table names when you CREATE them.
 
 .. _create-stream:
 
@@ -210,35 +235,35 @@ timestamp and message key, respectively. The timestamp has milliseconds accuracy
 
 The WITH clause supports the following properties:
 
-+-------------------------+--------------------------------------------------------------------------------------------+
-| Property                | Description                                                                                |
-+=========================+============================================================================================+
-| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka. |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:   |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
-|                         | message value, you may set this property to associate the corresponding field/column with  |
-|                         | the implicit ``ROWKEY`` column (message key).                                              |
-|                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
-|                         | when performing aggregations and joins.                                                    |
-|                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use  |
-|                         | this hint if the message key format in kafka is AVRO or JSON.                              |
-|                         | See :ref:`ksql_key_requirements` for more information.                                     |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
-|                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the |
-|                         | specified field/column within the Kafka message value (similar to timestamp extractors     |
-|                         | in Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations,    |
-|                         | such as windowing, will process a record according to the timestamp in ``ROWTIME``.        |
-+-------------------------+--------------------------------------------------------------------------------------------+
-| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
-|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
-|                         | characters requiring single quotes, you can escape them with '', for example:              |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
-+-------------------------+--------------------------------------------------------------------------------------------+
++-------------------------+-----------------------------------------------------------------------------------------------+
+| Property                | Description                                                                                   |
++=========================+===============================================================================================+
+| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this stream. The topic must already exist in Kafka.    |
++-------------------------+-----------------------------------------------------------------------------------------------+
+| VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:      |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                                |
++-------------------------+-----------------------------------------------------------------------------------------------+
+| KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka    |
+|                         | message value, you may set this property to associate the corresponding field/column with     |
+|                         | the implicit ``ROWKEY`` column (message key).                                                 |
+|                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided    |
+|                         | when performing aggregations and joins.                                                       |
+|                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use     |
+|                         | this hint if the message key format in kafka is AVRO or JSON.                                 |
+|                         | See :ref:`ksql_key_requirements` for more information.                                        |
++-------------------------+-----------------------------------------------------------------------------------------------+
+| TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka      |
+|                         | topic. The TIMESTAMP property can be used to override ``ROWTIME`` with the contents of the    |
+|                         | specified field/column within the Kafka message value (similar to timestamp extractors        |
+|                         | in Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations,       |
+|                         | such as windowing, will process a record according to the timestamp in ``ROWTIME``.           |
++-------------------------+-----------------------------------------------------------------------------------------------+
+| TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a      |
+|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format        |
+|                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has          |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes,    |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                          |
++-------------------------+-----------------------------------------------------------------------------------------------+
 
 
 .. include:: ../includes/ksql-includes.rst
@@ -255,7 +280,7 @@ Example:
 
 If the name of a column in your source topic is one of the reserved words in KSQL you can use back quotes to define the column.
 The same applies to the field names in a STRUCT type.
-For indsance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
+For instance, if in the above example we had another field called ``Properties``, which is a reserved word in KSQL, you can
 use the following statement to declare your stream:
 
 .. code:: sql
@@ -334,8 +359,8 @@ The WITH clause supports the following properties:
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has       |
-|                         | characters requiring single quotes, you can escape them with '', for example:              |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                 |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes, |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -385,7 +410,8 @@ continuously write the result of the SELECT query into the stream and
 its corresponding topic.
 
 If the PARTITION BY clause is present, then the resulting stream will
-have the specified column as its key.
+have the specified column as its key. For more information, see
+:ref:`partition-data-to-enable-joins`.
 
 For joins, the key of the resulting stream will be the value from the column
 from the left stream that was used in the join criteria. This column will be
@@ -394,6 +420,8 @@ columns.
 
 For stream-table joins, the column used in the join criteria for the table
 must be the table key.
+
+For more information, see :ref:`join-streams-and-tables`.
 
 The WITH clause for the result supports the following properties:
 
@@ -423,16 +451,19 @@ The WITH clause for the result supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
-|                         | e.g. given the statement                                                                             |
-|                         | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
-|                         | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
+|                         | **Note**: This doesn't affect the processing of the query that populates this stream.                |
+|                         | For example, given the following statement:                                                          |
+|                         |                                                                                                      |
+|                         | .. literalinclude:: includes/csas-snippet.sql                                                        |
+|                         |    :language: sql                                                                                    |
+|                         |                                                                                                      |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with '', for example:                        |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -453,7 +484,7 @@ CREATE TABLE AS SELECT
     CREATE TABLE table_name
       [WITH ( property_name = expression [, ...] )]
       AS SELECT  select_expr [, ...]
-      FROM from_table
+      FROM from_item
       [ LEFT | FULL | INNER ] JOIN join_table ON join_criteria 
       [ WINDOW window_expression ]
       [ WHERE condition ]
@@ -471,8 +502,10 @@ from the left table that was used in the join criteria. This column will be
 registered as the key of the resulting table if included in the selected
 columns.
 
-For joins, the columns used in the join criteria must be the keys of the
-tables being joined.
+For joins, the columns used in the join criteria must be the keys of the tables
+being joined.
+
+For more information, see :ref:`join-streams-and-tables`.
 
 The WITH clause supports the following properties:
 
@@ -501,19 +534,19 @@ The WITH clause supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
-|                         | e.g. given the statement                                                                             |
+|                         | **Note**: This doesn't affect the processing of the query that populates this table.                 |
+|                         | For example, given the following statement:                                                          |
 |                         |                                                                                                      |
-|                         | .. literalinclude:: ../includes/ctas-snippet.sql                                                     |
+|                         | .. literalinclude:: includes/ctas-snippet.sql                                                        |
 |                         |    :language: sql                                                                                    |
 |                         |                                                                                                      |
-|                         | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
 |                         | that can be parsed with the java ``DateTimeFormatter``. If your timestamp format has                 |
-|                         | characters requiring single quotes, you can escape them with '', for example:                        |
-|                         | 'yyyy-MM-dd''T''HH:mm:ssX'                                                                           |
+|                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
+|                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -579,9 +612,13 @@ Extended descriptions provide the following metrics for the topic backing the so
 
 Example of describing a table:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> DESCRIBE ip_sum;
+    DESCRIBE ip_sum;
+
+Your output should resemble:
+
+::
 
      Field   | Type
     -------------------------------------
@@ -596,7 +633,12 @@ Example of describing a table with extended information:
 
 .. code:: bash
 
-    ksql> DESCRIBE EXTENDED ip_sum;
+    DESCRIBE EXTENDED ip_sum;
+
+Your output should resemble:
+
+::
+
     Type                 : TABLE
     Key field            : CLICKSTREAM.IP
     Timestamp field      : Not set - using <ROWTIME>
@@ -655,9 +697,13 @@ queries related to a stream or table.
 
 Example of explaining a running query:
 
-.. code:: bash
+.. code:: sql
 
-    ksql> EXPLAIN ctas_ip_sum;
+    EXPLAIN ctas_ip_sum;
+
+Your output should resemble:
+
+::
 
     Type                 : QUERY
     SQL                  : CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
@@ -702,11 +748,14 @@ DROP STREAM [IF EXISTS] [DELETE TOPIC];
 **Description**
 
 Drops an existing stream.
-If DELETE TOPIC clause is present, the corresponding topic in
-kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
-schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
-some time to complete.
-If IF EXISTS is present, does not fail if the table does not exist.
+
+If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
+for deletion, and if the topic format is AVRO, the corresponding Avro schema is
+deleted, too. Topic deletion is asynchronous, and actual removal from brokers
+may take some time to complete.
+
+If the IF EXISTS clause is present, the statement doesn't fail if the table
+doesn't exist.
 
 .. _drop-table:
 
@@ -722,11 +771,14 @@ DROP TABLE [IF EXISTS] [DELETE TOPIC];
 **Description**
 
 Drops an existing table.
-If DELETE TOPIC clause is present, the corresponding topic in
-kafka will be marked for deletion and if the topic format is AVRO, delete the corresponding avro
-schema too. Note that the topic deletion is asynchronous and actual removal from brokers may take
-some time to complete.
-If IF EXISTS is present, does not fail if the table does not exist.
+
+If the DELETE TOPIC clause is present, the corresponding Kafka topic is marked
+for deletion and if the topic format is AVRO, delete the corresponding Avro schema is
+deleted, too. Topic deletion is asynchronous, and actual removal from brokers
+may take some time to complete.
+
+If the IF EXISTS clause is present, the statement doesn't fail if the table
+doesn't exist.
 
 PRINT
 -----
@@ -755,7 +807,12 @@ For example:
 
 .. code:: sql
 
-    ksql> PRINT 'ksql__commands' FROM BEGINNING;
+    PRINT 'ksql__commands' FROM BEGINNING;
+
+Your output should resemble:
+
+::
+
     Format:JSON
     {"ROWTIME":1516010696273,"ROWKEY":"\"stream/CLICKSTREAM/create\"","statement":"CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');","streamsProperties":{}}
     {"ROWTIME":1516010709492,"ROWKEY":"\"table/EVENTS_PER_MIN/create\"","statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid;","streamsProperties":{}}
@@ -786,8 +843,8 @@ Note that the WINDOW  clause can only be used if the ``from_item`` is a stream.
 
 In the above statements from_item is one of the following:
 
--  ``stream_name [ [ AS ] alias]``
--  ``table_name [ [ AS ] alias]``
+-  ``stream_name [ alias ]``
+-  ``table_name [ alias ]``
 -  ``from_item LEFT JOIN from_item ON join_condition``
 
 The WHERE clause can refer to any column defined for a stream or table,
@@ -994,6 +1051,8 @@ SHOW PROPERTIES
 List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
+.. _ksql-terminate:
+
 TERMINATE
 ---------
 
@@ -1047,6 +1106,19 @@ The explanation for each operator includes a supporting example based on the fol
 
   SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
 
+- You can use the ``+`` operator for multi-part concatenation, for example:
+
+.. code:: sql
+
+    SELECT TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss') + \
+            ': :heavy_exclamation_mark: On ' + \
+            HOST + \
+            ' there were ' + \
+            CAST(INVALID_LOGIN_COUNT AS VARCHAR) + \
+            ' attempts in the last minute (threshold is >=4)' \
+    FROM INVALID_USERS_LOGINS_PER_HOST \
+    WHERE INVALID_LOGIN_COUNT>=4;
+
 - Source Dereference (``.``) The source dereference operator can be used to specify columns
   by dereferencing the source stream or table.
 
@@ -1070,14 +1142,13 @@ The explanation for each operator includes a supporting example based on the fol
      orderId BIGINT,
      address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
 
-   SELECT address->city, address->zip FROM orders;
+   SELECT address->street, address->zip FROM orders;
 
 - Combine `->` with `.` when using aliases:
 
 .. code:: sql
 
-   SELECT orders.address->city, o.address->zip FROM orders o;
-
+   SELECT orders.address->street, o.address->zip FROM orders o;
 
 .. _functions:
 
@@ -1100,8 +1171,9 @@ Scalar functions
 | DATETOSTRING           |  ``DATETOSTRING(START_DATE, 'yyyy-MM-dd')``                               | Converts an integer representation of a date into |
 |                        |                                                                           | a string representing the date in                 |
 |                        |                                                                           | the given format. Single quotes in the            |
-|                        |                                                                           | timestamp format can be escaped with '', for      |
-|                        |                                                                           | example: 'yyyy-MM-dd''T'''.                       |
+|                        |                                                                           | timestamp format can be escaped with two          |
+|                        |                                                                           | successive single quotes, ``''``, for example:    |
+|                        |                                                                           | ``'yyyy-MM-dd''T'''``.                            |
 |                        |                                                                           | The integer represents days since epoch           |
 |                        |                                                                           | matching the encoding used by Kafka Connect dates.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1122,10 +1194,15 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | FLOOR                  |  ``FLOOR(col1)``                                                          | The floor of a value.                             |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, uint)``                           | The great-circle distance between two lat-long    |
+| GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)``                           | The great-circle distance between two lat-long    |
 |                        |                                                                           | points, both specified in decimal degrees. An     |
 |                        |                                                                           | optional final parameter specifies ``KM``         |
 |                        |                                                                           | (the default) or ``miles``.                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| IFNULL                 |  ``IFNULL(col1, retval)``                                                 | If the provided VARCHAR is NULL, return           |
+|                        |                                                                           | ``retval``, otherwise, return the value. Only     |
+|                        |                                                                           | VARCHAR values are supported for the input. The   |
+|                        |                                                                           | return value must be a VARCHAR.                   |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                                          | Convert a string to lowercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1153,7 +1230,7 @@ Scalar functions
 |                        |                                                                           | will return ``My Txxx--nnn``.                     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | MASK_KEEP_RIGHT        |  ``MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``                  | Similar to the ``MASK`` function above, except    |
-|                        |                                                                           | that the last or rightt-most ``numChars``         |
+|                        |                                                                           | that the last or right-most ``numChars``          |
 |                        |                                                                           | characters will not be masked in any way.         |
 |                        |                                                                           | For example:``MASK_KEEP_RIGHT("My Test $123", 4)``|
 |                        |                                                                           | will return ``Xx-Xxxx-$123``.                     |
@@ -1165,7 +1242,7 @@ Scalar functions
 |                        |                                                                           | will return ``Xx-Xest $123``.                     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | MASK_RIGHT             |  ``MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')``                       | Similar to the ``MASK`` function above, except    |
-|                        |                                                                           | that only the last or rightt-most ``numChars``    |
+|                        |                                                                           | that only the last or right-most ``numChars``     |
 |                        |                                                                           | characters will have any masking applied to them. |
 |                        |                                                                           | For example: ``MASK_RIGHT("My Test $123", 4)``    |
 |                        |                                                                           | will return ``My Test -nnn``.                     |
@@ -1177,39 +1254,49 @@ Scalar functions
 | STRINGTODATE           |  ``STRINGTODATE(col1, 'yyyy-MM-dd')``                                     | Converts a string representation of a date in the |
 |                        |                                                                           | given format into an integer representing days    |
 |                        |                                                                           | since epoch. Single quotes in the timestamp       |
-|                        |                                                                           | format can be escaped with '', for example:       |
-|                        |                                                                           | 'yyyy-MM-dd''T'''.                                |
+|                        |                                                                           | format can be escaped with two successive single  |
+|                        |                                                                           | quotes, ``''``, for example:                      |
+|                        |                                                                           | ``'yyyy-MM-dd''T'''``.                            |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | STRINGTOTIMESTAMP      |  ``STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``      | Converts a string value in the given              |
 |                        |                                                                           | format into the BIGINT value                      |
 |                        |                                                                           | that represents the millisecond timestamp. Single |
 |                        |                                                                           | quotes in the timestamp format can be escaped with|
-|                        |                                                                           | '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'.      |
+|                        |                                                                           | two successive single quotes, ``''``, for         |
+|                        |                                                                           | example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
 |                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SUBSTRING              |  ``SUBSTRING(col1, 2, 5)``                                                | ``SUBSTRING(str, pos, [len]``.                    |
-|                        |                                                                           | Return a substring of ``str`` that starts at      |
-|                        |                                                                           | ``pos`` and had length ``len``, or continues to   |
-|                        |                                                                           | the end of the string.                            |
+|                        |                                                                           | Returns a substring of ``str`` that starts at     |
+|                        |                                                                           | ``pos`` (first character is at position 1) and    |
+|                        |                                                                           | has length ``len``, or continues to the end of    |
+|                        |                                                                           | the string.                                       |
+|                        |                                                                           | For example, ``SUBSTRING("stream", 1, 4)``        |
+|                        |                                                                           | returns "stre".                                   |
 |                        |                                                                           |                                                   |
-|                        |                                                                           | NOTE: prior to v5.1 of KSQL the syntax was:       |
-|                        |                                                                           | ``SUBSTRING(str, start, [end]``                   |
-|                        |                                                                           | Where ``start`` and ``end`` where base-zero       |
-|                        |                                                                           | indexes to start (inclusive) and end (exclusive)  |
-|                        |                                                                           | the substring.                                    |
-|                        |                                                                           |                                                   |
+|                        |                                                                           | NOTE: Prior to v5.1 of KSQL the syntax was:       |
+|                        |                                                                           | ``SUBSTRING(str, start, [end])``, where ``start`` |
+|                        |                                                                           | and ``end`` positions where base-zero indexes     |
+|                        |                                                                           | (first character at position 0) to start          |
+|                        |                                                                           | (inclusive) and end (exclusive) the substring,    |
+|                        |                                                                           | respectively.                                     |
+|                        |                                                                           | For example, ``SUBSTRING("stream", 1, 4)`` would  |
+|                        |                                                                           | return "tre".                                     |
 |                        |                                                                           | It is possible to switch back to this legacy mode |
 |                        |                                                                           | by setting                                        |
 |                        |                                                                           | ``ksql.functions.substring.legacy.args`` to       |
-|                        |                                                                           | ``true``. Though this is not recommended.         |
+|                        |                                                                           | ``true``. We recommend against enabling this      |
+|                        |                                                                           | setting. Instead, update your queries             |
+|                        |                                                                           | accordingly.                                      |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | TIMESTAMPTOSTRING      |  ``TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])``   | Converts a BIGINT millisecond timestamp value into|
 |                        |                                                                           | the string representation of the timestamp in     |
 |                        |                                                                           | the given format. Single quotes in the            |
-|                        |                                                                           | timestamp format can be escaped with '', for      |
-|                        |                                                                           | example: 'yyyy-MM-dd''T''HH:mm:ssX'.              |
+|                        |                                                                           | timestamp format can be escaped with two          |
+|                        |                                                                           | successive single quotes, ``''``, for example:    |
+|                        |                                                                           | ``'yyyy-MM-dd''T''HH:mm:ssX'``.                   |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
 |                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London"     |
@@ -1219,6 +1306,8 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | UCASE                  |  ``UCASE(col1)``                                                          | Convert a string to uppercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+
+.. _ksql_aggregate_functions:
 
 ===================
 Aggregate functions
@@ -1286,6 +1375,8 @@ Aggregate functions
 |                        |                           | Table      | If the query is not windowed the function will return null.         |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 
+For more information, see :ref:`aggregate-streaming-data-with-ksql`.
+
 .. _ksql_key_requirements:
 
 ================
@@ -1309,10 +1400,15 @@ The ``KEY`` property is:
 
 - Required for tables.
 - Optional for streams. Here, KSQL uses it as an optimization hint to determine if repartitioning can be avoided when performing aggregations and joins.
+  
+  .. important::
+     Don't set the KEY property, unless you have validated that your stream doesn't need to be re-partitioned for future joins.
+     If you set the KEY property, you will need to re-partition explicitly if your record key doesn't meet partitioning requirements.
+     For more information, see :ref:`partition-data-to-enable-joins`.
 
 In either case, when setting ``KEY`` you must be sure that *both* of the following conditions are true:
 
-1. For every record, the contents of the Kafka message key must be the same as the contents of the columm set in ``KEY`` (which is derived from a field in the Kafka message value).
+1. For every record, the contents of the Kafka message key must be the same as the contents of the column set in ``KEY`` (which is derived from a field in the Kafka message value).
 2. ``KEY`` must be set to a column of type ``VARCHAR`` aka ``STRING``.
 
 If these conditions are not met, then the results of aggregations and joins may be incorrect. However, if your data doesn't meet these requirements, you can still use KSQL with a few extra steps. The following section explains how.
@@ -1374,7 +1470,7 @@ Example:
 
     -- Create a stream on the original topic.
     -- The topic is keyed by userid, which is available as the implicit column ROWKEY
-    -- in the `users_with_missing_key` stream. Note how the explicit column definitions
+    -- in the users_with_missing_key stream. Note how the explicit column definitions
     -- only define username and email but not userid.
     CREATE STREAM users_with_missing_key (username VARCHAR, email VARCHAR)
       WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON');
@@ -1394,3 +1490,5 @@ Example:
       WITH (KAFKA_TOPIC='users-with-proper-key',
             VALUE_FORMAT='JSON',
             KEY='userid_string');
+
+For more information, see :ref:`partition-data-to-enable-joins`.

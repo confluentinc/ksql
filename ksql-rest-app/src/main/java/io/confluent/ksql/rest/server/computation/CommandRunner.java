@@ -1,18 +1,17 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -20,7 +19,6 @@ import java.io.Closeable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
@@ -80,26 +78,20 @@ public class CommandRunner implements Runnable, Closeable {
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands();
     log.trace("Found {} new writes to command topic", commands.size());
-    commands.stream()
-        .filter(c -> c.getCommand().isPresent())
-        .forEach(c -> executeStatement(c.getCommand().get(), c.getCommandId(), c.getStatus()));
+    commands.forEach(this::executeStatement);
   }
 
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
-   * @throws Exception TODO: Refine this.
    */
   public void processPriorCommands() {
-    final RestoreCommands restoreCommands = commandStore.getRestoreCommands();
-    statementExecutor.handleRestoration(restoreCommands);
+    statementExecutor.handleRestoration(commandStore.getRestoreCommands());
   }
 
-  private void executeStatement(final Command command,
-                                final CommandId commandId,
-                                final Optional<QueuedCommandStatus> status) {
-    log.info("Executing statement: " + command.getStatement());
+  private void executeStatement(final QueuedCommand queuedCommand) {
+    log.info("Executing statement: " + queuedCommand.getCommand().getStatement());
     try {
-      statementExecutor.handleStatement(command, commandId, status);
+      statementExecutor.handleStatement(queuedCommand);
     } catch (final WakeupException wue) {
       throw wue;
     } catch (final Exception exception) {

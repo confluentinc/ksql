@@ -1,18 +1,17 @@
 /*
  * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql;
 
@@ -32,6 +31,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
+import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.junit.After;
@@ -45,11 +45,14 @@ public class QueryEngineTest {
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final KsqlConfig ksqlConfig
       = new KsqlConfig(ImmutableMap.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"));
-  private final KsqlEngine ksqlEngine = new KsqlEngine(
+  private final KafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
+  private final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
       topicClient,
       () -> schemaRegistryClient,
+      kafkaClientSupplier,
       metaStore,
-      ksqlConfig);
+      ksqlConfig,
+      kafkaClientSupplier.getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps()));
 
   @After
   public void closeEngine() {
@@ -62,11 +65,11 @@ public class QueryEngineTest {
         new CommandFactories(topicClient, schemaRegistryClient));
     try {
       final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
-          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM TEST2;", metaStore.clone(), true);
+          "CREATE TABLE FOO AS SELECT * FROM TEST2; CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;", metaStore.clone(), true);
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Cannot create the stream/table. The output topic FOO is already used by FOO"));
+      assertThat(e.getMessage(), equalTo("Exception while processing statement: Cannot add the new data source. Another data source with the same name already exists: KsqlStream name:FOO"));
     }
 
   }
@@ -77,11 +80,11 @@ public class QueryEngineTest {
         new CommandFactories(topicClient, schemaRegistryClient));
     try {
       final List<PreparedStatement> statementList = ksqlEngine.parseStatements(
-          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM BAR WITH (KAFKA_TOPIC='FOO') AS SELECT * FROM ORDERS;", metaStore.clone(), true);
+          "CREATE STREAM FOO AS SELECT * FROM ORDERS; CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;", metaStore.clone(), true);
       queryEngine.buildLogicalPlans(metaStore, statementList, ksqlConfig);
       Assert.fail();
     } catch (final KsqlException e) {
-      assertThat(e.getMessage(), equalTo("Cannot create the stream/table. The output topic FOO is already used by FOO"));
+      assertThat(e.getMessage(), equalTo("Exception while processing statement: Cannot add the new data source. Another data source with the same name already exists: KsqlStream name:FOO"));
     }
 
   }

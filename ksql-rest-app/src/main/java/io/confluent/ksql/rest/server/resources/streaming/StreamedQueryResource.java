@@ -1,18 +1,17 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
@@ -29,11 +28,9 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -55,12 +52,14 @@ public class StreamedQueryResource {
   private final StatementParser statementParser;
   private final Duration disconnectCheckInterval;
   private final ObjectMapper objectMapper;
+  private final ActivenessRegistrar activenessRegistrar;
 
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
-      final Duration disconnectCheckInterval
+      final Duration disconnectCheckInterval,
+      final ActivenessRegistrar activenessRegistrar
   ) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
@@ -68,17 +67,18 @@ public class StreamedQueryResource {
     this.disconnectCheckInterval =
         Objects.requireNonNull(disconnectCheckInterval, "disconnectCheckInterval");
     this.objectMapper = JsonMapper.INSTANCE.mapper;
+    this.activenessRegistrar =
+        Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
   }
 
   @POST
   public Response streamQuery(final KsqlRequest request) throws Exception {
     final String ksql = request.getKsql();
     final Statement statement;
-    if (ksql == null) {
-      return Errors.badRequest("\"ksql\" field must be given");
+    if (ksql.isEmpty()) {
+      return Errors.badRequest("\"ksql\" field must be populated");
     }
-    final Map<String, Object> clientLocalProperties =
-        Optional.ofNullable(request.getStreamsProperties()).orElse(Collections.emptyMap());
+    activenessRegistrar.updateLastRequestTime();
     try {
       statement = statementParser.parseSingleStatement(ksql);
     } catch (IllegalArgumentException | KsqlException e) {
@@ -93,7 +93,7 @@ public class StreamedQueryResource {
             ksqlEngine,
             disconnectCheckInterval.toMillis(),
             ksql,
-            clientLocalProperties,
+            request.getStreamsProperties(),
             objectMapper);
       } catch (final KsqlException e) {
         return Errors.badRequest(e);

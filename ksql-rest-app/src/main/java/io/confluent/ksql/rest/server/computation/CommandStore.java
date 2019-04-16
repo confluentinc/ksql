@@ -1,18 +1,17 @@
 /*
- * Copyright 2017 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.rest.server.computation;
 
@@ -141,19 +140,23 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
   public List<QueuedCommand> getNewCommands() {
     final List<QueuedCommand> queuedCommands = Lists.newArrayList();
     commandConsumer.poll(Duration.ofMillis(Long.MAX_VALUE)).forEach(
-        c -> queuedCommands.add(
-            new QueuedCommand(
-                c.key(),
-                Optional.ofNullable(c.value()),
-                Optional.ofNullable(commandStatusMap.remove(c.key()))
-            )
-        )
+        c -> {
+          if (c.value() != null) {
+            queuedCommands.add(
+                new QueuedCommand(
+                    c.key(),
+                    c.value(),
+                    Optional.ofNullable(commandStatusMap.remove(c.key()))
+                )
+            );
+          }
+        }
     );
     return queuedCommands;
   }
 
-  public RestoreCommands getRestoreCommands() {
-    final RestoreCommands restoreCommands = new RestoreCommands();
+  public List<QueuedCommand> getRestoreCommands() {
+    final List<QueuedCommand> restoreCommands = Lists.newArrayList();
 
     final Collection<TopicPartition> cmdTopicPartitions = getTopicPartitionsForTopic(commandTopic);
 
@@ -167,7 +170,14 @@ public class CommandStore implements ReplayableCommandQueue, Closeable {
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
       for (final ConsumerRecord<CommandId, Command> record : records) {
-        restoreCommands.addCommand(record.key(), record.value());
+        if (record.value() == null) {
+          continue;
+        }
+        restoreCommands.add(
+            new QueuedCommand(
+                record.key(),
+                record.value(),
+                Optional.empty()));
       }
       records = commandConsumer.poll(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
     }

@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.1.0-SNAPSHOT</version>
+        <version>5.1.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-common</artifactId>
@@ -74,6 +74,13 @@
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-all</artifactId>
             <version>${hamcrest.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava-testlib</artifactId>
+            <version>${guava.version}</version>
             <scope>test</scope>
         </dependency>
 

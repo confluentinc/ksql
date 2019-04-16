@@ -14,6 +14,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -21,6 +23,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -38,6 +41,9 @@ public class StreamsSelectAndProjectIntTest {
   private final String avroStreamName = "orders_avro";
   private final String avroTimestampStreamName = "orders_timestamp_avro";
   private OrderDataProvider dataProvider;
+
+  @Rule
+  public Retry retry = Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS);
 
   @Before
   public void before() throws Exception {
@@ -66,7 +72,9 @@ public class StreamsSelectAndProjectIntTest {
 
   @After
   public void after() throws Exception {
-    ksqlContext.close();
+    if (ksqlContext != null) {
+      ksqlContext.close();
+    }
     testHarness.stop();
   }
 

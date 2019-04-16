@@ -1,18 +1,17 @@
-/**
- * Copyright 2017 Confluent Inc.
+/*
+ * Copyright 2018 Confluent Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.confluent.io/confluent-community-license
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- **/
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
 package io.confluent.ksql.planner.plan;
 
@@ -60,12 +59,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       @JsonProperty("timestamp") final TimestampExtractionPolicy timestampExtractionPolicy,
       @JsonProperty("key") final Field keyField,
       @JsonProperty("ksqlTopic") final KsqlTopic ksqlTopic,
-      @JsonProperty("topicName") final String topicName,
+      @JsonProperty("topicName") final String kafkaTopicName,
       @JsonProperty("outputProperties") final Map<String, Object> outputProperties,
       @JsonProperty("limit") final Optional<Integer> limit,
       @JsonProperty("doCreateInto") final boolean doCreateInto) {
     super(id, source, schema, limit, timestampExtractionPolicy);
-    this.kafkaTopicName = topicName;
+    this.kafkaTopicName = kafkaTopicName;
     this.keyField = keyField;
     this.ksqlTopic = ksqlTopic;
     this.outputProperties = outputProperties;
@@ -263,7 +262,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     private TimestampExtractionPolicy timestampExtractionPolicy;
     private Field keyField;
     private KsqlTopic ksqlTopic;
-    private String topicName;
+    private String kafkaTopicName;
     private Map<String, Object> outputProperties;
     private Optional<Integer> limit;
     private boolean doCreateInto;
@@ -276,7 +275,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           timestampExtractionPolicy,
           keyField,
           ksqlTopic,
-          topicName,
+          kafkaTopicName,
           outputProperties,
           limit,
           doCreateInto);
@@ -290,7 +289,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           .withTimestampExtractionPolicy(original.getTimestampExtractionPolicy())
           .withKeyField(original.getKeyField())
           .withKsqlTopic(original.getKsqlTopic())
-          .withTopicName(original.getKafkaTopicName())
+          .withKafkaTopicName(original.getKafkaTopicName())
           .withOutputProperties(original.getOutputProperties())
           .withLimit(original.getLimit())
           .withDoCreateInto(original.isDoCreateInto());
@@ -307,8 +306,8 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return this;
     }
 
-    Builder withTopicName(final String topicName) {
-      this.topicName = topicName;
+    Builder withKafkaTopicName(final String kafkaTopicName) {
+      this.kafkaTopicName = kafkaTopicName;
       return this;
     }
 

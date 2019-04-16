@@ -10,7 +10,7 @@ manually define columns and data types in KSQL and from manual interaction with 
 Supported functionality
 ***********************
 
-KSQL currently supports Avro data in the Kafka message values. 
+KSQL currently supports Avro data in the |ak-tm| message values.
 
 Avro schemas with nested fields are supported. In KSQL 5.0 and higher, you can read nested data, in Avro and JSON
 formats, by using the STRUCT type. You can’t create new nested STRUCT data as the result of a query, but you can copy existing
@@ -111,7 +111,7 @@ generates an appropriate Avro schema for the new ``pageviews_avro`` stream, and 
 .. code:: sql
 
     CREATE STREAM pageviews_json (viewtime BIGINT, userid VARCHAR, pageid VARCHAR)
-      WITH (KAFKA_TOPIC='pageviews-json-topic', VALUE_FORMAT='JSON');
+      WITH (KAFKA_TOPIC='pageviews_kafka_topic_json', VALUE_FORMAT='JSON');
 
     CREATE STREAM pageviews_avro
       WITH (VALUE_FORMAT = 'AVRO') AS

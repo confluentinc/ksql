@@ -29,8 +29,8 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CTAS_OUTPUT_1.KsqlTopic.source = struct<FOO optional<int32>,BAR optional<int32>>
-CTAS_OUTPUT_1.KsqlTopic.reduce = struct<INTERMEDIATE.ROWTIME optional<int64>,INTERMEDIATE.ROWKEY optional<string>,INTERMEDIATE.FOO optional<int32>,INTERMEDIATE.BAR optional<int32>>
+CTAS_OUTPUT_1.KsqlTopic.source = struct<FOO optional<int32>>
+CTAS_OUTPUT_1.KsqlTopic.reduce = struct<INTERMEDIATE.ROWTIME optional<int64>,INTERMEDIATE.ROWKEY optional<string>,INTERMEDIATE.FOO optional<int32>>
 CTAS_OUTPUT_1.Aggregate.groupby = struct<KSQL_INTERNAL_COL_0 optional<int32>,KSQL_INTERNAL_COL_1 optional<int64>>
 CTAS_OUTPUT_1.Aggregate.aggregate = struct<KSQL_INTERNAL_COL_0 optional<int32>,KSQL_INTERNAL_COL_1 optional<int64>,KSQL_AGG_VARIABLE_0 optional<int64>>
 CTAS_OUTPUT_1.OUTPUT = struct<ALIASED optional<int32>,KSQL_COL_1 optional<int64>>

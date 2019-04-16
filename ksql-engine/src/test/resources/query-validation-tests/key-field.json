@@ -232,8 +232,7 @@
       ],
       "post": {
         "issues": [
-          "key field of output has INCORRECT name: should be 'ALIASED' - (see Issue #1 above)",
-          "key field of output has INCORRECT type: should be 'INT' - (see Issue #3 above)"
+          "key field of output INCORRECT: should be null - (see Issue #2 above)"
         ],
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": null},
@@ -697,6 +696,9 @@
     },
     {
       "name": "table | initially null | no key change | - | -",
+      "comments": [
+        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+      ],
       "statements": [
         "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
         "CREATE TABLE INTERMEDIATE AS SELECT bar FROM INPUT;",
@@ -710,15 +712,19 @@
       ],
       "post": {
         "sources": [
+          {"name": "INTERMEDIATE", "type": "table", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": null}
         ]
       }
     },
     {
       "name": "table | initially null | group by (-) | key in value | no aliasing",
+      "comments": [
+        "Note: The INTERMEDIATE table is there to create a source where the key field is null"
+      ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
         "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INTERMEDIATE GROUP BY foo;"
       ],
       "inputs": [
@@ -733,15 +739,19 @@
           "key field of output has INCORRECT type: should be 'INT' - (see Issue #3 above)"
         ],
         "sources": [
+          {"name": "INTERMEDIATE", "type": "table", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
       }
     },
     {
       "name": "table | initially null | group by (-) | key in value | no aliasing | legacy downstream query",
+      "comments": [
+        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+      ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
         "CREATE TABLE OUTPUT AS SELECT foo, COUNT(*) FROM INTERMEDIATE GROUP BY foo;",
         "CREATE TABLE DOWNSTREAM AS SELECT foo, COUNT(*) FROM OUTPUT GROUP BY foo;"
       ],
@@ -753,15 +763,19 @@
       ],
       "post": {
         "sources": [
+           {"name": "INTERMEDIATE", "type": "table", "keyField": null},
            {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
       }
     },
     {
       "name": "table | initially null | group by (-) | key in value | aliasing",
+      "comments": [
+        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+      ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
         "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INTERMEDIATE GROUP BY foo;"
       ],
       "inputs": [
@@ -776,15 +790,19 @@
           "key field of output has INCORRECT type: should be 'INT' - (see Issue #3 above)"
         ],
         "sources": [
+          {"name": "INTERMEDIATE", "type": "table", "keyField": null},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
       }
     },
     {
       "name": "table | initially null | group by (-) | key in value | aliasing | legacy downstream query",
+      "comments": [
+        "Note: The INTERMEDIATE table is there to create a source where the key field is set to null"
+      ],
       "statements": [
-        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
-        "CREATE TABLE INTERMEDIATE AS SELECT * FROM INPUT;",
+        "CREATE TABLE INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='bar', value_format='JSON');",
+        "CREATE TABLE INTERMEDIATE AS SELECT foo FROM INPUT;",
         "CREATE TABLE OUTPUT AS SELECT foo AS aliased, COUNT(*) FROM INTERMEDIATE GROUP BY foo;",
         "CREATE TABLE DOWNSTREAM AS SELECT aliased, COUNT(*) FROM OUTPUT GROUP BY aliased;"
       ],
@@ -796,6 +814,7 @@
       ],
       "post": {
         "sources": [
+          {"name": "INTERMEDIATE", "type": "table", "keyField": null},
           {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
         ]
       }

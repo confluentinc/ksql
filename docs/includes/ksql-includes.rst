@@ -206,9 +206,9 @@ These examples query messages from Kafka topics called ``pageviews`` and ``users
         ---------------
 
    .. tip:: You can run ``DESCRIBE pageviews_original;`` to see the schema for
-      the stream. Notice that KSQL created additional columns called ``ROWTIME``,
-      which corresponds to the Kafka message timestamp, and ``ROWKEY``, which
-      corresponds to the Kafka message key.
+      the stream. Notice that KSQL created two additional columns, named
+      ``ROWTIME``, which corresponds with the Kafka message timestamp, and
+      ``ROWKEY``, which corresponds with the Kafka message key.
 
 #. Create a table, named ``users_original``, from the ``users`` Kafka topic,
    specifying the ``value_format`` of ``JSON``.

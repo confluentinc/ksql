@@ -86,7 +86,7 @@ public class TopicDeleteInjectorTest {
     when(source.getKafkaTopicName()).thenReturn("something");
 
     dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING"), false, true));
+        "DROP STREAM SOMETHING", new DropStream(QualifiedName.of("SOMETHING"), false, true));
   }
 
   @Test
@@ -104,6 +104,10 @@ public class TopicDeleteInjectorTest {
 
   @Test
   public void shouldDoNothingIfNoDeleteTopic() {
+    // Given:
+    dropStatement = givenStatement(
+        "DROP STREAM SOMETHING", new DropStream(QualifiedName.of("SOMETHING"), false, false));
+
     // When:
     final ConfiguredStatement<DropStream> injected = deleteInjector.inject(dropStatement);
 

@@ -76,7 +76,7 @@ public class TopicPropertiesTest {
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
           .withWithClause(withClause)
-//          //.withKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
 
       // Then:
@@ -94,7 +94,7 @@ public class TopicPropertiesTest {
       final TopicProperties properties = new TopicProperties.Builder()
           .withName("oh no!")
           .withWithClause(withClause)
-//          //.withKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
 
       // Then:
@@ -106,7 +106,7 @@ public class TopicPropertiesTest {
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
           .withName("name")
-//          //.withKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
 
       // Then:
@@ -121,7 +121,7 @@ public class TopicPropertiesTest {
 
       // When:
       new TopicProperties.Builder()
-//          //.withKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
     }
 
@@ -134,7 +134,7 @@ public class TopicPropertiesTest {
       // When:
       new TopicProperties.Builder()
           .withName("")
-          ////.withKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
     }
 
@@ -152,7 +152,7 @@ public class TopicPropertiesTest {
       // When:
       new TopicProperties.Builder()
           .withName("name")
-          //.withKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
     }
 
@@ -170,7 +170,7 @@ public class TopicPropertiesTest {
       // When:
       new TopicProperties.Builder()
           .withName("name")
-          //.withKsqlConfig(config)
+          .withKsqlConfig(config)
           .build();
     }
 
@@ -186,7 +186,7 @@ public class TopicPropertiesTest {
       // When:
       final TopicProperties properties = new TopicProperties.Builder()
           .withWithClause(withClause)
-          //.withKsqlConfig(config)
+          .withKsqlConfig(config)
           .withSource(() -> {
             throw new RuntimeException();
           })
@@ -341,7 +341,7 @@ public class TopicPropertiesTest {
           .withName("name")
           .withWithClause(withClause)
           .withOverrides(propertyOverrides)
-//          .withKsqlConfig(ksqlConfig)
+          .withKsqlConfig(ksqlConfig)
           .withSource(() -> source(SOURCE))
           .build();
 

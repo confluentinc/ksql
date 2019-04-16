@@ -454,7 +454,7 @@ The WITH clause for the result supports the following properties:
 |                         | **Note**: This doesn't affect the processing of the query that populates this stream.                |
 |                         | For example, given the following statement:                                                          |
 |                         |                                                                                                      |
-|                         | .. literalinclude:: includes/csas-snippet.sql                                                        |
+|                         | .. literalinclude:: ../includes/csas-snippet.sql                                                     |
 |                         |    :language: sql                                                                                    |
 |                         |                                                                                                      |
 |                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
@@ -537,7 +537,7 @@ The WITH clause supports the following properties:
 |                         | **Note**: This doesn't affect the processing of the query that populates this table.                 |
 |                         | For example, given the following statement:                                                          |
 |                         |                                                                                                      |
-|                         | .. literalinclude:: includes/ctas-snippet.sql                                                        |
+|                         | .. literalinclude:: ../includes/ctas-snippet.sql                                                     |
 |                         |    :language: sql                                                                                    |
 |                         |                                                                                                      |
 |                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |

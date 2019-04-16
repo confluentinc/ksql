@@ -87,7 +87,7 @@ topic *does not exist* and these values are specified, this command will create 
 set number of partitions and replicas before executing the command. If the topic exists and has
 a different number of partitions/replicas, this command will fail.
 
-This functionality will be flagged under a configuration `ksql.create.source.allow.empty.topic`,
+This functionality will be flagged under a configuration `ksql.ddl.source.topic.create.allow`,
 which will default to `true` (new behavior is the default).
 
 ## Design

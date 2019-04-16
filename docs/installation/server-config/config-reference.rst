@@ -231,10 +231,6 @@ When deploying KSQL to production, the following settings are recommended in you
 
 ::
 
-    # Set the retries to Integer.MAX_VALUE to ensure that transient failures
-    # will not result in data loss.
-    ksql.streams.producer.retries=2147483647
-
     # Set the batch expiry to Integer.MAX_VALUE to ensure that queries will not
     # terminate if the underlying Kafka cluster is unavailable for a period of
     # time.

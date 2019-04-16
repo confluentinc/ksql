@@ -54,9 +54,8 @@ public final class TopologyFileGenerator {
 
     private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";
 
-    @Ignore // comment me out to generate the persisted topologies
-    @Test
-    public void doGenerateTopologies() throws Exception {
+    // NOTE: must be run with current directory ksql/ksql-engine (IntelliJ default is ksql)
+    public static void main(final String[] args) throws Exception {
         generateTopologies(BASE_DIRECTORY);
     }
 
@@ -67,8 +66,7 @@ public final class TopologyFileGenerator {
         generateTopologies(tmp.getAbsolutePath());
     }
 
-    private void generateTopologies(final String base) throws Exception {
-
+    private static void generateTopologies(final String base) throws Exception {
         final String formattedVersion = getFormattedVersionFromPomFile();
         final String generatedTopologyPath = base + formattedVersion;
 

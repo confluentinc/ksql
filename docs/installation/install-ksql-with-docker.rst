@@ -22,6 +22,7 @@ configurations.
 * :ref:`ksql-connect-to-secure-cluster-settings`
 * :ref:`ksql-configure-with-java`
 * :ref:`ksql-server-view-logs`
+* :ref:`ksql-enable-processing-log`
 * :ref:`ksql-cli-connect-to-dockerized-server`
 * :ref:`ksql-cli-config-file`
 * :ref:`ksql-cli-connect-to-hosted-server`
@@ -327,6 +328,25 @@ Your output should resemble:
 
   [2019-01-16 23:43:05,591] INFO stream-thread [_confluent-ksql-default_transient_1507119262168861890_1527205385485-71c8a94c-abe9-45ba-91f5-69a762ec5c1d-StreamThread-17] Starting (org.apache.kafka.streams.processor.internals.StreamThread:713)
   ...
+
+.. _ksql-enable-processing-log:
+
+Enable the Processing Log
+=========================
+
+KSQL emits a log of record processing events, called the processing log, to
+help you debug KSQL queries. For more information, see :ref:`ksql_processing_log`.
+
+Assign the following configuration settings to enable the processing log.
+
+::
+
+    # — Processing log config —
+    KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092
+    KSQL_LOG4J_PROCESSING_LOG_TOPIC: demo_processing_log
+    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: demo_processing_log
+    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+    KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 
 KSQL Command-line Interface (CLI)
 *********************************

@@ -59,8 +59,7 @@ source. This functionality will need to be extended when we support structured k
 
 The value for `stream_name`/`table_name` must be a valid Stream/Table registered with a KSQL schema.
 The serialization format will be the same as the format specified in the `value_format` of the
-`CREATE` statement. Analogously, the key field will be taken from the same value as specified in the
-`key` property. 
+`CREATE` statement. 
 
 For the initial version, only primitive literal types will be supported (e.g. `INT`, `VARCHAR`, 
 etc...) but syntax is easily extensible to support struct, map and list (i.e. by following syntax 
@@ -69,6 +68,18 @@ like Hive's `NAMED_STRCUT` construct).
 Future extensions: 
 * Support some`AT INTERVAL` syntax to generalize the functionality to generate full stream data.
 * Read from file to allow reproducible insertions
+
+#### DELETE FROM
+
+```sql 
+DELETE FROM table_name WHERE condition;
+```
+
+The `DELETE` statement can be used to insert tombstones into kafka topics that back tables. If the
+source is not back a table, the statement will fail. For this KLIP, we will only support conditions
+of the form `ROWKEY = value`. While this may initially be confusing (as SQL standard allows deleting
+on any arbitrary condition), we have precedent for this in stream-table joins (the join criteria
+may only be on the key of the table).
 
 #### CREATE STREAM/TABLE
 
@@ -100,6 +111,14 @@ The above APIs make various trade-offs, outlined below:
 The parser should be lookahead and determine whether or not `VALUES` is present in order to leverage
 that data producing APIs. An alternative would be to use the word `PRODUCE`, which also makes it
 clear that it uses low-level Kafka producers.
+* The proposal to use `DELETE` encompasses various trade-offs:
+  * We need a different mechanism to produce tombstones than `INSERT INTO` because there is no good
+  way with the standard SQL to differentiate between an entirely `NULL` value (i.e. tombstone) and 
+  `NULL` values for every column.
+  * Introducing a new syntax (e.g. `INSERT TOMBSTONE`) will require users to understand another
+  language construct and make KSQL depart further from SQL standard
+  * This is a step closer to SQL standard, and we can always support more `DELETE` conditions in
+  the future
 * Allowing `CREATE TABLE/STREAM` to specify a kafka topic that does not yet exist makes it easy to
 use the new APIs without any other system. There are three alternatives: 
   * Do not require `PARTITIONS`/`REPLICAS` to create the kafka topic. This is a slight change that
@@ -118,10 +137,8 @@ leverage that existing functionality, which will require piping through various 
 the `ServiceContext`. Beyond that, we must introduce a new command and Statement type to reflect the
 new functionality. 
 
-In interactive mode, this will be handled without distributing the statement to other servers. In
-headless mode, the data will be produced on every machine that executes the SQL file if it contains
-an `INSERT INTO ... VALUES` statement. It is important to support these operations even in headless
-mode to build automated test pipelines.
+In interactive mode, this will be handled without distributing the statement to other servers. This
+operation will not be available in headless mode for the first version of the feature.
 
 ### Schema Validation
 
@@ -138,10 +155,44 @@ complex types. Since we know the schema of the inserts, we can initially load th
 connect data type. We already have the proper serializers to convert from connect to each of the
 supported serialization formats.
 
+## Key Handling
+
+The underlying data and the way it is represented in KSQL sometimes differ, and this `INSERT INTO`
+functionality needs to bridge that gap. For example take the following KSQL statement:
+```sql
+CREATE TABLE bar (id VARCHAR, foo INT) WITH (key="id")
+```
+
+In this case, we expect kafka records that resemble 
+```json
+{"key": "bar", "value": {"id": "bar", "foo": 123}}
+```
+
+If this is not the case (e.g. the value of `"key"` and of `"value"->"id"` do not match), then the
+KSQL behavior is not well defined. To all for all levels of flexibility, `INSERT INTO` should allow
+for all cases that kafka supports. Therefore, `ROWKEY` will always be available in the list of
+column names as the first column. The following examples would all be possible: 
+
+```sql
+INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", null, 123);
+INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", "k", 456);
+INSERT INTO bar (ROWKEY, ID, FOO) VALUES (null, "k", 789);
+INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", "x", 1011); 
+INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", null, null); 
+```
+
+If `ROWKEY` is _not_ specified but the key field is specified (as defined by the corresponding 
+`CREATE TABLE` statement), then `ROWKEY` can be inferred, meaning the following statements are
+equivalent:
+
+```sql 
+INSERT INTO bar (ID, FOO) VALUES ("k", 123)
+INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", "k", 123)
+```
+
 ## Test plan
 
-This functionality is expected to work both in Interactive as well as Headless modes, and therefore
-all tests described below should be done in both:
+This functionality is expected to work both only in Interactive mode, and these tests must succeed:
 
 * Test that values can be serialized into JSON/AVRO/DELIMITED
 * Test that schemas are properly verified
@@ -179,10 +230,12 @@ section that includes the following rows:
 > **Description**
 > 
 > Produce a row into an existing stream or table and its underlying topic based on
-> explicitly sepcified values.
+> explicitly sepcified values. The first ``column_name`` of every schema is ``ROWKEY``, which
+> defines the corresponding kafka key - it is expected to always match a corresponding column in 
+> the value if the create statement specifies a key.
 >
 > Column values can be given in several ways:
-> * Any column not explicitly given a value is set to its default (explicit or implicit) value.
+> * Any column not explicitly given a value is set to ``null`` (KSQL does not support DEFAULT values)
 > * If no columns are specified, a value for every column is expected in the same order as the
 > schema
 > * To produce a ``NULL`` value, specify only the key and contents for the key
@@ -190,12 +243,20 @@ section that includes the following rows:
 > The values will serialize using the ``value_format`` specified in the original `CREATE` statment.
 > ```
 
-# Compatibility implications
+# Compatibility Implications
 
 * All previous commands that succeeded will still succeed after this KLIP
 * `CREATE` commands that failed with "topic does not exist" may now fail with "must specify 
 partitions and replicas to create source with empty topic."
+* A new configuration `ksql.insert.into.values.enabled` will config guard this whole feature suite
 
-# Performance implications
+# Performance Implications
 
 N/A
+
+# Security Implications
+
+* Authentication/Authorization: we will authenticate/authorize `INSERT INTO` statements under the
+same systems that we use for transient queries
+* Audit: For V1, we will not be auditing `INSERT INTO` statements, but we will provide a config to
+disable this functionality completely

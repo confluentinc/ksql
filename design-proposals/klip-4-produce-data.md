@@ -1,4 +1,4 @@
-# KLIP-4: Produce Data in KSQL
+  # KLIP-4: Produce Data in KSQL
 
 **Author**: agavra | 
 **Release Target**: 5.3 | 
@@ -238,10 +238,25 @@ section that includes the following rows:
 > * Any column not explicitly given a value is set to ``null`` (KSQL does not support DEFAULT values)
 > * If no columns are specified, a value for every column is expected in the same order as the
 > schema
-> * To produce a ``NULL`` value, specify only the key and contents for the key
 >
 > The values will serialize using the ``value_format`` specified in the original `CREATE` statment.
 > ```
+* A new section for `DELETE` will be added to the `syntax.rst`:
+> ```rst
+> **Synopsis**
+> 
+> .. code:: sql
+> 
+>     DELETE FROM table_name WHERE condition;
+>     
+> **Description**
+> 
+> Delete a row from an existing table. The ``condition`` must be of form ``ROWKEY = value`` and the
+> ``table_name`` must represent a Table (as opposed to Stream). This will issue a tombstone, producing
+> a value to the underlying kafka topic with the specified key and a null value. Deleting a value that
+> does not exist will not affect the table contents.
+> ```
+
 
 # Compatibility Implications
 

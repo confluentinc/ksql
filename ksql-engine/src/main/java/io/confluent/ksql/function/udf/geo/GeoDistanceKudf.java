@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -27,7 +27,6 @@ import java.util.List;
  * 
  * <p>An optional fifth parameter allows to specify either "MI" (miles) or "KM" (kilometers) as the
  * desired unit for the output measurement. Default is KM.
- *
  */
 public class GeoDistanceKudf implements Kudf {
 
@@ -44,12 +43,31 @@ public class GeoDistanceKudf implements Kudf {
   private static final List<String> VALID_RADIUS_NAMES_KMS =
       Lists.newArrayList("km", "kilometer", "kilometers", "kilometre", "kilometres");
 
-
   @Override
   public Object evaluate(final Object... args) {
-    if ((args.length < 4) || (args.length > 5)) {
+    if (args.length < 4 || args.length > 5) {
       throw new KsqlFunctionException(
           "GeoDistance function expects either 4 or 5 arguments: lat1, lon1, lat2, lon2, (MI/KM)");
+    }
+
+    if (args[0] == null) {
+      throw new KsqlFunctionException(
+          "GeoDistance function expects the first argument non-null: lat1");
+    }
+
+    if (args[1] == null) {
+      throw new KsqlFunctionException(
+          "GeoDistance function expects the second argument non-null: lon1");
+    }
+
+    if (args[2] == null) {
+      throw new KsqlFunctionException(
+          "GeoDistance function expects the third argument non-null: lat2");
+    }
+
+    if (args[3] == null) {
+      throw new KsqlFunctionException(
+          "GeoDistance function expects the fourth argument non-null: lon2");
     }
 
     final double lat1 = ((Number) args[0]).doubleValue();
@@ -87,7 +105,7 @@ public class GeoDistanceKudf implements Kudf {
 
   private double selectEarthRadiusToUse(final Object... args) {
     double chosenRadius = EARTH_RADIUS_KM;
-    if (args.length == 5) {
+    if (args.length == 5 && args[4] != null) {
       final String outputUnit = args[4].toString().toLowerCase();
       if (VALID_RADIUS_NAMES_MILES.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_MILES;

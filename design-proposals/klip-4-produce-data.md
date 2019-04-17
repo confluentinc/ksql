@@ -47,7 +47,7 @@ without pre-existing data.
 #### INSERT INTO
 
 ```sql
-INSERT INTO (stream_name|table_name) (column1, column2, ...)
+INSERT INTO <stream_name|table_name> [(column1, column2, ...)]
   VALUES (value1, value2, ...)
 ```
 
@@ -62,8 +62,8 @@ The serialization format will be the same as the format specified in the `value_
 `CREATE` statement. 
 
 For the initial version, only primitive literal types will be supported (e.g. `INT`, `VARCHAR`, 
-etc...) but syntax is easily extensible to support struct, map and list (i.e. by following syntax 
-like Hive's `NAMED_STRCUT` construct). 
+etc...) but syntax is easily extensible to support struct, map and list (see _Complex Datatypes_
+section below).
 
 Future extensions: 
 * Support some`AT INTERVAL` syntax to generalize the functionality to generate full stream data.
@@ -72,14 +72,13 @@ Future extensions:
 #### DELETE FROM
 
 ```sql 
-DELETE FROM table_name WHERE condition;
+DELETE FROM table_name WHERE ROWKEY = <rowkey_value>;
 ```
 
 The `DELETE` statement can be used to insert tombstones into kafka topics that back tables. If the
 source is not back a table, the statement will fail. For this KLIP, we will only support conditions
-of the form `ROWKEY = value`. While this may initially be confusing (as SQL standard allows deleting
-on any arbitrary condition), we have precedent for this in stream-table joins (the join criteria
-may only be on the key of the table).
+of the form `ROWKEY = value`. While this may initially be confusing, maintaining consistent
+documentation and examples, along with adequate error messages, will alleviate the concern.
 
 #### CREATE STREAM/TABLE
 
@@ -93,10 +92,15 @@ CREATE TABLE table_name ( { column_name data_type } [, ...] )
   WITH ( property_name = expression [, ...] );
 ```
 
-The `WITH` clause will now accept two additional property_names: `PARTITIONS`/`REPLICAS` If the 
-topic *does not exist* and these values are specified, this command will create a topic with a the
-set number of partitions and replicas before executing the command. If the topic exists and has
-a different number of partitions/replicas, this command will fail.
+The `WITH` clause for CS/CT statements will now accept two additional property_names: 
+`PARTITIONS`/`REPLICAS` If the topic *does not exist* and these values are specified, this command 
+will create a topic with a the set number of partitions and replicas before executing the command. 
+If the topic exists and has a different number of partitions/replicas, this command will fail with
+the following error message:
+
+> Cannot issue create command for missing kafka topic: `<topic name>`. To create this topic, specify
+> PARTITIONS and REPLICAS in the WITH clause (note that `ksql.ddl.source.topic.create.allow` must
+> be enabled for this functionality).
 
 This functionality will be flagged under a configuration `ksql.ddl.source.topic.create.allow`,
 which will default to `true` (new behavior is the default).
@@ -109,8 +113,7 @@ The above APIs make various trade-offs, outlined below:
 
 * The proposal to overload `INSERT INTO` is to remain as compatible with SQL standard as possible.
 The parser should be lookahead and determine whether or not `VALUES` is present in order to leverage
-that data producing APIs. An alternative would be to use the word `PRODUCE`, which also makes it
-clear that it uses low-level Kafka producers.
+that data producing APIs. 
 * The proposal to use `DELETE` encompasses various trade-offs:
   * We need a different mechanism to produce tombstones than `INSERT INTO` because there is no good
   way with the standard SQL to differentiate between an entirely `NULL` value (i.e. tombstone) and 
@@ -123,6 +126,8 @@ clear that it uses low-level Kafka producers.
 use the new APIs without any other system. There are three alternatives: 
   * Do not require `PARTITIONS`/`REPLICAS` to create the kafka topic. This is a slight change that
   will make it easier to experiment, but may open the door to accidentally creating kafka topics.
+  With the release of 5.2, this will also not be consistent with CSAS/CTAS, which default to the
+  source replication/partitioning instead of using some default configured values.
   * Introduce another `CREATE TOPIC` API which will create empty topics. I believe this will cause
   confusion, as it departs farther from SQL standard and puts `TOPIC` on the same level as the
   duality of Tables/Streams (which it is not, it is a physical manifestation of a stream/table).
@@ -155,7 +160,7 @@ complex types. Since we know the schema of the inserts, we can initially load th
 connect data type. We already have the proper serializers to convert from connect to each of the
 supported serialization formats.
 
-## Key Handling
+### ROWKEY and ROWTIME Handling
 
 The underlying data and the way it is represented in KSQL sometimes differ, and this `INSERT INTO`
 functionality needs to bridge that gap. For example take the following KSQL statement:
@@ -169,26 +174,47 @@ In this case, we expect kafka records that resemble
 ```
 
 If this is not the case (e.g. the value of `"key"` and of `"value"->"id"` do not match), then the
-KSQL behavior is not well defined. To all for all levels of flexibility, `INSERT INTO` should allow
-for all cases that kafka supports. Therefore, `ROWKEY` will always be available in the list of
-column names as the first column. The following examples would all be possible: 
+KSQL behavior is not well defined. 
 
-```sql
-INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", null, 123);
-INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", "k", 456);
-INSERT INTO bar (ROWKEY, ID, FOO) VALUES (null, "k", 789);
-INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", "x", 1011); 
-INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", null, null); 
-```
+The column schema will always include the implicit `ROWKEY` and `ROWTIME` fields, and the user can
+choose to specify or ignore these fields. To prevent the inconsistencies described above, though,
+we will automatically enforce consistency whenever the key property is set in the `WITH` clause.
 
-If `ROWKEY` is _not_ specified but the key field is specified (as defined by the corresponding 
-`CREATE TABLE` statement), then `ROWKEY` can be inferred, meaning the following statements are
-equivalent:
+* If the user sets a `KEY` property, they do not need to supply `ROWKEY` in their `INSERT INTO`
+statement (e.g. `INSERT INTO foo (id, foo) VALUES ("key", 123);`). In this case, the kafka message
+produced will automatically populate `ROWKEY` to the value of `id`: 
+  ```json
+  {"key": "key", "value": {"id": "key", "foo": 123}}
+  ```
+* If the user sets a `KEY` property _and_ they supply `ROWKEY` in their `INSERT INTO` statement, 
+KSQL will enforce that the value of `ROWKEY` and the value of the key column are identical.
+  ```json
+  {"key": "this_will_fail", "value": {"id": "key", "foo":  123}} 
+  ```
+* If the user does not set a `KEY` property, and they are inserting into a stream, they may choose
+to omit `ROWKEY` altogether. This will result in a `null` key.
+* If the user does not set a `KEY` property, and they are inserting into a table, they _must_
+have a `ROWKEY` value in their `INSERT INTO` statement.
 
-```sql 
-INSERT INTO bar (ID, FOO) VALUES ("k", 123)
-INSERT INTO bar (ROWKEY, ID, FOO) VALUES ("k", "k", 123)
-```
+For `ROWTIME`, if it is supplied then that will be the value populated in the kafka record,
+otherwise broker time is used. If a timestamp extractor is also supplied, the `ROWTIME` value will
+still be sent, but the extractor will overwrite the data in `ROWTIME`.
+
+### Complex Datatypes
+
+Although not in scope for V1, complex data types can all be supported following precedents of 
+other SQL-like languages. For example, Google BigQuery supports constructing STRUCT using the
+[syntax](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#declaring-a-struct-type) 
+below (see link for full set of sample syntax):
+
+| Syntax                                    | Output                                              |
+| ----------------------------------------  | --------------------------------------------------- |
+| `STRUCT(1,2,3)`                           | `STRUCT<int64,int64,int64>` *                       |
+| `STRUCT(1 AS a, 'abc' AS b)`              | `STRUCT<a int64, b string>`                         |
+| `STRUCT<x int64>(5)`                      | `STRUCT<x int64>`                                   |
+| `STRUCT(5, STRUCT(5))`                    | `STRUCT<int64, STRUCT<int64>>`                      |
+
+\* we may not want to support "unnamed" structs, thought that decision can be made later
 
 ## Test plan
 
@@ -224,7 +250,7 @@ section that includes the following rows:
 > 
 > .. code:: sql
 >
->   INSERT INTO stream_name/table_name [( column_name [, ...] )]
+>   INSERT INTO <stream_name|table_name> [(column_name [, ...] )]
 >     VALUES (value [, ...])
 > 
 > **Description**
@@ -274,4 +300,4 @@ N/A
 * Authentication/Authorization: we will authenticate/authorize `INSERT INTO` statements under the
 same systems that we use for transient queries
 * Audit: For V1, we will not be auditing `INSERT INTO` statements, but we will provide a config to
-disable this functionality completely
+disable this functionality completely (`ksql.insert.into.values.enabled`)

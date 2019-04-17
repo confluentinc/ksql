@@ -1,4 +1,4 @@
-# KLIP Number - Title
+# KLIP 6: KSQL Testing Tool
 
 Author: hjafarpour
 

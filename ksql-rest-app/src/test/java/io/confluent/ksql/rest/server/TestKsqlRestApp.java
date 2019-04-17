@@ -17,10 +17,10 @@ package io.confluent.ksql.rest.server;
 
 import static org.easymock.EasyMock.niceMock;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.EntityQueryId;
@@ -173,7 +173,8 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public static Client buildClient() {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper objectMapper =
+        new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
     objectMapper.registerModule(new Jdk8Module());

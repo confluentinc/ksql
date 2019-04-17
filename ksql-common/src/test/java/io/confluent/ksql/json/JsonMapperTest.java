@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,20 +15,25 @@
 
 package io.confluent.ksql.json;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import org.junit.Test;
 
-public enum JsonMapper {
-  INSTANCE;
+public class JsonMapperTest {
 
-  public final ObjectMapper mapper =
-      new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
-  JsonMapper() {
-    mapper.registerModule(new Jdk8Module());
-    mapper.registerModule(new StructSerializationModule());
-    mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  @Test
+  public void shouldNotAutoCloseTarget() {
+    assertThat(OBJECT_MAPPER.isEnabled(JsonGenerator.Feature.AUTO_CLOSE_TARGET), is(false));
+  }
+
+  @Test
+  public void shouldIgnoreUnknownProperties() {
+    assertThat(OBJECT_MAPPER.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES), is(false));
   }
 }

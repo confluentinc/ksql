@@ -22,17 +22,15 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -40,7 +38,7 @@ import org.junit.rules.ExpectedException;
 @SuppressWarnings("SameParameterValue")
 public class KsqlRequestTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
   private static final String A_JSON_REQUEST = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
@@ -67,11 +65,6 @@ public class KsqlRequestTest {
   private static final KsqlRequest A_REQUEST = new KsqlRequest("sql", SOME_PROPS, null);
   private static final KsqlRequest A_REQUEST_WITH_COMMAND_NUMBER =
       new KsqlRequest("sql", SOME_PROPS, SOME_COMMAND_NUMBER);
-
-  @BeforeClass
-  public static void setUpClass() {
-    OBJECT_MAPPER.registerModule(new Jdk8Module());
-  }
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

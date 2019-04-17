@@ -19,6 +19,7 @@ Next KLIP number: 2.
 |----------------------------------------------------------------------|:------:| ------: |
 | [KLIP-X: Template](klip-template.md)                                 | Open   | N/A     |
 | [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)   | Open   | N/A     |
+| [KLIP-5: KSQL Testing Tool](klip-5-ksql-testing-tool.md)             | Open   | N/A     |
 
 
 

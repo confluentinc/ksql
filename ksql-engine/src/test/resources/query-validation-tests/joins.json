@@ -34,7 +34,41 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
-      ]
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID"
+        ],
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream left join - legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code used to incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
+        "CREATE STREAM DOWNSTREAM as SELECT T_ID FROM LEFT_OUTER_JOIN PARTITION BY T_ID;"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
     },
     {
       "name": "stream stream left join - rekey",
@@ -78,7 +112,45 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
-      ]
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID"
+        ],
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream left join - rekey - legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code used to incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
+        "CREATE TABLE DOWNSTREAM as SELECT T_ID, COUNT() FROM LEFT_OUTER_JOIN GROUP BY T_ID;"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID",
+          "key field has incorrect schema - should be BIGINT"
+        ],
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+        ]
+      }
     },
     {
       "name": "stream stream inner join",
@@ -102,7 +174,41 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream inner join - legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code used to incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN 11 SECONDS ON t.id = tt.id;",
+        "CREATE STREAM DOWNSTREAM AS SELECT T_ID FROM INNER_JOIN;"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
     },
     {
       "name": "stream stream inner join all left fields some right",
@@ -287,7 +393,12 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
     },
     {
       "name": "table table inner join",
@@ -312,7 +423,12 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
     },
     {
       "name": "table table outer join",
@@ -339,7 +455,12 @@
         {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "OUTER_JOIN", "key": 15, "value": {"T_ID": null, "NAME": null, "VALUE": null, "F1": "c", "F2": 20}, "timestamp": 15500},
         {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
     },
     {
       "name": "stream table left join",
@@ -363,7 +484,15 @@
         {"topic": "LEFT_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "LEFT_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000},
         {"topic": "LEFT_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID"
+        ],
+        "sources": [
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
     },
     {
       "name": "stream table inner join",
@@ -386,7 +515,15 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
     },
     {
       "name": "join using ROWKEY in the criteria",
@@ -409,7 +546,42 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "blah", "VALUE": 50, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "zero", "F2": 0}, "timestamp": 10000},
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
-      ]
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be T_ID",
+          "key field has incorrect type - should be BIGINT"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ROWKEY", "schema": {"type": "STRING"}}}
+        ]
+      }
+    },
+    {
+      "name": "join using ROWKEY in the criteria - legacy downstream query",
+      "comments": [
+        "The purpose of this test is to capture the topology of a downstream query of the above test case",
+        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
+        "In this case, the code used to incorrectly set the keyField to 'T.ROWKEY' rather than the correct 'T_ID'",
+        "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
+        "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
+      ],
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT t.id AS ID, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;",
+        "CREATE STREAM DOWNSTREAM AS SELECT ID FROM INNER_JOIN PARTITION BY ID;"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "post": {
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ROWKEY", "schema": {"type": "STRING"}}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ID", "schema": {"type": "BIGINT"}}}
+        ]
+      }
     },
     {
       "name": "table join pipeline",

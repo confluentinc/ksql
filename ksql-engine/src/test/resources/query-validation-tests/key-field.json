@@ -1263,6 +1263,45 @@
           {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_1", "schema": {"type": "STRING"}}}
         ]
       }
+    },
+    {
+      "name": "where clause",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo FROM INPUT WHERE bar < 10;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
+    },
+    {
+      "name": "where clause with alias",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT foo as boo FROM INPUT WHERE bar < 10;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"BOO": 1}}
+      ],
+      "post": {
+        "issues": [
+          "source key field name incorrect - should be 'BOO'"
+        ],
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "schema": {"type": "INT"}}}
+        ]
+      }
     }
   ]
 }

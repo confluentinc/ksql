@@ -153,6 +153,8 @@ In interactive mode, you can:
 * Start one or more CLIs or REST Clients and point them to a server:
   ``<path-to-confluent>/bin/ksql https://<ksql-server-ip-address>:8090``
 
+.. _ksql-server-headless-deployment:
+
 Headless Deployment
 ===================
 

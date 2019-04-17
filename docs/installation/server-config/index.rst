@@ -90,7 +90,7 @@ KSQL supports locked-down, "headless" deployment scenarios where interactive use
 For example, the CLI enables a team of users to develop and verify their queries interactively on a shared testing
 KSQL cluster. But when you deploy these queries in your production environment, you want to lock down access to KSQL
 servers, version-control the exact queries, and store them in a .sql file. This prevents users from interacting
-directly with the production KSQL cluster.
+directly with the production KSQL cluster. For more information, see :ref:`ksql-server-headless-deployment`.
 
 You can configure servers to exclusively run a predefined script (``.sql`` file) via the ``--queries-file`` command
 line argument, or the ``ksql.queries.file`` setting in the :ref:`KSQL configuration file <ksql-server-config>`. If a

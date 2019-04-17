@@ -61,6 +61,7 @@ public class DropSourceCommand implements DdlCommand {
     metaStore.deleteSource(sourceName);
     dropTopicCommand.run(metaStore);
 
-    return new DdlCommandResult(true, "Source " + sourceName + " was dropped.");
+    return new DdlCommandResult(true,
+        "Source " + sourceName + " (topic: " + dataSource.getKafkaTopicName() + ") was dropped.");
   }
 }

@@ -49,27 +49,6 @@ public final class ConfiguredStatement<T extends Statement> {
     this.config = Objects.requireNonNull(config, "config");
   }
 
-  private ConfiguredStatement(
-      final ConfiguredStatement<T> other,
-      final KsqlConfig config
-  ) {
-    this(other.statement, other.overrides, config);
-  }
-
-  private ConfiguredStatement(
-      final ConfiguredStatement<T> other,
-      final Map<String, Object> properties
-  ) {
-    this(other.statement, properties, other.config);
-  }
-
-  private ConfiguredStatement(
-      final ConfiguredStatement<T> other,
-      final PreparedStatement<T> statement
-  ) {
-    this(statement, other.overrides, other.config);
-  }
-
   public T getStatement() {
     return statement.getStatement();
   }
@@ -87,17 +66,18 @@ public final class ConfiguredStatement<T extends Statement> {
   }
 
   public ConfiguredStatement<T> withConfig(final KsqlConfig config) {
-    return new ConfiguredStatement<>(this, config);
+    return new ConfiguredStatement<>(this.statement, this.overrides, config);
   }
 
   public ConfiguredStatement<T> withProperties(final Map<String, Object> properties) {
-    return new ConfiguredStatement<>(this, properties);
+    return new ConfiguredStatement<>(this.statement, properties, this.config);
   }
 
   public ConfiguredStatement<T> withStatement(
       final String statementText,
       final T statement) {
-    return new ConfiguredStatement<>(this, PreparedStatement.of(statementText, statement));
+    return new ConfiguredStatement<>(
+        PreparedStatement.of(statementText, statement), this.overrides, this.config);
   }
 
   @Override

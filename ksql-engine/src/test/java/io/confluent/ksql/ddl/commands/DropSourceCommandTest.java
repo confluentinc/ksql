@@ -37,7 +37,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DropSourceCommandTest {
 
   private static final String STREAM_NAME = "foo";
-  private static final boolean WITHOUT_DELETE_TOPIC = false;
   private static final boolean IF_EXISTS = true;
   private static final boolean ALWAYS = false;
 
@@ -99,7 +98,7 @@ public class DropSourceCommandTest {
 
   private void givenDropSourceCommand(final boolean ifExists) {
     dropSourceCommand = new DropSourceCommand(
-        new DropStream(QualifiedName.of(STREAM_NAME), ifExists, WITHOUT_DELETE_TOPIC),
+        new DropStream(QualifiedName.of(STREAM_NAME), ifExists, false),
         DataSourceType.KSTREAM
     );
   }

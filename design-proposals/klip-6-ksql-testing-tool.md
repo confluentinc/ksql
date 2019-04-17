@@ -97,7 +97,7 @@ $
 The following is a sample output of the tool when a test fails:
 
 ```shell
-$ ksql-testing-tool /path/to/correct_test.json
+$ ksql-testing-tool /path/to/incorrect_test.json
 Exception in thread "main" java.lang.AssertionError: TestCase name: project-filter - project and filter in file: /path/to/correct_test.json failed while processing output row 0 topic: S1 due to: Expected <1010, 101> with timestamp=0 but was <101, 101> with timestamp=0
   at io.confluent.ksql.test.commons.TestCase.verifyOutput(TestCase.java:190)
   at io.confluent.ksql.testingtool.TestRunner.shouldBuildAndExecuteQuery(TestRunner.java:134)

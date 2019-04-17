@@ -40,6 +40,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -58,7 +59,7 @@ public class StreamedQueryResource {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final ServiceContext serviceContext;
+  private final Supplier<ServiceContext> serviceContextFactory;
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
@@ -69,7 +70,7 @@ public class StreamedQueryResource {
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
+      final Supplier<ServiceContext> serviceContextFactory,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -78,7 +79,8 @@ public class StreamedQueryResource {
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.serviceContextFactory =
+        Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
@@ -127,13 +129,14 @@ public class StreamedQueryResource {
       final KsqlRequest request,
       final PreparedStatement<?> statement
   ) throws Exception {
-    try {
+    try (ServiceContext serviceContext = getServiceContext()) {
       if (statement.getStatement() instanceof Query) {
         return handleQuery((PreparedStatement<Query>) statement, request.getStreamsProperties());
       }
 
       if (statement.getStatement() instanceof PrintTopic) {
         return handlePrintTopic(
+            serviceContext,
             request.getStreamsProperties(),
             (PreparedStatement<PrintTopic>) statement);
       }
@@ -173,6 +176,7 @@ public class StreamedQueryResource {
   }
 
   private Response handlePrintTopic(
+      final ServiceContext serviceContext,
       final Map<String, Object> streamProperties,
       final PreparedStatement<PrintTopic> statement
   ) {
@@ -204,5 +208,9 @@ public class StreamedQueryResource {
 
     log.info("Printing topic '{}'", topicName);
     return Response.ok().entity(topicStreamWriter).build();
+  }
+
+  private ServiceContext getServiceContext() {
+    return serviceContextFactory.get();
   }
 }

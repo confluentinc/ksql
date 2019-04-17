@@ -91,6 +91,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 
 @RunWith(EasyMockRunner.class)
 public class StreamedQueryResourceTest {
@@ -125,6 +126,9 @@ public class StreamedQueryResourceTest {
   private final static String queryString = "SELECT * FROM test_stream;";
   private PreparedStatement<Statement> statement;
 
+  private static final KsqlRequest VALID_STREAM_REQUEST =
+      new KsqlRequest(queryString, Collections.emptyMap(), null);
+
   @Before
   public void setup() {
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
@@ -138,12 +142,38 @@ public class StreamedQueryResourceTest {
     testResource = new StreamedQueryResource(
         ksqlConfig,
         mockKsqlEngine,
-        serviceContext,
+        () -> serviceContext,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar);
+  }
+
+  private StreamedQueryResource givenStreamedQueryResource(final ServiceContext serviceContext) {
+    return new StreamedQueryResource(
+        ksqlConfig,
+        mockKsqlEngine,
+        () -> serviceContext,
+        mockStatementParser,
+        commandQueue,
+        DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
+        activenessRegistrar);
+  }
+
+  @Test
+  public void shouldUseOneServiceContextPerStreamRequest() throws Exception {
+    // Given:
+    final ServiceContext sc = Mockito.mock(ServiceContext.class);
+    Mockito.when(sc.getTopicClient()).thenReturn(mockKafkaTopicClient);
+    final StreamedQueryResource queryResource = givenStreamedQueryResource(sc);
+
+    // When:
+    queryResource.streamQuery(VALID_STREAM_REQUEST);
+
+    // Then:
+    Mockito.verify(sc, Mockito.times(1)).close();
   }
 
   @Test

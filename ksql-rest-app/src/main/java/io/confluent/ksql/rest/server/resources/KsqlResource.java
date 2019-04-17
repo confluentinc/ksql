@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -88,12 +89,13 @@ public class KsqlResource {
   private final ActivenessRegistrar activenessRegistrar;
   private final RequestValidator validator;
   private final RequestHandler handler;
+  private final Supplier<ServiceContext> serviceContextFactory;
 
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
+      final Supplier<ServiceContext> serviceContextFactory,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
@@ -105,12 +107,13 @@ public class KsqlResource {
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
+    this.serviceContextFactory =
+        Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
 
     this.validator = new RequestValidator(
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        SandboxedServiceContext.create(serviceContext),
         ksqlConfig);
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
@@ -120,7 +123,6 @@ public class KsqlResource {
             injectorFactory),
         ksqlEngine,
         ksqlConfig,
-        serviceContext,
         new DefaultCommandQueueSync(
             commandQueue,
             KsqlResource::shouldSynchronize,
@@ -132,9 +134,9 @@ public class KsqlResource {
   @Path("/terminate")
   public Response terminateCluster(final ClusterTerminateRequest request) {
     ensureValidPatterns(request.getDeleteTopicList());
-    try {
+    try (ServiceContext serviceContext = getServiceContext()) {
       return Response.ok(
-          handler.execute(TERMINATE_CLUSTER, request.getStreamsProperties())
+          handler.execute(serviceContext, TERMINATE_CLUSTER, request.getStreamsProperties())
       ).build();
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
@@ -152,16 +154,26 @@ public class KsqlResource {
       );
     }
     activenessRegistrar.updateLastRequestTime();
-    try {
+
+    try (ServiceContext serviceContext = getServiceContext()) {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
           commandQueue,
           request,
           distributedCmdResponseTimeout);
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
-      validator.validate(statements, request.getStreamsProperties(), request.getKsql());
+      validator.validate(
+          SandboxedServiceContext.create(serviceContext),
+          statements,
+          request.getStreamsProperties(),
+          request.getKsql()
+      );
 
-      final KsqlEntityList entities = handler.execute(statements, request.getStreamsProperties());
+      final KsqlEntityList entities = handler.execute(
+          serviceContext,
+          statements,
+          request.getStreamsProperties()
+      );
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
       throw e;
@@ -189,5 +201,9 @@ public class KsqlResource {
             throw new KsqlRestException(Errors.badRequest("Invalid pattern: " + pattern));
           }
         });
+  }
+
+  private ServiceContext getServiceContext() {
+    return serviceContextFactory.get();
   }
 }

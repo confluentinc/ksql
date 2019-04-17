@@ -49,12 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
@@ -134,13 +129,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -252,8 +241,12 @@ public class KsqlResourceTest {
 
   private String streamName;
 
+  private List<ServiceContext> serviceContexts = new ArrayList<>();
+
   @Before
   public void setUp() throws IOException, RestClientException {
+    serviceContexts.clear();
+
     commandStatus = new QueuedCommandStatus(
         0, new CommandStatusFuture(new CommandId(TOPIC, "whateva", CREATE)));
 
@@ -288,8 +281,14 @@ public class KsqlResourceTest {
 
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
 
-    when(schemaInjectorFactory.apply(any())).thenReturn(sandboxSchemaInjector);
-    when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
+    when(schemaInjectorFactory.apply(any())).thenAnswer(inv -> {
+      final ServiceContext invokedWith = inv.getArgument(0);
+      if (serviceContexts.contains(invokedWith)) {
+        return schemaInjector;
+      }
+
+      return sandboxSchemaInjector;
+    });
 
     when(topicInjectorFactory.apply(any())).thenReturn(sandboxTopicInjector);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
@@ -1710,6 +1709,32 @@ public class KsqlResourceTest {
     makeRequest(statement);
   }
 
+  @Test
+  public void shouldUseOneServiceContextPerKsqlRequest() {
+    // Given:
+    final ServiceContext sc = spy(TestServiceContext.create());
+    final KsqlResource ksqlResource = givenKsqlResource(sc);
+
+    // When:
+    ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
+
+    // Then:
+    verify(sc, times(1)).close();
+  }
+
+  @Test
+  public void shouldUseOneServiceContextPerTerminateRequest() {
+    // Given:
+    final ServiceContext sc = spy(TestServiceContext.create());
+    final KsqlResource ksqlResource = givenKsqlResource(sc);
+
+    // When:
+    ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+
+    // Then:
+    verify(sc, times(1)).close();
+  }
+
   private Answer<?> executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
@@ -1883,11 +1908,11 @@ public class KsqlResourceTest {
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 
-  private void setUpKsqlResource() {
-    ksqlResource = new KsqlResource(
+  private KsqlResource givenKsqlResource(final ServiceContext serviceContext) {
+    return new KsqlResource(
         ksqlConfig,
         ksqlEngine,
-        serviceContext,
+        () -> serviceContext,
         commandStore,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
@@ -1895,6 +1920,37 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec))
     );
+  }
+
+  private void setUpKsqlResource() {
+    ksqlResource = new KsqlResource(
+        ksqlConfig,
+        ksqlEngine,
+        () -> createTestServiceContext(),
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec))
+    );
+  }
+
+  private ServiceContext createTestServiceContext() {
+    final ServiceContext sc = spy(TestServiceContext.create(kafkaTopicClient));
+    serviceContexts.add(sc);
+
+    doAnswer(inv -> {
+      Object m = inv.getMock();
+      if (serviceContexts.contains(m)) {
+        serviceContexts.remove(m);
+      }
+
+      inv.callRealMethod();
+      return null;
+    }).when(sc).close();
+
+    return sc;
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

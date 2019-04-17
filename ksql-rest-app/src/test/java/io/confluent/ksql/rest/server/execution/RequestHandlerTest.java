@@ -96,7 +96,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
-    final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of());
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     assertThat(entities, contains(entity));
@@ -118,7 +118,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
-    final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of());
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     assertThat(entities, contains(entity));
@@ -140,7 +140,11 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse("CREATE STREAM x WITH (kafka_topic='x');");
-    final KsqlEntityList entities = handler.execute(statements, ImmutableMap.of("x", "y"));
+    final KsqlEntityList entities = handler.execute(
+        serviceContext,
+        statements,
+        ImmutableMap.of("x", "y")
+    );
 
     // Then
     assertThat(entities, contains(entity));
@@ -175,7 +179,7 @@ public class RequestHandlerTest {
         );
 
     // When
-    handler.execute(statements, ImmutableMap.of());
+    handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     verify(sync).waitFor(argThat(hasItems(entity1, entity2)), any());
@@ -199,7 +203,7 @@ public class RequestHandlerTest {
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
-    handler.execute(statements, props);
+    handler.execute(serviceContext, statements, props);
 
     // Then:
     verify(customExecutor, times(1))
@@ -229,7 +233,7 @@ public class RequestHandlerTest {
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
-    final KsqlEntityList result = handler.execute(statements, props);
+    final KsqlEntityList result = handler.execute(serviceContext, statements, props);
 
     // Then:
     assertThat(result, contains(entity2));
@@ -242,7 +246,6 @@ public class RequestHandlerTest {
         distributor,
         ksqlEngine,
         ksqlConfig,
-        serviceContext,
         sync
     );
   }

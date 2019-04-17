@@ -392,7 +392,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlConfig,
         ksqlEngine,
-        serviceContext,
+        () -> DefaultServiceContext.create(ksqlConfig),
         statementParser,
         commandStore,
         Duration.ofMillis(
@@ -404,7 +404,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
-        serviceContext,
+        () -> DefaultServiceContext.create(ksqlConfig),
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,

@@ -169,7 +169,7 @@ public class RecoveryTest {
       this.ksqlResource = new KsqlResource(
           ksqlConfig,
           ksqlEngine,
-          serviceContext,
+          () -> TestServiceContext.create(topicClient),
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},

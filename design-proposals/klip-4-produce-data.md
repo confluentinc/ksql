@@ -53,9 +53,9 @@ INSERT INTO <stream_name|table_name> [(column1, column2, ...)]
 
 The `INSERT INTO` statement can be used to insert new records into a kafka topic (agnostic to the
 Stream/Table duality). If the columns are not present, it is assumed that the values are in the same
-order as the schema and contain every field. The key for the insert statement is taken from the
-column the matches the name of `key` in the `CREATE` statement properties for the corresponding
-source. This functionality will need to be extended when we support structured keys.
+order as the schema and contain every field. `ROWKEY` and `ROWTIME` are always present as the first
+two columns, and are automatically populated with semantics described in the section on `ROWKEY` and
+`ROWTIME` semantics below.
 
 The value for `stream_name`/`table_name` must be a valid Stream/Table registered with a KSQL schema.
 The serialization format will be the same as the format specified in the `value_format` of the
@@ -273,13 +273,12 @@ section that includes the following rows:
 > 
 > .. code:: sql
 > 
->     DELETE FROM table_name WHERE condition;
+>     DELETE FROM <table_name> WHERE ROWKEY = <value>; 
 >     
 > **Description**
 > 
-> Delete a row from an existing table. The ``condition`` must be of form ``ROWKEY = value`` and the
-> ``table_name`` must represent a Table (as opposed to Stream). This will issue a tombstone, producing
-> a value to the underlying kafka topic with the specified key and a null value. Deleting a value that
+> Delete a row from an existing table. This will issue a tombstone, producing a value to the 
+> underlying kafka topic with the specified key and a null value. Deleting a value that 
 > does not exist will not affect the table contents.
 > ```
 

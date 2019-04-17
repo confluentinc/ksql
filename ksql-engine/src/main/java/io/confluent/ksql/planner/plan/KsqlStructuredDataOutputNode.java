@@ -25,7 +25,6 @@ import io.confluent.ksql.metastore.KsqlTopic;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
@@ -36,7 +35,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryLoggerUtil;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
@@ -124,10 +122,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final Builder outputNodeBuilder = Builder.from(this);
     final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
     outputNodeBuilder.withSchema(schema);
-
-    if (getTopicSerde() instanceof KsqlAvroTopicSerDe) {
-      addAvroSchemaToResultTopic(outputNodeBuilder);
-    }
 
     final int partitions = (Integer) outputProperties.getOrDefault(
         KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
@@ -220,19 +214,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return result.selectKey(keyField, false, contextStacker);
     }
     return result;
-  }
-
-  private void addAvroSchemaToResultTopic(final Builder builder) {
-    final String schemaFullName = StringUtil.cleanQuotes(
-        outputProperties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
-    final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe(schemaFullName);
-    builder.withKsqlTopic(new KsqlTopic(
-        getKsqlTopic().getName(),
-        getKsqlTopic().getKafkaTopicName(),
-        ksqlAvroTopicSerDe,
-        true
-    ));
   }
 
   private static void createSinkTopic(

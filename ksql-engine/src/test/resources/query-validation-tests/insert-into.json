@@ -1,0 +1,30 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "convert formats",
+      "statements": [
+        "CREATE STREAM SOURCE (A bigint, B varchar) WITH (kafka_topic='source', value_format='JSON');",
+        "CREATE STREAM SINK (A bigint, B varchar) WITH (kafka_topic='sink', value_format='AVRO');",
+        "INSERT INTO SINK SELECT * FROM SOURCE;"
+      ],
+      "inputs": [
+        {"topic": "source", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "sink", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ]
+    }
+  ]
+}

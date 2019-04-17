@@ -162,6 +162,8 @@ metadata that ensures the statements are built compatibly across KSQL restarts
 and upgrades. KSQL names the command topic ``_confluent-ksql-<service id>_command_topic``,
 where ``<service id>`` is the value in the ``ksql.service.id`` property.
 
+.. _ksql-server-headless-deployment:
+
 Headless Deployment
 ===================
 

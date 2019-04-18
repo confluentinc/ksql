@@ -230,7 +230,6 @@ public class LogicalPlanner {
       throw new RuntimeException("Data source is not supported yet.");
     }
 
-    // Todo(ac): Next steps move this INTO StructuredDataSourceNode
     final Schema fromSchema = SchemaUtil.buildSchemaWithAlias(
         dataSource.left.getSchema(),
         dataSource.right

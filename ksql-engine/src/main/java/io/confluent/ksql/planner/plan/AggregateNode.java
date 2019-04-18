@@ -465,8 +465,6 @@ public class AggregateNode extends PlanNode {
     private Expression resolveToInternal(final Expression exp) {
       final String name = expressionToInternalColumnNameMap.get(exp.toString());
       if (name != null) {
-        // Todo(ac): If we switch this to DereferenceExpression we fix
-        //   https://github.com/confluentinc/ksql/issues/1695
         return new QualifiedNameReference(exp.getLocation(), QualifiedName.of(name));
       }
 

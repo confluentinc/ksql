@@ -73,7 +73,6 @@ public final class KeyField {
    * @throws IllegalArgumentException if the key is not within the supplied schema.
    */
   public KeyField validateKeyExistsIn(final Schema schema) {
-    // Todo(ac): once we drop the builder in KsqlStructuredDataNode this can go:
     if (!keyField
         .filter(name -> !name.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME))
         .isPresent()) {

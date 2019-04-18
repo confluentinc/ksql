@@ -233,7 +233,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
     );
 
-    // Todo(ac): Must join be in value schema?
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
@@ -260,7 +259,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
         );
 
-    // Todo(ac): Must join be in value schema?
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
@@ -287,7 +285,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
         );
 
-    // Todo(ac): Must join be in value schema?
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,

@@ -272,7 +272,6 @@ public class SchemaKStream<K> {
       return Optional.empty();
     }
 
-    // Todo(ac): Roll these two into one?
     private Optional<Field> findLegacyKeyField(final List<SelectExpression> selectExpressions) {
       if (!getKeyField().legacy().isPresent()) {
         return Optional.empty();
@@ -366,7 +365,6 @@ public class SchemaKStream<K> {
                 StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
 
-    // Todo(ac): Must join be in value schema?
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
@@ -402,7 +400,6 @@ public class SchemaKStream<K> {
                     StreamsUtil.buildOpName(contextStacker.getQueryContext()))
             );
 
-    // Todo(ac): must join key be in value?
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
@@ -435,7 +432,6 @@ public class SchemaKStream<K> {
                 StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
 
-    // Todo(ac): must join key be in value?
     return new SchemaKStream<>(
         joinSchema,
         joinedKStream,
@@ -470,7 +466,6 @@ public class SchemaKStream<K> {
                     StreamsUtil.buildOpName(contextStacker.getQueryContext()))
             );
 
-    // Todo(ac): must join key be in value?
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
@@ -504,7 +499,6 @@ public class SchemaKStream<K> {
                 StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
 
-    // Todo(ac): must join key be in value?
     return new SchemaKStream<>(
         joinSchema,
         joinStream,
@@ -525,7 +519,6 @@ public class SchemaKStream<K> {
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
-    // Todo(ac): apurva's bug: https://github.com/confluentinc/ksql/issues/2525
     final boolean namesMatch = keyField.resolve(schema, ksqlConfig)
         .map(Field::name)
         .map(name -> name.equals(newKeyField.name()))

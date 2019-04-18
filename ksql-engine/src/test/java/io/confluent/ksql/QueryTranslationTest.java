@@ -916,5 +916,3 @@ public class QueryTranslationTest {
     }
   }
 }
-
-// Todo(ac): Release / upgrade notes

@@ -98,7 +98,6 @@ public class JoinNode extends PlanNode {
     this.leftType = leftType;
     this.rightType = rightType;
 
-    // Todo(ac): Pass keyfield in, as per others?
     final String keyFieldName = leftAlias + "." + leftKeyFieldName;
     this.keyField = Optional.ofNullable(schema.field(keyFieldName))
         .map(legacy -> KeyField.of(keyFieldName, legacy))

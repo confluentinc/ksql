@@ -58,7 +58,6 @@ public class ProjectNode extends PlanNode {
         requireNonNull(keyFieldName, "keyFieldName"),
         source.getKeyField().legacy())
         .validateKeyExistsIn(schema);
-    // Todo(ac): add tests for all validateKeyExistsIn
 
     if (schema.fields().size() != projectExpressions.size()) {
       throw new KsqlException("Error in projection. Schema fields and expression list are not "

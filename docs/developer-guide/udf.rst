@@ -252,7 +252,16 @@ about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the me
 |            | parameter.                   | such as STRUCT         |
 +------------+------------------------------+------------------------+
 
+.. note:: If ``schema`` is supplied in the ``@UdfParameter`` annotation for a ``STRUCT`` it is
+          considered "strict" - any inputs must match exactly, including order and names of the
+          fields.
+
 .. code:: java
+
+    @Udf
+    public String substring(
+       @UdfParameter("str") final String str,
+       @UdfParameter(value = "pos", description = "Starting position of the substring") final int pos)
 
     @Udf
     public boolean livesInRegion(
@@ -486,7 +495,7 @@ The types supported by UDFs are currently limited to:
 | Struct       | STRUCT           |
 +--------------+------------------+
 
-Note: Structs are not supported in UDAFs
+Note: Structs, Lists and Maps are not supported in UDAFs
 
 .. _deploying-udf:
 

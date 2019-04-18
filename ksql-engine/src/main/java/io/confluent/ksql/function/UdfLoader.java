@@ -272,9 +272,9 @@ public class UdfLoader {
                 TypeContextUtil.getType(annotation.get().schema()),
                 name,
                 doc);
-      } else {
-        return SchemaUtil.getSchemaFromType(type, name, doc);
       }
+
+      return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
     final Schema returnType;

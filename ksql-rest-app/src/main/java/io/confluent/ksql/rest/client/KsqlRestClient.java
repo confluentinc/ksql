@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.client;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -223,7 +222,7 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
     public QueryStream(final Response response) {
       this.response = response;
 
-      this.objectMapper = new ObjectMapper();
+      this.objectMapper = JsonMapper.INSTANCE.mapper;
       final InputStreamReader isr = new InputStreamReader(
           (InputStream) response.getEntity(),
           StandardCharsets.UTF_8
@@ -351,10 +350,8 @@ public class KsqlRestClient implements Closeable, AutoCloseable {
   }
 
   private static Client buildClient() {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper.copy();
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-    objectMapper.registerModule(new Jdk8Module());
     final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
     return ClientBuilder.newBuilder().register(jsonProvider).build();
   }

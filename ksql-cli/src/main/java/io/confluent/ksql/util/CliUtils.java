@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.RegisterTopic;
 import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.util.JsonMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,7 +66,7 @@ public class CliUtils {
   public String getAvroSchema(final String schemaFilePath) {
     try {
       final byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
-      final ObjectMapper objectMapper = new ObjectMapper();
+      final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
       final JsonNode root = objectMapper.readTree(jsonData);
       return root.toString();
     } catch (final JsonParseException e) {

@@ -111,6 +111,52 @@ $
 
 As you can see, the error message will include the failure reason.
 
+## Alternative Public API
+
+An alternative to the above option is to separate the test data from the statements. In this case we will have the KSQL statements in a
+ query file similar to the headless execution mode. The rest of the test attributes including input and output data will remain in the test file in JSON format.
+ The following are the query file and the test file in this option:
+
+ Query file:
+ ```SQL
+ CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');
+ CREATE STREAM S1 as SELECT name FROM test where id > 100;
+ ```
+
+
+ Test file:
+
+ ```JSON
+ {
+  "comments": [
+    "Any comments on this test file!"
+  ],
+  "tests": [
+    {
+      "name": "Sample test",
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
+        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"},
+        {"topic": "test_topic", "key": 101, "value": "101,101,0.0"}
+      ],
+      "outputs": [
+        {"topic": "S1", "key": 101, "value": "101"}
+      ]
+    }
+  ]
+ }
+ ```
+
+ In this alternative, the testing tool command will receive two named parameters, _--query-file_ and _test-file_.
+ The following is a sample use of the testing tool command in this case:
+
+ ```shell
+ $ ksql-testing-tool --query-file /path/to/query_file.sql --test-file /path/to/test_file.json
+ All tests passed!
+ $
+ ```
+
+Note that in this alternative we can only have one test for a test and query files.
 
 ## Design
 

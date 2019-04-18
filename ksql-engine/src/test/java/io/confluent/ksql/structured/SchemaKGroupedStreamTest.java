@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
@@ -68,7 +69,7 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private KGroupedStream groupedStream;
   @Mock
-  private Optional<Field> keyField;
+  private KeyField keyField;
   @Mock
   private List<SchemaKStream> sourceStreams;
   @Mock

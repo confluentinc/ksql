@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
@@ -122,7 +123,8 @@ public class QueryDescriptionTest {
     // Given:
     final KsqlTopic sinkTopic = new KsqlTopic("fake_sink", "fake_sink", new KsqlJsonTopicSerDe(), true);
     final KsqlStream<?> fakeSink = new KsqlStream<>(
-        STATEMENT, "fake_sink", SCHEMA, Optional.of(SCHEMA.fields().get(0)),
+        STATEMENT, "fake_sink", SCHEMA,
+        KeyField.of(SCHEMA.fields().get(0).name(), SCHEMA.fields().get(0)),
         new MetadataTimestampExtractionPolicy(), sinkTopic, Serdes::String);
 
     final PersistentQueryMetadata queryMetadata = new PersistentQueryMetadata(

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -23,6 +25,7 @@ import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.ExpressionRewriter;
@@ -52,7 +55,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -74,6 +76,7 @@ public class AggregateNode extends PlanNode {
 
   private final PlanNode source;
   private final Schema schema;
+  private final KeyField keyField;
   private final List<Expression> groupByExpressions;
   private final WindowExpression windowExpression;
   private final List<Expression> aggregateFunctionArguments;
@@ -82,11 +85,13 @@ public class AggregateNode extends PlanNode {
   private final List<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
   public AggregateNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("source") final PlanNode source,
       @JsonProperty("schema") final Schema schema,
+      @JsonProperty("keyField") final Optional<String> keyFieldName,
       @JsonProperty("groupby") final List<Expression> groupByExpressions,
       @JsonProperty("window") final WindowExpression windowExpression,
       @JsonProperty("aggregateFunctionArguments") final List<Expression> aggregateFunctionArguments,
@@ -95,18 +100,23 @@ public class AggregateNode extends PlanNode {
       @JsonProperty("finalSelectExpressions") final List<Expression> finalSelectExpressions,
       @JsonProperty("havingExpressions") final Expression havingExpressions
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(id, DataSourceType.KTABLE);
 
-    this.source = source;
-    this.schema = schema;
-    this.groupByExpressions = groupByExpressions;
+    this.source = requireNonNull(source, "source");
+    this.schema = requireNonNull(schema, "schema");
+    this.groupByExpressions = requireNonNull(groupByExpressions, "groupByExpressions");
     this.windowExpression = windowExpression;
-    this.aggregateFunctionArguments = aggregateFunctionArguments;
-    this.functionList = functionList;
+    this.aggregateFunctionArguments =
+        requireNonNull(aggregateFunctionArguments, "aggregateFunctionArguments");
+    this.functionList = requireNonNull(functionList, "functionList");
     this.requiredColumns =
-        ImmutableList.copyOf(Objects.requireNonNull(requiredColumns, "requiredColumns"));
-    this.finalSelectExpressions = finalSelectExpressions;
+        ImmutableList.copyOf(requireNonNull(requiredColumns, "requiredColumns"));
+    this.finalSelectExpressions =
+        requireNonNull(finalSelectExpressions, "finalSelectExpressions");
     this.havingExpressions = havingExpressions;
+    this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"), Optional.empty())
+        .validateKeyExistsIn(schema);
   }
 
   @Override
@@ -115,8 +125,8 @@ public class AggregateNode extends PlanNode {
   }
 
   @Override
-  public Optional<Field> getKeyField() {
-    return Optional.empty();
+  public KeyField getKeyField() {
+    return keyField;
   }
 
   @Override
@@ -455,6 +465,8 @@ public class AggregateNode extends PlanNode {
     private Expression resolveToInternal(final Expression exp) {
       final String name = expressionToInternalColumnNameMap.get(exp.toString());
       if (name != null) {
+        // Todo(ac): If we switch this to DereferenceExpression we fix
+        //   https://github.com/confluentinc/ksql/issues/1695
         return new QualifiedNameReference(exp.getLocation(), QualifiedName.of(name));
       }
 

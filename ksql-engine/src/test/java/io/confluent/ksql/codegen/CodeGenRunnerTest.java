@@ -39,6 +39,7 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.Expression;
@@ -168,7 +169,7 @@ public class CodeGenRunnerTest {
             "sqlexpression",
             "CODEGEN_TEST",
             metaStoreSchema,
-            Optional.of(metaStoreSchema.field("COL0")),
+            KeyField.of("COL0", metaStoreSchema.field("COL0")),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic,Serdes::String);
         metaStore.putTopic(ksqlTopic);

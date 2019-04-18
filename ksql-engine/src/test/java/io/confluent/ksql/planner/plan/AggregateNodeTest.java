@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.StructuredDataSourceMatchers.FieldMatchers.hasName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -44,7 +44,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.StructuredDataSourceMatchers.OptionalMatchers;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.structured.QueryContext;
@@ -356,7 +356,8 @@ public class AggregateNodeTest {
         + "GROUP BY UCASE(col1);");
 
     // Then:
-    assertThat(stream.getKeyField(), OptionalMatchers.of(hasName("UCASE(KSQL_INTERNAL_COL_0)")));
+    assertThat(stream.getKeyField().name(), is(Optional.empty()));
+    assertThat(stream.getKeyField().legacy(), OptionalMatchers.of(hasName("UCASE(KSQL_INTERNAL_COL_0)")));
   }
 
   @Test
@@ -366,7 +367,8 @@ public class AggregateNodeTest {
         + "GROUP BY col0 + 10;");
 
     // Then:
-    assertThat(stream.getKeyField(), OptionalMatchers.of(hasName("(KSQL_INTERNAL_COL_0 + 10)")));
+    assertThat(stream.getKeyField().name(), is(Optional.empty()));
+    assertThat(stream.getKeyField().legacy(), OptionalMatchers.of(hasName("(KSQL_INTERNAL_COL_0 + 10)")));
   }
 
   private SchemaKStream buildQuery(final String queryString) {

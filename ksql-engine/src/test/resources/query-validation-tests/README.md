@@ -69,21 +69,21 @@ The following is a template test file:
   "tests": [
     {
       "name": "my first positive test",
-      "description": "an example positive test where the output is verified"
+      "description": "an example positive test where the output is verified",
       "statements": [
         "CREATE STREAM intput (ID bigint) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE STREAM output AS SELECT id FROM test WHERE id < 10;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": 0, "value": "{"id": 8}", "timestamp": 0},
-        {"topic": "input_topic", "key": 0, "value": "{"id": 10}", "timestamp": 10000},
-        {"topic": "input_topic", "key": 1, "value": "{"id": 9}", "timestamp": 30000},
-        {"topic": "input_topic", "key": 1, "value": "{"id": 11}", "timestamp": 40000}
+        {"topic": "input_topic", "key": 0, "value": {"id": 8}, "timestamp": 0},
+        {"topic": "input_topic", "key": 0, "value": {"id": 10}, "timestamp": 10000},
+        {"topic": "input_topic", "key": 1, "value": {"id": 9}, "timestamp": 30000},
+        {"topic": "input_topic", "key": 1, "value": {"id": 11}, "timestamp": 40000}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": "{"id": 8}", "timestamp": 0},
-        {"topic": "OUTPUT", "key": 0, "value": "{"id": 9}", "timestamp": 30000}
-     ]
+        {"topic": "OUTPUT", "key": 0, "value": {"id": 8}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 0, "value": {"id": 9}, "timestamp": 30000}
+      ]
     },
     {
       "name": "my first negative test",
@@ -98,7 +98,6 @@ The following is a template test file:
     }
   ]
 }
-
 ```
 
 Test cases should be written to be as succinct as possible to make them as readable as possible.
@@ -120,6 +119,7 @@ Each test case can have the following attributes:
 | inputs           | (Required if `expectedException` not supplied) The set of input messages to be produced to Kafka topic(s), (See below for more info) |
 | outputs          | (Required if `expectedException` not supplied) The set of output messages expected in the output topic(s), (See below for more info) |
 | expectedException| (Required in `inputs` and `outputs` not supplied) The exception that should be thrown when executing the supplied statements, (See below for more info) |
+| post             | (Optional) Defines post conditions that must exist after the statements have run, (See below for more info) |
 
 ### Formats
 A test case can optionally supply an array of formats to run the test case as.
@@ -127,14 +127,13 @@ The current format will be injected into the statements of the test case as the 
 
 For example:
 ```json
-   {
-      "name": "my first test that will run with different formats",
-      "format": ["AVRO", "JSON"],
-      "statements": [
-        "CREATE TABLE TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
-        ...
-      ],
-      ...
+{
+  "name": "my first test that will run with different formats",
+  "format": ["AVRO", "JSON"],
+  "statements": [
+    "CREATE TABLE TEST (ID bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');"
+  ]
+}
 ```
 
 The test will run once for each defined format.
@@ -194,12 +193,11 @@ A test can define an expected exception in the same way as a JUnit test, e.g.
 
 ```json
 {
-   ...
-   "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement does not define any columns."
-      },
-   ...
+  "expectedException": {
+    "type": "io.confluent.ksql.util.KsqlException",
+    "message": "The statement does not define any columns."
+  }
+}
 ```
 
 The expected exception can define the following attributes:
@@ -209,6 +207,129 @@ The expected exception can define the following attributes:
 | type      | (Optional) The fully qualifid class name of the _exact_ exception |
 | message   | (Optional) The full text of the message within the exception, i.e. the error message that would be displayed to the user |
 
+### Post Conditions
+A test can define a set of post conditions that must be met for the test to pass, e.g.
+
+```json
+{
+  "post": {
+    "sources": [
+      {"name": "INPUT", "type": "stream", "keyField": null}
+    ]
+  }
+}
+```
+
+Post conditions current support the following checks:
+
+| Attribute | Description |
+|-----------|:------------|
+| sources   | (Optional) A list of sources that must exist in the metastore after the statements have executed. This list does not need to define every source. |
+
+#### Sources
+A post condition can define the list of sources that must exist in the metastore. A source might be:
+
+```json
+{
+  "name": "S1",
+  "type": "table",
+  "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": {"type": "STRING"}},
+  "valueSchema": {"type": "STRUCT", "fields": [
+    {"name": "ROWTIME", "schema": {"type": "BIGINT"}},
+    {"name": "ROWKEY", "schema": {"type": "STRING"}},
+    {"name": "FOO", "schema": {"type": "INT"}},
+    {"name": "KSQL_COL_1", "schema": {"type": "BIGINT"}}
+  ]}
+}
+```
+
+Each source can define the following attributes:
+
+| Attribute   | Description |
+|-------------|:------------|
+| name        | (Required) The name of the source. |
+| type        | (Required) Specifies if the source is a STREAM or TABLE. |
+| keyField    | (Optional) Specifies the keyField for the source. (See below for details of key field) |
+| valueSchema | (Optional) Specifies the value schema for the source. |
+
+##### Key Fields
+
+Key field nodes can define the following attributes:
+
+| Attribute   | Description |
+|-------------|:------------|
+| name        | (Optional) The name of the key field. If present, but set to `null`, the name of the key field is expected to not be set. If not supplied, the name of the key field will not be checked. |
+| legacyName  | (Optional) The legacy name of the key field. If present, but set to `null`, the legacy name of the key field is expected to not be set. If not supplied, the legacy name of the key field will not be checked. |
+| legacySchema| (Optional) The legacy schema of the key field. If present, but set to `null`, the legacy schema of the key field is expected to not be set. If not supplied, the legacy schema of the key field will not be checked. |
+
+A test case can not test the value of the the key field by not including a keyField node in the source:
+
+```json
+{
+  "name": "S1",
+  "type": "table"
+}
+```
+
+Which is equivalent to supplying an empty document:
+
+```json
+{
+  "name": "S1",
+  "type": "table",
+  "keyField": {}
+}
+```
+
+A test case can require the name of the key field to be set to an expected value:
+
+```json
+{
+  "name": "S1",
+  "type": "table",
+  "keyField": {"name": "expected-name"}
+}
+```
+
+Or explicitly not set:
+
+```json
+{
+  "name": "S1",
+  "type": "table",
+  "keyField": {"name": null}
+}
+```
+
+A test case can require the legacy key field to be set:
+
+```json
+{
+  "name": "S1",
+  "type": "table",
+  "keyField": {"legacyName": "OLD_KEY", "legacySchema": "STRING"}
+}
+```
+
+Or explicitly not set:
+
+```json
+{
+  "name": "S1",
+  "type": "table",
+  "keyField": {"legacyName": null}
+}
+```
+
+A test case can of course have requirements on both the latest and legacy key field:
+
+```json
+{
+  "name": "S1",
+  "type": "table",
+  "keyField": {"name": "expected-new", "legacyName": "expected-old", "legacySchema": "STRING"}
+}
+```
 
 
 

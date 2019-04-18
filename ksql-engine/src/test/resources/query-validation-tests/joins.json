@@ -36,11 +36,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be T_ID"
-        ],
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -49,7 +46,7 @@
       "comments": [
         "The purpose of this test is to capture the topology of a downstream query of the above test case",
         "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
-        "In this case, the code used to incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "In this case, the code previously incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
         "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
         "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
       ],
@@ -59,14 +56,17 @@
         "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
         "CREATE STREAM DOWNSTREAM as SELECT T_ID FROM LEFT_OUTER_JOIN PARTITION BY T_ID;"
       ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
       "inputs": [
       ],
       "outputs": [
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}},
-          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -114,11 +114,8 @@
         {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be T_ID"
-        ],
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -127,7 +124,7 @@
       "comments": [
         "The purpose of this test is to capture the topology of a downstream query of the above test case",
         "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
-        "In this case, the code used to incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "In this case, the code previously incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
         "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
         "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
       ],
@@ -137,18 +134,17 @@
         "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
         "CREATE TABLE DOWNSTREAM as SELECT T_ID, COUNT() FROM LEFT_OUTER_JOIN GROUP BY T_ID;"
       ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
       "inputs": [
       ],
       "outputs": [
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be T_ID",
-          "key field has incorrect schema - should be BIGINT"
-        ],
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}},
-          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "KSQL_INTERNAL_COL_0", "schema": {"type": "STRING"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "T_ID", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": {"type": "STRING"}}}
         ]
       }
     },
@@ -176,11 +172,8 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be T_ID"
-        ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -189,7 +182,7 @@
       "comments": [
         "The purpose of this test is to capture the topology of a downstream query of the above test case",
         "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
-        "In this case, the code used to incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
+        "In this case, the code previously incorrectly set the keyField to 'T.ID' rather than the correct 'T_ID'",
         "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
         "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
       ],
@@ -199,14 +192,17 @@
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN 11 SECONDS ON t.id = tt.id;",
         "CREATE STREAM DOWNSTREAM AS SELECT T_ID FROM INNER_JOIN;"
       ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
       "inputs": [
       ],
       "outputs": [
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}},
-          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -396,7 +392,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -426,7 +422,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -458,7 +454,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -486,11 +482,8 @@
         {"topic": "LEFT_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 15000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be T_ID"
-        ],
         "sources": [
-          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -517,11 +510,8 @@
         {"topic": "INNER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 15000}
       ],
       "post": {
-        "issues": [
-          "key field has incorrect name - should be T_ID"
-        ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ID", "schema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -553,7 +543,7 @@
           "key field has incorrect type - should be BIGINT"
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ROWKEY", "schema": {"type": "STRING"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": {"type": "STRING"}}}
         ]
       }
     },
@@ -562,7 +552,7 @@
       "comments": [
         "The purpose of this test is to capture the topology of a downstream query of the above test case",
         "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
-        "In this case, the code used to incorrectly set the keyField to 'T.ROWKEY' rather than the correct 'T_ID'",
+        "In this case, the code previously incorrectly set the keyField to 'T.ROWKEY' rather than the correct 'T_ID'",
         "This would result in an unnecessary repartition step being added to the DOWNSTREAM query.",
         "New versions of the code must not remove this unnecessary step for existing queries, as that would break backwards compatibility"
       ],
@@ -572,14 +562,17 @@
         "CREATE STREAM INNER_JOIN as SELECT t.id AS ID, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;",
         "CREATE STREAM DOWNSTREAM AS SELECT ID FROM INNER_JOIN PARTITION BY ID;"
       ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
       "inputs": [
       ],
       "outputs": [
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T.ROWKEY", "schema": {"type": "STRING"}}},
-          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ID", "schema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": {"type": "STRING"}}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ID", "legacyName": "ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     },
@@ -638,7 +631,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "keyField": {"name": "T_ID", "schema": {"type": "BIGINT"}}}
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
         ]
       }
     }

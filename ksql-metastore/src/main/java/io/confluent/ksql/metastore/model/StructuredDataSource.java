@@ -23,8 +23,6 @@ import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
@@ -33,7 +31,7 @@ public abstract class StructuredDataSource<K> implements DataSource {
   private final String dataSourceName;
   private final DataSourceType dataSourceType;
   private final KsqlSchema schema;
-  private final Optional<Field> keyField;
+  private final KeyField keyField;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
   private final SerdeFactory<K> keySerde;
   private final KsqlTopic ksqlTopic;
@@ -43,7 +41,7 @@ public abstract class StructuredDataSource<K> implements DataSource {
       final String sqlExpression,
       final String dataSourceName,
       final Schema schema,
-      final Optional<Field> keyField,
+      final KeyField keyField,
       final TimestampExtractionPolicy tsExtractionPolicy,
       final DataSourceType dataSourceType,
       final KsqlTopic ksqlTopic,
@@ -52,7 +50,8 @@ public abstract class StructuredDataSource<K> implements DataSource {
     this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
     this.dataSourceName = requireNonNull(dataSourceName, "dataSourceName");
     this.schema = KsqlSchema.of(schema);
-    this.keyField = requireNonNull(keyField, "keyField");
+    this.keyField = requireNonNull(keyField, "keyField")
+        .validateKeyExistsIn(schema);
     this.timestampExtractionPolicy = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
@@ -73,7 +72,7 @@ public abstract class StructuredDataSource<K> implements DataSource {
     return schema.getSchema();
   }
 
-  public Optional<Field> getKeyField() {
+  public KeyField getKeyField() {
     return keyField;
   }
 

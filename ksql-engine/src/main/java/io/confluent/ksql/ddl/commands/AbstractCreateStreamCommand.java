@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.StringLiteral;
@@ -34,8 +35,10 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -57,7 +60,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
   final String sourceName;
   final String topicName;
   final Schema schema;
-  final String keyColumnName;
+  final KeyField keyField;
   final RegisterTopicCommand registerTopicCommand;
   private final KafkaTopicClient kafkaTopicClient;
   final SerdeFactory<?> keySerdeFactory;
@@ -72,7 +75,6 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     this.sourceName = statement.getName().getSuffix();
     this.kafkaTopicClient = kafkaTopicClient;
 
-    // TODO: get rid of toUpperCase in following code
     final Map<String, Expression> properties = statement.getProperties();
     validateWithClause(properties.keySet());
 
@@ -93,16 +95,16 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
     if (properties.containsKey(DdlConfig.KEY_NAME_PROPERTY)) {
       final String name = properties.get(DdlConfig.KEY_NAME_PROPERTY).toString().toUpperCase();
 
-      this.keyColumnName = StringUtil.cleanQuotes(name);
-      if (!SchemaUtil.getFieldByName(this.schema, keyColumnName).isPresent()) {
-        throw new KsqlException(String.format(
+      final String keyFieldName = StringUtil.cleanQuotes(name);
+      final Field keyField = SchemaUtil.getFieldByName(schema, keyFieldName)
+          .orElseThrow(() -> new KsqlException(
             "No column with the provided key column name in the WITH "
-            + "clause, %s, exists in the defined schema.",
-            keyColumnName
-        ));
-      }
+                + "clause, " + keyFieldName + ", exists in the defined schema."
+          ));
+
+      this.keyField = KeyField.of(keyFieldName, keyField);
     } else {
-      this.keyColumnName = "";
+      this.keyField = KeyField.of(Optional.empty(), Optional.empty());
     }
 
     final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)

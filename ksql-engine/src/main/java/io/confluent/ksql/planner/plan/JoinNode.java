@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.DataSource;
@@ -62,7 +63,7 @@ public class JoinNode extends PlanNode {
 
   private final String leftAlias;
   private final String rightAlias;
-  private final Field keyField;
+  private final KeyField keyField;
   private final WithinExpression withinExpression;
   private final DataSource.DataSourceType leftType;
   private final DataSource.DataSourceType rightType;
@@ -93,10 +94,16 @@ public class JoinNode extends PlanNode {
     this.leftAlias = leftAlias;
     this.rightAlias = rightAlias;
     this.schema = buildSchema(left, right);
-    this.keyField = this.schema.field((leftAlias + "." + leftKeyFieldName));
     this.withinExpression = withinExpression;
     this.leftType = leftType;
     this.rightType = rightType;
+
+    // Todo(ac): Pass keyfield in, as per others?
+    final String keyFieldName = leftAlias + "." + leftKeyFieldName;
+    this.keyField = Optional.ofNullable(schema.field(keyFieldName))
+        .map(legacy -> KeyField.of(keyFieldName, legacy))
+        .orElseGet(() -> KeyField.of(Optional.empty(), Optional.empty()))
+        .validateKeyExistsIn(schema);
   }
 
   private Schema buildSchema(final PlanNode left, final PlanNode right) {
@@ -124,8 +131,8 @@ public class JoinNode extends PlanNode {
   }
 
   @Override
-  public Optional<Field> getKeyField() {
-    return Optional.of(keyField);
+  public KeyField getKeyField() {
+    return keyField;
   }
 
   @Override
@@ -291,15 +298,19 @@ public class JoinNode extends PlanNode {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
-      if (schemaKStream.getKeyField().isPresent()
+      final Optional<Field> keyField = schemaKStream
+          .getKeyField()
+          .resolve(schemaKStream.getSchema(), builder.getKsqlConfig());
+
+      if (keyField.isPresent()
           && !keyFieldName.equals(SchemaUtil.ROWKEY_NAME)
-          && !SchemaUtil.matchFieldName(schemaKStream.getKeyField().get(), keyFieldName)) {
+          && !SchemaUtil.matchFieldName(keyField.get(), keyFieldName)) {
         throw new KsqlException(
             String.format(
                 "Source table (%s) key column (%s) "
                     + "is not the column used in the join criteria (%s).",
                 tableName,
-                schemaKStream.getKeyField().get().name(),
+                keyField.get().name(),
                 keyFieldName
             )
         );
@@ -345,8 +356,19 @@ public class JoinNode extends PlanNode {
       );
     }
 
-    Field getJoinKey(final String alias, final String keyFieldName) {
-      return joinNode.schema.field(alias + "." + keyFieldName);
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    Field getJoinKey(final String alias, final KeyField keyField) {
+      final KeyField keyFieldWithAlias = KeyField.of(
+          keyField.name().map(name -> SchemaUtil.buildAliasedFieldName(alias, name)),
+          keyField.legacy().map(field -> SchemaUtil.buildAliasedField(alias, field))
+      );
+
+      final String keyFieldName = keyFieldWithAlias
+          .resolve(joinNode.schema, builder.getKsqlConfig())
+          .get()
+          .name();
+
+      return joinNode.schema.field(keyFieldName);
     }
   }
 
@@ -381,8 +403,7 @@ public class JoinNode extends PlanNode {
         case LEFT:
           return leftStream.leftJoin(rightStream,
                                      joinNode.schema,
-                                     getJoinKey(joinNode.leftAlias,
-                                                leftStream.getKeyField().get().name()),
+              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
                                      joinNode.withinExpression.joinWindow(),
                                      getSerDeForNode(
                                          joinNode.left,
@@ -394,8 +415,7 @@ public class JoinNode extends PlanNode {
         case OUTER:
           return leftStream.outerJoin(rightStream,
                                       joinNode.schema,
-                                      getJoinKey(joinNode.leftAlias,
-                                                 leftStream.getKeyField().get().name()),
+              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
                                       joinNode.withinExpression.joinWindow(),
                                       getSerDeForNode(
                                           joinNode.left,
@@ -407,8 +427,7 @@ public class JoinNode extends PlanNode {
         case INNER:
           return leftStream.join(rightStream,
                                  joinNode.schema,
-                                 getJoinKey(joinNode.leftAlias,
-                                            leftStream.getKeyField().get().name()),
+              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
                                  joinNode.withinExpression.joinWindow(),
                                  getSerDeForNode(
                                      joinNode.left,
@@ -452,8 +471,7 @@ public class JoinNode extends PlanNode {
         case LEFT:
           return leftStream.leftJoin(rightTable,
                                      joinNode.schema,
-                                     getJoinKey(joinNode.leftAlias,
-                                                leftStream.getKeyField().get().name()),
+              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
                                      getSerDeForNode(
                                          joinNode.left,
                                          contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
@@ -462,8 +480,7 @@ public class JoinNode extends PlanNode {
         case INNER:
           return leftStream.join(rightTable,
                                  joinNode.schema,
-                                 getJoinKey(joinNode.leftAlias,
-                                            leftStream.getKeyField().get().name()),
+              getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
                                  getSerDeForNode(
                                      joinNode.left,
                                      contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
@@ -510,19 +527,19 @@ public class JoinNode extends PlanNode {
           return leftTable.leftJoin(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField().get().name()),
+              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         case INNER:
           return leftTable.join(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField().get().name()),
+              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         case OUTER:
           return leftTable.outerJoin(
               rightTable,
               joinNode.schema,
-              getJoinKey(joinNode.leftAlias, leftTable.getKeyField().get().name()),
+              getJoinKey(joinNode.leftAlias, leftTable.getKeyField()),
               contextStacker);
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);

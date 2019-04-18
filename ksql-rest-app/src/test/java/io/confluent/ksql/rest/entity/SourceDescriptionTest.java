@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
@@ -28,7 +29,6 @@ import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -66,7 +66,8 @@ public class SourceDescriptionTest {
         .build();
     final KsqlTopic topic = new KsqlTopic("internal", kafkaTopicName, new KsqlJsonTopicSerDe(), true);
     return new KsqlStream<>(
-        "query", "stream", schema, Optional.of(schema.fields().get(0)),
+        "query", "stream", schema,
+        KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
         new MetadataTimestampExtractionPolicy(), topic, Serdes::String);
   }
 

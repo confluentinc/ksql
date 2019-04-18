@@ -1062,6 +1062,9 @@ final class EndToEndEngineTestUtil {
       testCase.verifyMetastore(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
       testCase.handleException(e);
+    } catch (final AssertionError e) {
+      throw new AssertionError("test: " + testCase.getName() + System.lineSeparator()
+          + e.getMessage(), e);
     }
   }
 

@@ -25,9 +25,9 @@ import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
-public final class StructuredDataSourceMatchers {
+public final class MetaStoreMatchers {
 
-  private StructuredDataSourceMatchers() {
+  private MetaStoreMatchers() {
   }
 
   public static Matcher<StructuredDataSource<?>> hasName(final String name) {
@@ -40,20 +40,64 @@ public final class StructuredDataSourceMatchers {
     };
   }
 
-  public static Matcher<StructuredDataSource<?>> hasKeyField(final String keyFieldName) {
-    return hasKeyField(OptionalMatchers.of(FieldMatchers.hasName(keyFieldName)));
-  }
-
   public static Matcher<StructuredDataSource<?>> hasKeyField(
-      final Matcher<Optional<Field>> fieldMatcher
+      final Matcher<KeyField> fieldMatcher
   ) {
-    return new FeatureMatcher<StructuredDataSource<?>, Optional<Field>>
+    return new FeatureMatcher<StructuredDataSource<?>, KeyField>
         (fieldMatcher, "source with key field", "key field") {
       @Override
-      protected Optional<Field> featureValueOf(final StructuredDataSource<?> actual) {
+      protected KeyField featureValueOf(final StructuredDataSource<?> actual) {
         return actual.getKeyField();
       }
     };
+  }
+
+  public static Matcher<StructuredDataSource<?>> hasValueSchema(
+      final Matcher<Schema> schemaMatcher
+  ) {
+    return new FeatureMatcher<StructuredDataSource<?>, Schema>
+        (schemaMatcher, "source with value schema", "value schema") {
+      @Override
+      protected Schema featureValueOf(final StructuredDataSource<?> actual) {
+        return actual.getSchema();
+      }
+    };
+  }
+
+  public static final class KeyFieldMatchers {
+
+    private KeyFieldMatchers() {
+    }
+
+    public static Matcher<KeyField> hasName(final Optional<String> name) {
+      return new FeatureMatcher<KeyField, Optional<String>>
+          (is(name), "field with name", "name") {
+        @Override
+        protected Optional<String> featureValueOf(final KeyField actual) {
+          return actual.name();
+        }
+      };
+    }
+
+    public static Matcher<KeyField> hasLegacyName(final Optional<String> name) {
+      return new FeatureMatcher<KeyField, Optional<String>>
+          (is(name), "field with legacy name", "legacy name") {
+        @Override
+        protected Optional<String> featureValueOf(final KeyField actual) {
+          return actual.legacy().map(Field::name);
+        }
+      };
+    }
+
+    public static Matcher<KeyField> hasLegacySchema(final Optional<? extends Schema> schema) {
+      return new FeatureMatcher<KeyField, Optional<Schema>>
+          (is(schema), "field with legacy schema", "legacy schema") {
+        @Override
+        protected Optional<Schema> featureValueOf(final KeyField actual) {
+          return actual.legacy().map(Field::schema);
+        }
+      };
+    }
   }
 
   public static final class FieldMatchers {

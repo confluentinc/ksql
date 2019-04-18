@@ -1,9 +1,9 @@
-  # KLIP-4: Produce Data in KSQL
+# KLIP-2: Produce Data in KSQL
 
 **Author**: agavra | 
 **Release Target**: 5.3 | 
-**Status**: In Discussion | 
-**Discussion**: link
+**Status**: Approved | 
+**Discussion**: [#2693](https://github.com/confluentinc/ksql/pull/2693)
 
 **tl;dr:** *Improve the interactivity of the development story by enabling CLI users to directly
 produce data to Kafka topics through KSQL*
@@ -58,9 +58,8 @@ INSERT INTO <stream_name|table_name> [(column1, column2, ...)]
 
 The `INSERT VALUES` statement can be used to insert new records into a KSQL source (agnostic to the
 Stream/Table duality). If the columns are not present, it is assumed that the values are in the same
-order as the schema and contain every field. `ROWKEY` and `ROWTIME` are always present as the first
-two columns, and are automatically populated with semantics described in the section on `ROWKEY` and
-`ROWTIME` semantics below.
+order as the schema and contain every field. `ROWKEY` is always present as the first column, and is 
+automatically populated with semantics described in the section on `ROWKEY` and `ROWTIME` below.
 
 The value for `stream_name`/`table_name` must be a valid Stream/Table registered with a KSQL schema.
 The serialization format will be the same as the format specified in the `value_format` of the
@@ -134,7 +133,9 @@ The above APIs make various trade-offs, outlined below:
   * This is a step closer to SQL standard, and we can always support more `DELETE` conditions in
   the future
 * Allowing `CREATE TABLE/STREAM` to specify a kafka topic that does not yet exist makes it easy to
-use the new APIs without any other system. There are three alternatives: 
+use the new APIs without any other system. General sentiment was that it is important for users to
+understand the concept of `PARTITIONS` soon into their journey understanding Kafka. There are four
+alternatives: 
   * Do not require `PARTITIONS`/`REPLICAS` to create the kafka topic. This is a slight change that
   will make it easier to experiment, but may open the door to accidentally creating kafka topics.
   With the release of 5.2, this will also not be consistent with CSAS/CTAS, which default to the
@@ -145,6 +146,8 @@ use the new APIs without any other system. There are three alternatives:
   * Don't fail when creating streams/topics with non-existing topics, and create those topics if
   a call to `INSERT INTO ...` is called with a stream/table target that does not exist. This seems
   more "magical" and runs into issues when specifying partition/replica counts.
+  * Introduce another `REGISTER TABLE/STREAM` to represent the difference. This moves away from
+  SQL standard and adds more complexity for the user to understand.
 
 ### Code Enhancements
 
@@ -160,7 +163,7 @@ operation will not be available in headless or embedded mode for the first versi
 
 `INSERT INTO ... VALUES` will only support inserting into values for existing KSQL Streams/Tables,
 which already have a schema associated with them. Before producing a record to the underlying topic,
-the values for the fields will be verified against the schema (in order). 
+the values for the fields will be verified against the schema. 
 
 ### Serialization Support
 
@@ -200,6 +203,8 @@ produced will automatically populate `ROWKEY` to the value of `id`:
   ```json
   {"key": "key", "timestamp": 1, "value": {"id": "key", "foo": 123}}
   ```
+* Analogous to the above, if the user provides the key but not `ROWKEY`, it will be populated for 
+them.
 * If the user sets a `KEY` property _and_ they supply `ROWKEY` in their `INSERT INTO` statement, 
 KSQL will enforce that the value of `ROWKEY` and the value of the key column are identical.
   ```sql
@@ -279,7 +284,7 @@ section that includes the following rows:
 > Column values can be given in several ways:
 > * Any column not explicitly given a value is set to ``null`` (KSQL does not yet support DEFAULT 
 > values).  If no columns are specified, a value for every column is expected in the same order as 
-> the schema with ``ROWTIME`` and ``ROWKEY`` as the first two columns, respectively.
+> the schema with ``ROWKEY`` as the first column and ``ROWTIME`` as teh current time.
 >
 > For example, the statements below would all be valid for a source with schema
 > ``<KEY_COL VARCHAR, COL_A VARCHAR>`` with ``KEY=KEY_COL``:
@@ -289,8 +294,8 @@ section that includes the following rows:
 >       // inserts (1234, "key", "key", "A") 
 >       INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, "key", "key", "A");
 >
->       // inserts (1234, "key", "key", "A") 
->       INSERT INTO foo VALUES (1234, "key", "key", "A");
+>       // inserts (current_time(), "key", "key", "A") 
+>       INSERT INTO foo VALUES ("key", "key", "A");
 >
 >       // inserts (current_time(), "key", "key", "A") 
 >       INSERT INTO foo (KEY_COL, COL_A) VALUES ("key", "A");

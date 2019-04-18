@@ -94,21 +94,23 @@ public class StreamedQueryResource {
 
   @POST
   public Response streamQuery(final KsqlRequest request) throws Exception {
-    if (!ksqlEngine.isAcceptingStatements()) {
-      return Errors.serverErrorForStatement(
-          new KsqlException("Cluster has been terminated."),
-          "The cluster has been terminated. No new request will be accepted.",
-          new KsqlEntityList());
+    try (ServiceContext serviceContext = getServiceContext()) {
+      if (!ksqlEngine.isAcceptingStatements()) {
+        return Errors.serverErrorForStatement(
+            new KsqlException("Cluster has been terminated."),
+            "The cluster has been terminated. No new request will be accepted.",
+            new KsqlEntityList());
+      }
+
+      activenessRegistrar.updateLastRequestTime();
+
+      final PreparedStatement<?> statement = parseStatement(request);
+
+      CommandStoreUtil.httpWaitForCommandSequenceNumber(
+          commandQueue, request, commandQueueCatchupTimeout);
+
+      return handleStatement(serviceContext, request, statement);
     }
-
-    activenessRegistrar.updateLastRequestTime();
-
-    final PreparedStatement<?> statement = parseStatement(request);
-
-    CommandStoreUtil.httpWaitForCommandSequenceNumber(
-        commandQueue, request, commandQueueCatchupTimeout);
-
-    return handleStatement(request, statement);
   }
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
@@ -126,10 +128,11 @@ public class StreamedQueryResource {
 
   @SuppressWarnings("unchecked")
   private Response handleStatement(
+      final ServiceContext serviceContext,
       final KsqlRequest request,
       final PreparedStatement<?> statement
   ) throws Exception {
-    try (ServiceContext serviceContext = getServiceContext()) {
+    try {
       if (statement.getStatement() instanceof Query) {
         return handleQuery((PreparedStatement<Query>) statement, request.getStreamsProperties());
       }

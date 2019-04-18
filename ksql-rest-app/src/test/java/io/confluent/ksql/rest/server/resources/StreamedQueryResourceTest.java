@@ -65,14 +65,12 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
@@ -86,12 +84,12 @@ import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.eclipse.jetty.http.HttpStatus.Code;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 
 @RunWith(EasyMockRunner.class)
 public class StreamedQueryResourceTest {
@@ -150,11 +148,13 @@ public class StreamedQueryResourceTest {
         activenessRegistrar);
   }
 
-  private StreamedQueryResource givenStreamedQueryResource(final ServiceContext serviceContext) {
+  private StreamedQueryResource givenStreamedQueryResource(
+      final Supplier<ServiceContext> serviceContextFactory
+  ) {
     return new StreamedQueryResource(
         ksqlConfig,
         mockKsqlEngine,
-        () -> serviceContext,
+        serviceContextFactory,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -165,15 +165,31 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldUseOneServiceContextPerStreamRequest() throws Exception {
     // Given:
-    final ServiceContext sc = Mockito.mock(ServiceContext.class);
-    Mockito.when(sc.getTopicClient()).thenReturn(mockKafkaTopicClient);
-    final StreamedQueryResource queryResource = givenStreamedQueryResource(sc);
+    final ServiceContext sc1 = mock(ServiceContext.class);
+    final ServiceContext sc2 = mock(ServiceContext.class);
+
+    final List<ServiceContext> serviceContexts = new ArrayList<>();
+    serviceContexts.addAll(Arrays.asList(sc1, sc2));
+
+    sc1.close();
+    expectLastCall().once();
+    sc2.close();
+    expectLastCall().once();
+    replay(sc1, sc2);
+
+    final StreamedQueryResource queryResource = givenStreamedQueryResource(
+        () -> serviceContexts.remove(0)
+    );
 
     // When:
     queryResource.streamQuery(VALID_STREAM_REQUEST);
+    final int itemsLeft1 = serviceContexts.size();
+    queryResource.streamQuery(VALID_STREAM_REQUEST);
+    final int itemsLeft0 = serviceContexts.size();
 
     // Then:
-    Mockito.verify(sc, Mockito.times(1)).close();
+    assertThat(itemsLeft1, Matchers.is(1));
+    assertThat(itemsLeft0, Matchers.is(0));
   }
 
   @Test

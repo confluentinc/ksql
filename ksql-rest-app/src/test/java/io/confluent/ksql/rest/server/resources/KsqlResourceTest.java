@@ -43,6 +43,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -132,6 +133,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
@@ -241,7 +243,7 @@ public class KsqlResourceTest {
 
   private String streamName;
 
-  private List<ServiceContext> serviceContexts = new ArrayList<>();
+  private Set<ServiceContext> serviceContexts = new HashSet<>();
 
   @Before
   public void setUp() throws IOException, RestClientException {
@@ -281,14 +283,8 @@ public class KsqlResourceTest {
 
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
 
-    when(schemaInjectorFactory.apply(any())).thenAnswer(inv -> {
-      final ServiceContext invokedWith = inv.getArgument(0);
-      if (serviceContexts.contains(invokedWith)) {
-        return schemaInjector;
-      }
-
-      return sandboxSchemaInjector;
-    });
+    when(schemaInjectorFactory.apply(any())).thenReturn(sandboxSchemaInjector);
+    when(schemaInjectorFactory.apply(argThat(isIn(serviceContexts)))).thenReturn(schemaInjector);
 
     when(topicInjectorFactory.apply(any())).thenReturn(sandboxTopicInjector);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
@@ -1712,27 +1708,49 @@ public class KsqlResourceTest {
   @Test
   public void shouldUseOneServiceContextPerKsqlRequest() {
     // Given:
-    final ServiceContext sc = spy(TestServiceContext.create());
-    final KsqlResource ksqlResource = givenKsqlResource(sc);
+    final ServiceContext sc1 = mock(ServiceContext.class);
+    final ServiceContext sc2 = mock(ServiceContext.class);
+
+    final List<ServiceContext> serviceContexts = new ArrayList<>();
+    serviceContexts.addAll(Arrays.asList(sc1, sc2));
+
+    final KsqlResource ksqlResource = givenKsqlResource(() -> serviceContexts.remove(0));
 
     // When:
     ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
+    final int itemsLeft1 = serviceContexts.size();
+    ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
+    final int itemsLeft0 = serviceContexts.size();
 
     // Then:
-    verify(sc, times(1)).close();
+    verify(sc1, times(1)).close();
+    assertThat(itemsLeft1, is(1));
+    verify(sc2, times(1)).close();
+    assertThat(itemsLeft0, is(0));
   }
 
   @Test
   public void shouldUseOneServiceContextPerTerminateRequest() {
     // Given:
-    final ServiceContext sc = spy(TestServiceContext.create());
-    final KsqlResource ksqlResource = givenKsqlResource(sc);
+    final ServiceContext sc1 = mock(ServiceContext.class);
+    final ServiceContext sc2 = mock(ServiceContext.class);
+
+    final List<ServiceContext> serviceContexts = new ArrayList<>();
+    serviceContexts.addAll(Arrays.asList(sc1, sc2));
+
+    final KsqlResource ksqlResource = givenKsqlResource(() -> serviceContexts.remove(0));
 
     // When:
     ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+    final int itemsLeft1 = serviceContexts.size();
+    ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+    final int itemsLeft0 = serviceContexts.size();
 
     // Then:
-    verify(sc, times(1)).close();
+    verify(sc1, times(1)).close();
+    assertThat(itemsLeft1, is(1));
+    verify(sc2, times(1)).close();
+    assertThat(itemsLeft0, is(0));
   }
 
   private Answer<?> executeAgainstEngine(final String sql) {
@@ -1908,11 +1926,11 @@ public class KsqlResourceTest {
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 
-  private KsqlResource givenKsqlResource(final ServiceContext serviceContext) {
+  private KsqlResource givenKsqlResource(final Supplier<ServiceContext> serviceContextFactory) {
     return new KsqlResource(
         ksqlConfig,
         ksqlEngine,
-        () -> serviceContext,
+        serviceContextFactory,
         commandStore,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
@@ -1923,33 +1941,12 @@ public class KsqlResourceTest {
   }
 
   private void setUpKsqlResource() {
-    ksqlResource = new KsqlResource(
-        ksqlConfig,
-        ksqlEngine,
-        () -> createTestServiceContext(),
-        commandStore,
-        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
-        activenessRegistrar,
-        (ec, sc) -> InjectorChain.of(
-            schemaInjectorFactory.apply(sc),
-            topicInjectorFactory.apply(ec))
-    );
+    ksqlResource = givenKsqlResource(this::createTestServiceContext);
   }
 
   private ServiceContext createTestServiceContext() {
     final ServiceContext sc = spy(TestServiceContext.create(kafkaTopicClient));
     serviceContexts.add(sc);
-
-    doAnswer(inv -> {
-      Object m = inv.getMock();
-      if (serviceContexts.contains(m)) {
-        serviceContexts.remove(m);
-      }
-
-      inv.callRealMethod();
-      return null;
-    }).when(sc).close();
-
     return sc;
   }
 

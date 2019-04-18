@@ -13,7 +13,7 @@ Here is the process for submitting a KLIP and getting it approved.
 
 # KsqL Improvement Proposals (aka KLIPs)
 
-Next KLIP number: 5.
+Next KLIP number: 3.
 
 | KLIP                                                                 | Status     | Release |
 |----------------------------------------------------------------------|:----------:| ------: |

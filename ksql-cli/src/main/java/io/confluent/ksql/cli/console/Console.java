@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.cli.console;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.GenericRow;
@@ -61,6 +60,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.util.JsonMapper;
 import io.confluent.ksql.util.HandlerMap;
 import io.confluent.ksql.util.HandlerMap.Handler;
 import java.io.Closeable;
@@ -151,7 +151,7 @@ public abstract class Console implements Closeable {
 
     this.cliSpecificCommands = Maps.newLinkedHashMap();
 
-    this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    this.objectMapper = JsonMapper.INSTANCE.mapper;
 
     final Supplier<String> versionSuppler =
         () -> restClient.getServerInfo().getResponse().getVersion();

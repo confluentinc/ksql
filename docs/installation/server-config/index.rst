@@ -79,8 +79,6 @@ JMX Metrics
 .. include:: ../../includes/ksql-includes.rst
     :start-after: enable_JMX_metrics_start
     :end-before: enable_JMX_metrics_end
-<<<<<<< HEAD
-=======
 
 Run the ``ksql-print-metrics`` tool to see the available JMX metrics for KSQL.
 
@@ -137,7 +135,6 @@ The following table describes the available KSQL metrics.
 +---------------------------+------------------------------------------------------------------------------------------------------+
 | num-idle-queries          | Number of queries with no messages available to process.                                             |
 +---------------------------+------------------------------------------------------------------------------------------------------+
->>>>>>> 4.1.3-post
 
 .. _restrict-ksql-interactive:
 

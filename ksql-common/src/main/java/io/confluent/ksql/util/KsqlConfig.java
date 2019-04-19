@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
@@ -536,11 +537,18 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   public Map<String, Object> getKsqlAdminClientConfigProps() {
+    return getConfigsFor(AdminClientConfig.configNames());
+  }
+
+  public Map<String, Object> getProducerClientConfigProps() {
+    return getConfigsFor(ProducerConfig.configNames());
+  }
+
+  private Map<String, Object> getConfigsFor(final Set<String> configs) {
     final Map<String, Object> props = new HashMap<>();
     ksqlStreamConfigProps.values().stream()
-        .filter(configValue -> AdminClientConfig.configNames().contains(configValue.key))
-        .forEach(
-            configValue -> props.put(configValue.key, configValue.value));
+        .filter(configValue -> configs.contains(configValue.key))
+        .forEach(configValue -> props.put(configValue.key, configValue.value));
     return Collections.unmodifiableMap(props);
   }
 

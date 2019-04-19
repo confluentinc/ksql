@@ -21,7 +21,9 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -40,6 +42,8 @@ public final class SandboxedProducerTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase<Producer>> getMethodsToTest() {
       return TestMethods.builder(Producer.class)
+          .ignore("send", ProducerRecord.class)
+          .ignore("send", ProducerRecord.class, Callback.class)
           .ignore("close")
           .ignore("close", long.class, TimeUnit.class)
           .ignore("close", Duration.class)

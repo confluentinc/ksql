@@ -60,6 +60,7 @@ statement
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
+    | INSERT INTO qualifiedName (columns)? VALUES values                    #insertValues
     | DROP TOPIC (IF EXISTS)? qualifiedName                                 #dropTopic
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
     | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
@@ -144,6 +145,10 @@ groupingExpressions
     | expression
     ;
 
+values
+    : '(' (literal (',' literal)*)? ')'
+    ;
+
 /*
  * Dropped `namedQuery` as we don't support them.
  */
@@ -186,7 +191,7 @@ aliasedRelation
     : relationPrimary (AS? identifier)?
     ;
 
-columnAliases
+columns
     : '(' identifier (',' identifier)* ')'
     ;
 

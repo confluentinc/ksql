@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
@@ -59,6 +60,7 @@ import io.confluent.ksql.parser.tree.HoppingWindowExpression;
 import io.confluent.ksql.parser.tree.InListExpression;
 import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.IntegerLiteral;
 import io.confluent.ksql.parser.tree.IsNotNullPredicate;
 import io.confluent.ksql.parser.tree.IsNullPredicate;
@@ -122,6 +124,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
@@ -279,6 +282,28 @@ public class AstBuilder {
           targetName,
           visitQuery(context.query()),
           getPartitionBy(context.identifier()));
+    }
+
+    @Override
+    public Node visitInsertValues(final InsertValuesContext context) {
+      final QualifiedName targetName = ParserUtil.getQualifiedName(context.qualifiedName());
+      final Optional<NodeLocation> targetLocation = getLocation(context.qualifiedName());
+
+      final List<String> columns;
+      if (context.columns() != null) {
+        columns = context.columns().identifier()
+            .stream()
+            .map(ParserUtil::getIdentifierText)
+            .collect(Collectors.toList());
+      } else {
+        columns = ImmutableList.of();
+      }
+
+      return new InsertValues(
+          targetLocation,
+          targetName,
+          columns,
+          visit(context.values().literal(), Expression.class));
     }
 
     @Override

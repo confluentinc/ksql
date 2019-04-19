@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
@@ -373,8 +374,6 @@ public final class SqlFormatter {
       return null;
     }
 
-
-
     private static String formatName(final String name) {
       if (NAME_PATTERN.matcher(name).matches()) {
         return name;
@@ -395,6 +394,29 @@ public final class SqlFormatter {
     @Override
     protected Void visitDropStream(final DropStream node, final Integer context) {
       visitDrop(node, "STREAM");
+      return null;
+    }
+
+    @Override
+    protected Void visitInsertValues(final InsertValues node, final Integer context) {
+      builder.append("INSERT INTO ");
+      builder.append(node.getTarget());
+      builder.append(" ");
+
+      if (!node.getColumns().isEmpty()) {
+        builder.append(node.getColumns().stream().collect(Collectors.joining(", ", "(", ") ")));
+      }
+
+      builder.append("VALUES ");
+
+      builder.append("(");
+      builder.append(
+          node.getValues()
+              .stream()
+              .map(SqlFormatter::formatSql)
+              .collect(Collectors.joining(", ")));
+      builder.append(")");
+
       return null;
     }
 

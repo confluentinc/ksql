@@ -46,14 +46,14 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
     );
   }
 
+  @Override
+  public String toString() {
+    return getClass().getSimpleName() + " name:" + getName();
+  }
+
   public boolean hasWindowedKey() {
     final Serde<K> keySerde = getKeySerdeFactory().create();
     return keySerde instanceof WindowedSerdes.SessionWindowedSerde
         || keySerde instanceof WindowedSerdes.TimeWindowedSerde;
-  }
-
-  @Override
-  public String toString() {
-    return getClass().getSimpleName() + " name:" + getName();
   }
 }

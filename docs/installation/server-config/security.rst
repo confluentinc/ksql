@@ -24,6 +24,12 @@ Configuring KSQL for |ccloud|
 
 You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
 
+Configuring KSQL for |c3|
+-----------------------------
+
+You can use KSQL with a Kafka cluster in |c3|. For more information, see
+:ref:`integrate-ksql-with-confluent-control-center`.
+
 .. _config-security-ksql-sr:
 
 Configuring KSQL for Secured |sr-long|

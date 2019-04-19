@@ -162,6 +162,8 @@ metadata that ensures the statements are built compatibly across KSQL restarts
 and upgrades. KSQL names the command topic ``_confluent-ksql-<service id>_command_topic``,
 where ``<service id>`` is the value in the ``ksql.service.id`` property.
 
+.. _ksql-server-headless-deployment:
+
 Headless Deployment
 ===================
 
@@ -209,7 +211,9 @@ interactive deployments.
 +----------------------------------------------------+-------------------+---------------------+
 | Explain a query, including runtime stats (EXPLAIN) | Supported         | Not Supported       |
 +----------------------------------------------------+-------------------+---------------------+
-| CREATE and DROP a stream or table                  | Supported         | Supported           |
+| CREATE a stream or table                           | Supported         | Supported           |
++----------------------------------------------------+-------------------+---------------------+
+| DROP a stream or table                             | Supported         | Not Supported       |
 +----------------------------------------------------+-------------------+---------------------+
 | List existing streams and tables (SHOW STREAMS,    | Supported         | Not Supported       |
 | SHOW TABLES)                                       |                   |                     |
@@ -228,7 +232,7 @@ interactive deployments.
 +----------------------------------------------------+-------------------+---------------------+
 | Show results of a query (SELECT)                   | Supported         | Not Supported       |
 +----------------------------------------------------+-------------------+---------------------+
-| Start and stop a query                             | Supported         | Supported           |
+| TERMINATE a query                                  | Supported         | Not Supported       |
 +----------------------------------------------------+-------------------+---------------------+
 | Start and stop a KSQL Server instance              | Not with KSQL API | Not with KSQL API   |
 +----------------------------------------------------+-------------------+---------------------+

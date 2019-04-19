@@ -76,7 +76,7 @@ public class SourceDescriptionTest {
             new TopicPartition(kafkaTopicName, 1),
             Arrays.asList(
                 new ConsumerRecord<>(
-                    kafkaTopicName, 1, 1, 1l, TimestampType.CREATE_TIME, 1l,
+                    kafkaTopicName, 1, 1, 1L, TimestampType.CREATE_TIME, 1L,
                     10, 10, "key", "1234567890")
             )
         )

@@ -54,7 +54,7 @@ public class MetricCollectorsTest {
 
   @Test
   public void shouldAggregateStats() {
-    final List<TopicSensors.Stat> stats = Arrays.asList(new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l), new TopicSensors.Stat("metric", 1, 1l));
+    final List<TopicSensors.Stat> stats = Arrays.asList(new TopicSensors.Stat("metric", 1, 1L), new TopicSensors.Stat("metric", 1, 1L), new TopicSensors.Stat("metric", 1, 1L));
     final Map<String, TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
     assertThat(aggregateMetrics.size(), equalTo(1));
     assertThat(aggregateMetrics.values().iterator().next().getValue(), equalTo(3.0));
@@ -73,7 +73,7 @@ public class MetricCollectorsTest {
 
     final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = ImmutableMap.of(
             new TopicPartition(TEST_TOPIC, 1), Arrays.asList(
-                    new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType.CREATE_TIME,  1l, 10, 10, "key", "1234567890")) );
+                    new ConsumerRecord<>(TEST_TOPIC, 1, 1, 1L, TimestampType.CREATE_TIME, 1L, 10, 10, "key", "1234567890")) );
     final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
 
 
@@ -127,8 +127,8 @@ public class MetricCollectorsTest {
     final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
     final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < 500; i++) {
-      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
-          .CREATE_TIME,  1l, 10, 10, "key", "1234567890"));
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1, 1L, TimestampType
+          .CREATE_TIME, 1L, 10, 10, "key", "1234567890"));
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
     final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
@@ -150,8 +150,8 @@ public class MetricCollectorsTest {
     final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
     final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
-          .CREATE_TIME,  1l, 10, 10,"key", "1234567890"));
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1, 1L, TimestampType
+          .CREATE_TIME, 1L, 10, 10,"key", "1234567890"));
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
     final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
@@ -172,8 +172,8 @@ public class MetricCollectorsTest {
     final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     int totalSz = 0;
     for (int i = 0; i < 10; i++) {
-      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
-          .CREATE_TIME,  1l, 5 + i, 10 + i, "key", "1234567890"));
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1, 1L, TimestampType
+          .CREATE_TIME, 1L, 5 + i, 10 + i, "key", "1234567890"));
       totalSz += 15 + 2 * i;
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
@@ -198,8 +198,8 @@ public class MetricCollectorsTest {
     final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
     final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < 500; i++) {
-      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
-          .CREATE_TIME,  1l, 10, 10, "key", "1234567890"));
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1, 1L, TimestampType
+          .CREATE_TIME, 1L, 10, 10, "key", "1234567890"));
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
     final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
@@ -242,8 +242,8 @@ public class MetricCollectorsTest {
     final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
     final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < 500; i++) {
-      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1,  1l, TimestampType
-          .CREATE_TIME,  1l, 10, 10, "key", "1234567890"));
+      recordList.add(new ConsumerRecord<>(TEST_TOPIC, 1, 1, 1L, TimestampType
+          .CREATE_TIME, 1L, 10, 10, "key", "1234567890"));
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
     final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);

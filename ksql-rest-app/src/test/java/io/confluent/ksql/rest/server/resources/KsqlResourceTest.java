@@ -119,6 +119,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.test.commons.FakeKafkaTopicClient;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -127,6 +128,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
@@ -223,7 +225,7 @@ public class KsqlResourceTest {
   private KsqlEngine realEngine;
   private KsqlEngine ksqlEngine;
   @Mock
-  private KsqlExecutionContext sandbox;
+  private SandboxEngine sandbox;
   @Mock
   private CommandStore commandStore;
   @Mock
@@ -1883,8 +1885,16 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig, ksqlEngine, serviceContext, commandStore, DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
-        activenessRegistrar, schemaInjectorFactory, topicInjectorFactory);
+        ksqlConfig,
+        ksqlEngine,
+        serviceContext,
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec))
+    );
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {
@@ -1999,4 +2009,7 @@ public class KsqlResourceTest {
     when(queries.size()).thenReturn(value);
     when(sandbox.getPersistentQueries()).thenReturn(queries);
   }
+
+  @Sandbox
+  private interface SandboxEngine extends KsqlExecutionContext { }
 }

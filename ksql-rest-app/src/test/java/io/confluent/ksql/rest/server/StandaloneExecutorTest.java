@@ -61,11 +61,11 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.schema.inference.SchemaInjector;
-import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.topic.TopicInjector;
-import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -83,7 +83,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.test.TestUtils;
@@ -221,17 +221,15 @@ public class StandaloneExecutorTest {
   @Mock
   private SchemaRegistryClient srClient;
   @Mock
-  private Function<ServiceContext, SchemaInjector> schemaInjectorFactory;
+  private BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   @Mock
-  private SchemaInjector schemaInjector;
+  private Injector schemaInjector;
   @Mock
-  private SchemaInjector sandBoxSchemaInjector;
+  private Injector sandBoxSchemaInjector;
   @Mock
-  private Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory;
+  private Injector topicInjector;
   @Mock
-  private TopicInjector topicInjector;
-  @Mock
-  private TopicInjector sandBoxTopicInjector;
+  private Injector sandBoxTopicInjector;
 
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
@@ -259,13 +257,12 @@ public class StandaloneExecutorTest {
     when(sandBox.execute(eq(CSAS_CFG_WITH_TOPIC)))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
-    when(schemaInjectorFactory.apply(any())).thenReturn(sandBoxSchemaInjector);
-    when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
+    when(injectorFactory.apply(any(), any())).thenReturn(InjectorChain.of(sandBoxSchemaInjector, sandBoxTopicInjector));
+    when(injectorFactory.apply(ksqlEngine, serviceContext)).thenReturn(InjectorChain.of(schemaInjector, topicInjector));
+
     when(sandBoxSchemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
-    when(topicInjectorFactory.apply(any())).thenReturn(sandBoxTopicInjector);
-    when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
     when(sandBoxTopicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -279,8 +276,8 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        schemaInjectorFactory,
-        topicInjectorFactory);
+        injectorFactory
+    );
   }
 
   @Test
@@ -348,8 +345,7 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        schemaInjectorFactory,
-        topicInjectorFactory
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector)
     );
 
     // When:
@@ -698,8 +694,7 @@ public class StandaloneExecutorTest {
         udfLoader,
         true,
         versionChecker,
-        schemaInjectorFactory,
-        topicInjectorFactory
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector)
     );
   }
 

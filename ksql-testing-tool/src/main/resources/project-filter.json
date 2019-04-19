@@ -12,7 +12,8 @@
       "name": "project and filter",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE STREAM S1 as SELECT name FROM test where id > 100;"
+        "CREATE STREAM S1 as SELECT name FROM test where id > 100;",
+        "CREATE STREAM S2 as SELECT name FROM S1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
@@ -20,7 +21,8 @@
         {"topic": "test_topic", "key": 101, "value": "101,101,0.0"}
       ],
       "outputs": [
-        {"topic": "S1", "key": 101, "value": "101"}
+        {"topic": "S1", "key": 101, "value": "101"},
+        {"topic": "S2", "key": 101, "value": "101"}
       ]
     }
   ]

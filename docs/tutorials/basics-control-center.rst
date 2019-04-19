@@ -247,7 +247,7 @@ You can monitor your persistent queries visually by using |C3|.
    ``pageviews_enriched`` query has recently started consuming records.
 
 #. In the navigation menu, click **Consumer lag** and find the consumer group
-   for the ``pageviews_enriched``query, which is named
+   for the ``pageviews_enriched`` query, which is named
    ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_ENRICHED_0``.
    This view shows how well your persistent query is keeping up with the incoming
    data.
@@ -279,8 +279,8 @@ You can assign properties in the KSQL Editor before you run your queries.
 
 #. Confirm that the ``auto.offset.reset`` property was applied to the 
    ``pageviews_female`` stream. In the navigation menu, click **Data streams**
-   and find the ``pageviews_female`` stream, which is named
-   ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_FEMALE_1``.
+   and find the consumer group for the ``pageviews_female`` stream, which is
+   named ``_confluent-ksql-default_query_CSAS_PAGEVIEWS_FEMALE_1``.
 
    .. image:: ../img/c3-ksql-data-streams-2.png
       :alt: Screenshot of the Data Streams page in Confluent Control Center

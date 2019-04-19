@@ -466,10 +466,13 @@ The WITH clause for the result supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this stream,             |
-|                         | e.g. given the statement                                                                             |
-|                         | ``CREATE STEAM foo WITH (TIMESTAMP='t2') AS SELECT * FROM bar WINDOW TUMBLING (size 10 seconds);``,  |
-|                         | the window into which each row of ``bar`` is place is determined by bar's ``ROWTIME``, not ``t2``.   |
+|                         | **Note**: This doesn't affect the processing of the query that populates this stream.                |
+|                         | For example, given the following statement:                                                          |
+|                         |                                                                                                      |
+|                         | .. literalinclude:: ../includes/csas-snippet.sql                                                     |
+|                         |    :language: sql                                                                                    |
+|                         |                                                                                                      |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
@@ -552,13 +555,13 @@ The WITH clause supports the following properties:
 |                         |                                                                                                      |
 |                         | If not supplied, the ``ROWTIME`` of the source stream will be used.                                  |
 |                         |                                                                                                      |
-|                         | **NOTE**: This does _not_ affect the processing of the query that populates this table,              |
-|                         | e.g. given the statement                                                                             |
+|                         | **Note**: This doesn't affect the processing of the query that populates this table.                 |
+|                         | For example, given the following statement:                                                          |
 |                         |                                                                                                      |
 |                         | .. literalinclude:: ../includes/ctas-snippet.sql                                                     |
 |                         |    :language: sql                                                                                    |
 |                         |                                                                                                      |
-|                         | the window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
+|                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
 |                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
@@ -969,17 +972,17 @@ example of converting a BIGINT into a VARCHAR type:
 CASE
 ~~~~
 
- **Synopsis**
+**Synopsis**
 
- .. code:: sql
+.. code:: sql
 
-     CASE
-        WHEN condition THEN result
-        [ WHEN ... THEN ... ]
-        …
-        [ WHEN … THEN … ]
-        [ ELSE result ]
-     END
+    CASE
+       WHEN condition THEN result
+       [ WHEN ... THEN ... ]
+       …
+       [ WHEN … THEN … ]
+       [ ELSE result ]
+    END
 
 Currently, KSQL supports a ``searched`` form of CASE expression. In this form,
 CASE evaluates each boolean ``condition`` in WHEN clauses, from left to right.
@@ -990,15 +993,15 @@ of the conditions is true and there is no ELSE clause, CASE returns null.
 The schema for all results must be the same, otherwise, KSQL rejects the
 statement. Here's an example of a CASE expression:
 
- .. code:: sql
+.. code:: sql
 
-     SELECT
-      CASE
-        WHEN orderunits < 2.0 THEN 'small'
-        WHEN orderunits < 4.0 THEN 'medium'
-        ELSE 'large'
-      END AS case_result
-     FROM orders;
+    SELECT
+     CASE
+       WHEN orderunits < 2.0 THEN 'small'
+       WHEN orderunits < 4.0 THEN 'medium'
+       ELSE 'large'
+     END AS case_result
+    FROM orders;
 
 LIKE
 ~~~~
@@ -1139,7 +1142,7 @@ SET/UNSET property
 
 Set or unset the session properties in the CLI. The session properties that have been set will be sent to the server along with the subsequent KSQL statements.
 The properties that are set using these commands are session properties, meaning they will be only available in the current CLI session.
-The following are the properties that can be configured with SET/UNSET commands from release 5.2 and above:
+The following are the properties that you can configure with SET/UNSET commands, in release 5.2 and above:
 
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 | Property                                          | Description                                                                                |
@@ -1155,7 +1158,7 @@ The following are the properties that can be configured with SET/UNSET commands 
 |                                                   | The default in KSQL is ``latest``.                                                         |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 | group.id                                          | A unique string that identifies the consumer group this consumer belongs to.               |
-|                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                                                               |
+|                                                   | This can be set for PRINT TOPIC command when ACLs are enabled in Kafka.                    |
 |                                                   | The default in KSQL is ````.                                                               |
 +---------------------------------------------------+--------------------------------------------------------------------------------------------+
 

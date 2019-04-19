@@ -33,11 +33,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class UdfCompilerTest {
+
+  private static final Schema STRUCT_SCHEMA =
+      SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).build();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -142,6 +148,12 @@ public class UdfCompilerTest {
     assertThat(function.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex"))),
         not(nullValue()));
+  }
+
+  @Test
+  public void shouldCompileFunctionWithStructReturnValue() throws NoSuchMethodException {
+    final UdfInvoker udf = udfCompiler.compile(getClass().getMethod("udfStruct", String.class), classLoader);
+    assertThat(udf.eval(this, "val"), equalTo(new Struct(STRUCT_SCHEMA).put("a", "val")));
   }
 
   @Test
@@ -358,6 +370,10 @@ public class UdfCompilerTest {
 
   public Long udf(final Long val) {
     return val;
+  }
+
+  public Struct udfStruct(final String val) {
+    return new Struct(STRUCT_SCHEMA).put("a", val);
   }
 
   public double udfPrimitive(final double val) {

@@ -15,40 +15,41 @@
 
 package io.confluent.ksql.test.commons;
 
+import io.confluent.ksql.metastore.model.KsqlTopic;
 import java.util.Set;
 import org.apache.kafka.streams.TopologyTestDriver;
 
 public final class TopologyTestDriverContainer {
 
   private final TopologyTestDriver topologyTestDriver;
-  private final Set<String> sourceTopics;
-  private final Set<String> sinkTopics;
+  private final Set<KsqlTopic> sourceKsqlTopics;
+  private final Set<KsqlTopic> sinkKsqlTopics;
 
   private TopologyTestDriverContainer(
       final TopologyTestDriver topologyTestDriver,
-      final Set<String> sourceTopics,
-      final Set<String> sinkTopics) {
+      final Set<KsqlTopic> sourceKsqlTopics,
+      final Set<KsqlTopic> sinkKsqlTopics) {
     this.topologyTestDriver = topologyTestDriver;
-    this.sourceTopics = sourceTopics;
-    this.sinkTopics = sinkTopics;
+    this.sourceKsqlTopics = sourceKsqlTopics;
+    this.sinkKsqlTopics = sinkKsqlTopics;
   }
 
   public static TopologyTestDriverContainer of(
       final TopologyTestDriver topologyTestDriver,
-      final Set<String> sourceTopics,
-      final Set<String> sinkTopics) {
-    return new TopologyTestDriverContainer(topologyTestDriver, sourceTopics, sinkTopics);
+      final Set<KsqlTopic> sourceKsqlTopics,
+      final Set<KsqlTopic> sinkKsqlTopics) {
+    return new TopologyTestDriverContainer(topologyTestDriver, sourceKsqlTopics, sinkKsqlTopics);
   }
 
   public TopologyTestDriver getTopologyTestDriver() {
     return topologyTestDriver;
   }
 
-  public Set<String> getSourceTopics() {
-    return sourceTopics;
+  public Set<KsqlTopic> getSourceKsqlTopics() {
+    return sourceKsqlTopics;
   }
 
-  public Set<String> getSinkTopics() {
-    return sinkTopics;
+  public Set<KsqlTopic> getSinkKsqlTopics() {
+    return sinkKsqlTopics;
   }
 }

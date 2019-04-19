@@ -27,12 +27,12 @@ import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.topic.DefaultTopicInjector;
-import io.confluent.ksql.topic.TopicInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -75,8 +75,7 @@ public final class StandaloneExecutorFactory {
         UdfLoader udfLoader,
         boolean failOnNoQueries,
         VersionCheckerAgent versionChecker,
-        Function<ServiceContext, SchemaInjector> schemaInjectorFactory,
-        Function<KsqlExecutionContext, TopicInjector> topicInjectorFactory
+        BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
     );
   }
 
@@ -123,10 +122,6 @@ public final class StandaloneExecutorFactory {
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);
 
-    final Function<ServiceContext, SchemaInjector> schemaInjectorFactory = sc ->
-        new DefaultSchemaInjector(
-            new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()));
-
     return constructor.create(
         serviceContext,
         processingLogConfig,
@@ -136,8 +131,11 @@ public final class StandaloneExecutorFactory {
         udfLoader,
         true,
         versionChecker,
-        schemaInjectorFactory,
-        DefaultTopicInjector::new
+        (ec, sc) -> InjectorChain.of(
+            new DefaultSchemaInjector(
+                new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
+            new DefaultTopicInjector(ec)
+        )
     );
   }
 }

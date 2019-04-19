@@ -32,17 +32,15 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
-import io.confluent.ksql.topic.TopicInjector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueuedQueryMetadata;
 import java.util.Collections;
-import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -105,8 +103,6 @@ public class KsqlContextTest {
   @Mock
   private Injector schemaInjector;
   @Mock
-  private Function<KsqlExecutionContext, Injector> topicInjectorFactory;
-  @Mock
   private Injector topicInjector;
 
   private KsqlContext ksqlContext;
@@ -129,11 +125,13 @@ public class KsqlContextTest {
     when(schemaInjector.inject(CFG_STMT_0)).thenReturn((ConfiguredStatement) STMT_0_WITH_SCHEMA);
     when(schemaInjector.inject(CFG_STMT_1)).thenReturn((ConfiguredStatement) STMT_1_WITH_SCHEMA);
 
-    when(topicInjectorFactory.apply(any())).thenReturn(topicInjector);
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     ksqlContext = new KsqlContext(
-        serviceContext, SOME_CONFIG, ksqlEngine, sc -> schemaInjector, topicInjectorFactory);
+        serviceContext,
+        SOME_CONFIG,
+        ksqlEngine,
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector));
 
   }
 

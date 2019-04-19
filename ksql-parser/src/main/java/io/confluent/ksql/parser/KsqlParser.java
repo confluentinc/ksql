@@ -85,7 +85,7 @@ public interface KsqlParser {
         final String statementText,
         final T statement
     ) {
-      return new PreparedStatement<T>(statementText, statement);
+      return new PreparedStatement<>(statementText, statement);
     }
 
     public String getStatementText() {

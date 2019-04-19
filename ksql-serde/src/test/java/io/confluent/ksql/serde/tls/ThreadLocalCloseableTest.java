@@ -22,7 +22,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Supplier;
 
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;

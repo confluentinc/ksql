@@ -35,7 +35,7 @@ public class IsNotNullPredicate extends Expression {
       final Expression value
   ) {
     super(location);
-    this.value = requireNonNull(value, "value");;
+    this.value = requireNonNull(value, "value");
   }
 
   public Expression getValue() {

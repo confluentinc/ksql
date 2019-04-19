@@ -32,10 +32,10 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
-import io.confluent.ksql.schema.inference.SchemaInjector;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.topic.TopicInjector;
+import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -71,8 +71,8 @@ public class DistributingExecutorTest {
   @Mock CommandQueue queue;
   @Mock QueuedCommandStatus status;
   @Mock ServiceContext serviceContext;
-  @Mock SchemaInjector schemaInjector;
-  @Mock TopicInjector topicInjector;
+  @Mock Injector schemaInjector;
+  @Mock Injector topicInjector;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -90,8 +90,7 @@ public class DistributingExecutorTest {
     distributor = new DistributingExecutor(
         queue,
         DURATION_10_MS,
-        sc -> schemaInjector,
-        ec -> topicInjector);
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector));
   }
 
   @Test

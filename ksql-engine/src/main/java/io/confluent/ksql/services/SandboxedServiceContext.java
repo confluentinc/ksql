@@ -17,6 +17,7 @@ package io.confluent.ksql.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KafkaTopicClient;
+import io.confluent.ksql.util.Sandbox;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -27,6 +28,7 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  *
  * <p>The service clients within will not make changes to the external services they connect to.
  */
+@Sandbox
 public final class SandboxedServiceContext implements ServiceContext {
 
   private final KafkaTopicClient topicClient;

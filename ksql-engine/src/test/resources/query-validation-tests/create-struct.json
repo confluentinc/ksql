@@ -1,0 +1,20 @@
+{
+  "comments": [
+    "Tests covering the use of the ToStruct function (Note that this is a function exclusively for tests)"
+  ],
+  "tests": [
+    {
+      "name": "Create a struct from a string",
+      "statements": [
+        "CREATE STREAM test (value STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT TOSTRUCT(value) AS value FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"value": "a"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"VALUE": {"A":  "a"}}, "timestamp": 0}
+      ]
+    }
+  ]
+}

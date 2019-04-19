@@ -100,11 +100,18 @@ Use the following settings to configure the KSQL server to require authenticatio
 ::
 
     authentication.method=BASIC
-    authentication.roles=some-ksql-cluster-id
-    authentication.realm=KsqlServer-Props
+    authentication.roles=<user-role1>,<user-role2>,...
+    authentication.realm=<KsqlServer-Props-in-jaas_config.file>
 
-The ``authentication.roles`` config defines a comma separated list of user roles. To be authorized
-to use the KSQL server an authenticated user must belong to at least one of these roles.
+The ``authentication.roles`` config defines a comma-separated list of user roles. To be authorized
+to use the KSQL server, an authenticated user must belong to at least one of these roles.
+
+For example, if you define ``admin``, ``developer``, ``user``, and ``ksq-user``
+roles, the following configuration assigns them for authentication.
+
+::
+
+    authentication.roles=admin,developer,user,ksq-user
 
 The ``authentication.realm`` config must match a section within ``jaas_config.file``, which
 defines how the server authenticates users and should be passed as a JVM option during server start:
@@ -126,6 +133,13 @@ An example ``jaas_config.file`` is:
 
 The example ``jaas_config.file`` above uses the Jetty ``PropertyFileLoginModule``, which itself
 authenticates users by checking for their credentials in a password file.
+
+Assign the ``KsqlServer-Props`` section to the ``authentication.realm`` config setting:
+
+::
+
+    authentication.realm=KsqlServer-Props
+
 
 You can also use other implementations of the standard Java ``LoginModule`` interface, such as
 ``JDBCLoginModule`` for reading credentials from a database or the ``LdapLoginModule``.

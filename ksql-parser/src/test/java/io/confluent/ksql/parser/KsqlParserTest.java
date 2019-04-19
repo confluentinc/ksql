@@ -1099,7 +1099,7 @@ public class KsqlParserTest {
     expectedException.expectMessage("line 1:21: extraneous input ';' expecting {',', 'FROM'}");
 
     final String simpleQuery = "SELECT ONLY, COLUMNS;";
-    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);;
+    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
   }
 
   @Test
@@ -1117,7 +1117,7 @@ public class KsqlParserTest {
     expectedException.expectMessage(containsString("line 1:22: mismatched input ',' expecting"));
 
     final String simpleQuery = "SELECT * FROM address, itemid;";
-    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);;
+    KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
   }
 
   @Test

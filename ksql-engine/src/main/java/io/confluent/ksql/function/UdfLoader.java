@@ -25,6 +25,8 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -79,13 +81,15 @@ public class UdfLoader {
 
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public UdfLoader(final MutableFunctionRegistry functionRegistry,
-                   final File pluginDir,
-                   final ClassLoader parentClassLoader,
-                   final Predicate<String> blacklist,
-                   final UdfCompiler compiler,
-                   final Optional<Metrics> metrics,
-                   final boolean loadCustomerUdfs) {
+  public UdfLoader(
+      final MutableFunctionRegistry functionRegistry,
+      final File pluginDir,
+      final ClassLoader parentClassLoader,
+      final Predicate<String> blacklist,
+      final UdfCompiler compiler,
+      final Optional<Metrics> metrics,
+      final boolean loadCustomerUdfs
+  ) {
     this.functionRegistry = Objects
         .requireNonNull(functionRegistry, "functionRegistry can't be null");
     this.pluginDir = Objects.requireNonNull(pluginDir, "pluginDir can't be null");
@@ -266,8 +270,18 @@ public class UdfLoader {
       return SchemaUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
+    final Schema returnType;
+    try {
+      returnType = udfAnnotation.schema().isEmpty()
+          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
+          : LogicalSchemas.fromSqlTypeConverter().fromSqlType(
+              TypeContextUtil.getType(udfAnnotation.schema()));
+    } catch (final KsqlException e) {
+      throw new KsqlException("Could not load UDF method with signature: " + method, e);
+    }
+
     functionRegistry.addFunction(KsqlFunction.create(
-        SchemaUtil.getSchemaFromType(method.getGenericReturnType()),
+        returnType,
         parameters,
         functionName,
         udfClass,

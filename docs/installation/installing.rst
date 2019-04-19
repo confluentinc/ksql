@@ -72,7 +72,7 @@ Follow these instructions to start KSQL server using the ``ksql-server-start`` s
     ::
 
         bootstrap.servers=localhost:9092
-        listeners=http://localhost:8088
+        listeners=http://0.0.0.0:8088
 
     For more information, see :ref:`ksql-server-config`.
 

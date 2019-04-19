@@ -29,8 +29,6 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
@@ -41,6 +39,7 @@ import io.confluent.ksql.test.commons.QttTestFile;
 import io.confluent.ksql.test.commons.TestCase;
 import io.confluent.ksql.test.commons.TestCaseNode;
 import io.confluent.ksql.test.commons.TopologyTestDriverContainer;
+import io.confluent.ksql.test.commons.services.FakeKafkaService;
 import io.confluent.ksql.testingtool.services.KsqlEngineTestUtil;
 import io.confluent.ksql.testingtool.services.TestServiceContext;
 import io.confluent.ksql.testingtool.util.TestFunctionRegistry;
@@ -64,11 +63,12 @@ public final class TestRunner {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
   private static final ServiceContext serviceContext = getServiceContext();
   private static final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext);
   private static final Map<String, Object> config = getConfigs(new HashMap<>());
+
+  private static final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
 
   private TestRunner() {
 
@@ -107,7 +107,7 @@ public final class TestRunner {
 
   }
 
-  static void shouldBuildAndExecuteQuery(final TestCase testCase) {
+  private static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 
@@ -120,20 +120,37 @@ public final class TestRunner {
       testCase.initializeTopics(
           serviceContext.getTopicClient(),
           serviceContext.getSchemaRegistryClient());
+
       final List<TopologyTestDriverContainer> topologyTestDrivers = buildStreamsTopologyTestDriver(
           testCase,
           serviceContext,
           ksqlEngine,
           ksqlConfig
       );
+
+      testCase.createInputTopics(fakeKafkaService);
+      testCase.writeInputIntoTopics(fakeKafkaService, serviceContext.getSchemaRegistryClient());
+
       for (final TopologyTestDriverContainer topologyTestDriverContainer: topologyTestDrivers) {
         testCase.verifyTopology();
-        testCase.processInput(
+        testCase.processInputFromTopic(
             topologyTestDriverContainer,
+            fakeKafkaService,
+            serviceContext.getTopicClient(),
             serviceContext.getSchemaRegistryClient());
-        testCase.verifyOutput(
+
+        testCase.verifyOutputTopics(
             topologyTestDriverContainer,
-            serviceContext.getSchemaRegistryClient());
+            fakeKafkaService,
+            serviceContext.getSchemaRegistryClient()
+        );
+
+//        testCase.processInput(
+//            topologyTestDriverContainer,
+//            serviceContext.getSchemaRegistryClient());
+//        testCase.verifyOutput(
+//            topologyTestDriverContainer,
+//            serviceContext.getSchemaRegistryClient());
         testCase.verifyMetastore(ksqlEngine.getMetaStore());
       }
     } catch (final RuntimeException e) {
@@ -196,11 +213,11 @@ public final class TestRunner {
           topologyTestDriver,
           persistentQueryMetadata.getSourceNames()
               .stream()
-              .map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName())
+              .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
               .collect(Collectors.toSet()),
           persistentQueryMetadata.getSinkNames()
               .stream()
-              .map(s -> ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName())
+              .map(s -> ksqlEngine.getMetaStore().getSource(s).getKsqlTopic())
               .collect(Collectors.toSet())
       ));
 
@@ -236,7 +253,7 @@ public final class TestRunner {
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
    */
-  public static List<PersistentQueryMetadata> execute(
+  private static List<PersistentQueryMetadata> execute(
       final KsqlEngine engine,
       final String sql,
       final KsqlConfig ksqlConfig,

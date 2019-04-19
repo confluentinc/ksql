@@ -50,7 +50,7 @@ public final class SummaryStatsUdaf {
   @UdafFactory(description = "compute summary stats for doubles")
   // Can be used with stream aggregations. The input of our aggregation will be doubles,
   // and the output will be a map
-  public static Udaf<Double, Map<String, Double>> createStddev() {
+  public static Udaf<Double, Map<String, Double>> createUdaf() {
 
     return new Udaf<Double, Map<String, Double>>() {
 
@@ -65,9 +65,6 @@ public final class SummaryStatsUdaf {
         stats.put("mean", 0.0);
         stats.put("sample_size", 0.0);
         stats.put("sum", 0.0);
-        stats.put("sum_squares", 0.0);
-        stats.put("stddev_population", 0.0);
-        stats.put("stddev_sample", 0.0);
         return stats;
       }
 
@@ -88,30 +85,11 @@ public final class SummaryStatsUdaf {
 
         final Double sum = newValue + aggregateValue
             .getOrDefault("sum", 0.0);
-
-        final Double sumSquares = (newValue * newValue) + aggregateValue
-            .getOrDefault("sum_squares", 0.0);
-
-        // Calculate a rolling population standard deviation.
-        final Double mean = sum / sampleSize;
-        final Double variancePopulation = (sumSquares / sampleSize) - (mean * mean);
-
-        // Build the map of summary statistics
-        aggregateValue.put("mean", mean);
+  
+        // calculate the new aggregate
+        aggregateValue.put("mean", sum / sampleSize);
         aggregateValue.put("sample_size", sampleSize);
         aggregateValue.put("sum", sum);
-        aggregateValue.put("sum_squares", sumSquares);
-        aggregateValue.put("stddev_population", Math.sqrt(variancePopulation));
-
-        if (sampleSize > 1) {
-          // Get the unbiased variance to calculate a rolling sample standard deviation
-          final Double inverse = sampleSize / (sampleSize - 1);
-          final Double varianceSample = inverse * variancePopulation;
-          aggregateValue.put("stddev_sample", Math.sqrt(varianceSample));
-        } else {
-          aggregateValue.put("stddev_sample", 0.0);
-        }
-
         return aggregateValue;
       }
 
@@ -127,8 +105,17 @@ public final class SummaryStatsUdaf {
           final Map<String, Double> aggOne,
           final Map<String, Double> aggTwo
       ) {
-        // Merging the two aggregates is left as an exercise for the reader ;)
-        return aggTwo;
+        final Double sampleSize =
+            aggOne.getOrDefault("sample_size", 0.0) + aggTwo.getOrDefault("sample_size", 0.0);
+        final Double sum =
+            aggOne.getOrDefault("sum", 0.0) + aggTwo.getOrDefault("sum", 0.0);
+
+        // calculate the new aggregate
+        final Map<String, Double> newAggregate = new HashMap<>();
+        newAggregate.put("mean", sum / sampleSize);
+        newAggregate.put("sample_size", sampleSize);
+        newAggregate.put("sum", sum);
+        return newAggregate;
       }
     };
   }

@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThat;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class CountKudafTest {

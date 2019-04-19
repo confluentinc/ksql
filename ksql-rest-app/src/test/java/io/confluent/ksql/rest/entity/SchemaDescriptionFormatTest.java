@@ -20,7 +20,6 @@ import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.json.JsonMapper;
 import java.io.IOException;
 import java.util.List;
@@ -28,11 +27,6 @@ import java.util.Optional;
 import org.junit.Test;
 
 public class SchemaDescriptionFormatTest {
-  private ObjectMapper newObjectMapper() {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    objectMapper.registerModule(new Jdk8Module());
-    return objectMapper;
-  }
 
   private void shouldSerializeCorrectly(final String descriptionString,
                                         final List<FieldInfo> deserialized) throws IOException {

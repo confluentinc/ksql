@@ -432,6 +432,6 @@ public final class SchemaUtil {
       // handle var args
       return SchemaBuilder.array(getSchemaFromType(((Class<?>) type).getComponentType()));
     }
-    throw new KsqlException("Type is not supported: " + type);
+    throw new KsqlException("Type inference is not supported for: " + type);
   }
 }

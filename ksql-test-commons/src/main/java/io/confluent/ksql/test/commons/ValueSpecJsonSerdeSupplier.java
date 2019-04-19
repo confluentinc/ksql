@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.test.commons;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import java.util.Map;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -29,4 +31,49 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
   public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     return new ValueSpecJsonDeserializer();
   }
+
+  private static final class ValueSpecJsonSerializer implements Serializer<Object> {
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public void configure(final Map<String, ?> properties, final boolean b) {
+    }
+
+    @Override
+    public byte[] serialize(final String topicName, final Object spec) {
+      if (spec == null) {
+        return null;
+      }
+      try {
+        return new ObjectMapper().writeValueAsBytes(spec);
+      } catch (final Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  private static final class ValueSpecJsonDeserializer implements Deserializer<Object> {
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public void configure(final Map<String, ?> properties, final boolean b) {
+    }
+
+    @Override
+    public Object deserialize(final String topicName, final byte[] data) {
+      if (data == null) {
+        return null;
+      }
+      try {
+        return new ObjectMapper().readValue(data, Map.class);
+      } catch (final Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
 }

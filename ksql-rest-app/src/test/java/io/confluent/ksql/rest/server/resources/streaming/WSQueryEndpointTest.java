@@ -28,13 +28,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
@@ -65,7 +65,6 @@ import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -77,7 +76,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class WSQueryEndpointTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
   private static final KsqlRequest VALID_REQUEST = new KsqlRequest("test-sql",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"), null);
@@ -123,11 +122,6 @@ public class WSQueryEndpointTest {
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
   private WSQueryEndpoint wsQueryEndpoint;
-
-  @BeforeClass
-  public static void setUpClass() {
-    OBJECT_MAPPER.registerModule(new Jdk8Module());
-  }
 
   @Before
   public void setUp() {

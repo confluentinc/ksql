@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.ddl.DdlConfig;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.RegisterTopic;
@@ -67,7 +68,7 @@ public class CliUtils {
   public String getAvroSchema(final String schemaFilePath) {
     try {
       final byte[] jsonData = Files.readAllBytes(Paths.get(schemaFilePath));
-      final ObjectMapper objectMapper = new ObjectMapper();
+      final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
       final JsonNode root = objectMapper.readTree(jsonData);
       return root.toString();
     } catch (final JsonParseException e) {

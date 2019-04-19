@@ -75,16 +75,14 @@ JMX Metrics
 -----------
 
 .. include:: ../../includes/ksql-includes.rst
-    :start-line: 328
-    :end-line: 335
+    :start-after: enable_JMX_metrics_start
+    :end-before: enable_JMX_metrics_end
 
-Run the ``ksql-print-metrics`` tool, which is located at
-``<path-to-confluent>/bin/ksql-print-metrics``, to see the
-available JMX metrics for KSQL.
+Run the ``ksql-print-metrics`` tool to see the available JMX metrics for KSQL.
 
 .. code:: bash
 
-    ksql-print-metrics 
+    <path-to-confluent>/bin/ksql-print-metrics 
 
 Your output should resemble:
 
@@ -110,31 +108,31 @@ Your output should resemble:
 
 The following table describes the available KSQL metrics.
 
-+---------------------------+--------------------------------------------------------------------------------------------+
-| JMX Metric                | Description                                                                                |
-+===========================+============================================================================================+
-| bytes-consumed-total      | Number of bytes consumed across all queries.                                               |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| messages-consumed-per-sec | Messages consumed per second across all queries.                                           |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| messages-consumed-avg     | The average number of messages consumed by a query per second.                             |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| messages-consumed-min     | Messages consumed per second for the query with the fewest messages consumed per second.   |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| messages-consumed-max     | Messages consumed per second for the query with the most messages consumed per second.     |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| messages-consumed-total   | Number of messages consumed across all queries.                                            |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| messages-produced-per-sec | Messages produced per second across all queries.                                           |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| error-rate                | The number of messages which were consumed but not processed across all queries.           |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| num-persistent-queries    | The number of queries currently executing.                                                 |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| num-active-queries        | The number of queries actively processing messages.                                        |
-+---------------------------+--------------------------------------------------------------------------------------------+
-| num-idle-queries          | The number of queries with no messages available to process.                               |
-+---------------------------+--------------------------------------------------------------------------------------------+
++---------------------------+------------------------------------------------------------------------------------------------------+
+| JMX Metric                | Description                                                                                          |
++===========================+======================================================================================================+
+| bytes-consumed-total      | Number of bytes consumed across all queries.                                                         |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| error-rate                | Number of messages that have been consumed but not processed across all queries.                     |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| messages-consumed-avg     | Average number of messages consumed by a query per second.                                           |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| messages-consumed-per-sec | Number of messages consumed per second across all queries.                                           |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| messages-consumed-min     | Number of messages consumed per second for the query with the fewest messages consumed per second.   |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| messages-consumed-max     | Number of messages consumed per second for the query with the most messages consumed per second.     |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| messages-consumed-total   | Number of messages consumed across all queries.                                                      |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| messages-produced-per-sec | Number of messages produced per second across all queries.                                           |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| num-persistent-queries    | Number of persistent queries that are currently executing.                                           |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| num-active-queries        | Number of queries that are actively processing messages.                                             |
++---------------------------+------------------------------------------------------------------------------------------------------+
+| num-idle-queries          | Number of queries with no messages available to process.                                             |
++---------------------------+------------------------------------------------------------------------------------------------------+
 
 .. _restrict-ksql-interactive:
 

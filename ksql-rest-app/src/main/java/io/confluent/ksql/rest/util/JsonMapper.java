@@ -17,6 +17,7 @@
 package io.confluent.ksql.rest.util;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
@@ -29,5 +30,6 @@ public enum JsonMapper {
   JsonMapper() {
     mapper.registerModule(new Jdk8Module());
     mapper.registerModule(new StructSerializationModule());
+    mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   }
 }

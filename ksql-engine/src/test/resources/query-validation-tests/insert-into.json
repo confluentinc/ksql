@@ -1,0 +1,40 @@
+{
+  "tests": [
+    {
+      "name": "convert formats: JSON to AVRO",
+      "statements": [
+        "CREATE STREAM SOURCE (A bigint, B varchar) WITH (kafka_topic='source', value_format='JSON');",
+        "CREATE STREAM SINK (A bigint, B varchar) WITH (kafka_topic='sink', value_format='AVRO');",
+        "INSERT INTO SINK SELECT * FROM SOURCE;"
+      ],
+      "inputs": [
+        {"topic": "source", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "sink", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "convert formats: AVRO to JSON",
+      "statements": [
+        "CREATE STREAM SOURCE (A bigint, B varchar) WITH (kafka_topic='source', value_format='AVRO');",
+        "CREATE STREAM SINK (A bigint, B varchar) WITH (kafka_topic='sink', value_format='JSON');",
+        "INSERT INTO SINK SELECT * FROM SOURCE;"
+      ],
+      "inputs": [
+        {"topic": "source", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "sink", "key": 0, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": 0, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": 0, "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ]
+    }
+  ]
+}

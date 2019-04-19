@@ -189,7 +189,6 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
         getKeySerde(intoStructuredDataSource)
     );
     analysis.setInto(intoKsqlStream, doCreateInto);
-
   }
 
   private static Serde<?> getKeySerde(final StructuredDataSource intoStructuredDataSource) {
@@ -638,9 +637,10 @@ public class Analyzer extends DefaultTraversalVisitor<Node, AnalysisContext> {
       analysis.getIntoProperties().put(DdlConfig.AVRO_SCHEMA_FILE, avroSchemaFilePath);
 
       final Expression avroSchemaFullName =
-              node.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
+          node.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
       analysis.getIntoProperties().put(
-              DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
+          DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME,
+          avroSchemaFullName != null
               ? avroSchemaFullName : KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
     } else if (node.getProperties().containsKey(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME)) {
       throw new KsqlException(

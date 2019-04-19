@@ -45,6 +45,7 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -143,7 +144,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
-    createOutputNode(props, true);
+    createOutputNode(props, true, new KsqlJsonTopicSerDe());
     when(queryIdGenerator.getNextId()).thenReturn(QUERY_ID_STRING);
 
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
@@ -153,13 +154,16 @@ public class KsqlStructuredDataOutputNodeTest {
             .push(inv.getArgument(0).toString()));
   }
 
-  private void createOutputNode(final Map<String, Object> props, final boolean createInto) {
+  private void createOutputNode(
+      final Map<String, Object> props,
+      final boolean createInto,
+      final KsqlTopicSerDe serde) {
     outputNode = new KsqlStructuredDataOutputNode(new PlanNodeId("0"),
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
         Optional.of(schema.field("key")),
-        new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
+        new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, serde, true),
         SINK_KAFKA_TOPIC_NAME,
         props,
         Optional.empty(),
@@ -233,7 +237,10 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldPartitionByFieldNameInPartitionByProperty() {
     // Given:
-    createOutputNode(Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "field2"), true);
+    createOutputNode(
+        Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "field2"),
+        true,
+        new KsqlJsonTopicSerDe());
 
     // When:
     stream = outputNode.buildStream(ksqlStreamBuilder);
@@ -270,7 +277,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldComputeQueryIdCorrectlyForInsertInto() {
     // Given:
-    createOutputNode(Collections.emptyMap(), false);
+    createOutputNode(Collections.emptyMap(), false, new KsqlJsonTopicSerDe());
 
     // When:
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
@@ -284,6 +291,18 @@ public class KsqlStructuredDataOutputNodeTest {
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(topicSerde);
     return ksqlTopic;
+  }
+
+  @Test
+  public void shouldBuildOutputNodeForInsertIntoAvroFromNonAvro() {
+    // Given:
+    //
+    // For this case, the properties will be empty (since the analyzer fills the serde
+    // properties in based on the source relation.
+    createOutputNode(Collections.emptyMap(), false, new KsqlAvroTopicSerDe("name"));
+
+    // When/Then (should not throw):
+    outputNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test

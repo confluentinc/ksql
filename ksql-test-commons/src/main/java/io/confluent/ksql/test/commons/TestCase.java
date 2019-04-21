@@ -212,7 +212,8 @@ public class TestCase implements Test {
                     testDriver.getTopologyTestDriver().readOutput(
                         ksqlTopic.getKafkaTopicName(),
                         new StringDeserializer(),
-                        new StringDeserializer())
+                        getSerdeSupplierForKsqlTopic(ksqlTopic)
+                            .getDeserializer(schemaRegistryClient))
                 )
             );
           } catch (final IOException e) {

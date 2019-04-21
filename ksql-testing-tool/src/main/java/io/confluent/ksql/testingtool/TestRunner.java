@@ -144,13 +144,6 @@ public final class TestRunner {
             fakeKafkaService,
             serviceContext.getSchemaRegistryClient()
         );
-
-//        testCase.processInput(
-//            topologyTestDriverContainer,
-//            serviceContext.getSchemaRegistryClient());
-//        testCase.verifyOutput(
-//            topologyTestDriverContainer,
-//            serviceContext.getSchemaRegistryClient());
         testCase.verifyMetastore(ksqlEngine.getMetaStore());
       }
     } catch (final RuntimeException e) {

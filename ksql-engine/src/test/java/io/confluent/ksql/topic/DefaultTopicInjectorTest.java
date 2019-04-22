@@ -41,7 +41,7 @@ import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient.FakeTopic;
-import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
+import io.confluent.ksql.util.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;

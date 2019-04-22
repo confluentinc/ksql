@@ -24,7 +24,7 @@ import io.confluent.ksql.schema.inference.DefaultSchemaInjector;
 import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.topic.DefaultTopicInjector;
 import io.confluent.ksql.schema.inference.SchemaRegistryTopicSchemaSupplier;
-import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;

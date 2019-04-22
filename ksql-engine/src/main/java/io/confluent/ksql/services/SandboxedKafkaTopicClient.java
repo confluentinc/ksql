@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.util.KafkaTopicClient;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Collection;
 import java.util.Collections;

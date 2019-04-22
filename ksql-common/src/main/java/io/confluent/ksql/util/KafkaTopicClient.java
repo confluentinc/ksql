@@ -13,10 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.services;
+package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.util.exception.KafkaTopicExistsException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;

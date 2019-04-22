@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
+import io.confluent.ksql.util.KafkaTopicClient;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;

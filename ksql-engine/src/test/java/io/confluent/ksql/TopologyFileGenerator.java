@@ -15,7 +15,7 @@
 
 package io.confluent.ksql;
 
-import io.confluent.ksql.EndToEndEngineTestUtil.TestCase;
+import io.confluent.ksql.test.commons.TestCase;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,7 +28,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.TestUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.w3c.dom.Document;

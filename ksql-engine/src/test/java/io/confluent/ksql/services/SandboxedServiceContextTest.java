@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
+import io.confluent.ksql.util.KafkaTopicClient;
 import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Objects;

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.mock;
 
-import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KafkaTopicClient;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;

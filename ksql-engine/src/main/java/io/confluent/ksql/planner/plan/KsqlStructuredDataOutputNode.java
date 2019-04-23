@@ -114,12 +114,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
 
     final Set<Integer> rowkeyIndexes = SchemaUtil.getRowTimeRowKeyIndexes(getSchema());
-    final Builder outputNodeBuilder = new Builder(this);
     final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
 
     final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
-        outputNodeBuilder,
         builder.getKsqlConfig(),
         builder.getFunctionRegistry(),
         contextStacker
@@ -139,14 +137,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         rowkeyIndexes
     );
 
-    result.setOutputNode(outputNodeBuilder.build());
+    result.setOutputNode(this);
     return result;
   }
 
   @SuppressWarnings("unchecked")
   private SchemaKStream<?> createOutputStream(
       final SchemaKStream schemaKStream,
-      final KsqlStructuredDataOutputNode.Builder outputNodeBuilder,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final QueryContext.Stacker contextStacker
@@ -179,7 +176,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     }
 
     final Field field = partitionByField.get();
-    outputNodeBuilder.withKeyFields(Optional.of(field.name()), Optional.of(field));
     return result.selectKey(field, false, contextStacker);
   }
 
@@ -195,38 +191,5 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
-  }
-
-  public static class Builder {
-
-    private final KsqlStructuredDataOutputNode original;
-    private KeyField keyField;
-
-    Builder(final KsqlStructuredDataOutputNode original) {
-      this.original = Objects.requireNonNull(original, "original");
-      this.keyField = original.keyField;
-    }
-
-    public KsqlStructuredDataOutputNode build() {
-      return new KsqlStructuredDataOutputNode(
-          original.getId(),
-          original.getSource(),
-          original.getSchema(),
-          original.getTimestampExtractionPolicy(),
-          keyField,
-          original.ksqlTopic,
-          original.kafkaTopicName,
-          original.outputProperties,
-          original.getLimit(),
-          original.isDoCreateInto());
-    }
-
-    Builder withKeyFields(
-        final Optional<String> keyFieldName,
-        final Optional<Field> legacyKeyField
-    ) {
-      this.keyField = KeyField.of(keyFieldName, legacyKeyField);
-      return this;
-    }
   }
 }

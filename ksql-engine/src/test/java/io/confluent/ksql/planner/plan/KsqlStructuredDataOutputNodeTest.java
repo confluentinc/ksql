@@ -252,13 +252,11 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     final List<Field> expected = Arrays.asList(
-        new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("ROWKEY", 1, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("field1", 2, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("field2", 3, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("field3", 4, Schema.OPTIONAL_STRING_SCHEMA),
-        new Field("timestamp", 5, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("key", 6, Schema.OPTIONAL_STRING_SCHEMA));
+        new Field("field1", 0, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("field3", 2, Schema.OPTIONAL_STRING_SCHEMA),
+        new Field("timestamp", 3, Schema.OPTIONAL_INT64_SCHEMA),
+        new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA));
     final List<Field> fields = stream.outputNode().getSchema().fields();
     assertThat(fields, equalTo(expected));
   }

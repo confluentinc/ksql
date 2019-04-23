@@ -30,6 +30,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -40,6 +41,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -151,7 +153,9 @@ public class JoinNodeTest {
     EasyMock.expect(mockKsqlConfig.cloneWithPropertyOverwrite(
         Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
         .andStubReturn(mockKsqlConfigClonedWithOffsetReset);
-    EasyMock.expect(rightSchemaKTable.getKeyField()).andReturn(Optional.empty()).anyTimes();
+    EasyMock.expect(rightSchemaKTable.getKeyField())
+        .andReturn(KeyField.none())
+        .anyTimes();
 
     EasyMock.replay(serviceContext, mockKsqlConfig);
 
@@ -970,7 +974,8 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   private void setupTable(final StructuredDataSourceNode node, final SchemaKTable table,
                           final Schema schema, final int partitions) {
-    expect(node.getSchema()).andReturn(schema);
+    expect(node.getSchema()).andReturn(schema).anyTimes();
+    expect(table.getSchema()).andReturn(schema).anyTimes();
     expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
 
     expect(node.buildStream(ksqlStreamBuilder)).andReturn(table);
@@ -1005,16 +1010,16 @@ public class JoinNodeTest {
       final SchemaKStream stream,
       final Schema schema,
       final int partitions) {
-    expect(node.getSchema()).andReturn(schema);
+    expect(node.getSchema()).andReturn(schema).anyTimes();
     expect(node.getPartitions(mockKafkaTopicClient)).andReturn(partitions);
     expectBuildStream(node, contextStacker, stream, schema);
   }
 
   private static void expectKeyField(final SchemaKStream stream, final String keyFieldName) {
     final Field field = niceMock(Field.class);
-    expect(stream.getKeyField()).andStubReturn(Optional.of(field));
     expect(field.name()).andStubReturn(keyFieldName);
     replay(field);
+    expect(stream.getKeyField()).andStubReturn(KeyField.of(keyFieldName, field));
   }
 
   private Schema joinSchema() {
@@ -1046,7 +1051,6 @@ public class JoinNodeTest {
     expect(ksqlTopic.getKsqlTopicSerDe()).andReturn(ksqlTopicSerde);
 
     final Serde<GenericRow> serde = niceMock(Serde.class);
-    expect(node.getSchema()).andReturn(schema);
     expect(ksqlTopicSerde.getGenericRowSerde(
         schema,
         ksqlConfig,

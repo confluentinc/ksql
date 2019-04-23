@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -141,7 +142,7 @@ public class KsqlParserTest {
         "sqlexpression",
         "ADDRESS",
         schemaBuilderOrders,
-        Optional.of(schemaBuilderOrders.field("ORDERTIME")),
+        KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders,
         Serdes::String);
@@ -156,7 +157,7 @@ public class KsqlParserTest {
         "sqlexpression",
         "ITEMID",
         itemInfoSchema,
-        Optional.ofNullable(itemInfoSchema.field("ITEMID")),
+        KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems,
         Serdes::String);

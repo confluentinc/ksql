@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("description")
@@ -100,7 +99,7 @@ public class SourceDescription {
         writeQueries,
         EntityUtil.buildSourceSchemaEntity(dataSource.getSchema()),
         dataSource.getDataSourceType().getKqlType(),
-        dataSource.getKeyField().map(Field::name).orElse(""),
+        dataSource.getKeyField().name().orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
             .map(TimestampExtractionPolicy::timestampField).orElse(""),
         (extended

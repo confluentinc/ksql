@@ -26,19 +26,16 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -47,14 +44,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
-import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryLoggerUtil;
@@ -67,18 +59,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.Node;
-import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -87,7 +73,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -116,14 +101,15 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private final KsqlStream dataSource = new KsqlStream<>("sqlExpression", "datasource",
       schema,
-      Optional.of(schema.field("key")),
+      KeyField.of("key", schema.field("key")),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME,
           new KsqlJsonTopicSerDe(), false), Serdes::String);
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
       dataSource,
-      schema);
+      schema,
+      dataSource.getKeyField());
 
   private StreamsBuilder builder;
   private KsqlStructuredDataOutputNode outputNode;
@@ -162,12 +148,55 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        Optional.of(schema.field("key")),
+        KeyField.of("key", schema.field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, serde, true),
         SINK_KAFKA_TOPIC_NAME,
         props,
         Optional.empty(),
         createInto);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowIfKeyFieldDoesNotMatchPartitionBy() {
+    // Given
+    final KeyField keyField = KeyField.of("key", schema.field("key"));
+    final ImmutableMap<String, Object> of = ImmutableMap.of(
+        DdlConfig.PARTITION_BY_PROPERTY, "field1"
+    );
+
+    // When:
+    new KsqlStructuredDataOutputNode(
+        new PlanNodeId("0"),
+        sourceNode,
+        schema,
+        new LongColumnTimestampExtractionPolicy("timestamp"),
+        keyField,
+        new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
+        SINK_KAFKA_TOPIC_NAME,
+        of,
+        Optional.empty(),
+        false);
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfPartitionByColumnNotInSchema() {
+    // Given
+    final ImmutableMap<String, Object> of = ImmutableMap.of(
+        DdlConfig.PARTITION_BY_PROPERTY, "you ain't seen me"
+    );
+
+    // When:
+    new KsqlStructuredDataOutputNode(
+        new PlanNodeId("0"),
+        sourceNode,
+        schema,
+        new LongColumnTimestampExtractionPolicy("timestamp"),
+        KeyField.of("key", schema.field("key")),
+        new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
+        SINK_KAFKA_TOPIC_NAME,
+        of,
+        Optional.empty(),
+        false);
   }
 
   @Test
@@ -238,7 +267,7 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldPartitionByFieldNameInPartitionByProperty() {
     // Given:
     createOutputNode(
-        Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "field2"),
+        Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "key"),
         true,
         new KsqlJsonTopicSerDe());
 
@@ -246,7 +275,9 @@ public class KsqlStructuredDataOutputNodeTest {
     stream = outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    assertThat(stream.getKeyField(), is(Optional.of(new Field("field2", 1, Schema.OPTIONAL_STRING_SCHEMA))));
+    assertThat(stream.getKeyField().name(), is(Optional.of("key")));
+    assertThat(stream.getKeyField().legacy(),
+        is(Optional.of(new Field("key", 4, Schema.OPTIONAL_STRING_SCHEMA))));
     assertThat(stream.getSchema().fields(), equalTo(schema.fields()));
   }
 
@@ -314,7 +345,7 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        Optional.ofNullable(schema.field("key")),
+        KeyField.of("key", schema.field("key")),
         mockTopic(topicSerde),
         "output",
         Collections.emptyMap(),
@@ -341,23 +372,26 @@ public class KsqlStructuredDataOutputNodeTest {
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short) 3);
 
+    final KsqlTable<K> dataSource = new KsqlTable<>(
+        "sqlExpression", "datasource",
+        schema,
+        KeyField.of("key", schema.field("key")),
+        new MetadataTimestampExtractionPolicy(),
+        new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), false),
+        keySerdeFatory);
+
     final StructuredDataSourceNode tableSourceNode = new StructuredDataSourceNode(
         new PlanNodeId("0"),
-        new KsqlTable<>(
-            "sqlExpression", "datasource",
-            schema,
-            Optional.ofNullable(schema.field("key")),
-            new MetadataTimestampExtractionPolicy(),
-            new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), false),
-            keySerdeFatory),
-        schema);
+        dataSource,
+        dataSource.getSchema(),
+        dataSource.getKeyField());
 
     return new KsqlStructuredDataOutputNode(
         new PlanNodeId("0"),
         tableSourceNode,
         schema,
         new MetadataTimestampExtractionPolicy(),
-        Optional.ofNullable(schema.field("key")),
+        KeyField.of("key", schema.field("key")),
         new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
         SINK_KAFKA_TOPIC_NAME,
         props,

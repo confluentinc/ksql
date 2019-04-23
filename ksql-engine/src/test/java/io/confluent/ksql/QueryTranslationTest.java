@@ -32,7 +32,6 @@ import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -42,7 +41,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -58,12 +56,12 @@ import io.confluent.ksql.EndToEndEngineTestUtil.WindowData;
 import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.metastore.model.StructuredDataSource;
-import io.confluent.ksql.metastore.model.StructuredDataSourceMatchers;
-import io.confluent.ksql.metastore.model.StructuredDataSourceMatchers.FieldMatchers;
-import io.confluent.ksql.metastore.model.StructuredDataSourceMatchers.OptionalMatchers;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -71,9 +69,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
-import io.confluent.ksql.schema.ksql.LogicalSchemas.SqlTypeToLogicalConverter;
+import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -96,8 +93,10 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -105,7 +104,7 @@ import org.junit.runners.Parameterized;
 
 /**
  *  Runs the json functional tests defined under
- *  `ksql-engine/src/test/resources/query-validation-tests`.
+ *  `ksql-engine/src/test/resources/query-validational-tests`.
  *
  *  See `ksql-engine/src/test/resources/query-validation-tests/README.md` for more info.
  */
@@ -651,72 +650,28 @@ public class QueryTranslationTest {
     }
   }
 
-  static class SourceNodeDeserializer extends StdDeserializer<SourceNode> {
-
-    public SourceNodeDeserializer() {
-      super(SourceNode.class);
-    }
-
-    @Override
-    public SourceNode deserialize(
-        final JsonParser jp,
-        final DeserializationContext ctxt
-    ) throws IOException {
-
-      final JsonNode node = jp.getCodec().readTree(jp);
-
-      final String name = buildString("name", node, jp);
-      final String type = buildString("type", node, jp);
-      final Optional<FieldNode> keyField = buildKeyField(node, jp);
-
-      return new SourceNode(name, type, keyField);
-    }
-
-    private static String buildString(
-        final String name,
-        final JsonNode node,
-        final JsonParser jp
-    ) throws IOException {
-      return node.get(name).traverse(jp.getCodec()).readValueAs(String.class);
-    }
-
-    private static Optional<FieldNode> buildKeyField(
-        final JsonNode node,
-        final JsonParser jp
-    ) throws IOException {
-      if (!node.has("keyField")) {
-        return Optional.empty();
-      }
-
-      final JsonNode keyField = node.get("keyField");
-      if (keyField instanceof NullNode) {
-        return Optional.of(FieldNode.NULL);
-      }
-
-      return Optional.of(keyField.traverse(jp.getCodec()).readValueAs(FieldNode.class));
-    }
-  }
-
-  @JsonDeserialize(using = SourceNodeDeserializer.class)
   static class SourceNode {
 
     private final String name;
     private final Optional<Class<? extends StructuredDataSource>> type;
-    private final Optional<FieldNode> keyField;
+    private final Optional<KeyFieldNode> keyField;
+    private final Optional<Schema> valueSchema;
 
     SourceNode(
-        @JsonProperty("name") final String name,
-        @JsonProperty("type") final String type,
-        @JsonProperty("keyField") final Optional<FieldNode> keyField
+        @JsonProperty(value = "name", required = true) final String name,
+        @JsonProperty(value = "type", required = true) final String type,
+        @JsonProperty("keyField") final KeyFieldNode keyField,
+        @JsonProperty("valueSchema") final String valueSchema
     ) {
       this.name = name == null ? "" : name;
-      this.keyField = keyField;
+      this.keyField = Optional.ofNullable(keyField);
+      this.valueSchema = parseSchema(valueSchema);
       this.type = Optional.ofNullable(type)
           .map(String::toUpperCase)
           .map(SourceNode::toType);
 
       if (this.name.isEmpty()) {
-        throw new InvalidFieldException("name", "empty or missing");
+        throw new InvalidFieldException("name", "missing or empty");
       }
     }
 
@@ -726,7 +681,7 @@ public class QueryTranslationTest {
         throw new InvalidFieldException("name", "missing or empty");
       }
 
-      final Matcher<StructuredDataSource<?>> nameMatcher = StructuredDataSourceMatchers
+      final Matcher<StructuredDataSource<?>> nameMatcher = MetaStoreMatchers
           .hasName(name);
 
       final Matcher<Object> typeMatcher = type
@@ -734,11 +689,17 @@ public class QueryTranslationTest {
           .orElse(null);
 
       final Matcher<StructuredDataSource<?>> keyFieldMatcher = keyField
-          .map(FieldNode::build)
-          .map(StructuredDataSourceMatchers::hasKeyField)
+          .map(KeyFieldNode::build)
+          .map(MetaStoreMatchers::hasKeyField)
           .orElse(null);
 
-      final Matcher[] matchers = Stream.of(nameMatcher, typeMatcher, keyFieldMatcher)
+      final Matcher<StructuredDataSource<?>> valueSchemaMatcher = valueSchema
+          .map(Matchers::is)
+          .map(MetaStoreMatchers::hasValueSchema)
+          .orElse(null);
+
+      final Matcher[] matchers = Stream
+          .of(nameMatcher, typeMatcher, keyFieldMatcher, valueSchemaMatcher)
           .filter(Objects::nonNull)
           .toArray(Matcher[]::new);
 
@@ -757,43 +718,62 @@ public class QueryTranslationTest {
           throw new InvalidFieldException("type", "must be either STREAM or TABLE");
       }
     }
+
+    private static Optional<Schema> parseSchema(final String schema) {
+      return Optional.ofNullable(schema)
+          .map(TypeContextUtil::getType)
+          .map(LogicalSchemas.fromSqlTypeConverter()::fromSqlType)
+          .map(SourceNode::makeTopLevelStructNoneOptional);
+    }
+
+    private static ConnectSchema makeTopLevelStructNoneOptional(final Schema schema) {
+      if (schema.type() != Schema.Type.STRUCT) {
+        return (ConnectSchema) schema.schema();
+      }
+
+      final SchemaBuilder builder = SchemaBuilder.struct();
+      schema.fields().forEach(field -> builder.field(field.name(), field.schema()));
+      return (ConnectSchema) builder.build();
+    }
   }
 
-  static class FieldNode {
+  @JsonDeserialize(using = KeyFieldDeserializer.class)
+  static class KeyFieldNode {
 
-    static final FieldNode NULL = new FieldNode("explicitly set to NULL", Optional.empty());
+    static final Optional<String> EXCLUDE_NAME = Optional.of("explicit check that name is not set");
+    static final Optional<Schema> EXCLUDE_SCHEMA = Optional.of(
+        new SchemaBuilder(Type.STRING).name("explicit check that schema is not set").build());
 
-    private final String name;
-    private final Optional<ConnectSchema> schema;
+    private final Optional<String> name;
+    private final Optional<String> legacyName;
+    private final Optional<Schema> legacySchema;
 
-    FieldNode(
-        @JsonProperty("name") final String name,
-
-        @JsonProperty("schema")
-        @JsonDeserialize(using = ConnectSchemaDeserializer.class) final Optional<ConnectSchema> schema
+    KeyFieldNode(
+        final Optional<String> name,
+        final Optional<String> legacyName,
+        final Optional<Schema> legacySchema
     ) {
-      this.name = name == null ? "" : name;
-      this.schema = Objects.requireNonNull(schema, "schema");
-
-      if (this.name.isEmpty()) {
-        throw new InvalidFieldException("name", "empty or missing");
-      }
+      this.name = requireNonNull(name, "name");
+      this.legacyName = requireNonNull(legacyName, "legacyName");
+      this.legacySchema = requireNonNull(legacySchema, "legacySchema");
     }
 
     @SuppressWarnings("unchecked")
-    Matcher<Optional<Field>> build() {
-      if (this == NULL) {
-        return is(Optional.empty());
-      }
+    Matcher<KeyField> build() {
+      final Matcher<KeyField> nameMatcher = name.equals(EXCLUDE_NAME)
+          ? null
+          : KeyFieldMatchers.hasName(name);
 
-      final Matcher<Optional<Field>> nameMatcher = OptionalMatchers.of(FieldMatchers.hasName(name));
+      final Matcher<KeyField> legacyNameMatcher = legacyName.equals(EXCLUDE_NAME)
+          ? null
+          : KeyFieldMatchers.hasLegacyName(legacyName);
 
-      final Matcher<Optional<Field>> schemaMatcher = schema
-          .map(FieldMatchers::hasSchema)
-          .map(OptionalMatchers::of)
-          .orElse(null);
+      final Matcher<KeyField> legacySchemaMatcher = legacySchema.equals(EXCLUDE_SCHEMA)
+          ? null
+          : KeyFieldMatchers.hasLegacySchema(legacySchema);
 
-      final Matcher[] matchers = Stream.of(nameMatcher, schemaMatcher)
+      final Matcher[] matchers = Stream
+          .of(nameMatcher, legacyNameMatcher, legacySchemaMatcher)
           .filter(Objects::nonNull)
           .toArray(Matcher[]::new);
 
@@ -801,36 +781,64 @@ public class QueryTranslationTest {
     }
   }
 
-  static class ConnectSchemaDeserializer extends StdDeserializer<Optional<ConnectSchema>> {
+  static class KeyFieldDeserializer extends StdDeserializer<KeyFieldNode> {
 
-    private final SqlTypeToLogicalConverter sqlTypeToLogicalConverter =
-        LogicalSchemas.fromSqlTypeConverter();
-
-    public ConnectSchemaDeserializer() {
-      super(ConnectSchema.class);
+    public KeyFieldDeserializer() {
+      super(KeyFieldNode.class);
     }
 
     @Override
-    public Optional<ConnectSchema> deserialize(
+    public KeyFieldNode deserialize(
         final JsonParser jp,
         final DeserializationContext ctxt
     ) throws IOException {
 
       final JsonNode node = jp.getCodec().readTree(jp);
 
-      final String type = node.get("type").traverse(jp.getCodec()).readValueAs(String.class);
-      if (type == null) {
-        throw new MissingFieldException("type");
+      final Optional<String> name = buildString("name", node, jp);
+      final Optional<String> legacyName = buildString("legacyName", node, jp);
+      final Optional<Schema> legacySchema = buildLegacySchema(node, jp);
+
+      return new KeyFieldNode(name, legacyName, legacySchema);
+    }
+
+    private static Optional<String> buildString(
+        final String name,
+        final JsonNode node,
+        final JsonParser jp
+    ) throws IOException {
+      if (!node.has(name)) {
+        return KeyFieldNode.EXCLUDE_NAME;
       }
 
-      try {
-        final PrimitiveType sqlType = PrimitiveType.of(type.toUpperCase());
+      final String value = node
+          .get(name)
+          .traverse(jp.getCodec())
+          .readValueAs(String.class);
 
-        return Optional.of((ConnectSchema) sqlTypeToLogicalConverter.fromSqlType(sqlType));
+      return Optional.ofNullable(value);
+    }
+
+    private static Optional<Schema> buildLegacySchema(
+        final JsonNode node,
+        final JsonParser jp
+    ) throws IOException {
+      if (!node.has("legacySchema")) {
+        return KeyFieldNode.EXCLUDE_SCHEMA;
+      }
+
+      final String valueSchema = node
+          .get("legacySchema")
+          .traverse(jp.getCodec())
+          .readValueAs(String.class);
+
+      try {
+        return Optional.ofNullable(valueSchema)
+            .map(TypeContextUtil::getType)
+            .map(LogicalSchemas.fromSqlTypeConverter()::fromSqlType);
       } catch (final Exception e) {
-        throw new InvalidFieldException("type", "only primitive types supported", e);
+        throw new InvalidFieldException("legacySchema", "Failed to parse: " + valueSchema, e);
       }
     }
   }
 }
-

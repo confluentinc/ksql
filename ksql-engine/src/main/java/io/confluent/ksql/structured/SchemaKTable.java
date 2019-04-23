@@ -20,11 +20,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +51,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable(
       final Schema schema,
       final KTable<K, GenericRow> ktable,
-      final Optional<Field> keyField,
+      final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final SerdeFactory<K> keySerdeFactory,
       final Type type,
@@ -74,7 +76,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   SchemaKTable(
       final Schema schema,
       final KTable<K, GenericRow> ktable,
-      final Optional<Field> keyField,
+      final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final SerdeFactory<K> keySerdeFactory,
       final Type type,
@@ -98,7 +100,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     this.ktable = ktable;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<K> into(
       final String kafkaTopicName,
@@ -205,12 +206,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
                     contextStacker.getQueryContext()), Serdes.String(), valSerde)
         );
 
-    final Field newKeyField = new Field(
+    final Field legacyKeyField = new Field(
         groupBy.aggregateKeyName, -1, Schema.OPTIONAL_STRING_SCHEMA);
+
+    final Optional<String> newKeyField = SchemaUtil.getFieldByName(schema, groupBy.aggregateKeyName)
+        .map(Field::name);
+
     return new SchemaKGroupedTable(
         schema,
         kgroupedTable,
-        Optional.of(newKeyField),
+        KeyField.of(newKeyField, Optional.of(legacyKeyField)),
         Collections.singletonList(this),
         ksqlConfig,
         functionRegistry);
@@ -231,7 +236,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        Optional.of(joinKey),
+        KeyField.of(joinKey.name(), joinKey),
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -257,7 +262,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        Optional.of(joinKey),
+        KeyField.of(joinKey.name(), joinKey),
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,
@@ -283,7 +288,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         joinSchema,
         joinedKTable,
-        Optional.of(joinKey),
+        KeyField.of(joinKey.name(), joinKey),
         ImmutableList.of(this, schemaKTable),
         keySerdeFactory,
         Type.JOIN,

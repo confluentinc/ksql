@@ -702,6 +702,48 @@ public class SchemaUtilTest {
     assertThat(SchemaUtil.isNumber(Schema.Type.STRING), is(false));
   }
 
+  @Test
+  public void shouldBuildAliasedFieldName() {
+    // When:
+    final String result = SchemaUtil.buildAliasedFieldName("SomeAlias", "SomeFieldName");
+
+    // Then:
+    assertThat(result, is("SomeAlias.SomeFieldName"));
+  }
+
+  @Test
+  public void shouldBuildAliasedFieldNameThatIsAlreadyAliased() {
+    // When:
+    final String result = SchemaUtil.buildAliasedFieldName("SomeAlias", "SomeAlias.SomeFieldName");
+
+    // Then:
+    assertThat(result, is("SomeAlias.SomeFieldName"));
+  }
+
+  @Test
+  public void shouldBuildAliasedField() {
+    // Given:
+    final Field field = new Field("col0", 1, Schema.INT64_SCHEMA);
+
+    // When:
+    final Field result = SchemaUtil
+        .buildAliasedField("TheAlias", field);
+
+    // Then:
+    assertThat(result, is(new Field("TheAlias.col0", 1, Schema.INT64_SCHEMA)));
+  }
+
+  @Test
+  public void shouldBuildAliasedFieldThatIsAlreadyAliased() {
+    // Given:
+    final Field field = new Field("TheAlias.col0", 1, Schema.INT64_SCHEMA);
+
+    // When:
+    final Field result = SchemaUtil.buildAliasedField("TheAlias", field);
+
+    // Then:
+    assertThat(result, is(field));
+  }
 
   // Following methods not invoked but used to test conversion from Type -> Schema
   @SuppressWarnings("unused")

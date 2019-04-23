@@ -66,6 +66,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -1938,13 +1939,15 @@ public class KsqlResourceTest {
     if (type == DataSource.DataSourceType.KSTREAM) {
       metaStore.putSource(
           new KsqlStream<>(
-              "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
+              "statementText", sourceName, schema,
+              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
               new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
     if (type == DataSource.DataSourceType.KTABLE) {
       metaStore.putSource(
           new KsqlTable<>(
-              "statementText", sourceName, schema, Optional.of(schema.fields().get(0)),
+              "statementText", sourceName, schema,
+              KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
               new MetadataTimestampExtractionPolicy(), ksqlTopic, Serdes::String));
     }
   }

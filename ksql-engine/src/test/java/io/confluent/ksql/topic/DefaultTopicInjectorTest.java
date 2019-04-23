@@ -30,6 +30,7 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -102,7 +103,7 @@ public class DefaultTopicInjectorTest {
         "",
         "SOURCE",
         SCHEMA,
-        Optional.empty(),
+        KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
         sourceTopic,
         Serdes::String);
@@ -114,7 +115,7 @@ public class DefaultTopicInjectorTest {
         "",
         "J_SOURCE",
         SCHEMA,
-        Optional.empty(),
+        KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
         joinTopic,
         Serdes::String);

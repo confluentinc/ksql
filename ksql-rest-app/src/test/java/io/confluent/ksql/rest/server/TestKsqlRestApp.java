@@ -173,7 +173,7 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public static Client buildClient() {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
+    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper.copy();
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
     objectMapper.registerModule(new Jdk8Module());

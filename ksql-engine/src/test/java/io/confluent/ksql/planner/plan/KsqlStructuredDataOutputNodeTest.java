@@ -26,10 +26,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,16 +39,14 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
+import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryLoggerUtil;
@@ -64,14 +59,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -80,7 +73,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -138,7 +130,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final Map<String, Object> props = new HashMap<>();
     props.put(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY, 4);
     props.put(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY, (short)3);
-    createOutputNode(props, true);
+    createOutputNode(props, true, new KsqlJsonTopicSerDe());
     when(queryIdGenerator.getNextId()).thenReturn(QUERY_ID_STRING);
 
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
@@ -148,13 +140,16 @@ public class KsqlStructuredDataOutputNodeTest {
             .push(inv.getArgument(0).toString()));
   }
 
-  private void createOutputNode(final Map<String, Object> props, final boolean createInto) {
+  private void createOutputNode(
+      final Map<String, Object> props,
+      final boolean createInto,
+      final KsqlTopicSerDe serde) {
     outputNode = new KsqlStructuredDataOutputNode(new PlanNodeId("0"),
         sourceNode,
         schema,
         new LongColumnTimestampExtractionPolicy("timestamp"),
         KeyField.of("key", schema.field("key")),
-        new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, new KsqlJsonTopicSerDe(), true),
+        new KsqlTopic(SINK_TOPIC_NAME, SINK_KAFKA_TOPIC_NAME, serde, true),
         SINK_KAFKA_TOPIC_NAME,
         props,
         Optional.empty(),
@@ -271,7 +266,10 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldPartitionByFieldNameInPartitionByProperty() {
     // Given:
-    createOutputNode(Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "key"), true);
+    createOutputNode(
+        Collections.singletonMap(DdlConfig.PARTITION_BY_PROPERTY, "key"),
+        true,
+        new KsqlJsonTopicSerDe());
 
     // When:
     stream = outputNode.buildStream(ksqlStreamBuilder);
@@ -310,7 +308,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldComputeQueryIdCorrectlyForInsertInto() {
     // Given:
-    createOutputNode(Collections.emptyMap(), false);
+    createOutputNode(Collections.emptyMap(), false, new KsqlJsonTopicSerDe());
 
     // When:
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
@@ -324,6 +322,18 @@ public class KsqlStructuredDataOutputNodeTest {
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getKsqlTopicSerDe()).thenReturn(topicSerde);
     return ksqlTopic;
+  }
+
+  @Test
+  public void shouldBuildOutputNodeForInsertIntoAvroFromNonAvro() {
+    // Given:
+    //
+    // For this case, the properties will be empty (since the analyzer fills the serde
+    // properties in based on the source relation.
+    createOutputNode(Collections.emptyMap(), false, new KsqlAvroTopicSerDe("name"));
+
+    // When/Then (should not throw):
+    outputNode.buildStream(ksqlStreamBuilder);
   }
 
   @Test

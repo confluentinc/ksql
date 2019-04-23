@@ -26,7 +26,6 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -34,7 +33,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
@@ -120,10 +118,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
     outputNodeBuilder.withSchema(schema);
 
-    if (getTopicSerde() instanceof KsqlAvroTopicSerDe) {
-      addAvroSchemaToResultTopic(outputNodeBuilder);
-    }
-
     final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
         outputNodeBuilder,
@@ -206,39 +200,20 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
             ));
   }
 
-  private void addAvroSchemaToResultTopic(final Builder builder) {
-    final String schemaFullName = StringUtil.cleanQuotes(
-        outputProperties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
-    final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe(schemaFullName);
-    builder.withKsqlTopic(new KsqlTopic(
-        getKsqlTopic().getName(),
-        getKsqlTopic().getKafkaTopicName(),
-        ksqlAvroTopicSerDe,
-        true
-    ));
-  }
-
   public KsqlTopic getKsqlTopic() {
     return ksqlTopic;
   }
 
-  private KsqlTopicSerDe getTopicSerde() {
-    return ksqlTopic.getKsqlTopicSerDe();
-  }
-
-  private static class Builder {
+  public static class Builder {
 
     private final KsqlStructuredDataOutputNode original;
     private Schema schema;
     private KeyField keyField;
-    private KsqlTopic ksqlTopic;
 
     Builder(final KsqlStructuredDataOutputNode original) {
       this.original = Objects.requireNonNull(original, "original");
       this.schema = original.getSchema();
       this.keyField = original.keyField;
-      this.ksqlTopic = original.ksqlTopic;
     }
 
     public KsqlStructuredDataOutputNode build() {
@@ -248,16 +223,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
           schema,
           original.getTimestampExtractionPolicy(),
           keyField,
-          ksqlTopic,
+          original.ksqlTopic,
           original.kafkaTopicName,
           original.outputProperties,
           original.getLimit(),
           original.isDoCreateInto());
-    }
-
-    Builder withKsqlTopic(final KsqlTopic ksqlTopic) {
-      this.ksqlTopic = ksqlTopic;
-      return this;
     }
 
     Builder withKeyFields(

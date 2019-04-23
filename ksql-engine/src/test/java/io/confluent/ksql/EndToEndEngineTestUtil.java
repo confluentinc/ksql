@@ -286,7 +286,7 @@ final class EndToEndEngineTestUtil {
         return null;
       }
       try {
-        return new ObjectMapper().readValue(data, Map.class);
+        return OBJECT_MAPPER.readValue(data, Map.class);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }
@@ -308,7 +308,7 @@ final class EndToEndEngineTestUtil {
         return null;
       }
       try {
-        return new ObjectMapper().writeValueAsBytes(spec);
+        return OBJECT_MAPPER.writeValueAsBytes(spec);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }
@@ -714,7 +714,7 @@ final class EndToEndEngineTestUtil {
       final String topologyDir,
       final List<TestCase> testCases) {
 
-    final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
+    final ObjectWriter objectWriter = OBJECT_MAPPER.writerWithDefaultPrettyPrinter();
 
     testCases.forEach(testCase -> {
       final KsqlConfig ksqlConfig = new KsqlConfig(baseConfig())
@@ -837,7 +837,7 @@ final class EndToEndEngineTestUtil {
 
   static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) {
     final HashMap<String, TopologyAndConfigs> expectedTopologyAndConfigs = new HashMap<>();
-    final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
+    final ObjectReader objectReader = OBJECT_MAPPER.readerFor(Map.class);
     final List<String> topologyFiles = findExpectedTopologyFiles(dir);
     topologyFiles.forEach(fileName -> {
       final TopologyAndConfigs topologyAndConfigs = readTopologyFile(dir + "/" + fileName, objectReader);

@@ -1396,61 +1396,6 @@
       }
     },
     {
-      "name": "stream | initially null | group by (-) | key in value | no aliasing | with cast",
-      "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT cast(foo as INT), COUNT(*) FROM INPUT GROUP BY cast(foo as INT);"
-      ],
-      "issues:": "this is a duplicate of `group by expression` and should be removed",
-      "inputs": [
-        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":1, "KSQL_COL_1": 1}}
-      ],
-      "post": {
-        "issues": [
-          "key field of output has INCORRECT name: should be 'KSQL_COL_0'"
-        ],
-        "sources": [
-          {"name": "INPUT", "type": "stream", "keyField": {"name": null, "legacyName": null}},
-          {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": "CAST(KSQL_INTERNAL_COL_0 AS INTEGER)", "legacySchema": "STRING"}}
-        ]
-      }
-    },
-    {
-      "name": "stream | initially null | group by (-) | key in value | no aliasing | with cast | legacy downstream query",
-      "comments": [
-        "The purpose of this test is to capture the topology of a downstream query of the above test case",
-        "and test the key fields of the entities added to the metastore, to ensure backwards compatibility is maintained",
-        "In this case, the code previously incorrectly set the keyField to 'KSQL_INTERNAL_COL_1' rather than the correct 'null'",
-        "This would not really create any problems, but its good to ensure things remain consistent."
-      ],
-      "statements": [
-        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT cast(foo as INT), COUNT(*) FROM INPUT GROUP BY cast(foo as INT);",
-        "CREATE TABLE DOWNSTREAM AS SELECT COUNT(*) FROM OUTPUT GROUP BY ROWKEY;"
-      ],
-      "issues:": "this is a duplicate of `group by expression` and should be removed",
-      "properties": {
-        "ksql.query.fields.key.legacy": "true"
-      },
-      "inputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0":1, "KSQL_COL_1": 1}}
-      ],
-      "outputs": [
-        {"topic": "DOWNSTREAM", "key": "1", "value": {"KSQL_COL_0":1}}
-      ],
-      "post": {
-        "issues": [
-          "key field of output has INCORRECT name: should be 'KSQL_COL_0'"
-        ],
-        "sources": [
-          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": null, "legacyName": "KSQL_INTERNAL_COL_1", "legacySchema": "STRING"}}
-        ]
-      }
-    },
-    {
       "name": "where clause",
       "statements": [
         "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key='foo', value_format='JSON');",

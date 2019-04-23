@@ -168,6 +168,7 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
 
   @Override
   public void stop() throws Exception {
+    super.stop();
     ksqlEngine.close();
     commandRunner.close();
     try {
@@ -175,7 +176,6 @@ public class KsqlRestApplication extends Application<KsqlRestConfig> implements 
     } catch (final InterruptedException exception) {
       log.error("Interrupted while waiting for CommandRunner thread to complete", exception);
     }
-    super.stop();
   }
 
   @Override

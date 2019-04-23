@@ -321,8 +321,7 @@ public class SchemaKStreamTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    assertThat(result.getKeyField(),
-        is(KeyField.of(Optional.empty(), Optional.empty())));
+    assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
   @Test
@@ -337,7 +336,7 @@ public class SchemaKStreamTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    assertThat(result.getKeyField(), is(KeyField.of(Optional.empty(), Optional.empty())));
+    assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
   @Test

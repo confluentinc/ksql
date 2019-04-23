@@ -103,7 +103,7 @@ public class DefaultTopicInjectorTest {
         "",
         "SOURCE",
         SCHEMA,
-        KeyField.of(Optional.empty(), Optional.empty()),
+        KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
         sourceTopic,
         Serdes::String);
@@ -115,7 +115,7 @@ public class DefaultTopicInjectorTest {
         "",
         "J_SOURCE",
         SCHEMA,
-        KeyField.of(Optional.empty(), Optional.empty()),
+        KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
         joinTopic,
         Serdes::String);

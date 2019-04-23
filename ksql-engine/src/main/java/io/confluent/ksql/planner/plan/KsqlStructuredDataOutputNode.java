@@ -73,16 +73,14 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.outputProperties = Objects.requireNonNull(outputProperties, "outputProperties");
     this.doCreateInto = doCreateInto;
 
-    getPartitionByField(schema)
-        .filter(partitionByField -> keyField.name()
-            .map(kf -> !partitionByField.name().equals(kf))
-            .orElse(false))
-        .ifPresent(partitionByField -> {
-          throw new IllegalArgumentException(
-              "keyField does not match partition by field. "
-                  + "keyField: " + keyField.name() + ", "
-                  + "partitionByField:" + partitionByField);
-        });
+    final Optional<Field> partitionBy = getPartitionByField(schema);
+    if (partitionBy.isPresent()
+        && !partitionBy.get().name().equals(keyField.name().orElse(null))) {
+      throw new IllegalArgumentException(
+          "keyField does not match partition by field. "
+              + "keyField: " + keyField.name() + ", "
+              + "partitionByField:" + partitionBy.get());
+    }
   }
 
   public String getKafkaTopicName() {

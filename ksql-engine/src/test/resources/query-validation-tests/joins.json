@@ -37,7 +37,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -65,8 +65,8 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}},
-          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -115,7 +115,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -143,8 +143,8 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}},
-          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "T_ID", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": {"type": "STRING"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}},
+          {"name": "DOWNSTREAM", "type": "table", "keyField": {"name": "T_ID", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": "STRING"}}
         ]
       }
     },
@@ -173,7 +173,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -201,8 +201,8 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}},
-          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -392,7 +392,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -422,7 +422,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -454,7 +454,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -483,7 +483,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -511,7 +511,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -543,7 +543,7 @@
           "key field has incorrect type - should be BIGINT"
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": {"type": "STRING"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
         ]
       }
     },
@@ -571,8 +571,8 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": {"type": "STRING"}}},
-          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ID", "legacyName": "ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}},
+          {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "ID", "legacyName": "ID", "legacySchema": "BIGINT"}}
         ]
       }
     },
@@ -631,7 +631,38 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": {"type": "BIGINT"}}}
+          {"name": "OUTPUT", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+        ]
+      }
+    },
+    {
+      "name": "stream stream inner join with right side key field in projection",
+      "statements": [
+        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM TEST_STREAM (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON', key='ID');",
+        "CREATE STREAM INNER_JOIN as SELECT tt.id, name, value, f1, f2 FROM test t join TEST_STREAM tt WITHIN 11 SECONDS ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "INNER_JOIN", "key": 0, "value": {"TT_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+      ],
+      "post": {
+        "issues": [
+          "key field has incorrect name - should be TT_ID"
+        ],
+        "sources": [
+          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
         ]
       }
     }

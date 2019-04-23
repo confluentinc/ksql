@@ -528,7 +528,7 @@ public class SchemaKStream<K> {
       return new SchemaKStream<>(
           schema,
           kstream,
-          KeyField.of(Optional.of(newKeyField.name()), Optional.of(newKeyField)),
+          KeyField.of(newKeyField.name(), newKeyField),
           sourceSchemaKStreams,
           keySerdeFactory,
           type,
@@ -552,7 +552,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         schema,
         keyedKStream,
-        KeyField.of(Optional.of(newKeyField.name()), Optional.of(newKeyField)),
+        KeyField.of(newKeyField.name(), newKeyField),
         Collections.singletonList(this),
         Serdes::String,
         Type.REKEY,

@@ -41,7 +41,7 @@ import org.apache.kafka.connect.data.Schema;
  * allows these later queries to benefit from the improved logical.
  *
  * <p>This Pojo holds both the legacy and latest key field details. The legacy field is a complete
- * {@link Field}, where as the latest is just the key field name, which can be lookup up in the
+ * {@link Field}, where as the latest is just the key field name, which can be looked up in the
  * associated schema.
  *
  * @see <a href="https://github.com/confluentinc/ksql/issues/2636">Github issue 2636</a>
@@ -49,8 +49,14 @@ import org.apache.kafka.connect.data.Schema;
 @Immutable
 public final class KeyField {
 
+  private static final KeyField NONE = KeyField.of(Optional.empty(), Optional.empty());
+
   private final Optional<String> keyField;
   private final Optional<Field> legacyKeyField;
+
+  public static KeyField none() {
+    return NONE;
+  }
 
   public static KeyField of(final String keyField, final Field legacyKeyField) {
     return new KeyField(Optional.of(keyField), Optional.of(legacyKeyField));
@@ -66,16 +72,14 @@ public final class KeyField {
   }
 
   /**
-   * Validate the new key field is contained within the supplied {@code schema}.
+   * Validate the new key field, if set, is contained within the supplied {@code schema}.
    *
    * @param schema the associated schema that the key should be present in.
    * @return self, to allow fluid syntax.
    * @throws IllegalArgumentException if the key is not within the supplied schema.
    */
   public KeyField validateKeyExistsIn(final Schema schema) {
-    if (!keyField
-        .filter(name -> !name.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME))
-        .isPresent()) {
+    if (keyField.isPresent() && keyField.get().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
       return this;
     }
 
@@ -111,9 +115,10 @@ public final class KeyField {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final KeyField keyField1 = (KeyField) o;
-    return Objects.equals(keyField, keyField1.keyField)
-        && Objects.equals(legacyKeyField, keyField1.legacyKeyField);
+
+    final KeyField that = (KeyField) o;
+    return Objects.equals(keyField, that.keyField)
+        && Objects.equals(legacyKeyField, that.legacyKeyField);
   }
 
   @Override

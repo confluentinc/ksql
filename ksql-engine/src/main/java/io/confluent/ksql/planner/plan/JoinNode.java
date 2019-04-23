@@ -98,10 +98,10 @@ public class JoinNode extends PlanNode {
     this.leftType = leftType;
     this.rightType = rightType;
 
-    final String keyFieldName = leftAlias + "." + leftKeyFieldName;
+    final String keyFieldName = SchemaUtil.buildAliasedFieldName(leftAlias, leftKeyFieldName);
     this.keyField = Optional.ofNullable(schema.field(keyFieldName))
         .map(legacy -> KeyField.of(keyFieldName, legacy))
-        .orElseGet(() -> KeyField.of(Optional.empty(), Optional.empty()))
+        .orElseGet(KeyField::none)
         .validateKeyExistsIn(schema);
   }
 

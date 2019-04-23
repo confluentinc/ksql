@@ -234,12 +234,7 @@ A post condition can define the list of sources that must exist in the metastore
   "name": "S1",
   "type": "table",
   "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": {"type": "STRING"}},
-  "valueSchema": {"type": "STRUCT", "fields": [
-    {"name": "ROWTIME", "schema": {"type": "BIGINT"}},
-    {"name": "ROWKEY", "schema": {"type": "STRING"}},
-    {"name": "FOO", "schema": {"type": "INT"}},
-    {"name": "KSQL_COL_1", "schema": {"type": "BIGINT"}}
-  ]}
+  "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO INT, KSQL_COL_1 BIGINT>"
 }
 ```
 
@@ -250,7 +245,7 @@ Each source can define the following attributes:
 | name        | (Required) The name of the source. |
 | type        | (Required) Specifies if the source is a STREAM or TABLE. |
 | keyField    | (Optional) Specifies the keyField for the source. (See below for details of key field) |
-| valueSchema | (Optional) Specifies the value schema for the source. |
+| valueSchema | (Optional) Specifies the value SQL schema for the source. |
 
 ##### Key Fields
 
@@ -260,7 +255,7 @@ Key field nodes can define the following attributes:
 |-------------|:------------|
 | name        | (Optional) The name of the key field. If present, but set to `null`, the name of the key field is expected to not be set. If not supplied, the name of the key field will not be checked. |
 | legacyName  | (Optional) The legacy name of the key field. If present, but set to `null`, the legacy name of the key field is expected to not be set. If not supplied, the legacy name of the key field will not be checked. |
-| legacySchema| (Optional) The legacy schema of the key field. If present, but set to `null`, the legacy schema of the key field is expected to not be set. If not supplied, the legacy schema of the key field will not be checked. |
+| legacySchema| (Optional) The legacy SQL schema of the key field. If present, but set to `null`, the legacy schema of the key field is expected to not be set. If not supplied, the legacy schema of the key field will not be checked. |
 
 A test case can not test the value of the the key field by not including a keyField node in the source:
 

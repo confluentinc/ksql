@@ -154,7 +154,7 @@ public class JoinNodeTest {
         Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
         .andStubReturn(mockKsqlConfigClonedWithOffsetReset);
     EasyMock.expect(rightSchemaKTable.getKeyField())
-        .andReturn(KeyField.of(Optional.empty(), Optional.empty()))
+        .andReturn(KeyField.none())
         .anyTimes();
 
     EasyMock.replay(serviceContext, mockKsqlConfig);

@@ -35,7 +35,6 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Field;
@@ -104,7 +103,7 @@ abstract class AbstractCreateStreamCommand implements DdlCommand {
 
       this.keyField = KeyField.of(keyFieldName, keyField);
     } else {
-      this.keyField = KeyField.of(Optional.empty(), Optional.empty());
+      this.keyField = KeyField.none();
     }
 
     final String timestampName = properties.containsKey(DdlConfig.TIMESTAMP_NAME_PROPERTY)

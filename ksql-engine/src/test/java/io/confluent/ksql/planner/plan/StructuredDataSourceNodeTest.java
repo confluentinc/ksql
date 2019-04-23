@@ -265,7 +265,7 @@ public class StructuredDataSourceNodeTest {
     final KeyField actual = stream.getKeyField();
 
     // Then:
-    assertThat(actual, is(sameInstance(keyField)));
+    assertThat(actual, is(keyField));
   }
 
   @Test

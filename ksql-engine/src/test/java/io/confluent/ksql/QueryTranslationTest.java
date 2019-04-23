@@ -32,7 +32,6 @@ import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -70,10 +69,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.AbstractStreamCreateStatement;
 import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.PrimitiveType;
-import io.confluent.ksql.parser.tree.Struct;
-import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.schema.ksql.LogicalSchemas;
+import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -96,8 +93,10 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -656,17 +655,17 @@ public class QueryTranslationTest {
     private final String name;
     private final Optional<Class<? extends StructuredDataSource>> type;
     private final Optional<KeyFieldNode> keyField;
-    private final Optional<SchemaNode> valueSchema;
+    private final Optional<Schema> valueSchema;
 
     SourceNode(
         @JsonProperty(value = "name", required = true) final String name,
         @JsonProperty(value = "type", required = true) final String type,
         @JsonProperty("keyField") final KeyFieldNode keyField,
-        @JsonProperty("valueSchema") final SchemaNode valueSchema
+        @JsonProperty("valueSchema") final String valueSchema
     ) {
       this.name = name == null ? "" : name;
       this.keyField = Optional.ofNullable(keyField);
-      this.valueSchema = Optional.ofNullable(valueSchema);
+      this.valueSchema = parseSchema(valueSchema);
       this.type = Optional.ofNullable(type)
           .map(String::toUpperCase)
           .map(SourceNode::toType);
@@ -695,7 +694,7 @@ public class QueryTranslationTest {
           .orElse(null);
 
       final Matcher<StructuredDataSource<?>> valueSchemaMatcher = valueSchema
-          .map(SchemaNode::build)
+          .map(Matchers::is)
           .map(MetaStoreMatchers::hasValueSchema)
           .orElse(null);
 
@@ -719,23 +718,40 @@ public class QueryTranslationTest {
           throw new InvalidFieldException("type", "must be either STREAM or TABLE");
       }
     }
+
+    private static Optional<Schema> parseSchema(final String schema) {
+      return Optional.ofNullable(schema)
+          .map(TypeContextUtil::getType)
+          .map(LogicalSchemas.fromSqlTypeConverter()::fromSqlType)
+          .map(SourceNode::makeTopLevelStructNoneOptional);
+    }
+
+    private static ConnectSchema makeTopLevelStructNoneOptional(final Schema schema) {
+      if (schema.type() != Schema.Type.STRUCT) {
+        return (ConnectSchema) schema.schema();
+      }
+
+      final SchemaBuilder builder = SchemaBuilder.struct();
+      schema.fields().forEach(field -> builder.field(field.name(), field.schema()));
+      return (ConnectSchema) builder.build();
+    }
   }
 
   @JsonDeserialize(using = KeyFieldDeserializer.class)
   static class KeyFieldNode {
 
     static final Optional<String> EXCLUDE_NAME = Optional.of("explicit check that name is not set");
-    static final Optional<SchemaNode> EXCLUDE_SCHEMA = Optional.of(
-        new SchemaNode("explicit check that schema is not set", null));
+    static final Optional<Schema> EXCLUDE_SCHEMA = Optional.of(
+        new SchemaBuilder(Type.STRING).name("explicit check that schema is not set").build());
 
     private final Optional<String> name;
     private final Optional<String> legacyName;
-    private final Optional<SchemaNode> legacySchema;
+    private final Optional<Schema> legacySchema;
 
     KeyFieldNode(
         final Optional<String> name,
         final Optional<String> legacyName,
-        final Optional<SchemaNode> legacySchema
+        final Optional<Schema> legacySchema
     ) {
       this.name = requireNonNull(name, "name");
       this.legacyName = requireNonNull(legacyName, "legacyName");
@@ -754,7 +770,7 @@ public class QueryTranslationTest {
 
       final Matcher<KeyField> legacySchemaMatcher = legacySchema.equals(EXCLUDE_SCHEMA)
           ? null
-          : KeyFieldMatchers.hasLegacySchema(legacySchema.map(SchemaNode::buildSchema));
+          : KeyFieldMatchers.hasLegacySchema(legacySchema);
 
       final Matcher[] matchers = Stream
           .of(nameMatcher, legacyNameMatcher, legacySchemaMatcher)
@@ -762,102 +778,6 @@ public class QueryTranslationTest {
           .toArray(Matcher[]::new);
 
       return allOf(matchers);
-    }
-  }
-
-  static class SchemaNode {
-
-    private final String type;
-    private final List<FieldNode> fields;
-
-    SchemaNode(
-        @JsonProperty(value = "type", required = true) final String type,
-        @JsonProperty("fields") final List<FieldNode> fields
-    ) {
-      this.type = Objects.requireNonNull(type, "type").toUpperCase();
-      this.fields = fields == null
-          ? ImmutableList.of()
-          : ImmutableList.copyOf(fields);
-
-      if (this.type.isEmpty()) {
-        throw new InvalidFieldException("type", "can not be empty");
-      }
-    }
-
-    Matcher<Schema> build() {
-      return is(buildSchema());
-    }
-
-    ConnectSchema buildSchema() {
-      final Type sqlType = buildSqlType();
-      final Schema schema = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
-      return makeTopLevelStructNoneOptional(schema);
-    }
-
-    Type buildSqlType() {
-      if ("STRUCT".equals(type.toUpperCase())) {
-        return buildStruct();
-      }
-      return buildPrimitiveType();
-    }
-
-    private Struct buildStruct() {
-      if (fields.isEmpty()) {
-        throw new MissingFieldException("fields");
-      }
-
-      final Struct.Builder builder = Struct.builder();
-      fields.forEach(f -> builder.addField(f.getName(), f.buildSqlType()));
-
-      return builder.build();
-    }
-
-    private PrimitiveType buildPrimitiveType() {
-      try {
-        if (!fields.isEmpty()) {
-          throw new InvalidFieldException("fields", "not supported on primitive type");
-        }
-
-        return PrimitiveType.of(type);
-      } catch (final Exception e) {
-        throw new InvalidFieldException("type", "only STRUCT and primitive types supported", e);
-      }
-    }
-
-    private static ConnectSchema makeTopLevelStructNoneOptional(final Schema schema) {
-      if (schema.type() != Schema.Type.STRUCT) {
-        return (ConnectSchema) schema.schema();
-      }
-
-      final SchemaBuilder builder = SchemaBuilder.struct();
-      schema.fields().forEach(field -> builder.field(field.name(), field.schema()));
-      return (ConnectSchema) builder.build();
-    }
-  }
-
-  static class FieldNode {
-
-    private final String name;
-    private final SchemaNode schema;
-
-    FieldNode(
-        @JsonProperty(value = "name", required = true) final String name,
-        @JsonProperty(value = "schema", required = true) final SchemaNode schema
-    ) {
-      this.name = Objects.requireNonNull(name, "name");
-      this.schema = Objects.requireNonNull(schema, "schema");
-
-      if (this.name.isEmpty()) {
-        throw new InvalidFieldException("name", "can not be empty");
-      }
-    }
-
-    String getName() {
-      return name;
-    }
-
-    Type buildSqlType() {
-      return schema.buildSqlType();
     }
   }
 
@@ -877,7 +797,7 @@ public class QueryTranslationTest {
 
       final Optional<String> name = buildString("name", node, jp);
       final Optional<String> legacyName = buildString("legacyName", node, jp);
-      final Optional<SchemaNode> legacySchema = buildLegacySchema(node, jp);
+      final Optional<Schema> legacySchema = buildLegacySchema(node, jp);
 
       return new KeyFieldNode(name, legacyName, legacySchema);
     }
@@ -899,7 +819,7 @@ public class QueryTranslationTest {
       return Optional.ofNullable(value);
     }
 
-    private static Optional<SchemaNode> buildLegacySchema(
+    private static Optional<Schema> buildLegacySchema(
         final JsonNode node,
         final JsonParser jp
     ) throws IOException {
@@ -907,12 +827,18 @@ public class QueryTranslationTest {
         return KeyFieldNode.EXCLUDE_SCHEMA;
       }
 
-      final SchemaNode valueSchema = node
+      final String valueSchema = node
           .get("legacySchema")
           .traverse(jp.getCodec())
-          .readValueAs(SchemaNode.class);
+          .readValueAs(String.class);
 
-      return Optional.ofNullable(valueSchema);
+      try {
+        return Optional.ofNullable(valueSchema)
+            .map(TypeContextUtil::getType)
+            .map(LogicalSchemas.fromSqlTypeConverter()::fromSqlType);
+      } catch (final Exception e) {
+        throw new InvalidFieldException("legacySchema", "Failed to parse: " + valueSchema, e);
+      }
     }
   }
 }

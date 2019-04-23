@@ -11,7 +11,7 @@ KSQL 5.3.0 includes new features, including:
   the ``WITH`` clause.
   The improved handling may eliminate unnecessary repartition steps in certain queries.
   Please note that preexisting persistent queries, e.g. those created via ``CREATE TABLE AS SELECT ...`` or
-  ``CREATE STREAM AS SELECT ...`` or ``INSET INTO ...``, will continue to have the unnecessary repartition step.
+  ``CREATE STREAM AS SELECT ...`` or ``INSERT INTO ...``, will continue to have the unnecessary repartition step.
   This is required to avoid the potential for data loss should this step be dropped.
   See `#2280 <https://github.com/confluentinc/ksql/pull/2636>`_ for more info.
 

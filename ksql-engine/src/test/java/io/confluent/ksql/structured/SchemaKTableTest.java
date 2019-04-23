@@ -580,8 +580,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(),
-        is(KeyField.of(Optional.empty(), Optional.empty())));
+    MatcherAssert.assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
   @Test
@@ -595,7 +594,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, processingLogContext);
 
     // Then:
-    MatcherAssert.assertThat(result.getKeyField(), is(KeyField.of(Optional.empty(), Optional.empty())));
+    MatcherAssert.assertThat(result.getKeyField(), is(KeyField.none()));
   }
 
   @Test

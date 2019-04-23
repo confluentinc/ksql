@@ -211,7 +211,7 @@ public class LogicalPlanner {
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
-        projectionSchema,
+        projectionSchema.build(),
         keyFieldName,
         analysis.getSelectExpressions()
     );

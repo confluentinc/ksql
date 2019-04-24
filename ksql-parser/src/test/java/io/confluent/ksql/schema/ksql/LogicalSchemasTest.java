@@ -25,6 +25,7 @@ import io.confluent.ksql.parser.tree.PrimitiveType;
 import io.confluent.ksql.parser.tree.Type;
 import io.confluent.ksql.parser.tree.Type.SqlType;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -97,8 +98,12 @@ public class LogicalSchemasTest {
 
   @Test
   public void shouldGetLogicalForEverySqlType() {
-    SQL_TO_LOGICAL.forEach((sqlType, logical) ->
-        assertThat(LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType), is(logical)));
+    for (Entry<Type, Schema> entry : SQL_TO_LOGICAL.entrySet()) {
+      final Type sqlType = entry.getKey();
+      final Schema logical = entry.getValue();
+      final Schema result = LogicalSchemas.fromSqlTypeConverter().fromSqlType(sqlType);
+      assertThat(result, is(logical));
+    }
   }
 
   @Test

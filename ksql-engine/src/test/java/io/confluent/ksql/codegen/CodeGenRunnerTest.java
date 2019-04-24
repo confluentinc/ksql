@@ -59,6 +59,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,6 +82,10 @@ public class CodeGenRunnerTest {
     private static final int ARRAY_INDEX2 = 10;
     private static final int MAP_INDEX1 = 11;
     private static final int MAP_INDEX2 = 12;
+    private static final int STRUCT_INDEX = 15;
+
+    private static final Schema STRUCT_SCHEMA =
+        SchemaBuilder.struct().optional().field("A", Schema.OPTIONAL_STRING_SCHEMA).build();
 
     private static final List<Object> ONE_ROW = ImmutableList.of(
         0L, "S1", "S2", 3.1, 4.2, 5, true, false, 8L,
@@ -88,7 +93,8 @@ public class CodeGenRunnerTest {
         ImmutableMap.of("key1", "value1", "address", "{\"city\":\"adelaide\",\"country\":\"oz\"}"),
         ImmutableMap.of("k1", 4),
         ImmutableList.of("one", "two"),
-        ImmutableList.of(ImmutableList.of("1", "2"), ImmutableList.of("3")));
+        ImmutableList.of(ImmutableList.of("1", "2"), ImmutableList.of("3")),
+        new Struct(STRUCT_SCHEMA).put("A", "VALUE"));
 
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
@@ -142,7 +148,8 @@ public class CodeGenRunnerTest {
             .field("CODEGEN_TEST.COL12",
                    SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("CODEGEN_TEST.COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
-            .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build());
+            .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build())
+            .field("CODEGEN_TEST.COL15", STRUCT_SCHEMA);
         final Schema metaStoreSchema = SchemaBuilder.struct()
             .field("COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
             .field("COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -160,7 +167,8 @@ public class CodeGenRunnerTest {
             .field("COL12",
                 SchemaBuilder.map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_INT32_SCHEMA).optional().build())
             .field("COL13", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA).optional().build())
-            .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build());
+            .field("CODEGEN_TEST.COL14", SchemaBuilder.array(arraySchema).optional().build())
+            .field("COL15", STRUCT_SCHEMA);
         final KsqlTopic ksqlTopic = new KsqlTopic(
             "CODEGEN_TEST",
             "codegen_test",
@@ -797,6 +805,19 @@ public class CodeGenRunnerTest {
         final List<Object> columns = executeExpression(query, inputValues);
         // test
         assertThat(columns, equalTo(Collections.singletonList("doStuffLongVarargs")));
+    }
+
+    @Test
+    public void shouldHandleFunctionWithStruct() {
+        // Given:
+        final String query =
+            "SELECT test_udf(col" + STRUCT_INDEX + ") FROM codegen_test;";
+
+        // When:
+        final List<Object> columns = executeExpression(query, ImmutableMap.of());
+
+        // Then:
+        assertThat(columns, equalTo(Collections.singletonList("VALUE")));
     }
 
     @Test

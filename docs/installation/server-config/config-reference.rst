@@ -160,7 +160,7 @@ will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` become
 
 .. _ksql-internal-topic-replicas:
 
---------------------
+----------------------------
 ksql.internal.topic.replicas
 --------------------
 

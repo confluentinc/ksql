@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.metastore.model.StructuredDataSource;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.serde.DataSource;
@@ -105,7 +106,7 @@ public class JoinNode extends PlanNode {
         .validateKeyExistsIn(schema);
   }
 
-  private Schema buildSchema(final PlanNode left, final PlanNode right) {
+  private static Schema buildSchema(final PlanNode left, final PlanNode right) {
 
     final Schema leftSchema = left.getSchema();
     final Schema rightSchema = right.getSchema();
@@ -113,13 +114,11 @@ public class JoinNode extends PlanNode {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
 
     for (final Field field : leftSchema.fields()) {
-      final String fieldName = leftAlias + "." + field.name();
-      schemaBuilder.field(fieldName, field.schema());
+      schemaBuilder.field(field.name(), field.schema());
     }
 
     for (final Field field : rightSchema.fields()) {
-      final String fieldName = rightAlias + "." + field.name();
-      schemaBuilder.field(fieldName, field.schema());
+      schemaBuilder.field(field.name(), field.schema());
     }
     return schemaBuilder.build();
   }
@@ -273,11 +272,14 @@ public class JoinNode extends PlanNode {
 
     public abstract SchemaKStream<K> join();
 
-    protected SchemaKStream<K> buildStream(final PlanNode node, final String keyFieldName) {
-
+    protected SchemaKStream<K> buildStream(
+        final PlanNode node,
+        final String keyFieldName,
+        final String alias
+    ) {
       return maybeRePartitionByKey(
           node.buildStream(builder),
-          keyFieldName,
+          SchemaUtil.buildAliasedFieldName(alias, keyFieldName),
           contextStacker);
     }
 
@@ -297,13 +299,15 @@ public class JoinNode extends PlanNode {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
+      final String expectedKeyField = SchemaUtil.buildAliasedFieldName(tableName, keyFieldName);
+
       final Optional<Field> keyField = schemaKStream
           .getKeyField()
           .resolve(schemaKStream.getSchema(), builder.getKsqlConfig());
 
       if (keyField.isPresent()
           && !keyFieldName.equals(SchemaUtil.ROWKEY_NAME)
-          && !SchemaUtil.matchFieldName(keyField.get(), keyFieldName)) {
+          && !SchemaUtil.matchFieldName(keyField.get(), expectedKeyField)) {
         throw new KsqlException(
             String.format(
                 "Source table (%s) key column (%s) "
@@ -322,16 +326,13 @@ public class JoinNode extends PlanNode {
     static <K> SchemaKStream<K> maybeRePartitionByKey(
         final SchemaKStream stream,
         final String targetKey,
-        final QueryContext.Stacker contextStacker) {
+        final QueryContext.Stacker contextStacker
+    ) {
       final Schema schema = stream.getSchema();
-      final Field field =
-          SchemaUtil
-              .getFieldByName(schema,
-                              targetKey).orElseThrow(() -> new KsqlException("couldn't find "
-                                                                             + "key field: "
-                                                                             + targetKey
-                                                                             + " in schema")
-          );
+      final Field field = SchemaUtil.getFieldByName(schema, targetKey)
+          .orElseThrow(() ->
+              new KsqlException("couldn't find key field: " + targetKey + " in schema"));
+
       return stream.selectKey(field, true, contextStacker);
     }
 
@@ -343,14 +344,17 @@ public class JoinNode extends PlanNode {
                                 + "Table).");
       }
       final StructuredDataSourceNode dataSourceNode = (StructuredDataSourceNode) node;
-      final KsqlTopicSerDe ksqlTopicSerDe = dataSourceNode
-          .getStructuredDataSource()
+      final StructuredDataSource dataSource = dataSourceNode.getStructuredDataSource();
+
+      final KsqlTopicSerDe ksqlTopicSerDe = dataSource
           .getKsqlTopic()
           .getKsqlTopicSerDe();
 
+      final Schema schema = dataSource.getSchema();
+
       return builder.buildGenericRowSerde(
           ksqlTopicSerDe,
-          dataSourceNode.getSchema(),
+          schema,
           contextStacker.getQueryContext()
       );
     }
@@ -393,10 +397,10 @@ public class JoinNode extends PlanNode {
       }
 
       final SchemaKStream<K> leftStream = buildStream(
-          joinNode.getLeft(), joinNode.getLeftKeyFieldName());
+          joinNode.getLeft(), joinNode.getLeftKeyFieldName(), joinNode.getLeftAlias());
 
       final SchemaKStream<K> rightStream = buildStream(
-          joinNode.getRight(), joinNode.getRightKeyFieldName());
+          joinNode.getRight(), joinNode.getRightKeyFieldName(), joinNode.getRightAlias());
 
       switch (joinNode.joinType) {
         case LEFT:
@@ -460,11 +464,11 @@ public class JoinNode extends PlanNode {
                                 + " the WITHIN clause) and try to execute your join again.");
       }
 
-      final SchemaKTable<K> rightTable = buildTable(joinNode.getRight(),
-                                                 joinNode.getRightKeyFieldName(),
-                                                 joinNode.getRightAlias());
-      final SchemaKStream<K> leftStream = buildStream(joinNode.getLeft(),
-                                                   joinNode.getLeftKeyFieldName());
+      final SchemaKTable<K> rightTable = buildTable(
+          joinNode.getRight(), joinNode.getRightKeyFieldName(), joinNode.getRightAlias());
+
+      final SchemaKStream<K> leftStream = buildStream(
+          joinNode.getLeft(), joinNode.getLeftKeyFieldName(), joinNode.getLeftAlias());
 
       switch (joinNode.joinType) {
         case LEFT:

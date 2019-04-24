@@ -283,7 +283,7 @@ public class PhysicalPlanBuilder {
     return new PersistentQueryMetadata(
         sqlExpression,
         streams,
-        outputNode.getSchema(),
+        sinkSchema,
         getSourceNames(outputNode),
         sinkDataSource.getName(),
         schemaKStream.getExecutionPlan(""),

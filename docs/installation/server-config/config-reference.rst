@@ -234,7 +234,7 @@ For an example, see :ref:`restrict-ksql-interactive`.
 
 ---------
 listeners
----------
+------------------------------------
 
 The ``listeners`` setting controls the REST API endpoint for the KSQL server.
 For more info, see :ref:`ksql-rest-api`.

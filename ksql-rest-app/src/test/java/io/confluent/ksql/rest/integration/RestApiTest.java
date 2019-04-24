@@ -184,13 +184,12 @@ public class RestApiTest {
 
   @Test
   public void shouldDeleteTopic() {
-    // Given:
     try (final ServiceContext serviceContext = REST_APP.getServiceContext()) {
+      // Given:
       RestIntegrationTestUtil.makeKsqlRequest(
           REST_APP,
           REST_APP.buildKsqlClient(),
           "CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
-
       assertThat("Expected topic X to be created", serviceContext.getTopicClient().isTopicExists("X"));
 
       // When:

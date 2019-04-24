@@ -106,17 +106,6 @@ public class KeyFieldTest {
   }
 
   @Test
-  public void shouldNotThrowOnValidateIfKeyIsRowKey() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.of("ROWKEY"), Optional.empty());
-
-    // When:
-    keyField.validateKeyExistsIn(SCHEMA);
-
-    // Then: did not throw.
-  }
-
-  @Test
   public void shouldThrowOnValidateIfKeyNotInSchema() {
     // Given:
     final KeyField keyField = KeyField.of(Optional.of("????"), Optional.empty());

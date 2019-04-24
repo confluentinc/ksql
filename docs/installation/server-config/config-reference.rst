@@ -179,7 +179,7 @@ This property has been deprecated since 5.3 release. For more info see the WITH 
 
 .. _ksql-sink-replicas:
 
-------------------
+-------------------------------
 ksql.sink.replicas (Deprecated)
 -------------------------------
 

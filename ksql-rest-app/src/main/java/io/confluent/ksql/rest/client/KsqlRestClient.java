@@ -376,6 +376,9 @@ public class KsqlRestClient implements Closeable {
             try {
               bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
             } catch (final IOException exception) {
+              if (closed) {
+                return false;
+              }
               throw new RuntimeException(exception);
             }
             return true;

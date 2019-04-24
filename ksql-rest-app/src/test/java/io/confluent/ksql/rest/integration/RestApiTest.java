@@ -34,6 +34,7 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
@@ -96,6 +97,16 @@ public class RestApiTest {
               .withAcl(
                   NORMAL_USER,
                   prefixedResource(GROUP, "_confluent-ksql-default_transient_"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  prefixedResource(GROUP, "_confluent-ksql-default_query"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, "X"),
                   ops(ALL)
               )
       )
@@ -169,6 +180,28 @@ public class RestApiTest {
 
     // Then:
     assertThat(messages, hasSize(is(LIMIT)));
+  }
+
+  @Test
+  public void shouldDeleteTopic() {
+    // Given:
+    try (final ServiceContext serviceContext = REST_APP.getServiceContext()) {
+      RestIntegrationTestUtil.makeKsqlRequest(
+          REST_APP,
+          REST_APP.buildKsqlClient(),
+          "CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
+
+      assertThat("Expected topic X to be created", serviceContext.getTopicClient().isTopicExists("X"));
+
+      // When:
+      RestIntegrationTestUtil.makeKsqlRequest(
+          REST_APP,
+          REST_APP.buildKsqlClient(),
+          "TERMINATE QUERY CSAS_X_0; DROP STREAM X DELETE TOPIC;");
+
+      // Then:
+      assertThat("Expected topic X to be deleted", !serviceContext.getTopicClient().isTopicExists("X"));
+    }
   }
 
   private static List<String> makeStreamingRequest(

@@ -105,11 +105,11 @@ public class KsqlStructuredDataOutputNodeTest {
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic(SOURCE_TOPIC_NAME, SOURCE_KAFKA_TOPIC_NAME,
           new KsqlJsonTopicSerDe(), false), Serdes::String);
+
   private final StructuredDataSourceNode sourceNode = new StructuredDataSourceNode(
       new PlanNodeId("0"),
       dataSource,
-      schema,
-      dataSource.getKeyField());
+      dataSource.getName());
 
   private StreamsBuilder builder;
   private KsqlStructuredDataOutputNode outputNode;
@@ -381,8 +381,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final StructuredDataSourceNode tableSourceNode = new StructuredDataSourceNode(
         new PlanNodeId("0"),
         dataSource,
-        dataSource.getSchema(),
-        dataSource.getKeyField());
+        dataSource.getName());
 
     return new KsqlStructuredDataOutputNode(
         new PlanNodeId("0"),

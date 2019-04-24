@@ -98,27 +98,30 @@ public class StructuredDataSourceNode
   public StructuredDataSourceNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
-      @JsonProperty("schema") final Schema schema,
-      @JsonProperty("key") final KeyField keyField
+      @JsonProperty("alias") final String alias
   ) {
-    this(id, structuredDataSource, schema, keyField, MaterializedFactory::create);
+    this(id, structuredDataSource, alias, MaterializedFactory::create);
   }
 
   @VisibleForTesting
   StructuredDataSourceNode(
       final PlanNodeId id,
       final StructuredDataSource structuredDataSource,
-      final Schema schema,
-      final KeyField keyField,
+      final String alias,
       final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier
   ) {
     super(id, structuredDataSource.getDataSourceType());
-    this.schema = requireNonNull(schema, "schema");
     this.structuredDataSource = requireNonNull(structuredDataSource, "structuredDataSource");
+    this.schema = SchemaUtil.buildSchemaWithAlias(structuredDataSource.getSchema(), alias);
+
+    final Optional<String> keyFieldName = structuredDataSource.getKeyField().name()
+        .map(name -> SchemaUtil.buildAliasedFieldName(alias, name));
+
+    this.keyField = KeyField.of(keyFieldName, structuredDataSource.getKeyField().legacy())
+        .validateKeyExistsIn(schema);
+
     this.materializedFactorySupplier =
         requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
-    this.keyField = requireNonNull(keyField, "keyField")
-        .validateKeyExistsIn(schema);
   }
 
   public String getTopicName() {

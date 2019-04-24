@@ -170,7 +170,7 @@ Note that replicas for record processing log topic should be configrued separate
 
 .. _ksql-sink-partitions:
 
---------------------
+---------------------------------
 ksql.sink.partitions (Deprecated)
 --------------------
 

@@ -25,7 +25,8 @@ import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.DataSource.DataSourceType;
 import io.confluent.ksql.serde.KsqlTopicSerDe;
-import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -33,7 +34,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Map;
@@ -108,9 +108,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     final Schema schema = SchemaUtil.removeImplicitRowTimeRowKeyFromSchema(getSchema());
     outputNodeBuilder.withSchema(schema);
 
-    if (getTopicSerde() instanceof KsqlAvroTopicSerDe) {
-      addAvroSchemaToResultTopic(outputNodeBuilder);
-    }
+    final int partitions = (Integer) outputProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY,
+        ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY));
+    final short replicas = (Short) outputProperties.getOrDefault(
+        KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY,
+        ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY));
 
     final SchemaKStream<?> result = createOutputStream(
         schemaKStream,
@@ -187,17 +190,22 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return result;
   }
 
-  private void addAvroSchemaToResultTopic(final Builder builder) {
-    final String schemaFullName = StringUtil.cleanQuotes(
-        outputProperties.get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
-    final KsqlAvroTopicSerDe ksqlAvroTopicSerDe =
-        new KsqlAvroTopicSerDe(schemaFullName);
-    builder.withKsqlTopic(new KsqlTopic(
-        getKsqlTopic().getName(),
-        getKsqlTopic().getKafkaTopicName(),
-        ksqlAvroTopicSerDe,
-        true
-    ));
+  private static void createSinkTopic(
+      final String kafkaTopicName,
+      final KafkaTopicClient kafkaTopicClient,
+      final boolean isCompacted,
+      final int numberOfPartitions,
+      final short numberOfReplications
+  ) {
+    final Map<String, ?> config = isCompacted
+        ? ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
+        : Collections.emptyMap();
+
+    kafkaTopicClient.createTopic(kafkaTopicName,
+                                 numberOfPartitions,
+                                 numberOfReplications,
+                                 config
+    );
   }
 
   public KsqlTopic getKsqlTopic() {

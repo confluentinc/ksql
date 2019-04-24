@@ -17,7 +17,6 @@ package io.confluent.ksql.cli.console;
 
 import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -38,7 +37,7 @@ import io.confluent.ksql.cli.console.table.builder.StreamsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
-import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
@@ -190,7 +189,7 @@ public class Console implements Closeable {
     this.terminal = Objects.requireNonNull(terminal, "terminal");
     this.rowCaptor = Objects.requireNonNull(rowCaptor, "rowCaptor");
     this.cliSpecificCommands = Maps.newLinkedHashMap();
-    this.objectMapper = new ObjectMapper().disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+    this.objectMapper = JsonMapper.INSTANCE.mapper;
   }
 
   public PrintWriter writer() {

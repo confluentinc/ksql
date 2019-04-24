@@ -94,15 +94,104 @@ class Analyzer {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.topicPrefix = Objects.requireNonNull(topicPrefix, "topicPrefix");
   }
+  
+  @Override
+  protected Node visitQuerySpecification(
+      final QuerySpecification node,
+      final AnalysisContext context
+  ) {
 
-  /**
-   * Analyze the query.
-   *
-   * @param query the query to analyze.
-   * @param sink the sink the query will output to.
-   */
-  void analyze(final Query query, final Optional<Sink> sink) {
-    new Visitor().process(query, null);
+    process(
+        node.getFrom(),
+        new AnalysisContext(AnalysisContext.ParentType.FROM)
+    );
+
+    process(node.getInto(), new AnalysisContext(
+        AnalysisContext.ParentType.INTO));
+    if (!(analysis.getInto() instanceof KsqlStdOut)) {
+      analyzeNonStdOutSink(node.isShouldCreateInto());
+    }
+
+    process(node.getSelect(), new AnalysisContext(
+        AnalysisContext.ParentType.SELECT));
+
+    node.getWhere().ifPresent(this::analyzeWhere);
+    node.getGroupBy().ifPresent(this::analyzeGroupBy);
+    node.getWindowExpression().ifPresent(this::analyzeWindowExpression);
+    node.getHaving().ifPresent(this::analyzeHaving);
+    node.getLimit().ifPresent(analysis::setLimitClause);
+
+    analyzeExpressions();
+
+    return null;
+  }
+
+  private void analyzeNonStdOutSink(final boolean doCreateInto) {
+    final List<Pair<StructuredDataSource, String>> fromDataSources = analysis.getFromDataSources();
+
+    final StructuredDataSource intoStructuredDataSource = analysis.getInto();
+    final String intoKafkaTopicName = analysis.getIntoKafkaTopicName() == null
+                                      ? topicPrefix + intoStructuredDataSource.getName()
+                                      : analysis.getIntoKafkaTopicName();
+
+    final KsqlTopic newIntoKsqlTopic;
+    if (doCreateInto) {
+      KsqlTopicSerDe intoTopicSerde = fromDataSources.get(0).getLeft().getKsqlTopic()
+          .getKsqlTopicSerDe();
+      if (analysis.getIntoFormat() != null) {
+        switch (analysis.getIntoFormat().toUpperCase()) {
+          case DataSource.AVRO_SERDE_NAME:
+            final String schemaFullName =
+                StringUtil.cleanQuotes(
+                 analysis.getIntoProperties().get(
+                   DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
+            intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
+            break;
+          case DataSource.JSON_SERDE_NAME:
+            intoTopicSerde = new KsqlJsonTopicSerDe();
+            break;
+          case DataSource.DELIMITED_SERDE_NAME:
+            intoTopicSerde = new KsqlDelimitedTopicSerDe();
+            break;
+          default:
+            throw new KsqlException(
+              String.format("Unsupported format: %s", analysis.getIntoFormat()));
+        }
+      } else {
+        if (intoTopicSerde instanceof KsqlAvroTopicSerDe) {
+          final String schemaFullName =
+              StringUtil.cleanQuotes(
+                analysis.getIntoProperties().get(
+                  DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME).toString());
+          intoTopicSerde = new KsqlAvroTopicSerDe(schemaFullName);
+        }
+      }
+
+      newIntoKsqlTopic = new KsqlTopic(
+          intoStructuredDataSource.getName(),
+          intoKafkaTopicName,
+          intoTopicSerde,
+          true
+      );
+    } else {
+      newIntoKsqlTopic = metaStore.getTopic(intoStructuredDataSource.getName());
+      if (newIntoKsqlTopic == null) {
+        throw new KsqlException(
+            "Sink topic " + intoKafkaTopicName + " does not exist in the metastore.");
+      }
+    }
+
+    final KsqlStream intoKsqlStream = new KsqlStream<>(
+        sqlExpression,
+        intoStructuredDataSource.getName(),
+        null,
+        null,
+        null,
+        newIntoKsqlTopic,
+        getKeySerde(intoStructuredDataSource)
+    );
+    analysis.setInto(intoKsqlStream, doCreateInto);
+  }
 
     analyzeSink(sink);
   }
@@ -270,12 +359,12 @@ class Analyzer {
     analysis.setIntoFormat(serde);
     analysis.getIntoProperties().put(DdlConfig.VALUE_FORMAT_PROPERTY, serde);
 
-    final Expression avroSchemaFullName =
-        sink.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
-
-    if ("AVRO".equals(serde)) {
+      final Expression avroSchemaFullName =
+          node.getProperties().get(DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME);
       analysis.getIntoProperties().put(
-          DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
+          DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME,
+          avroSchemaFullName != null
+
               ? avroSchemaFullName : KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
     } else if (avroSchemaFullName != null) {
       throw new KsqlException(

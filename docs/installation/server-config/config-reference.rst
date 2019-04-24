@@ -162,7 +162,7 @@ will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` become
 
 ----------------------------
 ksql.internal.topic.replicas
---------------------
+----------------------------
 
 The number of replicas for the internal topics created by KSQL Server. The default is one.
 This config parameter works in KSQL 5.3 and later.

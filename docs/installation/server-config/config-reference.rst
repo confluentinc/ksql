@@ -181,7 +181,7 @@ This property has been deprecated since 5.3 release. For more info see the WITH 
 
 ------------------
 ksql.sink.replicas (Deprecated)
-------------------
+-------------------------------
 
 The default number of replicas for the topics created by KSQL. The default is one.
 This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.

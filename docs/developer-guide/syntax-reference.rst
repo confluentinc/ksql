@@ -112,7 +112,7 @@ specified column. Define the format of a record's timestamp by using the
 TIMESTAMP_FORMAT property.
 
 If you use the TIMESTAMP property but don't set TIMESTAMP_FORMAT, KSQL assumes
-that the timestamp field is a ``long``. If you set TIMESTAMP_FORMAT, the
+that the timestamp field is a ``bigint``. If you set TIMESTAMP_FORMAT, the
 TIMESTAMP field must be of type ``varchar`` and have a format that the 
 ``DateTimeFormatter`` Java class can parse.
 
@@ -309,7 +309,7 @@ The WITH clause supports the following properties:
 |                         | such as windowing, will process a record according to the timestamp in ``ROWTIME``.           |
 +-------------------------+-----------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a      |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format        |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format      |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has          |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,    |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                          |
@@ -407,7 +407,7 @@ The WITH clause supports the following properties:
 |                         | as windowing, will process a record according to the timestamp in ``ROWTIME``.             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a   |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format     |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format   |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has       |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes, |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                       |
@@ -510,7 +510,7 @@ The WITH clause for the result supports the following properties:
 |                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |
@@ -593,7 +593,7 @@ The WITH clause supports the following properties:
 |                         | The window into which each row of ``bar`` is placed is determined by bar's ``ROWTIME``, not ``t2``.  |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | TIMESTAMP_FORMAT        | Used in conjunction with TIMESTAMP. If not set will assume that the timestamp field is a             |
-|                         | long. If it is set, then the TIMESTAMP field must be of type varchar and have a format               |
+|                         | bigint. If it is set, then the TIMESTAMP field must be of type varchar and have a format             |
 |                         | that can be parsed with the Java ``DateTimeFormatter``. If your timestamp format has                 |
 |                         | characters requiring single quotes, you can escape them with two successive single quotes,           |
 |                         | ``''``, for example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.                                                 |

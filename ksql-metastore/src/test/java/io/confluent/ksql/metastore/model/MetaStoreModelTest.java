@@ -30,6 +30,7 @@ import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +49,7 @@ public class MetaStoreModelTest {
           new KsqlTopic("bob", "bob", new KsqlJsonTopicSerDe(), false))
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
+      .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))
       .build();
 
   private final Class<?> modelClass;

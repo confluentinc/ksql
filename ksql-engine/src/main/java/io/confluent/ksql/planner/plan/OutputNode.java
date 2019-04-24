@@ -45,16 +45,15 @@ public abstract class OutputNode
       @JsonProperty("source") final PlanNode source,
       @JsonProperty("schema") final Schema schema,
       @JsonProperty("limit") final Optional<Integer> limit,
-      @JsonProperty("timestamp_policy") final TimestampExtractionPolicy timestampExtractionPolicy) {
+      @JsonProperty("timestamp_policy") final TimestampExtractionPolicy timestampExtractionPolicy
+  ) {
     super(id, source.getNodeOutputType());
-    requireNonNull(source, "source is null");
-    requireNonNull(schema, "schema is null");
-    requireNonNull(timestampExtractionPolicy, "timestampExtractionPolicy is null");
 
-    this.source = source;
-    this.schema = schema;
-    this.limit = limit;
-    this.timestampExtractionPolicy = timestampExtractionPolicy;
+    this.source = requireNonNull(source, "source");
+    this.schema = requireNonNull(schema, "schema");
+    this.limit = requireNonNull(limit, "limit");
+    this.timestampExtractionPolicy =
+        requireNonNull(timestampExtractionPolicy, "timestampExtractionPolicy");
   }
 
   @Override

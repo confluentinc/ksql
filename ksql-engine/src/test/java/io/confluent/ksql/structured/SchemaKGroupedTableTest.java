@@ -32,6 +32,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Expression;
@@ -113,7 +114,7 @@ public class SchemaKGroupedTableTest {
     final SchemaKTable<?> initialSchemaKTable = new SchemaKTable<>(
         logicalPlan.getTheSourceNode().getSchema(),
         kTable,
-        ksqlTable.getKeyField(),
+        logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
         Serdes::String,
         SchemaKStream.Type.SOURCE,
@@ -205,7 +206,7 @@ public class SchemaKGroupedTableTest {
     return new SchemaKGroupedTable(
         schema,
         kGroupedTable,
-        Optional.of(schema.fields().get(0)),
+        KeyField.of(schema.fields().get(0).name(), schema.fields().get(0)),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry,

@@ -18,9 +18,7 @@ package io.confluent.ksql.metastore.model;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 
@@ -31,7 +29,7 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
       final String sqlExpression,
       final String datasourceName,
       final Schema schema,
-      final Optional<Field> keyField,
+      final KeyField keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KsqlTopic ksqlTopic,
       final SerdeFactory<K> keySerde

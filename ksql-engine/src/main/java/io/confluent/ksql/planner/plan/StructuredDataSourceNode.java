@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
@@ -37,7 +41,6 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
@@ -88,31 +91,34 @@ public class StructuredDataSourceNode
 
   private final StructuredDataSource<?> structuredDataSource;
   private final Schema schema;
+  private final KeyField keyField;
   private final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier;
 
-  // TODO: pass in the "assignments" and the "outputs" separately
-  // TODO: (i.e., get rid if the symbol := symbol idiom)
   @JsonCreator
   public StructuredDataSourceNode(
       @JsonProperty("id") final PlanNodeId id,
       @JsonProperty("structuredDataSource") final StructuredDataSource structuredDataSource,
-      @JsonProperty("schema") final Schema schema
+      @JsonProperty("schema") final Schema schema,
+      @JsonProperty("key") final KeyField keyField
   ) {
-    this(id, structuredDataSource, schema, MaterializedFactory::create);
+    this(id, structuredDataSource, schema, keyField, MaterializedFactory::create);
   }
 
-  public StructuredDataSourceNode(
+  @VisibleForTesting
+  StructuredDataSourceNode(
       final PlanNodeId id,
       final StructuredDataSource structuredDataSource,
       final Schema schema,
-      final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier) {
+      final KeyField keyField,
+      final Function<KsqlConfig, MaterializedFactory> materializedFactorySupplier
+  ) {
     super(id, structuredDataSource.getDataSourceType());
-    this.schema =
-        Objects.requireNonNull(schema, "schema");
-    this.structuredDataSource =
-        Objects.requireNonNull(structuredDataSource, "structuredDataSource");
+    this.schema = requireNonNull(schema, "schema");
+    this.structuredDataSource = requireNonNull(structuredDataSource, "structuredDataSource");
     this.materializedFactorySupplier =
-        Objects.requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
+        requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
+    this.keyField = requireNonNull(keyField, "keyField")
+        .validateKeyExistsIn(schema);
   }
 
   public String getTopicName() {
@@ -125,8 +131,8 @@ public class StructuredDataSourceNode
   }
 
   @Override
-  public Optional<Field> getKeyField() {
-    return structuredDataSource.getKeyField();
+  public KeyField getKeyField() {
+    return keyField;
   }
 
   public StructuredDataSource getStructuredDataSource() {

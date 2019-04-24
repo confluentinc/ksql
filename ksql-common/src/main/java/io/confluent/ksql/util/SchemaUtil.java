@@ -108,6 +108,8 @@ public final class SchemaUtil {
           .put(Schema.Type.STRUCT, Struct.class)
           .build();
 
+  private static final char FIELD_NAME_DELIMITER = '.';
+
   private static Map<Schema.Type, Function<Schema, String>> SCHEMA_TYPE_TO_SQL_TYPE =
       ImmutableMap.<Schema.Type, Function<Schema, String>>builder()
           .put(Schema.Type.INT32, s -> "INT")
@@ -160,7 +162,19 @@ public final class SchemaUtil {
 
   public static boolean matchFieldName(final Field field, final String fieldName) {
     return field.name().equals(fieldName)
-        || field.name().equals(fieldName.substring(fieldName.indexOf(".") + 1));
+        || field.name().equals(fieldName.substring(fieldName.indexOf(FIELD_NAME_DELIMITER) + 1));
+  }
+
+  public static Field buildAliasedField(final String alias, final Field field) {
+    return new Field(buildAliasedFieldName(alias, field.name()), field.index(), field.schema());
+  }
+
+  public static String buildAliasedFieldName(final String alias, final String fieldName) {
+    final String prefix = alias + FIELD_NAME_DELIMITER;
+    if (fieldName.startsWith(prefix)) {
+      return fieldName;
+    }
+    return prefix + fieldName;
   }
 
   public static Optional<Field> getFieldByName(final Schema schema, final String fieldName) {
@@ -176,16 +190,17 @@ public final class SchemaUtil {
     }
     for (int i = 0; i < schema.fields().size(); i++) {
       final Field field = schema.fields().get(i);
-      final int dotIndex = field.name().indexOf('.');
+      final int dotIndex = field.name().indexOf(FIELD_NAME_DELIMITER);
       if (dotIndex == -1) {
         if (field.name().equals(fieldName)) {
           return i;
         }
       } else {
         if (dotIndex < fieldName.length()) {
-          final String
-              fieldNameWithDot =
-              fieldName.substring(0, dotIndex) + "." + fieldName.substring(dotIndex + 1);
+          final String fieldNameWithDot =
+              fieldName.substring(0, dotIndex)
+                  + FIELD_NAME_DELIMITER
+                  + fieldName.substring(dotIndex + 1);
           if (field.name().equals(fieldNameWithDot)) {
             return i;
           }
@@ -199,7 +214,7 @@ public final class SchemaUtil {
   public static Schema buildSchemaWithAlias(final Schema schema, final String alias) {
     final SchemaBuilder newSchema = SchemaBuilder.struct().name(schema.name());
     for (final Field field : schema.fields()) {
-      newSchema.field((alias + "." + field.name()), field.schema());
+      newSchema.field((buildAliasedFieldName(alias, field.name())), field.schema());
     }
     return newSchema.build();
   }
@@ -240,7 +255,7 @@ public final class SchemaUtil {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (final Field field : schema.fields()) {
       String fieldName = field.name();
-      fieldName = fieldName.substring(fieldName.indexOf('.') + 1);
+      fieldName = fieldName.substring(fieldName.indexOf(FIELD_NAME_DELIMITER) + 1);
       if (!fieldName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
           && !fieldName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
         schemaBuilder.field(fieldName, field.schema());
@@ -348,25 +363,14 @@ public final class SchemaUtil {
     return createUnion(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL), schema);
   }
 
-  /**
-   * Rename field names to be consistent with the internal column names.
-   */
-  public static Schema getAvroSerdeKsqlSchema(final Schema schema) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-    for (final Field field : schema.fields()) {
-      schemaBuilder.field(field.name().replace(".", "_"), field.schema());
-    }
-
-    return schemaBuilder.build();
-  }
-
   public static String getFieldNameWithNoAlias(final Field field) {
     final String name = field.name();
-    if (name.contains(".")) {
-      return name.substring(name.indexOf(".") + 1);
-    } else {
+    final int idx = name.indexOf(FIELD_NAME_DELIMITER);
+    if (idx < 0) {
       return name;
     }
+
+    return name.substring(idx + 1);
   }
 
   public static boolean areEqualSchemas(final Schema schema1, final Schema schema2) {

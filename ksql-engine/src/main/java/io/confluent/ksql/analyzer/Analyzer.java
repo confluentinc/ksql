@@ -275,7 +275,8 @@ class Analyzer {
 
     if ("AVRO".equals(serde)) {
       analysis.getIntoProperties().put(
-          DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME, avroSchemaFullName != null
+          DdlConfig.VALUE_AVRO_SCHEMA_FULL_NAME,
+          avroSchemaFullName != null
               ? avroSchemaFullName : KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
     } else if (avroSchemaFullName != null) {
       throw new KsqlException(
@@ -424,14 +425,16 @@ class Analyzer {
           new StructuredDataSourceNode(
               new PlanNodeId("KafkaTopic_Left"),
               leftDataSource,
-              leftDataSource.getSchema()
+              leftDataSource.getSchema(),
+              leftDataSource.getKeyField()
           );
       final StructuredDataSourceNode
           rightSourceKafkaTopicNode =
           new StructuredDataSourceNode(
               new PlanNodeId("KafkaTopic_Right"),
               rightDataSource,
-              rightDataSource.getSchema()
+              rightDataSource.getSchema(),
+              rightDataSource.getKeyField()
           );
 
       final JoinNode joinNode =

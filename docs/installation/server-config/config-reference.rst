@@ -172,7 +172,7 @@ Note that replicas for record processing log topic should be configrued separate
 
 ---------------------------------
 ksql.sink.partitions (Deprecated)
---------------------
+---------------------------------
 
 The default number of partitions for the topics created by KSQL. The default is four.
 This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.

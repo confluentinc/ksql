@@ -123,24 +123,24 @@ in KSQL statements.
 .. code:: sql
 
     -- Example timestamp format: yyyy-MM-dd'T'HH:mm:ssX
-    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR) \
-      WITH (kafka_topic='test_topic',                       \
-            value_format='JSON',                            \
-            timestamp='event_timestamp',                    \
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
             timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');
 
     -- Example timestamp format: yyyy.MM.dd G 'at' HH:mm:ss z
-    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)    \
-      WITH (kafka_topic='test_topic',                          \
-            value_format='JSON',                               \
-            timestamp='event_timestamp',                       \
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
             timestamp_format='yyyy.MM.dd G ''at'' HH:mm:ss z');
 
     -- Example timestamp format: hh 'o'clock' a, zzzz
-    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR) \
-      WITH (kafka_topic='test_topic',                       \
-            value_format='JSON',                            \
-            timestamp='event_timestamp',                    \
+    CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
+      WITH (kafka_topic='test_topic',
+            value_format='JSON',
+            timestamp='event_timestamp',
             timestamp_format='hh ''o''clock'' a, zzzz');
 
 For more information on timestamp formats, see

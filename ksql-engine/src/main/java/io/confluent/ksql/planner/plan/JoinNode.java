@@ -198,12 +198,13 @@ public class JoinNode extends PlanNode {
     final int rightPartitions = right.getPartitions(kafkaTopicClient);
 
     if (leftPartitions != rightPartitions) {
-      throw new KsqlException("Can't join " + getSourceName(left) + " with "
-                              + getSourceName(right) + " since the number of partitions don't "
-                              + "match. " + getSourceName(left) + " partitions = "
-                              + leftPartitions + "; " + getSourceName(right) + " partitions = "
-                              + rightPartitions + ". Please repartition either one so that the "
-                              + "number of partitions match.");
+      throw new KsqlException(
+          "Can't join " + getSourceName(left) + " with "
+              + getSourceName(right) + " since the number of partitions don't "
+              + "match. " + getSourceName(left) + " partitions = "
+              + leftPartitions + "; " + getSourceName(right) + " partitions = "
+              + rightPartitions + ". Please repartition either one so that the "
+              + "number of partitions match.");
     }
   }
 
@@ -227,20 +228,11 @@ public class JoinNode extends PlanNode {
     ) {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KSTREAM),
-          () -> new StreamToStreamJoiner(
-              builder,
-              joinNode,
-              contextStacker),
+          () -> new StreamToStreamJoiner(builder, joinNode, contextStacker),
           new Pair<>(DataSource.DataSourceType.KSTREAM, DataSource.DataSourceType.KTABLE),
-          () -> new StreamToTableJoiner(
-              builder,
-              joinNode,
-              contextStacker),
+          () -> new StreamToTableJoiner(builder, joinNode, contextStacker),
           new Pair<>(DataSource.DataSourceType.KTABLE, DataSource.DataSourceType.KTABLE),
-          () -> new TableToTableJoiner(
-              builder,
-              joinNode,
-              contextStacker)
+          () -> new TableToTableJoiner(builder, joinNode, contextStacker)
       );
     }
 
@@ -404,40 +396,31 @@ public class JoinNode extends PlanNode {
 
       switch (joinNode.joinType) {
         case LEFT:
-          return leftStream.leftJoin(rightStream,
-                                     joinNode.schema,
+          return leftStream.leftJoin(
+              rightStream,
+              joinNode.schema,
               getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
-                                     joinNode.withinExpression.joinWindow(),
-                                     getSerDeForNode(
-                                         joinNode.left,
-                                         contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
-                                     getSerDeForNode(
-                                         joinNode.right,
-                                         contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
+              joinNode.withinExpression.joinWindow(),
+              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
-          return leftStream.outerJoin(rightStream,
-                                      joinNode.schema,
+          return leftStream.outerJoin(
+              rightStream,
+              joinNode.schema,
               getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
-                                      joinNode.withinExpression.joinWindow(),
-                                      getSerDeForNode(
-                                          joinNode.left,
-                                          contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
-                                      getSerDeForNode(
-                                          joinNode.right,
-                                          contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
+              joinNode.withinExpression.joinWindow(),
+              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case INNER:
-          return leftStream.join(rightStream,
-                                 joinNode.schema,
+          return leftStream.join(
+              rightStream,
+              joinNode.schema,
               getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
-                                 joinNode.withinExpression.joinWindow(),
-                                 getSerDeForNode(
-                                     joinNode.left,
-                                     contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
-                                 getSerDeForNode(
-                                     joinNode.right,
-                                     contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
+              joinNode.withinExpression.joinWindow(),
+              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForNode(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
@@ -472,21 +455,19 @@ public class JoinNode extends PlanNode {
 
       switch (joinNode.joinType) {
         case LEFT:
-          return leftStream.leftJoin(rightTable,
-                                     joinNode.schema,
+          return leftStream.leftJoin(
+              rightTable,
+              joinNode.schema,
               getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
-                                     getSerDeForNode(
-                                         joinNode.left,
-                                         contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
 
         case INNER:
-          return leftStream.join(rightTable,
-                                 joinNode.schema,
+          return leftStream.join(
+              rightTable,
+              joinNode.schema,
               getJoinKey(joinNode.leftAlias, leftStream.getKeyField()),
-                                 getSerDeForNode(
-                                     joinNode.left,
-                                     contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
+              getSerDeForNode(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:
           throw new KsqlException("Full outer joins between streams and tables (stream: left, "

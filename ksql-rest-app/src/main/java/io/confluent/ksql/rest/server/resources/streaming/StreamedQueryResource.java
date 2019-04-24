@@ -40,11 +40,11 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -59,7 +59,6 @@ public class StreamedQueryResource {
 
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
-  private final Supplier<ServiceContext> serviceContextFactory;
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
@@ -70,7 +69,6 @@ public class StreamedQueryResource {
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final Supplier<ServiceContext> serviceContextFactory,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -79,8 +77,6 @@ public class StreamedQueryResource {
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.serviceContextFactory =
-        Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
@@ -93,24 +89,25 @@ public class StreamedQueryResource {
   }
 
   @POST
-  public Response streamQuery(final KsqlRequest request) throws Exception {
-    try (ServiceContext serviceContext = getServiceContext()) {
-      if (!ksqlEngine.isAcceptingStatements()) {
-        return Errors.serverErrorForStatement(
-            new KsqlException("Cluster has been terminated."),
-            "The cluster has been terminated. No new request will be accepted.",
-            new KsqlEntityList());
-      }
-
-      activenessRegistrar.updateLastRequestTime();
-
-      final PreparedStatement<?> statement = parseStatement(request);
-
-      CommandStoreUtil.httpWaitForCommandSequenceNumber(
-          commandQueue, request, commandQueueCatchupTimeout);
-
-      return handleStatement(serviceContext, request, statement);
+  public Response streamQuery(
+      @Context final ServiceContext serviceContext,
+      final KsqlRequest request
+  ) throws Exception {
+    if (!ksqlEngine.isAcceptingStatements()) {
+      return Errors.serverErrorForStatement(
+          new KsqlException("Cluster has been terminated."),
+          "The cluster has been terminated. No new request will be accepted.",
+          new KsqlEntityList());
     }
+
+    activenessRegistrar.updateLastRequestTime();
+
+    final PreparedStatement<?> statement = parseStatement(request);
+
+    CommandStoreUtil.httpWaitForCommandSequenceNumber(
+        commandQueue, request, commandQueueCatchupTimeout);
+
+    return handleStatement(serviceContext, request, statement);
   }
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
@@ -211,9 +208,5 @@ public class StreamedQueryResource {
 
     log.info("Printing topic '{}'", topicName);
     return Response.ok().entity(topicStreamWriter).build();
-  }
-
-  private ServiceContext getServiceContext() {
-    return serviceContextFactory.get();
   }
 }

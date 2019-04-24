@@ -134,7 +134,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
@@ -244,12 +243,8 @@ public class KsqlResourceTest {
 
   private String streamName;
 
-  private Set<ServiceContext> serviceContexts = new HashSet<>();
-
   @Before
   public void setUp() throws IOException, RestClientException {
-    serviceContexts.clear();
-
     commandStatus = new QueuedCommandStatus(
         0, new CommandStatusFuture(new CommandId(TOPIC, "whateva", CREATE)));
 
@@ -285,7 +280,7 @@ public class KsqlResourceTest {
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
 
     when(schemaInjectorFactory.apply(any())).thenReturn(sandboxSchemaInjector);
-    when(schemaInjectorFactory.apply(argThat(isIn(serviceContexts)))).thenReturn(schemaInjector);
+    when(schemaInjectorFactory.apply(serviceContext)).thenReturn(schemaInjector);
 
     when(topicInjectorFactory.apply(any())).thenReturn(sandboxTopicInjector);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
@@ -1494,7 +1489,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldUpdateTheLastRequestTime() {
     // When:
-    ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
+    ksqlResource.handleKsqlStatements(serviceContext, VALID_EXECUTABLE_REQUEST);
 
     // Then:
     verify(activenessRegistrar).updateLastRequestTime();
@@ -1503,7 +1498,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldHandleTerminateRequestCorrectly() {
     // When:
-    final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+    final Response response = ksqlResource.terminateCluster(
+        serviceContext,
+        VALID_TERMINATE_REQUEST
+    );
 
     // Then:
     assertThat(response.getStatus(), equalTo(200));
@@ -1529,7 +1527,10 @@ public class KsqlResourceTest {
     when(commandStore.enqueueCommand(any())).thenThrow(new KsqlException(""));
 
     // When:
-    final Response response = ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
+    final Response response = ksqlResource.terminateCluster(
+        serviceContext,
+        VALID_TERMINATE_REQUEST
+    );
 
     // Then:
     assertThat(response.getStatus(), equalTo(500));
@@ -1551,7 +1552,7 @@ public class KsqlResourceTest {
         "Invalid pattern: [Invalid Regex"))));
 
     // When:
-    ksqlResource.terminateCluster(request);
+    ksqlResource.terminateCluster(serviceContext, request);
   }
 
   @Test
@@ -1706,54 +1707,6 @@ public class KsqlResourceTest {
     makeRequest(statement);
   }
 
-  @Test
-  public void shouldUseOneServiceContextPerKsqlRequest() {
-    // Given:
-    final ServiceContext sc1 = mock(ServiceContext.class);
-    final ServiceContext sc2 = mock(ServiceContext.class);
-
-    final List<ServiceContext> serviceContexts = new ArrayList<>();
-    serviceContexts.addAll(Arrays.asList(sc1, sc2));
-
-    final KsqlResource ksqlResource = givenKsqlResource(() -> serviceContexts.remove(0));
-
-    // When:
-    ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
-    final int itemsLeft1 = serviceContexts.size();
-    ksqlResource.handleKsqlStatements(VALID_EXECUTABLE_REQUEST);
-    final int itemsLeft0 = serviceContexts.size();
-
-    // Then:
-    verify(sc1, times(1)).close();
-    assertThat(itemsLeft1, is(1));
-    verify(sc2, times(1)).close();
-    assertThat(itemsLeft0, is(0));
-  }
-
-  @Test
-  public void shouldUseOneServiceContextPerTerminateRequest() {
-    // Given:
-    final ServiceContext sc1 = mock(ServiceContext.class);
-    final ServiceContext sc2 = mock(ServiceContext.class);
-
-    final List<ServiceContext> serviceContexts = new ArrayList<>();
-    serviceContexts.addAll(Arrays.asList(sc1, sc2));
-
-    final KsqlResource ksqlResource = givenKsqlResource(() -> serviceContexts.remove(0));
-
-    // When:
-    ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
-    final int itemsLeft1 = serviceContexts.size();
-    ksqlResource.terminateCluster(VALID_TERMINATE_REQUEST);
-    final int itemsLeft0 = serviceContexts.size();
-
-    // Then:
-    verify(sc1, times(1)).close();
-    assertThat(itemsLeft1, is(1));
-    verify(sc2, times(1)).close();
-    assertThat(itemsLeft0, is(0));
-  }
-
   private Answer<?> executeAgainstEngine(final String sql) {
     return invocation -> {
       KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
@@ -1830,7 +1783,7 @@ public class KsqlResourceTest {
 
   private KsqlErrorMessage makeFailingRequest(final KsqlRequest ksqlRequest, final Code errorCode) {
     try {
-      final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
+      final Response response = ksqlResource.handleKsqlStatements(serviceContext, ksqlRequest);
       assertThat(response.getStatus(), is(errorCode.getCode()));
       assertThat(response.getEntity(), instanceOf(KsqlErrorMessage.class));
       return (KsqlErrorMessage) response.getEntity();
@@ -1890,7 +1843,7 @@ public class KsqlResourceTest {
       final KsqlRequest ksqlRequest,
       final Class<T> expectedEntityType) {
 
-    final Response response = ksqlResource.handleKsqlStatements(ksqlRequest);
+    final Response response = ksqlResource.handleKsqlStatements(serviceContext, ksqlRequest);
     if (response.getStatus() != Response.Status.OK.getStatusCode()) {
       throw new KsqlRestException(response);
     }
@@ -1927,11 +1880,10 @@ public class KsqlResourceTest {
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 
-  private KsqlResource givenKsqlResource(final Supplier<ServiceContext> serviceContextFactory) {
-    return new KsqlResource(
+  private void setUpKsqlResource() {
+    ksqlResource = new KsqlResource(
         ksqlConfig,
         ksqlEngine,
-        serviceContextFactory,
         commandStore,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
         activenessRegistrar,
@@ -1939,16 +1891,6 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec))
     );
-  }
-
-  private void setUpKsqlResource() {
-    ksqlResource = givenKsqlResource(this::createTestServiceContext);
-  }
-
-  private ServiceContext createTestServiceContext() {
-    final ServiceContext sc = spy(TestServiceContext.create(kafkaTopicClient));
-    serviceContexts.add(sc);
-    return sc;
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

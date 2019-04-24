@@ -54,12 +54,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -89,13 +89,11 @@ public class KsqlResource {
   private final ActivenessRegistrar activenessRegistrar;
   private final RequestValidator validator;
   private final RequestHandler handler;
-  private final Supplier<ServiceContext> serviceContextFactory;
 
 
   public KsqlResource(
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final Supplier<ServiceContext> serviceContextFactory,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
@@ -107,8 +105,6 @@ public class KsqlResource {
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
-    this.serviceContextFactory =
-        Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
 
     this.validator = new RequestValidator(
         CustomValidators.VALIDATOR_MAP,
@@ -132,9 +128,12 @@ public class KsqlResource {
 
   @POST
   @Path("/terminate")
-  public Response terminateCluster(final ClusterTerminateRequest request) {
+  public Response terminateCluster(
+      @Context final ServiceContext serviceContext,
+      final ClusterTerminateRequest request
+  ) {
     ensureValidPatterns(request.getDeleteTopicList());
-    try (ServiceContext serviceContext = getServiceContext()) {
+    try {
       return Response.ok(
           handler.execute(serviceContext, TERMINATE_CLUSTER, request.getStreamsProperties())
       ).build();
@@ -145,7 +144,10 @@ public class KsqlResource {
   }
 
   @POST
-  public Response handleKsqlStatements(final KsqlRequest request) {
+  public Response handleKsqlStatements(
+      @Context final ServiceContext serviceContext,
+      final KsqlRequest request
+  ) {
     if (!ksqlEngine.isAcceptingStatements()) {
       return Errors.serverErrorForStatement(
           new KsqlException("The cluster has been terminated. No new request will be accepted."),
@@ -155,7 +157,7 @@ public class KsqlResource {
     }
     activenessRegistrar.updateLastRequestTime();
 
-    try (ServiceContext serviceContext = getServiceContext()) {
+    try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
           commandQueue,
           request,
@@ -201,9 +203,5 @@ public class KsqlResource {
             throw new KsqlRestException(Errors.badRequest("Invalid pattern: " + pattern));
           }
         });
-  }
-
-  private ServiceContext getServiceContext() {
-    return serviceContextFactory.get();
   }
 }

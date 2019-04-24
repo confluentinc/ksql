@@ -130,9 +130,6 @@ public class StreamedQueryResourceTest {
   private final static String queryString = "SELECT * FROM test_stream;";
   private PreparedStatement<Statement> statement;
 
-  private static final KsqlRequest VALID_STREAM_REQUEST =
-      new KsqlRequest(queryString, Collections.emptyMap(), null);
-
   @Before
   public void setup() {
     expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
@@ -146,56 +143,11 @@ public class StreamedQueryResourceTest {
     testResource = new StreamedQueryResource(
         ksqlConfig,
         mockKsqlEngine,
-        () -> serviceContext,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar);
-  }
-
-  private StreamedQueryResource givenStreamedQueryResource(
-      final Supplier<ServiceContext> serviceContextFactory
-  ) {
-    return new StreamedQueryResource(
-        ksqlConfig,
-        mockKsqlEngine,
-        serviceContextFactory,
-        mockStatementParser,
-        commandQueue,
-        DISCONNECT_CHECK_INTERVAL,
-        COMMAND_QUEUE_CATCHUP_TIMOEUT,
-        activenessRegistrar);
-  }
-
-  @Test
-  public void shouldUseOneServiceContextPerStreamRequest() throws Exception {
-    // Given:
-    final ServiceContext sc1 = mock(ServiceContext.class);
-    final ServiceContext sc2 = mock(ServiceContext.class);
-
-    final List<ServiceContext> serviceContexts = new ArrayList<>();
-    serviceContexts.addAll(Arrays.asList(sc1, sc2));
-
-    sc1.close();
-    expectLastCall().once();
-    sc2.close();
-    expectLastCall().once();
-    replay(sc1, sc2);
-
-    final StreamedQueryResource queryResource = givenStreamedQueryResource(
-        () -> serviceContexts.remove(0)
-    );
-
-    // When:
-    queryResource.streamQuery(VALID_STREAM_REQUEST);
-    final int itemsLeft1 = serviceContexts.size();
-    queryResource.streamQuery(VALID_STREAM_REQUEST);
-    final int itemsLeft0 = serviceContexts.size();
-
-    // Then:
-    assertThat(itemsLeft1, Matchers.is(1));
-    assertThat(itemsLeft0, Matchers.is(0));
   }
 
   @Test
@@ -208,7 +160,10 @@ public class StreamedQueryResourceTest {
 
     // When:
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+        testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(queryString, Collections.emptyMap(), null)
+        );
 
     // Then:
     assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
@@ -234,7 +189,10 @@ public class StreamedQueryResourceTest {
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_BAD_STATEMENT))));
 
     // When:
-    testResource.streamQuery(new KsqlRequest("query", Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest("query", Collections.emptyMap(), null)
+    );
   }
 
   @Test
@@ -243,7 +201,10 @@ public class StreamedQueryResourceTest {
     replay(commandQueue);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), null)
+    );
 
     // Then:
     verify(commandQueue);
@@ -258,7 +219,10 @@ public class StreamedQueryResourceTest {
     replay(commandQueue);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), 3L)
+    );
 
     // Then:
     verify(commandQueue);
@@ -282,7 +246,10 @@ public class StreamedQueryResourceTest {
         exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), 3L));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), 3L)
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -362,7 +329,10 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
     final Response response =
-        testResource.streamQuery(new KsqlRequest(queryString, requestStreamsProperties, null));
+        testResource.streamQuery(
+            serviceContext,
+            new KsqlRequest(queryString, requestStreamsProperties, null)
+        );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
     final StreamingOutput responseStream = (StreamingOutput) response.getEntity();
@@ -484,7 +454,10 @@ public class StreamedQueryResourceTest {
     EasyMock.replay(activenessRegistrar);
 
     // When:
-    testResource.streamQuery(new KsqlRequest(queryString, Collections.emptyMap(), null));
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(queryString, Collections.emptyMap(), null)
+    );
 
     // Then:
     EasyMock.verify(activenessRegistrar);

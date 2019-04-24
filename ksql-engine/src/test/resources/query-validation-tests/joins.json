@@ -1086,12 +1086,21 @@
     },
     {
       "name": "join using ROWKEY in the criteria",
+      "comments": [
+        "To maintain backwards compatibility with previous version's expected topologies this test",
+        "sets 'ksql.query.fields.key.legacy' to 'true'. A new test called:",
+        "'join using ROWKEY in the criteria - new key fields' has been added to test with the fixed",
+        "key field functionality"
+      ],
       "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}', key='ID');",
         "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
       "inputs": [
         {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
         {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
@@ -1159,7 +1168,8 @@
       ],
       "properties": {
         "ksql.named.internal.topics": "off",
-        "ksql.streams.topology.optimization": "none"
+        "ksql.streams.topology.optimization": "none",
+        "ksql.query.fields.key.legacy": "true"
       },
       "inputs": [
         {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
@@ -1207,7 +1217,8 @@
       ],
       "properties": {
         "ksql.named.internal.topics": "off",
-        "ksql.streams.topology.optimization": "none"
+        "ksql.streams.topology.optimization": "none",
+        "ksql.query.fields.key.legacy": "true"
       },
       "inputs": [
         {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
@@ -1253,6 +1264,9 @@
         "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
       "inputs": [
         {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
         {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},
@@ -1297,6 +1311,9 @@
         "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='AVRO', key='ID');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.ROWKEY = tt.ROWKEY;"
       ],
+      "properties": {
+        "ksql.query.fields.key.legacy": "true"
+      },
       "inputs": [
         {"topic": "test_table", "key": 0, "value": {"ID": 0, "F1": "zero", "F2": 0}, "timestamp": 0},
         {"topic": "test_table", "key": 10, "value": {"ID": 10, "F1": "100", "F2": 5}, "timestamp": 10000},

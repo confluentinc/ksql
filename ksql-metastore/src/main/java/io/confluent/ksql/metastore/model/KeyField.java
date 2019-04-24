@@ -79,10 +79,6 @@ public final class KeyField {
    * @throws IllegalArgumentException if the key is not within the supplied schema.
    */
   public KeyField validateKeyExistsIn(final Schema schema) {
-    if (keyField.isPresent() && keyField.get().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
-      return this;
-    }
-
     resolveKey(schema);
     return this;
   }

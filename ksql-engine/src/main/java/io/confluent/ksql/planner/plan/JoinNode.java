@@ -217,6 +217,7 @@ public class JoinNode extends PlanNode {
   }
 
   private static class JoinerFactory {
+
     private final Map<
         Pair<DataSource.DataSourceType, DataSource.DataSourceType>,
         Supplier<Joiner>> joinerMap;
@@ -241,7 +242,7 @@ public class JoinNode extends PlanNode {
 
       return joinerMap.getOrDefault(new Pair<>(leftType, rightType), () -> {
         throw new KsqlException("Join between invalid operands requested: left type: "
-                                + leftType + ", right type: " + rightType);
+            + leftType + ", right type: " + rightType);
       }).get();
     }
   }
@@ -283,8 +284,8 @@ public class JoinNode extends PlanNode {
     ) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
           builder.withKsqlConfig(builder.getKsqlConfig()
-                  .cloneWithPropertyOverwrite(Collections.singletonMap(
-                      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
+              .cloneWithPropertyOverwrite(Collections.singletonMap(
+                  ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
       );
 
       if (!(schemaKStream instanceof SchemaKTable)) {
@@ -332,8 +333,8 @@ public class JoinNode extends PlanNode {
         final PlanNode node,
         final QueryContext.Stacker contextStacker) {
       if (!(node instanceof StructuredDataSourceNode)) {
-        throw new KsqlException("The source for Join must be a primitive data source (Stream or "
-                                + "Table).");
+        throw new KsqlException(
+            "The source for Join must be a primitive data source (Stream or Table).");
       }
       final StructuredDataSourceNode dataSourceNode = (StructuredDataSourceNode) node;
       final StructuredDataSource dataSource = dataSourceNode.getStructuredDataSource();
@@ -382,10 +383,10 @@ public class JoinNode extends PlanNode {
     public SchemaKStream<K> join() {
       if (joinNode.withinExpression == null) {
         throw new KsqlException("Stream-Stream joins must have a WITHIN clause specified. None was "
-                                + "provided. To learn about how to specify a WITHIN clause with a "
-                                + "stream-stream join, please visit: https://docs.confluent"
-                                + ".io/current/ksql/docs/syntax-reference.html"
-                                + "#create-stream-as-select");
+            + "provided. To learn about how to specify a WITHIN clause with a "
+            + "stream-stream join, please visit: https://docs.confluent"
+            + ".io/current/ksql/docs/syntax-reference.html"
+            + "#create-stream-as-select");
       }
 
       final SchemaKStream<K> leftStream = buildStream(
@@ -443,8 +444,8 @@ public class JoinNode extends PlanNode {
     public SchemaKStream<K> join() {
       if (joinNode.withinExpression != null) {
         throw new KsqlException("A window definition was provided for a Stream-Table join. These "
-                                + "joins are not windowed. Please drop the window definition (ie."
-                                + " the WITHIN clause) and try to execute your join again.");
+            + "joins are not windowed. Please drop the window definition (ie."
+            + " the WITHIN clause) and try to execute your join again.");
       }
 
       final SchemaKTable<K> rightTable = buildTable(
@@ -471,7 +472,7 @@ public class JoinNode extends PlanNode {
               contextStacker);
         case OUTER:
           throw new KsqlException("Full outer joins between streams and tables (stream: left, "
-                                  + "table: right) are not supported.");
+              + "table: right) are not supported.");
 
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
@@ -494,17 +495,17 @@ public class JoinNode extends PlanNode {
     public SchemaKTable<K> join() {
       if (joinNode.withinExpression != null) {
         throw new KsqlException("A window definition was provided for a Table-Table join. These "
-                                + "joins are not windowed. Please drop the window definition "
-                                + "(i.e. the WITHIN clause) and try to execute your Table-Table "
-                                + "join again.");
+            + "joins are not windowed. Please drop the window definition "
+            + "(i.e. the WITHIN clause) and try to execute your Table-Table "
+            + "join again.");
       }
 
       final SchemaKTable<K> leftTable = buildTable(joinNode.getLeft(),
-                                                joinNode.getLeftKeyFieldName(),
-                                                joinNode.getLeftAlias());
+          joinNode.getLeftKeyFieldName(),
+          joinNode.getLeftAlias());
       final SchemaKTable<K> rightTable = buildTable(joinNode.getRight(),
-                                                 joinNode.getRightKeyFieldName(),
-                                                 joinNode.getRightAlias());
+          joinNode.getRightKeyFieldName(),
+          joinNode.getRightAlias());
 
       switch (joinNode.joinType) {
         case LEFT:

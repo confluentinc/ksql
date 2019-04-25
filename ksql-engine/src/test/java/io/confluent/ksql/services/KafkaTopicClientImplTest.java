@@ -357,6 +357,7 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void shouldAddTopicConfig() {
     final Map<String, ?> overrides = ImmutableMap.of(
@@ -406,6 +407,7 @@ public class KafkaTopicClientImplTest {
     verify(adminClient);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void shouldRetryAddingTopicConfig() {
     final Map<String, ?> overrides = ImmutableMap.of(

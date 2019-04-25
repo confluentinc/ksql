@@ -1,0 +1,63 @@
+{
+  "comments": [
+    "Test cases that cover the use of identifiers within KSQL"
+  ],
+  "tests": [
+    {
+      "name": "aliased source",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT I.FOO FROM INPUT I;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 1}}
+      ]
+    },
+    {
+      "name": "aliased source with AS",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT I.FOO FROM INPUT AS I;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 1}}
+      ]
+    },
+    {
+      "name": "aliased join source",
+      "statements": [
+        "CREATE STREAM INPUT_1 (foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON', KEY='FOO');",
+        "CREATE STREAM INPUT_2 (foo INT, bar INT) WITH (kafka_topic='t2', value_format='JSON', KEY='FOO');",
+        "CREATE STREAM OUTPUT AS SELECT I1.BAR, I2.BAR FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 1 MINUTE ON I1.FOO = I2.FOO;"
+      ],
+      "inputs": [
+        {"topic": "t1", "value": {"foo": 1, "bar": 2}},
+        {"topic": "t2", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I1_BAR": 2, "I2_BAR": 2}}
+      ]
+    },
+    {
+      "name": "aliased join source with AS",
+      "statements": [
+        "CREATE STREAM INPUT_1 (foo INT, bar INT) WITH (kafka_topic='t1', value_format='JSON', KEY='FOO');",
+        "CREATE STREAM INPUT_2 (foo INT, bar INT) WITH (kafka_topic='t2', value_format='JSON', KEY='FOO');",
+        "CREATE STREAM OUTPUT AS SELECT I1.BAR, I2.BAR FROM INPUT_1 AS I1 JOIN INPUT_2 AS I2 WITHIN 1 MINUTE ON I1.FOO = I2.FOO;"
+      ],
+      "inputs": [
+        {"topic": "t1", "value": {"foo": 1, "bar": 2}},
+        {"topic": "t2", "value": {"foo": 1, "bar": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I1_BAR": 2, "I2_BAR": 2}}
+      ]
+    }
+  ]
+}

@@ -799,16 +799,25 @@ public class AstBuilder {
       final Relation child = (Relation) visit(context.relationPrimary());
 
       final String alias;
-      if (context.children.size() == 1) {
-        final Table table = (Table) visit(context.relationPrimary());
-        alias = table.getName().getSuffix();
-      } else if (context.children.size() == 2) {
-        alias = context.children.get(1).getText();
-      } else {
-        throw new IllegalArgumentException(
-            "AliasedRelationContext must have either 1 or 2 children, but has:"
-                + context.children.size()
-        );
+      switch (context.children.size()) {
+        case 1:
+          final Table table = (Table) visit(context.relationPrimary());
+          alias = table.getName().getSuffix();
+          break;
+
+        case 2:
+          alias = context.children.get(1).getText();
+          break;
+
+        case 3:
+          alias = context.children.get(2).getText();
+          break;
+
+        default:
+          throw new IllegalArgumentException(
+              "AliasedRelationContext must have between 1 and 3 children, but has:"
+                  + context.children.size()
+          );
       }
 
       return new AliasedRelation(getLocation(context), child, alias);
